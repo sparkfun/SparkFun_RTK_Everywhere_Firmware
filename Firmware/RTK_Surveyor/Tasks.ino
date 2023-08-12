@@ -78,9 +78,9 @@ volatile int32_t availableHandlerSpace; // settings.gnssHandlerBufferSize - used
 volatile const char *slowConsumer;
 
 // Buffer the incoming Bluetooth stream so that it can be passed in bulk over I2C
-uint8_t bluetoothOutgoingToZed[100];
-uint16_t bluetoothOutgoingToZedHead;
-unsigned long lastZedI2CSend; // Timestamp of the last time we sent RTCM ZED over I2C
+uint8_t bluetoothOutgoingToGnss[100];
+uint16_t bluetoothOutgoingToGnssHead;
+unsigned long lastGnssSend; // Timestamp of the last time we sent RTCM to GNSS
 
 // Ring buffer tails
 static RING_BUFFER_OFFSET btRingBufferTail; // BT Tail advances as it is sent over BT
@@ -93,7 +93,7 @@ static uint16_t rbOffsetHead;
 // Task routines
 //----------------------------------------
 
-// If the phone has any new data (NTRIP RTCM, etc), read it in over Bluetooth and pass along to ZED
+// If the phone has any new data (NTRIP RTCM, etc), read it in over Bluetooth and pass along to GNSS
 // Scan for escape characters to enter config menu
 void btReadTask(void *e)
 {
@@ -140,11 +140,11 @@ void btReadTask(void *e)
                         // Ignore this escape character, passing along to output
                         if (USE_I2C_GNSS)
                         {
-                            // serialGNSS.write(incoming);
-                            addToZedI2CBuffer(btEscapeCharacter);
+                            // serialGNSS->write(incoming);
+                            addToGnssBuffer(btEscapeCharacter);
                         }
                         else
-                            theGNSS.pushRawData(&incoming, 1);
+                            gnssPushRawData(&incoming, 1);
                     }
                 }
                 else // This is just a character in the stream, ignore
@@ -154,13 +154,13 @@ void btReadTask(void *e)
                     {
                         if (USE_I2C_GNSS)
                         {
-                            // serialGNSS.write(btEscapeCharacter);
-                            addToZedI2CBuffer(btEscapeCharacter);
+                            // serialGNSS->write(btEscapeCharacter);
+                            addToGnssBuffer(btEscapeCharacter);
                         }
                         else
                         {
                             uint8_t escChar = btEscapeCharacter;
-                            theGNSS.pushRawData(&escChar, 1);
+                            gnssPushRawData(&escChar, 1);
                         }
                     }
 
@@ -170,11 +170,11 @@ void btReadTask(void *e)
                     {
                         // UART RX can be corrupted by UART TX
                         // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
-                        // serialGNSS.write(incoming);
-                        addToZedI2CBuffer(incoming);
+                        // serialGNSS->write(incoming);
+                        addToGnssBuffer(incoming);
                     }
                     else
-                        theGNSS.pushRawData(&incoming, 1);
+                        gnssPushRawData(&incoming, 1);
 
                     btLastByteReceived = millis();
                     btEscapeCharsReceived = 0; // Update timeout check for escape char and partial frame
@@ -191,9 +191,9 @@ void btReadTask(void *e)
             }
         } // End bluetoothGetState() == BT_CONNECTED
 
-        if (bluetoothOutgoingToZedHead > 0 && ((millis() - lastZedI2CSend) > 100))
+        if (bluetoothOutgoingToGnssHead > 0 && ((millis() - lastGnssSend) > 100))
         {
-            sendZedI2CBuffer(); // Send any outstanding RTCM
+            sendGnssBuffer(); // Send any outstanding RTCM
         }
 
         if (settings.enableTaskReports == true)
@@ -204,37 +204,37 @@ void btReadTask(void *e)
     } // End while(true)
 }
 
-// Add byte to buffer that will be sent to ZED
+// Add byte to buffer that will be sent to GNSS
 // We cannot write single characters to the ZED over I2C (as this will change the address pointer)
-void addToZedI2CBuffer(uint8_t incoming)
+void addToGnssBuffer(uint8_t incoming)
 {
-    bluetoothOutgoingToZed[bluetoothOutgoingToZedHead] = incoming;
+    bluetoothOutgoingToGnss[bluetoothOutgoingToGnssHead] = incoming;
 
-    bluetoothOutgoingToZedHead++;
-    if (bluetoothOutgoingToZedHead == sizeof(bluetoothOutgoingToZed))
+    bluetoothOutgoingToGnssHead++;
+    if (bluetoothOutgoingToGnssHead == sizeof(bluetoothOutgoingToGnss))
     {
-        sendZedI2CBuffer();
+        sendGnssBuffer();
     }
 }
 
 // Push the buffered data in bulk to the GNSS over I2C
-bool sendZedI2CBuffer()
+bool sendGnssBuffer()
 {
-    bool response = theGNSS.pushRawData(bluetoothOutgoingToZed, bluetoothOutgoingToZedHead);
+    bool response = gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead);
 
     if (response == true)
     {
         if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
         {
             PERIODIC_CLEAR(PD_ZED_DATA_TX);
-            systemPrintf("ZED TX: Sending %d bytes from I2C\r\n", bluetoothOutgoingToZedHead);
+            systemPrintf("GNSS TX: Sending %d bytes from I2C\r\n", bluetoothOutgoingToGnssHead);
         }
-        // log_d("Pushed %d bytes RTCM to ZED", bluetoothOutgoingToZedHead);
+        // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
     }
 
     // No matter the response, wrap the head and reset the timer
-    bluetoothOutgoingToZedHead = 0;
-    lastZedI2CSend = millis();
+    bluetoothOutgoingToGnssHead = 0;
+    lastGnssSend = millis();
     return (response);
 }
 
@@ -245,7 +245,7 @@ void feedWdt()
 }
 
 //----------------------------------------------------------------------
-// The ESP32<->ZED-F9P serial connection is default 230,400bps to facilitate
+// The ESP32<->GNSS serial connection is default 230,400bps to facilitate
 // 10Hz fix rate with PPP Logging Defaults (NMEAx5 + RXMx2) messages enabled.
 // ESP32 UART2 is begun with settings.uartReceiveBufferSize size buffer. The circular buffer
 // is 1024*6. At approximately 46.1K characters/second, a 6144 * 2
@@ -281,7 +281,7 @@ void feedWdt()
 // Maximum ring buffer fill is settings.gnssHandlerBufferSize - 1
 //----------------------------------------------------------------------
 
-// Read bytes from ZED-F9P UART1 into ESP32 circular buffer
+// Read bytes from GNSS into ESP32 circular buffer
 // If data is coming in at 230,400bps = 23,040 bytes/s = one byte every 0.043ms
 // If SD blocks for 150ms (not extraordinary) that is 3,488 bytes that must be buffered
 // The ESP32 Arduino FIFO is ~120 bytes by default but overridden to 50 bytes (see pinUART2Task() and
@@ -308,11 +308,11 @@ void gnssReadTask(void *e)
         // Determine if serial data is available
         if (USE_I2C_GNSS)
         {
-            while (serialGNSS.available())
+            while (serialGNSS->available())
             {
                 // Read the data from UART1
                 uint8_t incomingData[500];
-                int bytesIncoming = serialGNSS.read(incomingData, sizeof(incomingData));
+                int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
 
                 for (int x = 0; x < bytesIncoming; x++)
                 {
@@ -331,12 +331,12 @@ void gnssReadTask(void *e)
         }
         else // SPI GNSS
         {
-            theGNSS.checkUblox(); // Check for new data
-            while (theGNSS.fileBufferAvailable() > 0)
+            gnssUpdate(); // Check for new data
+            while (theGNSS->fileBufferAvailable() > 0)
             {
                 // Read the data from the logging buffer
-                theGNSS.extractFileBufferData(&incomingData,
-                                              1); // TODO: make this more efficient by reading multiple bytes?
+                theGNSS->extractFileBufferData(&incomingData,
+                                               1); // TODO: make this more efficient by reading multiple bytes?
 
                 // Save the data byte
                 parse.buffer[parse.length++] = incomingData;
@@ -376,7 +376,7 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
             systemPrint("    ");
         }
         else
-            systemPrint("ZED RX: ");
+            systemPrint("GNSS RX: ");
         switch (type)
         {
         case SENTENCE_TYPE_NMEA:
@@ -718,7 +718,7 @@ void handleGnssDataTask(void *e)
                 if ((btRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
                     bytesToSend = settings.gnssHandlerBufferSize - btRingBufferTail;
 
-                // If we are in the config menu, supress data flowing from ZED to cell phone
+                // If we are in the config menu, supress data flowing from GNSS to cell phone
                 if (btPrintEcho == false)
                     // Push new data to BT SPP
                     bytesToSend = bluetoothWrite(&ringBuffer[btRingBufferTail], bytesToSend);
@@ -829,11 +829,11 @@ void handleGnssDataTask(void *e)
                     {
                         int bufferAvailable;
                         if (USE_I2C_GNSS)
-                            bufferAvailable = serialGNSS.available();
+                            bufferAvailable = serialGNSS->available();
                         else
                         {
-                            theGNSS.checkUblox();
-                            bufferAvailable = theGNSS.fileBufferAvailable();
+                            gnssUpdate(); // Regularly poll to get latest data
+                            bufferAvailable = theGNSS->fileBufferAvailable();
                         }
                         int availableUARTSpace;
                         if (USE_I2C_GNSS)
@@ -1620,7 +1620,7 @@ bool tasksStartUART2()
                                 &handleGnssDataTaskHandle,           // Task handle
                                 settings.handleGnssDataTaskCore);    // Core where task should run, 0=core, 1=Arduino
 
-    // Reads data from BT and sends to ZED
+    // Reads data from BT and sends to GNSS
     if (btReadTaskHandle == nullptr)
         xTaskCreatePinnedToCore(btReadTask,                  // Function to call
                                 "btRead",                    // Just for humans

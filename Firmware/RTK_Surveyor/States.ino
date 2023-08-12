@@ -9,7 +9,7 @@ static uint32_t lastStateTime = 0;
 
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the setup button (change between rover/base) is handled by checkpin_setupButton()
-void updateSystemState()
+void stateUpdate()
 {
     if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)
     {
@@ -111,7 +111,7 @@ void updateSystemState()
             displayRoverStart(0);
 
             // If we are survey'd in, but switch is rover then disable survey
-            if (configureUbloxModuleRover() == false)
+            if (gnssConfigureRover() == false)
             {
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -198,7 +198,7 @@ void updateSystemState()
               STATE_BASE_FIXED_NOT_STARTED      | horizontalAccuracy > 0.0
               (next diagram)                    | && horizontalAccuracy
                                                 |  < settings.surveyInStartingAccuracy
-                                                | && surveyInStart() == true
+                                                | && gnssSurveyInStart() == true
                                                 V
                               .-----------------------------------.
                               |   STATE_BASE_TEMP_SURVEY_STARTED  | svinObservationTime >
@@ -249,7 +249,7 @@ void updateSystemState()
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
 
             // Start monitoring the UART1 from ZED for NMEA and UBX data (enables logging)
-            if (tasksStartUART2() && configureUbloxModuleBase())
+            if (tasksStartUART2() && gnssConfigureBase())
             {
                 settings.updateZEDSettings = false; // On the next boot, no need to update the ZED on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
@@ -280,15 +280,18 @@ void updateSystemState()
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
 
+            int siv = gnssGetSiv();
+            float horizontalAccuracy = gnssGetHorizontalAccuracy();
+
             // Check for <1m horz accuracy before starting surveyIn
             systemPrintf("Waiting for Horz Accuracy < %0.2f meters: %0.2f, SIV: %d\r\n",
-                         settings.surveyInStartingAccuracy, horizontalAccuracy, numSV);
+                         settings.surveyInStartingAccuracy, horizontalAccuracy, siv);
 
             if (horizontalAccuracy > 0.0 && horizontalAccuracy < settings.surveyInStartingAccuracy)
             {
                 displaySurveyStart(0); // Show 'Survey'
 
-                if (surveyInStart() == true) // Begin survey
+                if (gnssSurveyInStart() == true) // Begin survey
                 {
                     displaySurveyStarted(500); // Show 'Survey Started'
 
@@ -310,12 +313,13 @@ void updateSystemState()
             }
 
             // Get the data once to avoid duplicate slow responses
-            svinObservationTime = theGNSS.getSurveyInObservationTime(50);
-            svinMeanAccuracy = theGNSS.getSurveyInMeanAccuracy(50);
+            int observationTime = gnssGetSurveyInObservationTime();
+            int meanAccuracy = gnssGetSurveyInMeanAccuracy();
+            int siv = gnssGetSiv();
 
-            if (theGNSS.getSurveyInValid(50) == true) // Survey in complete
+            if (gnssIsSurveyComplete() == true) // Survey in complete
             {
-                systemPrintf("Observation Time: %d\r\n", svinObservationTime);
+                systemPrintf("Observation Time: %d\r\n", observationTime);
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
 
                 if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION))
@@ -333,25 +337,25 @@ void updateSystemState()
             else
             {
                 systemPrint("Time elapsed: ");
-                systemPrint(svinObservationTime);
+                systemPrint(observationTime);
                 systemPrint(" Accuracy: ");
-                systemPrint(svinMeanAccuracy, 3);
+                systemPrint(meanAccuracy, 3);
                 systemPrint(" SIV: ");
-                systemPrint(numSV);
+                systemPrint(siv);
                 systemPrintln();
 
-                if (svinObservationTime > maxSurveyInWait_s)
+                if (observationTime > maxSurveyInWait_s)
                 {
                     systemPrintf("Survey-In took more than %d minutes. Returning to rover mode.\r\n",
                                  maxSurveyInWait_s / 60);
 
-                    if (surveyInReset() == false)
+                    if (gnssSurveyInReset() == false)
                     {
                         systemPrintln("Survey reset failed - attempt 1/3");
-                        if (surveyInReset() == false)
+                        if (gnssSurveyInReset() == false)
                         {
                             systemPrintln("Survey reset failed - attempt 2/3");
-                            if (surveyInReset() == false)
+                            if (gnssSurveyInReset() == false)
                             {
                                 systemPrintln("Survey reset failed - attempt 3/3");
                             }
@@ -390,7 +394,7 @@ void updateSystemState()
         // User has set switch to base with fixed option enabled. Let's configure and try to get there.
         // If fixed base fails, we'll handle it here
         case (STATE_BASE_FIXED_NOT_STARTED): {
-            bool response = startFixedBase();
+            bool response = gnssFixedBaseStart();
             if (response == true)
             {
                 if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION))
@@ -692,14 +696,10 @@ void updateSystemState()
             // Debounce entry into test menu
             if (millis() - lastTestMenuChange > 500)
             {
-                tasksStopUART2(); // Stop absoring ZED serial via task
+                tasksStopUART2(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;
 
-                // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
-                // even if there is no GPS fix. We use it to test serial output.
-                theGNSS.newCfgValset(); // Create a new Configuration Item VALSET message
-                theGNSS.addCfgValset(UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1230_UART2, 1); // Enable message 1230 every second
-                theGNSS.sendCfgValset();                                          // Send the VALSET
+                gnssEnableRTCMTest();
 
                 changeState(STATE_TESTING);
             }
@@ -874,7 +874,7 @@ void updateSystemState()
 
         case (STATE_KEYS_LBAND_CONFIGURE): {
             // Be sure we ignore any external RTCM sources
-            theGNSS.setUART2Input(COM_TYPE_UBX); // Set the UART2 to input UBX (no RTCM)
+            gnssDisableRtcmUart2();
 
             pointperfectApplyKeys(); // Send current keys, if available, to ZED-F9P
 
@@ -913,7 +913,7 @@ void updateSystemState()
 
         case (STATE_KEYS_LBAND_ENCRYPTED): {
             // Since L-Band is not available, be sure RTCM can be provided over UART2
-            theGNSS.setUART2Input(COM_TYPE_RTCM3); // Set the UART2 to input RTCM
+            gnssEnableRtcmUart2();
 
             forceSystemStateUpdate = true;   // Imediately go to this new state
             changeState(settings.lastState); // Go to either rover or base
@@ -1160,7 +1160,7 @@ void updateSystemState()
 
 // System state changes may only occur within main state machine
 // To allow state changes from external sources (ie, Button Tasks) requests can be made
-// Requests are handled at the start of updateSystemState()
+// Requests are handled at the start of stateUpdate()
 void requestChangeState(SystemState requestedState)
 {
     newSystemStateRequested = true;

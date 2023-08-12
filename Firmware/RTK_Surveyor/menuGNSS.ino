@@ -130,7 +130,7 @@ void menuGNSS()
             }
             else
             {
-                setRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
+                gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
                                      // settings.navigationRate, and GSV message
                 // Settings recorded to NVM and file at main menu exit
             }
@@ -145,7 +145,7 @@ void menuGNSS()
             }
             else
             {
-                setRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
+                gnssSetRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
                 // Settings recorded to NVM and file at main menu exit
             }
         }
@@ -194,7 +194,7 @@ void menuGNSS()
                     else
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                    theGNSS.setVal8(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); // Set dynamic model
+                    gnssSetModel(settings.dynamicModel);
                 }
             }
         }
@@ -272,7 +272,7 @@ void menuGNSS()
                 {
                     settings.minElev = minElev; // Recorded to NVM and file at main menu exit
 
-                    theGNSS.setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
+                    gnssSetElevation(settings.minElev);
                 }
                 restartRover = true;
             }
@@ -294,7 +294,7 @@ void menuGNSS()
                     else
                         settings.minCNO_F9P = newMinCNO;
 
-                    theGNSS.setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO, newMinCNO); // Update minCNO
+                    gnssSetMinCno(newMinCNO); // Update minCNO
                 }
                 restartRover = true;
             }
@@ -385,76 +385,6 @@ void menuConstellations()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Given the number of seconds between desired solution reports, determine measurementRate and navigationRate
-// measurementRate > 25 & <= 65535
-// navigationRate >= 1 && <= 127
-// We give preference to limiting a measurementRate to 30s or below due to reported problems with measRates above 30.
-bool setRate(double secondsBetweenSolutions)
-{
-    uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
-    uint16_t navRate = 0;
-
-    // If we have more than an hour between readings, increase mesaurementRate to near max of 65,535
-    if (secondsBetweenSolutions > 3600.0)
-    {
-        measRate = 65000;
-    }
-
-    // If we have more than 30s, but less than 3600s between readings, use 30s measurement rate
-    else if (secondsBetweenSolutions > 30.0)
-    {
-        measRate = 30000;
-    }
-
-    // User wants measurements less than 30s (most common), set measRate to match user request
-    // This will make navRate = 1.
-    else
-    {
-        measRate = secondsBetweenSolutions * 1000.0;
-    }
-
-    navRate = secondsBetweenSolutions * 1000.0 / measRate; // Set navRate to nearest int value
-    measRate = secondsBetweenSolutions * 1000.0 / navRate; // Adjust measurement rate to match actual navRate
-
-    // systemPrintf("measurementRate / navRate: %d / %d\r\n", measRate, navRate);
-
-    bool response = true;
-    response &= theGNSS.newCfgValset();
-    response &= theGNSS.addCfgValset(UBLOX_CFG_RATE_MEAS, measRate);
-    response &= theGNSS.addCfgValset(UBLOX_CFG_RATE_NAV, navRate);
-
-    int gsvRecordNumber = getMessageNumberByName("UBX_NMEA_GSV");
-
-    // If enabled, adjust GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-    if (settings.ubxMessageRates[gsvRecordNumber] > 0)
-    {
-        float measurementFrequency = (1000.0 / measRate) / navRate;
-        if (measurementFrequency < 1.0)
-            measurementFrequency = 1.0;
-
-        log_d("Adjusting GSV setting to %f", measurementFrequency);
-
-        setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // Update GSV setting in file
-        response &= theGNSS.addCfgValset(ubxMessages[gsvRecordNumber].msgConfigKey,
-                                         settings.ubxMessageRates[gsvRecordNumber]); // Update rate on module
-    }
-
-    response &= theGNSS.sendCfgValset(); // Closing value - max 4 pairs
-
-    // If we successfully set rates, only then record to settings
-    if (response == true)
-    {
-        settings.measurementRate = measRate;
-        settings.navigationRate = navRate;
-    }
-    else
-    {
-        systemPrintln("Failed to set measurement and navigation rates");
-        return (false);
-    }
-
-    return (true);
-}
 
 // Print the module type and firmware version
 void printZEDInfo()

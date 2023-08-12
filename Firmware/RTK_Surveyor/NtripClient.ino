@@ -551,8 +551,8 @@ void ntripClientStop(bool shutdown)
     // Return the Main Talker ID to "GN".
     if (online.gnss)
     {
-        theGNSS.setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
-        theGNSS.setNMEAGPGGAcallbackPtr(nullptr);        // Remove callback
+        theGNSS->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
+        theGNSS->setNMEAGPGGAcallbackPtr(nullptr);        // Remove callback
     }
 
     // Determine the next NTRIP client state
@@ -841,7 +841,7 @@ void ntripClientUpdate()
                         ntripClientTimer = millis();
 
                         // Push RTCM to GNSS module over I2C / SPI
-                        theGNSS.pushRawData(rtcmData, rtcmCount);
+                        gnssPushRawData(rtcmData, rtcmCount);
                         netIncomingRTCM = true;
 
                         if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA))

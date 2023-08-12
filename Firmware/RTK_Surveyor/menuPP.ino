@@ -715,7 +715,7 @@ uint8_t getLeapSeconds()
         if (leapSeconds == 0) // Check to see if we've already set it
         {
             sfe_ublox_ls_src_e leapSecSource;
-            leapSeconds = theGNSS.getCurrentLeapSeconds(leapSecSource);
+            leapSeconds = theGNSS->getCurrentLeapSeconds(leapSecSource);
             return (leapSeconds);
         }
     }
@@ -866,8 +866,8 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
     uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
     log_d("Pushing %d bytes of RXM-PMP data to GNSS", payloadLen);
 
-    theGNSS.pushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-    theGNSS.pushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+    gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
+    gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
 }
 
 // If we have decryption keys, and L-Band is online, configure module
@@ -911,14 +911,14 @@ void pointperfectApplyKeys()
             epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart, settings.pointPerfectNextKeyDuration);
             unixEpochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
 
-            theGNSS.setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // use LBAND PMP message
+            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // use LBAND PMP message
 
-            theGNSS.setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
+            theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
 
-            theGNSS.setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
+            theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
                             3); // Set the differential mode - ambiguities are fixed whenever possible
 
-            bool response = theGNSS.setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
+            bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
                                                          settings.pointPerfectCurrentKey, nextKeyLengthBytes,
                                                          nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
 
@@ -988,11 +988,7 @@ void beginLBand()
         printNEOInfo(); // Print module firmware version
     }
 
-    if (online.gnss == true)
-    {
-        theGNSS.checkUblox();     // Regularly poll to get latest data and any RTCM
-        theGNSS.checkCallbacks(); // Process any callbacks: ie, eventTriggerReceived
-    }
+    gnssUpdate();
 
     // If we have a fix, check which frequency to use
     if (fixType == 2 || fixType == 3 || fixType == 4 || fixType == 5) // 2D, 3D, 3D+DR, or Time
@@ -1068,6 +1064,10 @@ void beginLBand()
         systemPrintln("L-Band failed to configure");
 
     i2cLBand.softwareResetGNSSOnly(); // Do a restart
+
+    i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Call pushRXMPMP when new PMP data arrives. Push it to the GNSS
+
+    theGNSS->setRXMCORcallbackPtr(&checkRXMCOR); // Check if the PMP data is being decrypted successfully
 
     lbandStartTimer = millis();
 
@@ -1266,7 +1266,7 @@ void updateLBand()
                     lbandRestarts++;
 
                     // Hotstart ZED to try to get RTK lock
-                    theGNSS.softwareResetGNSSOnly();
+                    theGNSS->softwareResetGNSSOnly();
 
                     log_d("Restarting ZED. Number of L-Band restarts: %d", lbandRestarts);
                 }

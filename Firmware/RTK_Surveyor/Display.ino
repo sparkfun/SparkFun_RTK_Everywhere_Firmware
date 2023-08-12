@@ -172,7 +172,7 @@ void displaySivVsOpenShort()
 }
 
 // Given the system state, display the appropriate information
-void updateDisplay()
+void displayUpdate()
 {
     // Update the display if connected
     if (online.display == true)
@@ -594,6 +594,7 @@ void displaySplash()
         unsigned long minSplashFor = 100;
         if (productVariant == REFERENCE_STATION) // Reference station starts up very quickly. Keep splash on for longer
             minSplashFor = 1000;
+
         while ((millis() - splashStart) < minSplashFor)
             delay(10);
 
@@ -1016,10 +1017,10 @@ uint32_t setWiFiIcon_TwoRadios()
         {
 #ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
             int wifiRSSI = -40;     // Dummy
-#endif  // COMPILE_WIFI
-            // Based on RSSI, select icon
+#endif // COMPILE_WIFI
+       // Based on RSSI, select icon
             if (wifiRSSI >= -40)
                 icons |= ICON_WIFI_SYMBOL_3_LEFT;
             else if (wifiRSSI >= -60)
@@ -1046,10 +1047,10 @@ uint32_t setWiFiIcon_TwoRadios()
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
                 int wifiRSSI = -40; // Dummy
-#endif  // COMPILE_WIFI
-                // Based on RSSI, select icon
+#endif // COMPILE_WIFI
+       // Based on RSSI, select icon
                 if (wifiRSSI >= -40)
                     icons |= ICON_WIFI_SYMBOL_3_LEFT;
                 else if (wifiRSSI >= -60)
@@ -1103,10 +1104,10 @@ uint32_t setWiFiIcon_ThreeRadios()
         {
 #ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
             int wifiRSSI = -40;     // Dummy
-#endif  // COMPILE_WIFI
-            // Based on RSSI, select icon
+#endif // COMPILE_WIFI
+       // Based on RSSI, select icon
             if (wifiRSSI >= -40)
                 icons |= ICON_WIFI_SYMBOL_3_RIGHT;
             else if (wifiRSSI >= -60)
@@ -1133,10 +1134,10 @@ uint32_t setWiFiIcon_ThreeRadios()
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
                 int wifiRSSI = -40; // Dummy
-#endif  // COMPILE_WIFI
-                // Based on RSSI, select icon
+#endif // COMPILE_WIFI
+       // Based on RSSI, select icon
                 if (wifiRSSI >= -40)
                     icons |= ICON_WIFI_SYMBOL_3_RIGHT;
                 else if (wifiRSSI >= -60)
@@ -1429,7 +1430,7 @@ void paintDynamicModel()
         else if (zedModuleType == PLATFORM_F9R)
         {
             // Blink fusion rover until we have calibration
-            if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 0) // Initializing
+            if (gnssGetFusionMode() == 0) // Initializing
             {
                 // Blink Fusion Rover icon until sensor calibration is complete
                 if (millis() - lastBaseIconUpdate > 500)
@@ -1446,13 +1447,12 @@ void paintDynamicModel()
                         baseIconDisplayed = false;
                 }
             }
-            else if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 1) // Calibrated
+            else if (gnssGetFusionMode() == 1) // Calibrated
             {
                 // Solid fusion rover
                 displayBitmap(28, 2, Rover_Fusion_Width, Rover_Fusion_Height, Rover_Fusion);
             }
-            else if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 2 ||
-                     theGNSS.packetUBXESFSTATUS->data.fusionMode == 3) // Suspended or disabled
+            else if (gnssGetFusionMode() == 2 || gnssGetFusionMode() == 3) // Suspended or disabled
             {
                 // Empty rover
                 displayBitmap(28, 2, Rover_Fusion_Empty_Width, Rover_Fusion_Empty_Height, Rover_Fusion_Empty);
@@ -1583,9 +1583,9 @@ void paintLogging()
     loggingIconDisplayed %= 4; // Wrap
 #ifdef COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
-#else   // COMPILE_ETHERNET
+#else  // COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing))
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
     {
         if (loggingType == LOGGING_STANDARD)
         {
@@ -1656,9 +1656,9 @@ void paintLoggingNTP(bool noPulse)
     loggingIconDisplayed %= 4; // Wrap
 #ifdef COMPILE_ETHERNET        // Some redundancy here. paintLoggingNTP should only be called if Ethernet is present
     if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
-#else   // COMPILE_ETHERNET
+#else  // COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing))
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
     {
         if (loggingIconDisplayed == 0)
             displayBitmap(64 - Logging_0_Width, 48 - Logging_0_Height, Logging_0_Width, Logging_0_Height, Logging_0);
@@ -1697,8 +1697,8 @@ void paintBaseTempSurveyStarted()
 
     oled.setCursor(29, 20); // x, y
     oled.setFont(QW_FONT_8X16);
-    if (svinMeanAccuracy < 10.0) // Error check
-        oled.print(svinMeanAccuracy, 2);
+    if (gnssGetSurveyInMeanAccuracy() < 10.0) // Error check
+        oled.print(gnssGetSurveyInMeanAccuracy(), 2);
     else
         oled.print(">10");
 
@@ -1735,8 +1735,8 @@ void paintBaseTempSurveyStarted()
 
     oled.setCursor(30, 36); // x, y
     oled.setFont(QW_FONT_8X16);
-    if (svinObservationTime < 1000) // Error check
-        oled.print(svinObservationTime);
+    if (gnssGetSurveyInObservationTime() < 1000) // Error check
+        oled.print(gnssGetSurveyInObservationTime());
     else
         oled.print("0");
 }
@@ -1825,9 +1825,9 @@ void paintIPAddress()
     snprintf(ipAddress, sizeof(ipAddress), "       %d.%d.%d.%d       ",
 #ifdef COMPILE_ETHERNET
              Ethernet.localIP()[0], Ethernet.localIP()[1], Ethernet.localIP()[2], Ethernet.localIP()[3]);
-#else   // COMPILE_ETHERNET
+#else  // COMPILE_ETHERNET
              0, 0, 0, 0);
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
     static uint8_t ipAddressPosition = 0;
 
@@ -2058,9 +2058,9 @@ void displayWiFiConfig()
         snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
     else
         snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
     snprintf(mySSID, sizeof(mySSID), "%s", "!Compiled");
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
     char mySSIDFront[displayMaxCharacters + 1]; // 1 for null terminator
     char mySSIDBack[displayMaxCharacters + 1];  // 1 for null terminator
@@ -2115,9 +2115,9 @@ void displayWiFiConfig()
     else
         printTextCenter(myIPBack, yPos, QW_FONT_5X7, 1, false);
 
-#else   // COMPILE_AP
+#else  // COMPILE_AP
     printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
-#endif  // COMPILE_AP
+#endif // COMPILE_AP
 }
 
 // When user does a factory reset, let us know
@@ -2337,10 +2337,9 @@ void paintSystemTest()
             oled.print("GNSS:");
             if (online.gnss == true)
             {
-                theGNSS.checkUblox();     // Regularly poll to get latest data and any RTCM
-                theGNSS.checkCallbacks(); // Process any callbacks: ie, eventTriggerReceived
+                gnssUpdate(); // Regularly poll to get latest data
 
-                int satsInView = numSV;
+                int satsInView = gnssGetSiv();
                 if (satsInView > 5)
                 {
                     oled.print("OK");
@@ -2397,14 +2396,14 @@ void paintSystemTest()
                 delay(20);
 
                 // Clear out buffer before starting
-                while (serialGNSS.available())
-                    serialGNSS.read();
-                serialGNSS.flush();
+                while (serialGNSS->available())
+                    serialGNSS->read();
+                serialGNSS->flush();
 
                 SFE_UBLOX_GNSS_SERIAL myGNSS;
 
                 // begin() attempts 3 connections
-                if (myGNSS.begin(serialGNSS) == true)
+                if (myGNSS.begin(*serialGNSS) == true)
                 {
 
                     zedUartPassed = true;
@@ -3328,11 +3327,11 @@ void displayConfigViaEthernet()
         oled.display();
     }
 
-#else   // COMPILE_ETHERNET
+#else  // COMPILE_ETHERNET
     uint8_t fontHeight = 15;
     uint8_t yPos = oled.getHeight() / 2 - fontHeight;
     printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 }
 
 const uint8_t *getMacAddress()
@@ -3342,14 +3341,14 @@ const uint8_t *getMacAddress()
 #ifdef COMPILE_BT
     if (bluetoothState != BT_OFF)
         return btMACAddress;
-#endif  // COMPILE_BT
+#endif // COMPILE_BT
 #ifdef COMPILE_WIFI
     if (wifiState != WIFI_OFF)
         return wifiMACAddress;
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 #ifdef COMPILE_ETHERNET
     if ((online.ethernetStatus >= ETH_STARTED_CHECK_CABLE) && (online.ethernetStatus <= ETH_CONNECTED))
         return ethernetMACAddress;
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
     return zero;
 }

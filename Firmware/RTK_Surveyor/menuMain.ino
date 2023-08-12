@@ -1,7 +1,16 @@
 // Check to see if we've received serial over USB
 // Report status if ~ received, otherwise present config menu
-void updateSerial()
+void terminalUpdate()
 {
+    static uint32_t lastPeriodicDisplay;
+
+    // Determine which items are periodically displayed
+    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
+    {
+        lastPeriodicDisplay = millis();
+        periodicDisplay = settings.periodicDisplay;
+    }
+
     if (systemAvailable())
     {
         byte incoming = systemRead();
@@ -150,7 +159,7 @@ void menuMain()
     recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     if (online.gnss == true)
-        theGNSS.saveConfiguration(); // Save the current settings to flash and BBR on the ZED-F9P
+        theGNSS->saveConfiguration(); // Save the current settings to flash and BBR on the ZED-F9P
 
     // Reboot as base only if currently operating as a base station
     if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState < STATE_BUBBLE_LEVEL))
@@ -392,7 +401,7 @@ void factoryReset(bool alreadyHasSemaphore)
     LittleFS.format();
 
     if (online.gnss == true)
-        theGNSS.factoryDefault(); // Reset everything: baud rate, I2C address, update rate, everything. And save to BBR.
+        gnssFactoryDefault();
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);

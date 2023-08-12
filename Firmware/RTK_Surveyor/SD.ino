@@ -1,3 +1,46 @@
+// Monitor if SD card is online or not
+// Attempt to remount SD card if card is offline but present
+// Capture card size when mounted
+void sdUpdate()
+{
+    if (online.microSD == false)
+    {
+        // Are we offline because we are out of space?
+        if (outOfSDSpace == true)
+        {
+            if (sdPresent() == false) // Poll card to see if user has removed card
+                outOfSDSpace = false;
+        }
+        else if (sdPresent() == true) // Poll card to see if a card is inserted
+        {
+            systemPrintln("SD inserted");
+            beginSD(); // Attempt to start SD
+        }
+    }
+
+    if (online.logging == true && sdCardSize > 0 &&
+        sdFreeSpace < sdMinAvailableSpace) // Stop logging if we are below the min
+    {
+        log_d("Logging stopped. SD full.");
+        outOfSDSpace = true;
+        endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down file.
+        return;
+    }
+
+    if (online.microSD && sdCardSize == 0)
+        beginSDSizeCheckTask(); // Start task to determine SD card size
+
+    if (sdSizeCheckTaskComplete == true)
+        deleteSDSizeCheckTask();
+
+    // Check if SD card is still present
+    if (productVariant == REFERENCE_STATION)
+    {
+        if (sdPresent() == false)
+            endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
+    }
+}
+
 /*
   These are low level functions to aid in detecting whether a card is present or not.
   Because of ESP32 v2 core, SdFat can only operate using Shared SPI. This makes the sd->begin test take over 1s

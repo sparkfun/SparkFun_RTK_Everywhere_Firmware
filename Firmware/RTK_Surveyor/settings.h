@@ -64,6 +64,7 @@ typedef enum
     RTK_FACET_LBAND,
     REFERENCE_STATION,
     RTK_FACET_LBAND_DIRECT,
+    RTK_TORCH,
     RTK_UNKNOWN,
 } ProductVariant;
 ProductVariant productVariant = RTK_SURVEYOR;
@@ -412,6 +413,13 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
 
+// Different GNSS modules require different libraries and configuration
+typedef enum
+{
+    PLATFORM_ZED = 0b0001,
+    PLATFORM_UM980 = 0b0010,
+} GnssPlatform;
+
 // Different ZED modules support different messages (F9P vs F9R vs F9T)
 // Create binary packed struct for different platforms
 typedef enum
@@ -419,7 +427,7 @@ typedef enum
     PLATFORM_F9P = 0b0001,
     PLATFORM_F9R = 0b0010,
     PLATFORM_F9T = 0b0100,
-} ubxPlatform;
+} UbxPlatform;
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
@@ -885,7 +893,7 @@ typedef struct
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     char profileName[50] = "";
 
-    int16_t serialTimeoutGNSS = 1; // In ms - used during SerialGNSS.begin. Number of ms to pass of no data before
+    int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
 
     char pointPerfectDeviceProfileToken[40] = "";

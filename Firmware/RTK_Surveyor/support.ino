@@ -257,12 +257,7 @@ InputResponse getString(char *userString, uint8_t stringSize)
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Keep doing these important things while waiting for the user to enter data
 
-        // Regularly poll GNSS to get latest data. Keep the GNSS time updated.
-        if (online.gnss == true)
-        {
-            theGNSS.checkUblox();
-            theGNSS.checkCallbacks();
-        }
+        gnssUpdate(); // Regularly poll to get latest data
 
         // Keep processing NTP requests
         if (online.NTPServer)
