@@ -426,65 +426,6 @@ bool zedSurveyInReset()
     return (true);
 }
 
-// Start survey
-// The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
-bool zedSurveyInStart()
-{
-    theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
-    delay(100);
-
-    bool needSurveyReset = false;
-    if (theGNSS->getSurveyInActive(100) == true)
-        needSurveyReset = true;
-    if (theGNSS->getSurveyInValid(100) == true)
-        needSurveyReset = true;
-
-    if (needSurveyReset == true)
-    {
-        systemPrintln("Resetting survey");
-
-        if (zedSurveyInReset() == false)
-        {
-            systemPrintln("Survey reset failed - attempt 1/3");
-            if (zedSurveyInReset() == false)
-            {
-                systemPrintln("Survey reset failed - attempt 2/3");
-                if (zedSurveyInReset() == false)
-                {
-                    systemPrintln("Survey reset failed - attempt 3/3");
-                }
-            }
-        }
-    }
-
-    bool response = true;
-    response &= theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 1); // Survey-in enable
-    response &= theGNSS->setVal32(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, settings.observationPositionAccuracy * 10000);
-    response &= theGNSS->setVal32(UBLOX_CFG_TMODE_SVIN_MIN_DUR, settings.observationSeconds);
-
-    if (response == false)
-    {
-        systemPrintln("Survey start failed");
-        return (false);
-    }
-
-    systemPrintf("Survey started. This will run until %d seconds have passed and less than %0.03f meter accuracy is "
-                 "achieved.\r\n",
-                 settings.observationSeconds, settings.observationPositionAccuracy);
-
-    // Wait until active becomes true
-    long maxTime = 5000;
-    long startTime = millis();
-    while (theGNSS->getSurveyInActive(100) == false)
-    {
-        delay(100);
-        if (millis() - startTime > maxTime)
-            return (false); // Reset of survey failed
-    }
-
-    return (true);
-}
-
 // Configure specific aspects of the receiver for rover mode
 bool zedConfigureRover()
 {
@@ -764,6 +705,65 @@ bool zedConfigureBase()
         systemPrintln("Base config fail");
 
     return (success);
+}
+
+// Start survey
+// The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
+bool zedSurveyInStart()
+{
+    theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
+    delay(100);
+
+    bool needSurveyReset = false;
+    if (theGNSS->getSurveyInActive(100) == true)
+        needSurveyReset = true;
+    if (theGNSS->getSurveyInValid(100) == true)
+        needSurveyReset = true;
+
+    if (needSurveyReset == true)
+    {
+        systemPrintln("Resetting survey");
+
+        if (zedSurveyInReset() == false)
+        {
+            systemPrintln("Survey reset failed - attempt 1/3");
+            if (zedSurveyInReset() == false)
+            {
+                systemPrintln("Survey reset failed - attempt 2/3");
+                if (zedSurveyInReset() == false)
+                {
+                    systemPrintln("Survey reset failed - attempt 3/3");
+                }
+            }
+        }
+    }
+
+    bool response = true;
+    response &= theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 1); // Survey-in enable
+    response &= theGNSS->setVal32(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, settings.observationPositionAccuracy * 10000);
+    response &= theGNSS->setVal32(UBLOX_CFG_TMODE_SVIN_MIN_DUR, settings.observationSeconds);
+
+    if (response == false)
+    {
+        systemPrintln("Survey start failed");
+        return (false);
+    }
+
+    systemPrintf("Survey started. This will run until %d seconds have passed and less than %0.03f meter accuracy is "
+                 "achieved.\r\n",
+                 settings.observationSeconds, settings.observationPositionAccuracy);
+
+    // Wait until active becomes true
+    long maxTime = 5000;
+    long startTime = millis();
+    while (theGNSS->getSurveyInActive(100) == false)
+    {
+        delay(100);
+        if (millis() - startTime > maxTime)
+            return (false); // Reset of survey failed
+    }
+
+    return (true);
 }
 
 // Start the base using fixed coordinates
