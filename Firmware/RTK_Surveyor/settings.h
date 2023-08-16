@@ -852,7 +852,7 @@ typedef struct
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool enableI2Cdebug = false;                          // Turn on to display GNSS library debug messages
+    bool enableGNSSdebug = false;                          // Turn on to display GNSS library debug messages
     bool enableHeapReport = false;                        // Turn on to display free heap
     bool enableTaskReports = false;                       // Turn on to display task high water marks
     muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1

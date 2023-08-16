@@ -141,7 +141,7 @@ bool zedConfigure()
     bool response = true;
 
     // Turn on/off debug messages
-    if (settings.enableI2Cdebug)
+    if (settings.enableGNSSdebug)
     {
 #if defined(REF_STN_GNSS_DEBUG)
         if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
