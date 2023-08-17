@@ -80,3 +80,9 @@ const um980Msg umMessagesRTCM[] = {
 
 #define MAX_UM980_NMEA_MSG (sizeof(umMessagesNMEA) / sizeof(um980Msg))
 #define MAX_UM980_RTCM_MSG (sizeof(umMessagesRTCM) / sizeof(um980Msg))
+
+enum um980_Models{
+    UM980_DYN_MODEL_SURVEY = 0,
+    UM980_DYN_MODEL_UAV,
+    UM980_DYN_MODEL_AUTOMOTIVE,
+};

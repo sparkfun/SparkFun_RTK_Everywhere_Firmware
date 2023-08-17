@@ -25,47 +25,68 @@ void menuGNSS()
         systemPrintln("\tNote: The measurement rate is overridden to 1Hz when in Base mode.");
 
         systemPrint("3) Set dynamic model: ");
-        switch (settings.dynamicModel)
+        if (gnssPlatform == PLATFORM_ZED)
         {
-        case DYN_MODEL_PORTABLE:
-            systemPrint("Portable");
-            break;
-        case DYN_MODEL_STATIONARY:
-            systemPrint("Stationary");
-            break;
-        case DYN_MODEL_PEDESTRIAN:
-            systemPrint("Pedestrian");
-            break;
-        case DYN_MODEL_AUTOMOTIVE:
-            systemPrint("Automotive");
-            break;
-        case DYN_MODEL_SEA:
-            systemPrint("Sea");
-            break;
-        case DYN_MODEL_AIRBORNE1g:
-            systemPrint("Airborne 1g");
-            break;
-        case DYN_MODEL_AIRBORNE2g:
-            systemPrint("Airborne 2g");
-            break;
-        case DYN_MODEL_AIRBORNE4g:
-            systemPrint("Airborne 4g");
-            break;
-        case DYN_MODEL_WRIST:
-            systemPrint("Wrist");
-            break;
-        case DYN_MODEL_BIKE:
-            systemPrint("Bike");
-            break;
-        case DYN_MODEL_MOWER:
-            systemPrint("Mower");
-            break;
-        case DYN_MODEL_ESCOOTER:
-            systemPrint("E-Scooter");
-            break;
-        default:
-            systemPrint("Unknown");
-            break;
+            switch (settings.dynamicModel)
+            {
+            case DYN_MODEL_PORTABLE:
+                systemPrint("Portable");
+                break;
+            case DYN_MODEL_STATIONARY:
+                systemPrint("Stationary");
+                break;
+            case DYN_MODEL_PEDESTRIAN:
+                systemPrint("Pedestrian");
+                break;
+            case DYN_MODEL_AUTOMOTIVE:
+                systemPrint("Automotive");
+                break;
+            case DYN_MODEL_SEA:
+                systemPrint("Sea");
+                break;
+            case DYN_MODEL_AIRBORNE1g:
+                systemPrint("Airborne 1g");
+                break;
+            case DYN_MODEL_AIRBORNE2g:
+                systemPrint("Airborne 2g");
+                break;
+            case DYN_MODEL_AIRBORNE4g:
+                systemPrint("Airborne 4g");
+                break;
+            case DYN_MODEL_WRIST:
+                systemPrint("Wrist");
+                break;
+            case DYN_MODEL_BIKE:
+                systemPrint("Bike");
+                break;
+            case DYN_MODEL_MOWER:
+                systemPrint("Mower");
+                break;
+            case DYN_MODEL_ESCOOTER:
+                systemPrint("E-Scooter");
+                break;
+            default:
+                systemPrint("Unknown");
+                break;
+            }
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            switch (settings.dynamicModel)
+            {
+            default:
+                systemPrint("Unknown");
+                break;
+            case UM980_DYN_MODEL_SURVEY:
+                systemPrint("Survey");
+                break;
+            case UM980_DYN_MODEL_UAV:
+                systemPrint("UAV");
+                break;
+            case UM980_DYN_MODEL_AUTOMOTIVE:
+                systemPrint("Automotive");
+                break;
+            }
         }
         systemPrintln();
 
@@ -131,7 +152,7 @@ void menuGNSS()
             else
             {
                 gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
-                                     // settings.navigationRate, and GSV message
+                                         // settings.navigationRate, and GSV message
                 // Settings recorded to NVM and file at main menu exit
             }
         }
@@ -151,50 +172,75 @@ void menuGNSS()
         }
         else if (incoming == 3)
         {
-            systemPrintln("Enter the dynamic model to use: ");
-            systemPrintln("1) Portable");
-            systemPrintln("2) Stationary");
-            systemPrintln("3) Pedestrian");
-            systemPrintln("4) Automotive");
-            systemPrintln("5) Sea");
-            systemPrintln("6) Airborne 1g");
-            systemPrintln("7) Airborne 2g");
-            systemPrintln("8) Airborne 4g");
-            systemPrintln("9) Wrist");
-            if (zedModuleType == PLATFORM_F9R)
+            if (gnssPlatform == PLATFORM_ZED)
             {
-                systemPrintln("10) Bike");
-                // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
-                if (zedFirmwareVersionInt >= 121)
+                systemPrintln("Enter the dynamic model to use: ");
+                systemPrintln("1) Portable");
+                systemPrintln("2) Stationary");
+                systemPrintln("3) Pedestrian");
+                systemPrintln("4) Automotive");
+                systemPrintln("5) Sea");
+                systemPrintln("6) Airborne 1g");
+                systemPrintln("7) Airborne 2g");
+                systemPrintln("8) Airborne 4g");
+                systemPrintln("9) Wrist");
+                if (zedModuleType == PLATFORM_F9R)
                 {
-                    systemPrintln("11) Mower");
-                    systemPrintln("12) E-Scooter");
+                    systemPrintln("10) Bike");
+                    // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
+                    if (zedFirmwareVersionInt >= 121)
+                    {
+                        systemPrintln("11) Mower");
+                        systemPrintln("12) E-Scooter");
+                    }
                 }
+            }
+            else if (gnssPlatform == PLATFORM_UM980)
+            {
+                systemPrintln("Enter the dynamic model to use: ");
+                systemPrintln("1) Survey");
+                systemPrintln("2) UAV");
+                systemPrintln("3) Automotive");
             }
 
             int dynamicModel = getNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                uint8_t maxModel = DYN_MODEL_WRIST;
-
-                if (zedModuleType == PLATFORM_F9R)
+                if (gnssPlatform == PLATFORM_ZED)
                 {
-                    maxModel = DYN_MODEL_BIKE;
-                    // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
-                    if (zedFirmwareVersionInt >= 121)
-                        maxModel = DYN_MODEL_ESCOOTER;
-                }
+                    uint8_t maxModel = DYN_MODEL_WRIST;
 
-                if (dynamicModel < 1 || dynamicModel > maxModel)
-                    systemPrintln("Error: Dynamic model out of range");
-                else
-                {
-                    if (dynamicModel == 1)
-                        settings.dynamicModel = DYN_MODEL_PORTABLE; // The enum starts at 0 and skips 1.
+                    if (zedModuleType == PLATFORM_F9R)
+                    {
+                        maxModel = DYN_MODEL_BIKE;
+                        // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
+                        if (zedFirmwareVersionInt >= 121)
+                            maxModel = DYN_MODEL_ESCOOTER;
+                    }
+
+                    if (dynamicModel < 1 || dynamicModel > maxModel)
+                        systemPrintln("Error: Dynamic model out of range");
                     else
+                    {
+                        if (dynamicModel == 1)
+                            settings.dynamicModel = DYN_MODEL_PORTABLE; // The enum starts at 0 and skips 1.
+                        else
+                            settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
+
+                        gnssSetModel(settings.dynamicModel);
+                    }
+                }
+                else if (gnssPlatform == PLATFORM_UM980)
+                {
+                    if (dynamicModel < 1 || dynamicModel > 3)
+                        systemPrintln("Error: Dynamic model out of range");
+                    else
+                    {
+                        dynamicModel -= 1; //Align to 0 to 2
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                    gnssSetModel(settings.dynamicModel);
+                        gnssSetModel(settings.dynamicModel);
+                    }
                 }
             }
         }
@@ -384,7 +430,6 @@ void menuConstellations()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
-
 
 // Print the module type and firmware version
 void printZEDInfo()
