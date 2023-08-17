@@ -26,7 +26,8 @@ void gnssBegin()
         um980Begin();
 }
 
-// Configuration can take >1s so configure during splash
+//Setup the general configuration of the GNSS
+//Not Rover or Base sepecific (ie, baud rates)
 bool gnssConfigure()
 {
     if (online.gnss == false)
@@ -34,6 +35,7 @@ bool gnssConfigure()
 
     if (gnssPlatform == PLATFORM_ZED)
     {
+        // Configuration can take >1s so configure during splash
         if (zedConfigure() == false)
             return(false);
     }
@@ -42,9 +44,40 @@ bool gnssConfigure()
         if (um980Configure() == false)
             return(false);
     }
-    return (true);
-
     systemPrintln("GNSS configuration complete");
+
+    return (true);
+}
+
+bool gnssConfigureRover()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedConfigureRover());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980ConfigureRover());
+        }
+    }
+    return (false);
+}
+
+bool gnssConfigureBase()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedConfigureBase());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (false);
 }
 
 void gnssUpdate()
@@ -141,7 +174,7 @@ void gnssEnableRTCMTest()
     }
 }
 
-// If LBand is being used, ignore any RTCM that may come in on UART2 of the ZED
+// If LBand is being used, ignore any RTCM that may come in from the GNSS
 void gnssDisableRtcmUart2()
 {
     if (online.gnss == true)
@@ -152,6 +185,7 @@ void gnssDisableRtcmUart2()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            //UM980 does not have a separate interface for RTCM
         }
     }
 }
@@ -167,38 +201,9 @@ void gnssEnableRtcmUart2()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            //UM980 does not have separate interface for RTCM
         }
     }
-}
-
-bool gnssConfigureRover()
-{
-    if (online.gnss == true)
-    {
-        if (gnssPlatform == PLATFORM_ZED)
-        {
-            return (zedConfigureRover());
-        }
-        else if (gnssPlatform == PLATFORM_UM980)
-        {
-        }
-    }
-    return (false);
-}
-
-bool gnssConfigureBase()
-{
-    if (online.gnss == true)
-    {
-        if (gnssPlatform == PLATFORM_ZED)
-        {
-            return (zedConfigureBase());
-        }
-        else if (gnssPlatform == PLATFORM_UM980)
-        {
-        }
-    }
-    return (false);
 }
 
 // TODO See numsv global, try to remove
