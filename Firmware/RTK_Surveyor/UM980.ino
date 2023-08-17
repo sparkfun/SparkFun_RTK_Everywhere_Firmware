@@ -65,8 +65,8 @@ bool um980Configure()
     um980DisableAllOutput();
 
     bool response = true;
-    response &= um980->setPortBaudrate("COM1", 115200);
-    response &= um980->setPortBaudrate("COM2", settings.dataPortBaud);
+    response &= um980->setPortBaudrate("COM1", 115200); //Connected to switch, then USB
+    response &= um980SetBaudRateCOM2(settings.dataPortBaud); //Conected to ESP UART2
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
@@ -396,4 +396,39 @@ bool um980SetRate(double secondsBetweenSolutions)
     response &= um980EnableRTCMRover(); // Enact these rates
 
     return (response);
+}
+
+// Send data direct from ESP UART2 to UM980 UART2
+// Note: The Tilt sensor is inbetween and may be affected.
+int um980PushRawData(uint8_t *dataToSend, int dataLength)
+{
+    return (serialGNSS->write(dataToSend, dataLength));
+}
+
+// Set the baud rate of the UM980 com port 2
+// This is used during the Bluetooth test
+bool um980SetBaudRateCOM2(uint32_t baudRate)
+{
+    bool response = true;
+
+    response &= um980->setPortBaudrate("COM2", baudRate);
+
+    return (response);
+}
+
+//Return the lower of the two Lat/Long deviations
+float um980GetHorizontalAccuracy()
+{
+    float latitudeDeviation = um980->getLatitudeDeviation();
+    float longitudeDeviation = um980->getLongitudeDeviation();
+
+    if(longitudeDeviation < latitudeDeviation)
+        return (longitudeDeviation);
+
+    return (latitudeDeviation);
+}
+
+int um980GetSIV()
+{
+    return (um980->getSIV());
 }

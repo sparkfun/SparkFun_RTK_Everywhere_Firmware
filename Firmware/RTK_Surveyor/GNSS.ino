@@ -224,25 +224,28 @@ int gnssGetSiv()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return (0);
+            return (numSV);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            return (um980GetSIV());
         }
     }
     return (0);
 }
 
+//TODO see storeHPdata
 float gnssGetHorizontalAccuracy()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return (0);
+            return (horizontalAccuracy);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            return (um980GetHorizontalAccuracy());
         }
     }
     return (0);
@@ -300,6 +303,7 @@ int gnssGetSurveyInMeanAccuracy()
         {
             // Not supported on the UM980
             // Return the current HPA instead
+            return (um980GetHorizontalAccuracy());
         }
     }
     return (0);
@@ -316,6 +320,7 @@ bool gnssBeginExternalEvent()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            //UM980 Event signal not exposed
         }
     }
     return (false);
@@ -332,6 +337,7 @@ bool gnssBeginPPS()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            //UM980 PPS signal not exposed
         }
     }
     return (false);
@@ -339,6 +345,7 @@ bool gnssBeginPPS()
 
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 // This just sets the GNSS side
+// Used during Bluetooth testing
 void gnssSetBaudrate(uint32_t baudRate)
 {
     if (online.gnss == true)
@@ -350,6 +357,8 @@ void gnssSetBaudrate(uint32_t baudRate)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            //Set the baud rate on UART2
+            um980SetBaudRateCOM2(baudRate);
         }
     }
 }
@@ -364,6 +373,7 @@ uint16_t gnssGetFusionMode()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            //Not supported on the UM980
         }
     }
     return (0);
@@ -379,6 +389,8 @@ int gnssPushRawData(uint8_t *dataToSend, int dataLength)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            // Send data direct from ESP UART2 to UM980 UART2
+            return (um980PushRawData((uint8_t *)dataToSend, dataLength));
         }
     }
     return (0);
