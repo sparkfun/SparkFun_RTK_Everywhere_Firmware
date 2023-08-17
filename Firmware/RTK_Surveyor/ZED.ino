@@ -389,43 +389,6 @@ bool zedConfigure()
     return (response);
 }
 
-// Slightly modified method for restarting survey-in from:
-// https://portal.u-blox.com/s/question/0D52p00009IsVoMCAV/restarting-surveyin-on-an-f9p
-bool zedSurveyInReset()
-{
-    bool response = true;
-
-    // Disable survey-in mode
-    response &= theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 0);
-    delay(1000);
-
-    // Enable Survey in with bogus values
-    response &= theGNSS->newCfgValset();
-    response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_MODE, 1);                    // Survey-in enable
-    response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, 40 * 10000); // 40.0m
-    response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_SVIN_MIN_DUR, 1000);         // 1000s
-    response &= theGNSS->sendCfgValset();
-    delay(1000);
-
-    // Disable survey-in mode
-    response &= theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 0);
-
-    if (response == false)
-        return (response);
-
-    // Wait until active and valid becomes false
-    long maxTime = 5000;
-    long startTime = millis();
-    while (theGNSS->getSurveyInActive(100) == true || theGNSS->getSurveyInValid(100) == true)
-    {
-        delay(100);
-        if (millis() - startTime > maxTime)
-            return (false); // Reset of survey failed
-    }
-
-    return (true);
-}
-
 // Configure specific aspects of the receiver for rover mode
 bool zedConfigureRover()
 {
@@ -705,6 +668,43 @@ bool zedConfigureBase()
         systemPrintln("Base config fail");
 
     return (success);
+}
+
+// Slightly modified method for restarting survey-in from:
+// https://portal.u-blox.com/s/question/0D52p00009IsVoMCAV/restarting-surveyin-on-an-f9p
+bool zedSurveyInReset()
+{
+    bool response = true;
+
+    // Disable survey-in mode
+    response &= theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 0);
+    delay(1000);
+
+    // Enable Survey in with bogus values
+    response &= theGNSS->newCfgValset();
+    response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_MODE, 1);                    // Survey-in enable
+    response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_SVIN_ACC_LIMIT, 40 * 10000); // 40.0m
+    response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_SVIN_MIN_DUR, 1000);         // 1000s
+    response &= theGNSS->sendCfgValset();
+    delay(1000);
+
+    // Disable survey-in mode
+    response &= theGNSS->setVal8(UBLOX_CFG_TMODE_MODE, 0);
+
+    if (response == false)
+        return (response);
+
+    // Wait until active and valid becomes false
+    long maxTime = 5000;
+    long startTime = millis();
+    while (theGNSS->getSurveyInActive(100) == true || theGNSS->getSurveyInValid(100) == true)
+    {
+        delay(100);
+        if (millis() - startTime > maxTime)
+            return (false); // Reset of survey failed
+    }
+
+    return (true);
 }
 
 // Start survey
