@@ -702,6 +702,8 @@ volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer = 0;
 
+unsigned long um980BaseStartTimer = 0; //Tracks how long the base averaging mode has been running
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #define DEAD_MAN_WALKING_ENABLED    0

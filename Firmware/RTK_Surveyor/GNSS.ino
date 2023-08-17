@@ -26,23 +26,23 @@ void gnssBegin()
         um980Begin();
 }
 
-//Setup the general configuration of the GNSS
-//Not Rover or Base sepecific (ie, baud rates)
+// Setup the general configuration of the GNSS
+// Not Rover or Base sepecific (ie, baud rates)
 bool gnssConfigure()
 {
     if (online.gnss == false)
-        return(false);
+        return (false);
 
     if (gnssPlatform == PLATFORM_ZED)
     {
         // Configuration can take >1s so configure during splash
         if (zedConfigure() == false)
-            return(false);
+            return (false);
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
         if (um980Configure() == false)
-            return(false);
+            return (false);
     }
     systemPrintln("GNSS configuration complete");
 
@@ -75,6 +75,7 @@ bool gnssConfigureBase()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            return (um980ConfigureBase());
         }
     }
     return (false);
@@ -106,6 +107,7 @@ bool gnssSurveyInStart()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            return (um980BaseAverageStart());
         }
     }
     return (false);
@@ -121,6 +123,12 @@ bool gnssIsSurveyComplete()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            // Return true once enough time, since the start of the base mode, has elapsed
+            int elapsedSeconds = (millis() - um980BaseStartTimer) / 1000;
+
+            if (elapsedSeconds > settings.observationSeconds)
+                return (true);
+            return (false);
         }
     }
     return (false);
@@ -132,10 +140,12 @@ bool gnssSurveyInReset()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return (zedSurveyInReset);
+            return (zedSurveyInReset());
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            // Put UM980 into rover mode to cancel base averaging mode
+            return (um980->setModeRoverSurvey());
         }
     }
     return (false);
@@ -151,6 +161,7 @@ bool gnssFixedBaseStart()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            return (um980FixedBaseStart());
         }
     }
     return (false);
@@ -185,7 +196,7 @@ void gnssDisableRtcmUart2()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 does not have a separate interface for RTCM
+            // UM980 does not have a separate interface for RTCM
         }
     }
 }
@@ -201,7 +212,7 @@ void gnssEnableRtcmUart2()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 does not have separate interface for RTCM
+            // UM980 does not have separate interface for RTCM
         }
     }
 }
@@ -237,9 +248,8 @@ float gnssGetHorizontalAccuracy()
     return (0);
 }
 
-// Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond to this
-// command)
-// TODO make sure we're not slowing down a ZED base
+// Return the number of seconds the survey-in process has been running
+//  TODO make sure we're not slowing down a ZED base
 int gnssGetSurveyInObservationTime()
 {
     static uint16_t svinObservationTime = 0;
@@ -249,6 +259,8 @@ int gnssGetSurveyInObservationTime()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
+            // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
+            // to this command)
             if (millis() - lastCheck > 1000)
             {
                 lastCheck = millis();
@@ -258,13 +270,13 @@ int gnssGetSurveyInObservationTime()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            int elapsedSeconds = (millis() - um980BaseStartTimer) / 1000;
+            return (elapsedSeconds);
         }
     }
     return (0);
 }
 
-// Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond to this
-// command)
 // TODO make sure we're not slowing down a ZED base
 int gnssGetSurveyInMeanAccuracy()
 {
@@ -275,6 +287,8 @@ int gnssGetSurveyInMeanAccuracy()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
+            // Use a local static so we don't have to request these values multiple times (ZED takes many ms to respond
+            // to this command)
             if (millis() - lastCheck > 1000)
             {
                 lastCheck = millis();
@@ -284,6 +298,8 @@ int gnssGetSurveyInMeanAccuracy()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            // Not supported on the UM980
+            // Return the current HPA instead
         }
     }
     return (0);
@@ -378,6 +394,7 @@ bool gnssSetRate(double secondsBetweenSolutions)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            return (um980SetRate(secondsBetweenSolutions));
         }
     }
     return (false);
@@ -394,6 +411,7 @@ void gnssFactoryDefault()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            um980FactoryReset();
         }
     }
 }
@@ -408,20 +426,22 @@ void gnssSetModel(uint8_t modelNumber)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            um980SetModel(modelNumber);
         }
     }
 }
 
-void gnssSetElevation(uint8_t elevationDegress)
+void gnssSetElevation(uint8_t elevationDegrees)
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, elevationDegress); // Set minimum elevation
+            theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, elevationDegrees); // Set minimum elevation
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            um980SetMinElevation(elevationDegrees);
         }
     }
 }
@@ -436,6 +456,7 @@ void gnssSetMinCno(uint8_t cnoValue)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
+            um980SetMinCNO(cnoValue);
         }
     }
 }

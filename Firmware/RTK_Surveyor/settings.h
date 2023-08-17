@@ -1081,6 +1081,8 @@ typedef struct
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
     bool um980Constellations[MAX_UM980_CONSTELLATIONS] = {true};
+    int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
+
 } Settings;
 Settings settings;
 
