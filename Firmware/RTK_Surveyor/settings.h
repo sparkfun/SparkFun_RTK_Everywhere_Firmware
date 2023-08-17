@@ -1,3 +1,6 @@
+#include "UM980.h" //Structs of UM980 messages, needed for settings.h
+
+
 // System can enter a variety of states
 // See statemachine diagram at:
 // https://lucid.app/lucidchart/53519501-9fa5-4352-aa40-673f88ca0c9b/edit?invitationId=inv_ebd4b988-513d-4169-93fd-c291851108f8
@@ -1068,6 +1071,16 @@ typedef struct
     bool debugPvtServer = false;
     bool enablePvtServer = false;
     uint16_t pvtServerPort = 2948; // PVT server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
+
+    float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+
+    float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
+        254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
+              // rates for RTCM Base. Default to Unicore recommended rates.
+    float um980MessageRatesRTCMBase[MAX_UM980_RTCM_MSG] = {
+        254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
+              // rates for RTCM Base. Default to Unicore recommended rates.
+    bool um980Constellations[MAX_UM980_CONSTELLATIONS] = {true};
 } Settings;
 Settings settings;
 
