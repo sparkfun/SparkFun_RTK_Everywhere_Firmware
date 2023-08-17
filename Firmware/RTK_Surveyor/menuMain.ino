@@ -182,9 +182,9 @@ void menuMain()
 // Change system wide settings based on current user profile
 // Ways to change the ZED settings:
 // Menus - we apply ZED changes at the exit of each sub menu
-// Settings file - we detect differences between NVM and settings txt file and updateZEDSettings = true
-// Profile - Before profile is changed, set updateZEDSettings = true
-// AP - once new settings are parsed, set updateZEDSettings = true
+// Settings file - we detect differences between NVM and settings txt file and updateGNSSSettings = true
+// Profile - Before profile is changed, set updateGNSSSettings = true
+// AP - once new settings are parsed, set updateGNSSSettings = true
 // Setup button -
 // Factory reset - updatesZEDSettings = true by default
 void menuUserProfiles()
@@ -331,7 +331,7 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.updateZEDSettings = true; // When this profile is loaded next, force system to update ZED settings.
+    settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
     recordSystemSettings();            // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);

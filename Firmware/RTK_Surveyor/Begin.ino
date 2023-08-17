@@ -935,9 +935,9 @@ void beginSystemState()
         // If the rocker switch was moved while off, force module settings
         // When switch is set to '1' = BASE, pin will be shorted to ground
         if (settings.lastState == STATE_ROVER_NOT_STARTED && digitalRead(pin_setupButton) == LOW)
-            settings.updateZEDSettings = true;
+            settings.updateGNSSSettings = true;
         else if (settings.lastState == STATE_BASE_NOT_STARTED && digitalRead(pin_setupButton) == HIGH)
-            settings.updateZEDSettings = true;
+            settings.updateGNSSSettings = true;
 
         systemState = STATE_ROVER_NOT_STARTED; // Assume Rover. ButtonCheckTask() will correct as needed.
 

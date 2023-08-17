@@ -1703,7 +1703,7 @@ void paintProfile(uint8_t profileUnit)
   //if (getProfileNameFromUnit(profileUnit, profileName, sizeof(profileName)) == true) //Load the profile name, limited to 8 chars
   snprintf(profileName, sizeof(profileName), "Profile1");
   {
-    //settings.updateZEDSettings = true; //When this profile is loaded next, force system to update ZED settings.
+    //settings.updateGNSSSettings = true; //When this profile is loaded next, force system to update ZED settings.
     //recordSystemSettings(); //Before switching, we need to record the current settings to LittleFS and SD
 
     //Lookup profileNumber based on unit

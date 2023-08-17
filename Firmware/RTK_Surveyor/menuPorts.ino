@@ -353,7 +353,7 @@ void menuPortHardwareTriggers()
 
     if (updateSettings)
     {
-        settings.updateZEDSettings = true; // Force update
+        settings.updateGNSSSettings = true; // Force update
         gnssBeginExternalEvent();           // Update with new settings
         gnssBeginPPS();
     }

@@ -128,7 +128,7 @@ void stateUpdate()
                 displayRoverFail(1000);
             else
             {
-                settings.updateZEDSettings = false; // On the next boot, no need to update the ZED on this profile
+                settings.updateGNSSSettings = false; // On the next boot, no need to update the ZED on this profile
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
@@ -251,7 +251,7 @@ void stateUpdate()
             // Start monitoring the UART1 from ZED for NMEA and UBX data (enables logging)
             if (tasksStartUART2() && gnssConfigureBase())
             {
-                settings.updateZEDSettings = false; // On the next boot, no need to update the ZED on this profile
+                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings();                      // Record this state for next POR
 
@@ -660,8 +660,8 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateZEDSettings =
-                        true;               // When this profile is loaded next, force system to update ZED settings.
+                    settings.updateGNSSSettings =
+                        true;               // When this profile is loaded next, force system to update GNSS settings.
                     recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
@@ -994,7 +994,7 @@ void stateUpdate()
             // Start monitoring the UART1 from ZED for NMEA and UBX data (enables logging)
             if (tasksStartUART2() && configureUbloxModuleNTP())
             {
-                settings.updateZEDSettings = false; // On the next boot, no need to update the ZED on this profile
+                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings();
 
@@ -1041,7 +1041,7 @@ void stateUpdate()
         case (STATE_CONFIG_VIA_ETH_NOT_STARTED): {
             displayConfigViaEthNotStarted(1500);
 
-            settings.updateZEDSettings = false; // On the next boot, no need to update the ZED on this profile
+            settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
             settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Record the _next_ state for POR
             recordSystemSettings();
 
@@ -1099,8 +1099,8 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateZEDSettings =
-                        true;               // When this profile is loaded next, force system to update ZED settings.
+                    settings.updateGNSSSettings =
+                        true;               // When this profile is loaded next, force system to update GNSS settings.
                     recordSystemSettings(); // Record these settings to unit
 
                     // Clear buffer
@@ -1135,7 +1135,7 @@ void stateUpdate()
 
             ethernetWebServerStopESP32W5500();
 
-            settings.updateZEDSettings = false;          // On the next boot, no need to update the ZED on this profile
+            settings.updateGNSSSettings = false;          // On the next boot, no need to update the GNSS on this profile
             settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
             recordSystemSettings();
 

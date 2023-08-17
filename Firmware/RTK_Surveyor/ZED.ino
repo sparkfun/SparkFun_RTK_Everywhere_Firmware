@@ -398,8 +398,8 @@ bool zedConfigureRover()
         return (false);
     }
 
-    // If our settings haven't changed, and this is first config since power on, trust ZED's settings
-    if (settings.updateZEDSettings == false && firstPowerOn == true)
+    // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
+    if (settings.updateGNSSSettings == false && firstPowerOn == true)
     {
         firstPowerOn = false; // Next time user switches modes, new settings will be applied
         log_d("Skipping ZED Rover configuration");
@@ -537,7 +537,7 @@ bool zedConfigureBase()
         return (false);
 
     // If our settings haven't changed, and this is first config since power on, trust ZED's settings
-    if (settings.updateZEDSettings == false && firstPowerOn == true)
+    if (settings.updateGNSSSettings == false && firstPowerOn == true)
     {
         firstPowerOn = false; // Next time user switches modes, new settings will be applied
         log_d("Skipping ZED Base configuration");
@@ -859,7 +859,7 @@ bool zedBeginExternalEvent()
         return (false);
 
     // If our settings haven't changed, trust ZED's settings
-    if (settings.updateZEDSettings == false)
+    if (settings.updateGNSSSettings == false)
     {
         log_d("Skipping ZED Trigger configuration");
         return (true);
@@ -895,7 +895,7 @@ bool zedBeginPPS()
         return (false);
 
     // If our settings haven't changed, trust ZED's settings
-    if (settings.updateZEDSettings == false)
+    if (settings.updateGNSSSettings == false)
     {
         log_d("Skipping ZED Trigger configuration");
         return (true);
