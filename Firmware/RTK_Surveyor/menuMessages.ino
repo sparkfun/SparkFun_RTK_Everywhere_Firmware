@@ -936,6 +936,33 @@ void checkMessageRates()
         for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
             settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
     }
+
+    if(settings.um980MessageRatesNMEA[0] == 254)
+    {
+        // Reset rates to defaults
+        for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        {
+            settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+        }
+    }
+
+    if(settings.um980MessageRatesRTCMRover[0] == 254)
+    {
+        // For rovers, RTCM should be zero by default.
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        {
+            settings.um980MessageRatesRTCMRover[x] = 0;
+        }
+    }
+
+    if(settings.um980MessageRatesRTCMBase[0] == 254)
+    {
+        // Reset RTCM rates to defaults
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        {
+            settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+        }
+    }
 }
 
 // Determine logging type
