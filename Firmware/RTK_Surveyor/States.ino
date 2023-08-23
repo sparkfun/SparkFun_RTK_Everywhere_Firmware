@@ -143,7 +143,7 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_NO_FIX): {
-            if (fixType == 3 || fixType == 4) // 3D, 3D+DR
+            if (gnssGetFixType() == 3 || gnssGetFixType() == 4) // 3D, 3D+DR
                 changeState(STATE_ROVER_FIX);
         }
         break;
@@ -151,9 +151,9 @@ void stateUpdate()
         case (STATE_ROVER_FIX): {
             updateAccuracyLEDs();
 
-            if (carrSoln == 1) // RTK Float
+            if (gnssGetCarrierSolution() == 1) // RTK Float
                 changeState(STATE_ROVER_RTK_FLOAT);
-            else if (carrSoln == 2) // RTK Fix
+            else if (gnssGetCarrierSolution() == 2) // RTK Fix
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
@@ -161,9 +161,9 @@ void stateUpdate()
         case (STATE_ROVER_RTK_FLOAT): {
             updateAccuracyLEDs();
 
-            if (carrSoln == 0) // No RTK
+            if (gnssGetCarrierSolution() == 0) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (carrSoln == 2) // RTK Fix
+            if (gnssGetCarrierSolution() == 2) // RTK Fix
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
@@ -171,9 +171,9 @@ void stateUpdate()
         case (STATE_ROVER_RTK_FIX): {
             updateAccuracyLEDs();
 
-            if (carrSoln == 0) // No RTK
+            if (gnssGetCarrierSolution() == 0) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (carrSoln == 1) // RTK Float
+            if (gnssGetCarrierSolution() == 1) // RTK Float
                 changeState(STATE_ROVER_RTK_FLOAT);
         }
         break;
@@ -195,8 +195,8 @@ void stateUpdate()
                  |            |             "SIV: 5"              |
                  |            '-----------------------------------'
                  V                              |
-              STATE_BASE_FIXED_NOT_STARTED      | horizontalAccuracy > 0.0
-              (next diagram)                    | && horizontalAccuracy
+              STATE_BASE_FIXED_NOT_STARTED      | gnssGetHorizontalAccuracy() > 0.0
+              (next diagram)                    | && gnssGetHorizontalAccuracy()
                                                 |  < settings.surveyInStartingAccuracy
                                                 | && gnssSurveyInStart() == true
                                                 V
@@ -280,14 +280,14 @@ void stateUpdate()
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
 
-            int siv = gnssGetSiv();
-            float horizontalAccuracy = gnssGetHorizontalAccuracy();
+            int siv = gnssGetSatellitesInView();
+            float hpa = gnssGetHorizontalAccuracy();
 
             // Check for <1m horz accuracy before starting surveyIn
             systemPrintf("Waiting for Horz Accuracy < %0.2f meters: %0.2f, SIV: %d\r\n",
-                         settings.surveyInStartingAccuracy, horizontalAccuracy, siv);
+                         settings.surveyInStartingAccuracy, hpa, siv);
 
-            if (horizontalAccuracy > 0.0 && horizontalAccuracy < settings.surveyInStartingAccuracy)
+            if (hpa > 0.0 && hpa < settings.surveyInStartingAccuracy)
             {
                 displaySurveyStart(0); // Show 'Survey'
 
@@ -315,7 +315,7 @@ void stateUpdate()
             // Get the data once to avoid duplicate slow responses
             int observationTime = gnssGetSurveyInObservationTime();
             int meanAccuracy = gnssGetSurveyInMeanAccuracy();
-            int siv = gnssGetSiv();
+            int siv = gnssGetSatellitesInView();
 
             if (gnssIsSurveyComplete() == true) // Survey in complete
             {
@@ -460,17 +460,17 @@ void stateUpdate()
                     bool fileOpen = false;
                     char markBuffer[100];
                     bool sdCardWasOnline;
-                    int year;
-                    int month;
-                    int day;
+                    int rtcYear;
+                    int rtcMonth;
+                    int rtcDay;
 
                     // Get the date
-                    year = rtc.getYear();
-                    month = rtc.getMonth() + 1;
-                    day = rtc.getDay();
+                    rtcYear = rtc.getYear();
+                    rtcMonth = rtc.getMonth() + 1;
+                    rtcDay = rtc.getDay();
 
                     // Build the file name
-                    snprintf(fileName, sizeof(fileName), "/Marks_%04d_%02d_%02d.csv", year, month, day);
+                    snprintf(fileName, sizeof(fileName), "/Marks_%04d_%02d_%02d.csv", rtcYear, rtcMonth, rtcDay);
 
                     // Try to gain access the SD card
                     sdCardWasOnline = online.microSD;
@@ -526,30 +526,30 @@ void stateUpdate()
                             //          1         2         3         4         5         6         7         8
                             // 12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
                             // YYYY-MM-DD, HH:MM:SS, ---Latitude---, --Longitude---, --Alt--,SIV, --HPA---,Level,Volts\n
-                            if (horizontalAccuracy >= 100.)
+                            if (gnssGetHorizontalAccuracy() >= 100.)
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.0f, %3d%%, %4.2f\n",
-                                    year, month, day, rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), latitude,
-                                    longitude, altitude, numSV, horizontalAccuracy, battLevel, battVoltage);
-                            else if (horizontalAccuracy >= 10.)
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
+                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
+                            else if (gnssGetHorizontalAccuracy() >= 10.)
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.1f, %3d%%, %4.2f\n",
-                                    year, month, day, rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), latitude,
-                                    longitude, altitude, numSV, horizontalAccuracy, battLevel, battVoltage);
-                            else if (horizontalAccuracy >= 1.)
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
+                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
+                            else if (gnssGetHorizontalAccuracy() >= 1.)
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.2f, %3d%%, %4.2f\n",
-                                    year, month, day, rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), latitude,
-                                    longitude, altitude, numSV, horizontalAccuracy, battLevel, battVoltage);
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
+                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
                             else
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.3f, %3d%%, %4.2f\n",
-                                    year, month, day, rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), latitude,
-                                    longitude, altitude, numSV, horizontalAccuracy, battLevel, battVoltage);
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
+                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
 
                             // Write the mark to the file
                             marksFile.write((const uint8_t *)markBuffer, strlen(markBuffer));

@@ -1313,18 +1313,18 @@ void printCurrentConditions()
     if (online.gnss == true)
     {
         systemPrint("SIV: ");
-        systemPrint(numSV);
+        systemPrint(gnssGetSatellitesInView());
 
         systemPrint(", HPA (m): ");
-        systemPrint(horizontalAccuracy, 3);
+        systemPrint(gnssGetHorizontalAccuracy(), 3);
 
         systemPrint(", Lat: ");
-        systemPrint(latitude, haeNumberOfDecimals);
+        systemPrint(gnssGetLatitude(), haeNumberOfDecimals);
         systemPrint(", Lon: ");
-        systemPrint(longitude, haeNumberOfDecimals);
+        systemPrint(gnssGetLongitude(), haeNumberOfDecimals);
 
         systemPrint(", Altitude (m): ");
-        systemPrint(altitude, 1);
+        systemPrint(gnssGetAltitude(), 1);
 
         systemPrintln();
     }
@@ -1336,9 +1336,12 @@ void printCurrentConditionsNMEA()
     {
         char systemStatus[100];
         snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", gnssHour, gnssMinute, gnssSecond,
-                 mseconds, gnssDay, gnssMonth, gnssYear % 2000, // Limit to 2 digits
-                 horizontalAccuracy, numSV, latitude, longitude, altitude, fixType, carrSoln, battLevel);
+                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", 
+                 gnssGetHour(), gnssGetMinute(), gnssGetSecond(),
+                 gnssGetMillisecond(), gnssGetDay(), gnssGetMonth(), gnssGetYear() % 2000, // Limit to 2 digits
+                 gnssGetHorizontalAccuracy(), gnssGetSatellitesInView(), 
+                 gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(), 
+                 gnssGetFixType(), gnssGetCarrierSolution(), battLevel);
 
         char nmeaMessage[100]; // Max NMEA sentence length is 82
         createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),

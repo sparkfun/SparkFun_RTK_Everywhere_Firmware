@@ -992,7 +992,7 @@ uint32_t paintSIV()
     if (fixType == 0) //0 = No Fix
       oled.print("0");
     else
-      oled.print(numSV);
+      oled.print(gnssGetSatellitesInView());
 
     //paintResets();
 

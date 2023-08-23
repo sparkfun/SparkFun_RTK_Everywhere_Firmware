@@ -830,15 +830,15 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "bluetoothRadioType", settings.bluetoothRadioType);
 
     // Current coordinates come from HPPOSLLH call back
-    stringRecord(newSettings, "geodeticLat", latitude, haeNumberOfDecimals);
-    stringRecord(newSettings, "geodeticLon", longitude, haeNumberOfDecimals);
-    stringRecord(newSettings, "geodeticAlt", altitude, 3);
+    stringRecord(newSettings, "geodeticLat", gnssGetLatitude(), haeNumberOfDecimals);
+    stringRecord(newSettings, "geodeticLon", gnssGetLongitude(), haeNumberOfDecimals);
+    stringRecord(newSettings, "geodeticAlt", gnssGetAltitude(), 3);
 
     double ecefX = 0;
     double ecefY = 0;
     double ecefZ = 0;
 
-    geodeticToEcef(latitude, longitude, altitude, &ecefX, &ecefY, &ecefZ);
+    geodeticToEcef(gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(), &ecefX, &ecefY, &ecefZ);
 
     stringRecord(newSettings, "ecefX", ecefX, 3);
     stringRecord(newSettings, "ecefY", ecefY, 3);
@@ -1021,15 +1021,15 @@ void createDynamicDataString(char *settingsCSV)
     settingsCSV[0] = '\0'; // Erase current settings string
 
     // Current coordinates come from HPPOSLLH call back
-    stringRecord(settingsCSV, "geodeticLat", latitude, haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticLon", longitude, haeNumberOfDecimals);
-    stringRecord(settingsCSV, "geodeticAlt", altitude, 3);
+    stringRecord(settingsCSV, "geodeticLat", gnssGetLatitude(), haeNumberOfDecimals);
+    stringRecord(settingsCSV, "geodeticLon", gnssGetLongitude(), haeNumberOfDecimals);
+    stringRecord(settingsCSV, "geodeticAlt", gnssGetAltitude(), 3);
 
     double ecefX = 0;
     double ecefY = 0;
     double ecefZ = 0;
 
-    geodeticToEcef(latitude, longitude, altitude, &ecefX, &ecefY, &ecefZ);
+    geodeticToEcef(gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(), &ecefX, &ecefY, &ecefZ);
 
     stringRecord(settingsCSV, "ecefX", ecefX, 3);
     stringRecord(settingsCSV, "ecefY", ecefY, 3);

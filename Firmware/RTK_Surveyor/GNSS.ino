@@ -217,40 +217,6 @@ void gnssEnableRtcmUart2()
     }
 }
 
-// TODO See numsv global, try to remove
-int gnssGetSiv()
-{
-    if (online.gnss == true)
-    {
-        if (gnssPlatform == PLATFORM_ZED)
-        {
-            return (numSV);
-        }
-        else if (gnssPlatform == PLATFORM_UM980)
-        {
-            return (um980GetSIV());
-        }
-    }
-    return (0);
-}
-
-//TODO see storeHPdata
-float gnssGetHorizontalAccuracy()
-{
-    if (online.gnss == true)
-    {
-        if (gnssPlatform == PLATFORM_ZED)
-        {
-            return (horizontalAccuracy);
-        }
-        else if (gnssPlatform == PLATFORM_UM980)
-        {
-            return (um980GetHorizontalAccuracy());
-        }
-    }
-    return (0);
-}
-
 // Return the number of seconds the survey-in process has been running
 //  TODO make sure we're not slowing down a ZED base
 int gnssGetSurveyInObservationTime()
@@ -320,7 +286,7 @@ bool gnssBeginExternalEvent()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 Event signal not exposed
+            // UM980 Event signal not exposed
         }
     }
     return (false);
@@ -337,7 +303,7 @@ bool gnssBeginPPS()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 PPS signal not exposed
+            // UM980 PPS signal not exposed
         }
     }
     return (false);
@@ -357,7 +323,7 @@ void gnssSetBaudrate(uint32_t baudRate)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //Set the baud rate on UART2
+            // Set the baud rate on UART2
             um980SetBaudRateCOM2(baudRate);
         }
     }
@@ -373,7 +339,7 @@ uint16_t gnssGetFusionMode()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //Not supported on the UM980
+            // Not supported on the UM980
         }
     }
     return (0);
@@ -449,7 +415,7 @@ void gnssSetElevation(uint8_t elevationDegrees)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, elevationDegrees); // Set minimum elevation
+            zedSetElevation(elevationDegrees);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -464,11 +430,360 @@ void gnssSetMinCno(uint8_t cnoValue)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO, cnoValue);
+            zedSetMinCno(cnoValue);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
             um980SetMinCNO(cnoValue);
         }
     }
+}
+
+double gnssGetLatitude()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetLatitude());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (0);
+}
+
+double gnssGetLongitude()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedGetLongitude());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (0);
+}
+
+double gnssGetAltitude()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedGetAltitude());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (0);
+}
+
+// Date and Time will be valid if ZED's RTC is reporting (regardless of GNSS fix)
+bool gnssIsValidDate()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedIsValidDate());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (false);
+}
+bool gnssIsValidTime()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedIsValidTime());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (false);
+}
+
+//Date and Time are confirmed once we have GNSS fix
+bool gnssIsConfirmedDate()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedIsConfirmedDate());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (false);
+}
+bool gnssIsConfirmedTime()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedIsConfirmedTime());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (false);
+}
+
+// Used in tpISR() for time pulse synchronization
+bool gnssIsFullyResolved()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedIsFullyResolved());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (false);
+}
+
+// Used in tpISR() for time pulse synchronization
+uint32_t gnssGetTimeAccuracy()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetTimeAccuracy());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (0);
+}
+
+uint8_t gnssGetSatellitesInView()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetSatellitesInView());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980GetSatellitesInView());
+        }
+    }
+    return (0);
+}
+
+//3 = 3D
+//4 = 3D+DR
+uint8_t gnssGetFixType()
+{
+    uint8_t fixType = 0;
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedGetFixType());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (0);
+}
+
+//0 = No RTK
+//1 = RTK Float
+//2 = RTK Fix
+uint8_t gnssGetCarrierSolution()
+{
+    uint8_t fixType = 0;
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedGetCarrierSolution());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+        }
+    }
+    return (0);
+}
+
+float gnssGetHorizontalAccuracy()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetHorizontalAccuracy());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980GetHorizontalAccuracy());
+        }
+    }
+    return (0);
+}
+
+//Return full year, ie 2023, not 23.
+uint16_t gnssGetYear()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetYear());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+uint8_t gnssGetMonth()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetMonth());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+uint8_t gnssGetDay()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetDay());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+uint8_t gnssGetHour()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetHour());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+uint8_t gnssGetMinute()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetMinute());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+uint8_t gnssGetSecond()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetSecond());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+
+//Limit to two digits
+uint8_t gnssGetMillisecond()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetMillisecond());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+
+//Used in convertGnssTimeToEpoch()
+uint32_t gnssGetNanosecond()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetNanosecond());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (0);
+        }
+    }
+    return (0);
+}
+
+//Return the number of milliseconds since GNSS data was last updated
+uint16_t gnssGetFixAgeMilliseconds()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedFixAgeMilliseconds());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (65000);
+        }
+    }
+    return (65000);    
 }

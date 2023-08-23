@@ -428,7 +428,7 @@ float um980GetHorizontalAccuracy()
     return (latitudeDeviation);
 }
 
-int um980GetSIV()
+int um980GetSatellitesInView()
 {
     return (um980->getSIV());
 }

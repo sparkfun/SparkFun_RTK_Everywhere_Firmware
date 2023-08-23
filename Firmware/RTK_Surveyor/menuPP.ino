@@ -991,6 +991,7 @@ void beginLBand()
     gnssUpdate();
 
     // If we have a fix, check which frequency to use
+    uint8_t fixType = gnssGetFixType();
     if (fixType == 2 || fixType == 3 || fixType == 4 || fixType == 5) // 2D, 3D, 3D+DR, or Time
     {
         if ((longitude > -125 && longitude < -67) && (latitude > -90 && latitude < 90))
@@ -1249,7 +1250,7 @@ void updateLBand()
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (carrSoln == 1) // RTK Float
+        if (gnssGetCarrierSolution() == 1) // RTK Float
         {
             if (millis() - lbandLastReport > 1000)
             {
@@ -1272,7 +1273,7 @@ void updateLBand()
                 }
             }
         }
-        else if (carrSoln == 2 && lbandTimeToFix == 0)
+        else if (gnssGetCarrierSolution() == 2 && lbandTimeToFix == 0)
         {
             lbandTimeToFix = millis();
             log_d("Time to first L-Band fix: %ds", lbandTimeToFix / 1000);

@@ -932,38 +932,40 @@ void updateAccuracyLEDs()
 
         if (online.gnss == true)
         {
-            if (horizontalAccuracy > 0)
+            float hpa = gnssGetHorizontalAccuracy();
+
+            if (hpa > 0)
             {
                 if (settings.enablePrintRoverAccuracy)
                 {
                     systemPrint("Rover Accuracy (m): ");
-                    systemPrint(horizontalAccuracy, 4); // Print the accuracy with 4 decimal places
+                    systemPrint(hpa, 4); // Print the accuracy with 4 decimal places
                     systemPrint(", SIV: ");
-                    systemPrint(numSV);
+                    systemPrint(gnssGetSatellitesInView());
                     systemPrintln();
                 }
 
                 if (productVariant == RTK_SURVEYOR)
                 {
-                    if (horizontalAccuracy <= 0.02)
+                    if (hpa <= 0.02)
                     {
                         digitalWrite(pin_positionAccuracyLED_1cm, HIGH);
                         digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
                         digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
                     }
-                    else if (horizontalAccuracy <= 0.100)
+                    else if (hpa <= 0.100)
                     {
                         digitalWrite(pin_positionAccuracyLED_1cm, LOW);
                         digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
                         digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
                     }
-                    else if (horizontalAccuracy <= 1.0000)
+                    else if (hpa <= 1.0000)
                     {
                         digitalWrite(pin_positionAccuracyLED_1cm, LOW);
                         digitalWrite(pin_positionAccuracyLED_10cm, LOW);
                         digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
                     }
-                    else if (horizontalAccuracy > 1.0)
+                    else if (hpa > 1.0)
                     {
                         digitalWrite(pin_positionAccuracyLED_1cm, LOW);
                         digitalWrite(pin_positionAccuracyLED_10cm, LOW);
@@ -974,10 +976,10 @@ void updateAccuracyLEDs()
             else if (settings.enablePrintRoverAccuracy)
             {
                 systemPrint("Rover Accuracy: ");
-                systemPrint(horizontalAccuracy);
+                systemPrint(hpa);
                 systemPrint(" ");
                 systemPrint("No lock. SIV: ");
-                systemPrint(numSV);
+                systemPrint(gnssGetSatellitesInView());
                 systemPrintln();
             }
         } // End GNSS online checking
@@ -988,18 +990,18 @@ void updateAccuracyLEDs()
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
 {
     uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;             // Jan 1st 2020 as days from Jan 1st 1970
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnssYear - 2020]; // Add on the number of days since 2020
+    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnssGetYear() - 2020]; // Add on the number of days since 2020
     t += (uint32_t)
-        SFE_UBLOX_DAYS_SINCE_MONTH[gnssYear % 4 == 0 ? 0 : 1][gnssMonth - 1]; // Add on the number of days since Jan 1st
-    t += (uint32_t)gnssDay - 1; // Add on the number of days since the 1st of the month
+        SFE_UBLOX_DAYS_SINCE_MONTH[gnssGetYear() % 4 == 0 ? 0 : 1][gnssGetMonth() - 1]; // Add on the number of days since Jan 1st
+    t += (uint32_t)gnssGetDay() - 1; // Add on the number of days since the 1st of the month
     t *= 24;                    // Convert to hours
-    t += (uint32_t)gnssHour;    // Add on the hour
+    t += (uint32_t)gnssGetHour();    // Add on the hour
     t *= 60;                    // Convert to minutes
-    t += (uint32_t)gnssMinute;  // Add on the minute
+    t += (uint32_t)gnssGetMinute();  // Add on the minute
     t *= 60;                    // Convert to seconds
-    t += (uint32_t)gnssSecond;  // Add on the second
+    t += (uint32_t)gnssGetSecond();  // Add on the second
 
-    int32_t us = gnssNano / 1000; // Convert nanos to micros
+    int32_t us = gnssGetNanosecond() / 1000; // Convert nanos to micros
     uint32_t micro;
     // Adjust t if nano is negative
     if (us < 0)

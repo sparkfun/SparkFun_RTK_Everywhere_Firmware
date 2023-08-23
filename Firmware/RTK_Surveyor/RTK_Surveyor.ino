@@ -332,30 +332,7 @@ volatile struct timeval
     gnssSyncTv; // This holds the time the RTC was sync'd to GNSS time via Time Pulse interrupt - used by NTP
 struct timeval previousGnssSyncTv; // This holds the time of the previous RTC sync
 
-// These globals are updated regularly via the storePVTdata callback
-unsigned long pvtArrivalMillis = 0;
-bool pvtUpdated = false;
-double latitude;
-double longitude;
-float altitude;
-float horizontalAccuracy;
-bool validDate;
-bool validTime;
-bool confirmedDate;
-bool confirmedTime;
-bool fullyResolved;
-uint32_t tAcc;
-uint8_t gnssDay;
-uint8_t gnssMonth;
-uint16_t gnssYear;
-uint8_t gnssHour;
-uint8_t gnssMinute;
-uint8_t gnssSecond;
-int32_t gnssNano;
-uint16_t mseconds;
-uint8_t numSV;
-uint8_t fixType;
-uint8_t carrSoln;
+
 
 unsigned long timTpArrivalMillis = 0;
 bool timTpUpdated = false;
@@ -1186,12 +1163,12 @@ void rtcUpdate()
                 gnssUpdate();
 
                 bool timeValid = false;
-                if (validTime == true && validDate == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
+                if (gnssIsValidTime() == true && gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
-                if (confirmedTime == true && confirmedDate == true) // Requires GNSS fix
+                if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
                 if (timeValid &&
-                    (millis() - pvtArrivalMillis > 999)) // If the GNSS time is over a second old, don't use it
+                    (gnssGetFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
                     timeValid = false;
 
                 if (timeValid == true)

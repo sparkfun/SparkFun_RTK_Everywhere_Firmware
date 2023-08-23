@@ -1299,26 +1299,28 @@ void paintHorizontalAccuracy()
     oled.setCursor(16, 20);     // x, y
     oled.print(":");
 
+    float hpa = gnssGetHorizontalAccuracy();
+
     if (online.gnss == false)
     {
         oled.print("N/A");
     }
-    else if (horizontalAccuracy > 30.0)
+    else if (hpa > 30.0)
     {
         oled.print(">30m");
     }
-    else if (horizontalAccuracy > 9.9)
+    else if (hpa > 9.9)
     {
-        oled.print(horizontalAccuracy, 1); // Print down to decimeter
+        oled.print(hpa, 1); // Print down to decimeter
     }
-    else if (horizontalAccuracy > 1.0)
+    else if (hpa > 1.0)
     {
-        oled.print(horizontalAccuracy, 2); // Print down to centimeter
+        oled.print(hpa, 2); // Print down to centimeter
     }
     else
     {
         oled.print(".");                                       // Remove leading zero
-        oled.printf("%03d", (int)(horizontalAccuracy * 1000)); // Print down to millimeter
+        oled.printf("%03d", (int)(hpa * 1000)); // Print down to millimeter
     }
 }
 
@@ -1340,47 +1342,49 @@ void paintClock()
         displayBitmap(0, 18, Clock_Icon_Width, Clock_Icon_Height, Clock_Icon_4);
 }
 
-// Display clock accuracy tAcc
+// Display clock accuracy
 void paintClockAccuracy()
 {
     oled.setFont(QW_FONT_8X16); // Set font to type 1: 8x16
     oled.setCursor(16, 20);     // x, y
     oled.print(":");
 
+    uint32_t timeAccuracy = gnssGetTimeAccuracy();
+
     if (online.gnss == false)
     {
         oled.print(" N/A");
     }
-    else if (tAcc < 10) // 9 or less : show as 9ns
+    else if (timeAccuracy < 10) // 9 or less : show as 9ns
     {
-        oled.print(tAcc);
+        oled.print(timeAccuracy);
         displayBitmap(36, 20, Millis_Icon_Width, Millis_Icon_Height, Nanos_Icon);
     }
-    else if (tAcc < 100) // 99 or less : show as 99ns
+    else if (timeAccuracy < 100) // 99 or less : show as 99ns
     {
-        oled.print(tAcc);
+        oled.print(timeAccuracy);
         displayBitmap(44, 20, Millis_Icon_Width, Millis_Icon_Height, Nanos_Icon);
     }
-    else if (tAcc < 10000) // 9999 or less : show as 9.9μs
+    else if (timeAccuracy < 10000) // 9999 or less : show as 9.9μs
     {
-        oled.print(tAcc / 1000);
+        oled.print(timeAccuracy / 1000);
         oled.print(".");
-        oled.print((tAcc / 100) % 10);
+        oled.print((timeAccuracy / 100) % 10);
         displayBitmap(52, 20, Millis_Icon_Width, Millis_Icon_Height, Micros_Icon);
     }
-    else if (tAcc < 100000) // 99999 or less : show as 99μs
+    else if (timeAccuracy < 100000) // 99999 or less : show as 99μs
     {
-        oled.print(tAcc / 1000);
+        oled.print(timeAccuracy / 1000);
         displayBitmap(44, 20, Millis_Icon_Width, Millis_Icon_Height, Micros_Icon);
     }
-    else if (tAcc < 10000000) // 9999999 or less : show as 9.9ms
+    else if (timeAccuracy < 10000000) // 9999999 or less : show as 9.9ms
     {
-        oled.print(tAcc / 1000000);
+        oled.print(timeAccuracy / 1000000);
         oled.print(".");
-        oled.print((tAcc / 100000) % 10);
+        oled.print((timeAccuracy / 100000) % 10);
         displayBitmap(52, 20, Millis_Icon_Width, Millis_Icon_Height, Millis_Icon);
     }
-    else // if (tAcc >= 100000)
+    else // if (timeAccuracy >= 100000)
     {
         oled.print(">10");
         displayBitmap(52, 20, Millis_Icon_Width, Millis_Icon_Height, Millis_Icon);
@@ -1518,10 +1522,11 @@ uint32_t paintSIV()
 
     if (online.gnss)
     {
+        int fixType = gnssGetFixType();
         if (fixType == 0) // 0 = No Fix
             oled.print("0");
         else
-            oled.print(numSV);
+            oled.print(gnssGetSatellitesInView());
 
         paintResets();
 
@@ -2339,7 +2344,7 @@ void paintSystemTest()
             {
                 gnssUpdate(); // Regularly poll to get latest data
 
-                int satsInView = gnssGetSiv();
+                int satsInView = gnssGetSatellitesInView();
                 if (satsInView > 5)
                 {
                     oled.print("OK");

@@ -1,3 +1,123 @@
+// These globals are updated regularly via the storePVTdata callback
+double zedLatitude;
+double zedLongitude;
+float zedAltitude;
+float zedHorizontalAccuracy;
+
+uint8_t zedDay;
+uint8_t zedMonth;
+uint16_t zedYear;
+uint8_t zedHour;
+uint8_t zedMinute;
+uint8_t zedSecond;
+int32_t zedNanosecond;
+uint16_t zedMillisecond; // Limited to first two digits
+
+uint8_t zedSatellitesInView;
+uint8_t zedFixType;
+uint8_t zedCarrierSolution;
+
+bool zedValidDate;
+bool zedValidTime;
+bool zedConfirmedDate;
+bool zedConfirmedTime;
+bool zedFullyResolved;
+uint32_t zedTAcc;
+
+unsigned long zedPvtArrivalMillis = 0;
+bool pvtUpdated = false;
+
+
+// Below are the callbacks specific to the ZED-F9x
+// Once called, they update global variables that are then accesses via gnssGetSatellitesInView() and the likes
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//  These are the callbacks that get regularly called, globals are updated
+void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
+{
+    zedAltitude = ubxDataStruct->height / 1000.0;
+
+    zedDay = ubxDataStruct->day;
+    zedMonth = ubxDataStruct->month;
+    zedYear = ubxDataStruct->year;
+
+    zedHour = ubxDataStruct->hour;
+    zedMinute = ubxDataStruct->min;
+    zedSecond = ubxDataStruct->sec;
+    zedNanosecond = ubxDataStruct->nano;
+    zedMillisecond = ceil((ubxDataStruct->iTOW % 1000) / 10.0); // Limit to first two digits
+
+    zedSatellitesInView = ubxDataStruct->numSV;
+    zedFixType = ubxDataStruct->fixType;
+    zedCarrierSolution = ubxDataStruct->flags.bits.carrSoln;
+
+    zedValidDate = ubxDataStruct->valid.bits.validDate;
+    zedValidTime = ubxDataStruct->valid.bits.validTime;
+    zedConfirmedDate = ubxDataStruct->flags2.bits.confirmedDate;
+    zedConfirmedTime = ubxDataStruct->flags2.bits.confirmedTime;
+    zedFullyResolved = ubxDataStruct->valid.bits.fullyResolved;
+    zedTAcc = ubxDataStruct->tAcc;
+
+    zedPvtArrivalMillis = millis();
+    pvtUpdated = true;
+}
+
+void storeHPdata(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
+{
+    zedHorizontalAccuracy = ((float)ubxDataStruct->hAcc) / 10000.0; // Convert hAcc from mm*0.1 to m
+
+    zedLatitude = ((double)ubxDataStruct->lat) / 10000000.0;
+    zedLatitude += ((double)ubxDataStruct->latHp) / 1000000000.0;
+    zedLongitude = ((double)ubxDataStruct->lon) / 10000000.0;
+    zedLongitude += ((double)ubxDataStruct->lonHp) / 1000000000.0;
+}
+
+void storeTIMTPdata(UBX_TIM_TP_data_t *ubxDataStruct)
+{
+    uint32_t tow = ubxDataStruct->week - SFE_UBLOX_JAN_1ST_2020_WEEK; // Calculate the number of weeks since Jan 1st
+                                                                      // 2020
+    tow *= SFE_UBLOX_SECS_PER_WEEK;                                   // Convert weeks to seconds
+    tow += SFE_UBLOX_EPOCH_WEEK_2086;                                 // Add the TOW for Jan 1st 2020
+    tow += ubxDataStruct->towMS / 1000;                               // Add the TOW for the next TP
+
+    uint32_t us = ubxDataStruct->towMS % 1000; // Extract the milliseconds
+    us *= 1000;                                // Convert to microseconds
+
+    double subMS = ubxDataStruct->towSubMS; // Get towSubMS (ms * 2^-32)
+    subMS *= pow(2.0, -32.0);               // Convert to milliseconds
+    subMS *= 1000;                          // Convert to microseconds
+
+    us += (uint32_t)subMS; // Add subMS
+
+    timTpEpoch = tow;
+    timTpMicros = us;
+    timTpArrivalMillis = millis();
+    timTpUpdated = true;
+}
+
+void storeMONHWdata(UBX_MON_HW_data_t *ubxDataStruct)
+{
+    aStatus = ubxDataStruct->aStatus;
+}
+
+void storeRTCM1005data(RTCM_1005_data_t *rtcmData1005)
+{
+    ARPECEFX = rtcmData1005->AntennaReferencePointECEFX;
+    ARPECEFY = rtcmData1005->AntennaReferencePointECEFY;
+    ARPECEFZ = rtcmData1005->AntennaReferencePointECEFZ;
+    ARPECEFH = 0;
+    newARPAvailable = true;
+}
+
+void storeRTCM1006data(RTCM_1006_data_t *rtcmData1006)
+{
+    ARPECEFX = rtcmData1006->AntennaReferencePointECEFX;
+    ARPECEFY = rtcmData1006->AntennaReferencePointECEFY;
+    ARPECEFZ = rtcmData1006->AntennaReferencePointECEFZ;
+    ARPECEFH = rtcmData1006->AntennaHeight;
+    newARPAvailable = true;
+}
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 void zedBegin()
 {
     // Instantiate the library
@@ -1004,3 +1124,111 @@ bool zedSetRate(double secondsBetweenSolutions)
     return (true);
 }
 
+void zedSetElevation(uint8_t elevationDegrees)
+{
+    theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, elevationDegrees); // Set minimum elevation
+}
+
+void zedSetMinCno(uint8_t cnoValue)
+{
+    theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO, cnoValue);
+}
+
+double zedGetLatitude()
+{
+    return (zedLatitude);
+}
+
+double zedGetLongitude()
+{
+    return (zedLongitude);
+}
+
+double zedGetAltitude()
+{
+    return (zedAltitude);
+}
+
+float zedGetHorizontalAccuracy()
+{
+    return (zedHorizontalAccuracy);
+}
+
+uint8_t zedGetSatellitesInView()
+{
+    return (zedSatellitesInView);
+}
+
+// Return full year, ie 2023, not 23.
+uint16_t zedGetYear()
+{
+    return (zedYear);
+}
+uint8_t zedGetMonth()
+{
+    return (zedMonth);
+}
+uint8_t zedGetDay()
+{
+    return (zedDay);
+}
+uint8_t zedGetHour()
+{
+    return (zedHour);
+}
+uint8_t zedGetMinute()
+{
+    return (zedMinute);
+}
+uint8_t zedGetSecond()
+{
+    return (zedSecond);
+}
+uint8_t zedGetMillisecond()
+{
+    return (zedMillisecond);
+}
+uint8_t zedGetNanosecond()
+{
+    return (zedNanosecond);
+}
+
+uint8_t zedGetFixType()
+{
+    return (zedFixType);
+}
+uint8_t zedGetCarrierSolution()
+{
+    return (zedCarrierSolution);
+}
+
+bool zedIsValidDate()
+{
+    return (zedValidDate);
+}
+bool zedIsValidTime()
+{
+    return (zedValidTime);
+}
+bool zedIsConfirmedDate()
+{
+    return (zedConfirmedDate);
+}
+bool zedIsConfirmedTime()
+{
+    return (zedConfirmedTime);
+}
+bool zedIsFullyResolved()
+{
+    return (zedFullyResolved);
+}
+uint32_t zedGetTimeAccuracy()
+{
+    return (zedTAcc);
+}
+
+//Return the number of milliseconds since data was updated
+uint16_t zedFixAgeMilliseconds()
+{
+    return (millis() - zedPvtArrivalMillis);
+}
