@@ -705,7 +705,7 @@ void pinUART2Task(void *pvParameters)
     //   if (USE_I2C_GNSS)
     // #endif  // REF_STN_GNSS_DEBUG
     {
-        if(serialGNSS = nullptr)
+        if (serialGNSS == nullptr)
             serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32
 
         serialGNSS->setRxBufferSize(
