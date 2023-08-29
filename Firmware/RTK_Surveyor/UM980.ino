@@ -1,6 +1,8 @@
 /*
     TODO:
         Add debug menu for direct to USB
+        Blink GNSS LED
+        Blink BT LED
 */
 void um980Begin()
 {
@@ -65,8 +67,8 @@ bool um980Configure()
     um980DisableAllOutput();
 
     bool response = true;
-    response &= um980->setPortBaudrate("COM1", 115200); //Connected to switch, then USB
-    response &= um980SetBaudRateCOM2(settings.dataPortBaud); //Conected to ESP UART2
+    response &= um980->setPortBaudrate("COM1", 115200);      // Connected to switch, then USB
+    response &= um980SetBaudRateCOM2(settings.dataPortBaud); // Conected to ESP UART2
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
@@ -281,10 +283,15 @@ bool um980SetConstellations()
 
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
+        Serial.printf("Constellation %s: ", um980ConstellationCommands[constellationNumber].textName);
         if (settings.um980Constellations[constellationNumber] == true)
         {
-            if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) !=
-                UM980_RESULT_OK)
+            Serial.println("enable");
+        }
+        else
+            Serial.println("disabled");
+    }
+
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
         if (settings.um980Constellations[constellationNumber] == true)
@@ -420,13 +427,13 @@ bool um980SetBaudRateCOM2(uint32_t baudRate)
     return (response);
 }
 
-//Return the lower of the two Lat/Long deviations
+// Return the lower of the two Lat/Long deviations
 float um980GetHorizontalAccuracy()
 {
     float latitudeDeviation = um980->getLatitudeDeviation();
     float longitudeDeviation = um980->getLongitudeDeviation();
 
-    if(longitudeDeviation < latitudeDeviation)
+    if (longitudeDeviation < latitudeDeviation)
         return (longitudeDeviation);
 
     return (latitudeDeviation);
@@ -435,4 +442,104 @@ float um980GetHorizontalAccuracy()
 int um980GetSatellitesInView()
 {
     return (um980->getSIV());
+}
+
+double um980GetLatitude()
+{
+    return (um980->getLatitude());
+}
+
+double um980GetLongitude()
+{
+    return (um980->getLongitude());
+}
+
+double um980GetAltitude()
+{
+    return (um980->getAltitude());
+}
+
+bool um980IsValidTime()
+{
+    if (um980->getTimeStatus() == 0) // 0 = valid, 3 = invalid
+        return (true);
+    return (false);
+}
+
+bool um980IsValidDate()
+{
+    if (um980->getDateStatus() == 1) // 0 = Invalid, 1 = valid, 2 = leap second warning
+        return (true);
+    return (false);
+}
+
+uint8_t um980GetSolutionStatus()
+{
+    return (um980->getSolutionStatus()); // 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+}
+
+bool um980IsFullyResolved()
+{
+    // UM980 does not have this feature directly.
+    // getSolutionStatus: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+    if (um980GetSolutionStatus() >= 8)
+        return (true);
+    return (false);
+}
+
+// Standard deviation of the receiver clock offset, s.
+// UM980 returns seconds, ZED returns nanoseconds. We convert here to ns.
+// Return just ns in uint32_t form
+uint32_t um980GetTimeDeviation()
+{
+    double timeDeviation_s = um980->getTimeOffsetDeviation();
+    Serial.printf("um980 timeDeviation_s: %0.10f\r\n", timeDeviation_s);
+    if (timeDeviation_s > 1.0)
+        return (999999999);
+
+    uint32_t timeDeviation_ns = timeDeviation_s * 1000000000L; // Convert to nanoseconds
+    Serial.printf("um980 timeDeviation_ns: %d\r\n", timeDeviation_ns);
+    return (timeDeviation_ns);
+}
+
+// 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+uint8_t um980GetPositionType()
+{
+    return (um980->getPositionType());
+}
+
+// Return full year, ie 2023, not 23.
+uint16_t um980GetYear()
+{
+    return (um980->getYear());
+}
+uint8_t um980GetMonth()
+{
+    return (um980->getMonth());
+}
+uint8_t um980GetDay()
+{
+    return (um980->getDay());
+}
+uint8_t um980GetHour()
+{
+    return (um980->getHour());
+}
+uint8_t um980GetMinute()
+{
+    return (um980->getMinute());
+}
+uint8_t um980GetSecond()
+{
+    return (um980->getSecond());
+}
+uint8_t um980GetMillisecond()
+{
+    return (um980->getMillisecond());
+}
+
+// Print the module type and firmware version
+void um980PrintInfo()
+{
+    systemPrintf("UM980 firmware: %s\r\n", "TODO");
 }

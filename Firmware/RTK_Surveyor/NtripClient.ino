@@ -617,7 +617,7 @@ void ntripClientUpdate()
 
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
-        else if ((!settings.ntripClient_TransmitGGA) || (fixType >= 3) && (fixType <= 5))
+        else if ((settings.ntripClient_TransmitGGA == false) || (gnssIsFixed() == true))
         {
             // Delay before opening the NTRIP client connection
             if ((millis() - ntripClientTimer) >= ntripClientConnectionAttemptTimeout)

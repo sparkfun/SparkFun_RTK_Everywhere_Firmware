@@ -143,7 +143,7 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_NO_FIX): {
-            if (gnssGetFixType() == 3 || gnssGetFixType() == 4) // 3D, 3D+DR
+            if (gnssIsFixed()) // 3D, 3D+DR
                 changeState(STATE_ROVER_FIX);
         }
         break;
@@ -151,9 +151,9 @@ void stateUpdate()
         case (STATE_ROVER_FIX): {
             updateAccuracyLEDs();
 
-            if (gnssGetCarrierSolution() == 1) // RTK Float
+            if (gnssIsRTKFloat())
                 changeState(STATE_ROVER_RTK_FLOAT);
-            else if (gnssGetCarrierSolution() == 2) // RTK Fix
+            else if (gnssIsRTKFix())
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
@@ -161,9 +161,9 @@ void stateUpdate()
         case (STATE_ROVER_RTK_FLOAT): {
             updateAccuracyLEDs();
 
-            if (gnssGetCarrierSolution() == 0) // No RTK
+            if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (gnssGetCarrierSolution() == 2) // RTK Fix
+            if (gnssIsRTKFix() == true)
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
@@ -171,9 +171,9 @@ void stateUpdate()
         case (STATE_ROVER_RTK_FIX): {
             updateAccuracyLEDs();
 
-            if (gnssGetCarrierSolution() == 0) // No RTK
+            if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (gnssGetCarrierSolution() == 1) // RTK Float
+            if (gnssIsRTKFloat())
                 changeState(STATE_ROVER_RTK_FLOAT);
         }
         break;

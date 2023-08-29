@@ -1522,8 +1522,7 @@ uint32_t paintSIV()
 
     if (online.gnss)
     {
-        int fixType = gnssGetFixType();
-        if (fixType == 0) // 0 = No Fix
+        if (gnssIsFixed() == false)
             oled.print("0");
         else
             oled.print(gnssGetSatellitesInView());
@@ -1538,7 +1537,7 @@ uint32_t paintSIV()
             blinking = ICON_SIV_ANTENNA;
 
         // Determine if there is a fix
-        if (fixType == 3 || fixType == 4 || fixType == 5) // 3D, 3D+DR, or Time
+        if (gnssIsFixed() == false)
         {
             // Fix, turn on icon
             icons = blinking;
