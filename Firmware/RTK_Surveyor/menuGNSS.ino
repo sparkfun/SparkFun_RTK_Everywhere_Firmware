@@ -431,17 +431,6 @@ void menuConstellations()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Print the module type and firmware version
-void printZEDInfo()
-{
-    if (zedModuleType == PLATFORM_F9P)
-        systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
-    else if (zedModuleType == PLATFORM_F9R)
-        systemPrintf("ZED-F9R firmware: %s\r\n", zedFirmwareVersion);
-    else
-        systemPrintf("Unknown module with firmware: %s\r\n", zedFirmwareVersion);
-}
-
 // Print the NEO firmware version
 void printNEOInfo()
 {

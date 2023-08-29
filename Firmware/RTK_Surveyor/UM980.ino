@@ -3,6 +3,7 @@
         Add debug menu for direct to USB
         Blink GNSS LED
         Blink BT LED
+        Get module version info um980PrintInfo()
 */
 void um980Begin()
 {

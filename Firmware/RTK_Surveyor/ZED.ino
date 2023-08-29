@@ -27,9 +27,8 @@ uint32_t zedTAcc;
 unsigned long zedPvtArrivalMillis = 0;
 bool pvtUpdated = false;
 
-
 // Below are the callbacks specific to the ZED-F9x
-// Once called, they update global variables that are then accesses via gnssGetSatellitesInView() and the likes
+// Once called, they update global variables that are then accesses via zedGetSatellitesInView() and the likes
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  These are the callbacks that get regularly called, globals are updated
 void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
@@ -47,7 +46,7 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
     zedMillisecond = ceil((ubxDataStruct->iTOW % 1000) / 10.0); // Limit to first two digits
 
     zedSatellitesInView = ubxDataStruct->numSV;
-    zedFixType = ubxDataStruct->fixType;
+    zedFixType = ubxDataStruct->fixType; // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only fix
     zedCarrierSolution = ubxDataStruct->flags.bits.carrSoln;
 
     zedValidDate = ubxDataStruct->valid.bits.validDate;
@@ -55,7 +54,7 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
     zedConfirmedDate = ubxDataStruct->flags2.bits.confirmedDate;
     zedConfirmedTime = ubxDataStruct->flags2.bits.confirmedTime;
     zedFullyResolved = ubxDataStruct->valid.bits.fullyResolved;
-    zedTAcc = ubxDataStruct->tAcc;
+    zedTAcc = ubxDataStruct->tAcc; //Nanoseconds
 
     zedPvtArrivalMillis = millis();
     pvtUpdated = true;
@@ -238,7 +237,7 @@ void zedBegin()
             zedModuleType = PLATFORM_F9P;
         }
 
-        printZEDInfo(); // Print module type and firmware version
+        zedPrintInfo(); // Print module type and firmware version
     }
 
     UBX_SEC_UNIQID_data_t chipID;
@@ -1282,3 +1281,13 @@ uint16_t zedFixAgeMilliseconds()
     return (millis() - zedPvtArrivalMillis);
 }
 
+// Print the module type and firmware version
+void zedPrintInfo()
+{
+    if (zedModuleType == PLATFORM_F9P)
+        systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
+    else if (zedModuleType == PLATFORM_F9R)
+        systemPrintf("ZED-F9R firmware: %s\r\n", zedFirmwareVersion);
+    else
+        systemPrintf("Unknown module with firmware: %s\r\n", zedFirmwareVersion);
+}

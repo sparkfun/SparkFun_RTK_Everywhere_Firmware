@@ -861,3 +861,18 @@ uint16_t gnssGetFixAgeMilliseconds()
     }
     return (65000);    
 }
+
+void printGnssModuleInfo()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            zedPrintInfo();
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            um980PrintInfo();
+        }
+    }
+}
