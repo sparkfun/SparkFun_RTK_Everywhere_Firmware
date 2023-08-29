@@ -255,6 +255,13 @@ void zedBegin()
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 bool zedConfigure()
 {
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        log_d("configureViaEthernet: skipping configureGNSS");
+        return(false);
+    }
+
     if (online.gnss == false)
         return (false);
 
@@ -272,6 +279,30 @@ bool zedConfigure()
     }
     else
         theGNSS->disableDebugging();
+
+    // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
+    checkMessageRates();
+
+    theGNSS->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
+    theGNSS->setAutoHPPOSLLHcallbackPtr(
+        &storeHPdata); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
+    theGNSS->setRTCM1005InputcallbackPtr(
+        &storeRTCM1005data); // Configure a callback for RTCM 1005 - parsed from pushRawData
+    theGNSS->setRTCM1006InputcallbackPtr(
+        &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
+
+    if (HAS_GNSS_TP_INT)
+        theGNSS->setAutoTIMTPcallbackPtr(
+            &storeTIMTPdata); // Enable automatic TIM TP messages with callback to storeTIMTPdata
+
+    // Configuring the ZED can take more than 2000ms. We save configuration to
+    // ZED so there is no need to update settings unless user has modified
+    // the settings file or internal settings.
+    if (settings.updateGNSSSettings == false)
+    {
+        log_d("Skipping GNSS configuration");
+        return (true);
+    }
 
     // Wait for initial report from module
     int maxWait = 2000;
@@ -499,6 +530,24 @@ bool zedConfigure()
 
     if (response == false)
         systemPrintln("Module failed config block 3");
+
+    if (HAS_ANTENNA_SHORT_OPEN)
+    {
+        theGNSS->newCfgValset();
+
+        theGNSS->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
+        theGNSS->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
+
+        if (theGNSS->sendCfgValset())
+        {
+            theGNSS->setAutoMONHWcallbackPtr(
+                &storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
+        }
+        else
+        {
+            systemPrintln("Failed to configure GNSS antenna detection");
+        }
+    }
 
     if (zedModuleType == PLATFORM_F9R)
     {
@@ -1227,8 +1276,9 @@ uint32_t zedGetTimeAccuracy()
     return (zedTAcc);
 }
 
-//Return the number of milliseconds since data was updated
+// Return the number of milliseconds since data was updated
 uint16_t zedFixAgeMilliseconds()
 {
     return (millis() - zedPvtArrivalMillis);
 }
+
