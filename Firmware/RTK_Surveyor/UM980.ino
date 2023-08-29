@@ -214,10 +214,10 @@ bool um980EnableNMEA()
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
         {
             if (um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM2",
-                                          settings.um980MessageRatesNMEA[messageNumber]) != UM980_RESULT_OK)
+                                          settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
-                log_d("Enable NMEA failed at messageNumber %d %s. ", messageNumber,
-                      umMessagesNMEA[messageNumber - 1].msgTextName);
+                log_d("Enable NMEA failed at messageNumber %d %s.", messageNumber,
+                      umMessagesNMEA[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -238,10 +238,10 @@ bool um980EnableRTCMRover()
         if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
         {
             if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM2",
-                                          settings.um980MessageRatesRTCMRover[messageNumber]) != UM980_RESULT_OK)
+                                          settings.um980MessageRatesRTCMRover[messageNumber]) == false)
             {
-                log_d("Enable RTCM failed at messageNumber %d %s. ", messageNumber,
-                      umMessagesRTCM[messageNumber - 1].msgTextName);
+                log_d("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                      umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -262,10 +262,10 @@ bool um980EnableRTCMBase()
         if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
         {
             if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM2",
-                                          settings.um980MessageRatesRTCMBase[messageNumber]) != UM980_RESULT_OK)
+                                          settings.um980MessageRatesRTCMBase[messageNumber]) == false)
             {
-                log_d("Enable RTCM failed at messageNumber %d %s. ", messageNumber,
-                      umMessagesRTCM[messageNumber - 1].msgTextName);
+                log_d("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                      umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -285,19 +285,23 @@ bool um980SetConstellations()
         {
             if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) !=
                 UM980_RESULT_OK)
+    for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
+    {
+        if (settings.um980Constellations[constellationNumber] == true)
+        {
+            if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
-                log_d("Enable constellation failed at constellationNumber %d %s. ", constellationNumber,
-                      um980ConstellationCommands[constellationNumber - 1].textName);
+                log_d("Enable constellation failed at constellationNumber %d %s.", constellationNumber,
+                      um980ConstellationCommands[constellationNumber].textName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
         else
         {
-            if (um980->disableConstellation(um980ConstellationCommands[constellationNumber].textCommand) !=
-                UM980_RESULT_OK)
+            if (um980->disableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
-                log_d("Disable constellation failed at constellationNumber %d %s. ", constellationNumber,
-                      um980ConstellationCommands[constellationNumber - 1].textName);
+                log_d("Disable constellation failed at constellationNumber %d %s.", constellationNumber,
+                      um980ConstellationCommands[constellationNumber].textName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
