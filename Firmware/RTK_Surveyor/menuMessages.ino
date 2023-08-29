@@ -913,8 +913,8 @@ uint8_t getMessageNumberByName(const char *msgName)
     return (0);
 }
 
-// Check rates to see if they need to be reset to defaults
-void checkMessageRates()
+// Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
+void checkArrayDefaults()
 {
     if (settings.ubxMessageRates[0] == 254)
     {
@@ -937,31 +937,32 @@ void checkMessageRates()
             settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
     }
 
+    if(settings.um980Constellations[0] == 254)
+    {
+        // Reset constellations to defaults
+        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            settings.um980Constellations[x] = true; 
+    }
+
     if(settings.um980MessageRatesNMEA[0] == 254)
     {
         // Reset rates to defaults
         for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-        {
             settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
-        }
     }
 
     if(settings.um980MessageRatesRTCMRover[0] == 254)
     {
         // For rovers, RTCM should be zero by default.
         for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-        {
             settings.um980MessageRatesRTCMRover[x] = 0;
-        }
     }
 
     if(settings.um980MessageRatesRTCMBase[0] == 254)
     {
         // Reset RTCM rates to defaults
         for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-        {
             settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
-        }
     }
 }
 
