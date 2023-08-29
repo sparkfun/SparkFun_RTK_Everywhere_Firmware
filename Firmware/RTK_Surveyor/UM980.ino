@@ -24,7 +24,9 @@ void um980Begin()
     // We must start the serial port before handing it over to the library
     um980Config->begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
 
-    um980->enableDebugging(); // Print all debug to Serial
+    // Turn on/off debug messages
+    if (settings.enableGNSSdebug)
+        um980EnableDebugging();
 
     if (um980->begin(*um980Config) == false) // Give the serial port over to the library
     {
@@ -64,6 +66,9 @@ bool um980Configure()
 
     if (settings.enableGNSSdebug)
         um980->enableDebugging(); // Print all debug to Serial
+
+    // Check if um980Constellations, um980MessageRatesNMEA, um980MessageRatesRTCMRover, um980MessageRatesRTCMBase need to be defaulted
+    checkArrayDefaults();
 
     um980DisableAllOutput();
 
@@ -119,6 +124,8 @@ bool um980ConfigureRover()
     response &= um980EnableRTCMRover(); // Only turn on messages, do not turn off messages. We assume the caller has
                                         // UNLOG or similar.
 
+    response &= um980SaveConfiguration();
+
     if (response == false)
     {
         systemPrintln("UM980 Rover failed to configure");
@@ -151,6 +158,8 @@ bool um980ConfigureBase()
 
     response &= um980EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
                                        // UNLOG or similar.
+
+    response &= um980SaveConfiguration();
 
     if (response == false)
     {
@@ -281,17 +290,6 @@ bool um980EnableRTCMBase()
 bool um980SetConstellations()
 {
     bool response = true;
-
-    for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
-    {
-        Serial.printf("Constellation %s: ", um980ConstellationCommands[constellationNumber].textName);
-        if (settings.um980Constellations[constellationNumber] == true)
-        {
-            Serial.println("enable");
-        }
-        else
-            Serial.println("disabled");
-    }
 
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
@@ -549,5 +547,19 @@ void um980PrintInfo()
 uint16_t um980FixAgeMilliseconds()
 {
     return (um980->getFixAgeMilliseconds());
+}
+
+void um980SaveConfiguration()
+{
+    um980->saveConfiguration();
+}
+
+void um980EnableDebugging()
+{
+  um980->enableDebugging(); // Print all debug to Serial
+}
+void um980DisableDebugging()
+{
+  um980->disableDebugging();
 }
 
