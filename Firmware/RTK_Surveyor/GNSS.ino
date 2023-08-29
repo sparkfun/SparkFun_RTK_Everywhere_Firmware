@@ -379,14 +379,28 @@ bool gnssSetRate(double secondsBetweenSolutions)
     return (false);
 }
 
-void gnssFactoryDefault()
+void gnssSaveConfiguration()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            theGNSS->factoryDefault(); // Reset everything: baud rate, I2C address, update rate, everything. And save
-                                       // to BBR.
+            zedSaveConfiguration();
+                    }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            um980SaveConfiguration();
+        }
+    }    
+}
+
+void gnssFactoryReset()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            zedFactoryReset();
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -862,7 +876,7 @@ uint16_t gnssGetFixAgeMilliseconds()
     return (65000);    
 }
 
-void printGnssModuleInfo()
+void gnssPrintModuleInfo()
 {
     if (online.gnss == true)
     {
@@ -873,6 +887,35 @@ void printGnssModuleInfo()
         else if (gnssPlatform == PLATFORM_UM980)
         {
             um980PrintInfo();
+        }
+    }
+}
+
+void gnssEnableDebugging()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            zedEnableDebugging();
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            um980EnableDebugging();
+        }
+    }
+}
+void gnssDisableDebugging()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            zedDisableDebugging();
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            um980DisableDebugging();
         }
     }
 }

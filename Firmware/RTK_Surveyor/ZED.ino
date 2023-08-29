@@ -46,7 +46,8 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
     zedMillisecond = ceil((ubxDataStruct->iTOW % 1000) / 10.0); // Limit to first two digits
 
     zedSatellitesInView = ubxDataStruct->numSV;
-    zedFixType = ubxDataStruct->fixType; // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only fix
+    zedFixType = ubxDataStruct->fixType; // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead
+                                         // reckoning combined, 5 = time only fix
     zedCarrierSolution = ubxDataStruct->flags.bits.carrSoln;
 
     zedValidDate = ubxDataStruct->valid.bits.validDate;
@@ -54,7 +55,7 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
     zedConfirmedDate = ubxDataStruct->flags2.bits.confirmedDate;
     zedConfirmedTime = ubxDataStruct->flags2.bits.confirmedTime;
     zedFullyResolved = ubxDataStruct->valid.bits.fullyResolved;
-    zedTAcc = ubxDataStruct->tAcc; //Nanoseconds
+    zedTAcc = ubxDataStruct->tAcc; // Nanoseconds
 
     zedPvtArrivalMillis = millis();
     pvtUpdated = true;
@@ -258,7 +259,7 @@ bool zedConfigure()
     if (configureViaEthernet)
     {
         log_d("configureViaEthernet: skipping configureGNSS");
-        return(false);
+        return (false);
     }
 
     if (online.gnss == false)
@@ -280,7 +281,7 @@ bool zedConfigure()
         theGNSS->disableDebugging();
 
     // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
-    checkMessageRates();
+    checkArrayDefaults();
 
     theGNSS->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
     theGNSS->setAutoHPPOSLLHcallbackPtr(
@@ -1290,4 +1291,28 @@ void zedPrintInfo()
         systemPrintf("ZED-F9R firmware: %s\r\n", zedFirmwareVersion);
     else
         systemPrintf("Unknown module with firmware: %s\r\n", zedFirmwareVersion);
+}
+
+void zedFactoryReset()
+{
+    theGNSS->factoryDefault(); // Reset everything: baud rate, I2C address, update rate, everything. And save to BBR.
+}
+
+void zedSaveConfiguration()
+{
+    theGNSS->saveConfiguration(); // Save the current settings to flash and BBR on the ZED-F9P
+}
+
+void zedEnableDebugging()
+{
+#if defined(REF_STN_GNSS_DEBUG)
+    if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
+        theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
+    else
+#endif                                          // REF_STN_GNSS_DEBUG
+        theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
+}
+void zedDisableDebugging()
+{
+    theGNSS->disableDebugging();
 }

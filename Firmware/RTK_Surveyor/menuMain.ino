@@ -401,7 +401,7 @@ void factoryReset(bool alreadyHasSemaphore)
     LittleFS.format();
 
     if (online.gnss == true)
-        gnssFactoryDefault();
+        gnssFactoryReset();
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);

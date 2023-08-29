@@ -436,8 +436,7 @@ void updateFromSD(const char *firmwareFileName)
                 else
                     SD_MMC.remove(firmwareFileName);
 #endif  // COMPILE_SD_MMC
-
-                gnssFactoryDefault();
+                gnssFactoryReset();
             }
 
             delay(1000);
