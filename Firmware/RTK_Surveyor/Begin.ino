@@ -307,8 +307,8 @@ void beginBoard()
         // UART1 pins have already been assigned
         // pin_GNSS_DR_Reset already assigned
 
-        pin_powerSenseAndControl = 13;
-        pin_powerFastOff = 27;
+        pin_powerSenseAndControl = 34;
+        pin_powerFastOff = 14;
 
         pin_bluetoothStatusLED = 32;
         pin_gnssStatusLED = 13;
@@ -712,8 +712,8 @@ void pinUART2Task(void *pvParameters)
             settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
         serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
         serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_UART2_RX,
-                          pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be configured to
-                                         // output NMEA over its UART at the same rate.
+                          pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be configured
+                                         // to output NMEA over its UART at the same rate.
 
         // Reduce threshold value above which RX FIFO full interrupt is generated
         // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
@@ -1000,6 +1000,25 @@ void beginSystemState()
 
         setupBtn = new Button(pin_setupButton); // Create the button in memory
         // Allocation failure handled in ButtonCheckTask
+    }
+    else if (productVariant == RTK_TORCH)
+    {
+        if (settings.lastState == STATE_NOT_SET) // Default
+        {
+            systemState = STATE_ROVER_NOT_STARTED;
+            settings.lastState = systemState;
+        }
+
+        firstRoverStart =
+            false; // Do not allow user to enter test screen during first rover start because there is no screen
+
+        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover.
+
+        powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
+    }
+    else
+    {
+        Serial.println("beginSystemState: Unknown product variant");
     }
 
     // Starts task for monitoring button presses
