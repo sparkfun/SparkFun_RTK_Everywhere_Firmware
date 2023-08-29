@@ -15,7 +15,7 @@ void menuSystem()
         {
             systemPrint("Online - ");
 
-            printGnssModuleInfo();
+            gnssPrintModuleInfo();
 
             systemPrintf("Module unique chip ID: %s\r\n", zedUniqueId);
 
