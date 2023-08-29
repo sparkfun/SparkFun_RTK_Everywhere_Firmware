@@ -856,7 +856,7 @@ uint16_t gnssGetFixAgeMilliseconds()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            return (65000);
+            return (um980FixAgeMilliseconds());
         }
     }
     return (65000);    

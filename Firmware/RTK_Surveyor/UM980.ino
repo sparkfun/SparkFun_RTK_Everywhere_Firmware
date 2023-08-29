@@ -544,3 +544,10 @@ void um980PrintInfo()
 {
     systemPrintf("UM980 firmware: %s\r\n", "TODO");
 }
+
+// Return the number of milliseconds since data was updated
+uint16_t um980FixAgeMilliseconds()
+{
+    return (um980->getFixAgeMilliseconds());
+}
+
