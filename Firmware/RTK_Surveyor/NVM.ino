@@ -430,6 +430,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "gnssUartInterruptsCore", settings.gnssUartInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "bluetoothInterruptsCore", settings.bluetoothInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "i2cInterruptsCore", settings.i2cInterruptsCore);
+    settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
+    settingsFile->printf("%s=%d\r\n", "tiltPoleLength", settings.tiltPoleLength);
 }
 
 // Given a fileName, parse the file and load the given settings struct
@@ -1328,6 +1330,11 @@ bool parseLine(char *str, Settings *settings)
         settings->enableNetworkFailover = d;
     else if (strcmp(settingName, "printNetworkStatus") == 0)
         settings->printNetworkStatus = d;
+
+    else if (strcmp(settingName, "enableTiltCompensation") == 0)
+        settings->enableTiltCompensation = d;
+    else if (strcmp(settingName, "tiltPoleLength") == 0)
+        settings->tiltPoleLength = d;
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list

@@ -924,6 +924,8 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "minCNO", settings.minCNO_F9P);
 
     stringRecord(newSettings, "mdnsEnable", settings.mdnsEnable);
+    stringRecord(newSettings, "enableTiltCompensation", settings.enableTiltCompensation);
+    stringRecord(newSettings, "tiltPoleLength", settings.tiltPoleLength);
 
     // Add ECEF and Geodetic station data to the end of settings
     for (int index = 0; index < COMMON_COORDINATES_MAX_STATIONS; index++) // Arbitrary 50 station limit
@@ -1340,6 +1342,10 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     }
     else if (strcmp(settingName, "mdnsEnable") == 0)
         settings.mdnsEnable = settingValueBool;
+    else if (strcmp(settingName, "enableTiltCompensation") == 0)
+        settings.enableTiltCompensation = settingValueBool;
+    else if (strcmp(settingName, "tiltPoleLength") == 0)
+        settings.tiltPoleLength = settingValue;
 
     // Unused variables - read to avoid errors
     else if (strcmp(settingName, "measurementRateSec") == 0)
