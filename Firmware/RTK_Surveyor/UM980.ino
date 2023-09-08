@@ -41,7 +41,7 @@ void um980Begin()
             return;
         }
     }
-    Serial.println("UM980 detected.");
+    systemPrintln("GNSS UM980 online.");
 
     // TODO check firmware version and print info
 
@@ -492,12 +492,12 @@ bool um980IsFullyResolved()
 uint32_t um980GetTimeDeviation()
 {
     double timeDeviation_s = um980->getTimeOffsetDeviation();
-    Serial.printf("um980 timeDeviation_s: %0.10f\r\n", timeDeviation_s);
+    //systemPrintf("um980 timeDeviation_s: %0.10f\r\n", timeDeviation_s);
     if (timeDeviation_s > 1.0)
         return (999999999);
 
     uint32_t timeDeviation_ns = timeDeviation_s * 1000000000L; // Convert to nanoseconds
-    Serial.printf("um980 timeDeviation_ns: %d\r\n", timeDeviation_ns);
+    //systemPrintf("um980 timeDeviation_ns: %d\r\n", timeDeviation_ns);
     return (timeDeviation_ns);
 }
 
@@ -549,9 +549,9 @@ uint16_t um980FixAgeMilliseconds()
     return (um980->getFixAgeMilliseconds());
 }
 
-void um980SaveConfiguration()
+bool um980SaveConfiguration()
 {
-    um980->saveConfiguration();
+    return(um980->saveConfiguration());
 }
 
 void um980EnableDebugging()
