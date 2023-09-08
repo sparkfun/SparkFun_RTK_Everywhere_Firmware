@@ -324,6 +324,8 @@ void beginBoard()
 
         strncpy(platformFilePrefix, "SFE_Torch", sizeof(platformFilePrefix) - 1);
         strncpy(platformPrefix, "Torch", sizeof(platformPrefix) - 1);
+
+        tiltSupported = true; //Allow tiltUpdate() to run
     }
     else if (productVariant == REFERENCE_STATION)
     {
