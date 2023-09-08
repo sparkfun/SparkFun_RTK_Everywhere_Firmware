@@ -332,8 +332,6 @@ volatile struct timeval
     gnssSyncTv; // This holds the time the RTC was sync'd to GNSS time via Time Pulse interrupt - used by NTP
 struct timeval previousGnssSyncTv; // This holds the time of the previous RTC sync
 
-
-
 unsigned long timTpArrivalMillis = 0;
 bool timTpUpdated = false;
 uint32_t timTpEpoch;
@@ -394,7 +392,7 @@ float battChangeRate = 0.0;
 
 char platformPrefix[55] = "Surveyor"; // Sets the prefix for broadcast names
 
-#include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
+#include <driver/uart.h>              //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
@@ -561,6 +559,15 @@ bool ntpLogIncreasing;
 
 unsigned long lastEthernetCheck = 0; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// IM19 Tilt Compensation
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
+IM19 *tiltSensor = nullptr;
+HardwareSerial *SerialForTilt = nullptr; // Don't instantiate until we know the tilt sensor exists
+bool tiltSupported = false;              // Variant specific. Set at beginBoard().
+unsigned long lastTiltCheck = 0;         // Limits polling on IM19 to 5Hz
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
 
@@ -977,6 +984,9 @@ void loop()
     DMW_c("updateLBand");
     updateLBand(); // Check if we've recently received PointPerfect corrections or not
 
+    DMW_c("tiltUpdate");
+    tiltUpdate(); // Check if new lat/lon/alt have been calculated
+
     DMW_c("updateRadio");
     updateRadio(); // Check if we need to finish sending any RTCM over link radio
 
@@ -1163,7 +1173,8 @@ void rtcUpdate()
                 gnssUpdate();
 
                 bool timeValid = false;
-                if (gnssIsValidTime() == true && gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
+                if (gnssIsValidTime() == true &&
+                    gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
                 if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
