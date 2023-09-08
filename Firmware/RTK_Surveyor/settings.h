@@ -1073,7 +1073,6 @@ typedef struct
     uint16_t pvtServerPort = 2948; // PVT server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
 
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
-
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
@@ -1082,6 +1081,8 @@ typedef struct
               // rates for RTCM Base. Default to Unicore recommended rates.
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
+    bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
+    float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
 
 } Settings;
 Settings settings;
@@ -1106,7 +1107,8 @@ struct struct_online
     bool pvtClient = false;
     bool pvtServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
-    bool NTPServer = false; // EthernetUDP
+    bool ethernetNTPServer = false; // EthernetUDP
+    bool imu = false;
 } online;
 
 #ifdef COMPILE_WIFI
