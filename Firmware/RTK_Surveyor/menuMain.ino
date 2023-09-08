@@ -117,9 +117,9 @@ void menuMain()
             menuBase();
         else if (incoming == 3 && zedModuleType == PLATFORM_F9R)
             menuSensorFusion();
-        else if (incoming == 4 && productVariant != RTK_TORCH) //Torch does not have external ports
+        else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
             menuPorts();
-        else if (incoming == 5 && productVariant != RTK_TORCH) //Torch does not have logging
+        else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
             menuLog();
         else if (incoming == 6)
             menuWiFi();
@@ -395,6 +395,11 @@ void factoryReset(bool alreadyHasSemaphore)
             // RTK reboots, resulting in failure to achieve the factory reset condition
             log_d("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
         }
+    }
+
+    if (online.imu)
+    {
+        tiltSensor->factoryReset();
     }
 
     systemPrintln("Formatting internal file system...");
