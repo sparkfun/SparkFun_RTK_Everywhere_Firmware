@@ -1,5 +1,10 @@
 // Initial startup functions for GNSS, SD, display, radio, etc
 
+// Use a pair of resistors on pin 35 to ID the board type
+// If the ID resistors are not available then use a variety of other methods
+// (I2C, GPIO test, etc) to ID the board.
+// Assume no hardware interfaces have been started so we need to start/stop any hardware
+// used in tests accordingly.
 void identifyBoard()
 {
     // Use ADC to check resistor divider
@@ -55,31 +60,63 @@ void identifyBoard()
     }
     else
     {
-        // Start Serial1 to test for GNSS on UART
-        int pin_UART1_RX = 26;      // ZED_TX_READY on Surveyor
-        int pin_UART1_TX = 27;      // ZED_RESET on Surveyor
-        int pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR. SCL on Surveyor.
+        log_d("Out of band or non-excitant resistor IDs");
 
-        HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
+        // Start up I2C on default pins
+        Wire.begin();
 
-        UM980 testGNSS;
-
-        pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
-
-        // // We must start the serial port before handing it over to the library
-        SerialGNSS.begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
-
-        testGNSS.enableDebugging(); // Print all debug to Serial
-
-        if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
+        if (isConnected(0x42) == true) // Check if ZED-F9x is on the I2C bus
         {
-            productVariant = RTK_TORCH;
-            Serial.println("Found a torch!");
+            log_d("Detected ZED-F9x");
+
+            Wire.end(); // Disable default I2C post test
+
+            // Use ZedTxReady to detect RTK Expresses (v1.3 and below) that do not have an accel or device ID resistors
+
+            // On a Surveyor, pin 34 is not connected. On Express and Express Plus, 34 is connected to ZED_TX_READY
+            const int pin_ZedTxReady = 34;
+            uint16_t pinValue = analogReadMilliVolts(pin_ZedTxReady);
+            log_d("Alternate ID pinValue (mV): %d", pinValue); // Surveyor = 142 to 152, //Express = 3129
+            if (pinValue > 3000)                                   // ZED is indicating data ready
+            {
+                log_d("ZED-TX_Ready Detected. ZED type to be determined.");
+                productVariant = RTK_UNKNOWN_ZED; // The ZED-F9x module type is determined at zedBegin()
+            }
+            else // No connection to pin 34
+            {
+                log_d("Surveyor determined via ZedTxReady");
+                productVariant = RTK_SURVEYOR;
+            }
         }
-        else
+        else // No ZED on I2C so look for UM980 over serial
         {
-            productVariant = RTK_UNKNOWN; // Need to wait until the GNSS and Accel have been initialized
+            Wire.end(); // Disable default I2C post test
+
+            // Start Serial1 to test for GNSS on UART
+            int pin_UART1_RX = 26;      // ZED_TX_READY on Surveyor
+            int pin_UART1_TX = 27;      // ZED_RESET on Surveyor
+            int pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR. SCL on Surveyor.
+
+            HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
+
+            UM980 testGNSS;
+
+            pinMode(pin_GNSS_DR_Reset, OUTPUT);
+            digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+
+            // // We must start the serial port before handing it over to the library
+            SerialGNSS.begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
+
+            testGNSS.enableDebugging(); // Print all debug to Serial
+
+            if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
+            {
+                productVariant = RTK_TORCH;
+            }
+            else
+            {
+                productVariant = RTK_UNKNOWN;
+            }
         }
     }
 }
@@ -149,37 +186,19 @@ void initializePowerPins()
 // Must be called after beginGNSS so the GNSS type is known
 void beginBoard()
 {
-    if (productVariant == RTK_UNKNOWN)
+    if (productVariant == RTK_UNKNOWN_ZED)
     {
-        if (isConnected(0x19) == true) // Check for accelerometer
-        {
-            if (zedModuleType == PLATFORM_F9P)
-                productVariant = RTK_EXPRESS;
-            else if (zedModuleType == PLATFORM_F9R)
-                productVariant = RTK_EXPRESS_PLUS;
-        }
-        else
-        {
-            // Detect RTK Expresses (v1.3 and below) that do not have an accel or device ID resistors
-
-            // On a Surveyor, pin 34 is not connected. On Express, 34 is connected to ZED_TX_READY
-            const int pin_ZedTxReady = 34;
-            uint16_t pinValue = analogReadMilliVolts(pin_ZedTxReady);
-            log_d("Alternate ID pinValue (mV): %d\r\n", pinValue); // Surveyor = 142 to 152, //Express = 3129
-            if (pinValue > 3000)
-            {
-                if (zedModuleType == PLATFORM_F9P)
-                    productVariant = RTK_EXPRESS;
-                else if (zedModuleType == PLATFORM_F9R)
-                    productVariant = RTK_EXPRESS_PLUS;
-            }
-            else
-                productVariant = RTK_SURVEYOR;
-        }
+        if (zedModuleType == PLATFORM_F9P)
+            productVariant = RTK_EXPRESS;
+        else if (zedModuleType == PLATFORM_F9R)
+            productVariant = RTK_EXPRESS_PLUS;
     }
 
-    // Setup hardware pins
-    if (productVariant == RTK_SURVEYOR)
+    if (productVariant == RTK_UNKNOWN)
+    {
+        systemPrintln("Product variant unknown. Assigning no hardware pins.");
+    }
+    else if (productVariant == RTK_SURVEYOR)
     {
         pin_batteryLevelLED_Red = 32;
         pin_batteryLevelLED_Green = 33;
@@ -325,7 +344,7 @@ void beginBoard()
         strncpy(platformFilePrefix, "SFE_Torch", sizeof(platformFilePrefix) - 1);
         strncpy(platformPrefix, "Torch", sizeof(platformPrefix) - 1);
 
-        tiltSupported = true; //Allow tiltUpdate() to run
+        tiltSupported = true; // Allow tiltUpdate() to run
     }
     else if (productVariant == REFERENCE_STATION)
     {
@@ -1020,7 +1039,7 @@ void beginSystemState()
     }
     else
     {
-        Serial.println("beginSystemState: Unknown product variant");
+        systemPrintf("beginSystemState: Unknown product variant: %d\r\n", productVariant);
     }
 
     // Starts task for monitoring button presses
