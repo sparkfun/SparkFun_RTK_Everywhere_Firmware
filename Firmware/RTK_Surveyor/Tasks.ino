@@ -394,6 +394,18 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
         }
     }
 
+    if (tiltSupported == true)
+    {
+        if (settings.enableTiltCompensation == true && online.imu == true)
+        {
+            if (type == SENTENCE_TYPE_NMEA)
+            {
+                parse->buffer[parse->length++] = '\0'; // Null terminate string
+                tiltApplyCompensation((char *)&parse->buffer, parse->length);
+            }
+        }
+    }
+
     // Determine if this message will fit into the ring buffer
     bytesToCopy = parse->length;
     space = availableHandlerSpace;
