@@ -411,7 +411,7 @@ uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s
                      // * 0.25 = 5760 bytes worst case.
 TaskHandle_t gnssReadTaskHandle =
     nullptr; // Store handles so that we can kill them if user goes into WiFi NTRIP Server mode
-const int gnssReadTaskStackSize = 2500;
+const int gnssReadTaskStackSize = 3000;
 
 TaskHandle_t handleGnssDataTaskHandle = nullptr;
 const int handleGnssDataTaskStackSize = 3000;
@@ -868,8 +868,7 @@ void setup()
     beginFS(); // Start LittleFS file system for settings
 
     DMW_c("checkConfigureViaEthernet");
-    configureViaEthernet =
-        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
+    configureViaEthernet = checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_c("beginGNSS");
     gnssBegin(); // Connect to GNSS to get module type
