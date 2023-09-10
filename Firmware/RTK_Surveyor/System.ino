@@ -250,6 +250,7 @@ void cyclePositionLEDs()
 }
 
 // Determine MUX pins for this platform and set MUX to ADC/DAC to avoid I2C bus failure
+// See issue #474: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 void beginMux()
 {
     if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
