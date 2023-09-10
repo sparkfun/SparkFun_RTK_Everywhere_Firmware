@@ -13,6 +13,7 @@ void gnssBegin()
     case RTK_EXPRESS_PLUS:
     case RTK_FACET_LBAND:
     case REFERENCE_STATION:
+    case RTK_UNKNOWN_ZED:
         gnssPlatform = PLATFORM_ZED;
         break;
     case RTK_TORCH:

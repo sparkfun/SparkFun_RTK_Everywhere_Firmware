@@ -68,6 +68,7 @@ typedef enum
     REFERENCE_STATION,
     RTK_FACET_LBAND_DIRECT,
     RTK_TORCH,
+    RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
     RTK_UNKNOWN,
 } ProductVariant;
 ProductVariant productVariant = RTK_SURVEYOR;
