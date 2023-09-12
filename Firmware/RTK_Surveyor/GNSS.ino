@@ -94,6 +94,13 @@ void gnssUpdate()
         else if (gnssPlatform == PLATFORM_UM980)
         {
             // UM980 is polled directly for information when needed
+
+            // Update the GNSS LED according to our state
+
+            // Blink short PPS when GNSS 3D fixed
+            // Blink 2Hz 50% during RTK float
+            // Solid during RTK Fix
+            // Fade on/off during tilt corrected RTK fix
         }
     }
 }
@@ -182,7 +189,7 @@ void gnssEnableRTCMTest()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //There is no data port on devices with the UM980
+            // There is no data port on devices with the UM980
         }
     }
 }
@@ -387,12 +394,12 @@ void gnssSaveConfiguration()
         if (gnssPlatform == PLATFORM_ZED)
         {
             zedSaveConfiguration();
-                    }
+        }
         else if (gnssPlatform == PLATFORM_UM980)
         {
             um980SaveConfiguration();
         }
-    }    
+    }
 }
 
 void gnssFactoryReset()
@@ -477,7 +484,7 @@ double gnssGetLongitude()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedGetLongitude());
+            return (zedGetLongitude());
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -493,7 +500,7 @@ double gnssGetAltitude()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedGetAltitude());
+            return (zedGetAltitude());
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -535,7 +542,7 @@ bool gnssIsValidTime()
     return (false);
 }
 
-//Date and Time are confirmed once we have GNSS fix
+// Date and Time are confirmed once we have GNSS fix
 bool gnssIsConfirmedDate()
 {
     if (online.gnss == true)
@@ -546,7 +553,7 @@ bool gnssIsConfirmedDate()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 doesn't have this feature. Check for valid date.
+            // UM980 doesn't have this feature. Check for valid date.
             return (um980IsValidDate());
         }
     }
@@ -562,7 +569,7 @@ bool gnssIsConfirmedTime()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 doesn't have this feature. Check for valid time.
+            // UM980 doesn't have this feature. Check for valid time.
             return (um980IsValidTime());
         }
     }
@@ -593,11 +600,11 @@ uint32_t gnssGetTimeAccuracy()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return (zedGetTimeAccuracy()); //Returns nanoseconds
+            return (zedGetTimeAccuracy()); // Returns nanoseconds
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            return (um980GetTimeDeviation()); //Returns nanoseconds
+            return (um980GetTimeDeviation()); // Returns nanoseconds
         }
     }
     return (0);
@@ -619,53 +626,56 @@ uint8_t gnssGetSatellitesInView()
     return (0);
 }
 
-// ZED: 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only fix
-// UM980: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+// ZED: 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only
+// fix UM980: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
 uint8_t gnssGetFixType()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedGetFixType()); // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only fix
+            return (zedGetFixType()); // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead
+                                      // reckoning combined, 5 = time only fix
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            return (um980GetPositionType()); //0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+            return (um980GetPositionType()); // 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
         }
     }
     return (0);
 }
 
-//Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
-//This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
+// This function checks to see if the given platform has reached sufficient fix type to be considered valid
 bool gnssIsFixed()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            if(zedGetFixType() >= 3) // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only fix
+            if (zedGetFixType() >= 3) // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead
+                                      // reckoning combined, 5 = time only fix
                 return (true);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            if(um980GetPositionType() >= 1) // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only fix
+            if (um980GetPositionType() >= 1) // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS +
+                                             // dead reckoning combined, 5 = time only fix
                 return (true);
         }
     }
     return (false);
 }
 
-//ZED: 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
-//UM980: 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+// ZED: 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
+// UM980: 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
 uint8_t gnssGetCarrierSolution()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedGetCarrierSolution());
+            return (zedGetCarrierSolution());
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -675,42 +685,44 @@ uint8_t gnssGetCarrierSolution()
     return (0);
 }
 
-//Some functions (L-Band area frequency determination) merely need to know if we have an RTK Fix.
-//This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions (L-Band area frequency determination) merely need to know if we have an RTK Fix.
+// This function checks to see if the given platform has reached sufficient fix type to be considered valid
 bool gnssIsRTKFix()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            if(zedGetCarrierSolution() == 2) // 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
+            if (zedGetCarrierSolution() == 2) // 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
                 return (true);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            if(um980GetSolutionStatus() == 0) // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+            if (um980GetSolutionStatus() ==
+                0) // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
                 return (true);
         }
     }
     return (false);
 }
 
-//Some functions (L-Band area frequency determination) merely need to know if we have an RTK Float.
-//This function checks to see if the given platform has reached sufficient fix type to be considered valid
+// Some functions (L-Band area frequency determination) merely need to know if we have an RTK Float.
+// This function checks to see if the given platform has reached sufficient fix type to be considered valid
 bool gnssIsRTKFloat()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            if(zedGetCarrierSolution() == 1) // 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
+            if (zedGetCarrierSolution() == 1) // 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
                 return (true);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO we need to confirm we see 1 during RTK float
-            // Check against GPRMC message, F = float, R = fix.
-            if(um980GetSolutionStatus() == 1) // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+            // TODO we need to confirm we see 1 during RTK float
+            //  Check against GPRMC message, F = float, R = fix.
+            if (um980GetSolutionStatus() ==
+                1) // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
                 return (true);
         }
     }
@@ -733,7 +745,7 @@ float gnssGetHorizontalAccuracy()
     return (0);
 }
 
-//Return full year, ie 2023, not 23.
+// Return full year, ie 2023, not 23.
 uint16_t gnssGetYear()
 {
     if (online.gnss == true)
@@ -825,7 +837,7 @@ uint8_t gnssGetSecond()
     return (0);
 }
 
-//Limit to two digits
+// Limit to two digits
 uint8_t gnssGetMillisecond()
 {
     if (online.gnss == true)
@@ -842,25 +854,25 @@ uint8_t gnssGetMillisecond()
     return (0);
 }
 
-//Used in convertGnssTimeToEpoch()
+// Used in convertGnssTimeToEpoch()
 uint32_t gnssGetNanosecond()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return (zedGetNanosecond()); //Return nanosecond fraction of a second of UTC
+            return (zedGetNanosecond()); // Return nanosecond fraction of a second of UTC
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //UM980 does not have nanosecond, but it does have millisecond
-            return (um980GetMillisecond() * 1000L); //Convert to ns
+            // UM980 does not have nanosecond, but it does have millisecond
+            return (um980GetMillisecond() * 1000L); // Convert to ns
         }
     }
     return (0);
 }
 
-//Return the number of milliseconds since GNSS data was last updated
+// Return the number of milliseconds since GNSS data was last updated
 uint16_t gnssGetFixAgeMilliseconds()
 {
     if (online.gnss == true)
@@ -874,7 +886,7 @@ uint16_t gnssGetFixAgeMilliseconds()
             return (um980FixAgeMilliseconds());
         }
     }
-    return (65000);    
+    return (65000);
 }
 
 void gnssPrintModuleInfo()

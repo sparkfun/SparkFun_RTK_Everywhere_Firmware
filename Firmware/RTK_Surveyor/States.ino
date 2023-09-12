@@ -99,7 +99,7 @@ void stateUpdate()
                 digitalWrite(pin_positionAccuracyLED_1cm, LOW);
                 digitalWrite(pin_positionAccuracyLED_10cm, LOW);
                 digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-                ledcWrite(ledBTChannel, 0); // Turn off BT LED
+                ledcWrite(ledBtChannel, 0); // Turn off BT LED
             }
 
             if (productVariant == REFERENCE_STATION)
@@ -233,7 +233,7 @@ void stateUpdate()
                 digitalWrite(pin_positionAccuracyLED_1cm, LOW);
                 digitalWrite(pin_positionAccuracyLED_10cm, LOW);
                 digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-                ledcWrite(ledBTChannel, 0); // Turn off BT LED
+                ledcWrite(ledBtChannel, 0); // Turn off BT LED
             }
 
             if (productVariant == REFERENCE_STATION)
@@ -530,26 +530,30 @@ void stateUpdate()
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.0f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
-                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
+                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
+                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
                             else if (gnssGetHorizontalAccuracy() >= 10.)
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.1f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
-                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
+                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
+                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
                             else if (gnssGetHorizontalAccuracy() >= 1.)
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.2f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
-                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
+                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
+                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
                             else
                                 snprintf(
                                     markBuffer, sizeof(markBuffer),
                                     "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.3f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(), rtc.getSecond(), gnssGetLatitude(),
-                                    gnssGetLongitude(), gnssGetAltitude(), gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
+                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
+                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
+                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
 
                             // Write the mark to the file
                             marksFile.write((const uint8_t *)markBuffer, strlen(markBuffer));
@@ -617,16 +621,19 @@ void stateUpdate()
         break;
 
         case (STATE_WIFI_CONFIG_NOT_STARTED): {
-            if (productVariant == RTK_SURVEYOR)
+            if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             {
                 // Start BT LED Fade to indicate start of WiFi
-                btLEDTask.detach();                               // Increase BT LED blinker task rate
-                btLEDTask.attach(btLEDTaskPace33Hz, updateBTled); // Rate in seconds, callback
+                ledBtTask.detach();                              // Increase BT LED blinker task rate
+                ledBtTask.attach(ledBtTaskPace33Hz, tickerBtUpdate); // Rate in seconds, callback
 
-                digitalWrite(pin_baseStatusLED, LOW);
-                digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_100cm, LOW);
+                if (productVariant == RTK_SURVEYOR)
+                {
+                    digitalWrite(pin_baseStatusLED, LOW);
+                    digitalWrite(pin_positionAccuracyLED_1cm, LOW);
+                    digitalWrite(pin_positionAccuracyLED_10cm, LOW);
+                    digitalWrite(pin_positionAccuracyLED_100cm, LOW);
+                }
             }
 
             if (productVariant == REFERENCE_STATION)
@@ -836,7 +843,7 @@ void stateUpdate()
                 erasePointperfectCredentials();
 
                 // Provision device
-                if(pointperfectProvisionDevice() == true) // Connect to ThingStream API and get keys
+                if (pointperfectProvisionDevice() == true) // Connect to ThingStream API and get keys
                     displayKeysUpdated();
             }
 
@@ -1135,7 +1142,7 @@ void stateUpdate()
 
             ethernetWebServerStopESP32W5500();
 
-            settings.updateGNSSSettings = false;          // On the next boot, no need to update the GNSS on this profile
+            settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
             settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
             recordSystemSettings();
 

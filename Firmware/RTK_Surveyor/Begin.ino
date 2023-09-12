@@ -336,8 +336,11 @@ void beginBoard()
         pin_UART2_RX = 16;
         pin_UART2_TX = 17;
 
+        pin_GNSS_TimePulse = 39; //PPS on UM980
+
         pinMode(pin_powerSenseAndControl, INPUT);
         pinMode(pin_powerFastOff, INPUT);
+        pinMode(pin_GNSS_TimePulse, INPUT);
 
         settings.enableSD = false; // SD does not exist on the Torch
 
@@ -848,15 +851,15 @@ void beginLEDs()
 
         ledcSetup(ledRedChannel, pwmFreq, pwmResolution);
         ledcSetup(ledGreenChannel, pwmFreq, pwmResolution);
-        ledcSetup(ledBTChannel, pwmFreq, pwmResolution);
+        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
 
         ledcAttachPin(pin_batteryLevelLED_Red, ledRedChannel);
         ledcAttachPin(pin_batteryLevelLED_Green, ledGreenChannel);
-        ledcAttachPin(pin_bluetoothStatusLED, ledBTChannel);
+        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
 
         ledcWrite(ledRedChannel, 0);
         ledcWrite(ledGreenChannel, 0);
-        ledcWrite(ledBTChannel, 0);
+        ledcWrite(ledBtChannel, 0);
     }
     else if (productVariant == REFERENCE_STATION)
     {
@@ -873,6 +876,15 @@ void beginLEDs()
 
         pinMode(pin_batteryLevelLED_Red, OUTPUT);
         digitalWrite(pin_batteryLevelLED_Red, LOW);
+
+        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
+        ledcSetup(ledGNSSChannel, pwmFreq, pwmResolution);
+
+        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
+        ledcAttachPin(pin_gnssStatusLED, ledBtChannel);
+
+        ledcWrite(ledBtChannel, 0);
+        ledcWrite(ledGNSSChannel, 0);
     }
 }
 

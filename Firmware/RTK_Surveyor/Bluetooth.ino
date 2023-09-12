@@ -43,7 +43,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     {
         systemPrintln("BT client Connected");
         bluetoothState = BT_CONNECTED;
-        if (productVariant == RTK_SURVEYOR)
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, HIGH);
     }
 
@@ -56,7 +56,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         printEndpoint = PRINT_ENDPOINT_SERIAL;
 
         bluetoothState = BT_NOTCONNECTED;
-        if (productVariant == RTK_SURVEYOR)
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, LOW);
     }
 }
@@ -221,12 +221,12 @@ void bluetoothStart()
 
         systemPrintln(deviceName);
 
-        // Start task for controlling Bluetooth pair LED
-        if (productVariant == RTK_SURVEYOR)
+        // Start ticker task for controlling Bluetooth pair LED
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
         {
-            ledcWrite(ledBTChannel, 255);                    // Turn on BT LED
-            btLEDTask.detach();                              // Slow down the BT LED blinker task
-            btLEDTask.attach(btLEDTaskPace2Hz, updateBTled); // Rate in seconds, callback
+            ledcWrite(ledBtChannel, 255);                    // Turn on BT LED
+            ledBtTask.detach();                              // Slow down the BT LED blinker task
+            ledBtTask.attach(ledBtTaskPace2Hz, tickerBtUpdate); // Rate in seconds, callback
         }
 
         bluetoothState = BT_NOTCONNECTED;

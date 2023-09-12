@@ -990,11 +990,13 @@ void handleGnssDataTask(void *e)
     }
 }
 
-// Control BT status LED according to bluetoothGetState()
-void updateBTled()
+// Control LEDs on variants
+void tickerBtUpdate()
 {
     if (productVariant == RTK_SURVEYOR)
     {
+        //Set BT status LED according to bluetoothGetState() 
+
         // Blink on/off while we wait for BT connection
         if (bluetoothGetState() == BT_NOTCONNECTED)
         {
@@ -1002,12 +1004,12 @@ void updateBTled()
                 btFadeLevel = 255;
             else
                 btFadeLevel = 0;
-            ledcWrite(ledBTChannel, btFadeLevel);
+            ledcWrite(ledBtChannel, btFadeLevel);
         }
 
         // Solid LED if BT Connected
         else if (bluetoothGetState() == BT_CONNECTED)
-            ledcWrite(ledBTChannel, 255);
+            ledcWrite(ledBtChannel, 255);
 
         // Pulse LED while no BT and we wait for WiFi connection
         else if (wifiState == WIFI_CONNECTING || wifiState == WIFI_CONNECTED)
@@ -1022,10 +1024,46 @@ void updateBTled()
             if (btFadeLevel < 0)
                 btFadeLevel = 0;
 
-            ledcWrite(ledBTChannel, btFadeLevel);
+            ledcWrite(ledBtChannel, btFadeLevel);
         }
         else
-            ledcWrite(ledBTChannel, 0);
+            ledcWrite(ledBtChannel, 0);
+    }
+    else if (productVariant == RTK_TORCH)
+    {
+        //Set BT, GNSS, and charge LEDs
+
+        // Blink on/off while we wait for BT connection
+        if (bluetoothGetState() == BT_NOTCONNECTED)
+        {
+            if (btFadeLevel == 0)
+                btFadeLevel = 255;
+            else
+                btFadeLevel = 0;
+            ledcWrite(ledBtChannel, btFadeLevel);
+        }
+
+        // Solid LED if BT Connected
+        else if (bluetoothGetState() == BT_CONNECTED)
+            ledcWrite(ledBtChannel, 255);
+
+        // Pulse LED while no BT and we wait for WiFi connection
+        else if (wifiState == WIFI_CONNECTING || wifiState == WIFI_CONNECTED)
+        {
+            // Fade in/out the BT LED during WiFi AP mode
+            btFadeLevel += pwmFadeAmount;
+            if (btFadeLevel <= 0 || btFadeLevel >= 255)
+                pwmFadeAmount *= -1;
+
+            if (btFadeLevel > 255)
+                btFadeLevel = 255;
+            if (btFadeLevel < 0)
+                btFadeLevel = 0;
+
+            ledcWrite(ledBtChannel, btFadeLevel);
+        }
+        else
+            ledcWrite(ledBtChannel, 0);
     }
 }
 

@@ -368,11 +368,12 @@ GnssPlatform gnssPlatform = PLATFORM_ZED;
 #include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library
 SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
-// RTK Surveyor LED PWM properties
+// RTK LED PWM properties
 const int pwmFreq = 5000;
 const int ledRedChannel = 0;
 const int ledGreenChannel = 1;
-const int ledBTChannel = 2;
+const int ledBtChannel = 2;
+const int ledGNSSChannel = 3;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;
@@ -455,9 +456,9 @@ int binBytesLastUpdate = 0;            // Allows websocket notification to be se
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <Ticker.h>
 
-Ticker btLEDTask;
-float btLEDTaskPace2Hz = 0.5;
-float btLEDTaskPace33Hz = 0.03;
+Ticker ledBtTask;
+float ledBtTaskPace2Hz = 0.5;
+float ledBtTaskPace33Hz = 0.03;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Accelerometer for bubble leveling

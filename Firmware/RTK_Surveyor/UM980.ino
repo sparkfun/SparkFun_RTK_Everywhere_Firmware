@@ -480,7 +480,7 @@ uint8_t um980GetSolutionStatus()
 bool um980IsFullyResolved()
 {
     // UM980 does not have this feature directly.
-    // getSolutionStatus: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+    // getSolutionStatus: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, 17 = RTK Float, 50 = RTK Fixed, ...
     if (um980GetSolutionStatus() >= 8)
         return (true);
     return (false);
