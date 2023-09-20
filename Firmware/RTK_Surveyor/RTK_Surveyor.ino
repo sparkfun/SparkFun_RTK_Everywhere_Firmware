@@ -19,17 +19,17 @@
   Settings are loaded from microSD if available otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
-// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+#define COMPILE_WIFI     // Comment out to remove WiFi functionality
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-// #define COMPILE_BT     // Comment out to remove Bluetooth functionality
-// #define COMPILE_L_BAND // Comment out to remove L-Band functionality
-// #define COMPILE_SD_MMC // Comment out to remove REFERENCE_STATION microSD SD_MMC support
+#define COMPILE_BT     // Comment out to remove Bluetooth functionality
+#define COMPILE_L_BAND // Comment out to remove L-Band functionality
+#define COMPILE_SD_MMC // Comment out to remove REFERENCE_STATION microSD SD_MMC support
 // #define REF_STN_GNSS_DEBUG //Uncomment this line to output GNSS library debug messages on serialGNSS-> Ref Stn only.
 // Needs ENABLE_DEVELOPER
 
@@ -711,7 +711,7 @@ volatile bool deadManWalking;
                                                         \
     /* Output as much as possible to identify the location of the failure */    \
     settings.printDebugMessages = true;                 \
-    settings.enableI2Cdebug = true;                     \
+    settings.enableGNSSdebug = true;                     \
     settings.enableHeapReport = true;                   \
     settings.enableTaskReports = true;                  \
     settings.enablePrintState = true;                   \
@@ -938,8 +938,8 @@ void setup()
 
 void loop()
 {
-    gnssUpdate();
-
+    static uint32_t lastPeriodicDisplay;
+    
     // Determine which items are periodically displayed
     if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
     {
@@ -953,6 +953,9 @@ void loop()
     if (deadManWalking)
         periodicDisplay = (PeriodicDisplay_t)-1;
 
+
+    DMW_c("gnssUpdate");
+    gnssUpdate();
 
     DMW_c("stateUpdate");
     stateUpdate();
@@ -1168,7 +1171,7 @@ void rtcUpdate()
             {
                 lastRTCAttempt = millis();
 
-                // gnssUpdate() is called in loop() but updateRTC
+                // gnssUpdate() is called in loop() but rtcUpdate
                 // can also be called during begin. To be safe, check for fresh PVT data here.
                 gnssUpdate();
 

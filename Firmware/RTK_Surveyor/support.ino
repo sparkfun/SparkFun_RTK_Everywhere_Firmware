@@ -260,7 +260,7 @@ InputResponse getString(char *userString, uint8_t stringSize)
         gnssUpdate(); // Regularly poll to get latest data
 
         // Keep processing NTP requests
-        if (online.NTPServer)
+        if (online.ethernetNTPServer)
         {
             ntpServerUpdate();
         }

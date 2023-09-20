@@ -296,7 +296,7 @@ void menuSystem()
                                         syncRTCInterval =
                                             1000; // Reset syncRTCInterval to 1000ms (tpISR could have set it to 59000)
                                         rtcSyncd = false;
-                                        updateRTC();
+                                        rtcUpdate();
                                     } // Succesful seconds
                                 }
                             } // Succesful minute
@@ -388,7 +388,7 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
 
         systemPrint("9) u-blox I2C Debugging Output: ");
-        systemPrintf("%s\r\n", settings.enableI2Cdebug ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", settings.enableGNSSdebug ? "Enabled" : "Disabled");
 
         systemPrintln("e) Erase LittleFS");
 
@@ -425,19 +425,19 @@ void menuDebugHardware()
             settings.enablePrintBadMessages ^= 1;
         else if (incoming == 9)
         {
-            settings.enableI2Cdebug ^= 1;
+            settings.enableGNSSdebug ^= 1;
 
-            if (settings.enableI2Cdebug)
+            if (settings.enableGNSSdebug)
             {
 #if defined(REF_STN_GNSS_DEBUG)
                 if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
-                    theGNSS.enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
+                    theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
                 else
 #endif                                                     // REF_STN_GNSS_DEBUG
-                    theGNSS.enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
+                    theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
             }
             else
-                theGNSS.disableDebugging();
+                theGNSS->disableDebugging();
         }
 
         else if (incoming == 'e')

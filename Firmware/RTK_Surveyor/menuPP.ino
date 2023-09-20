@@ -993,12 +993,12 @@ void beginLBand()
     // If we have a fix, check which frequency to use
     if (gnssIsFixed())
     {
-        if ((longitude > -125 && longitude < -67) && (latitude > -90 && latitude < 90))
+        if ((gnssGetLongitude() > -125 && gnssGetLongitude() < -67) && (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
         {
             log_d("Setting L-Band to US");
             settings.LBandFreq = 1556290000; // We are in US band
         }
-        else if ((longitude > -25 && longitude < 70) && (latitude > -90 && latitude < 90))
+        else if ((gnssGetLongitude() > -25 && gnssGetLongitude() < 70) && (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
         {
             log_d("Setting L-Band to EU");
             settings.LBandFreq = 1545260000; // We are in EU band
@@ -1032,7 +1032,7 @@ void beginLBand()
     if (settings.useI2cForLbandCorrections == true)
     {
         // Enable PMP over I2C. Disable UARTs
-        response &= theGNSS.setVal32(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
+        response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
 
         i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback
 
@@ -1045,7 +1045,7 @@ void beginLBand()
     }
     else // Setup for ZED to NEO serial communication
     {
-        response &= theGNSS.setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
+        response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
 
         // Disable PMP callback over I2C. Enable UARTs.
         i2cLBand.setRXMPMPmessageCallbackPtr(nullptr);                          // Enable PMP callback
@@ -1058,7 +1058,7 @@ void beginLBand()
 
     response &= i2cLBand.sendCfgValset();
 
-    theGNSS.setRXMCORcallbackPtr(&checkRXMCOR); // Callback to check if the PMP data is being decrypted successfully
+    theGNSS->setRXMCORcallbackPtr(&checkRXMCOR); // Callback to check if the PMP data is being decrypted successfully
 
     if (response == false)
         systemPrintln("L-Band failed to configure");
@@ -1272,7 +1272,7 @@ void updateLBand()
                 }
             }
         }
-        else if (gnssIsRTKFixed() && lbandTimeToFix == 0)
+        else if (gnssIsRTKFix() && lbandTimeToFix == 0)
         {
             lbandTimeToFix = millis();
             log_d("Time to first L-Band fix: %ds", lbandTimeToFix / 1000);

@@ -71,6 +71,9 @@ void ntripServerStart()
 void ntripServerStop(bool clientAllocated) {online.ntripServer = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
+bool ntripServerIsCasting() {
+    return (false);
+}
 
 #endif // COMPILE_NETWORK
 

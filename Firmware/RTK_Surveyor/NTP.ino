@@ -800,7 +800,7 @@ void ntpServerSetState(uint8_t newState)
 void ntpServerStop()
 {
     // Mark the NTP server as off
-    online.NTPServer = false;
+    online.ethernetNTPServer = false;
 
     // Release the NTP server memory
     if (ntpServer)
@@ -878,7 +878,7 @@ void ntpServerUpdate()
                 ntpSockIndex = ntpServer->getSockIndex(); // Get the socket index
                 w5500ClearSocketInterrupts();                     // Clear all interrupts
                 w5500EnableSocketInterrupt(ntpSockIndex);         // Enable the RECV interrupt for the desired socket index
-                online.NTPServer = true;
+                online.ethernetNTPServer = true;
                 if (!inMainMenu)
                     reportHeapNow(settings.debugNtp);
                 ntpServerSetState(NTP_STATE_SERVER_RUNNING);

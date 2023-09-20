@@ -1005,7 +1005,7 @@ void stateUpdate()
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
                 recordSystemSettings();
 
-                if (online.NTPServer)
+                if (online.ethernetNTPServer)
                 {
                     if (settings.debugNtp)
                         systemPrintln("NTP Server started");
