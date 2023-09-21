@@ -74,6 +74,7 @@ void ntripServerValidateTables() {}
 bool ntripServerIsCasting() {
     return (false);
 }
+void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 #endif // COMPILE_NETWORK
 
