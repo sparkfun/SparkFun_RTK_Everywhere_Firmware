@@ -474,13 +474,13 @@ bool zedConfigure()
     response = true; // Reset
 
     // Enable the constellations the user has set
-    response &= setConstellations(true); // 19 messages. Send newCfg or sendCfg with value set
+    response &= zedSetConstellations(true); // 19 messages. Send newCfg or sendCfg with value set
     if (response == false)
         systemPrintln("Module failed config block 1");
     response = true; // Reset
 
     // Make sure the appropriate messages are enabled
-    response &= setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    response &= zedSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     if (response == false)
         systemPrintln("Module failed config block 2");
     response = true; // Reset
@@ -1315,4 +1315,272 @@ void zedEnableDebugging()
 void zedDisableDebugging()
 {
     theGNSS->disableDebugging();
+}
+
+void zedSetTalkerGNGGA()
+{
+    theGNSS->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
+    theGNSS->setNMEAGPGGAcallbackPtr(nullptr);        // Remove callback
+}
+void zedEnableGgaForNtrip()
+{
+    // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
+    theGNSS->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 1);
+    theGNSS->setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
+
+    float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+    if (measurementFrequency < 0.2)
+        measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
+    log_d("Adjusting GGA setting to %f", measurementFrequency);
+    theGNSS->setVal8(
+        UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
+        measurementFrequency); // Enable GGA over I2C. Tell the module to output GGA every second
+}
+
+// Enable all the valid messages for this platform
+// There are many messages so split into batches. VALSET is limited to 64 max per batch
+// Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
+bool zedSetMessages(int maxRetries)
+{
+    uint32_t spiOffset =
+        0; // Set to 3 if using SPI to convert UART1 keys to SPI. This is brittle and non-perfect, but works.
+    if (USE_SPI_GNSS)
+        spiOffset = 3;
+
+    bool success = false;
+    int tryNo = -1;
+
+    // Try up to maxRetries times to configure the messages
+    // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
+    // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
+    // processed.
+    while ((++tryNo < maxRetries) && !success)
+    {
+        bool response = true;
+        int messageNumber = 0;
+
+        while (messageNumber < MAX_UBX_MSG)
+        {
+            response &= theGNSS->newCfgValset();
+
+            do
+            {
+                if (messageSupported(messageNumber) == true)
+                {
+                    uint8_t rate = settings.ubxMessageRates[messageNumber];
+
+                    // If the GNSS is SPI, we need to make sure that NAV_PVT, NAV_HPPOSLLH and ESF_STATUS remained
+                    // enabled (but not enabled for logging)
+                    if (USE_SPI_GNSS)
+                    {
+                        if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NAV)
+                            if ((ubxMessages[messageNumber].msgID == UBX_NAV_PVT) ||
+                                (ubxMessages[messageNumber].msgID == UBX_NAV_HPPOSLLH))
+                                if (rate == 0)
+                                    rate = 1;
+                        if (ubxMessages[messageNumber].msgClass == UBX_CLASS_ESF)
+                            if (ubxMessages[messageNumber].msgID == UBX_ESF_STATUS)
+                                if (zedModuleType == PLATFORM_F9R)
+                                    if (rate == 0)
+                                        rate = 1;
+                        if (ubxMessages[messageNumber].msgClass == UBX_CLASS_TIM)
+                        {
+                            if (ubxMessages[messageNumber].msgID == UBX_TIM_TM2)
+                                if (rate == 0)
+                                    rate = 1;
+                            if (ubxMessages[messageNumber].msgID == UBX_TIM_TP)
+                                if (HAS_GNSS_TP_INT)
+                                    if (rate == 0)
+                                        rate = 1;
+                        }
+                        if (ubxMessages[messageNumber].msgClass == UBX_CLASS_RXM)
+                            if (ubxMessages[messageNumber].msgID == UBX_RXM_COR)
+                                if (rate == 0)
+                                    rate = 1;
+                        if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NMEA)
+                            if (ubxMessages[messageNumber].msgID == UBX_NMEA_GGA)
+                                if (rate == 0)
+                                    rate = 1;
+                        if (ubxMessages[messageNumber].msgClass == UBX_CLASS_MON)
+                            if (ubxMessages[messageNumber].msgID == UBX_MON_HW)
+                                if (rate == 0)
+                                    rate = 1;
+                    }
+
+                    response &= theGNSS->addCfgValset(ubxMessages[messageNumber].msgConfigKey + spiOffset, rate);
+                }
+                messageNumber++;
+            } while (((messageNumber % 43) < 42) &&
+                     (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43 in
+                                                     // size. It's a HHGTTG thing.
+
+            if (theGNSS->sendCfgValset() == false)
+            {
+                log_d("sendCfg failed at messageNumber %d %s. Try %d of %d.", messageNumber - 1,
+                      (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "", tryNo + 1,
+                      maxRetries);
+                response &= false; // If any one of the Valset fails, report failure overall
+            }
+        }
+
+        // For SPI GNSS products, we need to add each message to the GNSS Library logging buffer
+        // to mimic UART1
+        if (USE_SPI_GNSS)
+        {
+            uint32_t logRTCMMessages = 0;
+            uint32_t logNMEAMessages = 0;
+
+            for (messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+            {
+                if (ubxMessages[messageNumber].msgClass == UBX_RTCM_MSB) // RTCM messages
+                {
+                    if (messageSupported(messageNumber) == true)
+                        logRTCMMessages |= ubxMessages[messageNumber].filterMask;
+                }
+                else if (ubxMessages[messageNumber].msgClass == UBX_CLASS_NMEA) // NMEA messages
+                {
+                    if (messageSupported(messageNumber) == true)
+                        logNMEAMessages |= ubxMessages[messageNumber].filterMask;
+                }
+                else // UBX messages
+                {
+                    if (messageSupported(messageNumber) == true)
+                        theGNSS->enableUBXlogging(ubxMessages[messageNumber].msgClass, ubxMessages[messageNumber].msgID,
+                                                  settings.ubxMessageRates[messageNumber] > 0);
+                }
+            }
+
+            theGNSS->setRTCMLoggingMask(logRTCMMessages);
+            theGNSS->setNMEALoggingMask(logNMEAMessages);
+        }
+
+        if (response)
+            success = true;
+    }
+
+    return (success);
+}
+
+// Enable all the valid messages for this platform over the USB port
+// Add 2 to every UART1 key. This is brittle and non-perfect, but works.
+bool zedSetMessagesUsb(int maxRetries)
+{
+    bool success = false;
+    int tryNo = -1;
+
+    // Try up to maxRetries times to configure the messages
+    // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
+    // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
+    // processed.
+    while ((++tryNo < maxRetries) && !success)
+    {
+        bool response = true;
+        int messageNumber = 0;
+
+        while (messageNumber < MAX_UBX_MSG)
+        {
+            response &= theGNSS->newCfgValset();
+
+            do
+            {
+                if (messageSupported(messageNumber) == true)
+                    response &= theGNSS->addCfgValset(ubxMessages[messageNumber].msgConfigKey + 2,
+                                                      settings.ubxMessageRates[messageNumber]);
+                messageNumber++;
+            } while (((messageNumber % 43) < 42) &&
+                     (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43 in
+                                                     // size. It's a HHGTTG thing.
+
+            response &= theGNSS->sendCfgValset();
+        }
+
+        if (response)
+            success = true;
+    }
+
+    return (success);
+}
+
+// Enable all the valid constellations and bands for this platform
+// Band support varies between platforms and firmware versions
+// We open/close a complete set if sendCompleteBatch = true
+// 19 messages
+bool zedSetConstellations(bool sendCompleteBatch)
+{
+    bool response = true;
+
+    if (sendCompleteBatch)
+        response &= theGNSS->newCfgValset();
+
+    bool enableMe = settings.ubxConstellations[0].enabled;
+    response &= theGNSS->addCfgValset(settings.ubxConstellations[0].configKey, enableMe); // GPS
+
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, settings.ubxConstellations[0].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, settings.ubxConstellations[0].enabled);
+
+    // v1.12 ZED-F9P firmware does not allow for SBAS control
+    // Also, if we can't identify the version (99), skip SBAS enable
+    if ((zedModuleType == PLATFORM_F9P) && ((zedFirmwareVersionInt == 112) || (zedFirmwareVersionInt == 99)))
+    {
+        // Skip
+    }
+    else
+    {
+        response &= theGNSS->addCfgValset(settings.ubxConstellations[1].configKey,
+                                          settings.ubxConstellations[1].enabled); // SBAS
+        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, settings.ubxConstellations[1].enabled);
+    }
+
+    response &=
+        theGNSS->addCfgValset(settings.ubxConstellations[2].configKey, settings.ubxConstellations[2].enabled); // GAL
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, settings.ubxConstellations[2].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, settings.ubxConstellations[2].enabled);
+
+    response &=
+        theGNSS->addCfgValset(settings.ubxConstellations[3].configKey, settings.ubxConstellations[3].enabled); // BDS
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, settings.ubxConstellations[3].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, settings.ubxConstellations[3].enabled);
+
+    response &=
+        theGNSS->addCfgValset(settings.ubxConstellations[4].configKey, settings.ubxConstellations[4].enabled); // QZSS
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, settings.ubxConstellations[4].enabled);
+
+    // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
+    if (zedModuleType == PLATFORM_F9P)
+        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
+    else if ((zedModuleType == PLATFORM_F9R) && (zedFirmwareVersionInt > 121))
+        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
+
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, settings.ubxConstellations[4].enabled);
+
+    response &=
+        theGNSS->addCfgValset(settings.ubxConstellations[5].configKey, settings.ubxConstellations[5].enabled); // GLO
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, settings.ubxConstellations[5].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, settings.ubxConstellations[5].enabled);
+
+    if (sendCompleteBatch)
+        response &= theGNSS->sendCfgValset();
+
+    return (response);
+}
+
+uint16_t zedFileBufferAvailable()
+{
+    return(theGNSS->fileBufferAvailable());
+}
+
+uint16_t zedRtcmBufferAvailable()
+{
+    return (theGNSS->rtcmBufferAvailable());
+}
+
+uint16_t zedRtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
+{
+    return (theGNSS->extractRTCMBufferData(rtcmBuffer, rtcmBytesToRead));
+}
+
+uint16_t zedExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
+{
+    theGNSS->extractFileBufferData(fileBuffer, fileBytesToRead); //TODO Does extractFileBufferData not return the bytes read?
+    return (1);
 }

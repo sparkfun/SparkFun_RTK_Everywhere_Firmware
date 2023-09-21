@@ -49,7 +49,7 @@ void processRTCMBuffer()
         return;
 
     // Check if there is any data waiting in the RTCM buffer
-    uint16_t rtcmBytesAvail = theGNSS->rtcmBufferAvailable();
+    uint16_t rtcmBytesAvail = gnssRtcmBufferAvailable();
     if (rtcmBytesAvail > 0)
     {
         // Check for too many digits
@@ -68,7 +68,7 @@ void processRTCMBuffer()
         {
             uint8_t incoming;
 
-            if (theGNSS->extractRTCMBufferData(&incoming, 1) != 1)
+            if (gnssRtcmRead(&incoming, 1) != 1)
                 return;
 
             rtcmBytesAvail--;

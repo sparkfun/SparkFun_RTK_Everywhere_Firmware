@@ -426,7 +426,7 @@ void menuConstellations()
     }
 
     // Apply current settings to module
-    setConstellations(true); // Apply newCfg and sendCfg values to batch
+    gnssSetConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }

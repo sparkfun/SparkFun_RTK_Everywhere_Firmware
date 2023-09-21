@@ -332,10 +332,10 @@ void gnssReadTask(void *e)
         else // SPI GNSS
         {
             gnssUpdate(); // Check for new data
-            while (theGNSS->fileBufferAvailable() > 0)
+            while (gnssFileBufferAvailable() > 0)
             {
                 // Read the data from the logging buffer
-                theGNSS->extractFileBufferData(&incomingData,
+                gnssExtractFileBufferData(&incomingData,
                                                1); // TODO: make this more efficient by reading multiple bytes?
 
                 // Save the data byte
@@ -845,7 +845,7 @@ void handleGnssDataTask(void *e)
                         else
                         {
                             gnssUpdate(); // Regularly poll to get latest data
-                            bufferAvailable = theGNSS->fileBufferAvailable();
+                            bufferAvailable = gnssFileBufferAvailable();
                         }
                         int availableUARTSpace;
                         if (USE_I2C_GNSS)

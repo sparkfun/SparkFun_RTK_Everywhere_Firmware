@@ -428,16 +428,9 @@ void menuDebugHardware()
             settings.enableGNSSdebug ^= 1;
 
             if (settings.enableGNSSdebug)
-            {
-#if defined(REF_STN_GNSS_DEBUG)
-                if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
-                    theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
-                else
-#endif                                                     // REF_STN_GNSS_DEBUG
-                    theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
-            }
+                gnssEnableDebugging();
             else
-                theGNSS->disableDebugging();
+                gnssDisableDebugging();
         }
 
         else if (incoming == 'e')
@@ -936,7 +929,7 @@ void menuOperation()
         }
         else if (incoming == 10)
         {
-            bool response = setMessagesUSB(MAX_SET_MESSAGES_RETRIES);
+            bool response = gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
             if (response == false)
                 systemPrintln(F("Failed to enable USB messages"));

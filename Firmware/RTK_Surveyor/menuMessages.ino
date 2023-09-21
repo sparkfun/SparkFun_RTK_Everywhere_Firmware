@@ -284,7 +284,7 @@ void menuMessages()
     clearBuffer(); // Empty buffer of any newline chars
 
     // Make sure the appropriate messages are enabled
-    bool response = setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    bool response = gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     if (response == false)
         systemPrintf("menuMessages: Failed to enable messages - after %d tries", MAX_SET_MESSAGES_RETRIES);
     else
@@ -1025,8 +1025,8 @@ void setLogTestFrequencyMessages(int rate, int messages)
         log_d("Unknown message amount");
 
     // Apply these message rates to both UART1 / SPI and USB
-    setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
-    setMessagesUSB(MAX_SET_MESSAGES_RETRIES);
+    gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 }
 
 // The log test allows us to record a series of different system configurations into

@@ -932,3 +932,156 @@ void gnssDisableDebugging()
         }
     }
 }
+
+void gnssSetTalkerGNGGA()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            zedSetTalkerGNGGA();
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //TODO um980SetTalkerGNGGA();
+        }
+    }
+}
+void gnssEnableGgaForNtrip()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            zedEnableGgaForNtrip();
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //TODO um980EnableGgaForNtrip();
+        }
+    }
+}
+
+uint16_t gnssRtcmBufferAvailable()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedRtcmBufferAvailable());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //TODO return(um980RtcmBufferAvailable());
+            return (0);
+        }
+    }
+    return (0);
+}
+
+uint16_t gnssRtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedRtcmRead(rtcmBuffer, rtcmBytesToRead));
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //TODO return(um980RtcmRead(rtcmBuffer, rtcmBytesToRead));
+                        return (0);
+
+        }
+    }
+    return (0);
+}
+
+// Enable all the valid messages for this platform
+bool gnssSetMessages(int maxRetries)
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedSetMessages(maxRetries));
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //We probably don't need this for the UM980
+            // TODO return(um980SetMessages(maxRetries));
+            return (true);
+        }
+    }
+    return (false);
+}
+bool gnssSetMessagesUsb(int maxRetries)
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedSetMessagesUsb(maxRetries));
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //We probably don't need this for the UM980
+            // TODO return(um980SetMessagesUsb(maxRetries));
+            return (true);
+        }
+    }
+    return (false);
+}
+
+bool gnssSetConstellations()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedSetConstellations(true)); //Send fully formed setVal list
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return(um980SetConstellations());
+        }
+    }
+    return (false);
+}
+
+//
+uint16_t gnssFileBufferAvailable()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedFileBufferAvailable());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //TODO return(um980FileBufferAvailable());
+            return (0);
+        }
+    }
+
+    return (0);
+}
+
+uint16_t gnssExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return(zedExtractFileBufferData(fileBuffer, fileBytesToRead));
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            //TODO return(um980FileBufferAvailable());
+            return (0);
+        }
+    }
+
+    return (0);
+}
