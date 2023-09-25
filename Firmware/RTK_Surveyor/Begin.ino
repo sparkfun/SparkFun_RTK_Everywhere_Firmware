@@ -104,7 +104,7 @@ void identifyBoard()
             pinMode(pin_GNSS_DR_Reset, OUTPUT);
             digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
 
-            // // We must start the serial port before handing it over to the library
+            // We must start the serial port before handing it over to the library
             SerialGNSS.begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
 
             testGNSS.enableDebugging(); // Print all debug to Serial
