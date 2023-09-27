@@ -5,6 +5,24 @@ menuFirmware.ino
 ------------------------------------------------------------------------------*/
 
 //----------------------------------------
+// Constants
+//----------------------------------------
+
+#ifdef COMPILE_OTA_AUTO
+
+static const char * const otaStateNames[] =
+{
+    "OTA_STATE_OFF",
+    "OTA_STATE_START_WIFI",
+    "OTA_STATE_GET_FIRMWARE_VERSION",
+    "OTA_STATE_CHECK_FIRMWARE_VERSION",
+    "OTA_STATE_UPDATE_FIRMWARE"
+};
+static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
+
+#endif  // COMPILE_OTA_AUTO
+
+//----------------------------------------
 // Menu
 //----------------------------------------
 
@@ -834,3 +852,15 @@ int mapMonthName(char *mmm)
     }
     return -1;
 }
+
+#ifdef COMPILE_OTA_AUTO
+
+// Verify the OTA update tables
+void otaVerifyTables()
+{
+    // Verify the table lengths
+    if (otaStateEntries != OTA_STATE_MAX)
+        reportFatalError("Fix otaStateNames table to match OtaState");
+}
+
+#endif  // COMPILE_OTA_AUTO

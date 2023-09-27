@@ -92,6 +92,16 @@ void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSE
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
+// Automatic Over-The-Air (OTA) firmware updates
+//----------------------------------------
+
+#ifndef COMPILE_OTA_AUTO
+
+void otaVerifyTables() {}
+
+#endif  // COMPILE_OTA_AUTO
+
+//----------------------------------------
 // Web Server
 //----------------------------------------
 

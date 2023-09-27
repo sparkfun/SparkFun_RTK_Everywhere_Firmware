@@ -299,6 +299,7 @@ enum NetworkUsers
     NETWORK_USER_NTP_SERVER = 0,        // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
     NETWORK_USER_NTRIP_SERVER,          // NTRIP server
+    NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
     NETWORK_USER_PVT_CLIENT,            // PVT client
     NETWORK_USER_PVT_SERVER,            // PVT server
     NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
@@ -907,6 +908,24 @@ const ubxCmd ubxCommands[] = {
 };
 
 #define MAX_UBX_CMD (sizeof(ubxCommands) / sizeof(ubxCmd))
+
+#ifdef COMPILE_OTA_AUTO
+
+// Automatic over-the-air (OTA) firmware update support
+enum OtaState
+{
+    OTA_STATE_OFF = 0,
+    OTA_STATE_START_WIFI,
+    OTA_STATE_WAIT_FOR_WIFI,
+    OTA_STATE_GET_FIRMWARE_VERSION,
+    OTA_STATE_CHECK_FIRMWARE_VERSION,
+    OTA_STATE_UPDATE_FIRMWARE,
+
+    // Add new states here
+    OTA_STATE_MAX
+};
+
+#endif  // COMPILE_OTA_AUTO
 
 // This is all the settings that can be set on RTK Surveyor. It's recorded to NVM and the config file.
 typedef struct
