@@ -438,6 +438,11 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
     settingsFile->printf("%s=%d\r\n", "enableImuDebug", settings.enableImuDebug);
 
+    // Automatic Firmware Update
+    settingsFile->printf("%s=%d\r\n", "autoFirmwareCheckMinutes", settings.autoFirmwareCheckMinutes);
+    settingsFile->printf("%s=%d\r\n", "debugFirmwareUpdate", settings.debugFirmwareUpdate);
+    settingsFile->printf("%s=%d\r\n", "enableAutoFirmwareUpdate", settings.enableAutoFirmwareUpdate);
+
     //Add new settings above <------------------------------------------------------------>
 }
 
@@ -1352,6 +1357,14 @@ bool parseLine(char *str, Settings *settings)
         settings->tiltPoleLength = d;
     else if (strcmp(settingName, "enableImuDebug") == 0)
         settings->enableImuDebug = d;
+
+    // Automatic Firmware Update
+    else if (strcmp(settingName, "autoFirmwareCheckMinutes") == 0)
+        settings->autoFirmwareCheckMinutes = d;
+    else if (strcmp(settingName, "debugFirmwareUpdate") == 0)
+        settings->debugFirmwareUpdate = d;
+    else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
+        settings->enableAutoFirmwareUpdate = d;
 
     //Add new settings above <------------------------------------------------------------>
 

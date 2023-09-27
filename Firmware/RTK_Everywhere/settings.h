@@ -470,6 +470,9 @@ enum PeriodDisplayValues
 
     PD_ZED_DATA_RX,             // 29
     PD_ZED_DATA_TX,             // 30
+
+    PD_OTA_CLIENT_STATE,        // 31
+    // Add new values before this line
 };
 
 #define PERIODIC_MASK(x) (1 << x)
@@ -1063,6 +1066,11 @@ typedef struct
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
+
+    // Automatic Firmware Update
+    bool debugFirmwareUpdate = false;
+    bool enableAutoFirmwareUpdate = false;
+    uint32_t autoFirmwareCheckMinutes = 24 * 60;
 
     //Add new settings above <------------------------------------------------------------>
 

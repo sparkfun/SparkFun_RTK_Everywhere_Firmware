@@ -757,6 +757,10 @@ void createSettingsString(char *newSettings)
     snprintf(ntpRefId, sizeof(ntpRefId), "%s", settings.ntpReferenceId);
     stringRecord(newSettings, "ntpReferenceId", ntpRefId);
 
+    // Automatic firmware update settings
+    stringRecord(newSettings, "enableAutoFirmwareUpdate", settings.enableAutoFirmwareUpdate);
+    stringRecord(newSettings, "autoFirmwareCheckMinutes", settings.autoFirmwareCheckMinutes);
+
     // Turn on SD display block last
     stringRecord(newSettings, "sdMounted", online.microSD);
 
@@ -1355,6 +1359,12 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.enableTiltCompensation = settingValueBool;
     else if (strcmp(settingName, "tiltPoleLength") == 0)
         settings.tiltPoleLength = settingValue;
+
+    // Automatic firmware update settings
+    else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
+        settings.enableAutoFirmwareUpdate = settingValueBool;
+    else if (strcmp(settingName, "autoFirmwareCheckMinutes") == 0)
+        settings.autoFirmwareCheckMinutes = settingValueBool;
 
     // Unused variables - read to avoid errors
     else if (strcmp(settingName, "measurementRateSec") == 0)
