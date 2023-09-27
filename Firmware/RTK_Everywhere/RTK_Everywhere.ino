@@ -1134,6 +1134,9 @@ void loop()
     DMW_c("printPosition");
     printPosition(); // Periodically print GNSS coordinates if enabled
 
+    DMW_c("otaAutoUpdate");
+    otaAutoUpdate();
+
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }
 

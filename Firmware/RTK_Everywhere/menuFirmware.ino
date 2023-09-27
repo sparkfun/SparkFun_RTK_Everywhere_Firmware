@@ -20,6 +20,13 @@ static const char * const otaStateNames[] =
 };
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
 
+//----------------------------------------
+// Locals
+//----------------------------------------
+
+static uint32_t otaLastUpdateCheck;
+static OtaState otaState;
+
 #endif  // COMPILE_OTA_AUTO
 
 //----------------------------------------
@@ -854,6 +861,97 @@ int mapMonthName(char *mmm)
 }
 
 #ifdef COMPILE_OTA_AUTO
+
+// Get the OTA state name
+const char * otaGetStateName(OtaState state, char * string)
+{
+    if (state < OTA_STATE_MAX)
+        return otaStateNames[state];
+    sprintf(string, "Unknown state (%d)", state);
+    return string;
+}
+
+// Set the next OTA state
+void otaSetState(OtaState newState)
+{
+    char string1[40];
+    char string2[40];
+    const char * arrow;
+    const char * asterisk;
+    const char * initialState;
+    const char * endingState;
+
+    // Display the state transition
+    if (settings.debugFirmwareUpdate)
+    {
+        arrow = "";
+        asterisk = "";
+        initialState = "";
+        if (newState == otaState)
+            asterisk = "*";
+        else
+        {
+            initialState = otaGetStateName(otaState, string1);
+            arrow = " --> ";
+        }
+    }
+
+    // Set the new state
+    otaState = newState;
+    if (settings.debugFirmwareUpdate)
+    {
+        // Display the new firmware update state
+        endingState = otaGetStateName(newState, string2);
+        if (!online.rtc)
+            systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
+        else
+        {
+            // Timestamp the state change
+            //          1         2
+            // 12345678901234567890123456
+            // YYYY-mm-dd HH:MM:SS.xxxrn0
+            struct tm timeinfo = rtc.getTimeStruct();
+            char s[30];
+            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
+            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
+        }
+    }
+
+    // Validate the firmware update state
+    if (newState >= OTA_STATE_MAX)
+        reportFatalError("Invalid firmware update state");
+}
+
+// Determine if it is time to initiate the over-the-air firmware update
+void otaAutoUpdate()
+{
+    uint32_t checkIntervalMillis;
+    char reportedVersion[50];
+
+    // Determine if the user enabled automatic firmware updates
+    if (settings.enableAutoFirmwareUpdate)
+    {
+        // Wait until it is time to check for a firmware update
+        checkIntervalMillis = settings.autoFirmwareCheckMinutes * 60 * 1000;
+        if ((millis() - otaLastUpdateCheck) >= checkIntervalMillis)
+        {
+            otaLastUpdateCheck = millis();
+            otaSetState(OTA_STATE_START_WIFI);
+        }
+    }
+
+    // Perform the OTA firmware update
+    if (otaState && (!inMainMenu))
+    {
+        // Walk the state machine to do the firmware update
+        switch (otaState)
+        {
+        default:
+            systemPrintf("ERROR: Unknown OTA state (%d)\r\n", otaState);
+            break;
+        }
+    }
+}
 
 // Verify the OTA update tables
 void otaVerifyTables()

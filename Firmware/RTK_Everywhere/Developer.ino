@@ -97,6 +97,7 @@ void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSE
 
 #ifndef COMPILE_OTA_AUTO
 
+void otaAutoUpdate() {}
 void otaVerifyTables() {}
 
 #endif  // COMPILE_OTA_AUTO
