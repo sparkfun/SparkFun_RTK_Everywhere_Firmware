@@ -1025,6 +1025,49 @@ void otaAutoUpdate()
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
             }
             break;
+
+        // Check for newer firmware
+        case OTA_STATE_GET_FIRMWARE_VERSION:
+            // Determine if the network has failed
+            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
+                otaAutoUpdateStop();
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("Firmware update checking SparkFun released firmware version");
+
+            // Only update to production firmware, disable release candidates
+            enableRCFirmware = 0;
+
+            // Get firmware version from server
+            reportedVersion[0] = 0;
+            if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
+            {
+                // We got a version number, now determine if it's newer or not
+                char currentVersion[21];
+                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+
+                //Allow update if locally compiled developer version
+                if ((isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true)
+                    || (currentVersion[0] == 'd')
+                    || (FIRMWARE_VERSION_MAJOR == 99))
+                {
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintf("Firmware update detected new firmware version %s\r\n", reportedVersion);
+                    otaSetState(OTA_STATE_UPDATE_FIRMWARE);
+                }
+                else
+                {
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintln("Firmware update, no new firmware available");
+                    otaAutoUpdateStop();
+                }
+            }
+            else
+            {
+                // Failed to get version number
+                systemPrintln("Failed to get version number from server.");
+                otaAutoUpdateStop();
+            }
+            break;
         }
     }
 }
