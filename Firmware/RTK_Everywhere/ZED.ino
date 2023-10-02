@@ -1098,6 +1098,8 @@ bool zedBeginPPS()
 
     if (response == false)
         systemPrintln("beginExternalTriggers config failed");
+
+    return (response);
 }
 
 // Enable data output from the NEO
