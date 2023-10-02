@@ -1,3 +1,6 @@
+#include "UM980.h" //Structs of UM980 messages, needed for settings.h
+
+
 // System can enter a variety of states
 // See statemachine diagram at:
 // https://lucid.app/lucidchart/53519501-9fa5-4352-aa40-673f88ca0c9b/edit?invitationId=inv_ebd4b988-513d-4169-93fd-c291851108f8
@@ -63,6 +66,8 @@ typedef enum
     RTK_FACET_LBAND,
     REFERENCE_STATION,
     RTK_FACET_LBAND_DIRECT,
+    RTK_TORCH,
+    RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
     RTK_UNKNOWN,
 } ProductVariant;
 ProductVariant productVariant = RTK_SURVEYOR;
@@ -411,6 +416,13 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
 
+// Different GNSS modules require different libraries and configuration
+typedef enum
+{
+    PLATFORM_ZED = 0b0001,
+    PLATFORM_UM980 = 0b0010,
+} GnssPlatform;
+
 // Different ZED modules support different messages (F9P vs F9R vs F9T)
 // Create binary packed struct for different platforms
 typedef enum
@@ -418,7 +430,7 @@ typedef enum
     PLATFORM_F9P = 0b0001,
     PLATFORM_F9R = 0b0010,
     PLATFORM_F9T = 0b0100,
-} ubxPlatform;
+} UbxPlatform;
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
@@ -843,7 +855,7 @@ typedef struct
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool enableI2Cdebug = false;                          // Turn on to display GNSS library debug messages
+    bool enableGNSSdebug = false;                          // Turn on to display GNSS library debug messages
     bool enableHeapReport = false;                        // Turn on to display free heap
     bool enableTaskReports = false;                       // Turn on to display task high water marks
     muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
@@ -884,7 +896,7 @@ typedef struct
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     char profileName[50] = "";
 
-    int16_t serialTimeoutGNSS = 1; // In ms - used during SerialGNSS.begin. Number of ms to pass of no data before
+    int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
 
     char pointPerfectDeviceProfileToken[40] = "";
@@ -903,7 +915,7 @@ typedef struct
     uint64_t pointPerfectNextKeyStart = 0;
 
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
-    bool updateZEDSettings = true;   // When in doubt, update the ZED with current settings
+    bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
     uint32_t LBandFreq = 1556290000; // Default to US band
 
     // Time Zone - Default to UTC
@@ -1060,6 +1072,17 @@ typedef struct
     bool enablePvtServer = false;
     uint16_t pvtServerPort = 2948; // PVT server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
 
+    float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
+        254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
+              // rates for RTCM Base. Default to Unicore recommended rates.
+    float um980MessageRatesRTCMBase[MAX_UM980_RTCM_MSG] = {
+        254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
+              // rates for RTCM Base. Default to Unicore recommended rates.
+    uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
+    int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
+    bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
+    float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
 
     //Add new settings above
@@ -1088,7 +1111,8 @@ struct struct_online
     bool pvtClient = false;
     bool pvtServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
-    bool NTPServer = false; // EthernetUDP
+    bool ethernetNTPServer = false; // EthernetUDP
+    bool imu = false;
 } online;
 
 #ifdef COMPILE_WIFI

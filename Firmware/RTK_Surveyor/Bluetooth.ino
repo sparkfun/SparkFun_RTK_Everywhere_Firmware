@@ -43,7 +43,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     {
         systemPrintln("BT client Connected");
         bluetoothState = BT_CONNECTED;
-        if (productVariant == RTK_SURVEYOR)
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, HIGH);
     }
 
@@ -56,7 +56,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         printEndpoint = PRINT_ENDPOINT_SERIAL;
 
         bluetoothState = BT_NOTCONNECTED;
-        if (productVariant == RTK_SURVEYOR)
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, LOW);
     }
 }
@@ -223,12 +223,12 @@ void bluetoothStart()
 
         systemPrintln(deviceName);
 
-        // Start task for controlling Bluetooth pair LED
-        if (productVariant == RTK_SURVEYOR)
+        // Start ticker task for controlling Bluetooth pair LED
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
         {
-            ledcWrite(ledBTChannel, 255);                    // Turn on BT LED
-            btLEDTask.detach();                              // Slow down the BT LED blinker task
-            btLEDTask.attach(btLEDTaskPace2Hz, updateBTled); // Rate in seconds, callback
+            ledcWrite(ledBtChannel, 255);                    // Turn on BT LED
+            ledBtTask.detach();                              // Slow down the BT LED blinker task
+            ledBtTask.attach(ledBtTaskPace2Hz, tickerBtUpdate); // Rate in seconds, callback
         }
 
         bluetoothState = BT_NOTCONNECTED;
@@ -291,13 +291,14 @@ void bluetoothTest(bool runTest)
         {
             tasksStopUART2(); // Stop absoring ZED serial via task
 
-            theGNSS.setVal32(UBLOX_CFG_UART1_BAUDRATE,
-                             (115200 * 2)); // Defaults to 230400 to maximize message output support
-            serialGNSS.begin((115200 * 2)); // UART2 on pins 16/17 for SPP. The ZED-F9P will be configured to output
-                                            // NMEA over its UART1 at the same rate.
+            gnssSetBaudrate(115200 * 2);
+
+            serialGNSS->begin(115200 * 2, SERIAL_8N1, pin_UART2_RX,
+                              pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be
+                                             // configured to output NMEA over its UART at the same rate.
 
             SFE_UBLOX_GNSS_SERIAL myGNSS;
-            if (myGNSS.begin(serialGNSS) == true) // begin() attempts 3 connections
+            if (myGNSS.begin(*serialGNSS) == true) // begin() attempts 3 connections
             {
                 zedUartPassed = true;
                 bluetoothStatusText = (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF) ? "Off" : "Online";
@@ -305,10 +306,11 @@ void bluetoothTest(bool runTest)
             else
                 bluetoothStatusText = "Offline";
 
-            theGNSS.setVal32(UBLOX_CFG_UART1_BAUDRATE,
-                             settings.dataPortBaud); // Defaults to 230400 to maximize message output support
-            serialGNSS.begin(settings.dataPortBaud); // UART2 on pins 16/17 for SPP. The ZED-F9P will be configured to
-                                                     // output NMEA over its UART1 at the same rate.
+            gnssSetBaudrate(settings.dataPortBaud);
+
+            serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_UART2_RX,
+                              pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be
+                                             // configured to output NMEA over its UART at the same rate.
 
             tasksStartUART2(); // Return to normal operation
         }

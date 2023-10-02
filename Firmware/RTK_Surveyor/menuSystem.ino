@@ -15,7 +15,7 @@ void menuSystem()
         {
             systemPrint("Online - ");
 
-            printZEDInfo();
+            gnssPrintModuleInfo();
 
             systemPrintf("Module unique chip ID: %s\r\n", zedUniqueId);
 
@@ -296,7 +296,7 @@ void menuSystem()
                                         syncRTCInterval =
                                             1000; // Reset syncRTCInterval to 1000ms (tpISR could have set it to 59000)
                                         rtcSyncd = false;
-                                        updateRTC();
+                                        rtcUpdate();
                                     } // Succesful seconds
                                 }
                             } // Succesful minute
@@ -388,7 +388,7 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
 
         systemPrint("9) u-blox I2C Debugging Output: ");
-        systemPrintf("%s\r\n", settings.enableI2Cdebug ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", settings.enableGNSSdebug ? "Enabled" : "Disabled");
 
         systemPrintln("e) Erase LittleFS");
 
@@ -425,19 +425,12 @@ void menuDebugHardware()
             settings.enablePrintBadMessages ^= 1;
         else if (incoming == 9)
         {
-            settings.enableI2Cdebug ^= 1;
+            settings.enableGNSSdebug ^= 1;
 
-            if (settings.enableI2Cdebug)
-            {
-#if defined(REF_STN_GNSS_DEBUG)
-                if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
-                    theGNSS.enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
-                else
-#endif                                                     // REF_STN_GNSS_DEBUG
-                    theGNSS.enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
-            }
+            if (settings.enableGNSSdebug)
+                gnssEnableDebugging();
             else
-                theGNSS.disableDebugging();
+                gnssDisableDebugging();
         }
 
         else if (incoming == 'e')
@@ -938,7 +931,7 @@ void menuOperation()
         }
         else if (incoming == 10)
         {
-            bool response = setMessagesUSB(MAX_SET_MESSAGES_RETRIES);
+            bool response = gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
             if (response == false)
                 systemPrintln(F("Failed to enable USB messages"));
@@ -1327,18 +1320,18 @@ void printCurrentConditions()
     if (online.gnss == true)
     {
         systemPrint("SIV: ");
-        systemPrint(numSV);
+        systemPrint(gnssGetSatellitesInView());
 
         systemPrint(", HPA (m): ");
-        systemPrint(horizontalAccuracy, 3);
+        systemPrint(gnssGetHorizontalAccuracy(), 3);
 
         systemPrint(", Lat: ");
-        systemPrint(latitude, haeNumberOfDecimals);
+        systemPrint(gnssGetLatitude(), haeNumberOfDecimals);
         systemPrint(", Lon: ");
-        systemPrint(longitude, haeNumberOfDecimals);
+        systemPrint(gnssGetLongitude(), haeNumberOfDecimals);
 
         systemPrint(", Altitude (m): ");
-        systemPrint(altitude, 1);
+        systemPrint(gnssGetAltitude(), 1);
 
         systemPrintln();
     }
@@ -1350,9 +1343,12 @@ void printCurrentConditionsNMEA()
     {
         char systemStatus[100];
         snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", gnssHour, gnssMinute, gnssSecond,
-                 mseconds, gnssDay, gnssMonth, gnssYear % 2000, // Limit to 2 digits
-                 horizontalAccuracy, numSV, latitude, longitude, altitude, fixType, carrSoln, battLevel);
+                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", 
+                 gnssGetHour(), gnssGetMinute(), gnssGetSecond(),
+                 gnssGetMillisecond(), gnssGetDay(), gnssGetMonth(), gnssGetYear() % 2000, // Limit to 2 digits
+                 gnssGetHorizontalAccuracy(), gnssGetSatellitesInView(), 
+                 gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(), 
+                 gnssGetFixType(), gnssGetCarrierSolution(), battLevel);
 
         char nmeaMessage[100]; // Max NMEA sentence length is 82
         createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),

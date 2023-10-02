@@ -549,11 +549,7 @@ void ntripClientStop(bool shutdown)
         ntripClientTimer = millis();
 
     // Return the Main Talker ID to "GN".
-    if (online.gnss)
-    {
-        theGNSS.setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
-        theGNSS.setNMEAGPGGAcallbackPtr(nullptr);        // Remove callback
-    }
+    gnssSetTalkerGNGGA();
 
     // Determine the next NTRIP client state
     ntripClientSetState(shutdown ? NTRIP_CLIENT_OFF : NTRIP_CLIENT_ON);
@@ -617,7 +613,7 @@ void ntripClientUpdate()
 
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
-        else if ((!settings.ntripClient_TransmitGGA) || (fixType >= 3) && (fixType <= 5))
+        else if ((settings.ntripClient_TransmitGGA == false) || (gnssIsFixed() == true))
         {
             // Delay before opening the NTRIP client connection
             if ((millis() - ntripClientTimer) >= ntripClientConnectionAttemptTimeout)
@@ -726,16 +722,8 @@ void ntripClientUpdate()
                     if (settings.ntripClient_TransmitGGA == true)
                     {
                         // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
-                        theGNSS.setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 1);
-                        theGNSS.setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
-
-                        float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
-                        if (measurementFrequency < 0.2)
-                            measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
-                        log_d("Adjusting GGA setting to %f", measurementFrequency);
-                        theGNSS.setVal8(
-                            UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
-                            measurementFrequency); // Enable GGA over I2C. Tell the module to output GGA every second
+                        // Tell the module to output GGA every 5 seconds
+                        gnssEnableGgaForNtrip();
 
                         lastGGAPush =
                             millis() - NTRIPCLIENT_MS_BETWEEN_GGA; // Force immediate transmission of GGA message
@@ -844,7 +832,7 @@ void ntripClientUpdate()
                         rtcmLastPacketReceived = millis();
 
                         // Push RTCM to GNSS module over I2C / SPI
-                        theGNSS.pushRawData(rtcmData, rtcmCount);
+                        gnssPushRawData(rtcmData, rtcmCount);
                         netIncomingRTCM = true;
 
                         if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA))

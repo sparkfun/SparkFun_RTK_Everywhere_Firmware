@@ -223,7 +223,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%0.1f\r\n", "surveyInStartingAccuracy", settings.surveyInStartingAccuracy);
     settingsFile->printf("%s=%d\r\n", "measurementRate", settings.measurementRate);
     settingsFile->printf("%s=%d\r\n", "navigationRate", settings.navigationRate);
-    settingsFile->printf("%s=%d\r\n", "enableI2Cdebug", settings.enableI2Cdebug);
+    settingsFile->printf("%s=%d\r\n", "enableGNSSdebug", settings.enableGNSSdebug);
     settingsFile->printf("%s=%d\r\n", "enableHeapReport", settings.enableHeapReport);
     settingsFile->printf("%s=%d\r\n", "enableTaskReports", settings.enableTaskReports);
     settingsFile->printf("%s=%d\r\n", "dataPortChannel", (uint8_t)settings.dataPortChannel);
@@ -272,7 +272,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%llu\r\n", "pointPerfectNextKeyDuration", settings.pointPerfectNextKeyDuration);
     settingsFile->printf("%s=%llu\r\n", "pointPerfectNextKeyStart", settings.pointPerfectNextKeyStart);
     settingsFile->printf("%s=%llu\r\n", "lastKeyAttempt", settings.lastKeyAttempt);
-    settingsFile->printf("%s=%d\r\n", "updateZEDSettings", settings.updateZEDSettings);
+    settingsFile->printf("%s=%d\r\n", "updateGNSSSettings", settings.updateGNSSSettings);
     settingsFile->printf("%s=%d\r\n", "LBandFreq", settings.LBandFreq);
     settingsFile->printf("%s=%d\r\n", "enableLogging", settings.enableLogging);
     settingsFile->printf("%s=%d\r\n", "enableARPLogging", settings.enableARPLogging);
@@ -430,6 +430,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "gnssUartInterruptsCore", settings.gnssUartInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "bluetoothInterruptsCore", settings.bluetoothInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "i2cInterruptsCore", settings.i2cInterruptsCore);
+    settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
+    settingsFile->printf("%s=%d\r\n", "tiltPoleLength", settings.tiltPoleLength);
     settingsFile->printf("%s=%d\r\n", "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
 
     //Add new settings above
@@ -791,7 +793,7 @@ bool parseLine(char *str, Settings *settings)
             d) // If a setting for the ZED has changed, apply, and trigger module config update
         {
             settings->observationSeconds = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "observationPositionAccuracy") == 0)
@@ -799,7 +801,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->observationPositionAccuracy != d)
         {
             settings->observationPositionAccuracy = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedBase") == 0)
@@ -807,7 +809,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedBase != d)
         {
             settings->fixedBase = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedBaseCoordinateType") == 0)
@@ -815,7 +817,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedBaseCoordinateType != d)
         {
             settings->fixedBaseCoordinateType = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedEcefX") == 0)
@@ -823,7 +825,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedEcefX != d)
         {
             settings->fixedEcefX = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedEcefY") == 0)
@@ -831,7 +833,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedEcefY != d)
         {
             settings->fixedEcefY = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedEcefZ") == 0)
@@ -839,7 +841,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedEcefZ != d)
         {
             settings->fixedEcefZ = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedLat") == 0)
@@ -847,7 +849,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedLat != d)
         {
             settings->fixedLat = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedLong") == 0)
@@ -855,7 +857,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedLong != d)
         {
             settings->fixedLong = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "fixedAltitude") == 0)
@@ -863,7 +865,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->fixedAltitude != d)
         {
             settings->fixedAltitude = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "dataPortBaud") == 0)
@@ -871,7 +873,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->dataPortBaud != d)
         {
             settings->dataPortBaud = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "radioPortBaud") == 0)
@@ -879,7 +881,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->radioPortBaud != d)
         {
             settings->radioPortBaud = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "surveyInStartingAccuracy") == 0)
@@ -889,7 +891,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->measurementRate != d)
         {
             settings->measurementRate = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "navigationRate") == 0)
@@ -897,11 +899,11 @@ bool parseLine(char *str, Settings *settings)
         if (settings->navigationRate != d)
         {
             settings->navigationRate = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
-    else if (strcmp(settingName, "enableI2Cdebug") == 0)
-        settings->enableI2Cdebug = d;
+    else if (strcmp(settingName, "enableGNSSdebug") == 0)
+        settings->enableGNSSdebug = d;
     else if (strcmp(settingName, "enableHeapReport") == 0)
         settings->enableHeapReport = d;
     else if (strcmp(settingName, "enableTaskReports") == 0)
@@ -931,7 +933,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->dynamicModel != d)
         {
             settings->dynamicModel = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "lastState") == 0)
@@ -939,7 +941,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->lastState != (SystemState)d)
         {
             settings->lastState = (SystemState)d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "enableSensorFusion") == 0)
@@ -947,7 +949,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->enableSensorFusion != d)
         {
             settings->enableSensorFusion = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "autoIMUmountAlignment") == 0)
@@ -955,7 +957,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->autoIMUmountAlignment != d)
         {
             settings->autoIMUmountAlignment = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "enableResetDisplay") == 0)
@@ -965,7 +967,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->enableExternalPulse != d)
         {
             settings->enableExternalPulse = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "externalPulseTimeBetweenPulse_us") == 0)
@@ -973,7 +975,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->externalPulseTimeBetweenPulse_us != d)
         {
             settings->externalPulseTimeBetweenPulse_us = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "externalPulseLength_us") == 0)
@@ -981,7 +983,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->externalPulseLength_us != d)
         {
             settings->externalPulseLength_us = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "externalPulsePolarity") == 0)
@@ -989,7 +991,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->externalPulsePolarity != (pulseEdgeType_e)d)
         {
             settings->externalPulsePolarity = (pulseEdgeType_e)d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "enableExternalHardwareEventLogging") == 0)
@@ -997,7 +999,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->enableExternalHardwareEventLogging != d)
         {
             settings->enableExternalHardwareEventLogging = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "profileName") == 0)
@@ -1065,10 +1067,10 @@ bool parseLine(char *str, Settings *settings)
 
     else if (strcmp(settingName, "lastKeyAttempt") == 0)
         settings->lastKeyAttempt = d;
-    else if (strcmp(settingName, "updateZEDSettings") == 0)
+    else if (strcmp(settingName, "updateGNSSSettings") == 0)
     {
-        if (settings->updateZEDSettings != d)
-            settings->updateZEDSettings = true; // If there is a discrepancy, push ZED reconfig
+        if (settings->updateGNSSSettings != d)
+            settings->updateGNSSSettings = true; // If there is a discrepancy, push GNSS reconfig
     }
     else if (strcmp(settingName, "LBandFreq") == 0)
         settings->LBandFreq = d;
@@ -1167,7 +1169,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->minElev != d)
         {
             settings->minElev = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "imuYaw") == 0)
@@ -1175,7 +1177,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->imuYaw != d)
         {
             settings->imuYaw = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "imuPitch") == 0)
@@ -1183,7 +1185,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->imuPitch != d)
         {
             settings->imuPitch = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "imuRoll") == 0)
@@ -1191,7 +1193,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->imuRoll != d)
         {
             settings->imuRoll = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "sfDisableWheelDirection") == 0)
@@ -1199,7 +1201,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->sfDisableWheelDirection != d)
         {
             settings->sfDisableWheelDirection = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "sfCombineWheelTicks") == 0)
@@ -1207,7 +1209,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->sfCombineWheelTicks != d)
         {
             settings->sfCombineWheelTicks = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "rateNavPrio") == 0)
@@ -1215,7 +1217,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->rateNavPrio != d)
         {
             settings->rateNavPrio = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "sfUseSpeed") == 0)
@@ -1223,7 +1225,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->sfUseSpeed != d)
         {
             settings->sfUseSpeed = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     // Ethernet
@@ -1281,7 +1283,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->minCNO_F9R != d)
         {
             settings->minCNO_F9R = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "minCNO_F9P") == 0)
@@ -1289,7 +1291,7 @@ bool parseLine(char *str, Settings *settings)
         if (settings->minCNO_F9P != d)
         {
             settings->minCNO_F9P = d;
-            settings->updateZEDSettings = true;
+            settings->updateGNSSSettings = true;
         }
     }
     else if (strcmp(settingName, "mdnsEnable") == 0)
@@ -1338,6 +1340,11 @@ bool parseLine(char *str, Settings *settings)
     //Add new settings above
     //<------------------------------------------------------------>
 
+    else if (strcmp(settingName, "enableTiltCompensation") == 0)
+        settings->enableTiltCompensation = d;
+    else if (strcmp(settingName, "tiltPoleLength") == 0)
+        settings->tiltPoleLength = d;
+
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list
     else
@@ -1383,7 +1390,7 @@ bool parseLine(char *str, Settings *settings)
                     if (settings->ubxConstellations[x].enabled != d)
                     {
                         settings->ubxConstellations[x].enabled = d;
-                        settings->updateZEDSettings = true;
+                        settings->updateGNSSSettings = true;
                     }
 
                     knownSetting = true;
@@ -1405,7 +1412,7 @@ bool parseLine(char *str, Settings *settings)
                     if (settings->ubxMessageRates[x] != d)
                     {
                         settings->ubxMessageRates[x] = d;
-                        settings->updateZEDSettings = true;
+                        settings->updateGNSSSettings = true;
                     }
 
                     knownSetting = true;
@@ -1431,7 +1438,7 @@ bool parseLine(char *str, Settings *settings)
                     if (settings->ubxMessageRatesBase[x] != d)
                     {
                         settings->ubxMessageRatesBase[x] = d;
-                        settings->updateZEDSettings = true;
+                        settings->updateGNSSSettings = true;
                     }
 
                     knownSetting = true;
@@ -1519,7 +1526,7 @@ void loadProfileNumber()
     if (!fileProfileNumber)
     {
         log_d("profileNumber.txt not found");
-        settings.updateZEDSettings = true; // Force module update
+        settings.updateGNSSSettings = true; // Force module update
         recordProfileNumber(0);            // Record profile
     }
     else
@@ -1532,7 +1539,7 @@ void loadProfileNumber()
     if (profileNumber >= MAX_PROFILE_COUNT)
     {
         log_d("ProfileNumber invalid. Going to zero.");
-        settings.updateZEDSettings = true; // Force module update
+        settings.updateGNSSSettings = true; // Force module update
         recordProfileNumber(0);            // Record profile
     }
 

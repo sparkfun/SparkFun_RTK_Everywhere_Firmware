@@ -25,47 +25,68 @@ void menuGNSS()
         systemPrintln("\tNote: The measurement rate is overridden to 1Hz when in Base mode.");
 
         systemPrint("3) Set dynamic model: ");
-        switch (settings.dynamicModel)
+        if (gnssPlatform == PLATFORM_ZED)
         {
-        case DYN_MODEL_PORTABLE:
-            systemPrint("Portable");
-            break;
-        case DYN_MODEL_STATIONARY:
-            systemPrint("Stationary");
-            break;
-        case DYN_MODEL_PEDESTRIAN:
-            systemPrint("Pedestrian");
-            break;
-        case DYN_MODEL_AUTOMOTIVE:
-            systemPrint("Automotive");
-            break;
-        case DYN_MODEL_SEA:
-            systemPrint("Sea");
-            break;
-        case DYN_MODEL_AIRBORNE1g:
-            systemPrint("Airborne 1g");
-            break;
-        case DYN_MODEL_AIRBORNE2g:
-            systemPrint("Airborne 2g");
-            break;
-        case DYN_MODEL_AIRBORNE4g:
-            systemPrint("Airborne 4g");
-            break;
-        case DYN_MODEL_WRIST:
-            systemPrint("Wrist");
-            break;
-        case DYN_MODEL_BIKE:
-            systemPrint("Bike");
-            break;
-        case DYN_MODEL_MOWER:
-            systemPrint("Mower");
-            break;
-        case DYN_MODEL_ESCOOTER:
-            systemPrint("E-Scooter");
-            break;
-        default:
-            systemPrint("Unknown");
-            break;
+            switch (settings.dynamicModel)
+            {
+            case DYN_MODEL_PORTABLE:
+                systemPrint("Portable");
+                break;
+            case DYN_MODEL_STATIONARY:
+                systemPrint("Stationary");
+                break;
+            case DYN_MODEL_PEDESTRIAN:
+                systemPrint("Pedestrian");
+                break;
+            case DYN_MODEL_AUTOMOTIVE:
+                systemPrint("Automotive");
+                break;
+            case DYN_MODEL_SEA:
+                systemPrint("Sea");
+                break;
+            case DYN_MODEL_AIRBORNE1g:
+                systemPrint("Airborne 1g");
+                break;
+            case DYN_MODEL_AIRBORNE2g:
+                systemPrint("Airborne 2g");
+                break;
+            case DYN_MODEL_AIRBORNE4g:
+                systemPrint("Airborne 4g");
+                break;
+            case DYN_MODEL_WRIST:
+                systemPrint("Wrist");
+                break;
+            case DYN_MODEL_BIKE:
+                systemPrint("Bike");
+                break;
+            case DYN_MODEL_MOWER:
+                systemPrint("Mower");
+                break;
+            case DYN_MODEL_ESCOOTER:
+                systemPrint("E-Scooter");
+                break;
+            default:
+                systemPrint("Unknown");
+                break;
+            }
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            switch (settings.dynamicModel)
+            {
+            default:
+                systemPrint("Unknown");
+                break;
+            case UM980_DYN_MODEL_SURVEY:
+                systemPrint("Survey");
+                break;
+            case UM980_DYN_MODEL_UAV:
+                systemPrint("UAV");
+                break;
+            case UM980_DYN_MODEL_AUTOMOTIVE:
+                systemPrint("Automotive");
+                break;
+            }
         }
         systemPrintln();
 
@@ -130,8 +151,8 @@ void menuGNSS()
             }
             else
             {
-                setRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
-                                     // settings.navigationRate, and GSV message
+                gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
+                                         // settings.navigationRate, and GSV message
                 // Settings recorded to NVM and file at main menu exit
             }
         }
@@ -145,56 +166,81 @@ void menuGNSS()
             }
             else
             {
-                setRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
+                gnssSetRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
                 // Settings recorded to NVM and file at main menu exit
             }
         }
         else if (incoming == 3)
         {
-            systemPrintln("Enter the dynamic model to use: ");
-            systemPrintln("1) Portable");
-            systemPrintln("2) Stationary");
-            systemPrintln("3) Pedestrian");
-            systemPrintln("4) Automotive");
-            systemPrintln("5) Sea");
-            systemPrintln("6) Airborne 1g");
-            systemPrintln("7) Airborne 2g");
-            systemPrintln("8) Airborne 4g");
-            systemPrintln("9) Wrist");
-            if (zedModuleType == PLATFORM_F9R)
+            if (gnssPlatform == PLATFORM_ZED)
             {
-                systemPrintln("10) Bike");
-                // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
-                if (zedFirmwareVersionInt >= 121)
+                systemPrintln("Enter the dynamic model to use: ");
+                systemPrintln("1) Portable");
+                systemPrintln("2) Stationary");
+                systemPrintln("3) Pedestrian");
+                systemPrintln("4) Automotive");
+                systemPrintln("5) Sea");
+                systemPrintln("6) Airborne 1g");
+                systemPrintln("7) Airborne 2g");
+                systemPrintln("8) Airborne 4g");
+                systemPrintln("9) Wrist");
+                if (zedModuleType == PLATFORM_F9R)
                 {
-                    systemPrintln("11) Mower");
-                    systemPrintln("12) E-Scooter");
+                    systemPrintln("10) Bike");
+                    // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
+                    if (zedFirmwareVersionInt >= 121)
+                    {
+                        systemPrintln("11) Mower");
+                        systemPrintln("12) E-Scooter");
+                    }
                 }
+            }
+            else if (gnssPlatform == PLATFORM_UM980)
+            {
+                systemPrintln("Enter the dynamic model to use: ");
+                systemPrintln("1) Survey");
+                systemPrintln("2) UAV");
+                systemPrintln("3) Automotive");
             }
 
             int dynamicModel = getNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                uint8_t maxModel = DYN_MODEL_WRIST;
-
-                if (zedModuleType == PLATFORM_F9R)
+                if (gnssPlatform == PLATFORM_ZED)
                 {
-                    maxModel = DYN_MODEL_BIKE;
-                    // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
-                    if (zedFirmwareVersionInt >= 121)
-                        maxModel = DYN_MODEL_ESCOOTER;
-                }
+                    uint8_t maxModel = DYN_MODEL_WRIST;
 
-                if (dynamicModel < 1 || dynamicModel > maxModel)
-                    systemPrintln("Error: Dynamic model out of range");
-                else
-                {
-                    if (dynamicModel == 1)
-                        settings.dynamicModel = DYN_MODEL_PORTABLE; // The enum starts at 0 and skips 1.
+                    if (zedModuleType == PLATFORM_F9R)
+                    {
+                        maxModel = DYN_MODEL_BIKE;
+                        // F9R versions starting at 1.21 have Mower and E-Scooter dynamic models
+                        if (zedFirmwareVersionInt >= 121)
+                            maxModel = DYN_MODEL_ESCOOTER;
+                    }
+
+                    if (dynamicModel < 1 || dynamicModel > maxModel)
+                        systemPrintln("Error: Dynamic model out of range");
                     else
+                    {
+                        if (dynamicModel == 1)
+                            settings.dynamicModel = DYN_MODEL_PORTABLE; // The enum starts at 0 and skips 1.
+                        else
+                            settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
+
+                        gnssSetModel(settings.dynamicModel);
+                    }
+                }
+                else if (gnssPlatform == PLATFORM_UM980)
+                {
+                    if (dynamicModel < 1 || dynamicModel > 3)
+                        systemPrintln("Error: Dynamic model out of range");
+                    else
+                    {
+                        dynamicModel -= 1; //Align to 0 to 2
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                    theGNSS.setVal8(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); // Set dynamic model
+                        gnssSetModel(settings.dynamicModel);
+                    }
                 }
             }
         }
@@ -272,7 +318,7 @@ void menuGNSS()
                 {
                     settings.minElev = minElev; // Recorded to NVM and file at main menu exit
 
-                    theGNSS.setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
+                    gnssSetElevation(settings.minElev);
                 }
                 restartRover = true;
             }
@@ -294,7 +340,7 @@ void menuGNSS()
                     else
                         settings.minCNO_F9P = newMinCNO;
 
-                    theGNSS.setVal8(UBLOX_CFG_NAVSPG_INFIL_MINCNO, newMinCNO); // Update minCNO
+                    gnssSetMinCno(newMinCNO); // Update minCNO
                 }
                 restartRover = true;
             }
@@ -380,91 +426,9 @@ void menuConstellations()
     }
 
     // Apply current settings to module
-    setConstellations(true); // Apply newCfg and sendCfg values to batch
+    gnssSetConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
-}
-
-// Given the number of seconds between desired solution reports, determine measurementRate and navigationRate
-// measurementRate > 25 & <= 65535
-// navigationRate >= 1 && <= 127
-// We give preference to limiting a measurementRate to 30s or below due to reported problems with measRates above 30.
-bool setRate(double secondsBetweenSolutions)
-{
-    uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
-    uint16_t navRate = 0;
-
-    // If we have more than an hour between readings, increase mesaurementRate to near max of 65,535
-    if (secondsBetweenSolutions > 3600.0)
-    {
-        measRate = 65000;
-    }
-
-    // If we have more than 30s, but less than 3600s between readings, use 30s measurement rate
-    else if (secondsBetweenSolutions > 30.0)
-    {
-        measRate = 30000;
-    }
-
-    // User wants measurements less than 30s (most common), set measRate to match user request
-    // This will make navRate = 1.
-    else
-    {
-        measRate = secondsBetweenSolutions * 1000.0;
-    }
-
-    navRate = secondsBetweenSolutions * 1000.0 / measRate; // Set navRate to nearest int value
-    measRate = secondsBetweenSolutions * 1000.0 / navRate; // Adjust measurement rate to match actual navRate
-
-    // systemPrintf("measurementRate / navRate: %d / %d\r\n", measRate, navRate);
-
-    bool response = true;
-    response &= theGNSS.newCfgValset();
-    response &= theGNSS.addCfgValset(UBLOX_CFG_RATE_MEAS, measRate);
-    response &= theGNSS.addCfgValset(UBLOX_CFG_RATE_NAV, navRate);
-
-    int gsvRecordNumber = getMessageNumberByName("UBX_NMEA_GSV");
-
-    // If enabled, adjust GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-    if (settings.ubxMessageRates[gsvRecordNumber] > 0)
-    {
-        float measurementFrequency = (1000.0 / measRate) / navRate;
-        if (measurementFrequency < 1.0)
-            measurementFrequency = 1.0;
-
-        log_d("Adjusting GSV setting to %f", measurementFrequency);
-
-        setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // Update GSV setting in file
-        response &= theGNSS.addCfgValset(ubxMessages[gsvRecordNumber].msgConfigKey,
-                                         settings.ubxMessageRates[gsvRecordNumber]); // Update rate on module
-    }
-
-    response &= theGNSS.sendCfgValset(); // Closing value - max 4 pairs
-
-    // If we successfully set rates, only then record to settings
-    if (response == true)
-    {
-        settings.measurementRate = measRate;
-        settings.navigationRate = navRate;
-    }
-    else
-    {
-        systemPrintln("Failed to set measurement and navigation rates");
-        return (false);
-    }
-
-    return (true);
-}
-
-// Print the module type and firmware version
-void printZEDInfo()
-{
-    if (zedModuleType == PLATFORM_F9P)
-        systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
-    else if (zedModuleType == PLATFORM_F9R)
-        systemPrintf("ZED-F9R firmware: %s\r\n", zedFirmwareVersion);
-    else
-        systemPrintf("Unknown module with firmware: %s\r\n", zedFirmwareVersion);
 }
 
 // Print the NEO firmware version

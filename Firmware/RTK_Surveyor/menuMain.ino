@@ -1,7 +1,16 @@
 // Check to see if we've received serial over USB
 // Report status if ~ received, otherwise present config menu
-void updateSerial()
+void terminalUpdate()
 {
+    static uint32_t lastPeriodicDisplay;
+
+    // Determine which items are periodically displayed
+    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
+    {
+        lastPeriodicDisplay = millis();
+        periodicDisplay = settings.periodicDisplay;
+    }
+
     if (systemAvailable())
     {
         byte incoming = systemRead();
@@ -53,9 +62,11 @@ void menuMain()
         else if (zedModuleType == PLATFORM_F9R)
             systemPrintln("3) Configure Sensor Fusion");
 
-        systemPrintln("4) Configure Ports");
+        if (productVariant != RTK_TORCH) // Torch does not have external ports
+            systemPrintln("4) Configure Ports");
 
-        systemPrintln("5) Configure Logging");
+        if (productVariant != RTK_TORCH) // Torch does not have logging
+            systemPrintln("5) Configure Logging");
 
 #ifdef COMPILE_WIFI
         systemPrintln("6) Configure WiFi");
@@ -106,9 +117,9 @@ void menuMain()
             menuBase();
         else if (incoming == 3 && zedModuleType == PLATFORM_F9R)
             menuSensorFusion();
-        else if (incoming == 4)
+        else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
             menuPorts();
-        else if (incoming == 5)
+        else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
             menuLog();
         else if (incoming == 6)
             menuWiFi();
@@ -149,8 +160,7 @@ void menuMain()
 
     recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
-    if (online.gnss == true)
-        theGNSS.saveConfiguration(); // Save the current settings to flash and BBR on the ZED-F9P
+    gnssSaveConfiguration();
 
     // Reboot as base only if currently operating as a base station
     if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState < STATE_BUBBLE_LEVEL))
@@ -173,9 +183,9 @@ void menuMain()
 // Change system wide settings based on current user profile
 // Ways to change the ZED settings:
 // Menus - we apply ZED changes at the exit of each sub menu
-// Settings file - we detect differences between NVM and settings txt file and updateZEDSettings = true
-// Profile - Before profile is changed, set updateZEDSettings = true
-// AP - once new settings are parsed, set updateZEDSettings = true
+// Settings file - we detect differences between NVM and settings txt file and updateGNSSSettings = true
+// Profile - Before profile is changed, set updateGNSSSettings = true
+// AP - once new settings are parsed, set updateGNSSSettings = true
 // Setup button -
 // Factory reset - updatesZEDSettings = true by default
 void menuUserProfiles()
@@ -322,8 +332,8 @@ void menuUserProfiles()
 // Change the active profile number, without unit reset
 void changeProfileNumber(byte newProfileNumber)
 {
-    settings.updateZEDSettings = true; // When this profile is loaded next, force system to update ZED settings.
-    recordSystemSettings();            // Before switching, we need to record the current settings to LittleFS and SD
+    settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
+    recordSystemSettings();             // Before switching, we need to record the current settings to LittleFS and SD
 
     recordProfileNumber(newProfileNumber);
     profileNumber = newProfileNumber;
@@ -350,7 +360,7 @@ void factoryReset(bool alreadyHasSemaphore)
 
     // Attempt to write to file system. This avoids collisions with file writing from other functions like
     // recordSystemSettingsToFile() and F9PSerialReadTask() if (settings.enableSD && online.microSD)
-    //Don't check settings.enableSD - it could be corrupt
+    // Don't check settings.enableSD - it could be corrupt
     if (online.microSD)
     {
         if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
@@ -383,16 +393,20 @@ void factoryReset(bool alreadyHasSemaphore)
             // An error occurs when a settings file is on the microSD card and it is not
             // deleted, as such the settings on the microSD card will be loaded when the
             // RTK reboots, resulting in failure to achieve the factory reset condition
-            log_d("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder,
-                  __LINE__);
+            log_d("sdCardSemaphore failed to yield, held by %s, menuMain.ino line %d\r\n", semaphoreHolder, __LINE__);
         }
+    }
+
+    if (online.imu)
+    {
+        tiltSensor->factoryReset();
     }
 
     systemPrintln("Formatting internal file system...");
     LittleFS.format();
 
     if (online.gnss == true)
-        theGNSS.factoryDefault(); // Reset everything: baud rate, I2C address, update rate, everything. And save to BBR.
+        gnssFactoryReset();
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
