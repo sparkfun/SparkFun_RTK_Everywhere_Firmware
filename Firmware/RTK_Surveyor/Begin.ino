@@ -1,5 +1,10 @@
 // Initial startup functions for GNSS, SD, display, radio, etc
 
+// Use a pair of resistors on pin 35 to ID the board type
+// If the ID resistors are not available then use a variety of other methods
+// (I2C, GPIO test, etc) to ID the board.
+// Assume no hardware interfaces have been started so we need to start/stop any hardware
+// used in tests accordingly.
 void identifyBoard()
 {
     // Use ADC to check resistor divider
@@ -55,7 +60,64 @@ void identifyBoard()
     }
     else
     {
-        productVariant = RTK_UNKNOWN; // Need to wait until the GNSS and Accel have been initialized
+        log_d("Out of band or non-excitant resistor IDs");
+
+        // Start up I2C on default pins
+        Wire.begin();
+
+        if (isConnected(0x42) == true) // Check if ZED-F9x is on the I2C bus
+        {
+            log_d("Detected ZED-F9x");
+
+            Wire.end(); // Disable default I2C post test
+
+            // Use ZedTxReady to detect RTK Expresses (v1.3 and below) that do not have an accel or device ID resistors
+
+            // On a Surveyor, pin 34 is not connected. On Express and Express Plus, 34 is connected to ZED_TX_READY
+            const int pin_ZedTxReady = 34;
+            uint16_t pinValue = analogReadMilliVolts(pin_ZedTxReady);
+            log_d("Alternate ID pinValue (mV): %d", pinValue); // Surveyor = 142 to 152, //Express = 3129
+            if (pinValue > 3000)                                   // ZED is indicating data ready
+            {
+                log_d("ZED-TX_Ready Detected. ZED type to be determined.");
+                productVariant = RTK_UNKNOWN_ZED; // The ZED-F9x module type is determined at zedBegin()
+            }
+            else // No connection to pin 34
+            {
+                log_d("Surveyor determined via ZedTxReady");
+                productVariant = RTK_SURVEYOR;
+            }
+        }
+        else // No ZED on I2C so look for UM980 over serial
+        {
+            Wire.end(); // Disable default I2C post test
+
+            // Start Serial1 to test for GNSS on UART
+            int pin_UART1_RX = 26;      // ZED_TX_READY on Surveyor
+            int pin_UART1_TX = 27;      // ZED_RESET on Surveyor
+            int pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR. SCL on Surveyor.
+
+            HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
+
+            UM980 testGNSS;
+
+            pinMode(pin_GNSS_DR_Reset, OUTPUT);
+            digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+
+            // We must start the serial port before handing it over to the library
+            SerialGNSS.begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
+
+            testGNSS.enableDebugging(); // Print all debug to Serial
+
+            if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
+            {
+                productVariant = RTK_TORCH;
+            }
+            else
+            {
+                productVariant = RTK_UNKNOWN;
+            }
+        }
     }
 }
 
@@ -124,37 +186,19 @@ void initializePowerPins()
 // Must be called after beginGNSS so the GNSS type is known
 void beginBoard()
 {
-    if (productVariant == RTK_UNKNOWN)
+    if (productVariant == RTK_UNKNOWN_ZED)
     {
-        if (isConnected(0x19) == true) // Check for accelerometer
-        {
-            if (zedModuleType == PLATFORM_F9P)
-                productVariant = RTK_EXPRESS;
-            else if (zedModuleType == PLATFORM_F9R)
-                productVariant = RTK_EXPRESS_PLUS;
-        }
-        else
-        {
-            // Detect RTK Expresses (v1.3 and below) that do not have an accel or device ID resistors
-
-            // On a Surveyor, pin 34 is not connected. On Express, 34 is connected to ZED_TX_READY
-            const int pin_ZedTxReady = 34;
-            uint16_t pinValue = analogReadMilliVolts(pin_ZedTxReady);
-            log_d("Alternate ID pinValue (mV): %d\r\n", pinValue); // Surveyor = 142 to 152, //Express = 3129
-            if (pinValue > 3000)
-            {
-                if (zedModuleType == PLATFORM_F9P)
-                    productVariant = RTK_EXPRESS;
-                else if (zedModuleType == PLATFORM_F9R)
-                    productVariant = RTK_EXPRESS_PLUS;
-            }
-            else
-                productVariant = RTK_SURVEYOR;
-        }
+        if (zedModuleType == PLATFORM_F9P)
+            productVariant = RTK_EXPRESS;
+        else if (zedModuleType == PLATFORM_F9R)
+            productVariant = RTK_EXPRESS_PLUS;
     }
 
-    // Setup hardware pins
-    if (productVariant == RTK_SURVEYOR)
+    if (productVariant == RTK_UNKNOWN)
+    {
+        systemPrintln("Product variant unknown. Assigning no hardware pins.");
+    }
+    else if (productVariant == RTK_SURVEYOR)
     {
         pin_batteryLevelLED_Red = 32;
         pin_batteryLevelLED_Green = 33;
@@ -168,6 +212,9 @@ void beginBoard()
         pin_zed_tx_ready = 26;
         pin_zed_reset = 27;
         pin_batteryLevel_alert = 36;
+
+        pin_UART2_RX = 16;
+        pin_UART2_TX = 17;
 
         // Bug in ZED-F9P v1.13 firmware causes RTK LED to not light when RTK Floating with SBAS on.
         // The following changes the POR default but will be overwritten by settings in NVM or settings file
@@ -186,6 +233,9 @@ void beginBoard()
         pin_dac26 = 26;
         pin_powerFastOff = 27;
         pin_adc39 = 39;
+
+        pin_UART2_RX = 16;
+        pin_UART2_TX = 17;
 
         pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
         pinMode(pin_powerFastOff, INPUT);
@@ -230,6 +280,9 @@ void beginBoard()
         pin_radio_cts = 5;
         // pin_radio_rts = 255; //Not implemented
 
+        pin_UART2_RX = 16;
+        pin_UART2_TX = 17;
+
         pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
         pinMode(pin_powerFastOff, INPUT);
 
@@ -267,8 +320,40 @@ void beginBoard()
                 settings.useI2cForLbandCorrections = false;
         }
     }
+    else if (productVariant == RTK_TORCH)
+    {
+        // I2C pins have already been assigned
+        // UART1 pins have already been assigned
+        // pin_GNSS_DR_Reset already assigned
+
+        pin_powerSenseAndControl = 34;
+        pin_powerFastOff = 14;
+
+        pin_bluetoothStatusLED = 32;
+        pin_gnssStatusLED = 13;
+        pin_batteryLevelLED_Red = 33;
+
+        pin_UART2_RX = 16;
+        pin_UART2_TX = 17;
+
+        pin_GNSS_TimePulse = 39; //PPS on UM980
+
+        pinMode(pin_powerSenseAndControl, INPUT);
+        pinMode(pin_powerFastOff, INPUT);
+        pinMode(pin_GNSS_TimePulse, INPUT);
+
+        settings.enableSD = false; // SD does not exist on the Torch
+
+        strncpy(platformFilePrefix, "SFE_Torch", sizeof(platformFilePrefix) - 1);
+        strncpy(platformPrefix, "Torch", sizeof(platformPrefix) - 1);
+
+        tiltSupported = true; // Allow tiltUpdate() to run
+    }
     else if (productVariant == REFERENCE_STATION)
     {
+        pin_UART2_RX = 16;
+        pin_UART2_TX = 17;
+
         // No powerOnCheck
 
         settings.enablePrintBatteryMessages = false; // No pesky battery messages
@@ -644,15 +729,19 @@ void pinUART2Task(void *pvParameters)
     //   if (USE_I2C_GNSS)
     // #endif  // REF_STN_GNSS_DEBUG
     {
-        serialGNSS.setRxBufferSize(
+        if (serialGNSS == nullptr)
+            serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32
+
+        serialGNSS->setRxBufferSize(
             settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
-        serialGNSS.setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-        serialGNSS.begin(settings.dataPortBaud); // UART2 on pins 16/17 for SPP. The ZED-F9P will be configured to
-                                                 // output NMEA over its UART1 at the same rate.
+        serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+        serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_UART2_RX,
+                          pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be configured
+                                         // to output NMEA over its UART at the same rate.
 
         // Reduce threshold value above which RX FIFO full interrupt is generated
         // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
-        // serialGNSS.setRxFIFOFull(50); //Available in >v2.0.5
+        // serialGNSS->setRxFIFOFull(50); //Available in >v2.0.5
         uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
     }
 
@@ -717,209 +806,6 @@ bool forceConfigureViaEthernet()
     return false;
 }
 
-// Connect to ZED module and identify particulars
-void beginGNSS()
-{
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginGNSS");
-        return;
-    }
-
-    // If we're using SPI, then increase the logging buffer
-    if (USE_SPI_GNSS)
-    {
-        SPI.begin(); // Begin SPI here - beginSD has not yet been called
-
-        // setFileBufferSize must be called _before_ .begin
-        // Use gnssHandlerBufferSize for now. TODO: work out if the SPI GNSS needs its own buffer size setting
-        // Also used by Tasks.ino
-        theGNSS.setFileBufferSize(settings.gnssHandlerBufferSize);
-        theGNSS.setRTCMBufferSize(settings.gnssHandlerBufferSize);
-    }
-
-    if (USE_I2C_GNSS)
-    {
-        if (theGNSS.begin() == false)
-        {
-            log_d("GNSS Failed to begin. Trying again.");
-
-            // Try again with power on delay
-            delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
-            if (theGNSS.begin() == false)
-            {
-                log_d("GNSS offline");
-                displayGNSSFail(1000);
-                return;
-            }
-        }
-    }
-    else
-    {
-        if (theGNSS.begin(SPI, pin_GNSS_CS) == false)
-        {
-            log_d("GNSS Failed to begin. Trying again.");
-
-            // Try again with power on delay
-            delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
-            if (theGNSS.begin(SPI, pin_GNSS_CS) == false)
-            {
-                log_d("GNSS offline");
-                displayGNSSFail(1000);
-                return;
-            }
-        }
-
-        if (theGNSS.getFileBufferSize() != settings.gnssHandlerBufferSize) // Need to call getFileBufferSize after begin
-        {
-            log_d("GNSS offline - no RAM for file buffer");
-            displayGNSSFail(1000);
-            return;
-        }
-        if (theGNSS.getRTCMBufferSize() != settings.gnssHandlerBufferSize) // Need to call getRTCMBufferSize after begin
-        {
-            log_d("GNSS offline - no RAM for RTCM buffer");
-            displayGNSSFail(1000);
-            return;
-        }
-    }
-
-    // Increase transactions to reduce transfer time
-    if (USE_I2C_GNSS)
-        theGNSS.i2cTransactionSize = 128;
-
-    // Auto-send Valset messages before the buffer is completely full
-    theGNSS.autoSendCfgValsetAtSpaceRemaining(16);
-
-    // Check the firmware version of the ZED-F9P. Based on Example21_ModuleInfo.
-    if (theGNSS.getModuleInfo(1100) == true) // Try to get the module info
-    {
-        // Reconstruct the firmware version
-        snprintf(zedFirmwareVersion, sizeof(zedFirmwareVersion), "%s %d.%02d", theGNSS.getFirmwareType(),
-                 theGNSS.getFirmwareVersionHigh(), theGNSS.getFirmwareVersionLow());
-
-        // Construct the firmware version as uint8_t. Note: will fail above 2.55!
-        zedFirmwareVersionInt = (theGNSS.getFirmwareVersionHigh() * 100) + theGNSS.getFirmwareVersionLow();
-
-        // Check this is known firmware
-        //"1.20" - Mostly for F9R HPS 1.20, but also F9P HPG v1.20
-        //"1.21" - F9R HPS v1.21
-        //"1.30" - ZED-F9P (HPG) released Dec, 2021. Also ZED-F9R (HPS) released Sept, 2022
-        //"1.32" - ZED-F9P released May, 2022
-
-        const uint8_t knownFirmwareVersions[] = {100, 112, 113, 120, 121, 130, 132};
-        bool knownFirmware = false;
-        for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(uint8_t)); i++)
-        {
-            if (zedFirmwareVersionInt == knownFirmwareVersions[i])
-                knownFirmware = true;
-        }
-
-        if (!knownFirmware)
-        {
-            systemPrintf("Unknown firmware version: %s\r\n", zedFirmwareVersion);
-            zedFirmwareVersionInt = 99; // 0.99 invalid firmware version
-        }
-
-        // Determine if we have a ZED-F9P (Express/Facet) or an ZED-F9R (Express Plus/Facet Plus)
-        if (strstr(theGNSS.getModuleName(), "ZED-F9P") != nullptr)
-            zedModuleType = PLATFORM_F9P;
-        else if (strstr(theGNSS.getModuleName(), "ZED-F9R") != nullptr)
-            zedModuleType = PLATFORM_F9R;
-        else
-        {
-            systemPrintf("Unknown ZED module: %s\r\n", theGNSS.getModuleName());
-            zedModuleType = PLATFORM_F9P;
-        }
-
-        printZEDInfo(); // Print module type and firmware version
-    }
-
-    UBX_SEC_UNIQID_data_t chipID;
-    if (theGNSS.getUniqueChipId(&chipID))
-    {
-        snprintf(zedUniqueId, sizeof(zedUniqueId), "%s", theGNSS.getUniqueChipIdStr(&chipID));
-    }
-
-    online.gnss = true;
-}
-
-// Configuration can take >1s so configure during splash
-void configureGNSS()
-{
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping configureGNSS");
-        return;
-    }
-
-    if (online.gnss == false)
-        return;
-
-    // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
-    checkMessageRates();
-
-    theGNSS.setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
-    theGNSS.setAutoHPPOSLLHcallbackPtr(
-        &storeHPdata); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
-    theGNSS.setRTCM1005InputcallbackPtr(
-        &storeRTCM1005data); // Configure a callback for RTCM 1005 - parsed from pushRawData
-    theGNSS.setRTCM1006InputcallbackPtr(
-        &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
-
-    if (HAS_GNSS_TP_INT)
-        theGNSS.setAutoTIMTPcallbackPtr(
-            &storeTIMTPdata); // Enable automatic TIM TP messages with callback to storeTIMTPdata
-
-    if (HAS_ANTENNA_SHORT_OPEN)
-    {
-        theGNSS.newCfgValset();
-
-        theGNSS.addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
-        theGNSS.addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
-
-        if (theGNSS.sendCfgValset())
-        {
-            theGNSS.setAutoMONHWcallbackPtr(
-                &storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
-        }
-        else
-        {
-            systemPrintln("Failed to configure GNSS antenna detection");
-        }
-    }
-
-    // Configuring the ZED can take more than 2000ms. We save configuration to
-    // ZED so there is no need to update settings unless user has modified
-    // the settings file or internal settings.
-    if (settings.updateZEDSettings == false)
-    {
-        log_d("Skipping ZED configuration");
-        return;
-    }
-
-    bool response = configureUbloxModule();
-    if (response == false)
-    {
-        // Try once more
-        systemPrintln("Failed to configure GNSS module. Trying again.");
-        delay(1000);
-        response = configureUbloxModule();
-
-        if (response == false)
-        {
-            systemPrintln("Failed to configure GNSS module.");
-            displayGNSSFail(1000);
-            online.gnss = false;
-            return;
-        }
-    }
-
-    systemPrintln("GNSS configuration complete");
-}
-
 // Begin interrupts
 void beginInterrupts()
 {
@@ -965,20 +851,40 @@ void beginLEDs()
 
         ledcSetup(ledRedChannel, pwmFreq, pwmResolution);
         ledcSetup(ledGreenChannel, pwmFreq, pwmResolution);
-        ledcSetup(ledBTChannel, pwmFreq, pwmResolution);
+        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
 
         ledcAttachPin(pin_batteryLevelLED_Red, ledRedChannel);
         ledcAttachPin(pin_batteryLevelLED_Green, ledGreenChannel);
-        ledcAttachPin(pin_bluetoothStatusLED, ledBTChannel);
+        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
 
         ledcWrite(ledRedChannel, 0);
         ledcWrite(ledGreenChannel, 0);
-        ledcWrite(ledBTChannel, 0);
+        ledcWrite(ledBtChannel, 0);
     }
     else if (productVariant == REFERENCE_STATION)
     {
         pinMode(pin_baseStatusLED, OUTPUT);
         digitalWrite(pin_baseStatusLED, LOW);
+    }
+    else if (productVariant == RTK_TORCH)
+    {
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
+        digitalWrite(pin_bluetoothStatusLED, LOW);
+
+        pinMode(pin_gnssStatusLED, OUTPUT);
+        digitalWrite(pin_gnssStatusLED, LOW);
+
+        pinMode(pin_batteryLevelLED_Red, OUTPUT);
+        digitalWrite(pin_batteryLevelLED_Red, LOW);
+
+        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
+        ledcSetup(ledGNSSChannel, pwmFreq, pwmResolution);
+
+        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
+        ledcAttachPin(pin_gnssStatusLED, ledBtChannel);
+
+        ledcWrite(ledBtChannel, 0);
+        ledcWrite(ledGNSSChannel, 0);
     }
 }
 
@@ -987,6 +893,8 @@ void beginFuelGauge()
 {
     if (HAS_NO_BATTERY)
         return; // Reference station does not have a battery
+
+    // TODO add Torch support
 
     // Set up the MAX17048 LiPo fuel gauge
     if (lipo.begin() == false)
@@ -1060,9 +968,9 @@ void beginSystemState()
         // If the rocker switch was moved while off, force module settings
         // When switch is set to '1' = BASE, pin will be shorted to ground
         if (settings.lastState == STATE_ROVER_NOT_STARTED && digitalRead(pin_setupButton) == LOW)
-            settings.updateZEDSettings = true;
+            settings.updateGNSSSettings = true;
         else if (settings.lastState == STATE_BASE_NOT_STARTED && digitalRead(pin_setupButton) == HIGH)
-            settings.updateZEDSettings = true;
+            settings.updateGNSSSettings = true;
 
         systemState = STATE_ROVER_NOT_STARTED; // Assume Rover. ButtonCheckTask() will correct as needed.
 
@@ -1126,6 +1034,25 @@ void beginSystemState()
         setupBtn = new Button(pin_setupButton); // Create the button in memory
         // Allocation failure handled in ButtonCheckTask
     }
+    else if (productVariant == RTK_TORCH)
+    {
+        if (settings.lastState == STATE_NOT_SET) // Default
+        {
+            systemState = STATE_ROVER_NOT_STARTED;
+            settings.lastState = systemState;
+        }
+
+        firstRoverStart =
+            false; // Do not allow user to enter test screen during first rover start because there is no screen
+
+        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover.
+
+        powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
+    }
+    else
+    {
+        systemPrintf("beginSystemState: Unknown product variant: %d\r\n", productVariant);
+    }
 
     // Starts task for monitoring button presses
     if (ButtonCheckTaskHandle == nullptr)
@@ -1135,67 +1062,6 @@ void beginSystemState()
                     nullptr,             // Task input parameter
                     ButtonCheckTaskPriority,
                     &ButtonCheckTaskHandle); // Task handle
-}
-
-// Setup the timepulse output on the PPS pin for external triggering
-// Setup TM2 time stamp input as need
-bool beginExternalTriggers()
-{
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginExternalTriggers");
-        return (false);
-    }
-
-    if (online.gnss == false)
-        return (false);
-
-    // If our settings haven't changed, trust ZED's settings
-    if (settings.updateZEDSettings == false)
-    {
-        log_d("Skipping ZED Trigger configuration");
-        return (true);
-    }
-
-    if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
-        return (true); // No need to configure PPS if port is not selected
-
-    bool response = true;
-
-    response &= theGNSS.newCfgValset();
-    response &= theGNSS.addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0);        // Time pulse definition is a period (in us)
-    response &= theGNSS.addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
-    response &=
-        theGNSS.addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                             1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
-    response &= theGNSS.addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
-    response &=
-        theGNSS.addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
-
-    // While the module is _locking_ to GNSS time, turn off pulse
-    response &= theGNSS.addCfgValset(UBLOX_CFG_TP_PERIOD_TP1, 1000000); // Set the period between pulses in us
-    response &= theGNSS.addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
-
-    // When the module is _locked_ to GNSS time, make it generate 1Hz (Default is 100ms high, 900ms low)
-    response &= theGNSS.addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1,
-                                     settings.externalPulseTimeBetweenPulse_us); // Set the period between pulses is us
-    response &=
-        theGNSS.addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, settings.externalPulseLength_us); // Set the pulse length in us
-    response &= theGNSS.sendCfgValset();
-
-    if (response == false)
-        systemPrintln("beginExternalTriggers config failed");
-
-    if (settings.enableExternalHardwareEventLogging == true)
-    {
-        theGNSS.setAutoTIMTM2callbackPtr(
-            &eventTriggerReceived); // Enable automatic TIM TM2 messages with callback to eventTriggerReceived
-    }
-    else
-        theGNSS.setAutoTIMTM2callbackPtr(nullptr);
-
-    return (response);
 }
 
 void beginIdleTasks()
@@ -1239,8 +1105,25 @@ void beginI2C()
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
-    Wire.begin(); // Start I2C on core the core that was chosen when the task was started
-    // Wire.setClock(400000);
+    switch (productVariant)
+    {
+    default:
+    case RTK_SURVEYOR:
+    case RTK_EXPRESS:
+    case RTK_FACET:
+    case RTK_EXPRESS_PLUS:
+    case RTK_FACET_LBAND:
+    case REFERENCE_STATION:
+        pin_SDA = 21;
+        pin_SCL = 22;
+        break;
+    case RTK_TORCH:
+        pin_SDA = 15;
+        pin_SCL = 4;
+        break;
+    }
+    Wire.begin(pin_SDA, pin_SCL); // SDA, SCL - Start I2C on core the core that was chosen when the task was started
+    Wire.setClock(100000);
 
     // begin/end wire transmission to see if bus is responding correctly
     // All good: 0ms, response 2
@@ -1322,9 +1205,9 @@ void tpISR()
                 {
                     if (millisNow < (timTpArrivalMillis + 999)) // Only sync if the GNSS time is not stale
                     {
-                        if (fullyResolved) // Only sync if GNSS time is fully resolved
+                        if (gnssIsFullyResolved()) // Only sync if GNSS time is fully resolved
                         {
-                            if (tAcc < 5000) // Only sync if the tAcc is better than 5000ns
+                            if (gnssGetTimeAccuracy() < 5000) // Only sync if the tAcc is better than 5000ns
                             {
                                 // To perform the time zone adjustment correctly, it's easiest if we convert the GNSS
                                 // time and date into Unix epoch first and then apply the timeZone offset

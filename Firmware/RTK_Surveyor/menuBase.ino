@@ -383,32 +383,32 @@ void menuSensorFusion()
         {
             // packetUBXESFSTATUS is sent automatically by the module
             systemPrint("Fusion Mode: ");
-            systemPrint(theGNSS.packetUBXESFSTATUS->data.fusionMode);
+            systemPrint(gnssGetFusionMode());
             systemPrint(" - ");
-            if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 0)
+            if (gnssGetFusionMode() == 0)
                 systemPrint("Initializing");
-            else if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 1)
+            else if (gnssGetFusionMode() == 1)
                 systemPrint("Calibrated");
-            else if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 2)
+            else if (gnssGetFusionMode() == 2)
                 systemPrint("Suspended");
-            else if (theGNSS.packetUBXESFSTATUS->data.fusionMode == 3)
+            else if (gnssGetFusionMode() == 3)
                 systemPrint("Disabled");
             systemPrintln();
 
-            if (theGNSS.getEsfAlignment()) // Poll new ESF ALG data
+            if (theGNSS->getEsfAlignment()) // Poll new ESF ALG data
             {
                 systemPrint("Alignment Mode: ");
-                systemPrint(theGNSS.packetUBXESFALG->data.flags.bits.status);
+                systemPrint(theGNSS->packetUBXESFALG->data.flags.bits.status);
                 systemPrint(" - ");
-                if (theGNSS.packetUBXESFALG->data.flags.bits.status == 0)
+                if (theGNSS->packetUBXESFALG->data.flags.bits.status == 0)
                     systemPrint("User Defined");
-                else if (theGNSS.packetUBXESFALG->data.flags.bits.status == 1)
+                else if (theGNSS->packetUBXESFALG->data.flags.bits.status == 1)
                     systemPrint("Alignment Roll/Pitch Ongoing");
-                else if (theGNSS.packetUBXESFALG->data.flags.bits.status == 2)
+                else if (theGNSS->packetUBXESFALG->data.flags.bits.status == 2)
                     systemPrint("Alignment Roll/Pitch/Yaw Ongoing");
-                else if (theGNSS.packetUBXESFALG->data.flags.bits.status == 3)
+                else if (theGNSS->packetUBXESFALG->data.flags.bits.status == 3)
                     systemPrint("Coarse Alignment Used");
-                else if (theGNSS.packetUBXESFALG->data.flags.bits.status == 3)
+                else if (theGNSS->packetUBXESFALG->data.flags.bits.status == 3)
                     systemPrint("Fine Alignment Used");
                 systemPrintln();
             }
@@ -425,7 +425,7 @@ void menuSensorFusion()
             if (settings.autoIMUmountAlignment == true)
             {
                 systemPrintf("2) Toggle Automatic IMU-mount Alignment: True - Yaw: %0.2f Pitch: %0.2f Roll: %0.2f\r\n",
-                             theGNSS.getESFyaw(), theGNSS.getESFpitch(), theGNSS.getESFroll());
+                             theGNSS->getESFyaw(), theGNSS->getESFpitch(), theGNSS->getESFroll());
 
                 systemPrintf("3) Disable automatic wheel tick direction pin polarity detection: %s\r\n",
                              settings.sfDisableWheelDirection ? "True" : "False");
@@ -563,16 +563,16 @@ void menuSensorFusion()
             printUnknown(incoming);
     }
 
-    theGNSS.setVal8(UBLOX_CFG_SFCORE_USE_SF, settings.enableSensorFusion); // Enable/disable sensor fusion
-    theGNSS.setVal8(UBLOX_CFG_SFIMU_AUTO_MNTALG_ENA,
+    theGNSS->setVal8(UBLOX_CFG_SFCORE_USE_SF, settings.enableSensorFusion); // Enable/disable sensor fusion
+    theGNSS->setVal8(UBLOX_CFG_SFIMU_AUTO_MNTALG_ENA,
                     settings.autoIMUmountAlignment); // Enable/disable Automatic IMU-mount Alignment
-    theGNSS.setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_YAW, settings.imuYaw);
-    theGNSS.setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_PITCH, settings.imuPitch);
-    theGNSS.setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_ROLL, settings.imuRoll);
-    theGNSS.setVal8(UBLOX_CFG_SFODO_DIS_AUTODIRPINPOL, settings.sfDisableWheelDirection);
-    theGNSS.setVal8(UBLOX_CFG_SFODO_COMBINE_TICKS, settings.sfCombineWheelTicks);
-    theGNSS.setVal8(UBLOX_CFG_RATE_NAV_PRIO, settings.rateNavPrio);
-    theGNSS.setVal8(UBLOX_CFG_SFODO_USE_SPEED, settings.sfUseSpeed);
+    theGNSS->setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_YAW, settings.imuYaw);
+    theGNSS->setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_PITCH, settings.imuPitch);
+    theGNSS->setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_ROLL, settings.imuRoll);
+    theGNSS->setVal8(UBLOX_CFG_SFODO_DIS_AUTODIRPINPOL, settings.sfDisableWheelDirection);
+    theGNSS->setVal8(UBLOX_CFG_SFODO_COMBINE_TICKS, settings.sfCombineWheelTicks);
+    theGNSS->setVal8(UBLOX_CFG_RATE_NAV_PRIO, settings.rateNavPrio);
+    theGNSS->setVal8(UBLOX_CFG_SFODO_USE_SPEED, settings.sfUseSpeed);
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -581,12 +581,12 @@ void menuSensorFusion()
 void setSensorFusion(bool enable)
 {
     if (getSensorFusion() != enable)
-        theGNSS.setVal8(UBLOX_CFG_SFCORE_USE_SF, enable, VAL_LAYER_ALL);
+        theGNSS->setVal8(UBLOX_CFG_SFCORE_USE_SF, enable);
 }
 
 bool getSensorFusion()
 {
-    return (theGNSS.getVal8(UBLOX_CFG_SFCORE_USE_SF, VAL_LAYER_RAM, 1200));
+    return (theGNSS->getVal8(UBLOX_CFG_SFCORE_USE_SF, VAL_LAYER_RAM, 1200));
 }
 
 // Open the given file and load a given line to the given pointer

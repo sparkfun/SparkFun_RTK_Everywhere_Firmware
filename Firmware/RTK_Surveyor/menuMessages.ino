@@ -284,7 +284,7 @@ void menuMessages()
     clearBuffer(); // Empty buffer of any newline chars
 
     // Make sure the appropriate messages are enabled
-    bool response = setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    bool response = gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     if (response == false)
         systemPrintf("menuMessages: Failed to enable messages - after %d tries", MAX_SET_MESSAGES_RETRIES);
     else
@@ -913,8 +913,8 @@ uint8_t getMessageNumberByName(const char *msgName)
     return (0);
 }
 
-// Check rates to see if they need to be reset to defaults
-void checkMessageRates()
+// Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
+void checkArrayDefaults()
 {
     if (settings.ubxMessageRates[0] == 254)
     {
@@ -935,6 +935,34 @@ void checkMessageRates()
         int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
         for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
             settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
+    }
+
+    if(settings.um980Constellations[0] == 254)
+    {
+        // Reset constellations to defaults
+        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            settings.um980Constellations[x] = true; 
+    }
+
+    if(settings.um980MessageRatesNMEA[0] == 254)
+    {
+        // Reset rates to defaults
+        for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+            settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+    }
+
+    if(settings.um980MessageRatesRTCMRover[0] == 254)
+    {
+        // For rovers, RTCM should be zero by default.
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            settings.um980MessageRatesRTCMRover[x] = 0;
+    }
+
+    if(settings.um980MessageRatesRTCMBase[0] == 254)
+    {
+        // Reset RTCM rates to defaults
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
     }
 }
 
@@ -966,7 +994,7 @@ void setLoggingType()
 void setLogTestFrequencyMessages(int rate, int messages)
 {
     // Set measurement frequency
-    setRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate, and
+    gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate, and
                          // GSV message
 
     // Set messages
@@ -997,8 +1025,8 @@ void setLogTestFrequencyMessages(int rate, int messages)
         log_d("Unknown message amount");
 
     // Apply these message rates to both UART1 / SPI and USB
-    setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
-    setMessagesUSB(MAX_SET_MESSAGES_RETRIES);
+    gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 }
 
 // The log test allows us to record a series of different system configurations into

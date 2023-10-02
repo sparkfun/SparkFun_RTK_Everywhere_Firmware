@@ -390,7 +390,7 @@ typedef struct {
   uint64_t pointPerfectNextKeyStart = 0;
 
   uint64_t lastKeyAttempt = 0; //Epoch time of last attempt at obtaining keys
-  bool updateZEDSettings = true; //When in doubt, update the ZED with current settings
+  bool updateGNSSSettings = true; //When in doubt, update the GNSS with current settings
   uint32_t LBandFreq = 1556290000; //Default to US band
 } Settings;
 Settings settings;

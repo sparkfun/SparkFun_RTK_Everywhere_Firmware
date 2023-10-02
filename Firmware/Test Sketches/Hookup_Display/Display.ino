@@ -989,10 +989,10 @@ uint32_t paintSIV()
 
   if (online.gnss)
   {
-    if (fixType == 0) //0 = No Fix
+    if (gnssIsFixed() == false)
       oled.print("0");
     else
-      oled.print(numSV);
+      oled.print(gnssGetSatellitesInView());
 
     //paintResets();
 
@@ -1004,7 +1004,7 @@ uint32_t paintSIV()
       blinking = ICON_SIV_ANTENNA;
 
     //Determine if there is a fix
-    if (fixType == 3 || fixType == 4 || fixType == 5) //3D, 3D+DR, or Time
+    if (gnssIsFixed() == true)
     {
       //Fix, turn on icon
       icons = blinking;
@@ -1703,7 +1703,7 @@ void paintProfile(uint8_t profileUnit)
   //if (getProfileNameFromUnit(profileUnit, profileName, sizeof(profileName)) == true) //Load the profile name, limited to 8 chars
   snprintf(profileName, sizeof(profileName), "Profile1");
   {
-    //settings.updateZEDSettings = true; //When this profile is loaded next, force system to update ZED settings.
+    //settings.updateGNSSSettings = true; //When this profile is loaded next, force system to update ZED settings.
     //recordSystemSettings(); //Before switching, we need to record the current settings to LittleFS and SD
 
     //Lookup profileNumber based on unit
