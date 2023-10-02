@@ -36,7 +36,6 @@ typedef enum
     STATE_KEYS_LBAND_ENCRYPTED,
     STATE_KEYS_PROVISION_WIFI_STARTED,
     STATE_KEYS_PROVISION_WIFI_CONNECTED,
-    STATE_KEYS_PROVISION_WIFI_TIMEOUT,
     STATE_ESPNOW_PAIRING_NOT_STARTED,
     STATE_ESPNOW_PAIRING,
     STATE_NTPSERVER_NOT_STARTED,
@@ -992,7 +991,7 @@ typedef struct
     uint32_t shutdownNoChargeTimeout_s = 0; // If > 0, shut down unit after timeout if not charging
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
     bool useI2cForLbandCorrections = true; //Set to false to stop I2C callback. Corrections will require direct ZED to NEO UART2 connections.
-    bool useI2cForLbandCorrectionsConfigured = false; //If a user sets useI2cForLbandCorrections, this goes true. 
+    bool useI2cForLbandCorrectionsConfigured = false; //If a user sets useI2cForLbandCorrections, this goes true.
 
     // Ethernet
     bool enablePrintEthernetDiag = false;
@@ -1084,6 +1083,10 @@ typedef struct
     int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
+    uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
+
+    //Add new settings above
+    //<------------------------------------------------------------>
 
 } Settings;
 Settings settings;

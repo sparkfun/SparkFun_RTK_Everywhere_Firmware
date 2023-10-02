@@ -828,6 +828,9 @@ void ntripClientUpdate()
                         // Restart the NTRIP receive data timer
                         ntripClientTimer = millis();
 
+                        // Record the arrival of RTCM from the WiFi connection. This resets the RTCM timeout used on the L-Band.
+                        rtcmLastPacketReceived = millis();
+
                         // Push RTCM to GNSS module over I2C / SPI
                         gnssPushRawData(rtcmData, rtcmCount);
                         netIncomingRTCM = true;

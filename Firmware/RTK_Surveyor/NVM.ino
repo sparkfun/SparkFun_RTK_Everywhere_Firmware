@@ -432,6 +432,10 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "i2cInterruptsCore", settings.i2cInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
     settingsFile->printf("%s=%d\r\n", "tiltPoleLength", settings.tiltPoleLength);
+    settingsFile->printf("%s=%d\r\n", "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
+
+    //Add new settings above
+    //<------------------------------------------------------------>
 }
 
 // Given a fileName, parse the file and load the given settings struct
@@ -473,7 +477,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, Settings *settings)
                     break;
                 }
 
-                char line[60];
+                char line[100];
                 int lineNumber = 0;
 
                 while (settingsFile.available())
@@ -530,7 +534,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, Settings *settings)
                     break;
                 }
 
-                char line[60];
+                char line[100];
                 int lineNumber = 0;
 
                 while (settingsFile.available())
@@ -1330,6 +1334,11 @@ bool parseLine(char *str, Settings *settings)
         settings->enableNetworkFailover = d;
     else if (strcmp(settingName, "printNetworkStatus") == 0)
         settings->printNetworkStatus = d;
+    else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
+        settings->rtcmTimeoutBeforeUsingLBand_s = d;
+
+    //Add new settings above
+    //<------------------------------------------------------------>
 
     else if (strcmp(settingName, "enableTiltCompensation") == 0)
         settings->enableTiltCompensation = d;
