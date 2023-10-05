@@ -247,6 +247,8 @@ void zedBegin()
         snprintf(zedUniqueId, sizeof(zedUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
     }
 
+    systemPrintln("GNSS ZED online");
+
     online.gnss = true;
 }
 
