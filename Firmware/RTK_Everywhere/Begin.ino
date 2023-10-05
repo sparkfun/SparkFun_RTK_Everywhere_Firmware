@@ -60,7 +60,7 @@ void identifyBoard()
     }
     else
     {
-        log_d("Out of band or non-excitant resistor IDs");
+        log_d("Out of band or nonexistent resistor IDs");
 
         // Start up I2C on default pins
         Wire.begin();
