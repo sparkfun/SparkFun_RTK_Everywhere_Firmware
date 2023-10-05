@@ -120,11 +120,11 @@ int pin_SCK = 18;
 int pin_SDA = -1;
 int pin_SCL = -1;
 
-int pin_UART1_RX = -1;
-int pin_UART1_TX = -1;
+int pin_GnssUart_RX = -1;
+int pin_GnssUart_TX = -1;
 
-int pin_UART2_RX = -1;
-int pin_UART2_TX = -1;
+int pin_IMU_RX = -1;
+int pin_IMU_TX = -1;
 
 int pin_GNSS_DR_Reset = -1;
 int pin_gnssStatusLED = -1;
@@ -278,7 +278,7 @@ UbxPlatform zedModuleType = PLATFORM_F9P; // Controls which messages are support
 char zedUniqueId[11] = {'0', '0', '0', '0', '0', '0',
                         '0', '0', '0', '0', 0}; // Output to system status menu and log file.
 
-// Use Michael's lock/unlock methods to prevent the UART2 task from calling checkUblox during a sendCommand and
+// Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called too.
 class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
 {
@@ -432,8 +432,8 @@ const int gnssReadTaskStackSize = 3000;
 TaskHandle_t handleGnssDataTaskHandle = nullptr;
 const int handleGnssDataTaskStackSize = 3000;
 
-TaskHandle_t pinUART2TaskHandle = nullptr; // Dummy task to start hardware on an assigned core
-volatile bool uart2pinned = false; // This variable is touched by core 0 but checked by core 1. Must be volatile.
+TaskHandle_t pinGnssUartTaskHandle = nullptr; // Dummy task to start hardware on an assigned core
+volatile bool gnssUartpinned = false; // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 TaskHandle_t pinI2CTaskHandle = nullptr; // Dummy task to start hardware on an assigned core
 volatile bool i2cPinned = false;         // This variable is touched by core 0 but checked by core 1. Must be volatile.
@@ -888,6 +888,9 @@ void setup()
     DMW_c("checkConfigureViaEthernet");
     configureViaEthernet = checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
+    DMW_c("beginGnssUart");
+    beginGnssUart(); // Start the UART connected to the GNSS receiver on core 0. Start before gnssBegin in case it is needed (Torch).
+
     DMW_c("beginGNSS");
     gnssBegin(); // Connect to GNSS to get module type
 
@@ -911,9 +914,6 @@ void setup()
 
     DMW_c("beginIdleTasks");
     beginIdleTasks(); // Enable processor load calculations
-
-    DMW_c("beginUART2");
-    beginUART2(); // Start UART2 on core 0, used to receive serial from ZED and pass out over SPP
 
     DMW_c("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
@@ -1020,7 +1020,7 @@ void loop()
 // Push new data to log as needed
 void logUpdate()
 {
-    // Convert current system time to minutes. This is used in F9PSerialReadTask()/updateLogs() to see if we are within
+    // Convert current system time to minutes. This is used in gnssSerialReadTask()/updateLogs() to see if we are within
     // max log window.
     systemTime_minutes = millis() / 1000L / 60;
 

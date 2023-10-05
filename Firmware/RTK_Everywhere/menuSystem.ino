@@ -383,11 +383,11 @@ void menuDebugHardware()
         systemPrint("7) Print SD and UART buffer sizes: ");
         systemPrintf("%s\r\n", settings.enablePrintSDBuffers ? "Enabled" : "Disabled");
 
-        // Ublox
+        // GNSS
         systemPrint("8) Print messages with bad checksums or CRCs: ");
         systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
 
-        systemPrint("9) u-blox I2C Debugging Output: ");
+        systemPrint("9) GNSS Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableGNSSdebug ? "Enabled" : "Disabled");
 
         systemPrintln("e) Erase LittleFS");
@@ -843,8 +843,8 @@ void menuOperation()
                     systemPrintln("Error: Queue size out of range");
                 else
                 {
-                    // Stop the UART2 tssks to prevent the system from crashing
-                    tasksStopUART2();
+                    // Stop the GNSS UART tasks to prevent the system from crashing
+                    tasksStopGnssUart();
 
                     // Update the buffer size
                     settings.gnssHandlerBufferSize = queSize; // Recorded to NVM and file

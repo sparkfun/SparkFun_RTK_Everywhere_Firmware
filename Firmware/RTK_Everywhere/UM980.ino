@@ -7,41 +7,31 @@
 */
 void um980Begin()
 {
-    // We have ID'd the board and GNSS module type, but we have not beginBoard() yet so
-    // set the pertinent pins here.
+    //During identifyBoard(), the GNSS UART and DR pins are set
 
     // Instantiate the library
     um980 = new UM980();
-    um980Config = new HardwareSerial(1); // Use UART1 on the ESP32
 
-    pin_UART1_RX = 26;
-    pin_UART1_TX = 27;
-    pin_GNSS_DR_Reset = 22;
-
-    pinMode(pin_GNSS_DR_Reset, OUTPUT);
-    digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
-
-    // We must start the serial port before handing it over to the library
-    um980Config->begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
+    // The GNSS UART is already started. We can now pass it to the library.
 
     // Turn on/off debug messages
     if (settings.enableGNSSdebug)
         um980EnableDebugging();
 
-    if (um980->begin(*um980Config) == false) // Give the serial port over to the library
+    if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         log_d("GNSS Failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000);
-        if (um980->begin(*um980Config) == false)
+        if (um980->begin(*serialGNSS) == false)
         {
             log_d("GNSS offline");
             displayGNSSFail(1000);
             return;
         }
     }
-    systemPrintln("GNSS UM980 online.");
+    systemPrintln("GNSS UM980 online");
 
     // TODO check firmware version and print info
 
@@ -67,14 +57,15 @@ bool um980Configure()
     if (settings.enableGNSSdebug)
         um980->enableDebugging(); // Print all debug to Serial
 
-    // Check if um980Constellations, um980MessageRatesNMEA, um980MessageRatesRTCMRover, um980MessageRatesRTCMBase need to be defaulted
+    // Check if um980Constellations, um980MessageRatesNMEA, um980MessageRatesRTCMRover, um980MessageRatesRTCMBase need
+    // to be defaulted
     checkArrayDefaults();
 
     um980DisableAllOutput();
 
     bool response = true;
     response &= um980->setPortBaudrate("COM1", 115200);      // Connected to switch, then USB
-    response &= um980SetBaudRateCOM2(settings.dataPortBaud); // Conected to ESP UART2
+    response &= um980SetBaudRateCOM3(settings.dataPortBaud); // Conected to ESP UART1
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
@@ -408,20 +399,20 @@ bool um980SetRate(double secondsBetweenSolutions)
     return (response);
 }
 
-// Send data direct from ESP UART2 to UM980 UART2
+// Send data direct from ESP GNSS UART1 to UM980 UART3
 // Note: The Tilt sensor is inbetween and may be affected.
 int um980PushRawData(uint8_t *dataToSend, int dataLength)
 {
     return (serialGNSS->write(dataToSend, dataLength));
 }
 
-// Set the baud rate of the UM980 com port 2
+// Set the baud rate of the UM980 com port 3
 // This is used during the Bluetooth test
-bool um980SetBaudRateCOM2(uint32_t baudRate)
+bool um980SetBaudRateCOM3(uint32_t baudRate)
 {
     bool response = true;
 
-    response &= um980->setPortBaudrate("COM2", baudRate);
+    response &= um980->setPortBaudrate("COM3", baudRate);
 
     return (response);
 }
@@ -492,12 +483,12 @@ bool um980IsFullyResolved()
 uint32_t um980GetTimeDeviation()
 {
     double timeDeviation_s = um980->getTimeOffsetDeviation();
-    //systemPrintf("um980 timeDeviation_s: %0.10f\r\n", timeDeviation_s);
+    // systemPrintf("um980 timeDeviation_s: %0.10f\r\n", timeDeviation_s);
     if (timeDeviation_s > 1.0)
         return (999999999);
 
     uint32_t timeDeviation_ns = timeDeviation_s * 1000000000L; // Convert to nanoseconds
-    //systemPrintf("um980 timeDeviation_ns: %d\r\n", timeDeviation_ns);
+    // systemPrintf("um980 timeDeviation_ns: %d\r\n", timeDeviation_ns);
     return (timeDeviation_ns);
 }
 
@@ -551,15 +542,14 @@ uint16_t um980FixAgeMilliseconds()
 
 bool um980SaveConfiguration()
 {
-    return(um980->saveConfiguration());
+    return (um980->saveConfiguration());
 }
 
 void um980EnableDebugging()
 {
-  um980->enableDebugging(); // Print all debug to Serial
+    um980->enableDebugging(); // Print all debug to Serial
 }
 void um980DisableDebugging()
 {
-  um980->disableDebugging();
+    um980->disableDebugging();
 }
-

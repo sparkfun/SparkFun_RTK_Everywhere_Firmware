@@ -527,7 +527,7 @@ void beginLogging(const char *customFileName)
                 }
             }
 
-            // Attempt to write to file system. This avoids collisions with file writing in F9PSerialReadTask()
+            // Attempt to write to file system. This avoids collisions with file writing in gnssSerialReadTask()
             if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
             {
                 markSemaphore(FUNCTION_CREATEFILE);
@@ -723,7 +723,7 @@ bool findLastLog(char *lastLogNamePrt, size_t lastLogNameSize)
 
     if (online.microSD == true)
     {
-        // Attempt to access file system. This avoids collisions with file writing in F9PSerialReadTask()
+        // Attempt to access file system. This avoids collisions with file writing in gnssSerialReadTask()
         // Wait up to 5s, this is important
         if (xSemaphoreTake(sdCardSemaphore, 5000 / portTICK_PERIOD_MS) == pdPASS)
         {

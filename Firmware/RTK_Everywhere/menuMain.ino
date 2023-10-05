@@ -356,10 +356,10 @@ void factoryReset(bool alreadyHasSemaphore)
 {
     displaySytemReset(); // Display friendly message on OLED
 
-    tasksStopUART2();
+    tasksStopGnssUart();
 
     // Attempt to write to file system. This avoids collisions with file writing from other functions like
-    // recordSystemSettingsToFile() and F9PSerialReadTask() if (settings.enableSD && online.microSD)
+    // recordSystemSettingsToFile() and gnssSerialReadTask() if (settings.enableSD && online.microSD)
     // Don't check settings.enableSD - it could be corrupt
     if (online.microSD)
     {

@@ -124,7 +124,8 @@ void stateUpdate()
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
             radioStart();     // Start internal radio if enabled, otherwise disable
 
-            if (!tasksStartUART2()) // Start monitoring the UART1 from ZED for NMEA and UBX data (enables logging)
+            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            if (tasksStartGnssUart() == false) 
                 displayRoverFail(1000);
             else
             {
@@ -254,8 +255,8 @@ void stateUpdate()
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
 
-            // Start monitoring the UART1 from ZED for NMEA and UBX data (enables logging)
-            if (tasksStartUART2() && gnssConfigureBase())
+            // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            if (tasksStartGnssUart() && gnssConfigureBase())
             {
                 settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
@@ -650,7 +651,7 @@ void stateUpdate()
             bluetoothStop();
             espnowStop();
 
-            tasksStopUART2(); // Delete F9 serial tasks if running
+            tasksStopGnssUart(); // Delete F9 serial tasks if running
             if (!startWebServer()) // Start in AP mode and show config html page
                 changeState(STATE_ROVER_NOT_STARTED);
             else
@@ -709,7 +710,7 @@ void stateUpdate()
             // Debounce entry into test menu
             if (millis() - lastTestMenuChange > 500)
             {
-                tasksStopUART2(); // Stop absoring GNSS serial via task
+                tasksStopGnssUart(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;
 
                 gnssEnableRTCMTest();
@@ -888,7 +889,7 @@ void stateUpdate()
 
         case (STATE_KEYS_LBAND_CONFIGURE): {
             // Be sure we ignore any external RTCM sources
-            gnssDisableRtcmUart2();
+            gnssDisableRtcmOnGnss();
 
             pointperfectApplyKeys(); // Send current keys, if available, to ZED-F9P
 
@@ -926,8 +927,8 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_LBAND_ENCRYPTED): {
-            // Since L-Band is not available, be sure RTCM can be provided over UART2
-            gnssEnableRtcmUart2();
+            // Since L-Band is not available, be sure RTCM can be provided to GNSS receiver
+            gnssEnableRtcmOnGnss();
 
             forceSystemStateUpdate = true;   // Imediately go to this new state
             changeState(settings.lastState); // Go to either rover or base
@@ -1002,8 +1003,8 @@ void stateUpdate()
 
             displayNtpStart(500); // Show 'NTP'
 
-            // Start monitoring the UART1 from ZED for NMEA and UBX data (enables logging)
-            if (tasksStartUART2() && configureUbloxModuleNTP())
+            // Start UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
+            if (tasksStartGnssUart() && configureUbloxModuleNTP())
             {
                 settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED; // Record this state for next POR
@@ -1082,7 +1083,7 @@ void stateUpdate()
 
             bluetoothStop();  // Should be redundant - but just in case
             espnowStop();     // Should be redundant - but just in case
-            tasksStopUART2(); // Delete F9 serial tasks if running
+            tasksStopGnssUart(); // Delete F9 serial tasks if running
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 

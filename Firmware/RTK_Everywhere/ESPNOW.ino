@@ -62,7 +62,7 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
     {
         espnowRSSI = packetRSSI; // Record this packets RSSI as an ESP NOW packet
 
-        // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART2 to ZED-UART1 / SPI
+        // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to ZED-UART1 / SPI
         if (USE_I2C_GNSS)
             serialGNSS->write(incomingData, len);
         else

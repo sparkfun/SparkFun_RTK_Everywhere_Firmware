@@ -280,22 +280,22 @@ void bluetoothStop()
     bluetoothIncomingRTCM = false;
 }
 
-// Test the bidirectional communication through UART2
+// Test the bidirectional communication through UART connected to GNSS
 void bluetoothTest(bool runTest)
 {
-    // Verify the ESP UART2 can communicate TX/RX to ZED UART1
+    // Verify the ESP UART can communicate TX/RX to ZED UART1
     const char *bluetoothStatusText;
 
     if (online.gnss == true)
     {
         if (runTest && (zedUartPassed == false) && (USE_I2C_GNSS))
         {
-            tasksStopUART2(); // Stop absoring ZED serial via task
+            tasksStopGnssUart(); // Stop absoring serial via task from GNSS receiver
 
             gnssSetBaudrate(115200 * 2);
 
-            serialGNSS->begin(115200 * 2, SERIAL_8N1, pin_UART2_RX,
-                              pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be
+            serialGNSS->begin(115200 * 2, SERIAL_8N1, pin_GnssUart_RX,
+                              pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
                                              // configured to output NMEA over its UART at the same rate.
 
             SFE_UBLOX_GNSS_SERIAL myGNSS;
@@ -309,11 +309,11 @@ void bluetoothTest(bool runTest)
 
             gnssSetBaudrate(settings.dataPortBaud);
 
-            serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_UART2_RX,
-                              pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be
+            serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
+                              pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
                                              // configured to output NMEA over its UART at the same rate.
 
-            tasksStartUART2(); // Return to normal operation
+            tasksStartGnssUart(); // Return to normal operation
         }
         else
             bluetoothStatusText = (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF) ? "Off" : "Online";

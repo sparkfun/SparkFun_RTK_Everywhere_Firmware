@@ -246,7 +246,7 @@ void pvtUdpServerStop()
     // Notify the rest of the system that the PVT server is shutting down
     if (online.pvtUdpServer)
     {
-        // Notify the UART2 tasks of the PVT server shutdown
+        // Notify the GNSS UART tasks of the PVT server shutdown
         online.pvtUdpServer = false;
         delay(5);
     }

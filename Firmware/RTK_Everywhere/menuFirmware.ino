@@ -178,7 +178,7 @@ void mountSDThenUpdate(const char *firmwareFileName)
     else
     {
         // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and F9PSerialReadTask()
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             gotSemaphore = true;
@@ -319,7 +319,7 @@ void updateFromSD(const char *firmwareFileName)
     bluetoothStop();
 
     // Delete tasks if running
-    tasksStopUART2();
+    tasksStopGnssUart();
 
     systemPrintf("Loading %s\r\n", firmwareFileName);
 

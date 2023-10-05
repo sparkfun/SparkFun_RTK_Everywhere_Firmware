@@ -2388,7 +2388,7 @@ void paintSystemTest()
             oled.print(macAddress);
             oled.print(":");
 
-            // Verify the ESP UART2 can communicate TX/RX to ZED UART1
+            // Verify the ESP UART can communicate TX/RX to ZED UART1
             if ((USE_I2C_GNSS) && (zedUartPassed == false))
             {
                 systemPrintln("GNSS test");

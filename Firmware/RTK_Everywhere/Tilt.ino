@@ -54,15 +54,12 @@ void tiltBegin()
 
     tiltSensor = new IM19();
 
-    SerialForTilt = new HardwareSerial(2); // Use UART2 on the ESP32 to receive IMU corrections
-
-    const int pin_UART2_RX = 16;
-    const int pin_UART2_TX = 17;
+    SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
 
     SerialForTilt->setRxBufferSize(1024 * 1);
 
     // We must start the serial port before handing it over to the library
-    SerialForTilt->begin(115200, SERIAL_8N1, pin_UART2_RX, pin_UART2_TX);
+    SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
 
     tiltSensor->enableDebugging(); // Print all debug to Serial
 
@@ -98,7 +95,8 @@ void tiltBegin()
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925");
 
-    // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna POC 19.25mm = 1915.7mm
+    // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
+    // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
     float arp = 0.0;
     if (productVariant == RTK_TORCH)
@@ -171,15 +169,15 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
     }
     else if (strncmp(sentenceType, "GNS", sizeof(sentenceType)) == 0)
     {
-      tiltApplyCompensationGNS(nmeaSentence, arraySize);
+        tiltApplyCompensationGNS(nmeaSentence, arraySize);
     }
     else if (strncmp(sentenceType, "RMC", sizeof(sentenceType)) == 0)
     {
-      tiltApplyCompensationRMC(nmeaSentence, arraySize);
+        tiltApplyCompensationRMC(nmeaSentence, arraySize);
     }
     else if (strncmp(sentenceType, "GLL", sizeof(sentenceType)) == 0)
     {
-      tiltApplyCompensationGLL(nmeaSentence, arraySize);
+        tiltApplyCompensationGLL(nmeaSentence, arraySize);
     }
     else
     {

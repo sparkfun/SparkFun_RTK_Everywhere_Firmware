@@ -458,7 +458,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, Settings *settings)
     while (online.microSD == true)
     {
         // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and F9PSerialReadTask()
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_LOADSETTINGS);

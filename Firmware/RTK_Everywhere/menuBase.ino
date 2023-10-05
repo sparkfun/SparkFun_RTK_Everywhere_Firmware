@@ -657,7 +657,7 @@ bool getFileLineSD(const char *fileName, int lineToFind, char *lineData, int lin
     while (online.microSD == true)
     {
         // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and F9PSerialReadTask()
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_GETLINE);
@@ -781,7 +781,7 @@ bool removeFileSD(const char *fileName)
     while (online.microSD == true)
     {
         // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and F9PSerialReadTask()
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_REMOVEFILE);
@@ -865,7 +865,7 @@ void recordLineToSD(const char *fileName, const char *lineData)
     while (online.microSD == true)
     {
         // Attempt to access file system. This avoids collisions with file writing from other functions like
-        // recordSystemSettingsToFile() and F9PSerialReadTask()
+        // recordSystemSettingsToFile() and gnssSerialReadTask()
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_RECORDLINE);

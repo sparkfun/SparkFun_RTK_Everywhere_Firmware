@@ -195,13 +195,13 @@ void gnssEnableRTCMTest()
 }
 
 // If LBand is being used, ignore any RTCM that may come in from the GNSS
-void gnssDisableRtcmUart2()
+void gnssDisableRtcmOnGnss()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            theGNSS->setUART2Input(COM_TYPE_UBX); // Set the UART2 to input UBX (no RTCM)
+            theGNSS->setUART2Input(COM_TYPE_UBX); // Set ZED's UART2 to input UBX (no RTCM)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -210,14 +210,14 @@ void gnssDisableRtcmUart2()
     }
 }
 
-// If L-Band is available, but encrypted, allow RTCM through radio/UART2 of ZED
-void gnssEnableRtcmUart2()
+// If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+void gnssEnableRtcmOnGnss()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            theGNSS->setUART2Input(COM_TYPE_RTCM3); // Set the UART2 to input RTCM
+            theGNSS->setUART2Input(COM_TYPE_RTCM3); // Set the ZED's UART2 to input RTCM
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -332,8 +332,8 @@ void gnssSetBaudrate(uint32_t baudRate)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            // Set the baud rate on UART2
-            um980SetBaudRateCOM2(baudRate);
+            // Set the baud rate on COM3 of the UM980
+            um980SetBaudRateCOM3(baudRate);
         }
     }
 }
@@ -364,7 +364,7 @@ int gnssPushRawData(uint8_t *dataToSend, int dataLength)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            // Send data direct from ESP UART2 to UM980 UART2
+            // Send data direct from ESP GNSS UART to UM980 UART3
             return (um980PushRawData((uint8_t *)dataToSend, dataLength));
         }
     }

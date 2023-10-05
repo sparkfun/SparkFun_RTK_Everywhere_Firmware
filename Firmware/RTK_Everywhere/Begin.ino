@@ -77,7 +77,7 @@ void identifyBoard()
             const int pin_ZedTxReady = 34;
             uint16_t pinValue = analogReadMilliVolts(pin_ZedTxReady);
             log_d("Alternate ID pinValue (mV): %d", pinValue); // Surveyor = 142 to 152, //Express = 3129
-            if (pinValue > 3000)                                   // ZED is indicating data ready
+            if (pinValue > 3000)                               // ZED is indicating data ready
             {
                 log_d("ZED-TX_Ready Detected. ZED type to be determined.");
                 productVariant = RTK_UNKNOWN_ZED; // The ZED-F9x module type is determined at zedBegin()
@@ -92,12 +92,12 @@ void identifyBoard()
         {
             Wire.end(); // Disable default I2C post test
 
-            // Start Serial1 to test for GNSS on UART
-            int pin_UART1_RX = 26;      // ZED_TX_READY on Surveyor
-            int pin_UART1_TX = 27;      // ZED_RESET on Surveyor
-            int pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR. SCL on Surveyor.
+            // Start Serial to test for GNSS on UART
+            pin_GnssUart_RX = 26;   // ZED_TX_READY on Surveyor
+            pin_GnssUart_TX = 27;   // ZED_RESET on Surveyor
+            pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR. SCL on Surveyor.
 
-            HardwareSerial SerialGNSS(1); // Use UART1 on the ESP32
+            HardwareSerial SerialGNSS(2); // Use UART2 on the ESP32 for GNSS communication
 
             UM980 testGNSS;
 
@@ -105,17 +105,24 @@ void identifyBoard()
             digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
 
             // We must start the serial port before handing it over to the library
-            SerialGNSS.begin(115200, SERIAL_8N1, pin_UART1_RX, pin_UART1_TX);
+            SerialGNSS.begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
-            testGNSS.enableDebugging(); // Print all debug to Serial
+            //testGNSS.enableDebugging(); // Print all debug to Serial
 
             if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
             {
                 productVariant = RTK_TORCH;
+                log_d("UM980 detected");
             }
             else
             {
                 productVariant = RTK_UNKNOWN;
+                systemPrintln("Unknown product variant detected");
+                
+                //Undo pin assignments
+                pin_GnssUart_RX = -1;
+                pin_GnssUart_TX = -1;
+                pin_GNSS_DR_Reset = -1;
             }
         }
     }
@@ -213,8 +220,8 @@ void beginBoard()
         pin_zed_reset = 27;
         pin_batteryLevel_alert = 36;
 
-        pin_UART2_RX = 16;
-        pin_UART2_TX = 17;
+        pin_GnssUart_RX = 16;
+        pin_GnssUart_TX = 17;
 
         // Bug in ZED-F9P v1.13 firmware causes RTK LED to not light when RTK Floating with SBAS on.
         // The following changes the POR default but will be overwritten by settings in NVM or settings file
@@ -234,8 +241,8 @@ void beginBoard()
         pin_powerFastOff = 27;
         pin_adc39 = 39;
 
-        pin_UART2_RX = 16;
-        pin_UART2_TX = 17;
+        pin_GnssUart_RX = 16;
+        pin_GnssUart_TX = 17;
 
         pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
         pinMode(pin_powerFastOff, INPUT);
@@ -280,8 +287,8 @@ void beginBoard()
         pin_radio_cts = 5;
         // pin_radio_rts = 255; //Not implemented
 
-        pin_UART2_RX = 16;
-        pin_UART2_TX = 17;
+        pin_GnssUart_RX = 16;
+        pin_GnssUart_TX = 17;
 
         pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
         pinMode(pin_powerFastOff, INPUT);
@@ -323,8 +330,8 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         // I2C pins have already been assigned
-        // UART1 pins have already been assigned
-        // pin_GNSS_DR_Reset already assigned
+        
+        //During identifyBoard(), the GNSS UART and DR pins are assigned
 
         pin_powerSenseAndControl = 34;
         pin_powerFastOff = 14;
@@ -333,10 +340,10 @@ void beginBoard()
         pin_gnssStatusLED = 13;
         pin_batteryLevelLED_Red = 33;
 
-        pin_UART2_RX = 16;
-        pin_UART2_TX = 17;
+        pin_IMU_RX = 16;
+        pin_IMU_TX = 17;
 
-        pin_GNSS_TimePulse = 39; //PPS on UM980
+        pin_GNSS_TimePulse = 39; // PPS on UM980
 
         pinMode(pin_powerSenseAndControl, INPUT);
         pinMode(pin_powerFastOff, INPUT);
@@ -351,8 +358,8 @@ void beginBoard()
     }
     else if (productVariant == REFERENCE_STATION)
     {
-        pin_UART2_RX = 16;
-        pin_UART2_TX = 17;
+        pin_GnssUart_RX = 16;
+        pin_GnssUart_TX = 17;
 
         // No powerOnCheck
 
@@ -675,11 +682,11 @@ void resetSPI()
     }
 }
 
-// We want the UART2 interrupts to be pinned to core 0 to avoid competing with I2C interrupts
-// We do not start the UART2 for GNSS->BT reception here because the interrupts would be pinned to core 1
+// We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
+// We do not start the UART for GNSS->BT reception here because the interrupts would be pinned to core 1
 // We instead start a task that runs on core 0, that then begins serial
 // See issue: https://github.com/espressif/arduino-esp32/issues/3386
-void beginUART2()
+void beginGnssUart()
 {
     size_t length;
 
@@ -687,8 +694,7 @@ void beginUART2()
     // after discarding the oldest data
     length = settings.gnssHandlerBufferSize;
     rbOffsetEntries = (length >> 1) / AVERAGE_SENTENCE_LENGTH_IN_BYTES;
-    length = settings.gnssHandlerBufferSize
-           + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
+    length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
     rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
     if (!rbOffsetArray)
@@ -700,24 +706,24 @@ void beginUART2()
     {
         ringBuffer = (uint8_t *)&rbOffsetArray[rbOffsetEntries];
         rbOffsetArray[0] = 0;
-        if (pinUART2TaskHandle == nullptr)
+        if (pinGnssUartTaskHandle == nullptr)
             xTaskCreatePinnedToCore(
-                pinUART2Task,
-                "UARTStart", // Just for humans
-                2000,        // Stack Size
-                nullptr,     // Task input parameter
-                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &pinUART2TaskHandle,              // Task handle
+                pinGnssUartTask,
+                "GnssUartStart", // Just for humans
+                2000,            // Stack Size
+                nullptr,         // Task input parameter
+                0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &pinGnssUartTaskHandle,           // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-        while (uart2pinned == false) // Wait for task to run once
+        while (gnssUartpinned == false) // Wait for task to run once
             delay(1);
     }
 }
 
-// Assign UART2 interrupts to the core that started the task. See:
+// Assign GNSS UART interrupts to the core that started the task. See:
 // https://github.com/espressif/arduino-esp32/issues/3386
-void pinUART2Task(void *pvParameters)
+void pinGnssUartTask(void *pvParameters)
 {
     // Note: ESP32 2.0.6 does some strange auto-bauding thing here which takes 20s to complete if there is no data for
     // it to auto-baud.
@@ -730,14 +736,14 @@ void pinUART2Task(void *pvParameters)
     // #endif  // REF_STN_GNSS_DEBUG
     {
         if (serialGNSS == nullptr)
-            serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32
+            serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
         serialGNSS->setRxBufferSize(
             settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
         serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-        serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_UART2_RX,
-                          pin_UART2_TX); // Start UART2 on platform depedent pins for SPP. The GNSS will be configured
-                                         // to output NMEA over its UART at the same rate.
+        serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
+                          pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
+                                            // to output NMEA over its UART at the same rate.
 
         // Reduce threshold value above which RX FIFO full interrupt is generated
         // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
@@ -745,7 +751,7 @@ void pinUART2Task(void *pvParameters)
         uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
     }
 
-    uart2pinned = true;
+    gnssUartpinned = true;
 
     vTaskDelete(nullptr); // Delete task once it has run once
 }
@@ -899,7 +905,7 @@ void beginFuelGauge()
     // Set up the MAX17048 LiPo fuel gauge
     if (lipo.begin() == false)
     {
-        systemPrintln("Fuel gauge not detected.");
+        systemPrintln("Fuel gauge not detected");
         return;
     }
 

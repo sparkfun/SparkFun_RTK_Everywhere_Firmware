@@ -254,7 +254,7 @@ void feedWdt()
 //----------------------------------------------------------------------
 // The ESP32<->GNSS serial connection is default 230,400bps to facilitate
 // 10Hz fix rate with PPP Logging Defaults (NMEAx5 + RXMx2) messages enabled.
-// ESP32 UART2 is begun with settings.uartReceiveBufferSize size buffer. The circular buffer
+// ESP32's UART used for GNSS  is begun with settings.uartReceiveBufferSize size buffer. The circular buffer
 // is 1024*6. At approximately 46.1K characters/second, a 6144 * 2
 // byte buffer should hold 267ms worth of serial data. Assuming SD writes are
 // 250ms worst case, we should record incoming all data. Bluetooth congestion
@@ -291,7 +291,7 @@ void feedWdt()
 // Read bytes from GNSS into ESP32 circular buffer
 // If data is coming in at 230,400bps = 23,040 bytes/s = one byte every 0.043ms
 // If SD blocks for 150ms (not extraordinary) that is 3,488 bytes that must be buffered
-// The ESP32 Arduino FIFO is ~120 bytes by default but overridden to 50 bytes (see pinUART2Task() and
+// The ESP32 Arduino FIFO is ~120 bytes by default but overridden to 50 bytes (see pinGnssUartTask() and
 // uart_set_rx_full_threshold()). We use this task to harvest from FIFO into circular buffer during SD write blocking
 // time.
 void gnssReadTask(void *e)
@@ -1659,9 +1659,9 @@ void idleTask(void *e)
     }
 }
 
-// Serial Read/Write tasks for the F9P must be started after BT is up and running otherwise SerialBT->available will
+// Serial Read/Write tasks for the GNSS receiver must be started after BT is up and running otherwise SerialBT->available will
 // cause reboot
-bool tasksStartUART2()
+bool tasksStartGnssUart()
 {
     // Verify that the ring buffer was successfully allocated
     if (!ringBuffer)
@@ -1707,7 +1707,7 @@ bool tasksStartUART2()
 }
 
 // Stop tasks - useful when running firmware update or WiFi AP is running
-void tasksStopUART2()
+void tasksStopGnssUart()
 {
     // Delete tasks if running
     if (gnssReadTaskHandle != nullptr)
