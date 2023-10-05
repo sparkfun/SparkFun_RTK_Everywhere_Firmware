@@ -98,14 +98,14 @@ void tiltBegin()
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925");
 
-    // Set the overall length of the GNSS setup: rod length + internal length 96.45 + antenna POC 19.25
+    // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
     float arp = 0.0;
     if (productVariant == RTK_TORCH)
         arp = 0.116; // In m
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp);
-    result &= tiltSensor->sendCommand("CLUB_VECTOR=0,0,1.916");
+    result &= tiltSensor->sendCommand(clubVector);
 
     // Configure interface type. This allows IM19 to receive Unicore style binary messages
     result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
