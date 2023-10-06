@@ -7,7 +7,7 @@
 // used in tests accordingly.
 void identifyBoard()
 {
-    // Use ADC to check resistor divider
+    // Use ADC to check the resistor divider
     // Express: 10/3.3
     // Express+: 3.3/10
     // Facet: 10/10
@@ -382,7 +382,7 @@ void beginBoard()
     memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
     ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
 
-    // For all boards, check reset reason. If reset was due to wdt or panic, append last log
+    // For all boards, check reset reason. If reset was due to wdt or panic, append the last log
     loadSettingsPartial(); // Loads settings from LFS
     if ((esp_reset_reason() == ESP_RST_POWERON) || (esp_reset_reason() == ESP_RST_SW))
     {

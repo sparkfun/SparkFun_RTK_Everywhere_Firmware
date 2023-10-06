@@ -42,7 +42,7 @@
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
 #define ENABLE_DEVELOPER                                                                                               \
-    true // This enable specials developer modes (don't check power button at startup). Passed in from compiler flags.
+    true // This enables special developer modes (don't check power button at startup). Passed in from compiler flags.
 #endif   // ENABLE_DEVELOPER
 
 // This is passed in from compiler extra flags
