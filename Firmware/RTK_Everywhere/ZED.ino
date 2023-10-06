@@ -1111,12 +1111,12 @@ bool zedEnableLBandCommunication()
 
 #ifdef COMPILE_L_BAND
 
-    response &= theGNSS.setRXMCORcallbackPtr(&checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
+    response &= theGNSS->setRXMCORcallbackPtr(&checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
 
     if (productVariant == RTK_FACET_LBAND_DIRECT)
     {
         // Setup for ZED to NEO serial communication
-        response &= theGNSS.setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
+        response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
 
         // Disable PMP callback over I2C. Enable UARTs.
         response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback to push raw PMP over I2C
@@ -1134,7 +1134,7 @@ bool zedEnableLBandCommunication()
         // to the ZED. If the user has explicitly disabled I2C corrections, enable a UART connection.
         if (settings.useI2cForLbandCorrections == true)
         {
-            response &= theGNSS.setVal32(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
+            response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
 
             i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback to push raw PMP over I2C
 
@@ -1146,7 +1146,7 @@ bool zedEnableLBandCommunication()
         }
         else // Setup ZED to NEO serial communication
         {
-            response &= theGNSS.setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
+            response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
 
             i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback to push raw PMP over I2C
 
@@ -1664,7 +1664,7 @@ bool zedDisableLBandCommunication()
 
 #ifdef COMPILE_L_BAND
     response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
-    response &= theGNSS.setRXMCORcallbackPtr(nullptr); // Disable callback to check if the PMP data is being decrypted successfully
+    response &= theGNSS->setRXMCORcallbackPtr(nullptr); // Disable callback to check if the PMP data is being decrypted successfully
 
     if (productVariant == RTK_FACET_LBAND_DIRECT)
     {
