@@ -867,35 +867,39 @@ void setup()
     Serial.begin(115200); // UART0 for programming and debugging
 
     DMW_c("identifyBoard");
-    identifyBoard(); // Determine what hardware platform we are running on
+    identifyBoard(); // Determine what hardware platform we are running on. Uses I2C for RTK Torch.
 
     DMW_c("initializePowerPins");
     initializePowerPins(); // Initialize any essential power pins - e.g. enable power for the Display
+
+    DMW_c("beginFS");
+    beginFS(); // Load NVM settings
+
+    //At this point product variants are known, except early RTK products that lacked ID resistors
+    DMW_c("loadSettingsPartial");
+    loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
 
     DMW_c("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 
     DMW_c("beginI2C");
-    beginI2C();
+    beginI2C(); // Requires settings.
 
     DMW_c("beginDisplay");
     beginDisplay(); // Start display to be able to display any errors
-
-    DMW_c("beginFS");
-    beginFS(); // Start LittleFS file system for settings
 
     DMW_c("checkConfigureViaEthernet");
     configureViaEthernet = checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_c("beginGnssUart");
-    beginGnssUart(); // Start the UART connected to the GNSS receiver on core 0. Start before gnssBegin in case it is needed (Torch).
+    beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before gnssBegin in case it is needed (Torch).
 
     DMW_c("beginGNSS");
-    gnssBegin(); // Connect to GNSS to get module type
+    gnssBegin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_c("beginBoard");
-    beginBoard(); // Now finish setting up the board and check the on button
+    beginBoard(); // Requires settings. Now finish setting up the board and check the on button
 
     DMW_c("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
@@ -904,25 +908,25 @@ void setup()
     beginLEDs(); // LED and PWM setup
 
     DMW_c("verifyTables");
-    verifyTables (); // Verify the consistency of the internal tables
+    verifyTables(); // Verify the consistency of the internal tables
 
     DMW_c("beginSD");
-    beginSD(); // Test if SD is present
+    beginSD(); // Requires settings. Test if SD is present
 
     DMW_c("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
     DMW_c("beginIdleTasks");
-    beginIdleTasks(); // Enable processor load calculations
+    beginIdleTasks(); // Requires settings. Enable processor load calculations
 
     DMW_c("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
 
     DMW_c("gnssConfigure");
-    gnssConfigure(); // Configure ZED module
+    gnssConfigure(); // Requires settings. Configure ZED module
 
     DMW_c("ethernetBegin");
-    ethernetBegin(); // Start-up the Ethernet connection
+    ethernetBegin(); // Requires settings. Start-up the Ethernet connection
 
     DMW_c("beginAccelerometer");
     beginAccelerometer();
