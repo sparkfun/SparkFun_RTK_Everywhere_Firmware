@@ -1128,15 +1128,15 @@ void pinI2CTask(void *pvParameters)
         pin_SCL = 4;
         break;
     }
-    Wire.begin(pin_SDA, pin_SCL); // SDA, SCL - Start I2C on core the core that was chosen when the task was started
+    Wire.begin(pin_SDA, pin_SCL); // SDA, SCL - Start I2C on the core that was chosen when the task was started
     Wire.setClock(100000);
 
-    // begin/end wire transmission to see if bus is responding correctly
+    // begin/end wire transmission to see if the bus is responding correctly
     // All good: 0ms, response 2
     // SDA/SCL shorted: 1000ms timeout, response 5
     // SCL/VCC shorted: 14ms, response 5
     // SCL/GND shorted: 1000ms, response 5
-    // SDA/VCC shorted: 1000ms, reponse 5
+    // SDA/VCC shorted: 1000ms, response 5
     // SDA/GND shorted: 14ms, response 5
     Wire.beginTransmission(0x15); // Dummy address
     int endValue = Wire.endTransmission();

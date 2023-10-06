@@ -57,7 +57,7 @@ void loadSettingsPartial()
     // First, look up the last used profile number
     loadProfileNumber();
 
-    // Set the settingsFileName used many places
+    // Set the settingsFileName used in many places
     setSettingsFileName();
 
     loadSystemSettingsFromFileLFS(settingsFileName, &settings);
