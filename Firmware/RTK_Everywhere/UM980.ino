@@ -7,12 +7,17 @@
 */
 void um980Begin()
 {
-    //During identifyBoard(), the GNSS UART and DR pins are set
+    // During identifyBoard(), the GNSS UART and DR pins are set
 
     // Instantiate the library
     um980 = new UM980();
 
     // The GNSS UART is already started. We can now pass it to the library.
+    if (serialGNSS == nullptr)
+    {
+        systemPrintln("GNSS UART not started");
+        return;
+    }
 
     // Turn on/off debug messages
     if (settings.enableGNSSdebug)
