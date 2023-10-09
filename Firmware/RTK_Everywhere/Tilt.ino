@@ -27,7 +27,7 @@ void tiltUpdate()
         }
         else if (settings.enableTiltCompensation == false && online.imu == true)
         {
-            tiltStop(); // If user has disabled the device, shut it down
+            tiltStop(); // If the user has disabled the device, shut it down
         }
         else if (online.imu == false)
         {
@@ -61,7 +61,8 @@ void tiltBegin()
     // We must start the serial port before handing it over to the library
     SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
 
-    tiltSensor->enableDebugging(); // Print all debug to Serial
+    if(settings.enableImuDebug == true)
+        tiltSensor->enableDebugging(); // Print all debug to Serial
 
     if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
     {

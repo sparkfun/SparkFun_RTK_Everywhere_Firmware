@@ -390,6 +390,9 @@ void menuDebugHardware()
         systemPrint("9) GNSS Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableGNSSdebug ? "Enabled" : "Disabled");
 
+        systemPrint("10) IMU Debugging Output: ");
+        systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -431,6 +434,10 @@ void menuDebugHardware()
                 gnssEnableDebugging();
             else
                 gnssDisableDebugging();
+        }
+        else if (incoming == 10)
+        {
+            settings.enableImuDebug ^= 1;
         }
 
         else if (incoming == 'e')

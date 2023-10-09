@@ -1095,9 +1095,9 @@ typedef struct
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
-
-    //Add new settings above
-    //<------------------------------------------------------------>
+    bool enableImuDebug = false; // Turn on to display IMU library debug messages
+    
+    //Add new settings above <------------------------------------------------------------>
 
 } Settings;
 Settings settings;

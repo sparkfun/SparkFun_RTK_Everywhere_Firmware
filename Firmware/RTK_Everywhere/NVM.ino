@@ -436,9 +436,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
     settingsFile->printf("%s=%d\r\n", "tiltPoleLength", settings.tiltPoleLength);
     settingsFile->printf("%s=%d\r\n", "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
+    settingsFile->printf("%s=%d\r\n", "enableImuDebug", settings.enableImuDebug);
 
-    //Add new settings above
-    //<------------------------------------------------------------>
+    //Add new settings above <------------------------------------------------------------>
 }
 
 // Given a fileName, parse the file and load the given settings struct
@@ -1346,13 +1346,14 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
         settings->rtcmTimeoutBeforeUsingLBand_s = d;
 
-    //Add new settings above
-    //<------------------------------------------------------------>
-
     else if (strcmp(settingName, "enableTiltCompensation") == 0)
         settings->enableTiltCompensation = d;
     else if (strcmp(settingName, "tiltPoleLength") == 0)
         settings->tiltPoleLength = d;
+    else if (strcmp(settingName, "enableImuDebug") == 0)
+        settings->enableImuDebug = d;
+
+    //Add new settings above <------------------------------------------------------------>
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list
