@@ -124,12 +124,13 @@ bool sdPresent(void)
         {
             response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
             if (response == 1)
-                break;
+                return (true); //Card responded
         }
         if (response != 1)
             return (false); // Card failed to respond to idle
     }
 
+    //Unknown platform type. Return no SD detected.
     return (false);
 }
 
