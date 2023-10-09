@@ -3,6 +3,17 @@
 // Capture card size when mounted
 void sdUpdate()
 {
+    if (settings.enableSD == false)
+    {
+        if (online.microSD == true)
+        {
+            // User has disabled SD setting
+            endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down file.
+            online.microSD = false;
+        }
+        return;
+    }
+
     if (online.microSD == false)
     {
         // Are we offline because we are out of space?
@@ -119,7 +130,7 @@ bool sdPresent(void)
             return (false); // Card failed to respond to idle
     }
 
-    return (true);
+    return (false);
 }
 
 /*
