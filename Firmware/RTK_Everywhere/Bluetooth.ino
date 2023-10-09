@@ -248,7 +248,7 @@ void pinBluetoothTask(void *pvParameters)
     {
         systemPrintln("An error occurred initializing Bluetooth");
 
-        if (productVariant == RTK_SURVEYOR)
+        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, LOW);
     }
 

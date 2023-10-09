@@ -355,6 +355,8 @@ void beginBoard()
         strncpy(platformPrefix, "Torch", sizeof(platformPrefix) - 1);
 
         tiltSupported = true; // Allow tiltUpdate() to run
+        
+        settings.enableSD = false; //Torch has no SD socket
     }
     else if (productVariant == REFERENCE_STATION)
     {
