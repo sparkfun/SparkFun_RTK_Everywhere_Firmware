@@ -357,6 +357,8 @@ void beginBoard()
         tiltSupported = true; // Allow tiltUpdate() to run
         
         settings.enableSD = false; //Torch has no SD socket
+
+        settings.dataPortBaud = 115200; //Override settings. Use UM980 at 115200bps.
     }
     else if (productVariant == REFERENCE_STATION)
     {
@@ -727,6 +729,12 @@ void beginGnssUart()
 // https://github.com/espressif/arduino-esp32/issues/3386
 void pinGnssUartTask(void *pvParameters)
 {
+    if(productVariant == RTK_TORCH)
+    {
+        //Override user setting. Required because beginGnssUart() is called before beginBoard().
+        settings.dataPortBaud = 115200; 
+    }
+
     // Note: ESP32 2.0.6 does some strange auto-bauding thing here which takes 20s to complete if there is no data for
     // it to auto-baud.
     //       That's fine for most RTK products, but causes the Ref Stn to stall for 20s. However, it doesn't stall with

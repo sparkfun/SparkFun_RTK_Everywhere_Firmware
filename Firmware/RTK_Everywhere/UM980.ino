@@ -20,7 +20,7 @@ void um980Begin()
     }
 
     // Turn on/off debug messages
-    if (settings.enableGNSSdebug)
+    if (settings.enableGNSSdebug == true)
         um980EnableDebugging();
 
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
@@ -69,8 +69,10 @@ bool um980Configure()
     um980DisableAllOutput();
 
     bool response = true;
-    response &= um980->setPortBaudrate("COM1", 115200);      // Connected to switch, then USB
-    response &= um980SetBaudRateCOM3(settings.dataPortBaud); // Conected to ESP UART1
+    response &= um980->setPortBaudrate("COM1", 115200);      // COM1 is connected to switch, then USB
+
+    // For now, let's not change the baudrate of the interface. We'll be using the default 115200 for now.
+    // response &= um980SetBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
@@ -83,6 +85,7 @@ bool um980Configure()
     if (response == false)
     {
         systemPrintln("UM980 failed to configure");
+        online.gnss = false; //Take it offline
     }
 
     return (response);
