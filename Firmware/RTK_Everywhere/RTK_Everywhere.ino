@@ -239,13 +239,13 @@ unsigned int binBytesSent = 0;                // Tracks firmware bytes sent over
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_WIFI
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
-#include <DNSServer.h>   //Built-in.
 #include <ESPmDNS.h>     //Built-in.
 #include <HTTPClient.h>  //Built-in. Needed for ThingStream API for ZTP
 #include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
+#include <DNSServer.h>        //Built-in.
 
 #include "esp_wifi.h" //Needed for esp_wifi_set_protocol()
 
