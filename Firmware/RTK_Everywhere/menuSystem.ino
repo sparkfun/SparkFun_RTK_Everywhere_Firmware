@@ -393,6 +393,9 @@ void menuDebugHardware()
         systemPrint("10) IMU Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
 
+        systemPrint("10) L-Band Debugging Output: ");
+        systemPrintf("%s\r\n", settings.debugLBand ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -438,6 +441,10 @@ void menuDebugHardware()
         else if (incoming == 10)
         {
             settings.enableImuDebug ^= 1;
+        }
+        else if (incoming == 10)
+        {
+            settings.debugLBand ^= 1;
         }
 
         else if (incoming == 'e')

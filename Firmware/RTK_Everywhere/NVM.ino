@@ -443,6 +443,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "debugFirmwareUpdate", settings.debugFirmwareUpdate);
     settingsFile->printf("%s=%d\r\n", "enableAutoFirmwareUpdate", settings.enableAutoFirmwareUpdate);
 
+    settingsFile->printf("%s=%d\r\n", "debugLBand", settings.debugLBand);
+
     //Add new settings above <------------------------------------------------------------>
 }
 
