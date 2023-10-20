@@ -730,6 +730,8 @@ unsigned long shutdownNoChargeTimer = 0;
 
 unsigned long um980BaseStartTimer = 0; // Tracks how long the base averaging mode has been running
 
+RtkMode_t rtkMode; // Mode of operation
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #define DEAD_MAN_WALKING_ENABLED 0

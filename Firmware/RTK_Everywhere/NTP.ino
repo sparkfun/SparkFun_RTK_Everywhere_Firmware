@@ -75,6 +75,8 @@ const char * const ntpServerStateName[] =
 };
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
+const RtkMode_t ntpServerMode = RTK_MODE_NTP;
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -761,17 +763,6 @@ bool configureUbloxModuleNTP()
 // NTP Server routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// Stop the NTP server
-void ntpServerEnd()
-{
-}
-
-// Determine if the NTP server is enabled
-bool ntpServerIsEnabled()
-{
-    return (systemState >= STATE_NTPSERVER_NOT_STARTED) && (systemState <= STATE_NTPSERVER_SYNC);
-}
-
 // Update the state of the NTP server state machine
 void ntpServerSetState(uint8_t newState)
 {
@@ -829,6 +820,14 @@ void ntpServerUpdate()
     if (!HAS_ETHERNET)
         return;
 
+    // Shutdown the NTP server when the mode or setting changes
+    if (NEQ_RTK_MODE(ntpServerMode))
+    {
+        if (ntpServerState > NTP_STATE_OFF)
+            ntpServerStop();
+        return;
+    }
+
     // Process the NTP state
     DMW_st(ntpServerSetState, ntpServerState);
     switch (ntpServerState)
@@ -838,7 +837,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_OFF:
         // Determine if the NTP server is enabled
-        if (ntpServerIsEnabled())
+        if (EQ_RTK_MODE(ntpServerMode))
         {
             // Start the network
             if (networkUserOpen(NETWORK_USER_NTP_SERVER, NETWORK_TYPE_ETHERNET))
@@ -849,7 +848,7 @@ void ntpServerUpdate()
     // Wait for the network conection
     case NTP_STATE_NETWORK_STARTING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER) || (!ntpServerIsEnabled()))
+        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
@@ -860,7 +859,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER) || (!ntpServerIsEnabled()))
+        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
@@ -888,7 +887,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_SERVER_RUNNING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER) || (!ntpServerIsEnabled()))
+        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
