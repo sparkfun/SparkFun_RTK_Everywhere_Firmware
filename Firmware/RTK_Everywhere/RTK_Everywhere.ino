@@ -42,7 +42,7 @@
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
 #define ENABLE_DEVELOPER                                                                                               \
-    true // This enables special developer modes (don't check power button at startup). Passed in from compiler flags.
+    true // This enables special developer modes (don't check the power button at startup). Passed in from compiler flags.
 #endif   // ENABLE_DEVELOPER
 
 // This is passed in from compiler extra flags
@@ -72,9 +72,9 @@
 #define MILLISECONDS_IN_AN_HOUR (60 * MILLISECONDS_IN_A_MINUTE)
 #define MILLISECONDS_IN_A_DAY (24 * MILLISECONDS_IN_AN_HOUR)
 
-#define SECONDS_IN_A_MINUTE     60
-#define SECONDS_IN_AN_HOUR      (60 * SECONDS_IN_A_MINUTE)
-#define SECONDS_IN_A_DAY        (24 * SECONDS_IN_AN_HOUR)
+#define SECONDS_IN_A_MINUTE 60
+#define SECONDS_IN_AN_HOUR (60 * SECONDS_IN_A_MINUTE)
+#define SECONDS_IN_A_DAY (24 * SECONDS_IN_AN_HOUR)
 
 // Hardware connections
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -149,7 +149,7 @@ char settingsFileName[60];                 // Contains the %s_Settings_%d.txt wi
 char stationCoordinateECEFFileName[60]; // Contains the /StationCoordinates-ECEF_%d.csv with current profile number set
 char stationCoordinateGeodeticFileName[60];     // Contains the /StationCoordinates-Geodetic_%d.csv with current profile
                                                 // number set
-const int COMMON_COORDINATES_MAX_STATIONS = 50; // Record upto 50 ECEF and Geodetic commonly used stations
+const int COMMON_COORDINATES_MAX_STATIONS = 50; // Record up to 50 ECEF and Geodetic commonly used stations
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Handy library for setting ESP32 system time to GNSS time
@@ -177,7 +177,7 @@ int startCurrentLogTime_minutes =
     0; // Mark when we start this specific log file so we can close it after x minutes and start a new one
 
 // System crashes if two tasks access a file at the same time
-// So we use a semaphore to see if file system is available
+// So we use a semaphore to see if the file system is available
 SemaphoreHandle_t sdCardSemaphore;
 TickType_t loggingSemaphoreWait_ms = 10 / portTICK_PERIOD_MS;
 const TickType_t fatSemaphore_shortWait_ms = 10 / portTICK_PERIOD_MS;
@@ -199,10 +199,10 @@ typedef enum LoggingType
 } LoggingType;
 LoggingType loggingType = LOGGING_UNKNOWN;
 
-FileSdFatMMC *managerTempFile; // File used for uploading or downloading in file manager section of AP config
+FileSdFatMMC *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen = false;
 
-TaskHandle_t sdSizeCheckTaskHandle = nullptr; // Store handles so that we can kill the task once size is found
+TaskHandle_t sdSizeCheckTaskHandle = nullptr; // Store handles so that we can kill the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0;    // 3 being the highest, and 0 being the lowest
 const int sdSizeCheckStackSize = 3000;
 bool sdSizeCheckTaskComplete = false;
@@ -218,13 +218,13 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 #ifdef COMPILE_WIFI
 #include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting
 
-#define WIFI_STOP()                                                         \
-{                                                                           \
-    if (settings.debugWifiState)                                            \
-        systemPrintf("wifiStop called by %s %d\r\n", __FILE__, __LINE__);   \
-    wifiStop();                                                             \
-}
-#endif                    // COMPILE_WIFI
+#define WIFI_STOP()                                                                                                    \
+    {                                                                                                                  \
+        if (settings.debugWifiState)                                                                                   \
+            systemPrintf("wifiStop called by %s %d\r\n", __FILE__, __LINE__);                                          \
+        wifiStop();                                                                                                    \
+    }
+#endif // COMPILE_WIFI
 
 #define OTA_FIRMWARE_JSON_URL                                                                                          \
     "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Firmware_Binaries/main/RTK-Firmware.json"
@@ -238,13 +238,13 @@ unsigned int binBytesSent = 0;                // Tracks firmware bytes sent over
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_WIFI
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
+#include <DNSServer.h>   //Built-in.
 #include <ESPmDNS.h>     //Built-in.
 #include <HTTPClient.h>  //Built-in. Needed for ThingStream API for ZTP
 #include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
-#include <DNSServer.h>        //Built-in.
 
 #include "esp_wifi.h" //Needed for esp_wifi_set_protocol()
 
@@ -265,7 +265,6 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
 
-#define SENTENCE_TYPE_NMEA DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_NMEA
 #define SENTENCE_TYPE_NONE DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_NONE
 #define SENTENCE_TYPE_RTCM DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_RTCM
 #define SENTENCE_TYPE_UBX DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_UBX
@@ -279,7 +278,7 @@ char zedUniqueId[11] = {'0', '0', '0', '0', '0', '0',
                         '0', '0', '0', '0', 0}; // Output to system status menu and log file.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
-// waitForResponse. Also prevents pushRawData from being called too.
+// waitForResponse. Also prevents pushRawData from being called.
 class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
 {
   public:
@@ -361,7 +360,8 @@ uint16_t ARPECEFH = 0;
 
 const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
 bool lBandCommunicationEnabled = false;
-unsigned long rtcmLastPacketReceived = 0; //Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+unsigned long rtcmLastPacketReceived =
+    0; // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GNSS configuration - UM980
@@ -402,7 +402,7 @@ float battChangeRate = 0.0;
 // Hardware serial and BT buffers
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_BT
-// See bluetoothSelect.h for implemenation
+// See bluetoothSelect.h for implementation
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
@@ -414,13 +414,13 @@ HardwareSerial *serialGNSS = nullptr; // Don't instantiate until we know what gn
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
 TaskHandle_t btReadTaskHandle =
-    nullptr; // Store handles so that we can kill them if user goes into WiFi NTRIP Server mode
+    nullptr; // Store handles so that we can kill them if the user goes into WiFi NTRIP Server mode
 const int btReadTaskStackSize = 2000;
 
-// Array of start of sentence offsets into the ring buffer
+// Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
-#define AVERAGE_SENTENCE_LENGTH_IN_BYTES    32
-RING_BUFFER_OFFSET * rbOffsetArray;
+#define AVERAGE_SENTENCE_LENGTH_IN_BYTES 32
+RING_BUFFER_OFFSET *rbOffsetArray;
 uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
@@ -537,8 +537,8 @@ float lBandEBNO = 0.0; // Used on system status menu
 #include <esp_now.h>
 
 uint8_t espnowOutgoing[250];    // ESP NOW has max of 250 characters
-unsigned long espnowLastAdd;    // Tracks how long since last byte was added to the outgoing buffer
-uint8_t espnowOutgoingSpot = 0; // ESP Now has max of 250 characters
+unsigned long espnowLastAdd;    // Tracks how long since the last byte was added to the outgoing buffer
+uint8_t espnowOutgoingSpot = 0; // ESP Now has a max of 250 characters
 uint16_t espnowBytesSent = 0;   // May be more than 255
 uint8_t receivedMAC[6];         // Holds the broadcast MAC during pairing
 
@@ -586,7 +586,7 @@ unsigned long lastTiltCheck = 0;         // Limits polling on IM19 to 5Hz
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
-#include "NetworkUDP.h" //Supports both WiFiUdp and EthernetUdp
+#include "NetworkUDP.h"    //Supports both WiFiUdp and EthernetUdp
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -597,14 +597,14 @@ uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled,
 char deviceName[70];           // The serial string that is broadcast. Ex: 'Surveyor Base-BC61'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes = 0;           // Used to test if logging is less than max minutes
-uint32_t powerPressedStartTime = 0;   // Times how long user has been holding power button, used for power down
+uint32_t powerPressedStartTime = 0;   // Times how long the user has been holding the power button, used for power down
 bool inMainMenu = false;              // Set true when in the serial config menu system.
 bool btPrintEcho = false;             // Set true when in the serial config menu system via Bluetooth.
 bool btPrintEchoExit = false;         // When true, exit all config menus.
 
 uint32_t lastBattUpdate = 0;
 uint32_t lastDisplayUpdate = 0;
-bool forceDisplayUpdate = false; // Goes true when setup is pressed, causes display to refresh real time
+bool forceDisplayUpdate = false; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate = 0;
 bool forceSystemStateUpdate = false; // Set true to avoid update wait
 uint32_t lastAccuracyLEDUpdate = 0;
@@ -638,7 +638,7 @@ uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 uint32_t lastSetupMenuChange = 0; // Auto-selects the setup menu option after 1500ms
 uint32_t lastTestMenuChange = 0;  // Avoids exiting the test menu for at least 1 second
 
-bool firstRoverStart = false; // Used to detect if user is toggling power button at POR to enter test menu
+bool firstRoverStart = false; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
 bool newEventToRecord = false; // Goes true when INT pin goes high
 uint32_t triggerCount = 0;     // Global copy - TM2 event counter
@@ -646,19 +646,19 @@ uint32_t triggerTowMsR = 0;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR = 0; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
 uint32_t triggerAccEst = 0;    // Global copy - Accuracy estimate in nanoseconds
 
-bool firstPowerOn = true;      // After boot, apply new settings to ZED if user switches between base or rover
+bool firstPowerOn = true;      // After boot, apply new settings to ZED if the user switches between base or rover
 unsigned long splashStart = 0; // Controls how long the splash is displayed for. Currently min of 2s.
-bool restartBase = false;      // If user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover = false;     // If user modifies any NTRIP Client settings, we need to restart the rover
+bool restartBase = false;      // If the user modifies any NTRIP Server settings, we need to restart the base
+bool restartRover = false;     // If the user modifies any NTRIP Client settings, we need to restart the rover
 
-unsigned long startTime = 0;           // Used for checking longest running functions
+unsigned long startTime = 0;           // Used for checking longest-running functions
 bool lbandCorrectionsReceived = false; // Used to display L-Band SIV icon when corrections are successfully decrypted
 unsigned long lastLBandDecryption = 0; // Timestamp of last successfully decrypted PMP message
 volatile bool mqttMessageReceived = false; // Goes true when the subscribed MQTT channel reports back
 uint8_t leapSeconds = 0;                   // Gets set if GNSS is online
 unsigned long systemTestDisplayTime = 0;   // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber = 0;       // Tracks which test screen we're looking at
-unsigned long rtcWaitTime = 0; // At poweron, we give the RTC a few seconds to update during PointPerfect Key checking
+unsigned long rtcWaitTime = 0; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
@@ -682,11 +682,11 @@ uint16_t failedParserMessages_UBX = 0;
 uint16_t failedParserMessages_RTCM = 0;
 uint16_t failedParserMessages_NMEA = 0;
 
-unsigned long btLastByteReceived = 0; // Track when last BT transmission was received.
+unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
 const long btMinEscapeTime = 2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
 uint8_t btEscapeCharsReceived = 0; // Used to enter command mode
 
-bool externalPowerConnected = false; // Goes true when a high voltage is seen on power control pin
+bool externalPowerConnected = false; // Goes true when a high voltage is seen on the power control pin
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
@@ -703,73 +703,73 @@ volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer = 0;
 
-unsigned long um980BaseStartTimer = 0; //Tracks how long the base averaging mode has been running
+unsigned long um980BaseStartTimer = 0; // Tracks how long the base averaging mode has been running
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#define DEAD_MAN_WALKING_ENABLED    0
+#define DEAD_MAN_WALKING_ENABLED 0
 
 #if DEAD_MAN_WALKING_ENABLED
 
-// Developer subsitutions enabled by changing DEAD_MAN_WALKING_ENABLED
+// Developer substitutions enabled by changing DEAD_MAN_WALKING_ENABLED
 // from 0 to 1
 volatile bool deadManWalking;
-#define DMW_if                  if (deadManWalking)
-#define DMW_c(string)           DMW_if systemPrintf("%s called\r\n", string);
-#define DMW_m(string)           DMW_if systemPrintln(string);
-#define DMW_r(string)           DMW_if systemPrintf("%s returning\r\n",string);
-#define DMW_rs(string, status)  DMW_if systemPrintf("%s returning %d\r\n",string, (int32_t)status);
-#define DMW_st(routine, state)  DMW_if routine(state);
+#define DMW_if if (deadManWalking)
+#define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
+#define DMW_m(string) DMW_if systemPrintln(string);
+#define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
+#define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
+#define DMW_st(routine, state) DMW_if routine(state);
 
-#define START_DEAD_MAN_WALKING                          \
-{                                                       \
-    deadManWalking = true;                              \
-                                                        \
-    /* Output as much as possible to identify the location of the failure */    \
-    settings.printDebugMessages = true;                 \
-    settings.enableGNSSdebug = true;                     \
-    settings.enableHeapReport = true;                   \
-    settings.enableTaskReports = true;                  \
-    settings.enablePrintState = true;                   \
-    settings.enablePrintPosition = true;                \
-    settings.enablePrintIdleTime = true;                \
-    settings.enablePrintBatteryMessages = true;         \
-    settings.enablePrintRoverAccuracy = true;           \
-    settings.enablePrintBadMessages = true;             \
-    settings.enablePrintLogFileMessages = true;         \
-    settings.enablePrintLogFileStatus = true;           \
-    settings.enablePrintRingBufferOffsets = true;       \
-    settings.enablePrintStates = true;                  \
-    settings.enablePrintDuplicateStates = true;         \
-    settings.enablePrintRtcSync = true;                 \
-    settings.enablePrintBufferOverrun = true;           \
-    settings.enablePrintSDBuffers = true;               \
-    settings.periodicDisplay = (PeriodicDisplay_t)-1;   \
-    settings.enablePrintEthernetDiag = true;            \
-    settings.debugWifiState = true;                     \
-    settings.debugNetworkLayer = true;                  \
-    settings.printNetworkStatus = true;                 \
-    settings.debugNtripClientRtcm = true;               \
-    settings.debugNtripClientState = true;              \
-    settings.debugNtripServerRtcm = true;               \
-    settings.debugNtripServerState = true;              \
-    settings.debugPvtClient = true;                     \
-    settings.debugPvtServer = true;                     \
-    settings.debugPvtUdpServer = true;                     \
-}
+#define START_DEAD_MAN_WALKING                                                                                         \
+    {                                                                                                                  \
+        deadManWalking = true;                                                                                         \
+                                                                                                                       \
+        /* Output as much as possible to identify the location of the failure */                                       \
+        settings.printDebugMessages = true;                                                                            \
+        settings.enableGNSSdebug = true;                                                                               \
+        settings.enableHeapReport = true;                                                                              \
+        settings.enableTaskReports = true;                                                                             \
+        settings.enablePrintState = true;                                                                              \
+        settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintIdleTime = true;                                                                           \
+        settings.enablePrintBatteryMessages = true;                                                                    \
+        settings.enablePrintRoverAccuracy = true;                                                                      \
+        settings.enablePrintBadMessages = true;                                                                        \
+        settings.enablePrintLogFileMessages = true;                                                                    \
+        settings.enablePrintLogFileStatus = true;                                                                      \
+        settings.enablePrintRingBufferOffsets = true;                                                                  \
+        settings.enablePrintStates = true;                                                                             \
+        settings.enablePrintDuplicateStates = true;                                                                    \
+        settings.enablePrintRtcSync = true;                                                                            \
+        settings.enablePrintBufferOverrun = true;                                                                      \
+        settings.enablePrintSDBuffers = true;                                                                          \
+        settings.periodicDisplay = (PeriodicDisplay_t)-1;                                                              \
+        settings.enablePrintEthernetDiag = true;                                                                       \
+        settings.debugWifiState = true;                                                                                \
+        settings.debugNetworkLayer = true;                                                                             \
+        settings.printNetworkStatus = true;                                                                            \
+        settings.debugNtripClientRtcm = true;                                                                          \
+        settings.debugNtripClientState = true;                                                                         \
+        settings.debugNtripServerRtcm = true;                                                                          \
+        settings.debugNtripServerState = true;                                                                         \
+        settings.debugPvtClient = true;                                                                                \
+        settings.debugPvtServer = true;                                                                                \
+        settings.debugPvtUdpServer = true;                                                                             \
+    }
 
-#else   // 0
+#else // 0
 
 // Production substitutions
-#define deadManWalking              0
-#define DMW_if                      if (0)
+#define deadManWalking 0
+#define DMW_if if (0)
 #define DMW_c(string)
 #define DMW_m(string)
 #define DMW_r(string)
 #define DMW_rs(string, status)
 #define DMW_st(routine, state)
 
-#endif  // 0
+#endif // 0
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 /*
@@ -875,7 +875,7 @@ void setup()
     DMW_c("beginFS");
     beginFS(); // Load NVM settings
 
-    //At this point product variants are known, except early RTK products that lacked ID resistors
+    // At this point product variants are known, except early RTK products that lacked ID resistors
     DMW_c("loadSettingsPartial");
     loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
 
@@ -890,10 +890,12 @@ void setup()
     beginDisplay(); // Start display to be able to display any errors
 
     DMW_c("checkConfigureViaEthernet");
-    configureViaEthernet = checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
+    configureViaEthernet =
+        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_c("beginGnssUart");
-    beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before gnssBegin in case it is needed (Torch).
+    beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
+                     // gnssBegin in case it is needed (Torch).
 
     DMW_c("beginGNSS");
     gnssBegin(); // Requires settings. Connect to GNSS to get module type
@@ -926,7 +928,7 @@ void setup()
     gnssConfigure(); // Requires settings. Configure ZED module
 
     DMW_c("ethernetBegin");
-    ethernetBegin(); // Requires settings. Start-up the Ethernet connection
+    ethernetBegin(); // Requires settings. Start up the Ethernet connection
 
     DMW_c("beginAccelerometer");
     beginAccelerometer();
@@ -947,7 +949,7 @@ void setup()
     beginSystemState(); // Determine initial system state. Start task for button monitoring.
 
     DMW_c("rtcUpdate");
-    rtcUpdate(); // The GNSS likely has time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
+    rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
 
     Serial.flush(); // Complete any previous prints
 
@@ -960,7 +962,7 @@ void setup()
 void loop()
 {
     static uint32_t lastPeriodicDisplay;
-    
+
     // Determine which items are periodically displayed
     if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
     {
@@ -973,7 +975,6 @@ void loop()
     }
     if (deadManWalking)
         periodicDisplay = (PeriodicDisplay_t)-1;
-
 
     DMW_c("gnssUpdate");
     gnssUpdate();
@@ -1020,7 +1021,7 @@ void loop()
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }
 
-// Create or close files as needed (startup or as user changes settings)
+// Create or close files as needed (startup or as the user changes settings)
 // Push new data to log as needed
 void logUpdate()
 {
@@ -1089,7 +1090,7 @@ void logUpdate()
                 char semaphoreHolder[50];
                 getSemaphoreFunction(semaphoreHolder);
 
-                // While a retry does occur during the next loop, it is possible to loose
+                // While a retry does occur during the next loop, it is possible to lose
                 // trigger events if they occur too rapidly or if the log file is closed
                 // before the trigger event is written!
                 log_w("sdCardSemaphore failed to yield, held by %s, RTK_Surveyor.ino line %d", semaphoreHolder,
@@ -1180,7 +1181,7 @@ void logUpdate()
     }
 }
 
-// Once we have a fix, sync system clock to GNSS
+// Once we have a fix, sync the system clock to GNSS
 // All SD writes will use the system date/time
 void rtcUpdate()
 {
@@ -1227,7 +1228,7 @@ void rtcUpdate()
                     systemPrintln(rtc.getDateTime(true));
 
                     recordSystemSettingsToFileSD(
-                        settingsFileName); // This will re-record the setting file with current date/time.
+                        settingsFileName); // This will re-record the setting file with the current date/time.
                 }
                 else
                 {
@@ -1237,7 +1238,7 @@ void rtcUpdate()
         }         // End online.gnss
     }             // End online.rtc
 
-    // Print TP time sync information here. Trying to do it in the ISR would be a bad idea....
+    // Print TP time sync information here. Trying to do it in the ISR would be a bad idea...
     if (settings.enablePrintRtcSync == true)
     {
         if ((previousGnssSyncTv.tv_sec != gnssSyncTv.tv_sec) || (previousGnssSyncTv.tv_usec != gnssSyncTv.tv_usec))
@@ -1263,7 +1264,7 @@ void rtcUpdate()
 // Internal ESP NOW radio - Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
 void updateRadio()
 {
-    // If we have not gotten new RTCM bytes for a period of time, assume end of frame
+    // If we have not gotten new RTCM bytes for a period of time, assume the end of frame
     if (millis() - rtcmLastReceived > 50 && rtcmBytesSent > 0)
     {
         rtcmBytesSent = 0;
