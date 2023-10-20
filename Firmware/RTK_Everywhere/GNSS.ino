@@ -93,14 +93,7 @@ void gnssUpdate()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            // UM980 is polled directly for information when needed
-
-            // Update the GNSS LED according to our state
-
-            // Blink short PPS when GNSS 3D fixed
-            // Blink 2Hz 50% during RTK float
-            // Solid during RTK Fix
-            // Fade on/off during tilt corrected RTK fix
+            // We don't check serial data here; the gnssReadTask takes care of serial consumption
         }
     }
 }
@@ -943,7 +936,7 @@ void gnssSetTalkerGNGGA()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO um980SetTalkerGNGGA();
+            // TODO um980SetTalkerGNGGA();
         }
     }
 }
@@ -957,7 +950,7 @@ void gnssEnableGgaForNtrip()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO um980EnableGgaForNtrip();
+            // TODO um980EnableGgaForNtrip();
         }
     }
 }
@@ -968,11 +961,11 @@ uint16_t gnssRtcmBufferAvailable()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedRtcmBufferAvailable());
+            return (zedRtcmBufferAvailable());
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO return(um980RtcmBufferAvailable());
+            // TODO return(um980RtcmBufferAvailable());
             return (0);
         }
     }
@@ -985,13 +978,12 @@ uint16_t gnssRtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedRtcmRead(rtcmBuffer, rtcmBytesToRead));
+            return (zedRtcmRead(rtcmBuffer, rtcmBytesToRead));
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO return(um980RtcmRead(rtcmBuffer, rtcmBytesToRead));
-                        return (0);
-
+            // TODO return(um980RtcmRead(rtcmBuffer, rtcmBytesToRead));
+            return (0);
         }
     }
     return (0);
@@ -1008,8 +1000,8 @@ bool gnssSetMessages(int maxRetries)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //We probably don't need this for the UM980
-            // TODO return(um980SetMessages(maxRetries));
+            // We probably don't need this for the UM980
+            //  TODO return(um980SetMessages(maxRetries));
             return (true);
         }
     }
@@ -1025,8 +1017,8 @@ bool gnssSetMessagesUsb(int maxRetries)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //We probably don't need this for the UM980
-            // TODO return(um980SetMessagesUsb(maxRetries));
+            // We probably don't need this for the UM980
+            //  TODO return(um980SetMessagesUsb(maxRetries));
             return (true);
         }
     }
@@ -1039,11 +1031,11 @@ bool gnssSetConstellations()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedSetConstellations(true)); //Send fully formed setVal list
+            return (zedSetConstellations(true)); // Send fully formed setVal list
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            return(um980SetConstellations());
+            return (um980SetConstellations());
         }
     }
     return (false);
@@ -1056,11 +1048,11 @@ uint16_t gnssFileBufferAvailable()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedFileBufferAvailable());
+            return (zedFileBufferAvailable());
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO return(um980FileBufferAvailable());
+            // TODO return(um980FileBufferAvailable());
             return (0);
         }
     }
@@ -1074,11 +1066,11 @@ uint16_t gnssExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return(zedExtractFileBufferData(fileBuffer, fileBytesToRead));
+            return (zedExtractFileBufferData(fileBuffer, fileBytesToRead));
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            //TODO return(um980FileBufferAvailable());
+            // TODO return(um980FileBufferAvailable());
             return (0);
         }
     }

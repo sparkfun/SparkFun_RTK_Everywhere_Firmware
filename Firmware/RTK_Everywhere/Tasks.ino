@@ -38,12 +38,12 @@ Tasks.ino
 // Macros
 //----------------------------------------
 
-#define WRAP_OFFSET(offset, increment, arraySize)   \
-{                                                   \
-    offset += increment;                            \
-    if (offset >= arraySize)                        \
-        offset -= arraySize;                        \
-}
+#define WRAP_OFFSET(offset, increment, arraySize)                                                                      \
+    {                                                                                                                  \
+        offset += increment;                                                                                           \
+        if (offset >= arraySize)                                                                                       \
+            offset -= arraySize;                                                                                       \
+    }
 
 //----------------------------------------
 // Constants
@@ -60,13 +60,8 @@ enum RingBufferConsumers
     RBC_MAX
 };
 
-const char * const ringBufferConsumer[] =
-{
-    "Bluetooth",
-    "PVT Client",
-    "PVT Server",
-    "SD Card",
-    "PVT UDP Server",
+const char *const ringBufferConsumer[] = {
+    "Bluetooth", "PVT Client", "PVT Server", "SD Card", "PVT UDP Server",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -75,8 +70,8 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 // Locals
 //----------------------------------------
 
-volatile static RING_BUFFER_OFFSET dataHead;      // Head advances as data comes in from GNSS's UART
-volatile int32_t availableHandlerSpace; // settings.gnssHandlerBufferSize - usedSpace
+volatile static RING_BUFFER_OFFSET dataHead; // Head advances as data comes in from GNSS's UART
+volatile int32_t availableHandlerSpace;      // settings.gnssHandlerBufferSize - usedSpace
 volatile const char *slowConsumer;
 
 // Buffer the incoming Bluetooth stream so that it can be passed in bulk over I2C
@@ -343,7 +338,7 @@ void gnssReadTask(void *e)
             {
                 // Read the data from the logging buffer
                 gnssExtractFileBufferData(&incomingData,
-                                               1); // TODO: make this more efficient by reading multiple bytes?
+                                          1); // TODO: make this more efficient by reading multiple bytes?
 
                 // Save the data byte
                 parse.buffer[parse.length++] = incomingData;
@@ -363,6 +358,7 @@ void gnssReadTask(void *e)
     }
 }
 
+// Call back from within parser, for end of message
 // Process a complete message incoming from parser
 // If we get a complete NMEA/UBX/RTCM message, pass on to SD/BT/PVT interfaces
 void processUart1Message(PARSE_STATE *parse, uint8_t type)
@@ -397,6 +393,10 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
         case SENTENCE_TYPE_UBX:
             systemPrintf("%s UBX %d.%d, %2d bytes\r\n", parse->parserName, parse->message >> 8, parse->message & 0xff,
                          parse->length);
+            break;
+
+        case SENTENCE_TYPE_UNICORE:
+            systemPrintf("%s UNICORE, %2d bytes\r\n", parse->parserName, parse->length);
             break;
         }
     }
@@ -650,7 +650,7 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 }
 
 // Remove previous messages from the ring buffer
-void discardRingBufferBytes(RING_BUFFER_OFFSET * tail, RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
+void discardRingBufferBytes(RING_BUFFER_OFFSET *tail, RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
     // The longest tail is being trimmed.  Medium length tails may contain
     // some data within the region begin trimmed.  The shortest tails will
@@ -1025,7 +1025,7 @@ void tickerBtUpdate()
 {
     if (productVariant == RTK_SURVEYOR)
     {
-        //Set BT status LED according to bluetoothGetState() 
+        // Set BT status LED according to bluetoothGetState()
 
         // Blink on/off while we wait for BT connection
         if (bluetoothGetState() == BT_NOTCONNECTED)
@@ -1061,7 +1061,7 @@ void tickerBtUpdate()
     }
     else if (productVariant == RTK_TORCH)
     {
-        //Set BT, GNSS, and charge LEDs
+        // Set BT, GNSS, and charge LEDs
 
         // Blink on/off while we wait for BT connection
         if (bluetoothGetState() == BT_NOTCONNECTED)
@@ -1151,7 +1151,8 @@ void ButtonCheckTask(void *e)
 
         if (productVariant == RTK_SURVEYOR)
         {
-            if (setupBtn && (settings.disableSetupButton == false)) // Allow check of the setup button if not overridden by settings
+            if (setupBtn &&
+                (settings.disableSetupButton == false)) // Allow check of the setup button if not overridden by settings
             {
                 setupBtn->read();
 
@@ -1332,8 +1333,9 @@ void ButtonCheckTask(void *e)
                     }
                 } // End disabdisableSetupButton check
             }
-        }                                                                          // End Platform = RTK Express
-        else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT) // Check one momentary button
+        } // End Platform = RTK Express
+        else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
+                 productVariant == RTK_FACET_LBAND_DIRECT) // Check one momentary button
         {
             if (powerBtn != nullptr)
                 powerBtn->read();
@@ -1607,7 +1609,7 @@ void ButtonCheckTask(void *e)
                         requestChangeState(STATE_BASE_NOT_STARTED);
                         break;
                     }
-                } //End disableSetupButton check
+                } // End disableSetupButton check
             }
         } // End Platform = REFERENCE_STATION
 
@@ -1665,8 +1667,8 @@ void idleTask(void *e)
     }
 }
 
-// Serial Read/Write tasks for the GNSS receiver must be started after BT is up and running otherwise SerialBT->available will
-// cause reboot
+// Serial Read/Write tasks for the GNSS receiver must be started after BT is up and running otherwise
+// SerialBT->available will cause reboot
 bool tasksStartGnssUart()
 {
     // Verify that the ring buffer was successfully allocated
