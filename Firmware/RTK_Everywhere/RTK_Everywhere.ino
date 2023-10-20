@@ -265,9 +265,14 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
 
-#define SENTENCE_TYPE_NONE DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_NONE
-#define SENTENCE_TYPE_RTCM DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_RTCM
-#define SENTENCE_TYPE_UBX DevUBLOXGNSS::SFE_UBLOX_SENTENCE_TYPE_UBX
+enum
+{
+    SENTENCE_TYPE_NMEA = 0,
+    SENTENCE_TYPE_NONE,
+    SENTENCE_TYPE_RTCM,
+    SENTENCE_TYPE_UBX,
+    SENTENCE_TYPE_UNICORE,
+};
 
 char zedFirmwareVersion[20];       // The string looks like 'HPG 1.12'. Output to system status menu and settings file.
 char neoFirmwareVersion[20];       // Output to system status menu.
