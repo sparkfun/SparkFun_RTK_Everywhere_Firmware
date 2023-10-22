@@ -60,7 +60,6 @@
 //    the minor firmware version
 #define RTK_IDENTIFIER (FIRMWARE_VERSION_MAJOR * 0x10 + FIRMWARE_VERSION_MINOR)
 
-#include "crc24q.h" //24-bit CRC-24Q cyclic redundancy checksum for RTCM parsing
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
@@ -265,15 +264,6 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
 
-enum
-{
-    SENTENCE_TYPE_NMEA = 0,
-    SENTENCE_TYPE_NONE,
-    SENTENCE_TYPE_RTCM,
-    SENTENCE_TYPE_UBX,
-    SENTENCE_TYPE_UNICORE,
-};
-
 char zedFirmwareVersion[20];       // The string looks like 'HPG 1.12'. Output to system status menu and settings file.
 char neoFirmwareVersion[20];       // Output to system status menu.
 uint8_t zedFirmwareVersionInt = 0; // Controls which features (constellations) can be configured (v1.12 doesn't support
@@ -367,6 +357,21 @@ const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lo
 bool lBandCommunicationEnabled = false;
 unsigned long rtcmLastPacketReceived =
     0; // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// GPS parse table
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#include "GpsMessageParser.h" // Include the parser
+
+// Define the parsers that get included
+#define PARSE_NMEA_MESSAGES
+#define PARSE_RTCM_MESSAGES
+#define PARSE_UBLOX_MESSAGES
+//#define PARSE_UNICORE_MESSAGES
+
+// Build the GPS message parse table
+GPS_PARSE_TABLE;
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GNSS configuration - UM980
