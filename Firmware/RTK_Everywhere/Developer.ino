@@ -148,6 +148,17 @@ void wifiShutdown() {}
 #endif // COMPILE_WIFI
 
 //----------------------------------------
+// IM19_IMU
+//----------------------------------------
+
+#ifndef  COMPILE_IM19_IMU
+
+void tiltApplyCompensation(char *nmeaSentence, int arraySize) {}
+void tiltUpdate() {}
+
+#endif  // COMPILE_IM19_IMU
+
+//----------------------------------------
 // UM980
 //----------------------------------------
 

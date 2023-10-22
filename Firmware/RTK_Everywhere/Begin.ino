@@ -339,6 +339,7 @@ void beginBoard()
                 settings.useI2cForLbandCorrections = false;
         }
     }
+#ifdef COMPILE_IM19_IMU
     else if (productVariant == RTK_TORCH)
     {
         // I2C pins have already been assigned
@@ -371,6 +372,7 @@ void beginBoard()
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
     }
+#endif  // COMPILE_IM19_IMU
     else if (productVariant == REFERENCE_STATION)
     {
         pin_GnssUart_RX = 16;
