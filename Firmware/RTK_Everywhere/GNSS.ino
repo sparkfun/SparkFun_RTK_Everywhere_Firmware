@@ -146,7 +146,7 @@ bool gnssSurveyInReset()
         else if (gnssPlatform == PLATFORM_UM980)
         {
             // Put UM980 into rover mode to cancel base averaging mode
-            return (um980->setModeRoverSurvey());
+            return (um980SetModeRoverSurvey());
         }
     }
     return (false);

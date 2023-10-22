@@ -416,7 +416,7 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
     if (type == SENTENCE_TYPE_UNICORE)
     {
         // Give this data to the library to update its internal variables
-        um980->unicoreHandler(parse->buffer, parse->length);
+        un980UnicoreHandler(parse->buffer, parse->length);
     }
 
     // Determine if this message will fit into the ring buffer

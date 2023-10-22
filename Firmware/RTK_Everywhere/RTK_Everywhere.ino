@@ -32,6 +32,7 @@
 //#define COMPILE_SD_MMC // Comment out to remove REFERENCE_STATION microSD SD_MMC support
 // #define REF_STN_GNSS_DEBUG //Uncomment this line to output GNSS library debug messages on serialGNSS-> Ref Stn only.
 // Needs ENABLE_DEVELOPER
+#define COMPILE_UM980   // Comment out to remove UM980 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -371,11 +372,9 @@ unsigned long rtcmLastPacketReceived =
 
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#ifdef COMPILE_UM980
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-
-HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what gnssPlatform we're on
-
-UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+#endif  // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables

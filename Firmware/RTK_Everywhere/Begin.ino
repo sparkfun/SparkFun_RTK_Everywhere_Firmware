@@ -88,6 +88,7 @@ void identifyBoard()
                 productVariant = RTK_SURVEYOR;
             }
         }
+#ifdef COMPILE_UM980
         else // No ZED on I2C so look for UM980 over serial
         {
             Wire.end(); // Disable default I2C post test
@@ -135,6 +136,7 @@ void identifyBoard()
                 pin_GNSS_DR_Reset = -1;
             }
         }
+#endif  // COMPILE_UM980
     }
 }
 
