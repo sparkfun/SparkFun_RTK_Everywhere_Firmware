@@ -620,7 +620,8 @@ uint8_t gnssGetSatellitesInView()
 }
 
 // ZED: 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead reckoning combined, 5 = time only
-// fix UM980: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+// fix
+// UM980: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
 uint8_t gnssGetFixType()
 {
     if (online.gnss == true)
@@ -691,8 +692,7 @@ bool gnssIsRTKFix()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            if (um980GetSolutionStatus() ==
-                0) // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+            if (um980GetPositionType() == 50) // 50 = RTK Fixed (Narrow-lane fixed solution)
                 return (true);
         }
     }
@@ -712,10 +712,7 @@ bool gnssIsRTKFloat()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            // TODO we need to confirm we see 1 during RTK float
-            //  Check against GPRMC message, F = float, R = fix.
-            if (um980GetSolutionStatus() ==
-                1) // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+            if (um980GetPositionType() == 49) // 49 = RTK Float (Presumed) (Wide-lane fixed solution)
                 return (true);
         }
     }
