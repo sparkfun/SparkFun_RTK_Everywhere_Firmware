@@ -903,13 +903,12 @@ void beginLEDs()
         digitalWrite(pin_batteryLevelLED_Red, LOW);
 
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
-        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
-
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
-        ledcAttachPin(pin_gnssStatusLED, ledBtChannel);
-
         ledcWrite(ledBtChannel, 255); // On at startup
-        ledcWrite(ledGnssChannel, 255);
+
+        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
+        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
+        ledcWrite(ledGnssChannel, 255); // On at startup
     }
 
     // Start ticker task for controlling LEDs

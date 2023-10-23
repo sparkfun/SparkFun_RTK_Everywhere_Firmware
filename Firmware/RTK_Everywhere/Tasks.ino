@@ -1098,14 +1098,43 @@ void tickerBluetoothLedUpdate()
 // Control GNSS LED on variants
 void tickerGnssLedUpdate()
 {
+    static uint8_t ledCallCounter = 0; // Used to calculate a 50% or 10% on rate for blinking
+
+    ledCallCounter++;
+    ledCallCounter %= 10; // Wrap to 10 calls per 1 second
+
     if (productVariant == RTK_TORCH)
     {
         // Update the GNSS LED according to our state
 
-        // Blink short PPS when GNSS 3D fixed
-        // Blink 2Hz 50% during RTK float
         // Solid during RTK Fix
+        // Blink 2Hz 50% during RTK float
+        // Blink short PPS when GNSS 3D fixed
+
         // Fade on/off during tilt corrected RTK fix
+
+        if (gnssIsRTKFix() == true)
+        {
+            Serial.println("GNSS LED RTK");
+            ledcWrite(ledGnssChannel, 255);
+        }
+        else if (gnssIsRTKFloat() == true)
+        {
+            Serial.println("GNSS LED Float");
+            if (ledCallCounter <= 5)
+                ledcWrite(ledGnssChannel, 255);
+            else
+                ledcWrite(ledGnssChannel, 0);
+        }
+        else if (gnssIsFixed() == true)
+        {
+            if (ledCallCounter == 0)
+            {
+                ledcWrite(ledGnssChannel, 255);
+            }
+            else
+                ledcWrite(ledGnssChannel, 0);
+        }
     }
 }
 

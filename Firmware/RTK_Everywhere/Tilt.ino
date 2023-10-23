@@ -124,8 +124,6 @@ void tiltBegin()
     }
     systemPrintln("Tilt sensor online.");
 
-    tiltSensor->setNaviFreshLimitMs(200); // Mark data as expired after 200ms. We need 5Hz.
-
     // tiltSensor->factoryReset();
 
     // while (tiltSensor->isConnected() == false)
@@ -141,9 +139,6 @@ void tiltBegin()
 
     // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
-
-    // Enable GNSS monitoring - Used for debug
-    // result &= tiltSensor->sendCommand("GNSS_OUTPUT=UART1,ON");
 
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
     if (productVariant == RTK_TORCH)
