@@ -1,6 +1,6 @@
 /*
     TODO:
-        Add debug menu for direct to USB
+        Add debug menu for direct-to-USB
         Blink GNSS LED
         Blink BT LED
         Get module version info um980PrintInfo()
@@ -49,14 +49,14 @@ bool um980Configure()
         Disable all message traffic
         Set COM port baud rates,
           UM980 COM1 - Direct to USB, 115200
-          UM980 COM2 - To IMU, then to ESP32 for BT. From settings.
-          UM980 COM3 - Config and LoRa Radio. Configured for 115200 from begin().
+          UM980 COM2 - To IMU. From settings.
+          UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
         Set minCNO
         Set elevationAngle
         Set Constellations
         Set messages
-          Enable selected NMEA messages on COM2
-          Enable selected RTCM messages on COM2
+          Enable selected NMEA messages on COM3
+          Enable selected RTCM messages on COM3
     */
 
     if (settings.enableGNSSdebug)
@@ -66,13 +66,15 @@ bool um980Configure()
     // to be defaulted
     checkArrayDefaults();
 
-    um980DisableAllOutput();
+    um980DisableAllOutput(); // Disable COM1/2/3
 
     bool response = true;
-    response &= um980->setPortBaudrate("COM1", 115200);      // COM1 is connected to switch, then USB
+    response &= um980->setPortBaudrate("COM1", 115200); // COM1 is connected to switch, then USB
+    response &= um980->setPortBaudrate("COM2", 115200); // COM2 is connected to the IMU
+    response &= um980->setPortBaudrate("COM3", 115200); // COM3 is connected to the switch, then ESP32
 
-    // For now, let's not change the baudrate of the interface. We'll be using the default 115200 for now.
-    // response &= um980SetBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
+    // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
+    response &= um980SetBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
@@ -80,12 +82,29 @@ bool um980Configure()
 
     response &= um980SetConstellations();
 
-    response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or
-                                   // similar.
+    // response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG
+    // or
+    //                                // similar.
+
+    //response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
+    //SIGNALGROUP causes the UM980 to automatically save and reset
+    
+    // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
+    response &= um980->sendCommand("BESTPOSB COM2 1");
+    response &= um980->sendCommand("PSRVELB COM2 1");
+
+    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
+    float outputRate = 1; // 1 = 1 report per second.
+    response &= um980->setNMEAPortMessage("GPGGA", "COM2", outputRate);
+    // response &= um980->setNMEAPortMessage("GPRMC", "COM2", outputRate); //Causes IMU to fail to read GNSS
+    // response &= um980->setNMEAPortMessage("GPGST", "COM2", outputRate); //Causes IMU to fail to read GNSS
+
+    // IM19 reads in binary+NMEA and passes out binary with tilt-corrected lat/long/alt
+
     if (response == false)
     {
         systemPrintln("UM980 failed to configure");
-        online.gnss = false; //Take it offline
+        online.gnss = false; // Take it offline
     }
 
     return (response);
@@ -98,8 +117,8 @@ bool um980ConfigureRover()
         Cancel any survey-in modes
         Set mode to Rover + dynamic model
         Set minElevation
-        Enable RTCM messages on COM2
-        Enable NMEA on COM2
+        Enable RTCM messages on COM3
+        Enable NMEA on COM3
     */
     if (online.gnss == false)
     {
@@ -107,21 +126,22 @@ bool um980ConfigureRover()
         return (false);
     }
 
-    um980DisableAllOutput();
+    //    um980DisableAllOutput();
 
     bool response = true;
 
-    response &= um980SetModel(settings.dynamicModel); // This will cancel any base averaging mode
+    // response &= um980SetModel(settings.dynamicModel); // This will cancel any base averaging mode
 
-    response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
+    // response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
-    response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or
-                                   // similar.
+    // response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG
+    // or
+    //                                // similar.
 
-    // TODO consider reducing the GSV setence to 1/4 of the GPGGA setting
+    // // TODO consider reducing the GSV setence to 1/4 of the GPGGA setting
 
-    response &= um980EnableRTCMRover(); // Only turn on messages, do not turn off messages. We assume the caller has
-                                        // UNLOG or similar.
+    // response &= um980EnableRTCMRover(); // Only turn on messages, do not turn off messages. We assume the caller has
+    // UNLOG or similar.
 
     response &= um980SaveConfiguration();
 
@@ -213,7 +233,7 @@ bool um980FixedBaseStart()
     return (response);
 }
 
-// Turn on all the enabled NMEA messages on COM2
+// Turn on all the enabled NMEA messages on COM3
 bool um980EnableNMEA()
 {
     bool response = true;
@@ -224,7 +244,7 @@ bool um980EnableNMEA()
         // has UNLOG or similar.
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
         {
-            if (um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM2",
+            if (um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
                 log_d("Enable NMEA failed at messageNumber %d %s.", messageNumber,
@@ -237,7 +257,7 @@ bool um980EnableNMEA()
     return (response);
 }
 
-// Turn on all the enabled RTCM Rover messages on COM2
+// Turn on all the enabled RTCM Rover messages on COM3
 bool um980EnableRTCMRover()
 {
     bool response = true;
@@ -248,7 +268,7 @@ bool um980EnableRTCMRover()
         // has UNLOG or similar.
         if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
         {
-            if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM2",
+            if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
             {
                 log_d("Enable RTCM failed at messageNumber %d %s.", messageNumber,
@@ -261,7 +281,7 @@ bool um980EnableRTCMRover()
     return (response);
 }
 
-// Turn on all the enabled RTCM Base messages on COM2
+// Turn on all the enabled RTCM Base messages on COM3
 bool um980EnableRTCMBase()
 {
     bool response = true;
@@ -272,7 +292,7 @@ bool um980EnableRTCMBase()
         // has UNLOG or similar.
         if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
         {
-            if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM2",
+            if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesRTCMBase[messageNumber]) == false)
             {
                 log_d("Enable RTCM failed at messageNumber %d %s.", messageNumber,
@@ -321,7 +341,11 @@ void um980DisableAllOutput()
     // Re-attempt as necessary
     for (int x = 0; x < 3; x++)
     {
-        if (um980->sendCommand("UNLOG COM2") == true)
+        bool response = true;
+        response &= um980->disableOutputPort("COM1");
+        response &= um980->disableOutputPort("COM2");
+        response &= um980->disableOutputPort("COM3");
+        if (response == true)
             break;
     }
 }
@@ -392,7 +416,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     }
     response &= um980EnableNMEA(); // Enact these rates
 
-    // TODO we don't know what state we are in, so we don't
+    // TODO We don't know what state we are in, so we don't
     // know which RTCM settings to update. Assume we are
     // in rover for now
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
@@ -407,8 +431,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     return (response);
 }
 
-// Send data direct from ESP GNSS UART1 to UM980 UART3
-// Note: The Tilt sensor is inbetween and may be affected.
+// Send data directly from ESP GNSS UART1 to UM980 UART3
 int um980PushRawData(uint8_t *dataToSend, int dataLength)
 {
     return (serialGNSS->write(dataToSend, dataLength));
@@ -542,7 +565,7 @@ void um980PrintInfo()
     systemPrintf("UM980 firmware: %s\r\n", "TODO");
 }
 
-// Return the number of milliseconds since data was updated
+// Return the number of milliseconds since the data was updated
 uint16_t um980FixAgeMilliseconds()
 {
     return (um980->getFixAgeMilliseconds());
