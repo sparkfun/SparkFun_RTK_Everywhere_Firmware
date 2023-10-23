@@ -394,6 +394,9 @@ void menuDebugHardware()
         systemPrint("10) IMU Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
 
+        if (productVariant == RTK_TORCH)
+            systemPrintln("11) UM980 Direct connect");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -439,6 +442,30 @@ void menuDebugHardware()
         else if (incoming == 10)
         {
             settings.enableImuDebug ^= 1;
+            // printEndpoint = PRINT_ENDPOINT_ALL; //The IMU often needs debugging while outside. Push all prints to
+            // Bluetooth as well.
+        }
+        else if (incoming == 11 && productVariant == RTK_TORCH)
+        {
+            systemPrintln("Press ! to exit");
+
+            // Echo everything to/from UM980
+            while (1)
+            {
+                while (serialGNSS->available())
+                    systemWrite(serialGNSS->read());
+
+                if(systemAvailable())
+                {
+                    byte incoming = systemRead();
+                    if(incoming == '!')
+                        break;
+                    else if(incoming == '1')
+                        serialGNSS->println("mask");
+                    else if(incoming == '2')
+                        serialGNSS->println("config");
+                }
+            }
         }
 
         else if (incoming == 'e')
