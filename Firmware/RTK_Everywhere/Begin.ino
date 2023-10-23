@@ -107,19 +107,29 @@ void identifyBoard()
             // We must start the serial port before handing it over to the library
             SerialGNSS.begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
 
-            //testGNSS.enableDebugging(); // Print all debug to Serial
+            // testGNSS.enableDebugging(); // Print all debug to Serial
 
             if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
             {
                 productVariant = RTK_TORCH;
                 log_d("UM980 detected");
+
+                // Turn on Bluetooth and GNSS LEDs to indicate power on
+                pin_bluetoothStatusLED = 32;
+                pin_gnssStatusLED = 13;
+
+                pinMode(pin_bluetoothStatusLED, OUTPUT);
+                digitalWrite(pin_bluetoothStatusLED, HIGH);
+
+                pinMode(pin_gnssStatusLED, OUTPUT);
+                digitalWrite(pin_gnssStatusLED, HIGH);
             }
             else
             {
                 productVariant = RTK_UNKNOWN;
                 systemPrintln("Unknown product variant detected");
-                
-                //Undo pin assignments
+
+                // Undo pin assignments
                 pin_GnssUart_RX = -1;
                 pin_GnssUart_TX = -1;
                 pin_GNSS_DR_Reset = -1;
@@ -330,14 +340,13 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         // I2C pins have already been assigned
-        
-        //During identifyBoard(), the GNSS UART and DR pins are assigned
+
+        // During identifyBoard(), the GNSS UART and DR pins are assigned
+        // During identifyBoard(), the Bluetooth and GNSS LEDs are assigned and turned on
 
         pin_powerSenseAndControl = 34;
         pin_powerFastOff = 14;
 
-        pin_bluetoothStatusLED = 32;
-        pin_gnssStatusLED = 13;
         pin_batteryLevelLED_Red = 33;
 
         pin_IMU_RX = 16;
@@ -355,10 +364,10 @@ void beginBoard()
         strncpy(platformPrefix, "Torch", sizeof(platformPrefix) - 1);
 
         tiltSupported = true; // Allow tiltUpdate() to run
-        
-        settings.enableSD = false; //Torch has no SD socket
 
-        settings.dataPortBaud = 115200; //Override settings. Use UM980 at 115200bps.
+        settings.enableSD = false; // Torch has no SD socket
+
+        settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
     }
     else if (productVariant == REFERENCE_STATION)
     {
@@ -729,10 +738,10 @@ void beginGnssUart()
 // https://github.com/espressif/arduino-esp32/issues/3386
 void pinGnssUartTask(void *pvParameters)
 {
-    if(productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH)
     {
-        //Override user setting. Required because beginGnssUart() is called before beginBoard().
-        settings.dataPortBaud = 115200; 
+        // Override user setting. Required because beginGnssUart() is called before beginBoard().
+        settings.dataPortBaud = 115200;
     }
 
     // Note: ESP32 2.0.6 does some strange auto-bauding thing here which takes 20s to complete if there is no data for
@@ -885,22 +894,34 @@ void beginLEDs()
     else if (productVariant == RTK_TORCH)
     {
         pinMode(pin_bluetoothStatusLED, OUTPUT);
-        digitalWrite(pin_bluetoothStatusLED, LOW);
+        digitalWrite(pin_bluetoothStatusLED, HIGH);
 
         pinMode(pin_gnssStatusLED, OUTPUT);
-        digitalWrite(pin_gnssStatusLED, LOW);
+        digitalWrite(pin_gnssStatusLED, HIGH);
 
         pinMode(pin_batteryLevelLED_Red, OUTPUT);
         digitalWrite(pin_batteryLevelLED_Red, LOW);
 
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
-        ledcSetup(ledGNSSChannel, pwmFreq, pwmResolution);
+        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
 
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
         ledcAttachPin(pin_gnssStatusLED, ledBtChannel);
 
-        ledcWrite(ledBtChannel, 0);
-        ledcWrite(ledGNSSChannel, 0);
+        ledcWrite(ledBtChannel, 255); // On at startup
+        ledcWrite(ledGnssChannel, 255);
+    }
+
+    // Start ticker task for controlling LEDs
+    if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
+    {
+        ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED
+        bluetoothLedTask.detach();                                                  // Turn off any previous task
+        bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+
+        ledcWrite(ledGnssChannel, 0);                                 // Turn off GNSS LED
+        gnssLedTask.detach();                                         // Turn off any previous task
+        gnssLedTask.attach(gnssLedTaskPace10Hz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 }
 

@@ -621,8 +621,8 @@ void stateUpdate()
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 1500)
             {
-                forceSystemStateUpdate = true; // Imediately go to this new state
-                changeState(setupState);       // Change to last setup state
+                forceSystemStateUpdate = true; //immediately go to this new state
+                changeState(setupState);       // Change to last set up state
             }
         }
         break;
@@ -630,9 +630,9 @@ void stateUpdate()
         case (STATE_WIFI_CONFIG_NOT_STARTED): {
             if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             {
-                // Start BT LED Fade to indicate start of WiFi
-                ledBtTask.detach();                              // Increase BT LED blinker task rate
-                ledBtTask.attach(ledBtTaskPace33Hz, tickerBtUpdate); // Rate in seconds, callback
+                // Start BT LED Fade to indicate the start of WiFi
+                bluetoothLedTask.detach();                              // Increase BT LED blinker task rate
+                bluetoothLedTask.attach(bluetoothLedTaskPace33Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
 
                 if (productVariant == RTK_SURVEYOR)
                 {

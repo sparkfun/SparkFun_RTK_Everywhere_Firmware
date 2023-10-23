@@ -1020,8 +1020,8 @@ void handleGnssDataTask(void *e)
     }
 }
 
-// Control LEDs on variants
-void tickerBtUpdate()
+// Control Bluetooth LED on variants
+void tickerBluetoothLedUpdate()
 {
     if (productVariant == RTK_SURVEYOR)
     {
@@ -1061,8 +1061,6 @@ void tickerBtUpdate()
     }
     else if (productVariant == RTK_TORCH)
     {
-        // Set BT, GNSS, and charge LEDs
-
         // Blink on/off while we wait for BT connection
         if (bluetoothGetState() == BT_NOTCONNECTED)
         {
@@ -1094,6 +1092,20 @@ void tickerBtUpdate()
         }
         else
             ledcWrite(ledBtChannel, 0);
+    }
+}
+
+// Control GNSS LED on variants
+void tickerGnssLedUpdate()
+{
+    if (productVariant == RTK_TORCH)
+    {
+        // Update the GNSS LED according to our state
+
+        // Blink short PPS when GNSS 3D fixed
+        // Blink 2Hz 50% during RTK float
+        // Solid during RTK Fix
+        // Fade on/off during tilt corrected RTK fix
     }
 }
 

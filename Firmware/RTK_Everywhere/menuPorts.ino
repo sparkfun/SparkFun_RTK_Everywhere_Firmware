@@ -6,7 +6,7 @@ void menuPorts()
              productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
         menuPortsMultiplexed();
     else
-        Serial.println("No ports menu for this platform");
+        systemPrintln("No ports menu for this platform");
 }
 
 // Set the baud rates for the radio and data ports

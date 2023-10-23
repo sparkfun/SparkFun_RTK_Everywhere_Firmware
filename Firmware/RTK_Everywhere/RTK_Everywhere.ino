@@ -393,7 +393,7 @@ const int pwmFreq = 5000;
 const int ledRedChannel = 0;
 const int ledGreenChannel = 1;
 const int ledBtChannel = 2;
-const int ledGNSSChannel = 3;
+const int ledGnssChannel = 3;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;
@@ -476,9 +476,13 @@ int binBytesLastUpdate = 0;            // Allows websocket notification to be se
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <Ticker.h>
 
-Ticker ledBtTask;
-float ledBtTaskPace2Hz = 0.5;
-float ledBtTaskPace33Hz = 0.03;
+Ticker bluetoothLedTask;
+float bluetoothLedTaskPace2Hz = 0.5;
+float bluetoothLedTaskPace33Hz = 0.03;
+
+Ticker gnssLedTask;
+float gnssLedTaskPace10Hz = 0.1;
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Accelerometer for bubble leveling

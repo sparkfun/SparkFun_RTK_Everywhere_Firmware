@@ -224,14 +224,6 @@ void bluetoothStart()
 
         systemPrintln(deviceName);
 
-        // Start ticker task for controlling Bluetooth pair LED
-        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
-        {
-            ledcWrite(ledBtChannel, 255);                    // Turn on BT LED
-            ledBtTask.detach();                              // Slow down the BT LED blinker task
-            ledBtTask.attach(ledBtTaskPace2Hz, tickerBtUpdate); // Rate in seconds, callback
-        }
-
         bluetoothState = BT_NOTCONNECTED;
         reportHeapNow(false);
     }
