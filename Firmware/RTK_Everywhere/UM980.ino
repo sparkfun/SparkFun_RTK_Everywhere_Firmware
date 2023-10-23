@@ -496,14 +496,14 @@ bool um980IsValidDate()
 
 uint8_t um980GetSolutionStatus()
 {
-    return (um980->getSolutionStatus()); // 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+    return (um980->getSolutionStatus()); // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
 }
 
 bool um980IsFullyResolved()
 {
     // UM980 does not have this feature directly.
-    // getSolutionStatus: 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, 17 = RTK Float, 50 = RTK Fixed, ...
-    if (um980GetSolutionStatus() >= 8)
+    // getSolutionStatus: 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+    if (um980GetSolutionStatus() == 0)
         return (true);
     return (false);
 }
@@ -523,7 +523,16 @@ uint32_t um980GetTimeDeviation()
     return (timeDeviation_ns);
 }
 
-// 0 = None, 1 = FixedPos, 8 = DopplerVelocity, 16 = Single, ...
+// 0 = None
+// 16 = 3D Fix (Single)
+// 49 = RTK Float (Presumed) (Wide-lane fixed solution)
+// 50 = RTK Fixed (Narrow-lane fixed solution)
+// Othere position types, not yet seen
+// 1 = FixedPos, 8 = DopplerVelocity, 
+// 17 = Pseudorange differential solution, 18 = SBAS, 32 = L1 float, 33 = Ionosphere-free float solution
+// 34 = Narrow-land float solution, 48 = L1 fixed solution
+// 68 = Precise Point Positioning solution converging
+// 69 = Precise Point Positioning
 uint8_t um980GetPositionType()
 {
     return (um980->getPositionType());
