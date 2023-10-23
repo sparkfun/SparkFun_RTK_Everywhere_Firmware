@@ -1115,12 +1115,10 @@ void tickerGnssLedUpdate()
 
         if (gnssIsRTKFix() == true)
         {
-            Serial.println("GNSS LED RTK");
             ledcWrite(ledGnssChannel, 255);
         }
         else if (gnssIsRTKFloat() == true)
         {
-            Serial.println("GNSS LED Float");
             if (ledCallCounter <= 5)
                 ledcWrite(ledGnssChannel, 255);
             else
