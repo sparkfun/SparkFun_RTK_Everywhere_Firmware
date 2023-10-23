@@ -1,27 +1,80 @@
-double tiltLatitude = 0;
-double tiltLongitude = 0;
-double tiltAltitude = 0;
-float tiltPositionAccuracy = 0;
-uint32_t tiltStatus = 0;
-
 void tiltUpdate()
 {
     if (tiltSupported == true)
     {
         if (settings.enableTiltCompensation == true && online.imu == true)
         {
-            // Poll IMU at 5Hz to get latest sensor readings
-            if (millis() - lastTiltCheck > 200) // Update our internal variables at 5Hz
-            {
-                lastTiltCheck = millis();
+            tiltSensor->update(); // Check for the most recent incoming binary data
 
-                if (tiltSensor->updateNavi() == IM19_RESULT_OK)
+            if (settings.enableImuDebug == true)
+            {
+                // During IMU debug, system prints are echoed to Bluetooth as well
+
+                // Check IMU state at 1Hz
+                if (millis() - lastTiltCheck > 1000)
                 {
-                    tiltLatitude = tiltSensor->getNaviLatitude();
-                    tiltLongitude = tiltSensor->getNaviLongitude();
-                    tiltAltitude = tiltSensor->getNaviAltitude();
-                    tiltPositionAccuracy = tiltSensor->getNaviPositionAccuracy();
-                    tiltStatus = tiltSensor->getNaviStatus();
+                    lastTiltCheck = millis();
+
+                    systemPrintf("gnss navi timestamp: %0.2f lat: %0.11f lon: %0.11f alt: %0.4f\r\n",
+                                 tiltSensor.getNaviTimestamp(), tiltSensor.getNaviLatitude(),
+                                 tiltSensor.getNaviLongitude(), tiltSensor.getNaviAltitude());
+
+                    uint32_t naviStatus = tiltSensor->getNaviStatus();
+                    systemPrintf("naviStatus: 0x%04X - ", naviStatus);
+
+                    // 0 = No fix, 1 = 3D, 4 = RTK Fix
+                    if (tiltSensor->getGnssSolutionState() == 4)
+                        systemPrintln("RTK Fix");
+                    else if (tiltSensor->getGnssSolutionState() == 1)
+                        systemPrintln("3D Fix");
+                    else if (tiltSensor->getGnssSolutionState() == 0)
+                        systemPrintln("No Fix");
+
+                    // if (naviStatus & (1 << 0))
+                    //     systemPrintln("Status: Filter uninitialized"); // Finit 0x1
+                    if (naviStatus & (1 << 1))
+                        systemPrintln("Status: Filter convergence complete"); // Ready 0x2
+                    if (naviStatus & (1 << 2))
+                        systemPrintln("Status: In filter convergence"); // Inaccurate 0x4
+                    if (naviStatus & (1 << 3))
+                        systemPrintln("Status: Excessive tilt angle"); // TiltReject 0x8
+
+                    if (naviStatus & (1 << 4))
+                        systemPrintln("Status: GNSS Positioning data difference"); // GnssReject 0x10
+                    if (naviStatus & (1 << 5))
+                        systemPrintln("Status: Filter Reset"); // FReset 0x20
+                    if (naviStatus & (1 << 6))
+                        systemPrintln("Status: Tilt estimation Phase 1"); // FixRlsStage1 0x40
+                    if (naviStatus & (1 << 7))
+                        systemPrintln("Status: Tilt estimation Phase 2"); // FixRlsStage2 0x80
+
+                    if (naviStatus & (1 << 8))
+                        systemPrintln("Status: Tilt estimation Phase 3"); // FixRlsStage3 0x100
+                    if (naviStatus & (1 << 9))
+                        systemPrintln("Status: Tilt estimation Phase 4"); // FixRlsStage4 0x200
+                    if (naviStatus & (1 << 10))
+                        systemPrintln("Status: Tilt estimation Complete"); // FixRlsOK 0x400
+
+                    if (naviStatus & (1 << 13))
+                        systemPrintln("Status: Initialize shaking direction 1"); // Direction1 0x2000
+                    if (naviStatus & (1 << 14))
+                        systemPrintln("Status: Initialize shaking direction 2"); // Direction2 0x4000
+
+                    if (naviStatus & (1 << 16))
+                        systemPrintln("Status: Filter determines GNSS data is invalid"); // GnssLost 0x10000
+                    if (naviStatus & (1 << 17))
+                        systemPrintln("Status: Initialization complete"); // FInitOk 0x20000
+                    // if (naviStatus & (1 << 18))
+                    //     systemPrintln("Status: PPS signal received"); // PPSReady 0x40000
+                    if (naviStatus & (1 << 19))
+                        systemPrintln("Status: Module time synchronization successful"); // SyncReady 0x80000
+
+                    // if (naviStatus & (1 << 20))
+                    //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
+                    //     0x100000
+
+                    // 0x 04 00 01 - No PPS yet, just GNSS (PPS received 18, finit 1)
+                    // 0x 14 00 01 - ?
                 }
             }
         }
@@ -61,7 +114,7 @@ void tiltBegin()
     // We must start the serial port before handing it over to the library
     SerialForTilt->begin(115200, SERIAL_8N1, pin_IMU_RX, pin_IMU_TX);
 
-    if(settings.enableImuDebug == true)
+    if (settings.enableImuDebug == true)
         tiltSensor->enableDebugging(); // Print all debug to Serial
 
     if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
@@ -86,13 +139,13 @@ void tiltBegin()
     // Use serial port 3 as the serial port for communication with GNSS
     result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART3");
 
-    // Use serial port 1 as the main output and combines navigation data output
+    // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
     // Enable GNSS monitoring - Used for debug
     // result &= tiltSensor->sendCommand("GNSS_OUTPUT=UART1,ON");
 
-    // Set the distance of the IMU from center line - x:6.78mm y:10.73mm z:19.25mm
+    // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
     if (productVariant == RTK_TORCH)
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925");
 
@@ -252,28 +305,28 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     // Add start of message up to latitude
     strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Convert tilt compensated latitude to DDMM
-    coordinateConvertInput(tiltLatitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated latitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Latitude
+    // Add tilt-compensated Latitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-    // Convert tilt compensated longitude to DDMM
-    coordinateConvertInput(tiltLongitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated longitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Longitude
+    // Add tilt-compensated Longitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
     // Add interstitial between end of lon and beginning of alt
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltAltitude);
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
@@ -352,8 +405,8 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     // Add start of message up to latitude
     strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Convert tilt compensated latitude to DDMM
-    coordinateConvertInput(tiltLatitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated latitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
@@ -362,8 +415,8 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-    // Convert tilt compensated longitude to DDMM
-    coordinateConvertInput(tiltLongitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated longitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
@@ -443,8 +496,8 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     // Add start of message up to latitude
     strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Convert tilt compensated latitude to DDMM
-    coordinateConvertInput(tiltLatitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated latitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
@@ -453,14 +506,14 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-    // Convert tilt compensated longitude to DDMM
-    coordinateConvertInput(tiltLongitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated longitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Longitude
+    // Add tilt-compensated Longitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Add remainder of sentence up to checksum
+    // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
 
     // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
@@ -543,18 +596,18 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     // Add start of message up to latitude
     strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Convert tilt compensated latitude to DDMM
-    coordinateConvertInput(tiltLatitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated latitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Latitude
+    // Add tilt-compensated Latitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-    // Convert tilt compensated longitude to DDMM
-    coordinateConvertInput(tiltLongitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    // Convert tilt-compensated longitude to DDMM
+    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
@@ -564,7 +617,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltAltitude);
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
