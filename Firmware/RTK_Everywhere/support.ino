@@ -1230,7 +1230,7 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
     else
     {
         systemPrintln();
-        systemPrintln("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
+        systemPrintf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
                       calculatedCRC);
     }
 

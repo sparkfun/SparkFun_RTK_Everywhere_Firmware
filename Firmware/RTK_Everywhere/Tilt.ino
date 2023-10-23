@@ -15,12 +15,12 @@ void tiltUpdate()
                 {
                     lastTiltCheck = millis();
 
-                    systemPrintf("gnss navi timestamp: %0.2f lat: %0.11f lon: %0.11f alt: %0.4f\r\n",
-                                 tiltSensor.getNaviTimestamp(), tiltSensor.getNaviLatitude(),
-                                 tiltSensor.getNaviLongitude(), tiltSensor.getNaviAltitude());
+                    systemPrintf("NAVI timestamp: %0.2f lat: %0.11f lon: %0.11f alt: %0.4f\r\n",
+                                 tiltSensor->getNaviTimestamp(), tiltSensor->getNaviLatitude(),
+                                 tiltSensor->getNaviLongitude(), tiltSensor->getNaviAltitude());
 
                     uint32_t naviStatus = tiltSensor->getNaviStatus();
-                    systemPrintf("naviStatus: 0x%04X - ", naviStatus);
+                    systemPrintf("Tilt Status: 0x%04X - ", naviStatus);
 
                     // 0 = No fix, 1 = 3D, 4 = RTK Fix
                     if (tiltSensor->getGnssSolutionState() == 4)
