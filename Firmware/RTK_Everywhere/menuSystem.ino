@@ -419,7 +419,7 @@ void menuDebugHardware()
 
             logTestState = LOGTEST_START; // Start test
 
-            // Mark current log file as complete to force test start
+            // Mark the current log file as complete to force the test start
             startCurrentLogTime_minutes = systemTime_minutes - settings.maxLogLength_minutes;
         }
         else if (incoming == 7)
