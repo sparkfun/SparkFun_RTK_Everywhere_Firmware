@@ -38,11 +38,18 @@ void danceLEDs()
         delay(250);
         digitalWrite(pin_bluetoothStatusLED, LOW);
     }
+    else if (productVariant == RTK_TORCH)
+    {
+        // LEDs are already on. Just boot.
+    }
     else
     {
-        // Units can boot under 1s. Keep splash screen up for at least 2s.
-        while ((millis() - splashStart) < 2000)
-            delay(1);
+        if (online.display == true)
+        {
+            // Units can boot under 1s. Keep the splash screen up for at least 2s.
+            while ((millis() - splashStart) < 2000)
+                delay(1);
+        }
     }
 }
 
@@ -763,16 +770,16 @@ void updateAccuracyLEDs()
 // Helper method to convert GNSS time and date into Unix Epoch
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
 {
-    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;             // Jan 1st 2020 as days from Jan 1st 1970
+    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                  // Jan 1st 2020 as days from Jan 1st 1970
     t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnssGetYear() - 2020]; // Add on the number of days since 2020
-    t += (uint32_t)
-        SFE_UBLOX_DAYS_SINCE_MONTH[gnssGetYear() % 4 == 0 ? 0 : 1][gnssGetMonth() - 1]; // Add on the number of days since Jan 1st
+    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnssGetYear() % 4 == 0 ? 0 : 1]
+                                             [gnssGetMonth() - 1]; // Add on the number of days since Jan 1st
     t += (uint32_t)gnssGetDay() - 1; // Add on the number of days since the 1st of the month
-    t *= 24;                    // Convert to hours
+    t *= 24;                         // Convert to hours
     t += (uint32_t)gnssGetHour();    // Add on the hour
-    t *= 60;                    // Convert to minutes
+    t *= 60;                         // Convert to minutes
     t += (uint32_t)gnssGetMinute();  // Add on the minute
-    t *= 60;                    // Convert to seconds
+    t *= 60;                         // Convert to seconds
     t += (uint32_t)gnssGetSecond();  // Add on the second
 
     int32_t us = gnssGetNanosecond() / 1000; // Convert nanos to micros
