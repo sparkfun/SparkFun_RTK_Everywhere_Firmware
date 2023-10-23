@@ -106,7 +106,7 @@ void tiltBegin()
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp);
     result &= tiltSensor->sendCommand(clubVector);
 
-    // Configure interface type. This allows IM19 to receive Unicore style binary messages
+    // Configure interface type. This allows IM19 to receive Unicore-style binary messages
     result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
 
     // Configure as tilt measurement mode
@@ -146,19 +146,19 @@ void tiltStop()
     online.imu = false;
 }
 
-// Given a NMEA sentence, modify the sentence to use the latest tilt compensated lat/lon/alt
+// Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
 // Modifies the sentence directly. Updates sentence CRC.
-// Auto-detects sentence type and will only modify senteces that have lat/lon/alt (ie GGA yes, GSV no)
+// Auto-detects sentence type and will only modify sentences that have lat/lon/alt (ie GGA yes, GSV no)
 void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 {
-    // Verify the sentence is null terminated
+    // Verify the sentence is null-terminated
     if (strnlen(nmeaSentence, arraySize) == arraySize)
     {
         systemPrintln("Sentence is not null terminated!");
         return;
     }
 
-    // Identify sentece type
+    // Identify sentence type
     char sentenceType[sizeof("GGA") + 1] = {0};
     strncpy(sentenceType, &nmeaSentence[3],
             3); // Copy three letters, starting in spot 3. Null terminated from array initializer.
@@ -275,10 +275,10 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     // Convert altitude double to string
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltAltitude);
 
-    // Add tilt compensated Altitude
+    // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Add remainder of sentence up to checksum
+    // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
 
     // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
@@ -292,7 +292,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Overwrite original NMEA
+    // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sizeof(newSentence));
 }
 
@@ -356,7 +356,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     coordinateConvertInput(tiltLatitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Latitude
+    // Add tilt-compensated Latitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
     // Add interstitial between end of lat and beginning of lon
@@ -366,10 +366,10 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     coordinateConvertInput(tiltLongitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Longitude
+    // Add tilt-compensated Longitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Add remainder of sentence up to checksum
+    // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
 
     // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
@@ -383,7 +383,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Overwrite original NMEA
+    // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sizeof(newSentence));
 }
 
@@ -447,7 +447,7 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     coordinateConvertInput(tiltLatitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Latitude
+    // Add tilt-compensated Latitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
     // Add interstitial between end of lat and beginning of lon
@@ -474,7 +474,7 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Overwrite original NMEA
+    // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sizeof(newSentence));
 }
 
@@ -557,7 +557,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     coordinateConvertInput(tiltLongitude, COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
-    // Add tilt compensated Longitude
+    // Add tilt-compensated Longitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
     // Add interstitial between end of lon and beginning of alt
@@ -566,10 +566,10 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     // Convert altitude double to string
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltAltitude);
 
-    // Add tilt compensated Altitude
+    // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Add remainder of sentence up to checksum
+    // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
 
     // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
@@ -583,6 +583,6 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
 
-    // Overwrite original NMEA
+    // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sizeof(newSentence));
 }

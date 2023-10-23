@@ -1,8 +1,8 @@
 /*------------------------------------------------------------------------------
 Tasks.ino
 
-  This module implements the high frequency tasks made by xTaskCreate() and any
-  low frequency tasks that are called by Ticker.
+  This module implements the high-frequency tasks made by xTaskCreate() and any
+  low-frequency tasks that are called by Ticker.
 
                                    GNSS
                                     |
@@ -90,8 +90,8 @@ static uint16_t rbOffsetHead;
 // Task routines
 //----------------------------------------
 
-// If the phone has any new data (NTRIP RTCM, etc), read it in over Bluetooth and pass along to GNSS
-// Scan for escape characters to enter config menu
+// If the phone has any new data (NTRIP RTCM, etc), read it in over Bluetooth and pass it along to GNSS
+// Scan for escape characters to enter the config menu
 void btReadTask(void *e)
 {
     int rxBytes;
@@ -105,7 +105,7 @@ void btReadTask(void *e)
             systemPrintln("btReadTask running");
         }
 
-        // Receive RTCM corrections or UBX config messages over bluetooth and pass along to ZED
+        // Receive RTCM corrections or UBX config messages over bluetooth and pass them along to ZED
         rxBytes = 0;
         if (bluetoothGetState() == BT_CONNECTED)
         {
@@ -118,7 +118,7 @@ void btReadTask(void *e)
                 if (incoming == btEscapeCharacter)
                 {
                     // Ignore escape characters received within 2 seconds of serial traffic
-                    // Allow escape characters received within first 2 seconds of power on
+                    // Allow escape characters received within the first 2 seconds of power on
                     if (millis() - btLastByteReceived > btMinEscapeTime || millis() < btMinEscapeTime)
                     {
                         btEscapeCharsReceived++;
@@ -134,7 +134,7 @@ void btReadTask(void *e)
                     }
                     else
                     {
-                        // Ignore this escape character, passing along to output
+                        // Ignore this escape character, pass it along to the output
                         if (USE_I2C_GNSS)
                         {
                             // serialGNSS->write(incoming);

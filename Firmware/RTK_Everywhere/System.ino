@@ -1,5 +1,5 @@
 
-// Turn on indicator LEDs to verify LED function and indicate setup sucess
+// Turn on indicator LEDs to verify LED function and indicate setup success
 void danceLEDs()
 {
     if (productVariant == RTK_SURVEYOR)

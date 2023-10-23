@@ -357,7 +357,7 @@ int gnssPushRawData(uint8_t *dataToSend, int dataLength)
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            // Send data direct from ESP GNSS UART to UM980 UART3
+            // Send data directly from ESP GNSS UART to UM980 UART3
             return (um980PushRawData((uint8_t *)dataToSend, dataLength));
         }
     }
