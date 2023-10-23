@@ -86,12 +86,17 @@ bool um980Configure()
     // or
     //                                // similar.
 
-    //response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
-    //SIGNALGROUP causes the UM980 to automatically save and reset
-    
+    // response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
+    // SIGNALGROUP causes the UM980 to automatically save and reset
+
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
     response &= um980->sendCommand("BESTPOSB COM2 1");
     response &= um980->sendCommand("PSRVELB COM2 1");
+
+    // Configure UM980 to output binary reports out COM3, connected to ESP32 UART2
+    // Normally done through UM980 library but UNLOG disrupts what the library is aware of
+    response &= um980->sendCommand("BESTNAVB COM3 1");
+    response &= um980->sendCommand("RECTIMEB COM3 1");
 
     // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
     float outputRate = 1; // 1 = 1 report per second.
