@@ -1185,7 +1185,7 @@ uint8_t unicoreBinaryReadLength(PARSE_STATE *parse, uint8_t data)
 
     if (parse->bytesRemaining > PARSE_BUFFER_LENGTH)
     {
-        Serial.println("Length overflow");
+        systemPrintln("Length overflow");
 
         // Invalid length, place this byte at the beginning of the buffer
         parse->length = 0;
@@ -1221,16 +1221,6 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
     uint32_t calculatedCRC =
         calculateCRC32(parse->buffer, parse->length - 4); // CRC is calculated on entire message, sans CRC
 
-    // Serial.println();
-    // Serial.printf("Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC, calculatedCRC);
-
-    // Serial.printf("Data len %d: ", parse->length);
-    // for (int x = 0; x < parse->length; x++)
-    // {
-    //     Serial.printf("0x%02X ", parse->buffer[x]);
-    // }
-    // Serial.println();
-
     // Process this message if CRC is valid
     if (sentenceCRC == calculatedCRC)
     {
@@ -1239,8 +1229,8 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
     }
     else
     {
-        Serial.println();
-        Serial.printf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
+        systemPrintln();
+        systemPrintln("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
                       calculatedCRC);
     }
 
