@@ -33,6 +33,7 @@
 // #define REF_STN_GNSS_DEBUG //Uncomment this line to output GNSS library debug messages on serialGNSS-> Ref Stn only.
 // Needs ENABLE_DEVELOPER
 #define COMPILE_UM980   // Comment out to remove UM980 functionality
+#define COMPILE_IM19_IMU    // Comment out to remove IM19_IMU functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -591,11 +592,17 @@ unsigned long lastEthernetCheck = 0; // Prevents cable checking from continually
 
 // IM19 Tilt Compensation
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#ifdef COMPILE_IM19_IMU
 #include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor = nullptr;
 HardwareSerial *SerialForTilt = nullptr; // Don't instantiate until we know the tilt sensor exists
 bool tiltSupported = false;              // Variant specific. Set at beginBoard().
 unsigned long lastTiltCheck = 0;         // Limits polling on IM19 to 5Hz
+
+#define TILT_SUPPORTED          tiltSupported
+#else
+#define TILT_SUPPORTED          false
+#endif  // COMPILE_IM19_IMU
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient

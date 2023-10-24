@@ -1,3 +1,5 @@
+#ifdef COMPILE_IM19_IMU
+
 void tiltUpdate()
 {
     if (tiltSupported == true)
@@ -639,3 +641,11 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sizeof(newSentence));
 }
+
+// Restore the tilt sensor to factory settings
+void tiltSensorFactoryReset()
+{
+    tiltSensor->factoryReset();
+}
+
+#endif  // COMPILE_IM19_IMU
