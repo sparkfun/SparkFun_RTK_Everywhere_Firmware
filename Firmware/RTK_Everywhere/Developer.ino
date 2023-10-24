@@ -76,6 +76,32 @@ bool ntripServerIsCasting() {
 }
 void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
+//----------------------------------------
+// OTA client
+//----------------------------------------
+
+void otaVerifyTables() {}
+
+//----------------------------------------
+// PVT client
+//----------------------------------------
+
+int32_t pvtClientSendData(uint16_t dataHead) {return 0;}
+void pvtClientUpdate() {}
+void pvtClientValidateTables() {}
+void pvtClientZeroTail() {}
+void discardPvtClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+
+//----------------------------------------
+// PVT UDP server
+//----------------------------------------
+
+int32_t pvtUdpServerSendData(uint16_t dataHead) {return 0;}
+void pvtUdpServerStop() {}
+void pvtUdpServerUpdate() {}
+void pvtUdpServerZeroTail() {}
+void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
@@ -96,34 +122,15 @@ bool parseIncomingSettings() {return false;}
 #ifndef COMPILE_WIFI
 
 //----------------------------------------
-// PVT client
-//----------------------------------------
-
-uint16_t pvtClientSendData(uint16_t dataHead) {return 0;};
-void pvtClientUpdate() {}
-void pvtClientValidateTables() {}
-void pvtClientZeroTail() {}
-void discardPvtClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-
-
-//----------------------------------------
 // PVT server
 //----------------------------------------
 
-int pvtServerSendData(uint16_t dataHead) {return 0;}
+int32_t pvtServerSendData(uint16_t dataHead) {return 0;}
+void pvtServerStop() {}
 void pvtServerUpdate() {}
 void pvtServerZeroTail() {}
 void pvtServerValidateTables() {}
 void discardPvtServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-
-//----------------------------------------
-// PVT UDP server
-//----------------------------------------
-
-int pvtUdpServerSendData(uint16_t dataHead) {return 0;}
-void pvtUdpServerUpdate() {}
-void pvtUdpServerZeroTail() {}
 
 //----------------------------------------
 // WiFi
