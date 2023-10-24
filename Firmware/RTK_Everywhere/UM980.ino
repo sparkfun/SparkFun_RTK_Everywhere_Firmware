@@ -1,3 +1,9 @@
+#ifdef COMPILE_UM980
+
+HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+
+UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+
 /*
     TODO:
         Add debug menu for direct-to-USB
@@ -88,7 +94,7 @@ bool um980Configure()
 
     //response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
     //SIGNALGROUP causes the UM980 to automatically save and reset
-    
+
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
     response &= um980->sendCommand("BESTPOSB COM2 1");
     response &= um980->sendCommand("PSRVELB COM2 1");
@@ -584,3 +590,15 @@ void um980DisableDebugging()
 {
     um980->disableDebugging();
 }
+
+bool um980SetModeRoverSurvey()
+{
+    return (um980->setModeRoverSurvey());
+}
+
+void un980UnicoreHandler(uint8_t * buffer, int length)
+{
+    um980->unicoreHandler(parse->buffer, parse->length);
+}
+
+#endif // COMPILE_UM980
