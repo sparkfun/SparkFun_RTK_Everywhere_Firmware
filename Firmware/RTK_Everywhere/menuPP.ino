@@ -334,43 +334,49 @@ bool pointperfectProvisionDevice()
             }
             else
             {
-                const int tempHolderSize = 2000;
-                tempHolderPtr = (char *)malloc(tempHolderSize);
+                tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
                 if (!tempHolderPtr)
                 {
                     systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
                     break;
                 }
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), tempHolderSize - 1);
+                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
                 // log_d("len of PrivateCert: %d", strlen(tempHolderPtr));
                 // log_d("privateCert: %s", tempHolderPtr);
                 recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
 
-                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), tempHolderSize - 1);
+                strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
                 // log_d("len of privateKey: %d", strlen(tempHolderPtr));
                 // log_d("privateKey: %s", tempHolderPtr);
                 recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
 
-                strcpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]));
-                strcpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]));
-                strcpy(settings.pointPerfectLBandTopic, (const char *)((*jsonZtp)["subscriptions"][0]["path"]));
-
-                strcpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]));
-                settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
-                settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
-
-                strcpy(settings.pointPerfectCurrentKey, (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]));
-                settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
-                settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
-
-                if (settings.debugLBand == true)
+                // Validate the keys
+                if (!checkCertificates())
                 {
-                    systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
-                    systemPrintf("  pointPerfectCurrentKeyStart: %lld - %s\r\n", settings.pointPerfectCurrentKeyStart, printDateFromUnixEpoch(settings.pointPerfectCurrentKeyStart));
-                    systemPrintf("  pointPerfectCurrentKeyDuration: %lld - %s\r\n", settings.pointPerfectCurrentKeyDuration, printDaysFromDuration(settings.pointPerfectCurrentKeyDuration));
-                    systemPrintf("  pointPerfectNextKey: %s\r\n", settings.pointPerfectNextKey);
-                    systemPrintf("  pointPerfectNextKeyStart: %lld - %s\r\n", settings.pointPerfectNextKeyStart, printDateFromUnixEpoch(settings.pointPerfectNextKeyStart));
-                    systemPrintf("  pointPerfectNextKeyDuration: %lld - %s\r\n", settings.pointPerfectNextKeyDuration, printDaysFromDuration(settings.pointPerfectNextKeyDuration));
+                    systemPrintln("ERROR - Failed to validate the Point Perfect certificates!");
+                }
+                else
+                {
+                    if (settings.debugPpCertificate)
+                        systemPrintln("Certificates written to the SD card.");
+
+                    strcpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]));
+                    strcpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]));
+                    strcpy(settings.pointPerfectLBandTopic, (const char *)((*jsonZtp)["subscriptions"][0]["path"]));
+
+                    strcpy(settings.pointPerfectCurrentKey, (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]));
+                    settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
+                    settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
+
+                    if (settings.debugLBand == true)
+                    {
+                        systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
+                        systemPrintf("  pointPerfectCurrentKeyStart: %lld - %s\r\n", settings.pointPerfectCurrentKeyStart, printDateFromUnixEpoch(settings.pointPerfectCurrentKeyStart));
+                        systemPrintf("  pointPerfectCurrentKeyDuration: %lld - %s\r\n", settings.pointPerfectCurrentKeyDuration, printDaysFromDuration(settings.pointPerfectCurrentKeyDuration));
+                        systemPrintf("  pointPerfectNextKey: %s\r\n", settings.pointPerfectNextKey);
+                        systemPrintf("  pointPerfectNextKeyStart: %lld - %s\r\n", settings.pointPerfectNextKeyStart, printDateFromUnixEpoch(settings.pointPerfectNextKeyStart));
+                        systemPrintf("  pointPerfectNextKeyDuration: %lld - %s\r\n", settings.pointPerfectNextKeyDuration, printDaysFromDuration(settings.pointPerfectNextKeyDuration));
+                    }
                 }
             }
         } // HTTP Response was 200
@@ -423,7 +429,8 @@ bool checkCertificates()
 
     if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
     {
-        log_d("Certificate is corrupt.");
+        if (settings.debugPpCertificate)
+            systemPrintln("Certificate is corrupt.");
         validCertificates = false;
     }
 
@@ -431,9 +438,10 @@ bool checkCertificates()
     memset(keyContents, 0, MQTT_CERT_SIZE);
     loadFile("privateKey", keyContents);
 
-    if (checkCertificateValidity(keyContents, strlen(keyContents)) == false)
+    if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
     {
-        log_d("PrivateKey is corrupt.");
+        if (settings.debugPpCertificate)
+            systemPrintln("PrivateKey is corrupt.");
         validCertificates = false;
     }
 
@@ -443,6 +451,7 @@ bool checkCertificates()
     if (keyContents)
         free(keyContents);
 
+    systemPrintln("Stored certificates are valid!");
     return (validCertificates);
 }
 
@@ -463,10 +472,36 @@ bool checkCertificateValidity(char *certificateContent, int certificateContentSi
 
     if (result_code < 0)
     {
-        log_d("Cert formatting invalid");
+        if (settings.debugPpCertificate)
+            systemPrintln("ERROR - Invalid certificate format!");
         return (false);
     }
 
+    return (true);
+}
+
+// Check if a given private key is in a valid format
+// This was created to detect corrupt or invalid private keys caused by bugs in v3.0 to and including v3.3.
+// See https://github.com/Mbed-TLS/mbedtls/blob/development/library/pkparse.c
+bool checkPrivateKeyValidity(char *privateKey, int privateKeySize)
+{
+    // Check for valid format of private key
+    // From ssl_client.cpp
+    // https://stackoverflow.com/questions/70670070/mbedtls-cannot-parse-valid-x509-certificate
+    mbedtls_pk_context pk;
+    mbedtls_pk_init(&pk);
+
+    int result_code =
+        mbedtls_pk_parse_key(&pk,
+                             (unsigned char *)privateKey, privateKeySize + 1,
+                             nullptr, 0);
+    mbedtls_pk_free(&pk);
+    if (result_code < 0)
+    {
+        if (settings.debugPpCertificate)
+            systemPrintln("ERROR - Invalid private key format!");
+        return (false);
+    }
     return (true);
 }
 
