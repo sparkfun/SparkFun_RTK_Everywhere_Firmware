@@ -1068,6 +1068,7 @@ typedef struct
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
 
+
     // Automatic Firmware Update
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
