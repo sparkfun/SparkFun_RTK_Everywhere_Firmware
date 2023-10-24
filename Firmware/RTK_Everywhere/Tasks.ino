@@ -291,7 +291,7 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
-    static PARSE_STATE parse = {waitForPreamble, processUart1Message, "Log"};
+    static PARSE_STATE parse = {gpsMessageParserFirstByte, processUart1Message, "Log"};
 
     uint8_t incomingData = 0;
 
