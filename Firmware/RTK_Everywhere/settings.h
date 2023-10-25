@@ -85,7 +85,9 @@ typedef enum
     RTK_FACET_LBAND_DIRECT,
     RTK_TORCH,
     RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
-    RTK_UNKNOWN,
+    RTK_EVERYWHERE,
+    // Add new values just above this line
+    RTK_UNKNOWN
 } ProductVariant;
 ProductVariant productVariant = RTK_SURVEYOR;
 
@@ -100,6 +102,7 @@ const char * const productDisplayNames[] =
     "Facet LB",
     "Torch",
     "Unkn ZED",
+    "Everywhere",
     // Add new values just above this line
     "Unknown",
 };
@@ -116,6 +119,7 @@ const char * const platformFilePrefixTable[] =
     "SFE_Facet_LBand_Direct",
     "SFE_TORCH",
     "SFE_Unknown_ZED",
+    "SFE_Everywhere",
     // Add new values just above this line
     "SFE_Unknown",
 };
@@ -132,6 +136,7 @@ const char * const platformPrefixTable[] =
     "Facet L-Band Direct",
     "Torch",
     "Unknown ZED",
+    "Everywhere",
     // Add new values just above this line
     "Unknown",
 };
