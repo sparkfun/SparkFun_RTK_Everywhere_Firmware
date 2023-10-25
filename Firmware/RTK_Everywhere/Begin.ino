@@ -65,12 +65,7 @@ void identifyBoard()
 
     // Reference Station: 20/10  -->  1047mV < 1100mV < 1153mV
     else if (idWithAdc(idValue, ADC_ID_mV(20, 10)))
-    {
         productVariant = REFERENCE_STATION;
-        // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
-        // so fake it here - otherwise messageSupported always returns false
-        zedFirmwareVersionInt = 112;
-    }
 
     // Facet: 10/10  -->  1571mV < 1650mV < 1729mV
     else if (idWithAdc(idValue, ADC_ID_mV(10, 10)))
@@ -181,32 +176,34 @@ void initializePowerPins()
     {
         // v10
         // Pin Allocations:
-        // D0  : Boot + Boot Button
-        // D1  : Serial TX (CH340 RX)
-        // D2  : SDIO DAT0 - via 74HC4066 switch
-        // D3  : Serial RX (CH340 TX)
-        // D4  : SDIO DAT1
-        // D5  : GNSS Chip Select
-        // D12 : SDIO DAT2 - via 74HC4066 switch
-        // D13 : SDIO DAT3
-        // D14 : SDIO CLK
-        // D15 : SDIO CMD - via 74HC4066 switch
-        // D16 : Serial1 RXD : Note: connected to the I/O connector only - not to the ZED-F9P
-        // D17 : Serial1 TXD : Note: connected to the I/O connector only - not to the ZED-F9P
-        // D18 : SPI SCK
-        // D19 : SPI POCI
-        // D21 : I2C SDA
-        // D22 : I2C SCL
-        // D23 : SPI PICO
-        // D25 : GNSS Time Pulse
-        // D26 : STAT LED
-        // D27 : Ethernet Chip Select
-        // D32 : PWREN
-        // D33 : Ethernet Interrupt
-        // A34 : GNSS TX RDY
-        // A35 : Board Detect (1.1V)
-        // A36 : microSD card detect
-        // A39 : Unused analog pin - used to generate random values for SSL
+        // 35, D1  : Serial TX (CH340 RX)
+        // 34, D3  : Serial RX (CH340 TX)
+
+        // 25, D0  : Boot + Boot Button
+        // 24, D2  : SDIO DAT0 - via 74HC4066 switch
+        // 29, D5  : GNSS Chip Select
+        // 14, D12 : SDIO DAT2 - via 74HC4066 switch
+        // 23, D15 : SDIO CMD - via 74HC4066 switch
+
+        // 26, D4  : SDIO DAT1
+        // 16, D13 : SDIO DAT3
+        // 13, D14 : SDIO CLK
+        // 27, D16 : Serial1 RXD : Note: connected to the I/O connector only - not to the ZED-F9P
+        // 28, D17 : Serial1 TXD : Note: connected to the I/O connector only - not to the ZED-F9P
+        // 30, D18 : SPI SCK
+        // 31, D19 : SPI POCI
+        // 33, D21 : I2C SDA
+        // 36, D22 : I2C SCL
+        // 37, D23 : SPI PICO
+        // 10, D25 : GNSS Time Pulse
+        // 11, D26 : STAT LED
+        // 12, D27 : Ethernet Chip Select
+        //  8, D32 : PWREN
+        //  9, D33 : Ethernet Interrupt
+        //  6, A34 : GNSS TX RDY
+        //  7, A35 : Board Detect (1.1V)
+        //  4, A36 : microSD card detect
+        //  5, A39 : Unused analog pin - used to generate random values for SSL
 
         pin_baseStatusLED = 26;
         pin_peripheralPowerControl = 32;
@@ -230,6 +227,46 @@ void initializePowerPins()
         pinMode(pin_peripheralPowerControl, OUTPUT);
         digitalWrite(pin_peripheralPowerControl, HIGH); // Turn on SD, W5500, etc
         delay(100);
+
+        // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
+        // so fake it here - otherwise messageSupported always returns false
+        zedFirmwareVersionInt = 112;
+    }
+    else if (productVariant == RTK_EVERYWHERE)
+    {
+        // v01
+        // Pin Allocations:
+        // 35, D1  : Serial TX (CH340 RX)
+        // 34, D3  : Serial RX (CH340 TX)
+
+        // 25, D0  : Boot + Boot Button
+        // 24, D2  : Status LED
+        pin_baseStatusLED = 2;
+        // * 29, D5  : GNSS Chip Select
+        // * 14, D12 : SDIO DAT2 - via 74HC4066 switch
+        // * 23, D15 : SDIO CMD - via 74HC4066 switch
+
+        // * 26, D4  : SDIO DAT1
+        // * 16, D13 : SDIO DAT3
+        // * 13, D14 : SDIO CLK
+
+        // xxxxx 27, D16 : Serial1 RXD : Note: connected to the I/O connector only - not to the ZED-F9P
+        // xxxxx 28, D17 : Serial1 TXD : Note: connected to the I/O connector only - not to the ZED-F9P
+
+        // * 30, D18 : SPI SCK
+        // * 31, D19 : SPI POCI
+        // * 33, D21 : I2C SDA
+        // * 36, D22 : I2C SCL
+        // * 37, D23 : SPI PICO
+        // * 10, D25 : GNSS Time Pulse
+        // * 11, D26 : STAT LED
+        // * 12, D27 : Ethernet Chip Select
+        // *  8, D32 : PWREN
+        // *  9, D33 : Ethernet Interrupt
+        // *  6, A34 : GNSS TX RDY
+        // *  7, A35 : Board Detect (1.1V)
+        // *  4, A36 : microSD card detect
+        //  5, A39 : Unused analog pin - used to generate random values for SSL
     }
 }
 
