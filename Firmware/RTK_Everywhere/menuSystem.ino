@@ -469,6 +469,7 @@ void menuDebugHardware()
                         serialGNSS->println("config");
                 }
             }
+        }
 
         else if (incoming == 'e')
         {
@@ -673,8 +674,7 @@ void menuDebugSoftware()
             systemPrintln("Disabled");
 
         // Automatic Firmware Update
-        systemPrintf("60) Print firmware update states: %s\r\n",
-                     settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
+        systemPrintf("60) Print firmware update states: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
 
         // Point Perfect
         systemPrintf("70) Point Perfect certificate management: %s\r\n",
