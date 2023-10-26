@@ -1377,7 +1377,11 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
         settings->enableAutoFirmwareUpdate = d;
 
-    //Add new settings above <------------------------------------------------------------>
+    else if (strcmp(settingName, "debugLBand") == 0)
+        settings->debugLBand = d;
+
+    //Add new settings above
+    //<------------------------------------------------------------>
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list
