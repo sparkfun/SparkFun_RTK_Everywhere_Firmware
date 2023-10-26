@@ -9,8 +9,6 @@ GpsMessageParser.h
 
 #include <stdint.h>
 
-#include "crc24q.h" // 24-bit CRC-24Q cyclic redundancy checksum for RTCM parsing
-
 //----------------------------------------
 // Constants
 //----------------------------------------
