@@ -99,6 +99,8 @@ ProductVariant productVariant = RTK_SURVEYOR;
 // Macro to show if the the RTK variant has antenna short circuit / open circuit detection
 #define HAS_ANTENNA_SHORT_OPEN (productVariant == REFERENCE_STATION)
 
+#define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
+
 typedef enum
 {
     BUTTON_ROVER = 0,

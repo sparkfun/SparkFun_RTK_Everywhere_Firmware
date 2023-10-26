@@ -42,9 +42,9 @@ void menuMain()
 #ifdef COMPILE_BT
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-        systemPrint("** Bluetooth SPP broadcasting as: ");
+            systemPrint("** Bluetooth SPP broadcasting as: ");
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-        systemPrint("** Bluetooth Low-Energy broadcasting as: ");
+            systemPrint("** Bluetooth Low-Energy broadcasting as: ");
         systemPrint(deviceName);
         systemPrintln(" **");
 #else  // COMPILE_BT
@@ -79,12 +79,17 @@ void menuMain()
 #else  // COMPILE_NETWORK
         systemPrintln("7) **Network Not Compiled**");
 #endif // COMPILE_NETWORK
+
 #ifdef COMPILE_ETHERNET
         if (HAS_ETHERNET)
-        {
             systemPrintln("e) Configure Ethernet");
+#endif // COMPILE_ETHERNET
+
+        systemPrintln("f) Firmware upgrade");
+
+#ifdef COMPILE_ETHERNET
+        if (HAS_ETHERNET)
             systemPrintln("n) Configure NTP");
-        }
 #endif // COMPILE_ETHERNET
 
         systemPrintln("p) Configure User Profiles");
@@ -100,7 +105,10 @@ void menuMain()
 
         systemPrintln("s) Configure System");
 
-        systemPrintln("f) Firmware upgrade");
+        if (HAS_TILT_COMPENSATION)
+        {
+            systemPrintln("t) Configure Tilt Compensation");
+        }
 
         if (btPrintEcho)
             systemPrintln("b) Exit Bluetooth Echo mode");
@@ -127,10 +135,10 @@ void menuMain()
             menuNetwork();
         else if (incoming == 'e' && (HAS_ETHERNET))
             menuEthernet();
+        else if (incoming == 'f')
+            menuFirmware();
         else if (incoming == 'n' && (HAS_ETHERNET))
             menuNTP();
-        else if (incoming == 's')
-            menuSystem();
         else if (incoming == 'p')
             menuUserProfiles();
         else if (incoming == 'P' && online.lband == true)
@@ -139,8 +147,12 @@ void menuMain()
         else if (incoming == 'r')
             menuRadio();
 #endif // COMPILE_ESPNOW
-        else if (incoming == 'f')
-            menuFirmware();
+        else if (incoming == 's')
+            menuSystem();
+        else if (incoming == 't' && (HAS_TILT_COMPENSATION))
+        {
+            //menuTiltConfig();
+        }
         else if (incoming == 'b')
         {
             printEndpoint = PRINT_ENDPOINT_SERIAL;
