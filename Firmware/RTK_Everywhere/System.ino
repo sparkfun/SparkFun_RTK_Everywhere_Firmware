@@ -720,7 +720,7 @@ void updateAccuracyLEDs()
                 if (settings.enablePrintRoverAccuracy)
                 {
                     systemPrint("Rover Accuracy (m): ");
-                    systemPrint(hpa, 4); // Print the accuracy with 4 decimal places
+                    systemPrint(hpa, 3); // Print the accuracy with 4 decimal places
                     systemPrint(", SIV: ");
                     systemPrint(gnssGetSatellitesInView());
                     systemPrintln();
