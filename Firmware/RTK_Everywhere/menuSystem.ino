@@ -242,9 +242,7 @@ void menuSystem()
             printFileList();
         }
         else if (incoming == 'h')
-        {
             menuDebugHardware();
-        }
         else if (incoming == 'n')
             menuDebugNetwork();
         else if (incoming == 'o')
@@ -455,14 +453,14 @@ void menuDebugHardware()
                 while (serialGNSS->available())
                     systemWrite(serialGNSS->read());
 
-                if(systemAvailable())
+                if (systemAvailable())
                 {
                     byte incoming = systemRead();
-                    if(incoming == '!')
+                    if (incoming == '!')
                         break;
-                    else if(incoming == '1')
+                    else if (incoming == '1')
                         serialGNSS->println("mask");
-                    else if(incoming == '2')
+                    else if (incoming == '2')
                         serialGNSS->println("config");
                 }
             }

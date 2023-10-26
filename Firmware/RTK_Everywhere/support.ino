@@ -1230,8 +1230,7 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
     else
     {
         systemPrintln();
-        systemPrintf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
-                      calculatedCRC);
+        systemPrintf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC, calculatedCRC);
     }
 
     // Search for another preamble byte
