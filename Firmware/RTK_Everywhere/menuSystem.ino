@@ -440,8 +440,6 @@ void menuDebugHardware()
         else if (incoming == 10)
         {
             settings.enableImuDebug ^= 1;
-            // printEndpoint = PRINT_ENDPOINT_ALL; //The IMU often needs debugging while outside. Push all prints to
-            // Bluetooth as well.
         }
         else if (incoming == 11 && productVariant == RTK_TORCH)
         {

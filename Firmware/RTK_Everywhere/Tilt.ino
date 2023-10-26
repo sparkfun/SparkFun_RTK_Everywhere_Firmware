@@ -8,8 +8,6 @@ void tiltUpdate()
 
             if (settings.enableImuDebug == true)
             {
-                // During IMU debug, system prints are echoed to Bluetooth as well
-
                 // Check IMU state at 1Hz
                 if (millis() - lastTiltCheck > 1000)
                 {
