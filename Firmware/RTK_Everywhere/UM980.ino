@@ -612,7 +612,7 @@ bool um980SetModeRoverSurvey()
 
 void un980UnicoreHandler(uint8_t * buffer, int length)
 {
-    um980->unicoreHandler(parse->buffer, parse->length);
+    um980->unicoreHandler(buffer, length);
 }
 
 #endif // COMPILE_UM980
