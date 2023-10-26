@@ -144,7 +144,6 @@ void identifyBoard()
             if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
             {
                 productVariant = RTK_TORCH;
-                log_d("UM980 detected");
 
                 // Turn on Bluetooth and GNSS LEDs to indicate power on
                 pin_bluetoothStatusLED = 32;
@@ -159,7 +158,6 @@ void identifyBoard()
             else
             {
                 productVariant = RTK_UNKNOWN;
-                systemPrintln("Unknown product variant detected");
 
                 // Undo pin assignments
                 pin_GnssUart_RX = -1;
@@ -269,9 +267,6 @@ void beginBoard()
         // Bug in ZED-F9P v1.13 firmware causes RTK LED to not light when RTK Floating with SBAS on.
         // The following changes the POR default but will be overwritten by settings in NVM or settings file
         settings.ubxConstellations[1].enabled = false;
-
-        strncpy(platformFilePrefix, "SFE_Surveyor", sizeof(platformFilePrefix) - 1);
-        strncpy(platformPrefix, "Surveyor", sizeof(platformPrefix) - 1);
     }
     else if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
     {
@@ -298,17 +293,6 @@ void beginBoard()
         pinMode(pin_setupButton, INPUT_PULLUP);
 
         setMuxport(settings.dataPortChannel); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
-
-        if (productVariant == RTK_EXPRESS)
-        {
-            strncpy(platformFilePrefix, "SFE_Express", sizeof(platformFilePrefix) - 1);
-            strncpy(platformPrefix, "Express", sizeof(platformPrefix) - 1);
-        }
-        else if (productVariant == RTK_EXPRESS_PLUS)
-        {
-            strncpy(platformFilePrefix, "SFE_Express_Plus", sizeof(platformFilePrefix) - 1);
-            strncpy(platformPrefix, "Express Plus", sizeof(platformPrefix) - 1);
-        }
     }
     else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
              productVariant == RTK_FACET_LBAND_DIRECT)
@@ -350,21 +334,8 @@ void beginBoard()
         pinMode(pin_radio_cts, OUTPUT);
         digitalWrite(pin_radio_cts, LOW);
 
-        if (productVariant == RTK_FACET)
+        if (productVariant == RTK_FACET_LBAND_DIRECT)
         {
-            strncpy(platformFilePrefix, "SFE_Facet", sizeof(platformFilePrefix) - 1);
-            strncpy(platformPrefix, "Facet", sizeof(platformPrefix) - 1);
-        }
-        else if (productVariant == RTK_FACET_LBAND)
-        {
-            strncpy(platformFilePrefix, "SFE_Facet_LBand", sizeof(platformFilePrefix) - 1);
-            strncpy(platformPrefix, "Facet L-Band", sizeof(platformPrefix) - 1);
-        }
-        else if (productVariant == RTK_FACET_LBAND_DIRECT)
-        {
-            strncpy(platformFilePrefix, "SFE_Facet_LBand_Direct", sizeof(platformFilePrefix) - 1);
-            strncpy(platformPrefix, "Facet L-Band Direct", sizeof(platformPrefix) - 1);
-
             // Override the default setting if a user has not explicitly configured the setting
             if (settings.useI2cForLbandCorrectionsConfigured == false)
                 settings.useI2cForLbandCorrections = false;
@@ -412,9 +383,6 @@ void beginBoard()
         // No powerOnCheck
 
         settings.enablePrintBatteryMessages = false; // No pesky battery messages
-
-        strncpy(platformFilePrefix, "SFE_Reference_Station", sizeof(platformFilePrefix) - 1);
-        strncpy(platformPrefix, "Reference Station", sizeof(platformPrefix) - 1);
     }
 
     char versionString[21];
