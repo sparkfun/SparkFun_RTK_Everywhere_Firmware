@@ -97,7 +97,7 @@ const char * const productDisplayNames[] =
     "Express+",
     "Facet LB",
     "Ref Stn",
-    "Facet LB",
+    "Facet LD",
     "Torch",
     "Unkn ZED",
     // Add new values just above this line
