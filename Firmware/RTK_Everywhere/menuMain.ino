@@ -411,7 +411,7 @@ void factoryReset(bool alreadyHasSemaphore)
 
     if (online.imu)
     {
-        tiltSensor->factoryReset();
+        tiltSensorFactoryReset();
     }
 
     systemPrintln("Formatting internal file system...");

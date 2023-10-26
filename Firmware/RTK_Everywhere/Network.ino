@@ -184,6 +184,7 @@ const char * const networkUser[] =
     "NTP Server",
     "NTRIP Client",
     "NTRIP Server",
+    "OTA Firmware Update",
     "PVT Client",
     "PVT Server",
     "PVT UDP Server",
@@ -376,6 +377,38 @@ void menuNetwork()
         else
             printUnknown(incoming);
     }
+}
+
+//----------------------------------------
+// Allocate a network client
+//----------------------------------------
+NetworkClient * networkClient(uint8_t user, bool useSSL)
+{
+    NetworkClient * client;
+    int type;
+
+    type = networkGetType(user);
+#if defined(COMPILE_ETHERNET)
+    if (type == NETWORK_TYPE_ETHERNET)
+    {
+        if (useSSL)
+            client = new NetworkEthernetSslClient();
+        else
+            client = new NetworkEthernetClient;
+    }
+    else
+#endif // COMPILE_ETHERNET
+    {
+#if defined(COMPILE_WIFI)
+        if (useSSL)
+            client = new NetworkWiFiSslClient();
+        else
+            client = new NetworkWiFiClient();
+#else   // COMPILE_WIFI
+        client = nullptr;
+#endif  // COMPILE_WIFI
+    }
+    return client;
 }
 
 //----------------------------------------
@@ -861,6 +894,12 @@ void networkStop(uint8_t networkType)
                     ntripServerRestart();
                     break;
 
+                case NETWORK_USER_OTA_FIRMWARE_UPDATE:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping OTA firmware update");
+                    otaStop();
+                    break;
+
                 case NETWORK_USER_PVT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping PVT client");
@@ -1048,7 +1087,6 @@ void networkTypeUpdate(uint8_t networkType)
             {
                 if (settings.debugNetworkLayer)
                     systemPrintf("Network connected to %s\r\n", networkName[network->type]);
-                network->connectionAttempt = 0;
                 network->timerStart = millis();
                 network->timeout = NETWORK_MAX_IDLE_TIME;
                 network->activeUsers = network->userOpens;
@@ -1063,14 +1101,6 @@ void networkTypeUpdate(uint8_t networkType)
             if (network->shutdown)
                 networkStop(network->type);
 
-            // Without users there is no need for the network.
-            else if ((!network->activeUsers) && ((millis() - network->timerStart) >= network->timeout))
-            {
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Network shutting down %s, no users\r\n", networkName[network->type]);
-                networkStop(network->type);
-            }
-
             // Verify that the RTK device is still connected to the network
             else if (!networkIsMediaConnected(network))
             {
@@ -1079,6 +1109,29 @@ void networkTypeUpdate(uint8_t networkType)
                     systemPrintf("Network: %s connection failed!\r\n", networkName[network->type]);
                 networkRestartNetwork(network);
                 networkStop(network->type);
+            }
+
+            // Check for the idle timeout
+            else if ((millis() - network->timerStart) >= network->timeout)
+            {
+                // Determine if the network is in use
+                network->timerStart = millis();
+                if (network->activeUsers)
+                {
+                    // Network in use, reduce future connection delays
+                    network->connectionAttempt = 0;
+
+                    // Set the next time that network idle should be checked
+                    network->timeout = NETWORK_MAX_IDLE_TIME;
+                }
+
+                // Without users there is no need for the network.
+                else
+                {
+                    if (settings.debugNetworkLayer)
+                        systemPrintf("Network shutting down %s, no users\r\n", networkName[network->type]);
+                    networkStop(network->type);
+                }
             }
             break;
 
@@ -1113,6 +1166,7 @@ void networkUpdate()
         ntpServerUpdate();   // Process any received NTP requests
         ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
         ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
+        otaClientUpdate();   // Perform automatic over-the-air firmware updates
         pvtClientUpdate();   // Turn on the PVT client as needed
         pvtServerUpdate();   // Turn on the PVT server as needed
         pvtUdpServerUpdate();   // Turn on the PVT UDP server as needed

@@ -185,12 +185,13 @@ enum NetworkStates
 // Define the network users
 enum NetworkUsers
 {
-    NETWORK_USER_NTP_SERVER = 0,   // NTP server
-    NETWORK_USER_NTRIP_CLIENT,     // NTRIP client
-    NETWORK_USER_NTRIP_SERVER,     // NTRIP server
-    NETWORK_USER_PVT_CLIENT,       // PVT client
-    NETWORK_USER_PVT_SERVER,       // PVT server
-    NETWORK_USER_PVT_UDP_SERVER,   // PVT UDP server
+    NETWORK_USER_NTP_SERVER = 0,        // NTP server
+    NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
+    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
+    NETWORK_USER_OTA_FIRMWARE_UPDATE,   // Over-The-Air firmware updates
+    NETWORK_USER_PVT_CLIENT,            // PVT client
+    NETWORK_USER_PVT_SERVER,            // PVT server
+    NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
     // Last network user
     NETWORK_USER_MAX
 };
@@ -290,39 +291,6 @@ typedef struct WiFiNetwork
 #define MAX_WIFI_NETWORKS 4
 
 typedef uint16_t RING_BUFFER_OFFSET;
-
-typedef struct _PARSE_STATE *P_PARSE_STATE;
-
-// Parse routine
-typedef uint8_t (*PARSE_ROUTINE)(P_PARSE_STATE parse, // Parser state
-                                 uint8_t data);       // Incoming data byte
-
-// End of message callback routine
-typedef void (*EOM_CALLBACK)(P_PARSE_STATE parse, // Parser state
-                             uint8_t type);       // Message type
-
-#define PARSE_BUFFER_LENGTH 3000 // Some USB RAWX messages can be > 2k
-
-typedef struct _PARSE_STATE
-{
-    PARSE_ROUTINE state;                 // Parser state routine
-    EOM_CALLBACK eomCallback;            // End of message callback routine
-    const char *parserName;              // Name of parser
-    uint32_t crc;                        // RTCM computed CRC
-    uint32_t rtcmCrc;                    // Computed CRC value for the RTCM message
-    uint32_t invalidRtcmCrcs;            // Number of bad RTCM CRCs detected
-    uint16_t bytesRemaining;             // Bytes remaining in RTCM CRC calculation
-    uint16_t length;                     // Message length including line termination
-    uint16_t maxLength;                  // Maximum message length including line termination
-    uint16_t message;                    // RTCM message number
-    uint16_t nmeaLength;                 // Length of the NMEA message without line termination
-    uint8_t buffer[PARSE_BUFFER_LENGTH]; // Buffer containing the message
-    uint8_t nmeaMessageName[16];         // Message name
-    uint8_t nmeaMessageNameLength;       // Length of the message name
-    uint8_t ck_a;                        // U-blox checksum byte 1
-    uint8_t ck_b;                        // U-blox checksum byte 2
-    bool computeCrc;                     // Compute the CRC when true
-} PARSE_STATE;
 
 typedef enum
 {
@@ -505,6 +473,9 @@ enum PeriodDisplayValues
 
     PD_ZED_DATA_RX,             // 29
     PD_ZED_DATA_TX,             // 30
+
+    PD_OTA_CLIENT_STATE,        // 31
+    // Add new values before this line
 };
 
 #define PERIODIC_MASK(x) (1 << x)
@@ -906,6 +877,7 @@ typedef struct
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
 
+    // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
     bool enablePointPerfectCorrections = true;
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
@@ -924,6 +896,8 @@ typedef struct
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
     bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
     uint32_t LBandFreq = 1556290000; // Default to US band
+
+    bool debugPpCertificate = false; // Debug Point Perfect certificate management
 
     // Time Zone - Default to UTC
     int8_t timeZoneHours = 0;
@@ -1084,7 +1058,7 @@ typedef struct
     bool enablePvtUdpServer = false;
     uint16_t pvtUdpServerPort =
         10110; //https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=nmea
-    
+
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
@@ -1098,7 +1072,15 @@ typedef struct
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
-    
+
+
+    // Automatic Firmware Update
+    bool debugFirmwareUpdate = false;
+    bool enableAutoFirmwareUpdate = false;
+    uint32_t autoFirmwareCheckMinutes = 24 * 60;
+
+    bool debugLBand = false;
+
     //Add new settings above <------------------------------------------------------------>
 
 } Settings;
@@ -1127,6 +1109,7 @@ struct struct_online
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
     bool imu = false;
+    bool otaFirmwareUpdate = false;
 } online;
 
 #ifdef COMPILE_WIFI

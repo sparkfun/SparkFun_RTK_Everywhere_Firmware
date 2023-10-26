@@ -1,3 +1,9 @@
+#ifdef COMPILE_UM980
+
+HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+
+UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+
 /*
     TODO:
         Add debug menu for direct-to-USB
@@ -598,3 +604,15 @@ void um980DisableDebugging()
 {
     um980->disableDebugging();
 }
+
+bool um980SetModeRoverSurvey()
+{
+    return (um980->setModeRoverSurvey());
+}
+
+void un980UnicoreHandler(uint8_t * buffer, int length)
+{
+    um980->unicoreHandler(parse->buffer, parse->length);
+}
+
+#endif // COMPILE_UM980

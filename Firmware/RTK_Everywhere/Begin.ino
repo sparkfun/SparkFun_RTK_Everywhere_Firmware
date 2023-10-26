@@ -17,7 +17,7 @@ void identifyBoard()
     // Surveyor: ID resistors do not exist
 
     const float rtkExpressID = 3.3 / (10 + 3.3) * 3300;          // 819mV
-    const float rtkExressPlusID = 10.0 / (10 + 3.3) * 3300;      // 2418mV
+    const float rtkExressPlusID = 10.0 / (10 + 3.3) * 3300;      // 2481mV
     const float rtkFacetID = 10.0 / (10 + 10) * 3300;            // 1650mV
     const float rtkFacetLbandID = 20.0 / (20 + 10) * 3300;       // 2200mV
     const float rtkReferenceStationID = 10.0 / (10 + 20) * 3300; // 1100mV
@@ -88,6 +88,7 @@ void identifyBoard()
                 productVariant = RTK_SURVEYOR;
             }
         }
+#ifdef COMPILE_UM980
         else // No ZED on I2C so look for UM980 over serial
         {
             Wire.end(); // Disable default I2C post test
@@ -135,6 +136,7 @@ void identifyBoard()
                 pin_GNSS_DR_Reset = -1;
             }
         }
+#endif  // COMPILE_UM980
     }
 }
 
@@ -337,6 +339,7 @@ void beginBoard()
                 settings.useI2cForLbandCorrections = false;
         }
     }
+#ifdef COMPILE_IM19_IMU
     else if (productVariant == RTK_TORCH)
     {
         // I2C pins have already been assigned
@@ -369,6 +372,7 @@ void beginBoard()
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
     }
+#endif  // COMPILE_IM19_IMU
     else if (productVariant == REFERENCE_STATION)
     {
         pin_GnssUart_RX = 16;

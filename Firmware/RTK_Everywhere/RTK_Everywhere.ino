@@ -32,6 +32,8 @@
 //#define COMPILE_SD_MMC // Comment out to remove REFERENCE_STATION microSD SD_MMC support
 // #define REF_STN_GNSS_DEBUG //Uncomment this line to output GNSS library debug messages on serialGNSS-> Ref Stn only.
 // Needs ENABLE_DEVELOPER
+#define COMPILE_UM980   // Comment out to remove UM980 functionality
+#define COMPILE_IM19_IMU    // Comment out to remove IM19_IMU functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -60,7 +62,6 @@
 //    the minor firmware version
 #define RTK_IDENTIFIER (FIRMWARE_VERSION_MAJOR * 0x10 + FIRMWARE_VERSION_MINOR)
 
-#include "crc24q.h" //24-bit CRC-24Q cyclic redundancy checksum for RTCM parsing
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
@@ -213,6 +214,12 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 // Over-the-Air (OTA) update support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+#if COMPILE_NETWORK
+#include <SSLClientESP32.h> // http://librarymanager/All#SSLClientESP32
+#include "X509_Certificate_Bundle.h" // Root certificates
+#endif // COMPILE_NETWORK
+#include <ArduinoJson.h>  //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
+
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #ifdef COMPILE_WIFI
@@ -237,14 +244,13 @@ unsigned int binBytesSent = 0;                // Tracks firmware bytes sent over
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_WIFI
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
-#include <DNSServer.h>   //Built-in.
-#include <ESPmDNS.h>     //Built-in.
-#include <HTTPClient.h>  //Built-in. Needed for ThingStream API for ZTP
+#include <ESPmDNS.h>      //Built-in.
+#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
 #include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
+#include <DNSServer.h>        //Built-in.
 
 #include "esp_wifi.h" //Needed for esp_wifi_set_protocol()
 
@@ -264,15 +270,6 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
-
-enum
-{
-    SENTENCE_TYPE_NMEA = 0,
-    SENTENCE_TYPE_NONE,
-    SENTENCE_TYPE_RTCM,
-    SENTENCE_TYPE_UBX,
-    SENTENCE_TYPE_UNICORE,
-};
 
 char zedFirmwareVersion[20];       // The string looks like 'HPG 1.12'. Output to system status menu and settings file.
 char neoFirmwareVersion[20];       // Output to system status menu.
@@ -369,13 +366,26 @@ unsigned long rtcmLastPacketReceived =
     0; // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+// GPS parse table
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#include "GpsMessageParser.h" // Include the parser
+
+// Define the parsers that get included
+#define PARSE_NMEA_MESSAGES
+#define PARSE_RTCM_MESSAGES
+#define PARSE_UBLOX_MESSAGES
+//#define PARSE_UNICORE_MESSAGES
+
+// Build the GPS message parse table
+GPS_PARSE_TABLE;
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#ifdef COMPILE_UM980
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-
-HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what gnssPlatform we're on
-
-UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+#endif  // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
@@ -587,11 +597,17 @@ unsigned long lastEthernetCheck = 0; // Prevents cable checking from continually
 
 // IM19 Tilt Compensation
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#ifdef COMPILE_IM19_IMU
 #include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor = nullptr;
 HardwareSerial *SerialForTilt = nullptr; // Don't instantiate until we know the tilt sensor exists
 bool tiltSupported = false;              // Variant specific. Set at beginBoard().
 unsigned long lastTiltCheck = 0;         // Limits polling on IM19 to 5Hz
+
+#define TILT_SUPPORTED          tiltSupported
+#else
+#define TILT_SUPPORTED          false
+#endif  // COMPILE_IM19_IMU
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
