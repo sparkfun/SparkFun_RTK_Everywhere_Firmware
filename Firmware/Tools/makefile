@@ -49,7 +49,7 @@ FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
 
-../RTK_Everywhere/form.h:	../RTK_Everywhere/AP-Config/* ../RTK_Everywhere/AP-Config/src/* ../RTK_Everywhere/AP-Config/src/fonts/*
+../RTK_Everywhere/form.h:	../RTK_Everywhere/* ../RTK_Everywhere/AP-Config/* ../RTK_Everywhere/AP-Config/src/* ../RTK_Everywhere/AP-Config/src/fonts/*
 	python index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h
 	python main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
 
