@@ -100,7 +100,7 @@ bool ssidDisplayFirstHalf = false;
 // Routines
 //----------------------------------------
 
-void beginDisplay()
+void beginDisplay(TwoWire * i2cBus)
 {
     blinking_icons = 0;
 
@@ -110,7 +110,7 @@ void beginDisplay()
     int maxTries = 3;
     for (int x = 0; x < maxTries; x++)
     {
-        if (oled.begin() == true)
+        if (oled.begin(*i2cBus) == true)
         {
             online.display = true;
 

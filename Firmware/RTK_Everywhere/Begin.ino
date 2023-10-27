@@ -171,6 +171,9 @@ void identifyBoard()
 // E.g. turn on power for the display before beginDisplay
 void initializePowerPins()
 {
+    // Assume the display is on I2C0
+    i2cDisplay = i2c_0;
+
     // Set the default I2C0 pins
     pin_I2C0_SDA = 21;
     pin_I2C0_SCL = 22;

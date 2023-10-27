@@ -135,6 +135,7 @@ int pin_gnssStatusLED = -1;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h>
 TwoWire * i2c_0 = &Wire;
+TwoWire * i2cDisplay;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles
@@ -918,7 +919,7 @@ void setup()
     beginI2C(); // Requires settings.
 
     DMW_c("beginDisplay");
-    beginDisplay(); // Start display to be able to display any errors
+    beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
     DMW_c("checkConfigureViaEthernet");
     configureViaEthernet =
