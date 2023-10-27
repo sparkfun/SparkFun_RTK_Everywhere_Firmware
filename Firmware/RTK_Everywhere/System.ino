@@ -155,10 +155,10 @@ void checkBatteryLevels()
 }
 
 // Ping an I2C device and see if it responds
-bool isConnected(uint8_t deviceAddress)
+bool i2cIsDevicePresent(TwoWire * i2cBus, uint8_t deviceAddress)
 {
-    Wire.beginTransmission(deviceAddress);
-    if (Wire.endTransmission() == 0)
+    i2cBus->beginTransmission(deviceAddress);
+    if (i2cBus->endTransmission() == 0)
         return true;
     return false;
 }
