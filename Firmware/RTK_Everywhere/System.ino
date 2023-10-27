@@ -696,7 +696,7 @@ void reportFatalError(const char *errorMsg)
 {
     while (1)
     {
-        systemPrint("ERROR: ");
+        systemPrint("HALTED: ");
         systemPrint(errorMsg);
         systemPrintln();
         sleep(15);
