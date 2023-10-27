@@ -84,6 +84,10 @@ void identifyBoard()
     else if (idWithAdc(idValue, ADC_ID_mV(3.3, 10)))
         productVariant = RTK_EXPRESS_PLUS;
 
+    // Everywhere: 10/100  -->  2857mV < 3000mV < 3143mV
+    else if (idWithAdc(idValue, ADC_ID_mV(10, 100)))
+        productVariant = RTK_EVERYWHERE;
+
     // ID resistors do not exist for the following:
     //      Surveyor
     //      Torch
