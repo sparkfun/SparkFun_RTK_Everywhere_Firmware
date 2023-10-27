@@ -134,6 +134,7 @@ int pin_gnssStatusLED = -1;
 // I2C for GNSS, battery gauge, display, accelerometer
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h>
+TwoWire * i2c_0 = &Wire;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles

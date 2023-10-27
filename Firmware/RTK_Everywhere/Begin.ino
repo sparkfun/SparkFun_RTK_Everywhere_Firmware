@@ -95,9 +95,9 @@ void identifyBoard()
         log_d("Out of band or nonexistent resistor IDs");
 
         // Check if ZED-F9x is on the I2C bus, using the default I2C pins
-        Wire.begin();
-        zedPresent = i2cIsDevicePresent(&Wire, 0x42);
-        Wire.end();
+        i2c_0->begin();
+        zedPresent = i2cIsDevicePresent(i2c_0, 0x42);
+        i2c_0->end();
         if (zedPresent)
         {
             log_d("Detected ZED-F9x");
@@ -279,7 +279,7 @@ void initializePowerPins()
 }
 
 // Based on hardware features, determine if this is RTK Surveyor or RTK Express hardware
-// Must be called after beginI2C (Wire.begin) so that we can do I2C tests
+// Must be called after beginI2C so that we can do I2C tests
 // Must be called after beginGNSS so the GNSS type is known
 void beginBoard()
 {
