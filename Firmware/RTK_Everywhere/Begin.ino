@@ -90,16 +90,17 @@ void identifyBoard()
     //      Unknown ZED
     else
     {
+        bool zedPresent;
+
         log_d("Out of band or nonexistent resistor IDs");
 
-        // Start up I2C on default pins
+        // Check if ZED-F9x is on the I2C bus, using the default I2C pins
         Wire.begin();
-
-        if (isConnected(0x42) == true) // Check if ZED-F9x is on the I2C bus
+        zedPresent = i2cIsDevicePresent(&Wire, 0x42);
+        Wire.end();
+        if (zedPresent)
         {
             log_d("Detected ZED-F9x");
-
-            Wire.end(); // Disable default I2C post test
 
             // Use ZedTxReady to detect RTK Expresses (v1.3 and below) that do not have an accel or device ID resistors
 
@@ -121,8 +122,6 @@ void identifyBoard()
 #ifdef COMPILE_UM980
         else // No ZED on I2C so look for UM980 over serial
         {
-            Wire.end(); // Disable default I2C post test
-
             // Start Serial to test for GNSS on UART
             pin_GnssUart_RX = 26;   // ZED_TX_READY on Surveyor
             pin_GnssUart_TX = 27;   // ZED_RESET on Surveyor
@@ -1192,16 +1191,16 @@ void beginI2C()
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
-void pinI2CTask(void *pvParameters)
+bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
 {
-    bool i2cBusAvailable;
+    bool deviceFound;
     uint32_t timer;
 
-    Wire.begin(pin_I2C0_SDA, pin_I2C0_SCL); // SDA, SCL - Start I2C on the core that was chosen when the task was started
-    Wire.setClock(100000);
+    i2cBus->begin(sda, scl); // SDA, SCL - Start I2C on the core that was chosen when the task was started
+    i2cBus->setClock(clockKHz * 1000);
 
     // Display the device addresses
-    i2cBusAvailable = false;
+    deviceFound = false;
     for (uint8_t addr = 0; addr < 127; addr++)
     {
         // begin/end wire transmission to see if the bus is responding correctly
@@ -1212,10 +1211,9 @@ void pinI2CTask(void *pvParameters)
         // SDA/VCC shorted: 1000ms, response 5
         // SDA/GND shorted: 14ms, response 5
         timer = millis();
-        Wire.beginTransmission(addr);
-        if (Wire.endTransmission() == 0)
+        if (i2cIsDevicePresent(i2cBus, addr))
         {
-            i2cBusAvailable = true;
+            deviceFound = true;
             switch (addr)
             {
                 default: {
@@ -1256,14 +1254,26 @@ void pinI2CTask(void *pvParameters)
         }
         else if ((millis() - timer) > 3)
         {
-            systemPrintln("Error: I2C Bus Not Responding");
-            i2cBusAvailable = false;
-            break;
+            systemPrintln("ERROR: I2C bus not responding!");
+            return false;
         }
     }
 
-    // Update the I2C status
-    online.i2c = i2cBusAvailable;
+    // Determine if any devices are on the bus
+    if (!deviceFound)
+    {
+        systemPrintln("ERROR: No devices found on the I2C bus!");
+        return false;
+    }
+    return true;
+}
+
+// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+void pinI2CTask(void *pvParameters)
+{
+    if (i2cBusInitialization(&Wire, pin_I2C0_SDA, pin_I2C0_SCL, 100))
+        // Update the I2C status
+        online.i2c = true;
     i2cPinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
