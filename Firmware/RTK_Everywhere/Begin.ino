@@ -172,7 +172,16 @@ void identifyBoard()
 // E.g. turn on power for the display before beginDisplay
 void initializePowerPins()
 {
-    if (productVariant == REFERENCE_STATION)
+    // Set the default I2C0 pins
+    pin_I2C0_SDA = 21;
+    pin_I2C0_SCL = 22;
+
+    if (productVariant == RTK_TORCH)
+    {
+        pin_I2C0_SDA = 15;
+        pin_I2C0_SCL = 4;
+    }
+    else if (productVariant == REFERENCE_STATION)
     {
         // v10
         // Pin Allocations:
@@ -1188,24 +1197,7 @@ void pinI2CTask(void *pvParameters)
     bool i2cBusAvailable;
     uint32_t timer;
 
-    switch (productVariant)
-    {
-    default:
-    case RTK_SURVEYOR:
-    case RTK_EXPRESS:
-    case RTK_FACET:
-    case RTK_EXPRESS_PLUS:
-    case RTK_FACET_LBAND:
-    case REFERENCE_STATION:
-        pin_SDA = 21;
-        pin_SCL = 22;
-        break;
-    case RTK_TORCH:
-        pin_SDA = 15;
-        pin_SCL = 4;
-        break;
-    }
-    Wire.begin(pin_SDA, pin_SCL); // SDA, SCL - Start I2C on the core that was chosen when the task was started
+    Wire.begin(pin_I2C0_SDA, pin_I2C0_SCL); // SDA, SCL - Start I2C on the core that was chosen when the task was started
     Wire.setClock(100000);
 
     // Display the device addresses

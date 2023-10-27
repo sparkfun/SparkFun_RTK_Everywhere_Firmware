@@ -118,8 +118,8 @@ int pin_PICO = 23;
 int pin_POCI = 19;
 int pin_SCK = 18;
 
-int pin_SDA = -1;
-int pin_SCL = -1;
+int pin_I2C0_SDA = -1;
+int pin_I2C0_SCL = -1;
 
 int pin_GnssUart_RX = -1;
 int pin_GnssUart_TX = -1;
