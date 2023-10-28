@@ -254,8 +254,10 @@ void initializePowerPins()
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
         // * 29, D5  : GNSS Chip Select
-        // * 14, D12 : SDIO DAT2 - via 74HC4066 switch
-        // * 23, D15 : SDIO CMD - via 74HC4066 switch
+        // 14, D12 : I2C1 SDA
+        pin_I2C1_SDA = 12;
+        // 23, D15 : I2C1 SCL
+        pin_I2C1_SCL = 15;
 
         // * 26, D4  : SDIO DAT1
         // * 16, D13 : SDIO DAT3
@@ -266,18 +268,33 @@ void initializePowerPins()
 
         // * 30, D18 : SPI SCK
         // * 31, D19 : SPI POCI
-        // * 33, D21 : I2C SDA
-        // * 36, D22 : I2C SCL
+        // 33, D21 : I2C0 SDA
+        pin_I2C0_SDA = 21;
+        // 36, D22 : I2C0 SCL
+        pin_I2C0_SCL = 22;
         // * 37, D23 : SPI PICO
         // * 10, D25 : GNSS Time Pulse
         // * 11, D26 : STAT LED
         // * 12, D27 : Ethernet Chip Select
-        // *  8, D32 : PWREN
+        // 8, D32 : PWREN
+        pin_peripheralPowerControl = 32;
         // *  9, D33 : Ethernet Interrupt
         // *  6, A34 : GNSS TX RDY
         // *  7, A35 : Board Detect (1.1V)
         // *  4, A36 : microSD card detect
         //  5, A39 : Unused analog pin - used to generate random values for SSL
+
+        // Connect the I2C_1 bus to the display
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        digitalWrite(pin_peripheralPowerControl, HIGH);
+
+        // Give the system some time to power up
+        delay(1000);
+
+        // Initialize I2C1 bus
+        i2c_1 = new TwoWire(1);
+        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
+        i2cDisplay = i2c_1;
     }
 }
 
@@ -1274,7 +1291,7 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
-    if (i2cBusInitialization(&Wire, pin_I2C0_SDA, pin_I2C0_SCL, 100))
+    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
         // Update the I2C status
         online.i2c = true;
     i2cPinned = true;
