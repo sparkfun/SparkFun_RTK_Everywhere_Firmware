@@ -262,30 +262,39 @@ void initializePowerPins()
         // 23, D15 : I2C1 SCL
         pin_I2C1_SCL = 15;
 
-        // * 26, D4  : SDIO DAT1
+        // 26, D4  : microSD card select bar
+        pin_microSD_CS = 4;
         // * 16, D13 : SDIO DAT3
         // * 13, D14 : SDIO CLK
 
-        // xxxxx 27, D16 : Serial1 RXD : Note: connected to the I/O connector only - not to the ZED-F9P
-        // xxxxx 28, D17 : Serial1 TXD : Note: connected to the I/O connector only - not to the ZED-F9P
-
-        // * 30, D18 : SPI SCK
-        // * 31, D19 : SPI POCI
+        // 30, D18 : SPI SCK
+        // 31, D19 : SPI POCI
         // 33, D21 : I2C0 SDA
         pin_I2C0_SDA = 21;
         // 36, D22 : I2C0 SCL
         pin_I2C0_SCL = 22;
-        // * 37, D23 : SPI PICO
+        // 37, D23 : SPI PICO
         // * 10, D25 : GNSS Time Pulse
         // * 11, D26 : STAT LED
-        // * 12, D27 : Ethernet Chip Select
+        // 12, D27 : Ethernet Chip Select
+        pin_Ethernet_CS = 27;
         // 8, D32 : PWREN
         pin_peripheralPowerControl = 32;
         // *  9, D33 : Ethernet Interrupt
         // *  6, A34 : GNSS TX RDY
         // *  7, A35 : Board Detect (1.1V)
-        // *  4, A36 : microSD card detect
+        //  4, A36 : microSD card detect
+        pin_microSD_CardDetect = 36;
         //  5, A39 : Unused analog pin - used to generate random values for SSL
+
+        // Disable the Ethernet controller
+        pinMode(pin_Ethernet_CS, OUTPUT);
+        digitalWrite(pin_Ethernet_CS, HIGH);
+
+        // Disable the microSD card
+        pinMode(pin_microSD_CardDetect, INPUT); // Internal pullups not supported on input only pins
+        pinMode(pin_microSD_CS, OUTPUT);
+        digitalWrite(pin_microSD_CS, HIGH);
 
         // Connect the I2C_1 bus to the display
         pinMode(pin_peripheralPowerControl, OUTPUT);
