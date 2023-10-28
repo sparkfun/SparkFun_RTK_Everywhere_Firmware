@@ -587,11 +587,6 @@ void displaySplash()
 {
     if (online.display == true)
     {
-        // Display SparkFun Logo for at least 1/10 of a second
-        unsigned long minSplashFor = 100;
-        if (productVariant == REFERENCE_STATION) // Reference station starts up very quickly. Keep splash on for longer
-            minSplashFor = 1000;
-
         while ((millis() - splashStart) < minSplashFor)
             delay(10);
 

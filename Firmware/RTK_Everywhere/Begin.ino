@@ -242,6 +242,9 @@ void initializePowerPins()
         // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
         // so fake it here - otherwise messageSupported always returns false
         zedFirmwareVersionInt = 112;
+
+        // Display splash screen for 1 second
+        minSplashFor = 1000;
     }
     else if (productVariant == RTK_EVERYWHERE)
     {
@@ -295,6 +298,9 @@ void initializePowerPins()
         i2c_1 = new TwoWire(1);
         i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
         i2cDisplay = i2c_1;
+
+        // Display splash screen for 1 second
+        minSplashFor = 1000;
     }
 }
 
