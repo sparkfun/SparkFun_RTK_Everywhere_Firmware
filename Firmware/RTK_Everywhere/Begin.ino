@@ -1080,14 +1080,15 @@ void beginSystemState()
         factoryReset(false); // We do not have the SD semaphore
     }
 
+    // Set the default previous state
+    if (settings.lastState == STATE_NOT_SET) // Default
+    {
+        systemState = platformPreviousStateTable[productVariant];
+        settings.lastState = systemState;
+    }
+
     if (productVariant == RTK_SURVEYOR)
     {
-        if (settings.lastState == STATE_NOT_SET) // Default
-        {
-            systemState = STATE_ROVER_NOT_STARTED;
-            settings.lastState = systemState;
-        }
-
         // If the rocker switch was moved while off, force module settings
         // When switch is set to '1' = BASE, pin will be shorted to ground
         if (settings.lastState == STATE_ROVER_NOT_STARTED && digitalRead(pin_setupButton) == LOW)
@@ -1102,12 +1103,6 @@ void beginSystemState()
     }
     else if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
     {
-        if (settings.lastState == STATE_NOT_SET) // Default
-        {
-            systemState = STATE_ROVER_NOT_STARTED;
-            settings.lastState = systemState;
-        }
-
         if (online.lband == false)
             systemState =
                 settings
@@ -1122,12 +1117,6 @@ void beginSystemState()
     else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
              productVariant == RTK_FACET_LBAND_DIRECT)
     {
-        if (settings.lastState == STATE_NOT_SET) // Default
-        {
-            systemState = STATE_ROVER_NOT_STARTED;
-            settings.lastState = systemState;
-        }
-
         if (online.lband == false)
             systemState =
                 settings
@@ -1144,12 +1133,6 @@ void beginSystemState()
     }
     else if (productVariant == REFERENCE_STATION)
     {
-        if (settings.lastState == STATE_NOT_SET) // Default
-        {
-            systemState = STATE_BASE_NOT_STARTED;
-            settings.lastState = systemState;
-        }
-
         systemState =
             settings
                 .lastState; // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
@@ -1159,12 +1142,6 @@ void beginSystemState()
     }
     else if (productVariant == RTK_TORCH)
     {
-        if (settings.lastState == STATE_NOT_SET) // Default
-        {
-            systemState = STATE_ROVER_NOT_STARTED;
-            settings.lastState = systemState;
-        }
-
         firstRoverStart =
             false; // Do not allow user to enter test screen during first rover start because there is no screen
 
