@@ -121,6 +121,9 @@ int pin_SCK = 18;
 int pin_I2C0_SDA = -1;
 int pin_I2C0_SCL = -1;
 
+int pin_I2C1_SDA = -1;
+int pin_I2C1_SCL = -1;
+
 int pin_GnssUart_RX = -1;
 int pin_GnssUart_TX = -1;
 
@@ -135,6 +138,7 @@ int pin_gnssStatusLED = -1;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h>
 TwoWire * i2c_0 = &Wire;
+TwoWire * i2c_1;
 TwoWire * i2cDisplay;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
