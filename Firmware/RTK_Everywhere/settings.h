@@ -159,6 +159,30 @@ const SystemState platformPreviousStateTable[] =
 };
 const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
 
+// Different GNSS modules require different libraries and configuration
+typedef enum
+{
+    PLATFORM_ZED = 0b0001,
+    PLATFORM_UM980 = 0b0010,
+} GnssPlatform;
+
+const GnssPlatform platformGnssTable[] =
+{
+    PLATFORM_ZED,   // Surveyor
+    PLATFORM_ZED,   // Express
+    PLATFORM_ZED,   // Facet
+    PLATFORM_ZED,   // Express Plus
+    PLATFORM_ZED,   // Facet L-Band
+    PLATFORM_ZED,   // Reference Station
+    PLATFORM_ZED,   // Facet L-Band Direct
+    PLATFORM_UM980, // Torch
+    PLATFORM_ZED,   // Unknown ZED
+    PLATFORM_ZED,   // Everywhere
+    // Add new values just above this line
+    PLATFORM_ZED    // Unknown
+};
+const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
+
 // Macros to show if the GNSS is I2C or SPI
 #define USE_SPI_GNSS (productVariant == REFERENCE_STATION)
 #define USE_I2C_GNSS (!USE_SPI_GNSS)
@@ -473,13 +497,6 @@ typedef struct
 // These are the allowable constellations to receive from and log (if enabled)
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
-
-// Different GNSS modules require different libraries and configuration
-typedef enum
-{
-    PLATFORM_ZED = 0b0001,
-    PLATFORM_UM980 = 0b0010,
-} GnssPlatform;
 
 // Different ZED modules support different messages (F9P vs F9R vs F9T)
 // Create binary packed struct for different platforms

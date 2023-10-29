@@ -3,24 +3,7 @@ void gnssBegin()
 {
     // We have ID'd the board, but we have not beginBoard() yet so
     // set the gnssModule type here.
-
-    switch (productVariant)
-    {
-    default:
-    case RTK_SURVEYOR:
-    case RTK_EXPRESS:
-    case RTK_FACET:
-    case RTK_EXPRESS_PLUS:
-    case RTK_FACET_LBAND:
-    case REFERENCE_STATION:
-    case RTK_UNKNOWN_ZED:
-        gnssPlatform = PLATFORM_ZED;
-        break;
-    case RTK_TORCH:
-        gnssPlatform = PLATFORM_UM980;
-        break;
-    }
-
+    gnssPlatform = platformGnssTable[productVariant];
     if (gnssPlatform == PLATFORM_ZED)
         zedBegin();
     else if (gnssPlatform == PLATFORM_UM980)
