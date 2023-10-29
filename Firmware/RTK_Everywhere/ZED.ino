@@ -273,7 +273,8 @@ bool zedConfigure()
     if (settings.enableGNSSdebug)
     {
 #if defined(REF_STN_GNSS_DEBUG)
-        if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
+        if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION)
+            || (productVariant == RTK_EVERYWHERE)))
             theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
         else
 #endif                                              // REF_STN_GNSS_DEBUG
@@ -1378,7 +1379,8 @@ void zedSaveConfiguration()
 void zedEnableDebugging()
 {
 #if defined(REF_STN_GNSS_DEBUG)
-    if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
+    if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION)
+        || (productVariant == RTK_EVERYWHERE)))
         theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
     else
 #endif                                          // REF_STN_GNSS_DEBUG
@@ -1656,7 +1658,7 @@ uint16_t zedExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
     theGNSS->extractFileBufferData(fileBuffer, fileBytesToRead); //TODO Does extractFileBufferData not return the bytes read?
     return (1);
 }
-  
+
 // Disable data output from the NEO
 bool zedDisableLBandCommunication()
 {
