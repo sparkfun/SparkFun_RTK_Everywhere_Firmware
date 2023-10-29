@@ -193,7 +193,7 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 
 // Macro to show if the the RTK variant has Ethernet
 #ifdef COMPILE_ETHERNET
-#define HAS_ETHERNET (productVariant == REFERENCE_STATION)
+#define HAS_ETHERNET ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
 #else // COMPILE_ETHERNET
 #define HAS_ETHERNET false
 #endif // COMPILE_ETHERNET
@@ -201,14 +201,14 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 // Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
 // The GNSS UBX PVT message is sent ahead of the top-of-second
 // The rising edge of the TP signal indicates the true top-of-second
-#define HAS_GNSS_TP_INT (productVariant == REFERENCE_STATION)
+#define HAS_GNSS_TP_INT ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
 
 // Macro to show if the the RTK variant has no battery
-#define HAS_NO_BATTERY (productVariant == REFERENCE_STATION)
+#define HAS_NO_BATTERY ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
 #define HAS_BATTERY (!HAS_NO_BATTERY)
 
 // Macro to show if the the RTK variant has antenna short circuit / open circuit detection
-#define HAS_ANTENNA_SHORT_OPEN (productVariant == REFERENCE_STATION)
+#define HAS_ANTENNA_SHORT_OPEN ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
 
 #define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
 
