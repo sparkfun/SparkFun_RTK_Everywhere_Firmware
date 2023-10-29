@@ -469,6 +469,12 @@ void beginBoard()
 
         settings.enablePrintBatteryMessages = false; // No pesky battery messages
     }
+    else if (productVariant == RTK_EVERYWHERE)
+    {
+        // No powerOnCheck
+
+        settings.enablePrintBatteryMessages = false; // No pesky battery messages
+    }
 
     char versionString[21];
     getFirmwareVersion(versionString, sizeof(versionString), true);
@@ -974,7 +980,7 @@ void beginLEDs()
         ledcWrite(ledGreenChannel, 0);
         ledcWrite(ledBtChannel, 0);
     }
-    else if (productVariant == REFERENCE_STATION)
+    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
     {
         pinMode(pin_baseStatusLED, OUTPUT);
         digitalWrite(pin_baseStatusLED, LOW);
