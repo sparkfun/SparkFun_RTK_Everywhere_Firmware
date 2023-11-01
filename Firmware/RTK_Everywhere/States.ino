@@ -103,10 +103,9 @@ void stateUpdate()
                 ledcWrite(ledBtChannel, 0); // Turn off BT LED
             }
 
-            if (productVariant == REFERENCE_STATION)
-            {
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+                // Turn off the status LED
                 digitalWrite(pin_baseStatusLED, LOW);
-            }
 
             // Configure for rover mode
             displayRoverStart(0);
@@ -127,7 +126,7 @@ void stateUpdate()
             radioStart();     // Start internal radio if enabled, otherwise disable
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() == false) 
+            if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
             else
             {
@@ -245,7 +244,8 @@ void stateUpdate()
                 ledcWrite(ledBtChannel, 0); // Turn off BT LED
             }
 
-            if (productVariant == REFERENCE_STATION)
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+                // Turn off the status LED
                 digitalWrite(pin_baseStatusLED, LOW);
 
             displayBaseStart(0); // Show 'Base'
@@ -288,7 +288,9 @@ void stateUpdate()
             {
                 lastBaseLEDupdate = millis();
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
+                    || (productVariant == RTK_EVERYWHERE))
+                    // Toggle the base/status LED
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
 
@@ -320,7 +322,9 @@ void stateUpdate()
             {
                 lastBaseLEDupdate = millis();
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
+                    || (productVariant == RTK_EVERYWHERE))
+                    // Toggle the base/status LED
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
 
@@ -334,7 +338,9 @@ void stateUpdate()
                 systemPrintf("Observation Time: %d\r\n", observationTime);
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
+                    || (productVariant == RTK_EVERYWHERE))
+                    // Turn on the base/status LED
                     digitalWrite(pin_baseStatusLED, HIGH); // Indicate survey complete
 
                 // Start the NTRIP server if requested
@@ -409,8 +415,10 @@ void stateUpdate()
             bool response = gnssFixedBaseStart();
             if (response == true)
             {
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION))
-                    digitalWrite(pin_baseStatusLED, HIGH); // Turn on base LED
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
+                    || (productVariant == RTK_EVERYWHERE))
+                    // Turn on the base/status LED
+                    digitalWrite(pin_baseStatusLED, HIGH);
 
                 radioStart(); // Start internal radio if enabled, otherwise disable
 
@@ -646,7 +654,8 @@ void stateUpdate()
                 }
             }
 
-            if (productVariant == REFERENCE_STATION)
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+                // Turn off the status LED
                 digitalWrite(pin_baseStatusLED, LOW);
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
