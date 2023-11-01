@@ -448,6 +448,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enableAutoFirmwareUpdate", settings.enableAutoFirmwareUpdate);
 
     settingsFile->printf("%s=%d\r\n", "debugLBand", settings.debugLBand);
+    settingsFile->printf("%s=%d\r\n", "enableCaptivePortal", settings.enableCaptivePortal);
 
     //Add new settings above <------------------------------------------------------------>
 }
@@ -1377,7 +1378,15 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
         settings->enableAutoFirmwareUpdate = d;
 
-    //Add new settings above <------------------------------------------------------------>
+    else if (strcmp(settingName, "debugLBand") == 0)
+        settings->debugLBand = d;
+    else if (strcmp(settingName, "enableCaptivePortal") == 0)
+        settings->enableCaptivePortal = d;
+
+
+
+    //Add new settings above
+    //<------------------------------------------------------------>
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list

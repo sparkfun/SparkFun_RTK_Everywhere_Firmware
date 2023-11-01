@@ -1227,7 +1227,7 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
                 }
 
                 case 0x36: {
-                    systemPrintf("0x%02x - MAX17048 Fuel Guage\r\n", addr);
+                    systemPrintf("0x%02x - MAX17048 Fuel Gauge\r\n", addr);
                     break;
                 }
 

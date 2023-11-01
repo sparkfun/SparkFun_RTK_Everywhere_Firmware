@@ -104,8 +104,10 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             break;
         }
 
+        if(settings.enableCaptivePortal == true)
+            webserver->addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // only when requested from AP
+
         websocket->onEvent(onWsEvent);
-        webserver->addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // only when requested from AP
         webserver->addHandler(websocket);
 
         // * index.html (not gz'd)
@@ -620,7 +622,9 @@ void createSettingsString(char *newSettings)
     newSettings[0] = '\0'; // Erase current settings string
 
     // System Info
-    stringRecord(newSettings, "platformPrefix", platformPrefix);
+    char apPlatformPrefix[80];
+    strncpy(apPlatformPrefix, platformPrefixTable[productVariant], sizeof(apPlatformPrefix));
+    stringRecord(newSettings, "platformPrefix", apPlatformPrefix);
 
     char apRtkFirmwareVersion[86];
     getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);

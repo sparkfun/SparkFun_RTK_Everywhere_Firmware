@@ -1150,6 +1150,7 @@ typedef struct
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
 
     bool debugLBand = false;
+    bool enableCaptivePortal = true;
 
     //Add new settings above <------------------------------------------------------------>
 
