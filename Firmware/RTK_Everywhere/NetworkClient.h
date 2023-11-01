@@ -268,6 +268,7 @@ class NetworkEthernetClient : public NetworkClient
     }
 };
 
+#ifdef COMPILE_OTA_CLIENT
 class NetworkEthernetSslClient : public NetworkClient
 {
   protected:
@@ -290,6 +291,7 @@ class NetworkEthernetSslClient : public NetworkClient
         this->~NetworkClient();
     }
 };
+#endif  // COMPILE_OTA_CLIENT
 #endif  // COMPILE_ETHERNET
 
 #ifdef  COMPILE_WIFI
@@ -318,6 +320,7 @@ class NetworkWiFiClient : public NetworkClient
     }
 };
 
+#ifdef  COMPILE_OTA_CLIENT
 class NetworkWiFiSslClient : public NetworkClient
 {
   protected:
@@ -340,6 +343,7 @@ class NetworkWiFiSslClient : public NetworkClient
         this->~NetworkClient();
     }
 };
+#endif  // COMPILE_OTA_CLIENT
 #endif  // COMPILE_WIFI
 
 #endif  // __NETWORK_CLIENT_H__

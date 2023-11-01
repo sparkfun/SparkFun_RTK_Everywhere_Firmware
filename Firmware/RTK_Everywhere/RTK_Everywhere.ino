@@ -21,6 +21,7 @@
 
 //#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 //#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+define COMPILE_OTA_CLIENT // Comment out to remove OTA client functionality
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
@@ -222,8 +223,10 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #if COMPILE_NETWORK
+#ifdef COMPILE_OTA_CLIENT
 #include <SSLClientESP32.h> // http://librarymanager/All#SSLClientESP32
 #include "X509_Certificate_Bundle.h" // Root certificates
+#endif  // COMPILE_OTA_CLIENT
 #endif // COMPILE_NETWORK
 #include <ArduinoJson.h>  //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
 

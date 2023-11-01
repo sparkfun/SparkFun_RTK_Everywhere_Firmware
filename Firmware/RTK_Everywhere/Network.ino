@@ -392,7 +392,11 @@ NetworkClient * networkClient(uint8_t user, bool useSSL)
     if (type == NETWORK_TYPE_ETHERNET)
     {
         if (useSSL)
+#ifdef  COMPILE_OTA_CLIENT
             client = new NetworkEthernetSslClient();
+#else   //COMPILE_OTA_CLIENT
+            client = nullptr;
+#endif  // COMPILE_OTA_CLIENT
         else
             client = new NetworkEthernetClient;
     }
@@ -401,7 +405,11 @@ NetworkClient * networkClient(uint8_t user, bool useSSL)
     {
 #if defined(COMPILE_WIFI)
         if (useSSL)
+#ifdef COMPILE_OTA_CLIENT
             client = new NetworkWiFiSslClient();
+#else   // COMPILE_OTA_CLIENT
+            client = nullptr;
+#endif  // COMPILE_OTA_CLIENT
         else
             client = new NetworkWiFiClient();
 #else   // COMPILE_WIFI
