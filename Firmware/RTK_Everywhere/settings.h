@@ -104,7 +104,7 @@ const char * const productDisplayNames[] =
     "Unkn ZED",
     "Everywhere",
     // Add new values just above this line
-    "Unknown",
+    "Unknown"
 };
 const int productDisplayNamesEntries = sizeof (productDisplayNames) / sizeof(productDisplayNames[0]);
 
@@ -121,7 +121,7 @@ const char * const platformFilePrefixTable[] =
     "SFE_Unknown_ZED",
     "SFE_Everywhere",
     // Add new values just above this line
-    "SFE_Unknown",
+    "SFE_Unknown"
 };
 const int platformFilePrefixTableEntries = sizeof (platformFilePrefixTable) / sizeof(platformFilePrefixTable[0]);
 
@@ -138,9 +138,26 @@ const char * const platformPrefixTable[] =
     "Unknown ZED",
     "Everywhere",
     // Add new values just above this line
-    "Unknown",
+    "Unknown"
 };
 const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(platformPrefixTable[0]);
+
+const SystemState platformPreviousStateTable[] =
+{
+    STATE_ROVER_NOT_STARTED,    // Surveyor
+    STATE_ROVER_NOT_STARTED,    // Express
+    STATE_ROVER_NOT_STARTED,    // Facet
+    STATE_ROVER_NOT_STARTED,    // Express Plus
+    STATE_ROVER_NOT_STARTED,    // Facet L-Band
+    STATE_BASE_NOT_STARTED,     // Reference Station
+    STATE_ROVER_NOT_STARTED,    // Facet L-Band Direct
+    STATE_ROVER_NOT_STARTED,    // Torch
+    STATE_ROVER_NOT_STARTED,    // Unknown ZED
+    STATE_BASE_NOT_STARTED,     // Everywhere
+    // Add new values just above this line
+    STATE_ROVER_NOT_STARTED     // Unknown
+};
+const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
 
 // Macros to show if the GNSS is I2C or SPI
 #define USE_SPI_GNSS (productVariant == REFERENCE_STATION)

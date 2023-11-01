@@ -804,6 +804,8 @@ void verifyTables()
         reportFatalError("Fix platformFilePrefixTable to match ProductVariant");
     if (platformPrefixTableEntries != (RTK_UNKNOWN + 1))
         reportFatalError("Fix platformPrefixTable to match ProductVariant");
+    if (platformPreviousStateTableEntries != (RTK_UNKNOWN + 1))
+        reportFatalError("Fix platformPreviousStateTable to match ProductVariant");
 
     // Verify the consistency of the internal tables
     ethernetVerifyTables();
