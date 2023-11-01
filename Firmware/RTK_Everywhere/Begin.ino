@@ -257,33 +257,34 @@ void initializePowerPins()
         pin_setupButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
-        // * 29, D5  : GNSS Chip Select
+        // 29, D5  : ESP5 test point
         // 14, D12 : I2C1 SDA
         pin_I2C1_SDA = 12;
-        // 23, D15 : I2C1 SCL
+        // 23, D15 : I2C1 SCL --> OLED after switch
         pin_I2C1_SCL = 15;
 
         // 26, D4  : microSD card select bar
         pin_microSD_CS = 4;
-        // * 16, D13 : SDIO DAT3
-        // * 13, D14 : SDIO CLK
+        // 16, D13 : LARA_TXDI
+        // 13, D14 : LARA_RXDO
 
-        // 30, D18 : SPI SCK
+        // 30, D18 : SPI SCK --> Ethernet, microSD card
         // 31, D19 : SPI POCI
         // 33, D21 : I2C0 SDA
         pin_I2C0_SDA = 21;
-        // 36, D22 : I2C0 SCL
+        // 36, D22 : I2C0 SCL --> ZED, NEO, USB2514B, TP, I/O connector
         pin_I2C0_SCL = 22;
         // 37, D23 : SPI PICO
-        // * 10, D25 : GNSS Time Pulse
-        // * 11, D26 : STAT LED
+        // 10, D25 : TP/2
+        // 11, D26 : LARA_ON
         // 12, D27 : Ethernet Chip Select
         pin_Ethernet_CS = 27;
-        // 8, D32 : PWREN
+        //  8, D32 : PWREN
         pin_peripheralPowerControl = 32;
-        // *  9, D33 : Ethernet Interrupt
-        // *  6, A34 : GNSS TX RDY
-        // *  7, A35 : Board Detect (1.1V)
+        //  9, D33 : Ethernet Interrupt
+        pin_Ethernet_Interrupt = 33;
+        //  6, A34 : LARA_NI
+        //  7, A35 : Board Detect (1.1V)
         //  4, A36 : microSD card detect
         pin_microSD_CardDetect = 36;
         //  5, A39 : Unused analog pin - used to generate random values for SSL
@@ -1242,6 +1243,11 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
 
                 case 0x19: {
                     systemPrintf("0x%02x - LIS2DH12 Accelerometer\r\n", addr);
+                    break;
+                }
+
+                case 0x2c: {
+                    systemPrintf("0x%02x - USB251xB USB Hub\r\n", addr);
                     break;
                 }
 
