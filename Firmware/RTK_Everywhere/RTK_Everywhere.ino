@@ -87,7 +87,6 @@ int pin_positionAccuracyLED_10cm = -1;
 int pin_positionAccuracyLED_100cm = -1;
 int pin_baseStatusLED = -1;
 int pin_bluetoothStatusLED = -1;
-int pin_microSD_CS = -1;
 int pin_zed_tx_ready = -1;
 int pin_zed_reset = -1;
 int pin_batteryLevel_alert = -1;
@@ -112,11 +111,13 @@ int pin_Ethernet_CS = -1;
 int pin_Ethernet_Interrupt = -1;
 int pin_GNSS_CS = -1;
 int pin_GNSS_TimePulse = -1;
-int pin_microSD_CardDetect = -1;
 
+// microSD card pins
 int pin_PICO = 23;
 int pin_POCI = 19;
 int pin_SCK = 18;
+int pin_microSD_CardDetect = -1;
+int pin_microSD_CS = -1;
 
 int pin_I2C0_SDA = -1;
 int pin_I2C0_SCL = -1;
