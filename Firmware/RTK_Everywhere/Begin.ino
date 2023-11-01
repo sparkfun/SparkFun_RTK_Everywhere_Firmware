@@ -254,6 +254,7 @@ void initializePowerPins()
         // 34, D3  : Serial RX (CH340 TX)
 
         // 25, D0  : Boot + Boot Button
+        pin_setupButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
         // * 29, D5  : GNSS Chip Select
@@ -1131,7 +1132,7 @@ void beginSystemState()
         powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
         // Allocation failure handled in ButtonCheckTask
     }
-    else if (productVariant == REFERENCE_STATION)
+    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
     {
         systemState =
             settings
