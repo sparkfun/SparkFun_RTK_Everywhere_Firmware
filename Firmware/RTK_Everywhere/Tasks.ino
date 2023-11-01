@@ -1515,7 +1515,8 @@ void ButtonCheckTask(void *e)
                 } // End disableSetupButton check
             }
         }                                             // End Platform = RTK Facet
-        else if (productVariant == REFERENCE_STATION) // Check one momentary button
+        else if ((productVariant == REFERENCE_STATION) // Check one momentary button
+            || (productVariant == RTK_EVERYWHERE))
         {
             if (setupBtn != nullptr)
                 setupBtn->read();
