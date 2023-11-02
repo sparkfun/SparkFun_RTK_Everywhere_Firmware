@@ -70,12 +70,6 @@ bool ntripServerIsCasting() {
 void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
-// OTA client
-//----------------------------------------
-
-void otaVerifyTables() {}
-
-//----------------------------------------
 // PVT client
 //----------------------------------------
 
@@ -96,6 +90,24 @@ void pvtUdpServerZeroTail() {}
 void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 #endif // COMPILE_NETWORK
+
+//----------------------------------------
+// OTA client
+//----------------------------------------
+
+#ifndef COMPILE_OTA_CLIENT
+
+void otaClientUpdate() {}
+void otaStop() {}
+void otaVerifyTables() {}
+
+#else   // COMPILE_OTA_CLIENT
+#if !COMPILE_NETWORK
+
+void otaVerifyTables() {}
+
+#endif  // COMPILE_NETWORK
+#endif  // COMPILE_OTA_CLIENT
 
 //----------------------------------------
 // Web Server

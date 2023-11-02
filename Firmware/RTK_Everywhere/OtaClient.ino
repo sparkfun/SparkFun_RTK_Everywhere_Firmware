@@ -15,6 +15,7 @@ OtaClient.ino
 
 ------------------------------------------------------------------------------*/
 
+#ifdef COMPILE_OTA_CLIENT
 #if COMPILE_NETWORK
 
 //----------------------------------------
@@ -866,3 +867,4 @@ void otaVerifyTables()
 }
 
 #endif  // COMPILE_NETWORK
+#endif  // COMPILE_OTA_CLIENT
