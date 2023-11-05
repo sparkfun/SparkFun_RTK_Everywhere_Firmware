@@ -1,6 +1,6 @@
-#ifdef PARSE_UNICORE_MESSAGES   // Remove this line
+#ifdef PARSE_UNICORE_MESSAGES // Remove this line
 
-*------------------------------------------------------------------------------
+/*------------------------------------------------------------------------------
 Parse_Unicore.ino
 
   Unicore message parsing support routines
@@ -25,6 +25,7 @@ uint8_t unicorePreamble(PARSE_STATE *parse, uint8_t data)
 {
     if (data == 0xAA)
     {
+        Serial.println("unicorePreamble");
         parse->state = unicoreBinarySync2;
         return SENTENCE_TYPE_UNICORE;
     }
@@ -78,7 +79,7 @@ uint8_t unicoreBinaryReadLength(PARSE_STATE *parse, uint8_t data)
 
     if (parse->bytesRemaining > PARSE_BUFFER_LENGTH)
     {
-        Serial.println("Length overflow");
+        systemPrintln("Length overflow");
 
         // Invalid length, place this byte at the beginning of the buffer
         parse->length = 0;
@@ -141,9 +142,12 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
     }
     else
     {
-        Serial.println();
-        Serial.printf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
-                      calculatedCRC);
+        if (settings.enableGNSSdebug)
+        {
+            systemPrintln();
+            systemPrintf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
+                          calculatedCRC);
+        }
     }
 
     // Search for another preamble byte
@@ -152,4 +156,4 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
     return SENTENCE_TYPE_NONE;
 }
 
-#endif  // PARSE_UNICORE_MESSAGES, remove this line
+#endif // PARSE_UNICORE_MESSAGES, remove this line
