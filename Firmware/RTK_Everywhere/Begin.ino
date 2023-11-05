@@ -459,9 +459,6 @@ void beginBoard()
 
         settings.enableSD = false; // SD does not exist on the Torch
 
-        strncpy(platformFilePrefix, "SFE_Torch", sizeof(platformFilePrefix) - 1);
-        strncpy(platformPrefix, "Torch", sizeof(platformPrefix) - 1);
-
         tiltSupported = true; // Allow tiltUpdate() to run
 
         settings.enableSD = false; // Torch has no SD socket
@@ -1241,46 +1238,61 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
         timer = millis();
         if (i2cIsDevicePresent(i2cBus, addr))
         {
-            deviceFound = true;
+            if(deviceFound == false)
+            {
+                systemPrintln("I2C Devices:");
+                deviceFound = true;
+            }
+
             switch (addr)
             {
                 default: {
-                    systemPrintf("0x%02x\r\n", addr);
+                    systemPrintf("  0x%02X\r\n", addr);
+                    break;
+                }
+
+                case 0x0B: {
+                    systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                     break;
                 }
 
                 case 0x19: {
-                    systemPrintf("0x%02x - LIS2DH12 Accelerometer\r\n", addr);
+                    systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
                     break;
                 }
 
-                case 0x2c: {
-                    systemPrintf("0x%02x - USB251xB USB Hub\r\n", addr);
+                case 0x2C: {
+                    systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                     break;
                 }
 
                 case 0x36: {
-                    systemPrintf("0x%02x - MAX17048 Fuel Gauge\r\n", addr);
+                    systemPrintf("  0x%02X - MAX17048 Fuel Gauge\r\n", addr);
                     break;
                 }
 
-                case 0x3d: {
-                    systemPrintf("0x%02x - SSD1306 OLED Driver\r\n", addr);
+                case 0x3D: {
+                    systemPrintf("  0x%02X - SSD1306 OLED Driver\r\n", addr);
                     break;
                 }
 
                 case 0x42: {
-                    systemPrintf("0x%02x - u-blox ZED-F9P GNSS Receiver\r\n", addr);
+                    systemPrintf("  0x%02X - u-blox ZED-F9P GNSS Receiver\r\n", addr);
                     break;
                 }
 
                 case 0x43: {
-                    systemPrintf("0x%02x - u-blox NEO-D9S-00B Correction Data Receiver\r\n", addr);
+                    systemPrintf("  0x%02X - u-blox NEO-D9S Correction Data Receiver\r\n", addr);
+                    break;
+                }
+
+                case 0x5C: {
+                    systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                     break;
                 }
 
                 case 0x60: {
-                    systemPrintf("0x%02x - Crypto Coprocessor\r\n", addr);
+                    systemPrintf("  0x%02X - ATECC608A Crypto Coprocessor\r\n", addr);
                     break;
                 }
             }
