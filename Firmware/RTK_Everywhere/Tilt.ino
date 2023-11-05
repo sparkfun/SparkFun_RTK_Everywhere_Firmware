@@ -207,7 +207,7 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
     }
 
     // Identify sentence type
-    char sentenceType[sizeof("GGA") + 1] = {0};
+    char sentenceType[strlen("GGA") + 1] = {0};
     strncpy(sentenceType, &nmeaSentence[3],
             3); // Copy three letters, starting in spot 3. Null terminated from array initializer.
 
@@ -241,7 +241,7 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 {
     double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 2;
     const int longitudeComma = 4;
@@ -350,7 +350,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
 {
     double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 1;
     const int longitudeComma = 3;
@@ -441,7 +441,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
 void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
 {
     double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 3;
     const int longitudeComma = 5;
@@ -585,7 +585,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     }
 
     double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     // strncat terminates
     // Add start of message up to latitude
