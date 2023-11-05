@@ -240,7 +240,6 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 //$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1580.987,M,-21.361,M,,*7E - Modified
 void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 {
-    double coordinate = 0.0;
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 2;
@@ -349,7 +348,6 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D - Modified
 void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
 {
-    double coordinate = 0.0;
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 1;
@@ -440,7 +438,6 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
 //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01 - Modified
 void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
 {
-    double coordinate = 0.0;
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 3;
@@ -584,7 +581,6 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
         return;
     }
 
-    double coordinate = 0.0;
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     // strncat terminates
