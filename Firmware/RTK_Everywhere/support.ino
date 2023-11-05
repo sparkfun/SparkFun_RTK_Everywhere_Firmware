@@ -820,3 +820,45 @@ void verifyTables()
     pvtServerValidateTables();
     tasksValidateTables();
 }
+
+//Display a prompt, then check the response against bounds.
+//Update setting if within bounds
+bool getNewSetting(const char *settingPrompt, int min, int max, int *setting)
+{
+    while (1)
+    {
+        Serial.printf("%s (or x to exit): ", settingPrompt);
+        int enteredValue = getNumber(); // Returns EXIT, TIMEOUT, or long
+        if ((enteredValue == INPUT_RESPONSE_GETNUMBER_EXIT) || (enteredValue == INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            break;
+
+        if (enteredValue >= min && enteredValue <= max)
+        {
+            *setting = enteredValue; // Recorded to NVM and file at main menu exit
+            return (true);
+        }
+        else
+            Serial.println("Error: Number out of range");
+    }
+    return (false);
+}
+
+bool getNewSetting(const char *settingPrompt, double min, double max, double *setting)
+{
+    while (1)
+    {
+        Serial.printf("%s [min: %0.2f max: %0.2f] (or x to exit): ", settingPrompt, min, max);
+        double enteredValue = getDouble();
+        if ((enteredValue == INPUT_RESPONSE_GETNUMBER_EXIT) || (enteredValue == INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            break;
+
+        if (enteredValue >= min && enteredValue <= max)
+        {
+            *setting = enteredValue; // Recorded to NVM and file at main menu exit
+            return (true);
+        }
+        else
+            Serial.println("Error: Number out of range");
+    }
+    return (false);
+}

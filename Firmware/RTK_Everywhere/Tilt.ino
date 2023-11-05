@@ -1,5 +1,55 @@
 #ifdef COMPILE_IM19_IMU
 
+// Get the Ethernet parameters
+void menuTilt()
+{
+    if (HAS_TILT_COMPENSATION == false)
+    {
+        clearBuffer(); // Empty buffer of any newline chars
+        return;
+    }
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Tilt Compensation");
+        systemPrintln();
+
+        systemPrint("1) Tilt Compensation: ");
+        systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
+
+        if (settings.enableTiltCompensation == true)
+        {
+            systemPrint("2) Pole Length: ");
+            systemPrintf("%0.2fm\r\n", settings.tiltPoleLength);
+        }
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getCharacterNumber();
+
+        if (incoming == 1)
+        {
+            settings.enableTiltCompensation ^= 1;
+        }
+        else if ((settings.enableTiltCompensation == true) && (incoming == 2))
+        {
+            getNewSetting("Enter length of the pole in meters", 0.01, 4.0, (double*)&settings.tiltPoleLength);
+        }
+
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
 void tiltUpdate()
 {
     if (tiltSupported == true)
@@ -75,6 +125,21 @@ void tiltUpdate()
 
                     // 0x 04 00 01 - No PPS yet, just GNSS (PPS received 18, finit 1)
                     // 0x 14 00 01 - ?
+                    // 0x 1C 00 01 - PPS injected, ready for shaking (RTK data 20, time sync 19, pps 18, finit 1)
+                    // 0x 1E 00 01 - Active measurement? (RTK data 20, time sync 19, pps 18, init complete 17, finit 1)
+
+                    /*Steps:
+                        Step one: Rotate the receiver in hand, or shake it. I think it's looking for the heading angle
+                       to change >360 degrees
+
+                       Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
+                       means step two has been entered Wait for RTK to output the fixed solution
+
+                       Step three: Some rocking is required to make accuracy meet the requirements. Rock rod back and
+                       forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
+                       degrees and continue to rock until the init is complete. The status word becomes ready.
+
+                     */
                 }
             }
         }
@@ -637,4 +702,4 @@ void tiltSensorFactoryReset()
     tiltSensor->factoryReset();
 }
 
-#endif  // COMPILE_IM19_IMU
+#endif // COMPILE_IM19_IMU

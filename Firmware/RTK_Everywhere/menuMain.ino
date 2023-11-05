@@ -150,9 +150,7 @@ void menuMain()
         else if (incoming == 's')
             menuSystem();
         else if (incoming == 't' && (HAS_TILT_COMPENSATION))
-        {
-            //menuTiltConfig();
-        }
+            menuTilt();
         else if (incoming == 'b')
         {
             printEndpoint = PRINT_ENDPOINT_SERIAL;

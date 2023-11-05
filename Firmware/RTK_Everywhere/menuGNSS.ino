@@ -143,17 +143,13 @@ void menuGNSS()
 
         if (incoming == 1)
         {
-            systemPrint("Enter GNSS measurement rate in Hz: ");
             double rate = getDouble();
-            if (rate < 0.00012 || rate > 20.0) // 20Hz limit with all constellations enabled
-            {
-                systemPrintln("Error: Measurement rate out of range");
-            }
-            else
+            if(getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) == true) // 20Hz limit with all constellations enabled
             {
                 gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
                                          // settings.navigationRate, and GSV message
                 // Settings recorded to NVM and file at main menu exit
+
             }
         }
         else if (incoming == 2)
