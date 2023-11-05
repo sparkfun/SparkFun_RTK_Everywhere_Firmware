@@ -21,7 +21,7 @@
 
 //#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 //#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-define COMPILE_OTA_CLIENT // Comment out to remove OTA client functionality
+#define COMPILE_OTA_CLIENT // Comment out to remove OTA client functionality
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
