@@ -1214,6 +1214,7 @@ struct struct_online
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
     bool imu = false;
+    bool tilt = false;
     bool otaFirmwareUpdate = false;
 } online;
 
