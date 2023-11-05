@@ -384,7 +384,7 @@ unsigned long rtcmLastPacketReceived =
 #define PARSE_NMEA_MESSAGES
 #define PARSE_RTCM_MESSAGES
 #define PARSE_UBLOX_MESSAGES
-//#define PARSE_UNICORE_MESSAGES
+#define PARSE_UNICORE_MESSAGES
 
 // Build the GPS message parse table
 GPS_PARSE_TABLE;
