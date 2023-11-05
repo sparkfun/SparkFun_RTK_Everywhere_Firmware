@@ -49,21 +49,33 @@ void um980Begin()
     online.gnss = true;
 }
 
+// Attempt 3 tries on UM980 config
 bool um980Configure()
 {
+    for (int x = 0; x < 3; x++)
+    {
+        if (um980ConfigureOnce() == true)
+            return (true);
+    }
+
+    return (false);
+}
+
+bool um980ConfigureOnce()
+{
     /*
-        Disable all message traffic
-        Set COM port baud rates,
-          UM980 COM1 - Direct to USB, 115200
-          UM980 COM2 - To IMU. From settings.
-          UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
-        Set minCNO
-        Set elevationAngle
-        Set Constellations
-        Set messages
-          Enable selected NMEA messages on COM3
-          Enable selected RTCM messages on COM3
-    */
+    Disable all message traffic
+    Set COM port baud rates,
+      UM980 COM1 - Direct to USB, 115200
+      UM980 COM2 - To IMU. From settings.
+      UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
+    Set minCNO
+    Set elevationAngle
+    Set Constellations
+    Set messages
+      Enable selected NMEA messages on COM3
+      Enable selected RTCM messages on COM3
+*/
 
     if (settings.enableGNSSdebug)
         um980->enableDebugging(); // Print all debug to Serial
@@ -88,9 +100,12 @@ bool um980Configure()
 
     response &= um980SetConstellations();
 
-    // response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG
-    // or
-    //                                // similar.
+    // Don't transmit NMEA noise over BT during IMU debug
+    if (settings.enableImuDebug == false)
+    {
+        response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has
+                                       // UNLOG or similar.
+    }
 
     // response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
     // SIGNALGROUP causes the UM980 to automatically save and reset
@@ -154,7 +169,7 @@ bool um980ConfigureRover()
     // response &= um980EnableRTCMRover(); // Only turn on messages, do not turn off messages. We assume the caller has
     // UNLOG or similar.
 
-    response &= um980SaveConfiguration();
+    // response &= um980SaveConfiguration();
 
     if (response == false)
     {
@@ -349,6 +364,9 @@ bool um980SetConstellations()
 // Turn off all NMEA and RTCM
 void um980DisableAllOutput()
 {
+    if (settings.enableGNSSdebug)
+        systemPrintln("UM980 disable output");
+
     // Re-attempt as necessary
     for (int x = 0; x < 3; x++)
     {
@@ -507,7 +525,8 @@ bool um980IsValidDate()
 
 uint8_t um980GetSolutionStatus()
 {
-    return (um980->getSolutionStatus()); // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+    return (um980->getSolutionStatus()); // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 =
+                                         // Covariance trace
 }
 
 bool um980IsFullyResolved()
@@ -539,7 +558,7 @@ uint32_t um980GetTimeDeviation()
 // 49 = RTK Float (Presumed) (Wide-lane fixed solution)
 // 50 = RTK Fixed (Narrow-lane fixed solution)
 // Othere position types, not yet seen
-// 1 = FixedPos, 8 = DopplerVelocity, 
+// 1 = FixedPos, 8 = DopplerVelocity,
 // 17 = Pseudorange differential solution, 18 = SBAS, 32 = L1 float, 33 = Ionosphere-free float solution
 // 34 = Narrow-land float solution, 48 = L1 fixed solution
 // 68 = Precise Point Positioning solution converging
@@ -610,7 +629,7 @@ bool um980SetModeRoverSurvey()
     return (um980->setModeRoverSurvey());
 }
 
-void un980UnicoreHandler(uint8_t * buffer, int length)
+void un980UnicoreHandler(uint8_t *buffer, int length)
 {
     um980->unicoreHandler(buffer, length);
 }
