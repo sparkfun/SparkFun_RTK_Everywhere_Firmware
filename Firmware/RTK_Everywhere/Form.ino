@@ -926,15 +926,12 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "coordinateInputType", settings.coordinateInputType);
     // stringRecord(newSettings, "lbandFixTimeout_seconds", settings.lbandFixTimeout_seconds);
 
-    if (zedModuleType == PLATFORM_F9R)
-        stringRecord(newSettings, "minCNO", settings.minCNO_F9R);
-    else
-        stringRecord(newSettings, "minCNO", settings.minCNO_F9P);
-
+    stringRecord(newSettings, "minCNO", gnssGetMinCno());
     stringRecord(newSettings, "mdnsEnable", settings.mdnsEnable);
     stringRecord(newSettings, "enableTiltCompensation", settings.enableTiltCompensation);
     stringRecord(newSettings, "tiltPoleLength", settings.tiltPoleLength, 3);
 
+    //Add new settings above this line <--------------------------->
 
     // Add ECEF and Geodetic station data to the end of settings
     for (int index = 0; index < COMMON_COORDINATES_MAX_STATIONS; index++) // Arbitrary 50 station limit
