@@ -445,6 +445,21 @@ void gnssSetMinCno(uint8_t cnoValue)
     }
 }
 
+uint8_t gnssGetMinCno()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        if (zedModuleType == PLATFORM_F9R)
+            return (settings.minCNO_F9R);
+        else
+            return (settings.minCNO_F9P);
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        return (settings.minCNO_um980);
+    }
+}
+
 double gnssGetLatitude()
 {
     if (online.gnss == true)
