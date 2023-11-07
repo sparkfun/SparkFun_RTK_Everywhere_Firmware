@@ -392,8 +392,6 @@ unsigned long rtcmLastPacketReceived =
 
 // GPS parse table
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include "GpsMessageParser.h" // Include the parser
-
 // Define the parsers that get included
 #define PARSE_NMEA_MESSAGES
 #define PARSE_RTCM_MESSAGES
@@ -401,6 +399,8 @@ unsigned long rtcmLastPacketReceived =
 #ifdef COMPILE_UM980
 #define PARSE_UNICORE_MESSAGES
 #endif // COMPILE_UM980
+
+#include "GpsMessageParser.h" // Include the parser
 
 // Build the GPS message parse table
 GPS_PARSE_TABLE;
