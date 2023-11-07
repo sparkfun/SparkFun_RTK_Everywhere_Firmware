@@ -430,10 +430,17 @@ void gnssSetMinCno(uint8_t cnoValue)
         if (gnssPlatform == PLATFORM_ZED)
         {
             zedSetMinCno(cnoValue);
+
+            // Update the setting
+            if (zedModuleType == PLATFORM_F9P)
+                settings.minCNO_F9P = cnoValue;
+            else if (zedModuleType == PLATFORM_F9R)
+                settings.minCNO_F9R = cnoValue;
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
             um980SetMinCNO(cnoValue);
+            settings.minCNO_um980 = cnoValue; // Update the setting
         }
     }
 }
