@@ -403,7 +403,7 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
 
     if (TILT_SUPPORTED)
     {
-        if (settings.enableTiltCompensation == true && online.imu == true)
+        if (settings.enableTiltCompensation == true && online.tilt == true)
         {
             if (type == SENTENCE_TYPE_NMEA)
             {
@@ -1514,9 +1514,9 @@ void ButtonCheckTask(void *e)
                     }
                 } // End disableSetupButton check
             }
-        }                                             // End Platform = RTK Facet
+        }                                              // End Platform = RTK Facet
         else if ((productVariant == REFERENCE_STATION) // Check one momentary button
-            || (productVariant == RTK_EVERYWHERE))
+                 || (productVariant == RTK_EVERYWHERE))
         {
             if (setupBtn != nullptr)
                 setupBtn->read();

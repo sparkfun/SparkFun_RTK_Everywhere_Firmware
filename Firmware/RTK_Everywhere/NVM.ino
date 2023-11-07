@@ -449,6 +449,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%d\r\n", "debugLBand", settings.debugLBand);
     settingsFile->printf("%s=%d\r\n", "enableCaptivePortal", settings.enableCaptivePortal);
+    settingsFile->printf("%s=%d\r\n", "minCNO_um980", settings.minCNO_um980);
 
     //Add new settings above <------------------------------------------------------------>
 }
@@ -1382,8 +1383,8 @@ bool parseLine(char *str, Settings *settings)
         settings->debugLBand = d;
     else if (strcmp(settingName, "enableCaptivePortal") == 0)
         settings->enableCaptivePortal = d;
-
-
+    else if (strcmp(settingName, "minCNO_um980") == 0)
+        settings->minCNO_um980 = d;
 
     //Add new settings above
     //<------------------------------------------------------------>

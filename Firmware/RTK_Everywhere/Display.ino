@@ -127,7 +127,7 @@ void beginDisplay(TwoWire * i2cBus)
         delay(50); // Give display time to startup before attempting again
     }
 
-    systemPrintln("Display not detected");
+    //systemPrintln("Display not detected");
 }
 
 // Avoid code repetition

@@ -1,5 +1,56 @@
 #ifdef COMPILE_IM19_IMU
 
+// Get the Ethernet parameters
+void menuTilt()
+{
+    if (HAS_TILT_COMPENSATION == false)
+    {
+        clearBuffer(); // Empty buffer of any newline chars
+        return;
+    }
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Tilt Compensation");
+        systemPrintln();
+
+        systemPrint("1) Tilt Compensation: ");
+        systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
+
+        if (settings.enableTiltCompensation == true)
+        {
+            systemPrint("2) Pole Length: ");
+            systemPrintf("%0.2fm\r\n", settings.tiltPoleLength);
+        }
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getCharacterNumber();
+
+        if (incoming == 1)
+        {
+            settings.enableTiltCompensation ^= 1;
+        }
+        else if ((settings.enableTiltCompensation == true) && (incoming == 2))
+        {
+            getNewSetting("Enter length of the pole in meters", 0.01, 4.0, &settings.tiltPoleLength);
+        }
+
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+
+}
+
 void tiltUpdate()
 {
     if (tiltSupported == true)
@@ -75,6 +126,21 @@ void tiltUpdate()
 
                     // 0x 04 00 01 - No PPS yet, just GNSS (PPS received 18, finit 1)
                     // 0x 14 00 01 - ?
+                    // 0x 1C 00 01 - PPS injected, ready for shaking (RTK data 20, time sync 19, pps 18, finit 1)
+                    // 0x 1E 00 01 - Active measurement? (RTK data 20, time sync 19, pps 18, init complete 17, finit 1)
+
+                    /*Steps:
+                        Step one: Rotate the receiver in hand, or shake it. I think it's looking for the heading angle
+                       to change >360 degrees
+
+                       Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
+                       means step two has been entered Wait for RTK to output the fixed solution
+
+                       Step three: Some rocking is required to make accuracy meet the requirements. Rock rod back and
+                       forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
+                       degrees and continue to rock until the init is complete. The status word becomes ready.
+
+                     */
                 }
             }
         }
@@ -82,7 +148,7 @@ void tiltUpdate()
         {
             tiltStop(); // If the user has disabled the device, shut it down
         }
-        else if (online.imu == false)
+        else if (settings.enableTiltCompensation == true && online.imu == false)
         {
             // Try multiple times to configure IM19
             for (int x = 0; x < 3; x++)
@@ -103,6 +169,9 @@ void tiltUpdate()
 void tiltBegin()
 {
     if (tiltSupported == false)
+        return;
+
+    if(settings.enableTiltCompensation == false)
         return;
 
     tiltSensor = new IM19();
@@ -207,7 +276,7 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
     }
 
     // Identify sentence type
-    char sentenceType[sizeof("GGA") + 1] = {0};
+    char sentenceType[strlen("GGA") + 1] = {0};
     strncpy(sentenceType, &nmeaSentence[3],
             3); // Copy three letters, starting in spot 3. Null terminated from array initializer.
 
@@ -240,8 +309,7 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 //$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1580.987,M,-21.361,M,,*7E - Modified
 void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 {
-    double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 2;
     const int longitudeComma = 4;
@@ -349,8 +417,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D - Modified
 void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
 {
-    double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 1;
     const int longitudeComma = 3;
@@ -440,8 +507,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
 //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01 - Modified
 void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
 {
-    double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 3;
     const int longitudeComma = 5;
@@ -584,8 +650,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
         return;
     }
 
-    double coordinate = 0.0;
-    char coordinateStringDDMM[sizeof("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     // strncat terminates
     // Add start of message up to latitude
@@ -641,4 +706,4 @@ void tiltSensorFactoryReset()
     tiltSensor->factoryReset();
 }
 
-#endif  // COMPILE_IM19_IMU
+#endif // COMPILE_IM19_IMU

@@ -104,30 +104,13 @@ void menuLog()
         }
         else if (incoming == 2 && settings.enableLogging == true)
         {
-            systemPrint("Enter max minutes before logging stops: ");
-            int maxMinutes = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((maxMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (maxMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (maxMinutes < 0 ||
-                    maxMinutes >
-                        (60 * 24 * 365 *
-                         2)) // Arbitrary 2 year limit. See https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/86
-                    systemPrintln("Error: Max minutes out of range");
-                else
-                    settings.maxLogTime_minutes = maxMinutes; // Recorded to NVM and file at main menu exit
-            }
+            // Arbitrary 2 year limit. See https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/86
+            getNewSetting("Enter max minutes before logging stops", 0, 60 * 24 * 365 * 2, &settings.maxLogTime_minutes);
         }
         else if (incoming == 3 && settings.enableLogging == true)
         {
-            systemPrint("Enter max minutes of logging before new log is created: ");
-            int maxLogMinutes = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((maxLogMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (maxLogMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (maxLogMinutes < 0 || maxLogMinutes > 60 * 48) // Arbitrary 48 hour limit
-                    systemPrintln("Error: Max minutes out of range");
-                else
-                    settings.maxLogLength_minutes = maxLogMinutes; // Recorded to NVM and file at main menu exit
-            }
+            //Arbitrary 48 hour limit
+            getNewSetting("Enter max minutes of logging before new log is created", 0, 60 * 48, &settings.maxLogLength_minutes);
         }
         else if (incoming == 4 && settings.enableLogging == true && online.logging == true)
         {
@@ -141,15 +124,8 @@ void menuLog()
         }
         else if (incoming == 6 && settings.enableLogging == true && settings.enableARPLogging == true)
         {
-            systemPrint("Enter the ARP logging interval in seconds: ");
-            int logSecs = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((logSecs != INPUT_RESPONSE_GETNUMBER_EXIT) && (logSecs != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (logSecs < 1 || logSecs > 600) // Arbitrary 10 minute limit
-                    systemPrintln("Error: Logging interval out of range");
-                else
-                    settings.ARPLoggingInterval_s = logSecs; // Recorded to NVM and file at main menu exit
-            }
+            // Arbitrary 10 minute limit
+            getNewSetting("Enter the ARP logging interval in seconds", 0, 60 * 10, (int*)&settings.ARPLoggingInterval_s);
         }
         else if (incoming == 7)
         {

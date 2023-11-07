@@ -49,21 +49,33 @@ void um980Begin()
     online.gnss = true;
 }
 
+// Attempt 3 tries on UM980 config
 bool um980Configure()
 {
+    for (int x = 0; x < 3; x++)
+    {
+        if (um980ConfigureOnce() == true)
+            return (true);
+    }
+
+    return (false);
+}
+
+bool um980ConfigureOnce()
+{
     /*
-        Disable all message traffic
-        Set COM port baud rates,
-          UM980 COM1 - Direct to USB, 115200
-          UM980 COM2 - To IMU. From settings.
-          UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
-        Set minCNO
-        Set elevationAngle
-        Set Constellations
-        Set messages
-          Enable selected NMEA messages on COM3
-          Enable selected RTCM messages on COM3
-    */
+    Disable all message traffic
+    Set COM port baud rates,
+      UM980 COM1 - Direct to USB, 115200
+      UM980 COM2 - To IMU. From settings.
+      UM980 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
+    Set minCNO
+    Set elevationAngle
+    Set Constellations
+    Set messages
+      Enable selected NMEA messages on COM3
+      Enable selected RTCM messages on COM3
+*/
 
     if (settings.enableGNSSdebug)
         um980->enableDebugging(); // Print all debug to Serial
@@ -88,27 +100,28 @@ bool um980Configure()
 
     response &= um980SetConstellations();
 
-    // response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG
-    // or
-    //                                // similar.
+    // Don't transmit NMEA noise over BT during IMU debug
+    if (settings.enableImuDebug == false)
+    {
+        response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has
+                                       // UNLOG or similar.
+    }
 
     // response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
     // SIGNALGROUP causes the UM980 to automatically save and reset
 
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
-    response &= um980->sendCommand("BESTPOSB COM2 1");
-    response &= um980->sendCommand("PSRVELB COM2 1");
+    response &= um980->sendCommand("BESTPOSB COM2 0.2"); //5Hz
+    response &= um980->sendCommand("PSRVELB COM2 0.2");
+
+    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
+    response &= um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); //5Hz
 
     // Configure UM980 to output binary reports out COM3, connected to ESP32 UART2
+    // These messages are used for things like SIV and System menu printing of current location
     // Normally done through UM980 library but UNLOG disrupts what the library is aware of
     response &= um980->sendCommand("BESTNAVB COM3 1");
     response &= um980->sendCommand("RECTIMEB COM3 1");
-
-    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
-    float outputRate = 1; // 1 = 1 report per second.
-    response &= um980->setNMEAPortMessage("GPGGA", "COM2", outputRate);
-    // response &= um980->setNMEAPortMessage("GPRMC", "COM2", outputRate); //Causes IMU to fail to read GNSS
-    // response &= um980->setNMEAPortMessage("GPGST", "COM2", outputRate); //Causes IMU to fail to read GNSS
 
     // IM19 reads in binary+NMEA and passes out binary with tilt-corrected lat/long/alt
 
@@ -154,7 +167,7 @@ bool um980ConfigureRover()
     // response &= um980EnableRTCMRover(); // Only turn on messages, do not turn off messages. We assume the caller has
     // UNLOG or similar.
 
-    response &= um980SaveConfiguration();
+    // response &= um980SaveConfiguration();
 
     if (response == false)
     {
@@ -349,6 +362,9 @@ bool um980SetConstellations()
 // Turn off all NMEA and RTCM
 void um980DisableAllOutput()
 {
+    if (settings.enableGNSSdebug)
+        systemPrintln("UM980 disable output");
+
     // Re-attempt as necessary
     for (int x = 0; x < 3; x++)
     {
@@ -439,7 +455,19 @@ bool um980SetRate(double secondsBetweenSolutions)
     }
     response &= um980EnableRTCMRover(); // Enact these rates
 
-    return (response);
+      // If we successfully set rates, only then record to settings
+    if (response == true)
+    {
+        settings.measurementRate = 1.0 / secondsBetweenSolutions; // 1 / 0.2 = 5Hz
+        settings.navigationRate = 1;
+    }
+    else
+    {
+        systemPrintln("Failed to set measurement and navigation rates");
+        return (false);
+    }
+  
+    return (true);
 }
 
 // Send data directly from ESP GNSS UART1 to UM980 UART3
@@ -507,7 +535,8 @@ bool um980IsValidDate()
 
 uint8_t um980GetSolutionStatus()
 {
-    return (um980->getSolutionStatus()); // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+    return (um980->getSolutionStatus()); // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 =
+                                         // Covariance trace
 }
 
 bool um980IsFullyResolved()
@@ -539,7 +568,7 @@ uint32_t um980GetTimeDeviation()
 // 49 = RTK Float (Presumed) (Wide-lane fixed solution)
 // 50 = RTK Fixed (Narrow-lane fixed solution)
 // Othere position types, not yet seen
-// 1 = FixedPos, 8 = DopplerVelocity, 
+// 1 = FixedPos, 8 = DopplerVelocity,
 // 17 = Pseudorange differential solution, 18 = SBAS, 32 = L1 float, 33 = Ionosphere-free float solution
 // 34 = Narrow-land float solution, 48 = L1 fixed solution
 // 68 = Precise Point Positioning solution converging
@@ -610,9 +639,9 @@ bool um980SetModeRoverSurvey()
     return (um980->setModeRoverSurvey());
 }
 
-void un980UnicoreHandler(uint8_t * buffer, int length)
+void un980UnicoreHandler(uint8_t *buffer, int length)
 {
-    um980->unicoreHandler(parse->buffer, parse->length);
+    um980->unicoreHandler(buffer, length);
 }
 
 #endif // COMPILE_UM980
