@@ -48,6 +48,7 @@ void menuTilt()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+
 }
 
 void tiltUpdate()
@@ -147,7 +148,7 @@ void tiltUpdate()
         {
             tiltStop(); // If the user has disabled the device, shut it down
         }
-        else if (online.imu == false)
+        else if (settings.enableTiltCompensation == true && online.imu == false)
         {
             // Try multiple times to configure IM19
             for (int x = 0; x < 3; x++)
@@ -168,6 +169,9 @@ void tiltUpdate()
 void tiltBegin()
 {
     if (tiltSupported == false)
+        return;
+
+    if(settings.enableTiltCompensation == false)
         return;
 
     tiltSensor = new IM19();
