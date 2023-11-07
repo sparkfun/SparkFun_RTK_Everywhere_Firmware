@@ -111,19 +111,17 @@ bool um980ConfigureOnce()
     // SIGNALGROUP causes the UM980 to automatically save and reset
 
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
-    response &= um980->sendCommand("BESTPOSB COM2 1");
-    response &= um980->sendCommand("PSRVELB COM2 1");
+    response &= um980->sendCommand("BESTPOSB COM2 0.2"); //5Hz
+    response &= um980->sendCommand("PSRVELB COM2 0.2");
+
+    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
+    response &= um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); //5Hz
 
     // Configure UM980 to output binary reports out COM3, connected to ESP32 UART2
+    // These messages are used for things like SIV and System menu printing of current location
     // Normally done through UM980 library but UNLOG disrupts what the library is aware of
     response &= um980->sendCommand("BESTNAVB COM3 1");
     response &= um980->sendCommand("RECTIMEB COM3 1");
-
-    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
-    float outputRate = 1; // 1 = 1 report per second.
-    response &= um980->setNMEAPortMessage("GPGGA", "COM2", outputRate);
-    // response &= um980->setNMEAPortMessage("GPRMC", "COM2", outputRate); //Causes IMU to fail to read GNSS
-    // response &= um980->setNMEAPortMessage("GPGST", "COM2", outputRate); //Causes IMU to fail to read GNSS
 
     // IM19 reads in binary+NMEA and passes out binary with tilt-corrected lat/long/alt
 
