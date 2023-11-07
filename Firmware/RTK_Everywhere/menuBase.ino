@@ -89,11 +89,11 @@ void menuBase()
             systemPrintln(" seconds");
 
             systemPrint("3) Set required Mean 3D Standard Deviation: ");
-            systemPrint(settings.observationPositionAccuracy, 3);
+            systemPrint(settings.observationPositionAccuracy, 2);
             systemPrintln(" meters");
 
             systemPrint("4) Set required initial positional accuracy before Survey-In: ");
-            systemPrint(settings.surveyInStartingAccuracy, 3);
+            systemPrint(settings.surveyInStartingAccuracy, 2);
             systemPrintln(" meters");
         }
 
