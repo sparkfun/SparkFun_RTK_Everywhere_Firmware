@@ -587,7 +587,7 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
         int longitudeDegrees = (int)coordinate;
         coordinate -= longitudeDegrees;
         coordinate *= 60;
-        if (coordinate < 1)
+        if (coordinate < 0)
             coordinate *= -1;
 
         if (coordinateInputType == COORDINATE_INPUT_TYPE_DDMM)
@@ -610,7 +610,7 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
         int longitudeDegrees = (int)coordinate;
         coordinate -= longitudeDegrees;
         coordinate *= 60;
-        if (coordinate < 1)
+        if (coordinate < 0)
             coordinate *= -1;
 
         int longitudeMinutes = (int)coordinate;
