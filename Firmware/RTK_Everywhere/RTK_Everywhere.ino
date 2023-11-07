@@ -19,6 +19,7 @@
   Settings are loaded from microSD if available otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
+//#define DISPLAY_BOOT_TIMES // Comment out to prevent display of the boot times
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 //#define COMPILE_OTA_CLIENT // Comment out to remove OTA client functionality
@@ -747,6 +748,23 @@ RtkMode_t rtkMode; // Mode of operation
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+// Display boot times
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#define MAX_BOOT_TIME_ENTRIES   31
+uint8_t bootTimeIndex;
+uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
+const char * bootTimeString[MAX_BOOT_TIME_ENTRIES];
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Support to trackdown a system hang.
+//
+// 1.  Set DEAD_MAN_WALKING_ENABLED to 1
+// 2.  Place START_DEAD_MAN_WALKING after last output seen in normal operation.
+//     When START_DEAD_MAN_WALKING is executed, the system switches from normal
+//     output to all output enabled with the debug menus which should provide
+//     a rough location of the issue.
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 #define DEAD_MAN_WALKING_ENABLED 0
 
 #if DEAD_MAN_WALKING_ENABLED
@@ -755,6 +773,16 @@ RtkMode_t rtkMode; // Mode of operation
 // from 0 to 1
 volatile bool deadManWalking;
 #define DMW_if if (deadManWalking)
+#define DMW_b(string)                               \
+{                                                   \
+    if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)      \
+    {                                               \
+        bootTime[bootTimeIndex] = millis();         \
+        bootTimeString[bootTimeIndex] = string;     \
+    }                                               \
+    bootTimeIndex += 1;                             \
+    DMW_if systemPrintf("%s called\r\n", string);   \
+}
 #define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
 #define DMW_m(string) DMW_if systemPrintln(string);
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
@@ -803,6 +831,15 @@ volatile bool deadManWalking;
 // Production substitutions
 #define deadManWalking 0
 #define DMW_if if (0)
+#define DMW_b(string)                               \
+{                                                   \
+    if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)      \
+    {                                               \
+        bootTime[bootTimeIndex] = millis();         \
+        bootTimeString[bootTimeIndex] = string;     \
+    }                                               \
+    bootTimeIndex += 1;                             \
+}
 #define DMW_c(string)
 #define DMW_m(string)
 #define DMW_r(string)
@@ -884,121 +921,162 @@ volatile bool deadManWalking;
                                   +-------+
 */
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// Initialize any globals that can't easily be given default values
-
-void initializeGlobals()
-{
-    gnssSyncTv.tv_sec = 0;
-    gnssSyncTv.tv_usec = 0;
-    previousGnssSyncTv.tv_sec = 0;
-    previousGnssSyncTv.tv_usec = 0;
-#ifdef COMPILE_ETHERNET
-    ethernetNtpTv.tv_sec = 0;
-    ethernetNtpTv.tv_usec = 0;
-#endif // COMPILE_ETHERNET
-}
-
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 void setup()
 {
-    initializeGlobals(); // Initialize any global variables that can't be given default values
-
+    bootTime[bootTimeIndex] = 0;
+    bootTimeString[bootTimeIndex++] = "CPU/Runtime Initialization";
+    bootTime[bootTimeIndex] = millis();
+    bootTimeString[bootTimeIndex++] = "Serial.begin";
     Serial.begin(115200); // UART0 for programming and debugging
     systemPrintln();
     systemPrintln();
 
-    DMW_c("verifyTables");
+    DMW_b("verifyTables");
     verifyTables (); // Verify the consistency of the internal tables
 
-    DMW_c("identifyBoard");
+    DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on. Uses I2C for RTK Torch.
 
-    DMW_c("initializePowerPins");
+    DMW_b("initializePowerPins");
     initializePowerPins(); // Initialize any essential power pins - e.g. enable power for the Display
 
-    DMW_c("beginFS");
+    DMW_b("beginFS");
     beginFS(); // Load NVM settings
 
     // At this point product variants are known, except early RTK products that lacked ID resistors
-    DMW_c("loadSettingsPartial");
+    DMW_b("loadSettingsPartial");
     loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
 
-    DMW_c("beginMux");
+    DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 
-    DMW_c("beginI2C");
+    DMW_b("beginI2C");
     beginI2C(); // Requires settings.
 
-    DMW_c("beginDisplay");
+    DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
-    DMW_c("checkConfigureViaEthernet");
+    DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
-    DMW_c("beginGnssUart");
+    DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).
 
-    DMW_c("beginGNSS");
+    DMW_b("beginGNSS");
     gnssBegin(); // Requires settings. Connect to GNSS to get module type
 
-    DMW_c("beginBoard");
+    DMW_b("beginBoard");
     beginBoard(); // Requires settings. Now finish setting up the board and check the on button
 
-    DMW_c("displaySplash");
+    DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
 
-    DMW_c("beginLEDs");
+    DMW_b("beginLEDs");
     beginLEDs(); // LED and PWM setup
 
-    DMW_c("beginSD");
+    DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
 
-    DMW_c("loadSettings");
+    DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
-    DMW_c("beginIdleTasks");
+    DMW_b("beginIdleTasks");
     beginIdleTasks(); // Requires settings. Enable processor load calculations
 
-    DMW_c("beginFuelGauge");
+    DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
 
-    DMW_c("gnssConfigure");
+    DMW_b("gnssConfigure");
     gnssConfigure(); // Requires settings. Configure ZED module
 
-    DMW_c("ethernetBegin");
+    DMW_b("ethernetBegin");
     ethernetBegin(); // Requires settings. Start up the Ethernet connection
 
-    DMW_c("beginAccelerometer");
+    DMW_b("beginAccelerometer");
     beginAccelerometer();
 
-    DMW_c("beginLBand");
+    DMW_b("beginLBand");
     beginLBand(); // Begin L-Band
 
-    DMW_c("beginExternalEvent");
+    DMW_b("beginExternalEvent");
     gnssBeginExternalEvent(); // Configure the event input
 
-    DMW_c("beginPPS");
+    DMW_b("beginPPS");
     gnssBeginPPS(); // Configure the time pulse output
 
-    DMW_c("beginInterrupts");
+    DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP and W5500 interrupts
 
-    DMW_c("beginSystemState");
+    DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state. Start task for button monitoring.
 
-    DMW_c("rtcUpdate");
+    DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
 
     Serial.flush(); // Complete any previous prints
 
     log_d("Boot time: %d", millis());
 
-    DMW_c("danceLEDs");
+    DMW_b("danceLEDs");
     danceLEDs(); // Turn on LEDs like a car dashboard
+
+    // Save the time we transfer into loop
+    bootTime[bootTimeIndex] = millis();
+    bootTimeString[bootTimeIndex] = "End of Setup";
+
+#ifdef  DISPLAY_BOOT_TIMES
+    // Verify the size of the bootTime array
+    int maxBootTimes = bootTimeIndex + 1;
+    if (maxBootTimes > MAX_BOOT_TIME_ENTRIES)
+    {
+        systemPrintf("FATAL: Please increase MAX_BOOT_TIME_ENTRIES to >= %d\r\n", maxBootTimes);
+        reportFatalError("MAX_BOOT_TIME_ENTRIES too small");
+    }
+
+    // Display the boot times and compute the delta times
+    int index;
+    systemPrintln();
+    systemPrintln("Time when calling:");
+    for (index = 0; index < bootTimeIndex; index++)
+    {
+        systemPrintf("%8d mSec: %s\r\n", bootTime[index], bootTimeString[index]);
+        bootTime[index] = bootTime[index + 1] - bootTime[index];
+    }
+    systemPrintf("%8d mSec: %s\r\n", bootTime[index], bootTimeString[index]);
+    systemPrintln();
+
+    // Set the initial sort values
+    uint8_t sortOrder[MAX_BOOT_TIME_ENTRIES];
+    for (int x = 0; x <= bootTimeIndex; x++)
+        sortOrder[x] = x;
+
+    // Bubble sort the boot time values
+    for (int x = 0; x < bootTimeIndex - 1; x++)
+    {
+        for (int y = x + 1; y < bootTimeIndex; y++)
+        {
+            if (bootTime[sortOrder[x]] > bootTime[sortOrder[y]])
+            {
+                uint8_t temp;
+                temp = sortOrder[y];
+                sortOrder[y] = sortOrder[x];
+                sortOrder[x] = temp;
+            }
+        }
+    }
+
+    // Display the boot times
+    systemPrintln("Delta times:");
+    for (index = bootTimeIndex - 1; index >= 0; index--)
+        systemPrintf("%8d mSec: %s\r\n", bootTime[sortOrder[index]], bootTimeString[sortOrder[index]]);
+    systemPrintln("--------");
+    systemPrintf("%8d mSec: Total boot time\r\n", bootTime[bootTimeIndex]);
+    systemPrintln();
+#endif  // DISPLAY_BOOT_TIMES
 }
 
 void loop()
