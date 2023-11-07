@@ -242,7 +242,7 @@ void clearBuffer()
 // Handles backspace
 // Used for raw mixed entry (SSID, pws, etc)
 // Used by other menu input methods that use sscanf
-// Returns INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, INPUT_RESPONSE_EMPTY, or INPUT_RESPONSE_VALID
+// Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
 InputResponse getString(char *userString, uint8_t stringSize)
 {
     clearBuffer();
@@ -267,7 +267,7 @@ InputResponse getString(char *userString, uint8_t stringSize)
 
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-        if (btPrintEchoExit) // User has disconnect from BT. Force exit all menus.
+        if (btPrintEchoExit) // User has disconnected from BT. Force exit all menus.
             return INPUT_RESPONSE_TIMEOUT;
 
         // Get the next input character
@@ -398,26 +398,31 @@ long getNumber()
 }
 
 // Gets a double (float) from the user
-// Returns 0 for timeout and empty response
-double getDouble()
+// Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+InputResponse getDouble(double *userDouble)
 {
     char userEntry[50];
-    double userFloat = 0.0;
 
+    // getString() returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or
+    // INPUT_RESPONSE_EMPTY
     InputResponse response = getString(userEntry, sizeof(userEntry));
+
     if (response == INPUT_RESPONSE_VALID)
-        sscanf(userEntry, "%lf", &userFloat);
+    {
+        if (userEntry[0] == 'x')
+        {
+            return (INPUT_RESPONSE_EMPTY);
+        }
+
+        sscanf(userEntry, "%lf", userDouble);
+    }
     else if (response == INPUT_RESPONSE_TIMEOUT)
     {
         systemPrintln("No user response - Do you have line endings turned on?");
-        userFloat = 0.0;
-    }
-    else if (response == INPUT_RESPONSE_EMPTY)
-    {
-        userFloat = 0.0;
     }
 
-    return userFloat;
+    return (response); // Can be INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or
+                       // INPUT_RESPONSE_EMPTY
 }
 
 void printElapsedTime(const char *title)
@@ -757,8 +762,8 @@ void stringHumanReadableSize(String &returnText, uint64_t bytes)
 void printNmeaChecksumError(PARSE_STATE *parse)
 {
     printTimeStamp();
-    systemPrintf("    %s NMEA %s, %2d bytes, bad checksum, expecting 0x%c%c, computed: 0x%02x\r\n",
-                 parse->parserName, parse->nmeaMessageName, parse->length, parse->buffer[parse->nmeaLength - 2],
+    systemPrintf("    %s NMEA %s, %2d bytes, bad checksum, expecting 0x%c%c, computed: 0x%02x\r\n", parse->parserName,
+                 parse->nmeaMessageName, parse->length, parse->buffer[parse->nmeaLength - 2],
                  parse->buffer[parse->nmeaLength - 1], parse->crc);
 }
 
@@ -783,8 +788,7 @@ void printUbloxChecksumError(PARSE_STATE *parse)
     printTimeStamp();
     systemPrintf("    %s u-blox %d.%d, %2d bytes, bad checksum, expecting 0x%02X%02X, computed: 0x%02X%02X\r\n",
                  parse->parserName, parse->message >> 8, parse->message & 0xff, parse->length,
-                 parse->buffer[parse->nmeaLength - 2], parse->buffer[parse->nmeaLength - 1], parse->ck_a,
-                 parse->ck_b);
+                 parse->buffer[parse->nmeaLength - 2], parse->buffer[parse->nmeaLength - 1], parse->ck_a, parse->ck_b);
 }
 
 // Print the u-blox invalid data error
@@ -821,44 +825,90 @@ void verifyTables()
     tasksValidateTables();
 }
 
-//Display a prompt, then check the response against bounds.
-//Update setting if within bounds
-bool getNewSetting(const char *settingPrompt, int min, int max, int *setting)
+// Display a prompt, then check the response against bounds.
+// Update setting if within bounds
+InputResponse getNewSetting(const char *settingPrompt, int min, int max, int *setting)
 {
     while (1)
     {
-        Serial.printf("%s (or x to exit): ", settingPrompt);
-        int enteredValue = getNumber(); // Returns EXIT, TIMEOUT, or long
-        if ((enteredValue == INPUT_RESPONSE_GETNUMBER_EXIT) || (enteredValue == INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            break;
+        systemPrintf("%s [min: %d max: %d] (or x to exit): ", settingPrompt, min, max);
 
-        if (enteredValue >= min && enteredValue <= max)
+        double enteredValueDouble;
+        // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+        InputResponse response = getDouble(&enteredValueDouble);
+
+        if (response == INPUT_RESPONSE_VALID)
         {
-            *setting = enteredValue; // Recorded to NVM and file at main menu exit
-            return (true);
+            int enteredValue = round(enteredValueDouble);
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = (float)enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
         }
-        else
-            Serial.println("Error: Number out of range");
+        else // INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+            return (response);
     }
-    return (false);
+    return (INPUT_RESPONSE_INVALID);
 }
 
-bool getNewSetting(const char *settingPrompt, double min, double max, double *setting)
+InputResponse getNewSetting(const char *settingPrompt, float min, float max, float *setting)
 {
     while (1)
     {
-        Serial.printf("%s [min: %0.2f max: %0.2f] (or x to exit): ", settingPrompt, min, max);
-        double enteredValue = getDouble();
-        if ((enteredValue == INPUT_RESPONSE_GETNUMBER_EXIT) || (enteredValue == INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            break;
+        systemPrintf("%s [min: %0.2f max: %0.2f] (or x to exit): ", settingPrompt, min, max);
 
-        if (enteredValue >= min && enteredValue <= max)
+        double enteredValue;
+        // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+        InputResponse response = getDouble(&enteredValue);
+
+        if (response == INPUT_RESPONSE_VALID)
         {
-            *setting = enteredValue; // Recorded to NVM and file at main menu exit
-            return (true);
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = (float)enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
         }
-        else
-            Serial.println("Error: Number out of range");
+        else // INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+            return (response);
     }
-    return (false);
+
+    return (INPUT_RESPONSE_INVALID);
+}
+
+InputResponse getNewSetting(const char *settingPrompt, float min, float max, double *setting)
+{
+    while (1)
+    {
+        systemPrintf("%s [min: %0.2f max: %0.2f] (or x to exit): ", settingPrompt, min, max);
+
+        double enteredValue;
+        InputResponse response = getDouble(&enteredValue);
+
+        if (response == INPUT_RESPONSE_VALID)
+        {
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
+        }
+        else if (response == INPUT_RESPONSE_GETNUMBER_EXIT || response == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            return (response);
+    }
+
+    return (INPUT_RESPONSE_INVALID);
 }
