@@ -455,7 +455,19 @@ bool um980SetRate(double secondsBetweenSolutions)
     }
     response &= um980EnableRTCMRover(); // Enact these rates
 
-    return (response);
+      // If we successfully set rates, only then record to settings
+    if (response == true)
+    {
+        settings.measurementRate = 1.0 / secondsBetweenSolutions; // 1 / 0.2 = 5Hz
+        settings.navigationRate = 1;
+    }
+    else
+    {
+        systemPrintln("Failed to set measurement and navigation rates");
+        return (false);
+    }
+  
+    return (true);
 }
 
 // Send data directly from ESP GNSS UART1 to UM980 UART3
