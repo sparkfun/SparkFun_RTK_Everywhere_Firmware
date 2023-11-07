@@ -25,7 +25,6 @@ uint8_t unicorePreamble(PARSE_STATE *parse, uint8_t data)
 {
     if (data == 0xAA)
     {
-        Serial.println("unicorePreamble");
         parse->state = unicoreBinarySync2;
         return SENTENCE_TYPE_UNICORE;
     }
@@ -123,16 +122,6 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
                            ((uint32_t)parse->buffer[parse->length - 1] << (8 * 3));
     uint32_t calculatedCRC =
         calculateCRC32(parse->buffer, parse->length - 4); // CRC is calculated on entire message, sans CRC
-
-    // Serial.println();
-    // Serial.printf("Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC, calculatedCRC);
-
-    // Serial.printf("Data len %d: ", parse->length);
-    // for (int x = 0; x < parse->length; x++)
-    // {
-    //     Serial.printf("0x%02X ", parse->buffer[x]);
-    // }
-    // Serial.println();
 
     // Process this message if CRC is valid
     if (sentenceCRC == calculatedCRC)
