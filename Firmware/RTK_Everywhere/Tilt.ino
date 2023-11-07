@@ -34,7 +34,7 @@ void menuTilt()
         }
         else if ((settings.enableTiltCompensation == true) && (incoming == 2))
         {
-            getNewSetting("Enter length of the pole in meters", 0.01, 4.0, (double*)&settings.tiltPoleLength);
+            getNewSetting("Enter length of the pole in meters", 0.01, 4.0, &settings.tiltPoleLength);
         }
 
         else if (incoming == 'x')

@@ -6,10 +6,6 @@ void menuGNSS()
 
     while (1)
     {
-        int minCNO = settings.minCNO_F9P;
-        if (zedModuleType == PLATFORM_F9R)
-            minCNO = settings.minCNO_F9R;
-
         systemPrintln();
         systemPrintln("Menu: GNSS Receiver");
 
@@ -127,14 +123,14 @@ void menuGNSS()
             systemPrintf("13) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n",
                          settings.minElev);
 
-            systemPrintf("14) Minimum satellite signal level for navigation (dBHz): %d\r\n", minCNO);
+            systemPrintf("14) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnssGetMinCno());
         }
         else
         {
             systemPrintf("6) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n",
                          settings.minElev);
 
-            systemPrintf("7) Minimum satellite signal level for navigation (dBHz): %d\r\n", minCNO);
+            systemPrintf("7) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnssGetMinCno());
         }
 
         systemPrintln("x) Exit");
@@ -143,27 +139,21 @@ void menuGNSS()
 
         if (incoming == 1)
         {
-            double rate = getDouble();
-            if(getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) == true) // 20Hz limit with all constellations enabled
+            float rate = 0.0;
+            if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
+                INPUT_RESPONSE_VALID) // 20Hz limit with all constellations enabled
             {
                 gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
                                          // settings.navigationRate, and GSV message
-                // Settings recorded to NVM and file at main menu exit
-
             }
         }
         else if (incoming == 2)
         {
-            systemPrint("Enter GNSS measurement rate in seconds between measurements: ");
-            float rate = getDouble();
-            if (rate < 0.0 || rate > 8255.0) // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
-            {
-                systemPrintln("Error: Measurement rate out of range");
-            }
-            else
+            float rate = 0.0;
+            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", 0.0, 8255.0, &rate) ==
+                INPUT_RESPONSE_VALID) // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
             {
                 gnssSetRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
-                // Settings recorded to NVM and file at main menu exit
             }
         }
         else if (incoming == 3)
@@ -232,7 +222,7 @@ void menuGNSS()
                         systemPrintln("Error: Dynamic model out of range");
                     else
                     {
-                        dynamicModel -= 1; //Align to 0 to 2
+                        dynamicModel -= 1;                    // Align to 0 to 2
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
                         gnssSetModel(settings.dynamicModel);
@@ -257,17 +247,10 @@ void menuGNSS()
         }
         else if ((incoming == 7) && settings.enableNtripClient == true)
         {
-            systemPrint("Enter new Caster Port: ");
-
-            int ntripClient_CasterPort = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((ntripClient_CasterPort != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (ntripClient_CasterPort != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            // Arbitrary 99k max port #
+            if (getNewSetting("Enter new Caster Port", 1, 99999, (int*)&settings.ntripClient_CasterPort) ==
+                INPUT_RESPONSE_VALID)
             {
-                if (ntripClient_CasterPort < 1 || ntripClient_CasterPort > 99999) // Arbitrary 99k max port #
-                    systemPrintln("Error: Caster port out of range");
-                else
-                    settings.ntripClient_CasterPort =
-                        ntripClient_CasterPort; // Recorded to NVM and file at main menu exit
                 restartRover = true;
             }
         }
@@ -303,42 +286,23 @@ void menuGNSS()
         else if (((incoming == 13) && settings.enableNtripClient == true) ||
                  incoming == 6 && settings.enableNtripClient == false)
         {
-            systemPrint("Enter minimum elevation in degrees: ");
-
-            int minElev = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((minElev != INPUT_RESPONSE_GETNUMBER_EXIT) && (minElev != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            // Arbitrary 90 degree max
+            if (getNewSetting("Enter minimum elevation in degrees", 0, 90, (int *)&settings.minElev) ==
+                INPUT_RESPONSE_VALID)
             {
-                if (minElev <= 0 || minElev > 90) // Arbitrary 90 degree max
-                    systemPrintln("Error: Minimum elevation out of range");
-                else
-                {
-                    settings.minElev = minElev; // Recorded to NVM and file at main menu exit
-
-                    gnssSetElevation(settings.minElev);
-                }
-                restartRover = true;
+                gnssSetElevation(settings.minElev);
             }
         }
         else if (((incoming == 14) && settings.enableNtripClient == true) ||
                  incoming == 7 && settings.enableNtripClient == false)
         {
-            systemPrint("Enter minimum satellite signal level for navigation in dBHz: ");
-
-            int newMinCNO = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((newMinCNO != INPUT_RESPONSE_GETNUMBER_EXIT) && (newMinCNO != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            int minCNO = 0;
+            // Arbitrary 90 dBHz max
+            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 90, &minCNO) ==
+                INPUT_RESPONSE_VALID)
             {
-                if (newMinCNO <= 0 || newMinCNO > 90) // Arbitrary 90 dBHz max
-                    systemPrintln("Error: Minimum dBHz out of range");
-                else
-                {
-                    if (zedModuleType == PLATFORM_F9R)
-                        settings.minCNO_F9R = newMinCNO; // Recorded to NVM and file at main menu exit
-                    else
-                        settings.minCNO_F9P = newMinCNO;
-
-                    gnssSetMinCno(newMinCNO); // Update minCNO
-                }
-                restartRover = true;
+                // We don't know which platform we are using so we cannot explicitly use the settings.minCNO_F9P, eg
+                gnssSetMinCno(minCNO);
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

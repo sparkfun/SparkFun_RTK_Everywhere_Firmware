@@ -158,23 +158,23 @@ void menuBase()
                 systemPrintln("Enter the fixed ECEF coordinates that will be used in Base mode:");
 
                 systemPrint("ECEF X in meters (ex: -1280182.9200): ");
-                double fixedEcefX = getDouble();
+                double fixedEcefX;
 
                 // Progress with additional prompts only if the user enters valid data
-                if (fixedEcefX != INPUT_RESPONSE_GETNUMBER_TIMEOUT && fixedEcefX != INPUT_RESPONSE_GETNUMBER_EXIT)
+                if (getDouble(&fixedEcefX) == INPUT_RESPONSE_VALID)
                 {
                     settings.fixedEcefX = fixedEcefX;
 
                     systemPrint("\nECEF Y in meters (ex: -4716808.5807): ");
-                    double fixedEcefY = getDouble();
-                    if (fixedEcefY != INPUT_RESPONSE_GETNUMBER_TIMEOUT && fixedEcefY != INPUT_RESPONSE_GETNUMBER_EXIT)
+                    double fixedEcefY;
+
+                    if (getDouble(&fixedEcefY) == INPUT_RESPONSE_VALID)
                     {
                         settings.fixedEcefY = fixedEcefY;
 
                         systemPrint("\nECEF Z in meters (ex: 4086669.6393): ");
-                        double fixedEcefZ = getDouble();
-                        if (fixedEcefZ != INPUT_RESPONSE_GETNUMBER_TIMEOUT &&
-                            fixedEcefZ != INPUT_RESPONSE_GETNUMBER_EXIT)
+                        double fixedEcefZ;
+                        if (getDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
                             settings.fixedEcefZ = fixedEcefZ;
                     }
                 }
@@ -211,9 +211,8 @@ void menuBase()
                                 settings.coordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLong);
 
                                 systemPrint("\nAltitude in meters (ex: 1560.2284): ");
-                                double fixedAltitude = getDouble();
-                                if (fixedAltitude != INPUT_RESPONSE_GETNUMBER_TIMEOUT &&
-                                    fixedAltitude != INPUT_RESPONSE_GETNUMBER_EXIT)
+                                double fixedAltitude;
+                                if (getDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                                     settings.fixedAltitude = fixedAltitude;
                             } // idInput on fixedLong
                         }     // getString for fixedLong
@@ -228,62 +227,33 @@ void menuBase()
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 5)
         {
-            systemPrint("Enter the antenna height (a.k.a. pole length) in millimeters (-15000 to 15000mm): ");
-            int antennaHeight = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((antennaHeight != INPUT_RESPONSE_GETNUMBER_EXIT) && (antennaHeight != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (antennaHeight < -15000 || antennaHeight > 15000) // Arbitrary 15m max
-                    systemPrintln("Error: Antenna Height out of range");
-                else
-                    settings.antennaHeight = antennaHeight; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
+                          (int *)&settings.antennaHeight);
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            systemPrint("Enter the antenna reference point (a.k.a. ARP) in millimeters (-200.0 to 200.0mm). Common "
-                        "antennas Facet=71.8mm Facet L-Band=69.0mm TOP106=52.9: ");
-            float antennaReferencePoint = getDouble();
-            if (antennaReferencePoint < -200.0 || antennaReferencePoint > 200.0) // Arbitrary 200mm max
-                systemPrintln("Error: Antenna Reference Point out of range");
-            else
-                settings.antennaReferencePoint = antennaReferencePoint; // Recorded to NVM and file at main menu exit
+            getNewSetting("Enter the antenna reference point (a.k.a. ARP) in millimeters. Common antennas Facet=71.8mm "
+                          "Facet L-Band=69.0mm TOP106=52.9",
+                          -200.0, 200.0, &settings.antennaReferencePoint);
         }
 
         else if (settings.fixedBase == false && incoming == 2)
         {
-            systemPrint("Enter the number of seconds for survey-in obseration time (60 to 600s): ");
-            int observationSeconds = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((observationSeconds != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (observationSeconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (observationSeconds < 60 || observationSeconds > 60 * 10) // Arbitrary 10 minute limit
-                    systemPrintln("Error: Observation seconds out of range");
-                else
-                    settings.observationSeconds = observationSeconds; // Recorded to NVM and file at main menu exit
-            }
+            // Arbitrary 10 minute limit
+            getNewSetting("Enter the number of seconds for survey-in obseration time", 60, 60 * 10,
+                          &settings.observationSeconds);
         }
         else if (settings.fixedBase == false && incoming == 3)
         {
-            systemPrintf("Enter the number of meters for survey-in required position accuracy (1.0 to %.1fm): ", maxObservationPositionAccuracy);
-            float observationPositionAccuracy = getDouble();
-
-            if (observationPositionAccuracy < 1.0 ||
-                observationPositionAccuracy > maxObservationPositionAccuracy) // Arbitrary 1m minimum
-                systemPrintln("Error: Observation positional accuracy requirement out of range");
-            else
-                settings.observationPositionAccuracy =
-                    observationPositionAccuracy; // Recorded to NVM and file at main menu exit
+            // Arbitrary 1m minimum
+            getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
+                          (double)maxObservationPositionAccuracy, &settings.observationPositionAccuracy);
         }
         else if (settings.fixedBase == false && incoming == 4)
         {
-            systemPrintf("Enter the positional accuracy required before Survey-In begins (0.1 to %.1fm): ", maxSurveyInStartingAccuracy);
-            float surveyInStartingAccuracy = getDouble();
-            if (surveyInStartingAccuracy < 0.1 ||
-                surveyInStartingAccuracy > maxSurveyInStartingAccuracy) // Arbitrary 0.1m minimum
-                systemPrintln("Error: Starting accuracy out of range");
-            else
-                settings.surveyInStartingAccuracy =
-                    surveyInStartingAccuracy; // Recorded to NVM and file at main menu exit
+            // Arbitrary 0.1m minimum
+            getNewSetting("Enter the positional accuracy required before Survey-In begins", 1.0,
+                          (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
         }
 
         else if (incoming == 7)
@@ -295,36 +265,30 @@ void menuBase()
         else if ((incoming == 8) && settings.enableNtripServer == true)
         {
             systemPrint("Enter new Caster Address: ");
-            getString(settings.ntripServer_CasterHost, sizeof(settings.ntripServer_CasterHost));
-            restartBase = true;
+            if (getString(settings.ntripServer_CasterHost,
+                          sizeof(settings.ntripServer_CasterHost) == INPUT_RESPONSE_VALID))
+                restartBase = true;
         }
         else if ((incoming == 9) && settings.enableNtripServer == true)
         {
-            systemPrint("Enter new Caster Port: ");
-
-            int ntripServer_CasterPort = getNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((ntripServer_CasterPort != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (ntripServer_CasterPort != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (ntripServer_CasterPort < 1 || ntripServer_CasterPort > 99999) // Arbitrary 99k max port #
-                    systemPrintln("Error: Caster port out of range");
-                else
-                    settings.ntripServer_CasterPort =
-                        ntripServer_CasterPort; // Recorded to NVM and file at main menu exit
+            // Arbitrary 99k max port #
+            if (getNewSetting("Enter new Caster Port", 1, 99999, (int *)&settings.ntripServer_CasterPort) ==
+                INPUT_RESPONSE_VALID)
                 restartBase = true;
-            }
         }
         else if ((incoming == 10) && settings.enableNtripServer == true)
         {
             systemPrint("Enter new Mount Point: ");
-            getString(settings.ntripServer_MountPoint, sizeof(settings.ntripServer_MountPoint));
-            restartBase = true;
+            if (getString(settings.ntripServer_MountPoint, sizeof(settings.ntripServer_MountPoint)) ==
+                INPUT_RESPONSE_VALID)
+                restartBase = true;
         }
         else if ((incoming == 11) && settings.enableNtripServer == true)
         {
             systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint);
-            getString(settings.ntripServer_MountPointPW, sizeof(settings.ntripServer_MountPointPW));
-            restartBase = true;
+            if (getString(settings.ntripServer_MountPointPW, sizeof(settings.ntripServer_MountPointPW)) ==
+                INPUT_RESPONSE_VALID)
+                restartBase = true;
         }
         else if (((settings.enableNtripServer == true) && ((incoming == 12))) ||
                  ((settings.enableNtripServer == false) && (incoming == 8)))
@@ -509,39 +473,25 @@ void menuSensorFusion()
 
         else if (settings.enableSensorFusion == true && settings.autoIMUmountAlignment == false && incoming == 3)
         {
-            systemPrint("Enter yaw alignment in degrees (0.00 to 360.00): ");
-            double yaw = getDouble();
-            if (yaw < 0.00 || yaw > 360.00) // 0 to 36,000
-            {
-                systemPrintln("Error: Yaw out of range");
-            }
-            else
+            double yaw;
+            // 0 to 36,000
+            if(getNewSetting("Enter yaw alignment in degrees", 0.00, 360.0, &yaw) == INPUT_RESPONSE_VALID)
             {
                 settings.imuYaw = yaw * 100; // 56.44 to 5644
             }
         }
         else if (settings.enableSensorFusion == true && settings.autoIMUmountAlignment == false && incoming == 4)
         {
-            systemPrint("Enter pitch alignment in degrees (-90.00 to 90.00): ");
-            double pitch = getDouble();
-            if (pitch < -90.00 || pitch > 90.00) //-9000 to 9000
-            {
-                systemPrintln("Error: Pitch out of range");
-            }
-            else
+            double pitch;
+            if(getNewSetting("Enter pitch alignment in degrees", -90.00, 90.0, &pitch) == INPUT_RESPONSE_VALID)
             {
                 settings.imuPitch = pitch * 100; // 56.44 to 5644
             }
         }
         else if (settings.enableSensorFusion == true && settings.autoIMUmountAlignment == false && incoming == 5)
         {
-            systemPrint("Enter roll alignment in degrees (-180.00 to 180.00): ");
-            double roll = getDouble();
-            if (roll < -180.00 || roll > 180.0) //-18000 to 18000
-            {
-                systemPrintln("Error: Roll out of range");
-            }
-            else
+            double roll;
+            if(getNewSetting("Enter roll alignment in degrees", -180.00, 180.0, &roll) == INPUT_RESPONSE_VALID)
             {
                 settings.imuRoll = roll * 100; // 56.44 to 5644
             }
@@ -577,7 +527,7 @@ void menuSensorFusion()
 
     theGNSS->setVal8(UBLOX_CFG_SFCORE_USE_SF, settings.enableSensorFusion); // Enable/disable sensor fusion
     theGNSS->setVal8(UBLOX_CFG_SFIMU_AUTO_MNTALG_ENA,
-                    settings.autoIMUmountAlignment); // Enable/disable Automatic IMU-mount Alignment
+                     settings.autoIMUmountAlignment); // Enable/disable Automatic IMU-mount Alignment
     theGNSS->setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_YAW, settings.imuYaw);
     theGNSS->setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_PITCH, settings.imuPitch);
     theGNSS->setVal8(UBLOX_CFG_SFIMU_IMU_MNTALG_ROLL, settings.imuRoll);
@@ -752,7 +702,7 @@ bool getFileLineSD(const char *fileName, int lineToFind, char *lineData, int lin
 
                 file.close();
             }
-#endif  // COMPILE_SD_MMC
+#endif // COMPILE_SD_MMC
             break;
         } // End Semaphore check
         else
@@ -823,7 +773,7 @@ bool removeFileSD(const char *fileName)
                     removed = true;
                 }
             }
-#endif  // COMPILE_SD_MMC
+#endif // COMPILE_SD_MMC
 
             break;
         } // End Semaphore check
