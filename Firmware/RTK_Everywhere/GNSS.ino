@@ -458,6 +458,9 @@ uint8_t gnssGetMinCno()
     {
         return (settings.minCNO_um980);
     }
+
+    // Select a default
+    return (settings.minCNO_F9P);
 }
 
 double gnssGetLatitude()
