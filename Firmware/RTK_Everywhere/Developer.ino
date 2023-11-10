@@ -165,6 +165,7 @@ void wifiShutdown() {}
 
 #ifndef  COMPILE_IM19_IMU
 
+void menuTilt() {}
 void tiltApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltUpdate() {}
 
