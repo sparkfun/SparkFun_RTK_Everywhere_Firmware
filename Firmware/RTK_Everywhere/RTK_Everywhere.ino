@@ -929,6 +929,8 @@ void setup()
     bootTime[bootTimeIndex] = millis();
     bootTimeString[bootTimeIndex++] = "Serial.begin";
     Serial.begin(115200); // UART0 for programming and debugging
+    systemPrintln();
+    systemPrintln();
 
     DMW_b("verifyTables");
     verifyTables (); // Verify the consistency of the internal tables
