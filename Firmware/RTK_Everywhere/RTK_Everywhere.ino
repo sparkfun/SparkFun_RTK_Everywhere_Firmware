@@ -966,7 +966,7 @@ void setup()
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).
 
-    DMW_b("beginGNSS");
+    DMW_b("gnssBegin");
     gnssBegin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginBoard");
