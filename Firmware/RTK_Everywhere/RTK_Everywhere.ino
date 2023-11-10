@@ -19,7 +19,8 @@
   Settings are loaded from microSD if available otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
-//#define DISPLAY_BOOT_TIMES // Comment out to display the boot times
+
+//#define DISPLAY_BOOT_TIMES // Comment out to prevent display of the boot times
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 //#define COMPILE_OTA_CLIENT // Comment out to remove OTA client functionality
