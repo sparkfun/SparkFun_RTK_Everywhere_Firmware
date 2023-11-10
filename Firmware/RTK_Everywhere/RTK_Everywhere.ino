@@ -905,6 +905,8 @@ void setup()
     initializeGlobals(); // Initialize any global variables that can't be given default values
 
     Serial.begin(115200); // UART0 for programming and debugging
+    systemPrintln();
+    systemPrintln();
 
     DMW_c("verifyTables");
     verifyTables (); // Verify the consistency of the internal tables
