@@ -15,6 +15,12 @@ Begin.ino
 #define TOLERANCE           4.75    // Percent:  95.25% - 104.75%
 
 //----------------------------------------
+// Locals
+//----------------------------------------
+
+static uint32_t i2cPowerUpDelay;
+
+//----------------------------------------
 // Hardware initialization functions
 //----------------------------------------
 
@@ -309,13 +315,10 @@ void initializePowerPins()
         // Connect the I2C_1 bus to the display
         pinMode(pin_peripheralPowerControl, OUTPUT);
         digitalWrite(pin_peripheralPowerControl, HIGH);
+        i2cPowerUpDelay = millis() + 860;
 
-        // Give the system some time to power up
-        delay(1000);
-
-        // Initialize I2C1 bus
+        // Use I2C bus 1 for the display
         i2c_1 = new TwoWire(1);
-        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
         i2cDisplay = i2c_1;
 
         // Display splash screen for 1 second
@@ -1201,6 +1204,11 @@ void beginIdleTasks()
 
 void beginI2C()
 {
+    // Complete the power up delay
+    if (i2cPowerUpDelay)
+        while (millis() < i2cPowerUpDelay)
+            ;
+
     if (pinI2CTaskHandle == nullptr)
         xTaskCreatePinnedToCore(
             pinI2CTask,
@@ -1316,9 +1324,15 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
+    // Initialize I2C bus 0
     if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
         // Update the I2C status
         online.i2c = true;
+
+    // Initialize I2C bus 1
+    if (i2c_1)
+        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
+
     i2cPinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
