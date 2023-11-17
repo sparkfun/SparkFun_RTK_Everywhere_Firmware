@@ -103,6 +103,8 @@ bool ssidDisplayFirstHalf = false;
 void beginDisplay(TwoWire * i2cBus)
 {
     uint8_t i2cAddress;
+    uint16_t x;
+    uint16_t y;
 
     // Select the display type
     switch (productVariant)
@@ -111,8 +113,7 @@ void beginDisplay(TwoWire * i2cBus)
         default: {
             i2cAddress = kOLEDMicroDefaultAddress;
             oled = new QwiicCustomOLED;
-            if (!oled)
-            {
+            if (!oled)            {
                 systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
                 return;
             }
@@ -171,7 +172,9 @@ void beginDisplay(TwoWire * i2cBus)
 
             // Display the SparkFun LOGO
             oled->erase();
-            displayBitmap(0, 0, logoSparkFun_Width, logoSparkFun_Height, logoSparkFun);
+            x = (oled->getWidth() - logoSparkFun_Width) / 2;
+            y = (oled->getHeight() - logoSparkFun_Height) / 2;
+            displayBitmap(x, y, logoSparkFun_Width, logoSparkFun_Height, logoSparkFun);
             oled->display();
             splashStart = millis();
             return;
