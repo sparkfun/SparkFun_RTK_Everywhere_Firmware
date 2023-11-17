@@ -451,7 +451,10 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enableCaptivePortal", settings.enableCaptivePortal);
     settingsFile->printf("%s=%d\r\n", "minCNO_um980", settings.minCNO_um980);
 
-    //Add new settings above <------------------------------------------------------------>
+    // Boot times
+    settingsFile->printf("%s=%d\r\n", "printBootTimes", settings.printBootTimes);
+
+    // Add new settings above <------------------------------------------------------------>
 }
 
 // Given a fileName, parse the file and load the given settings struct
@@ -1386,7 +1389,11 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "minCNO_um980") == 0)
         settings->minCNO_um980 = d;
 
-    //Add new settings above
+    // Boot times
+    else if (strcmp(settingName, "printBootTimes") == 0)
+        settings->printBootTimes = d;
+
+    // Add new settings above
     //<------------------------------------------------------------>
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)

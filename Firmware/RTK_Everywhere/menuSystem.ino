@@ -666,6 +666,8 @@ void menuDebugSoftware()
             systemPrintf("%d (%d days %d:%02d:%02d)\r\n", settings.rebootSeconds, days, hours, minutes, seconds);
         }
 
+        systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
+
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
         if (settings.enableTaskReports == true)
@@ -735,6 +737,9 @@ void menuDebugSoftware()
                 }
             }
         }
+        else if (incoming == 33)
+            settings.printBootTimes ^= 1;
+
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;
         else if (incoming == 60)

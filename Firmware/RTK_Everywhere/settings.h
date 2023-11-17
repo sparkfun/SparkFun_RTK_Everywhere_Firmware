@@ -1186,7 +1186,10 @@ typedef struct
     bool debugLBand = false;
     bool enableCaptivePortal = true;
 
-    //Add new settings above <------------------------------------------------------------>
+    // Boot times
+    bool printBootTimes = false; // Print times and deltas during boot
+
+    // Add new settings above <------------------------------------------------------------>
 
 } Settings;
 Settings settings;

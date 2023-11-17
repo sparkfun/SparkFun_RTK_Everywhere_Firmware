@@ -19,8 +19,6 @@
   Settings are loaded from microSD if available otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
-
-//#define DISPLAY_BOOT_TIMES // Comment out to prevent display of the boot times
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 //#define COMPILE_OTA_CLIENT // Comment out to remove OTA client functionality
@@ -1029,55 +1027,56 @@ void setup()
     bootTime[bootTimeIndex] = millis();
     bootTimeString[bootTimeIndex] = "End of Setup";
 
-#ifdef  DISPLAY_BOOT_TIMES
-    // Verify the size of the bootTime array
-    int maxBootTimes = bootTimeIndex + 1;
-    if (maxBootTimes > MAX_BOOT_TIME_ENTRIES)
+    if (settings.printBootTimes)
     {
-        systemPrintf("FATAL: Please increase MAX_BOOT_TIME_ENTRIES to >= %d\r\n", maxBootTimes);
-        reportFatalError("MAX_BOOT_TIME_ENTRIES too small");
-    }
-
-    // Display the boot times and compute the delta times
-    int index;
-    systemPrintln();
-    systemPrintln("Time when calling:");
-    for (index = 0; index < bootTimeIndex; index++)
-    {
-        systemPrintf("%8d mSec: %s\r\n", bootTime[index], bootTimeString[index]);
-        bootTime[index] = bootTime[index + 1] - bootTime[index];
-    }
-    systemPrintf("%8d mSec: %s\r\n", bootTime[index], bootTimeString[index]);
-    systemPrintln();
-
-    // Set the initial sort values
-    uint8_t sortOrder[MAX_BOOT_TIME_ENTRIES];
-    for (int x = 0; x <= bootTimeIndex; x++)
-        sortOrder[x] = x;
-
-    // Bubble sort the boot time values
-    for (int x = 0; x < bootTimeIndex - 1; x++)
-    {
-        for (int y = x + 1; y < bootTimeIndex; y++)
+        // Verify the size of the bootTime array
+        int maxBootTimes = bootTimeIndex + 1;
+        if (maxBootTimes > MAX_BOOT_TIME_ENTRIES)
         {
-            if (bootTime[sortOrder[x]] > bootTime[sortOrder[y]])
+            systemPrintf("FATAL: Please increase MAX_BOOT_TIME_ENTRIES to >= %d\r\n", maxBootTimes);
+            reportFatalError("MAX_BOOT_TIME_ENTRIES too small");
+        }
+
+        // Display the boot times and compute the delta times
+        int index;
+        systemPrintln();
+        systemPrintln("Time when calling:");
+        for (index = 0; index < bootTimeIndex; index++)
+        {
+            systemPrintf("%8d mSec: %s\r\n", bootTime[index], bootTimeString[index]);
+            bootTime[index] = bootTime[index + 1] - bootTime[index];
+        }
+        systemPrintf("%8d mSec: %s\r\n", bootTime[index], bootTimeString[index]);
+        systemPrintln();
+
+        // Set the initial sort values
+        uint8_t sortOrder[MAX_BOOT_TIME_ENTRIES];
+        for (int x = 0; x <= bootTimeIndex; x++)
+            sortOrder[x] = x;
+
+        // Bubble sort the boot time values
+        for (int x = 0; x < bootTimeIndex - 1; x++)
+        {
+            for (int y = x + 1; y < bootTimeIndex; y++)
             {
-                uint8_t temp;
-                temp = sortOrder[y];
-                sortOrder[y] = sortOrder[x];
-                sortOrder[x] = temp;
+                if (bootTime[sortOrder[x]] > bootTime[sortOrder[y]])
+                {
+                    uint8_t temp;
+                    temp = sortOrder[y];
+                    sortOrder[y] = sortOrder[x];
+                    sortOrder[x] = temp;
+                }
             }
         }
-    }
 
-    // Display the boot times
-    systemPrintln("Delta times:");
-    for (index = bootTimeIndex - 1; index >= 0; index--)
-        systemPrintf("%8d mSec: %s\r\n", bootTime[sortOrder[index]], bootTimeString[sortOrder[index]]);
-    systemPrintln("--------");
-    systemPrintf("%8d mSec: Total boot time\r\n", bootTime[bootTimeIndex]);
-    systemPrintln();
-#endif  // DISPLAY_BOOT_TIMES
+        // Display the boot times
+        systemPrintln("Delta times:");
+        for (index = bootTimeIndex - 1; index >= 0; index--)
+            systemPrintf("%8d mSec: %s\r\n", bootTime[sortOrder[index]], bootTimeString[sortOrder[index]]);
+        systemPrintln("--------");
+        systemPrintf("%8d mSec: Total boot time\r\n", bootTime[bootTimeIndex]);
+        systemPrintln();
+    }
 }
 
 void loop()
