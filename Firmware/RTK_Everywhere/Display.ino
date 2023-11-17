@@ -644,8 +644,8 @@ void displaySplash()
 
         oled->erase();
 
-        int yPos = 0;
         int fontHeight = 8;
+        int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
         printTextCenter("SparkFun", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
