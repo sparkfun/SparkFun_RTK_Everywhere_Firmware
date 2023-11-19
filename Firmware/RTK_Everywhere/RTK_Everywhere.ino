@@ -518,8 +518,7 @@ float bluetoothLedTaskPace2Hz = 0.5;
 float bluetoothLedTaskPace33Hz = 0.03;
 
 Ticker gnssLedTask;
-float gnssLedTaskPace10Hz = 0.1;
-
+const int gnssTaskUpdatesHz = 20; // Update GNSS LED 20 times a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Accelerometer for bubble leveling
@@ -1351,11 +1350,14 @@ void rtcUpdate()
                 gnssUpdate();
 
                 bool timeValid = false;
+
                 if (gnssIsValidTime() == true &&
                     gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
+                
                 if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
+
                 if (timeValid &&
                     (gnssGetFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
                     timeValid = false;

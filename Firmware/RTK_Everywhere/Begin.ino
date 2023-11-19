@@ -1090,7 +1090,7 @@ void beginLEDs()
 
         ledcWrite(ledGnssChannel, 0);                                 // Turn off GNSS LED
         gnssLedTask.detach();                                         // Turn off any previous task
-        gnssLedTask.attach(gnssLedTaskPace10Hz, tickerGnssLedUpdate); // Rate in seconds, callback
+        gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 }
 
