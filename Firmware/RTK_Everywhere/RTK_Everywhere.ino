@@ -1047,7 +1047,7 @@ void setup()
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
 
-    Serial.flush(); // Complete any previous prints
+    systemFlush(); // Complete any previous prints
 
     log_d("Boot time: %d", millis());
 
