@@ -135,7 +135,15 @@ uint8_t unicoreReadData(PARSE_STATE *parse, uint8_t data)
         {
             systemPrintln();
             systemPrintf("Unicore CRC failed. Sentence CRC: 0x%02X Calculated CRC: 0x%02X\r\n", sentenceCRC,
-                         calculatedCRC);
+                          calculatedCRC);
+
+            // systemPrintln("Data:");
+            // for (int x = 0; x < 30; x++)
+            // {
+            //     systemPrintf(" %02X", parse->buffer[x]);
+            //     if(x % 10 == 0)
+            //         systemPrintln();
+            // }
         }
     }
 
