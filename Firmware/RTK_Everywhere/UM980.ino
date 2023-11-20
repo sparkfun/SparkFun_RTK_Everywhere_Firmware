@@ -1,3 +1,14 @@
+/*
+    IM19 reads in binary+NMEA from the UM980 and passes out binary with tilt-corrected lat/long/alt
+    to the ESP32.
+
+    The ESP32 reads in binary from the IM19.
+
+    The ESP32 reads in binary and NMEA from the UM980 and passes that data over Bluetooth.
+    If tilt compensation is activated, the ESP32 intercepts the NMEA from the UM980 and
+    injects the new tilt-compensated data, previously read from the IM19.
+*/
+
 #ifdef COMPILE_UM980
 
 HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what gnssPlatform we're on
@@ -6,9 +17,6 @@ UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we'
 
 /*
     TODO:
-        Add debug menu for direct-to-USB
-        Blink GNSS LED
-        Blink BT LED
         Get module version info um980PrintInfo()
 */
 void um980Begin()
@@ -100,13 +108,6 @@ bool um980ConfigureOnce()
 
     response &= um980SetConstellations();
 
-    // Don't transmit NMEA noise over BT during IMU debug
-    if (settings.enableImuDebug == false)
-    {
-        response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has
-                                       // UNLOG or similar.
-    }
-
     // response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
     // SIGNALGROUP causes the UM980 to automatically save and reset
 
@@ -120,10 +121,22 @@ bool um980ConfigureOnce()
     // Configure UM980 to output binary reports out COM3, connected to ESP32 UART2
     // These messages are used for things like SIV and System menu printing of current location
     // Normally done through UM980 library but UNLOG disrupts what the library is aware of
-    response &= um980->sendCommand("BESTNAVB COM3 1");
-    response &= um980->sendCommand("RECTIMEB COM3 1");
+    //response &= um980->sendCommand("BESTNAVB COM3 1");
+    //response &= um980->sendCommand("RECTIMEB COM3 1");
 
-    // IM19 reads in binary+NMEA and passes out binary with tilt-corrected lat/long/alt
+    // Enable the NMEA sentences on COM3 last. This limits the traffic on the config
+    // interface port during config.
+    // response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has
+    // UNLOG or similar.
+
+    // Temp force config. Use um980EnableNMEA instead.
+    float outputRate3 = 1; // 1 = 1 report per second.
+    response &= um980->setNMEAPortMessage("GPGGA", "COM3", outputRate3);
+    response &= um980->setNMEAPortMessage("GPGSA", "COM3", outputRate3);
+    response &= um980->setNMEAPortMessage("GPGST", "COM3", outputRate3);
+    // Reduce the GSV report to once per second to reduce lots of redundant data serial
+    response &= um980->setNMEAPortMessage("GPGSV", "COM3", 1);
+    response &= um980->setNMEAPortMessage("GPRMC", "COM3", outputRate3);
 
     if (response == false)
     {

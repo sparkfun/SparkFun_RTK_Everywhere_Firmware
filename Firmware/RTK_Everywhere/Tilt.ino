@@ -257,8 +257,8 @@ void tiltBegin()
     result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); //v2 stock firmware
 
     // Trigger IMU on PPS from UM980
-    //result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING"); //v1 hardware
-    result &= tiltSensor->sendCommand("SET_PPS_EDGE=FALLING"); //v2 hardware
+    result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING"); //v1 hardware
+    //result &= tiltSensor->sendCommand("SET_PPS_EDGE=FALLING"); //v2 hardware
 
     // Complete installation angle estimation in tilt measurement applications
     //result &= tiltSensor->sendCommand("AUTO_FIX=ENABLE"); //v1 hardware
