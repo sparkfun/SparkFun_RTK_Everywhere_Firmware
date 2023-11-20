@@ -135,6 +135,9 @@ int pin_IMU_TX = -1;
 
 int pin_GNSS_DR_Reset = -1;
 int pin_gnssStatusLED = -1;
+
+int pin_powerAdapterDetect = -1;
+int pin_usbSelect = -1;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display, accelerometer

@@ -475,12 +475,15 @@ void beginBoard()
         pin_powerSenseAndControl = 34;
         pin_powerFastOff = 14;
 
-        pin_batteryLevelLED_Red = 33;
+        pin_batteryLevelLED_Red = 0;
 
         pin_IMU_RX = 16;
         pin_IMU_TX = 17;
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
+
+        pin_usbSelect = 21;
+        pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
         DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT);
@@ -490,6 +493,11 @@ void beginBoard()
 
         DMW_if systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
+
+        pinMode(pin_powerAdapterDetect, INPUT);
+
+        pinMode(pin_usbSelect, OUTPUT);
+        digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
         settings.enableSD = false; // SD does not exist on the Torch
 
