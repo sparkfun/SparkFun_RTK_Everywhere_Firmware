@@ -1,3 +1,18 @@
+/*
+  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor 
+  generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the 
+  GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The 
+  Data Collector does not know anything is being tilt-compensated. To do this we must intercept 
+  NMEA from the UM980 and splice in the values from the tilt sensor. See tiltApplyCompensationGGA() 
+  as an example.
+
+  The tilt sensor reports + and - numbers for Latitude/Longitude. Whereas NMEA expects positive
+  numbers with letters N/S and E/W. Since we are splicing into NMEA, the correct N/S and E/W letters 
+  are already set. We just need to be sure the tilt-compensated values are positive using abs(). 
+  This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
+  we don't consider those edges cases here.
+*/
+
 #ifdef COMPILE_IM19_IMU
 
 // Get the Ethernet parameters
@@ -63,12 +78,12 @@ void tiltUpdate()
             {
                 lastTiltCheck = millis();
 
-                //Error check
-                if(settings.tiltPoleLength < 0.5)
+                // Error check
+                if (settings.tiltPoleLength < 0.5)
                 {
                     systemPrintf("Warning: Short pole length detected: %0.2f\r\n", settings.tiltPoleLength);
                 }
-                
+
                 // Check to see if tilt compensation is active
                 uint32_t naviStatus = tiltSensor->getNaviStatus();
                 if ((naviStatus & (1 << 19)) && tiltSensor->getNaviLatitude() > 0) // SyncReady 0x80000
@@ -212,28 +227,28 @@ void tiltBegin()
     // }
 
     bool result = true;
-    
+
     // The filter has a set of default parameters, which can be loaded when setting an error.
-    result &= tiltSensor->sendCommand("LOAD_DEFAULT"); //v2 hardware
+    result &= tiltSensor->sendCommand("LOAD_DEFAULT"); // v2 hardware
 
     // Use serial port 2 as the serial port for communication with GNSS
-    //result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART3"); //v1 hardware
-    result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART2"); //v2 hardware
+    // result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART3"); //v1 hardware
+    result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART2"); // v2 hardware
 
     // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
     if (productVariant == RTK_TORCH)
-        //result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925"); //v1 hardware
-        result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); //v2 hardware from stock firmware
+        // result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925"); //v1 hardware
+        result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // v2 hardware from stock firmware
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
     float arp = 0.0;
     if (productVariant == RTK_TORCH)
-        //arp = 0.116; // In m, v1 hardware
+        // arp = 0.116; // In m, v1 hardware
         arp = 0.102; // In m, v2 hardware from stock firmware
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp);
@@ -243,28 +258,28 @@ void tiltBegin()
     result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
 
     // Configure as tilt measurement mode
-    //result &= tiltSensor->sendCommand("WORK_MODE=152");
-    result &= tiltSensor->sendCommand("WORK_MODE=408"); //From v2 stock firmware
+    // result &= tiltSensor->sendCommand("WORK_MODE=152");
+    result &= tiltSensor->sendCommand("WORK_MODE=408"); // From v2 stock firmware
 
     // AT+HIGH_RATE=[ENABLE | DISABLE] - try to slow down NAVI
     result &= tiltSensor->sendCommand("HIGH_RATE=DISABLE");
 
     // Turn off MEMS output.
-    //result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,ON"); //v2 stock firmware enables MEMS
+    // result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,ON"); //v2 stock firmware enables MEMS
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
-    //Unknown new command for v2
-    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); //v2 stock firmware
+    // Unknown new command for v2
+    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // v2 stock firmware
 
     // Trigger IMU on PPS from UM980
-    result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING"); //v1 hardware
-    //result &= tiltSensor->sendCommand("SET_PPS_EDGE=FALLING"); //v2 hardware
+    result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING"); // v1 hardware
+    // result &= tiltSensor->sendCommand("SET_PPS_EDGE=FALLING"); //v2 hardware
 
     // Complete installation angle estimation in tilt measurement applications
-    //result &= tiltSensor->sendCommand("AUTO_FIX=ENABLE"); //v1 hardware
+    // result &= tiltSensor->sendCommand("AUTO_FIX=ENABLE"); //v1 hardware
 
     // AT+MAG_AUTO_SAVE=ENABLE
-    //result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE");
+    // result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE");
 
     if (result == true)
     {
@@ -394,7 +409,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence, latitudeStart);
 
     // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
@@ -404,7 +419,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
     // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
@@ -493,7 +508,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence, latitudeStart);
 
     // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
@@ -503,7 +518,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
     // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
@@ -583,7 +598,7 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence, latitudeStart);
 
     // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
@@ -593,7 +608,7 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
     // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
@@ -682,7 +697,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence, latitudeStart);
 
     // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLatitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
@@ -692,7 +707,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
     // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(tiltSensor->getNaviLongitude(), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
