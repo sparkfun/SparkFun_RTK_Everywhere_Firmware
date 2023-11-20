@@ -270,6 +270,8 @@ void initializePowerPins()
 
         // Display splash screen for 1 second
         minSplashFor = 1000;
+
+        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
     }
     else if (productVariant == RTK_EVERYWHERE)
     {
@@ -340,6 +342,8 @@ void initializePowerPins()
 
         // Display splash screen for 1 second
         minSplashFor = 1000;
+
+        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
     }
 }
 
@@ -506,6 +510,8 @@ void beginBoard()
         settings.enableSD = false; // Torch has no SD socket
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
+
+        fuelGaugeType = FUEL_GAUGE_TYPE_BQ40Z50;
     }
 #endif // COMPILE_IM19_IMU
     else if (productVariant == REFERENCE_STATION)
@@ -516,6 +522,8 @@ void beginBoard()
         // No powerOnCheck
 
         settings.enablePrintBatteryMessages = false; // No pesky battery messages
+
+        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
     }
     else if (productVariant == RTK_EVERYWHERE)
     {
@@ -524,6 +532,8 @@ void beginBoard()
         // Serial pins are set during identifyBoard()
 
         settings.enablePrintBatteryMessages = false; // No pesky battery messages
+
+        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
     }
 
     char versionString[21];
@@ -1096,50 +1106,56 @@ void beginLEDs()
         bluetoothLedTask.detach();                                                  // Turn off any previous task
         bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
 
-        ledcWrite(ledGnssChannel, 0);                                 // Turn off GNSS LED
-        gnssLedTask.detach();                                         // Turn off any previous task
+        ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED
+        gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 }
 
-// Configure the on board MAX17048 fuel gauge
+// Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if (HAS_NO_BATTERY)
-        return; // Reference station does not have a battery
-
-    // TODO add Torch support
-
-    // Set up the MAX17048 LiPo fuel gauge
-    if (lipo.begin() == false)
+    if (fuelGaugeType == FUEL_GAUGE_TYPE_NONE)
     {
-        systemPrintln("Fuel gauge not detected");
-        return;
+        return; // Product does not have a battery
     }
-
-    online.battery = true;
-
-    // Always use hibernate mode
-    if (lipo.getHIBRTActThr() < 0xFF)
-        lipo.setHIBRTActThr((uint8_t)0xFF);
-    if (lipo.getHIBRTHibThr() < 0xFF)
-        lipo.setHIBRTHibThr((uint8_t)0xFF);
-
-    systemPrintln("Fuel gauge configuration complete");
-
-    checkBatteryLevels(); // Force check so you see battery level immediately at power on
-
-    // Check to see if we are dangerously low
-    if (battLevel < 5 && battChangeRate < 0.5) // 5% and not charging
+    else if (fuelGaugeType == FUEL_GAUGE_TYPE_MAX1704X)
     {
-        systemPrintln("Battery too low. Please charge. Shutting down...");
+        // Set up the MAX17048 LiPo fuel gauge
+        if (lipo.begin() == false)
+        {
+            systemPrintln("Fuel gauge not detected");
+            return;
+        }
 
-        if (online.display == true)
-            displayMessage("Charge Battery", 0);
+        online.battery = true;
 
-        delay(2000);
+        // Always use hibernate mode
+        if (lipo.getHIBRTActThr() < 0xFF)
+            lipo.setHIBRTActThr((uint8_t)0xFF);
+        if (lipo.getHIBRTHibThr() < 0xFF)
+            lipo.setHIBRTHibThr((uint8_t)0xFF);
 
-        powerDown(false); // Don't display 'Shutting Down'
+        systemPrintln("Fuel gauge configuration complete");
+
+        checkBatteryLevels(); // Force check so you see battery level immediately at power on
+
+        // Check to see if we are dangerously low
+        if (battLevel < 5 && battChangeRate < 0.5) // 5% and not charging
+        {
+            systemPrintln("Battery too low. Please charge. Shutting down...");
+
+            if (online.display == true)
+                displayMessage("Charge Battery", 0);
+
+            delay(2000);
+
+            powerDown(false); // Don't display 'Shutting Down'
+        }
+    }
+    else if (fuelGaugeType == FUEL_GAUGE_TYPE_BQ40Z50)
+    {
+        
     }
 }
 
@@ -1334,7 +1350,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x0b: {
+            case 0x0B: {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                 break;
             }
@@ -1344,7 +1360,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x2c: {
+            case 0x2C: {
                 systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                 break;
             }
@@ -1354,7 +1370,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x3d: {
+            case 0x3D: {
                 systemPrintf("  0x%02X - SSD1306 OLED Driver\r\n", addr);
                 break;
             }
@@ -1369,7 +1385,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
-            case 0x5c: {
+            case 0x5C: {
                 systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                 break;
             }
