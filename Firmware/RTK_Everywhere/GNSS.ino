@@ -11,7 +11,7 @@ void gnssBegin()
 }
 
 // Setup the general configuration of the GNSS
-// Not Rover or Base sepecific (ie, baud rates)
+// Not Rover or Base specific (ie, baud rates)
 bool gnssConfigure()
 {
     if (online.gnss == false)
