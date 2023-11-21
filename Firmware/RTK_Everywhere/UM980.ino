@@ -652,7 +652,7 @@ bool um980SetModeRoverSurvey()
     return (um980->setModeRoverSurvey());
 }
 
-void un980UnicoreHandler(uint8_t *buffer, int length)
+void um980UnicoreHandler(uint8_t *buffer, int length)
 {
     um980->unicoreHandler(buffer, length);
 }
