@@ -1082,3 +1082,20 @@ uint16_t gnssExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
 
     return (0);
 }
+
+char * gnssGetId()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedUniqueId);
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980GetId());
+        }
+    }
+
+    return ("\0");
+}
