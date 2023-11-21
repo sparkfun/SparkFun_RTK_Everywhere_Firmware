@@ -121,8 +121,8 @@ bool um980ConfigureOnce()
     // Configure UM980 to output binary reports out COM3, connected to ESP32 UART2
     // These messages are used for things like SIV and System menu printing of current location
     // Normally done through UM980 library but UNLOG disrupts what the library is aware of
-    //response &= um980->sendCommand("BESTNAVB COM3 1");
-    //response &= um980->sendCommand("RECTIMEB COM3 1");
+    // response &= um980->sendCommand("BESTNAVB COM3 1");
+    // response &= um980->sendCommand("RECTIMEB COM3 1");
 
     // Enable the NMEA sentences on COM3 last. This limits the traffic on the config
     // interface port during config.
@@ -624,7 +624,14 @@ uint8_t um980GetMillisecond()
 // Print the module type and firmware version
 void um980PrintInfo()
 {
-    systemPrintf("UM980 firmware: %s\r\n", "TODO");
+    uint8_t modelType = um980->getModelType();
+
+    if (modelType == 18)
+        systemPrint("UM980");
+    else
+        systemPrintf("Unicore Model Unknown %d", modelType);
+
+    systemPrintf(" firmware: %s\r\n", um980->getVersion());
 }
 
 // Return the number of milliseconds since the data was updated
@@ -655,6 +662,11 @@ bool um980SetModeRoverSurvey()
 void um980UnicoreHandler(uint8_t *buffer, int length)
 {
     um980->unicoreHandler(buffer, length);
+}
+
+char *um980GetId()
+{
+    return (um980->getID());
 }
 
 #endif // COMPILE_UM980
