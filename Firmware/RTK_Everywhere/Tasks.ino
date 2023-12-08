@@ -198,7 +198,7 @@ void btReadTask(void *e)
             sendGnssBuffer(); // Send any outstanding RTCM
         }
 
-        if (settings.enableTaskReports == true)
+        if ((settings.enableTaskReports == true) && (!inMainMenu))
             systemPrintf("SerialWriteTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
         feedWdt();
@@ -304,7 +304,7 @@ void gnssReadTask(void *e)
             systemPrintln("gnssReadTask running");
         }
 
-        if (settings.enableTaskReports == true)
+        if ((settings.enableTaskReports == true) && (!inMainMenu))
             systemPrintf("SerialReadTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
         // Determine if serial data is available
