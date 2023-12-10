@@ -454,6 +454,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Boot times
     settingsFile->printf("%s=%d\r\n", "printBootTimes", settings.printBootTimes);
 
+    // Partition table
+    settingsFile->printf("%s=%d\r\n", "printPartitionTable", settings.printPartitionTable);
+
     // Add new settings above <------------------------------------------------------------>
 }
 
@@ -1392,6 +1395,10 @@ bool parseLine(char *str, Settings *settings)
     // Boot times
     else if (strcmp(settingName, "printBootTimes") == 0)
         settings->printBootTimes = d;
+
+    // Partition table
+    else if (strcmp(settingName, "printPartitionTable") == 0)
+        settings->printPartitionTable = d;
 
     // Add new settings above
     //<------------------------------------------------------------>

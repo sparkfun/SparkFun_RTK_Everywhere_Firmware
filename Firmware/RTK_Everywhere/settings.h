@@ -1189,6 +1189,9 @@ typedef struct
     // Boot times
     bool printBootTimes = false; // Print times and deltas during boot
 
+    // Partition table
+    bool printPartitionTable = false;
+
     // Add new settings above <------------------------------------------------------------>
 
 } Settings;
