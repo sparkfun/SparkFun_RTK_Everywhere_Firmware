@@ -14,6 +14,7 @@ static const char * const otaStateNames[] =
 {
     "OTA_STATE_OFF",
     "OTA_STATE_START_WIFI",
+    "OTA_STATE_WAIT_FOR_WIFI",
     "OTA_STATE_GET_FIRMWARE_VERSION",
     "OTA_STATE_CHECK_FIRMWARE_VERSION",
     "OTA_STATE_UPDATE_FIRMWARE"
@@ -24,6 +25,7 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 // Locals
 //----------------------------------------
 
+static byte otaBluetoothState = BT_OFF;
 static uint32_t otaLastUpdateCheck;
 static OtaState otaState;
 
@@ -922,6 +924,35 @@ void otaSetState(OtaState newState)
         reportFatalError("Invalid firmware update state");
 }
 
+// Stop the automatic OTA firmware update
+void otaAutoUpdateStop()
+{
+    if (settings.debugFirmwareUpdate)
+        systemPrintln("otaAutoUpdateStop called");
+
+    if (otaState != OTA_STATE_OFF)
+    {
+        // Stop WiFi
+        systemPrintln("Firmware update stopping WiFi");
+        online.otaFirmwareUpdate = false;
+        if (networkGetUserNetwork(NETWORK_USER_OTA_AUTO_UPDATE))
+            networkUserClose(NETWORK_USER_OTA_AUTO_UPDATE);
+
+        // Stop the firmware update
+        otaSetState(OTA_STATE_OFF);
+        otaLastUpdateCheck = millis();
+
+        // Restart bluetooth if necessary
+        if (otaBluetoothState == BT_CONNECTED)
+        {
+            otaBluetoothState = BT_OFF;
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("Firmware update restarting Bluetooth");
+            bluetoothStart(); // Restart BT according to settings
+        }
+    }
+};
+
 // Determine if it is time to initiate the over-the-air firmware update
 void otaAutoUpdate()
 {
@@ -948,6 +979,51 @@ void otaAutoUpdate()
         {
         default:
             systemPrintf("ERROR: Unknown OTA state (%d)\r\n", otaState);
+
+            // Stop the network
+            otaAutoUpdateStop();
+            break;
+
+        case OTA_STATE_OFF:
+            break;
+
+        // Start the WiFi network
+        case OTA_STATE_START_WIFI:
+            if (settings.debugFirmwareUpdate)
+                systemPrintln("Firmware update starting WiFi");
+            if (!networkUserOpen(NETWORK_USER_OTA_AUTO_UPDATE, NETWORK_TYPE_WIFI))
+            {
+                systemPrintln("Firmware update failed, unable to start WiFi");
+                otaAutoUpdateStop();
+            }
+            else
+                otaSetState(OTA_STATE_WAIT_FOR_WIFI);
+            break;
+
+        // Wait for connection to the access point
+        case OTA_STATE_WAIT_FOR_WIFI:
+            // Determine if the network has failed
+            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
+                otaAutoUpdateStop();
+
+            // Determine if the network is connected to the media
+            else if (networkUserConnected(NETWORK_USER_OTA_AUTO_UPDATE))
+            {
+                if (settings.debugFirmwareUpdate)
+                    systemPrintln("Firmware update connected to WiFi");
+
+                // Stop Bluetooth
+                otaBluetoothState = bluetoothGetState();
+                if (otaBluetoothState != BT_OFF)
+                {
+                    if (settings.debugFirmwareUpdate)
+                        systemPrintln("Firmware update stopping Bluetooth");
+                    bluetoothStop();
+                }
+
+                // Get the latest firmware version
+                otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
+            }
             break;
         }
     }
