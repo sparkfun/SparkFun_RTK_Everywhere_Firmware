@@ -267,31 +267,6 @@ class NetworkEthernetClient : public NetworkClient
         this->~NetworkClient();
     }
 };
-
-#ifdef COMPILE_OTA_CLIENT
-class NetworkEthernetSslClient : public NetworkClient
-{
-  protected:
-
-    EthernetClient _ethernetClient;
-    SSLClientESP32 _sslClient;
-
-  public:
-
-    NetworkEthernetSslClient() :
-        _sslClient(),
-        NetworkClient(&_sslClient, NETWORK_TYPE_ETHERNET)
-    {
-        _sslClient.setClient(&_ethernetClient);
-        _sslClient.setCACertBundle(x509CertificateBundle);
-    }
-
-    ~NetworkEthernetSslClient()
-    {
-        this->~NetworkClient();
-    }
-};
-#endif  // COMPILE_OTA_CLIENT
 #endif  // COMPILE_ETHERNET
 
 #ifdef  COMPILE_WIFI
@@ -319,31 +294,6 @@ class NetworkWiFiClient : public NetworkClient
         this->~NetworkClient();
     }
 };
-
-#ifdef  COMPILE_OTA_CLIENT
-class NetworkWiFiSslClient : public NetworkClient
-{
-  protected:
-
-    WiFiClient _wifiClient;
-    SSLClientESP32 _sslClient;
-
-  public:
-
-    NetworkWiFiSslClient() :
-        _sslClient(),
-        NetworkClient(&_sslClient, NETWORK_TYPE_WIFI)
-    {
-        _sslClient.setClient(&_wifiClient);
-        _sslClient.setCACertBundle(x509CertificateBundle);
-    }
-
-    ~NetworkWiFiSslClient()
-    {
-        this->~NetworkClient();
-    }
-};
-#endif  // COMPILE_OTA_CLIENT
 #endif  // COMPILE_WIFI
 
 #endif  // __NETWORK_CLIENT_H__
