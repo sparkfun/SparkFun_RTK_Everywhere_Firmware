@@ -819,7 +819,6 @@ void verifyTables()
     ntpValidateTables();
     ntripClientValidateTables();
     ntripServerValidateTables();
-    otaVerifyTables();
     pvtClientValidateTables();
     pvtServerValidateTables();
     tasksValidateTables();

@@ -390,28 +390,12 @@ NetworkClient * networkClient(uint8_t user, bool useSSL)
     type = networkGetType(user);
 #if defined(COMPILE_ETHERNET)
     if (type == NETWORK_TYPE_ETHERNET)
-    {
-        if (useSSL)
-#ifdef  COMPILE_OTA_CLIENT
-            client = new NetworkEthernetSslClient();
-#else   //COMPILE_OTA_CLIENT
-            client = nullptr;
-#endif  // COMPILE_OTA_CLIENT
-        else
-            client = new NetworkEthernetClient;
-    }
+        client = new NetworkEthernetClient;
     else
 #endif // COMPILE_ETHERNET
     {
 #if defined(COMPILE_WIFI)
-        if (useSSL)
-#ifdef COMPILE_OTA_CLIENT
-            client = new NetworkWiFiSslClient();
-#else   // COMPILE_OTA_CLIENT
-            client = nullptr;
-#endif  // COMPILE_OTA_CLIENT
-        else
-            client = new NetworkWiFiClient();
+        client = new NetworkWiFiClient();
 #else   // COMPILE_WIFI
         client = nullptr;
 #endif  // COMPILE_WIFI
@@ -902,12 +886,6 @@ void networkStop(uint8_t networkType)
                     ntripServerRestart();
                     break;
 
-                case NETWORK_USER_OTA_FIRMWARE_UPDATE:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping OTA firmware update");
-                    otaStop();
-                    break;
-
                 case NETWORK_USER_PVT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping PVT client");
@@ -1172,7 +1150,6 @@ void networkUpdate()
     ntpServerUpdate();   // Process any received NTP requests
     ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
     ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
-    otaClientUpdate();   // Perform automatic over-the-air firmware updates
     pvtClientUpdate();   // Turn on the PVT client as needed
     pvtServerUpdate();   // Turn on the PVT server as needed
     pvtUdpServerUpdate();   // Turn on the PVT UDP server as needed

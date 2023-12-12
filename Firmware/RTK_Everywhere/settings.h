@@ -299,7 +299,6 @@ enum NetworkUsers
     NETWORK_USER_NTP_SERVER = 0,        // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
     NETWORK_USER_NTRIP_SERVER,          // NTRIP server
-    NETWORK_USER_OTA_FIRMWARE_UPDATE,   // Over-The-Air firmware updates
     NETWORK_USER_PVT_CLIENT,            // PVT client
     NETWORK_USER_PVT_SERVER,            // PVT server
     NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
@@ -577,8 +576,6 @@ enum PeriodDisplayValues
 
     PD_ZED_DATA_RX,             // 29
     PD_ZED_DATA_TX,             // 30
-
-    PD_OTA_CLIENT_STATE,        // 31
     // Add new values before this line
 };
 
