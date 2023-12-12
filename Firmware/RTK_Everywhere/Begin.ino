@@ -303,6 +303,7 @@ void initializePowerPins()
         pin_I2C0_SCL = 22;
         // 37, D23 : SPI PICO
         // 10, D25 : TP/2
+        pin_GNSS_TimePulse = 25;
         // 11, D26 : LARA_ON
         // 12, D27 : Ethernet Chip Select
         pin_Ethernet_CS = 27;
