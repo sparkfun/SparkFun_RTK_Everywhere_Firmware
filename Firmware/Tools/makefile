@@ -4,6 +4,9 @@
 # Builds the RTK support programs
 ######################################################################
 
+.ONESHELL:
+SHELL=/bin/bash
+
 ##########
 # Source files
 ##########
@@ -48,6 +51,14 @@ ENABLE_DEVELOPER=false
 FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
+
+partition:	../app3M_fat9M_16MB.csv
+	ESP_PATH=/home/$$USER/.arduino15/packages/esp32/hardware/esp32/*
+	for file in $$ESP_PATH; do \
+		ESP_VERSION_PATH=$${file}; \
+	done
+	ESP_VERSION=$$(basename $$ESP_VERSION_PATH)
+	cp $< ~/.arduino15/packages/esp32/hardware/esp32/$$ESP_VERSION/tools/partitions/app3M_fat9M_16MB.csv
 
 ../RTK_Everywhere/form.h:	../RTK_Everywhere/* ../RTK_Everywhere/AP-Config/* ../RTK_Everywhere/AP-Config/src/* ../RTK_Everywhere/AP-Config/src/fonts/*
 	python index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h
