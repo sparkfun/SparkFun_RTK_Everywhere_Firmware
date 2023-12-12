@@ -4,7 +4,10 @@ void menuSystem()
     while (1)
     {
         systemPrintln();
-        systemPrintln("Menu: System");
+        systemPrintln("System Status");
+
+        printTimeStamp();
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         beginI2C();
         if (online.i2c == false)
@@ -141,6 +144,8 @@ void menuSystem()
         systemPrintf("Filtered by parser: %d NMEA / %d RTCM / %d UBX\r\n", failedParserMessages_NMEA,
                      failedParserMessages_RTCM, failedParserMessages_UBX);
 
+        systemPrintln();
+        systemPrintln("Menu: System");
         // Separate the menu from the status
         systemPrintln("-----  Mode Switch  -----");
 

@@ -1350,3 +1350,39 @@ void changeState(SystemState newState)
         }
     }
 }
+
+// RTK mode structure
+typedef struct _RTK_MODE_ENTRY {
+    const char * modeName;
+    SystemState first;
+    SystemState last;
+} RTK_MODE_ENTRY;
+
+const RTK_MODE_ENTRY stateModeTable[] =
+{
+    {           "Rover", STATE_ROVER_NOT_STARTED,          STATE_ROVER_RTK_FIX},
+    {            "Base", STATE_BASE_NOT_STARTED,           STATE_BASE_FIXED_TRANSMITTING},
+    {           "Setup", STATE_BUBBLE_LEVEL,               STATE_PROFILE},
+    {"Key Provisioning", STATE_KEYS_STARTED,               STATE_KEYS_PROVISION_WIFI_CONNECTED},
+    {  "ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+    {             "NTP", STATE_NTPSERVER_NOT_STARTED,      STATE_NTPSERVER_SYNC},
+    { "Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
+    {        "Shutdown", STATE_SHUTDOWN,                   STATE_SHUTDOWN}
+};
+const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
+
+const char * stateToRtkMode(SystemState state)
+{
+    const RTK_MODE_ENTRY * mode;
+
+    // Walk the RTK mode table
+    for (int index = 0; index < stateModeTableEntries; index++)
+    {
+        mode = &stateModeTable[index];
+        if ((state >= mode->first) && (state <= mode->last))
+            return mode->modeName;
+    }
+
+    // Unknown mode
+    return "Unknown Mode";
+}
