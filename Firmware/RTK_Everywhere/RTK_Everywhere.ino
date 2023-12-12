@@ -21,6 +21,7 @@
 
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+#define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
@@ -1144,6 +1145,9 @@ void loop()
 
     DMW_c("printPosition");
     printPosition(); // Periodically print GNSS coordinates if enabled
+
+    DMW_c("otaAutoUpdate");
+    otaAutoUpdate();
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }

@@ -886,6 +886,12 @@ void networkStop(uint8_t networkType)
                     ntripServerRestart();
                     break;
 
+                case NETWORK_USER_OTA_AUTO_UPDATE:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping automatic OTA firmware update");
+                    otaAutoUpdateStop();
+                    break;
+
                 case NETWORK_USER_PVT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping PVT client");
