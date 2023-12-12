@@ -1027,16 +1027,17 @@ void setup()
     bootTime[bootTimeIndex] = millis();
     bootTimeString[bootTimeIndex] = "End of Setup";
 
+    // Verify the size of the bootTime array
+    int maxBootTimes = bootTimeIndex + 1;
+    if (maxBootTimes > MAX_BOOT_TIME_ENTRIES)
+    {
+        systemPrintf("FATAL: Please increase MAX_BOOT_TIME_ENTRIES to >= %d\r\n", maxBootTimes);
+        reportFatalError("MAX_BOOT_TIME_ENTRIES too small");
+    }
+
+    // Display the boot times
     if (settings.printBootTimes)
     {
-        // Verify the size of the bootTime array
-        int maxBootTimes = bootTimeIndex + 1;
-        if (maxBootTimes > MAX_BOOT_TIME_ENTRIES)
-        {
-            systemPrintf("FATAL: Please increase MAX_BOOT_TIME_ENTRIES to >= %d\r\n", maxBootTimes);
-            reportFatalError("MAX_BOOT_TIME_ENTRIES too small");
-        }
-
         // Display the boot times and compute the delta times
         int index;
         systemPrintln();
