@@ -201,7 +201,7 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 // Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
 // The GNSS UBX PVT message is sent ahead of the top-of-second
 // The rising edge of the TP signal indicates the true top-of-second
-#define HAS_GNSS_TP_INT ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+#define HAS_GNSS_TP_INT (((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)) && (pin_GNSS_TimePulse != -1))
 
 // Macro to show if the the RTK variant has no battery
 #define HAS_NO_BATTERY ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
