@@ -668,6 +668,8 @@ void menuDebugSoftware()
 
         systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
 
+        systemPrintf("34) Print partition table: %s\r\n", settings.printPartitionTable ? "Enabled" : "Disabled");
+
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
         if (settings.enableTaskReports == true)
@@ -739,6 +741,8 @@ void menuDebugSoftware()
         }
         else if (incoming == 33)
             settings.printBootTimes ^= 1;
+        else if (incoming == 34)
+            settings.printPartitionTable ^= 1;
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;

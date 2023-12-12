@@ -749,7 +749,7 @@ RtkMode_t rtkMode; // Mode of operation
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES   31
+#define MAX_BOOT_TIME_ENTRIES   33
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char * bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -934,6 +934,13 @@ void setup()
     DMW_b("verifyTables");
     verifyTables (); // Verify the consistency of the internal tables
 
+    DMW_b("findSpiffsPartition");
+    if (!findSpiffsPartition())
+    {
+        printPartitionTable(); // Print the partition tables
+        reportFatalError("spiffs partition not found!");
+    }
+
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on. Uses I2C for RTK Torch.
 
@@ -982,6 +989,10 @@ void setup()
 
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
+
+    DMW_b("printPartitionTable");
+    if (settings.printPartitionTable)
+        printPartitionTable();
 
     DMW_b("beginIdleTasks");
     beginIdleTasks(); // Requires settings. Enable processor load calculations

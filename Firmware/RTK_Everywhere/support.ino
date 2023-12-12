@@ -912,3 +912,37 @@ InputResponse getNewSetting(const char *settingPrompt, float min, float max, dou
 
     return (INPUT_RESPONSE_INVALID);
 }
+
+void printPartitionTable(void)
+{
+    systemPrintln("ESP32 Partition table:\n");
+
+    systemPrintln("| Type | Sub |  Offset  |   Size   |       Label      |");
+    systemPrintln("| ---- | --- | -------- | -------- | ---------------- |");
+
+    esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
+    if (pi != NULL)
+    {
+        do
+        {
+            const esp_partition_t* p = esp_partition_get(pi);
+            systemPrintf("|  %02x  | %02x  | 0x%06X | 0x%06X | %-16s |\r\n",
+                         p->type, p->subtype, p->address, p->size, p->label);
+        } while (pi = (esp_partition_next(pi)));
+    }
+}
+
+bool findSpiffsPartition(void)
+{
+    esp_partition_iterator_t pi = esp_partition_find(ESP_PARTITION_TYPE_ANY, ESP_PARTITION_SUBTYPE_ANY, NULL);
+    if (pi != NULL)
+    {
+        do
+        {
+            const esp_partition_t* p = esp_partition_get(pi);
+            if (strcmp(p->label, "spiffs") == 0)
+                return true;
+        } while (pi = (esp_partition_next(pi)));
+    }
+    return false;
+}
