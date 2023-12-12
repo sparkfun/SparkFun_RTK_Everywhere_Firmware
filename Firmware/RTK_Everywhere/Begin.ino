@@ -145,6 +145,8 @@ void identifyBoard()
 
             UM980 testGNSS;
 
+            DMW_if
+                systemPrintf("pin_GNSS_DR_Reset: %d\r\n", pin_GNSS_DR_Reset);
             pinMode(pin_GNSS_DR_Reset, OUTPUT);
             digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
 
@@ -161,9 +163,13 @@ void identifyBoard()
                 pin_bluetoothStatusLED = 32;
                 pin_gnssStatusLED = 13;
 
+                DMW_if
+                    systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
                 pinMode(pin_bluetoothStatusLED, OUTPUT);
                 digitalWrite(pin_bluetoothStatusLED, HIGH);
 
+                DMW_if
+                    systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
                 pinMode(pin_gnssStatusLED, OUTPUT);
                 digitalWrite(pin_gnssStatusLED, HIGH);
             }
@@ -244,11 +250,18 @@ void initializePowerPins()
         pin_radio_rx = 17; // Radio RX In = ESP TX Out
         pin_radio_tx = 16; // Radio TX Out = ESP RX In
 
+        DMW_if
+            systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
         pinMode(pin_Ethernet_CS, OUTPUT);
         digitalWrite(pin_Ethernet_CS, HIGH);
+
+        DMW_if
+            systemPrintf("pin_GNSS_CS: %d\r\n", pin_GNSS_CS);
         pinMode(pin_GNSS_CS, OUTPUT);
         digitalWrite(pin_GNSS_CS, HIGH);
 
+        DMW_if
+            systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
         digitalWrite(pin_peripheralPowerControl, HIGH); // Turn on SD, W5500, etc
         delay(100);
@@ -304,15 +317,24 @@ void initializePowerPins()
         //  5, A39 : Unused analog pin - used to generate random values for SSL
 
         // Disable the Ethernet controller
+        DMW_if
+            systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
         pinMode(pin_Ethernet_CS, OUTPUT);
         digitalWrite(pin_Ethernet_CS, HIGH);
 
         // Disable the microSD card
+        DMW_if
+            systemPrintf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
         pinMode(pin_microSD_CardDetect, INPUT); // Internal pullups not supported on input only pins
+
+        DMW_if
+            systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
         digitalWrite(pin_microSD_CS, HIGH);
 
         // Connect the I2C_1 bus to the display
+        DMW_if
+            systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
         digitalWrite(pin_peripheralPowerControl, HIGH);
         i2cPowerUpDelay = millis() + 860;
@@ -379,7 +401,12 @@ void beginBoard()
         pin_GnssUart_RX = 16;
         pin_GnssUart_TX = 17;
 
+        DMW_if
+            systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
+
+        DMW_if
+            systemPrintf("pin_powerFastOff: %d\r\n", pin_powerFastOff);
         pinMode(pin_powerFastOff, INPUT);
 
         if (esp_reset_reason() == ESP_RST_POWERON)
@@ -387,6 +414,8 @@ void beginBoard()
             powerOnCheck(); // Only do check if we POR start
         }
 
+        DMW_if
+            systemPrintf("pin_setupButton: %d\r\n", pin_setupButton);
         pinMode(pin_setupButton, INPUT_PULLUP);
 
         setMuxport(settings.dataPortChannel); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
@@ -414,7 +443,12 @@ void beginBoard()
         pin_GnssUart_RX = 16;
         pin_GnssUart_TX = 17;
 
+        DMW_if
+            systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
+
+        DMW_if
+            systemPrintf("pin_powerFastOff: %d\r\n", pin_powerFastOff);
         pinMode(pin_powerFastOff, INPUT);
 
         if (esp_reset_reason() == ESP_RST_POWERON)
@@ -422,12 +456,16 @@ void beginBoard()
             powerOnCheck(); // Only do check if we POR start
         }
 
+        DMW_if
+            systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
         digitalWrite(pin_peripheralPowerControl, HIGH); // Turn on SD, ZED, etc
 
         setMuxport(settings.dataPortChannel); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
 
         // CTS is active low. ESP32 pin 5 has pullup at POR. We must drive it low.
+        DMW_if
+            systemPrintf("pin_radio_cts: %d\r\n", pin_radio_cts);
         pinMode(pin_radio_cts, OUTPUT);
         digitalWrite(pin_radio_cts, LOW);
 
@@ -456,8 +494,16 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
+        DMW_if
+            systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT);
+
+        DMW_if
+            systemPrintf("pin_powerFastOff: %d\r\n", pin_powerFastOff);
         pinMode(pin_powerFastOff, INPUT);
+
+        DMW_if
+            systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         settings.enableSD = false; // SD does not exist on the Torch
@@ -586,6 +632,8 @@ void beginSD()
         {
             log_d("Initializing microSD - using SPI, SdFat and SdFile");
 
+            DMW_if
+                systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
             pinMode(pin_microSD_CS, OUTPUT);
             digitalWrite(pin_microSD_CS, HIGH); // Be sure SD is deselected
             resetSPI();                         // Re-initialize the SPI/SD interface
@@ -773,6 +821,8 @@ void resetSPI()
 {
     if (USE_SPI_MICROSD)
     {
+        DMW_if
+            systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
         digitalWrite(pin_microSD_CS, HIGH); // De-select SD card
 
@@ -946,6 +996,8 @@ void beginInterrupts()
 
     if (HAS_GNSS_TP_INT) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
+        DMW_if
+            systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
         attachInterrupt(pin_GNSS_TimePulse, tpISR, RISING);
     }
@@ -953,6 +1005,8 @@ void beginInterrupts()
 #ifdef COMPILE_ETHERNET
     if (HAS_ETHERNET)
     {
+        DMW_if
+            systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
         pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
         attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
     }
@@ -964,11 +1018,28 @@ void beginLEDs()
 {
     if (productVariant == RTK_SURVEYOR)
     {
+        DMW_if
+            systemPrintf("pin_positionAccuracyLED_1cm: %d\r\n", pin_positionAccuracyLED_1cm);
         pinMode(pin_positionAccuracyLED_1cm, OUTPUT);
+
+        DMW_if
+            systemPrintf("pin_positionAccuracyLED_10cm: %d\r\n", pin_positionAccuracyLED_10cm);
         pinMode(pin_positionAccuracyLED_10cm, OUTPUT);
+
+        DMW_if
+            systemPrintf("pin_positionAccuracyLED_100cm: %d\r\n", pin_positionAccuracyLED_100cm);
         pinMode(pin_positionAccuracyLED_100cm, OUTPUT);
+
+        DMW_if
+            systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
+
+        DMW_if
+            systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+        DMW_if
+            systemPrintf("pin_setupButton: %d\r\n", pin_setupButton);
         pinMode(pin_setupButton, INPUT_PULLUP); // HIGH = rover, LOW = base
 
         digitalWrite(pin_positionAccuracyLED_1cm, LOW);
@@ -991,17 +1062,25 @@ void beginLEDs()
     }
     else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
     {
+        DMW_if
+            systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
         digitalWrite(pin_baseStatusLED, LOW);
     }
     else if (productVariant == RTK_TORCH)
     {
+        DMW_if
+            systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
         digitalWrite(pin_bluetoothStatusLED, HIGH);
 
+        DMW_if
+            systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
         pinMode(pin_gnssStatusLED, OUTPUT);
         digitalWrite(pin_gnssStatusLED, HIGH);
 
+        DMW_if
+            systemPrintf("pin_batteryLevelLED_Red: %d\r\n", pin_batteryLevelLED_Red);
         pinMode(pin_batteryLevelLED_Red, OUTPUT);
         digitalWrite(pin_batteryLevelLED_Red, LOW);
 
