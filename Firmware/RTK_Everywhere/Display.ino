@@ -2542,7 +2542,8 @@ void getAngles()
                 accelZ *= -1.0;
                 accelX *= -1.0;
             }
-            else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+            else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
+                     productVariant == RTK_FACET_LBAND_DIRECT)
             {
                 accelZ = accel.getX();
                 accelX = accel.getY();
@@ -2614,10 +2615,10 @@ void paintDisplaySetupProfile(const char *firstState)
         // Lookup next available profile, limit to 8 characters
         getProfileNameFromUnit(index, profileName, sizeof(profileName));
 
-        profileName[6]= 0; //Shorten profileName to 6 characters
+        profileName[6] = 0; // Shorten profileName to 6 characters
 
         char miniProfileName[16] = {0};
-        snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", index, profileName); //Prefix with index #
+        snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", index, profileName); // Prefix with index #
 
         printTextCenter(miniProfileName, 12 * itemsDisplayed, QW_FONT_8X16, 1, itemsDisplayed == 3);
         index++;
@@ -2761,6 +2762,26 @@ void paintDisplaySetup()
                 printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
             }
         }
+
+        // If we are on an L-Band unit, display GetKeys option
+        else if (setupState == STATE_KEYS_NEEDED)
+        {
+            if (online.accelerometer)
+            {
+                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
+                printTextCenter("Bubble", 12 * 1, QW_FONT_8X16, 1, false);
+                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+                printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
+            }
+            else
+            {
+                printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
+                printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
+                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+                printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
+            }
+        }
+
         else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
         {
             if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
@@ -2769,6 +2790,24 @@ void paintDisplaySetup()
                 printTextCenter("Cfg Eth", 12 * 1, QW_FONT_8X16, 1, false);
                 printTextCenter("CfgWiFi", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
+            }
+            else if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+            {
+                // If we are on an L-Band unit, scroll GetKeys option
+                if (online.accelerometer)
+                {
+                    printTextCenter("Bubble", 12 * 1, QW_FONT_8X16, 1, false);
+                    printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+                    printTextCenter("GetKeys", 12 * 0, QW_FONT_8X16, 1, false);
+                    printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
+                }
+                else
+                {
+                    printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
+                    printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+                    printTextCenter("GetKeys", 12 * 0, QW_FONT_8X16, 1, false);
+                    printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
+                }
             }
             else if (online.accelerometer)
             {
@@ -2785,6 +2824,7 @@ void paintDisplaySetup()
                 printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
             }
         }
+
         else if (setupState == STATE_PROFILE)
             paintDisplaySetupProfile("Base");
     } // end type F9P
