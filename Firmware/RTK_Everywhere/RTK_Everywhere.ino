@@ -381,8 +381,8 @@ uint16_t ARPECEFH = 0;
 
 const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
 bool lBandCommunicationEnabled = false;
-unsigned long rtcmLastPacketReceived =
-    0; // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+bool lBandForceGetKeys = false; //Used to allow key update from display
+unsigned long rtcmLastPacketReceived = 0; //Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GPS parse table

@@ -1485,8 +1485,20 @@ void ButtonCheckTask(void *e)
                             setupState = STATE_WIFI_CONFIG_NOT_STARTED;
                             break;
                         case STATE_WIFI_CONFIG_NOT_STARTED:
+                            if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+                            {
+                                lBandForceGetKeys = true;
+                                setupState = STATE_KEYS_NEEDED;
+                            }
+                            else
+                                setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
+                            break;
+
+                        case STATE_KEYS_NEEDED:
+                            lBandForceGetKeys = false; // User has scrolled past the GetKeys option
                             setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
                             break;
+
                         case STATE_ESPNOW_PAIRING_NOT_STARTED:
                             // If only one active profile do not show any profiles
                             index = getProfileNumberFromUnit(0);

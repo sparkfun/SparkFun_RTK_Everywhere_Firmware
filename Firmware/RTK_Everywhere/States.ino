@@ -154,7 +154,8 @@ void stateUpdate()
 
             if (gnssIsRTKFloat())
             {
-                lbandTimeFloatStarted = millis(); //Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+                //Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+                lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
             }
             else if (gnssIsRTKFix())
@@ -179,7 +180,8 @@ void stateUpdate()
                 changeState(STATE_ROVER_FIX);
             if (gnssIsRTKFloat())
             {
-                lbandTimeFloatStarted = millis(); //Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+                //Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+                lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
             }
         }
@@ -635,8 +637,8 @@ void stateUpdate()
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 1500)
             {
-                forceSystemStateUpdate = true; //immediately go to this new state
-                changeState(setupState);       // Change to last set up state
+                forceSystemStateUpdate = true; // Immediately go to this new state
+                changeState(setupState);       // Change to last setup state
                 if (setupState == STATE_BUBBLE_LEVEL)
                     RTK_MODE(RTK_MODE_BUBBLE_LEVEL);
             }
@@ -753,7 +755,7 @@ void stateUpdate()
                 rtcWaitTime = millis();
 
             // We want an immediate change from this state
-            forceSystemStateUpdate = true; // Imediately go to this new state
+            forceSystemStateUpdate = true; // Immediately go to this new state
 
             // If user has turned off PointPerfect, skip everything
             if (settings.enablePointPerfectCorrections == false)
@@ -764,6 +766,7 @@ void stateUpdate()
             // If there is no WiFi setup, and no keys, skip everything
             else if (wifiNetworkCount() == 0 && strlen(settings.pointPerfectCurrentKey) == 0)
             {
+                displayNoWiFi(2000);
                 changeState(settings.lastState); // Go to either rover or base
             }
 
@@ -806,11 +809,11 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_NEEDED): {
-            forceSystemStateUpdate = true; //immediately go to this new state
+            forceSystemStateUpdate = true; // Immediately go to this new state
 
             if (online.rtc == false)
             {
-                log_d("Keys Needed RTC off starting WiFi");
+                log_d("Keys Needed. RTC offline. Starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -835,6 +838,33 @@ void stateUpdate()
                 wifiStart(); // Starts WiFi state machine
                 changeState(STATE_KEYS_WIFI_STARTED);
             }
+
+            // Added to display WiFi error if user selects GetKeys from the display
+            // Normally, this would be caught during STATE_KEYS_STARTED
+            else if (wifiNetworkCount() == 0)
+            {
+                displayNoWiFi(1000);
+                changeState(
+                    STATE_KEYS_DAYS_REMAINING); // We have valid keys, we've already tried today. No need to try again.
+            }
+
+            // Added to allow user to select GetKeys from the display
+            // This forces a key update
+            else if (lBandForceGetKeys == true)
+            {
+                lBandForceGetKeys = false;
+
+                log_d("Force key update. Starting WiFi");
+
+                // Temporarily limit WiFi connection attempts
+                wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
+                wifiMaxConnectionAttempts = 0; // Override setting during key retrieval. Give up after single failure.
+
+                wifiStart(); // Starts WiFi state machine
+
+                changeState(STATE_KEYS_WIFI_STARTED);
+            }
+
             else
             {
                 log_d("Already tried to obtain keys for today");
@@ -877,7 +907,7 @@ void stateUpdate()
                     displayKeysUpdated();
             }
 
-            wifiShutdown(); // Turn off WiFi
+            wifiShutdown();                // Turn off WiFi
             forceSystemStateUpdate = true; // Imediately go to this new state
             changeState(STATE_KEYS_DAYS_REMAINING);
         }
@@ -1204,7 +1234,7 @@ void requestChangeState(SystemState requestedState)
 }
 
 // Print the current state
-const char * getState(SystemState state, char * buffer)
+const char *getState(SystemState state, char *buffer)
 {
     switch (state)
     {
@@ -1308,10 +1338,10 @@ void changeState(SystemState newState)
 {
     char string1[30];
     char string2[30];
-    const char * arrow;
-    const char * asterisk;
-    const char * initialState;
-    const char * endingState;
+    const char *arrow;
+    const char *asterisk;
+    const char *initialState;
+    const char *endingState;
 
     // Log the heap size at the state change
     reportHeapNow(false);
