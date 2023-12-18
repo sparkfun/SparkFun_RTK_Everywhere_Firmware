@@ -71,6 +71,9 @@ void menuFirmware()
             systemPrintf("i) Automatic firmware check minutes: %d\r\n",
                          settings.autoFirmwareCheckMinutes);
 
+        systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
+        systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
+
         if (newOTAFirmwareAvailable)
             systemPrintf("u) Update to new firmware: v%s\r\n", reportedVersion);
 
@@ -200,6 +203,19 @@ void menuFirmware()
                 else
                     settings.autoFirmwareCheckMinutes = minutes;
             }
+        }
+
+        else if (incoming == 'r')
+        {
+            systemPrint("Enter RC Firmware JSON URL (empty to use default): ");
+            memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
+            getString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
+        }
+        else if (incoming == 's')
+        {
+            systemPrint("Enter Firmware JSON URL (empty to use default): ");
+            memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
+            getString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
         }
 
         else if ((incoming == 'u') && newOTAFirmwareAvailable)
@@ -567,6 +583,13 @@ void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
 
 const char *otaGetUrl()
 {
+    const char * url;
+
+    // Return the user specified URL if it was specified
+    url = enableRCFirmware ? otaRcFirmwareJsonUrl : otaFirmwareJsonUrl;
+    if (strlen(url))
+        return url;
+
     // Select the URL for the over-the-air (OTA) updates
     return enableRCFirmware ? OTA_RC_FIRMWARE_JSON_URL : OTA_FIRMWARE_JSON_URL;
 }
