@@ -477,11 +477,10 @@ void beginBoard()
         // During identifyBoard(), the Bluetooth and GNSS LEDs are assigned and turned on
 
         pin_powerSenseAndControl = 34;
-        pin_powerFastOff = 14;
 
         pin_batteryLevelLED_Red = 0;
 
-        pin_IMU_RX = 16;
+        pin_IMU_RX = 14; //Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
@@ -491,9 +490,6 @@ void beginBoard()
 
         DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT);
-
-        DMW_if systemPrintf("pin_powerFastOff: %d\r\n", pin_powerFastOff);
-        pinMode(pin_powerFastOff, INPUT);
 
         DMW_if systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
