@@ -203,7 +203,6 @@ void gnssEnableRtcmOnGnss()
 }
 
 // Return the number of seconds the survey-in process has been running
-//  TODO make sure we're not slowing down a ZED base
 int gnssGetSurveyInObservationTime()
 {
     static uint16_t svinObservationTime = 0;

@@ -15,10 +15,6 @@ HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what g
 
 UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
-/*
-    TODO:
-        Get module version info um980PrintInfo()
-*/
 void um980Begin()
 {
     // During identifyBoard(), the GNSS UART and DR pins are set
@@ -52,7 +48,8 @@ void um980Begin()
     }
     systemPrintln("GNSS UM980 online");
 
-    // TODO check firmware version and print info
+    // Check firmware version and print info
+    um980PrintInfo();
 
     online.gnss = true;
 }
