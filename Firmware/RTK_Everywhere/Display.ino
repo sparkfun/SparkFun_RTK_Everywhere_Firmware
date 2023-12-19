@@ -1949,6 +1949,11 @@ void displayNoSSIDs(uint16_t displayTime)
   displayMessage("No SSIDs", displayTime);
 }
 
+void displayAccountExpired(uint16_t displayTime)
+{
+  displayMessage("Account Expired", displayTime);
+}
+
 void displayRoverStart(uint16_t displayTime)
 {
     if (online.display == true)
