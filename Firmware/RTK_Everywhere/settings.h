@@ -1044,7 +1044,6 @@ typedef struct
     // Debug settings
     bool enablePrintState = false;
     bool enablePrintPosition = false;
-    bool enablePrintIdleTime = false;
     bool enablePrintBatteryMessages = true;
     bool enablePrintRoverAccuracy = true;
     bool enablePrintBadMessages = false;

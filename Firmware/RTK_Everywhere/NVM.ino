@@ -289,7 +289,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "debugNtripClientState", settings.debugNtripClientState);
     settingsFile->printf("%s=%d\r\n", "debugNtripServerState", settings.debugNtripServerState);
     settingsFile->printf("%s=%d\r\n", "enablePrintPosition", settings.enablePrintPosition);
-    settingsFile->printf("%s=%d\r\n", "enablePrintIdleTime", settings.enablePrintIdleTime);
     settingsFile->printf("%s=%d\r\n", "enableMarksFile", settings.enableMarksFile);
     settingsFile->printf("%s=%d\r\n", "enableUART2UBXIn", settings.enableUART2UBXIn);
     settingsFile->printf("%s=%d\r\n", "enablePrintBatteryMessages", settings.enablePrintBatteryMessages);
@@ -1121,8 +1120,6 @@ bool parseLine(char *str, Settings *settings)
         settings->debugNtripServerState = d;
     else if (strcmp(settingName, "enablePrintPosition") == 0)
         settings->enablePrintPosition = d;
-    else if (strcmp(settingName, "enablePrintIdleTime") == 0)
-        settings->enablePrintIdleTime = d;
     else if (strcmp(settingName, "enablePrintBatteryMessages") == 0)
         settings->enablePrintBatteryMessages = d;
     else if (strcmp(settingName, "enablePrintRoverAccuracy") == 0)

@@ -1217,9 +1217,6 @@ void menuPeriodicPrint()
 
         systemPrintf("21) Interval (seconds): %d\r\n", settings.periodicDisplayInterval / 1000);
 
-        systemPrint("22) CPU idle time: ");
-        systemPrintf("%s\r\n", settings.enablePrintIdleTime ? "Enabled" : "Disabled");
-
         systemPrint("23) Network state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NETWORK_STATE) ? "Enabled" : "Disabled");
 
@@ -1320,8 +1317,6 @@ void menuPeriodicPrint()
             if ((seconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (seconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplayInterval = seconds * 1000;
         }
-        else if (incoming == 22)
-            settings.enablePrintIdleTime ^= 1;
         else if (incoming == 23)
             PERIODIC_TOGGLE(PD_NETWORK_STATE);
         else if (incoming == 24)

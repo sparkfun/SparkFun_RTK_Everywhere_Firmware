@@ -1260,28 +1260,6 @@ void beginSystemState()
                     &ButtonCheckTaskHandle); // Task handle
 }
 
-void beginIdleTasks()
-{
-    if (settings.enablePrintIdleTime == true)
-    {
-        char taskName[32];
-
-        for (int index = 0; index < MAX_CPU_CORES; index++)
-        {
-            snprintf(taskName, sizeof(taskName), "IdleTask%d", index);
-            if (idleTaskHandle[index] == nullptr)
-                xTaskCreatePinnedToCore(
-                    idleTask,
-                    taskName, // Just for humans
-                    2000,     // Stack Size
-                    nullptr,  // Task input parameter
-                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                    &idleTaskHandle[index], // Task handle
-                    index);                 // Core where task should run, 0=core, 1=Arduino
-        }
-    }
-}
-
 void beginI2C()
 {
     // Complete the power up delay
