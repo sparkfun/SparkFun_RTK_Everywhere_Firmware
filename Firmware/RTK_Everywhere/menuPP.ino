@@ -244,22 +244,23 @@ bool pointperfectProvisionDevice()
         char versionString[9];
         getFirmwareVersion(versionString, sizeof(versionString), false);
 
-        if (productVariant == RTK_FACET_LBAND)
-        {
-            // Facet L-Band v3.12 AABBCCDD1122
-            snprintf(givenName, sizeof(givenName), "Facet LBand %s - %s", versionString,
-                     hardwareID); // Get ready for JSON
-        }
-        else if (productVariant == RTK_FACET_LBAND_DIRECT)
-        {
-            // Facet L-Band Direct v3.12 AABBCCDD1122
-            snprintf(givenName, sizeof(givenName), "Facet LBand Direct %s - %s", versionString,
-                     hardwareID); // Get ready for JSON
-        }
+        // Build the givenName:   Name vxx.yy AABBCCDD1122
+        // Get ready for JSON
+        memset(givenName, 0, sizeof(givenName));
+        snprintf(givenName, sizeof(givenName), "%s %s - %s",
+                 platformProvisionTable[productVariant], versionString,
+                 hardwareID);
 
+        // Verify the givenName
+        if (strlen(givenName) == 0)
+        {
+            systemPrint("Error: Unable to build the given name!");
+            break;
+        }
         if (strlen(givenName) >= 50)
         {
             systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
+            break;
         }
 
         StaticJsonDocument<256> pointPerfectAPIPost;
@@ -310,6 +311,7 @@ bool pointperfectProvisionDevice()
 
         if (httpResponseCode != 200)
         {
+            systemPrintf("givenName: %s\r\n", givenName);
             systemPrintf("HTTP response error %d: ", httpResponseCode);
             systemPrintln(response);
             break;
@@ -370,14 +372,14 @@ bool pointperfectProvisionDevice()
                     strcpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]));
                     settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
                     settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
-                
+
                     if (settings.debugLBand == true)
                     {
                         systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
                         systemPrintf("  pointPerfectCurrentKeyStart: %lld - %s\r\n", settings.pointPerfectCurrentKeyStart, printDateFromUnixEpoch(settings.pointPerfectCurrentKeyStart / 1000)); //printDateFromUnixEpoch expects seconds
                         systemPrintf("  pointPerfectCurrentKeyDuration: %lld - %s\r\n", settings.pointPerfectCurrentKeyDuration, printDaysFromDuration(settings.pointPerfectCurrentKeyDuration));
                         systemPrintf("  pointPerfectNextKey: %s\r\n", settings.pointPerfectNextKey);
-                        systemPrintf("  pointPerfectNextKeyStart: %lld - %s\r\n", settings.pointPerfectNextKeyStart, printDateFromUnixEpoch(settings.pointPerfectNextKeyStart / 1000)); 
+                        systemPrintf("  pointPerfectNextKeyStart: %lld - %s\r\n", settings.pointPerfectNextKeyStart, printDateFromUnixEpoch(settings.pointPerfectNextKeyStart / 1000));
                         systemPrintf("  pointPerfectNextKeyDuration: %lld - %s\r\n", settings.pointPerfectNextKeyDuration, printDaysFromDuration(settings.pointPerfectNextKeyDuration));
                     }
                 }

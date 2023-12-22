@@ -142,6 +142,23 @@ const char * const platformPrefixTable[] =
 };
 const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(platformPrefixTable[0]);
 
+const char * const platformProvisionTable[] =
+{
+    "Surveyor",
+    "Express",
+    "Facet",
+    "Express Plus",
+    "Facet LBand",
+    "Reference Station",
+    "Facet LBand Direct",
+    "Torch",
+    "Unknown ZED",
+    "Everywhere",
+    // Add new values just above this line
+    "Unknown"
+};
+const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
+
 const SystemState platformPreviousStateTable[] =
 {
     STATE_ROVER_NOT_STARTED,    // Surveyor
