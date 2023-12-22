@@ -457,6 +457,10 @@ void recordSystemSettingsToFile(File *settingsFile)
     // Partition table
     settingsFile->printf("%s=%d\r\n", "printPartitionTable", settings.printPartitionTable);
 
+    // Firmware URLs
+    settingsFile->printf("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
+    settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
+
     // Add new settings above <------------------------------------------------------------>
 }
 
@@ -1399,6 +1403,20 @@ bool parseLine(char *str, Settings *settings)
     // Partition table
     else if (strcmp(settingName, "printPartitionTable") == 0)
         settings->printPartitionTable = d;
+
+    // Firmware URLs
+    else if (strcmp(settingName, "otaRcFirmwareJsonUrl") == 0)
+    {
+        String url = String(settingValue);
+        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
+        strcpy(otaRcFirmwareJsonUrl, url.c_str());
+    }
+    else if (strcmp(settingName, "otaFirmwareJsonUrl") == 0)
+    {
+        String url = String(settingValue);
+        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
+        strcpy(otaFirmwareJsonUrl, url.c_str());
+    }
 
     // Add new settings above
     //<------------------------------------------------------------>
