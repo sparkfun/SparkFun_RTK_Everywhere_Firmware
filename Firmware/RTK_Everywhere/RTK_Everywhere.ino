@@ -819,6 +819,7 @@ volatile bool deadManWalking;
         settings.debugPvtClient = true;                                                                                \
         settings.debugPvtServer = true;                                                                                \
         settings.debugPvtUdpServer = true;                                                                             \
+        settings.printBootTimes = true;                                                                                \
     }
 
 #else // 0
