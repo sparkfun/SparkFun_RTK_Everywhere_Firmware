@@ -530,6 +530,10 @@ void menuDebugNetwork()
         systemPrint("3) Debug WiFi state: ");
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
 
+        // WiFi Config
+        systemPrint("4) Debug WiFi Config: ");
+        systemPrintf("%s\r\n", settings.debugWiFiConfig ? "Enabled" : "Disabled");
+
         // Network
         systemPrint("10) Debug network layer: ");
         systemPrintf("%s\r\n", settings.debugNetworkLayer ? "Enabled" : "Disabled");
@@ -585,6 +589,8 @@ void menuDebugNetwork()
             settings.espnowBroadcast ^= 1;
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
+        else if (incoming == 4)
+            settings.debugWiFiConfig ^= 1;
         else if (incoming == 10)
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
