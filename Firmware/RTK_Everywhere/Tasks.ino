@@ -1671,7 +1671,7 @@ void idleTask(void *e)
         idleCount++;
 
         // Determine if it is time to print the CPU idle times
-        if ((millis() - lastDisplayIdleTime) >= (IDLE_TIME_DISPLAY_SECONDS * 1000))
+        if ((millis() - lastDisplayIdleTime) >= (IDLE_TIME_DISPLAY_SECONDS * 1000) && !inMainMenu)
         {
             lastDisplayIdleTime = millis();
 
@@ -1702,8 +1702,7 @@ void idleTask(void *e)
             systemPrintf("idleTask %d High watermark: %d\r\n", xPortGetCoreID(), uxTaskGetStackHighWaterMark(nullptr));
         }
 
-        // Let other same priority tasks run
-        taskYIELD();
+        // The idle task should NOT delay or yield
     }
 }
 
