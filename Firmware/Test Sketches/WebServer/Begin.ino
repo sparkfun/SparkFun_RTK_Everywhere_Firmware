@@ -1,5 +1,3 @@
-const int pin_microSD_CS = 25;
-
 typedef struct struct_settings {
   bool enableSD = true;
   uint16_t spiFrequency = 16; //By default, use 16MHz SPI
