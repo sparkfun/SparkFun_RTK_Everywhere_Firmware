@@ -31,7 +31,7 @@ typedef enum
   STATE_PROFILE_2,
   STATE_PROFILE_3,
   STATE_PROFILE_4,
-  STATE_SHUTDOWN, 
+  STATE_SHUTDOWN,
 } SystemState;
 volatile SystemState systemState = STATE_ROVER_NOT_STARTED;
 SystemState lastSystemState = STATE_ROVER_NOT_STARTED;
@@ -313,7 +313,7 @@ typedef struct struct_settings {
   };
 
   //Constellations monitored/used for fix
-  ubxConstellation ubxConstellations[MAX_CONSTELLATIONS] = 
+  ubxConstellation ubxConstellations[MAX_CONSTELLATIONS] =
   {
     {UBLOX_CFG_SIGNAL_GPS_ENA, SFE_UBLOX_GNSS_ID_GPS, true, "GPS"},
     {UBLOX_CFG_SIGNAL_SBAS_ENA, SFE_UBLOX_GNSS_ID_SBAS, true, "SBAS"},
@@ -341,4 +341,5 @@ struct struct_online {
   bool rtc = false;
   bool battery = false;
   bool accelerometer = false;
+  bool psram = false;
 } online;
