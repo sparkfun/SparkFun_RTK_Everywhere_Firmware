@@ -1,5 +1,5 @@
 //Monitor which devices on the device are on or offline.
-struct struct_online {
+volatile struct struct_online {
   bool microSD = false;
   bool display = false;
   bool gnss = false;
@@ -16,4 +16,5 @@ struct struct_online {
   bool i2c = false;
   bool nmeaClient = false;
   bool nmeaServer = false;
+  bool psram = false;
 } online;
