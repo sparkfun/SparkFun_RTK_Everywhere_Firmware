@@ -181,6 +181,7 @@ const int networkStateEntries = sizeof(networkState) / sizeof(networkState[0]);
 // List of network users
 const char * const networkUser[] =
 {
+    "MQTT Server",
     "NTP Server",
     "NTRIP Client",
     "NTRIP Server",

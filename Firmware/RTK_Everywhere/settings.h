@@ -313,7 +313,8 @@ enum NetworkStates
 // Define the network users
 enum NetworkUsers
 {
-    NETWORK_USER_NTP_SERVER = 0,        // NTP server
+    NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
+    NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
     NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
@@ -546,7 +547,7 @@ typedef enum
 #define UBX_ID_NOT_AVAILABLE 0xFF
 
 // Define the periodic display values
-typedef uint32_t PeriodicDisplay_t;
+typedef uint64_t PeriodicDisplay_t;
 
 enum PeriodDisplayValues
 {
@@ -594,10 +595,13 @@ enum PeriodDisplayValues
 
     PD_ZED_DATA_RX,             // 29
     PD_ZED_DATA_TX,             // 30
+
+    PD_MQTT_CLIENT_DATA,        // 31
+    PD_MQTT_CLIENT_STATE,       // 32
     // Add new values before this line
 };
 
-#define PERIODIC_MASK(x) (1 << x)
+#define PERIODIC_MASK(x) (1ull << x)
 #define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_CLEAR(x) periodicDisplay &= ~PERIODIC_MASK(x)
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
@@ -1164,6 +1168,12 @@ typedef struct
     // Multicast DNS Server
     bool mdnsEnable = true; // Allows locating of device from browser address 'rtk.local'
 
+    // MQTT Client (Point Perfect)
+    bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
+    bool debugMqttClientState = false; // Debug the MQTT state machine
+    bool enableMqttClient = false;     // Enable the MQTT client
+    bool useEuropeCorrections = false; // Use US corrections by default
+
     // NTP
     bool debugNtp = false;
     uint16_t ethernetNtpPort = 123;
@@ -1284,6 +1294,7 @@ struct struct_online
     bool tilt = false;
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
+    bool mqttClient = false;
 } online;
 
 #ifdef COMPILE_WIFI

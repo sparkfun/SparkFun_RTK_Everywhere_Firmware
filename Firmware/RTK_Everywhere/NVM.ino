@@ -338,7 +338,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "gnssHandlerBufferSize", settings.gnssHandlerBufferSize);
     settingsFile->printf("%s=%d\r\n", "enablePrintBufferOverrun", settings.enablePrintBufferOverrun);
     settingsFile->printf("%s=%d\r\n", "enablePrintSDBuffers", settings.enablePrintSDBuffers);
-    settingsFile->printf("%s=%d\r\n", "periodicDisplay", settings.periodicDisplay);
+    settingsFile->printf("%s=%llu\r\n", "periodicDisplay", settings.periodicDisplay);
     settingsFile->printf("%s=%d\r\n", "periodicDisplayInterval", settings.periodicDisplayInterval);
     settingsFile->printf("%s=%d\r\n", "rebootSeconds", settings.rebootSeconds);
     settingsFile->printf("%s=%d\r\n", "forceResetOnSDFail", settings.forceResetOnSDFail);
@@ -462,6 +462,12 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     // Measurement scale
     settingsFile->printf("%s=%d\r\n", "measurementScale", settings.measurementScale);
+
+    // MQTT Client (Point Perfect)
+    settingsFile->printf("%s=%d\r\n", "debugMqttClientData", settings.debugMqttClientData);
+    settingsFile->printf("%s=%d\r\n", "debugMqttClientState", settings.debugMqttClientState);
+    settingsFile->printf("%s=%d\r\n", "enableMqttClient", settings.enableMqttClient);
+    settingsFile->printf("%s=%d\r\n", "useEuropeCorrections", settings.useEuropeCorrections);
 
     // Add new settings above <------------------------------------------------------------>
 }
@@ -1421,6 +1427,16 @@ bool parseLine(char *str, Settings *settings)
     // Measurement scale
     else if (strcmp(settingName, "measurementScale") == 0)
         settings->measurementScale = d;
+
+    // MQTT Client (Point Perfect)
+    else if (strcmp(settingName, "debugMqttClientData") == 0)
+        settings->debugMqttClientData = d;
+    else if (strcmp(settingName, "debugMqttClientState") == 0)
+        settings->debugMqttClientState = d;
+    else if (strcmp(settingName, "enableMqttClient") == 0)
+        settings->enableMqttClient = d;
+    else if (strcmp(settingName, "useEuropeCorrections") == 0)
+        settings->useEuropeCorrections = d;
 
     // Add new settings above
     //<------------------------------------------------------------>
