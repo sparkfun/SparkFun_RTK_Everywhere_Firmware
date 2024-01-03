@@ -823,6 +823,7 @@ void verifyTables()
 
     // Verify the consistency of the internal tables
     ethernetVerifyTables();
+    mqttClientValidateTables();
     networkVerifyTables();
     ntpValidateTables();
     ntripClientValidateTables();
