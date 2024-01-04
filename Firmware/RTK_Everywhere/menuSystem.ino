@@ -135,6 +135,9 @@ void menuSystem()
         systemPrintf("%d %02d:%02d:%02d.%03lld (Resets: %d)\r\n", uptimeDays, uptimeHours, uptimeMinutes, uptimeSeconds,
                      uptimeMilliseconds, settings.resetCount);
 
+        // Display MQTT Client status and uptime
+        mqttClientPrintStatus();
+
         // Display NTRIP Client status and uptime
         ntripClientPrintStatus();
 

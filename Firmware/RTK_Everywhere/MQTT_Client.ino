@@ -81,6 +81,9 @@ const char * const mqttClientStateName[] =
 
 const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqttClientStateName[0]);
 
+const RtkMode_t mqttClientMode = RTK_MODE_ROVER
+                               | RTK_MODE_BASE_SURVEY_IN;
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -90,6 +93,38 @@ static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 //----------------------------------------
 // MQTT Client Routines
 //----------------------------------------
+
+// Print the MQTT client state summary
+void mqttClientPrintStateSummary()
+{
+    switch (mqttClientState)
+    {
+    default:
+        systemPrintf("Unknown: %d", mqttClientState);
+        break;
+    case MQTT_CLIENT_OFF:
+        systemPrint("Off");
+        break;
+    }
+}
+
+// Print the MQTT Client status
+void mqttClientPrintStatus()
+{
+    uint32_t days;
+    byte hours;
+    uint64_t milliseconds;
+    byte minutes;
+    byte seconds;
+
+    // Display MQTT Client status and uptime
+    if (settings.enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
+    {
+        systemPrint("MQTT Client ");
+        mqttClientPrintStateSummary();
+        systemPrintln();
+    }
+}
 
 // Verify the MQTT client tables
 void mqttClientValidateTables()
