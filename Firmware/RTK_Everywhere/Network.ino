@@ -1160,6 +1160,7 @@ void networkUpdate()
         PERIODIC_CLEAR(PD_NETWORK_STATE);
 
     // Update the network services
+    mqttClientUpdate();  // Process any Point Perfect MQTT messages
     ntpServerUpdate();   // Process any received NTP requests
     ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
     ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP

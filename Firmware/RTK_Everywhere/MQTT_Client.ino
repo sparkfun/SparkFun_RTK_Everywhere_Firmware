@@ -126,6 +126,51 @@ void mqttClientPrintStatus()
     }
 }
 
+// Update the state of the MQTT client state machine
+void mqttClientSetState(uint8_t newState)
+{
+    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    {
+        if (mqttClientState == newState)
+            systemPrint("*");
+        else
+            systemPrintf("%s --> ", mqttClientStateName[mqttClientState]);
+    }
+    mqttClientState = newState;
+    if (settings.debugMqttClientState || PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+    {
+        PERIODIC_CLEAR(PD_MQTT_CLIENT_STATE);
+        if (newState >= MQTT_CLIENT_STATE_MAX)
+        {
+            systemPrintf("Unknown MQTT Client state: %d\r\n", newState);
+            reportFatalError("Unknown MQTT Client state");
+        }
+        else
+            systemPrintln(mqttClientStateName[mqttClientState]);
+    }
+}
+
+// Check for the arrival of any correction data. Push it to the GNSS.
+// Stop task if the connection has dropped or if we receive no data for
+// MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
+void mqttClientUpdate()
+{
+    DMW_st(mqttClientSetState, mqttClientState);
+
+    // Enable the network and the MQTT client if requested
+    switch (mqttClientState)
+    {
+        default:
+        case MQTT_CLIENT_OFF: {
+            break;
+        }
+    }
+
+    // Periodically display the MQTT client state
+    if (PERIODIC_DISPLAY(PD_MQTT_CLIENT_STATE))
+        mqttClientSetState(mqttClientState);
+}
+
 // Verify the MQTT client tables
 void mqttClientValidateTables()
 {
