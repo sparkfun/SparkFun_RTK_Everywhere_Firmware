@@ -1033,7 +1033,9 @@ void networkTypeUpdate(uint8_t networkType)
         case NETWORK_STATE_DELAY:
             // Determine if the network is shutting down
             if (network->shutdown)
-                networkStop(network->type);
+            {
+                NETWORK_STOP(network->type);
+            }
 
             // Delay before starting the network
             else if ((millis() - network->timerStart) >= network->timeout)
@@ -1062,7 +1064,9 @@ void networkTypeUpdate(uint8_t networkType)
         case NETWORK_STATE_CONNECTING:
             // Determine if the network is shutting down
             if (network->shutdown)
-                networkStop(network->type);
+            {
+                NETWORK_STOP(network->type);
+            }
 
             // Determine if the connection failed
             else if ((millis() - network->timerStart) >= network->timeout)
@@ -1071,7 +1075,7 @@ void networkTypeUpdate(uint8_t networkType)
                 if (settings.debugNetworkLayer)
                     systemPrintf("Network: %s connection timed out\r\n", networkName[network->type]);
                 networkRestartNetwork(network);
-                networkStop(network->type);
+                NETWORK_STOP(network->type);
             }
 
             // Determine if the RTK host is connected to the network
@@ -1091,7 +1095,9 @@ void networkTypeUpdate(uint8_t networkType)
         case NETWORK_STATE_IN_USE:
             // Determine if the network is shutting down
             if (network->shutdown)
-                networkStop(network->type);
+            {
+                NETWORK_STOP(network->type);
+            }
 
             // Verify that the RTK device is still connected to the network
             else if (!networkIsMediaConnected(network))
@@ -1100,7 +1106,7 @@ void networkTypeUpdate(uint8_t networkType)
                 if (settings.debugNetworkLayer)
                     systemPrintf("Network: %s connection failed!\r\n", networkName[network->type]);
                 networkRestartNetwork(network);
-                networkStop(network->type);
+                NETWORK_STOP(network->type);
             }
 
             // Check for the idle timeout
@@ -1122,7 +1128,7 @@ void networkTypeUpdate(uint8_t networkType)
                 {
                     if (settings.debugNetworkLayer)
                         systemPrintf("Network shutting down %s, no users\r\n", networkName[network->type]);
-                    networkStop(network->type);
+                    NETWORK_STOP(network->type);
                 }
             }
             break;
@@ -1130,7 +1136,7 @@ void networkTypeUpdate(uint8_t networkType)
         case NETWORK_STATE_WAIT_NO_USERS:
             // Stop the network when all the users are removed
             if (!network->activeUsers)
-                networkStop(network->type);
+                NETWORK_STOP(network->type);
             break;
     }
 
@@ -1199,7 +1205,7 @@ void networkUserClose(uint8_t user)
 
             // Shutdown the network if requested
             if (network->shutdown && (!network->activeUsers))
-                networkStop(network->type);
+                NETWORK_STOP(network->type);
         }
 
         // The network user is not running
