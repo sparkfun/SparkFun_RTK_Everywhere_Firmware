@@ -106,6 +106,13 @@ static int mqttClientConnectionAttemptsTotal; // Count the number of connection 
 
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
+// MQTT client timer usage:
+//  * Reconnection delay
+//  * Measure the connection response time
+//  * Receive MQTT data timeout
+static uint32_t mqttClientStartTime;          // For calculating uptime
+static uint32_t mqttClientTimer;
+
 //----------------------------------------
 // MQTT Client Routines
 //----------------------------------------
@@ -195,6 +202,33 @@ void mqttClientPrintStatus()
     {
         systemPrint("MQTT Client ");
         mqttClientPrintStateSummary();
+
+        if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+            // Use mqttClientTimer since it gets reset after each successful data
+            // receiption from the MQTT caster
+            milliseconds = mqttClientTimer - mqttClientStartTime;
+        else
+        {
+            milliseconds = mqttClientStartTime;
+            systemPrint(" Last");
+        }
+
+        // Display the uptime
+        days = milliseconds / MILLISECONDS_IN_A_DAY;
+        milliseconds %= MILLISECONDS_IN_A_DAY;
+
+        hours = milliseconds / MILLISECONDS_IN_AN_HOUR;
+        milliseconds %= MILLISECONDS_IN_AN_HOUR;
+
+        minutes = milliseconds / MILLISECONDS_IN_A_MINUTE;
+        milliseconds %= MILLISECONDS_IN_A_MINUTE;
+
+        seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
+        milliseconds %= MILLISECONDS_IN_A_SECOND;
+
+        systemPrint(" Uptime: ");
+        systemPrintf("%d %02d:%02d:%02d.%03lld (Reconnects: %d)",
+                     days, hours, minutes, seconds, milliseconds, mqttClientConnectionAttemptsTotal);
         systemPrintln();
     }
 }
@@ -202,6 +236,9 @@ void mqttClientPrintStatus()
 // Restart the MQTT client
 void mqttClientRestart()
 {
+    // Save the previous uptime value
+    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        mqttClientStartTime = mqttClientTimer - mqttClientStartTime;
     mqttClientConnectLimitReached();
 }
 
@@ -246,6 +283,9 @@ void mqttClientStop(bool shutdown)
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_ON)
     {
+        // Mark the Client stop so that we don't immediately attempt re-connect to Caster
+        mqttClientTimer = millis();
+
         // Done with the network
         if (networkGetUserNetwork(NETWORK_USER_MQTT_CLIENT))
             networkUserClose(NETWORK_USER_MQTT_CLIENT);
