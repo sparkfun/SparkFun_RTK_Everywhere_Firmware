@@ -77,6 +77,7 @@ enum MQTTClientState
     MQTT_CLIENT_OFF = 0,            // Using Bluetooth or NTRIP server
     MQTT_CLIENT_ON,                 // WIFI_START state
     MQTT_CLIENT_NETWORK_STARTED,    // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_CONNECTING_2_SERVER,// Connecting to the MQTT server
     MQTT_CLIENT_SERVICES_CONNECTED, // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX           // Last entry in the state list
@@ -87,6 +88,7 @@ const char * const mqttClientStateName[] =
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
     "MQTT_CLIENT_NETWORK_STARTED",
+    "MQTT_CLIENT_CONNECTING_2_SERVER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
 
@@ -184,6 +186,10 @@ void mqttClientPrintStateSummary()
     case MQTT_CLIENT_ON:
     case MQTT_CLIENT_NETWORK_STARTED:
         systemPrint("Disconnected");
+        break;
+
+    case MQTT_CLIENT_CONNECTING_2_SERVER:
+        systemPrint("Connecting");
         break;
     }
 }
@@ -337,6 +343,20 @@ void mqttClientUpdate()
         case MQTT_CLIENT_ON: {
             if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_WIFI))
                 mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+            break;
+        }
+
+        // Wait for a network media connection
+        case MQTT_CLIENT_NETWORK_STARTED: {
+            // Determine if the network has failed
+            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+                // Failed to connect to to the network, attempt to restart the network
+                mqttClientRestart();
+
+            // Determine if the network is connected to the media
+            else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
+                // The network is available for the MQTT client
+                mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
             break;
         }
     }
