@@ -214,11 +214,10 @@ char *printDaysFromDuration(long long duration)
 bool pointperfectProvisionDevice()
 {
 #ifdef COMPILE_WIFI
-    bool bluetoothOriginallyConnected = false;
-    if (bluetoothState == BT_CONNECTED)
-        bluetoothOriginallyConnected = true;
-
-    bluetoothStop(); // Free heap before starting secure client (requires ~70KB)
+    // Free heap before starting secure client (requires ~70KB)
+    bool bluetoothOriginallyConnected = online.bluetooth;
+    if (bluetoothOriginallyConnected)
+        bluetoothStop();
 
     DynamicJsonDocument *jsonZtp = nullptr;
     char *tempHolderPtr = nullptr;
@@ -529,11 +528,10 @@ void erasePointperfectCredentials()
 bool pointperfectUpdateKeys()
 {
 #ifdef COMPILE_WIFI
-    bool bluetoothOriginallyConnected = false;
-    if (bluetoothState == BT_CONNECTED)
-        bluetoothOriginallyConnected = true;
-
-    bluetoothStop(); // Release available heap to allow room for TLS
+    // Free heap before starting secure client (requires ~70KB)
+    bool bluetoothOriginallyConnected = online.bluetooth;
+    if (bluetoothOriginallyConnected)
+        bluetoothStop();
 
     char *certificateContents = nullptr; // Holds the contents of the keys prior to MQTT connection
     char *keyContents = nullptr;
