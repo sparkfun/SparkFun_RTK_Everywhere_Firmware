@@ -1046,7 +1046,7 @@ void networkTypeUpdate(uint8_t networkType)
                 if (settings.debugNetworkLayer)
                     systemPrintf("networkTypeUpdate, network->requestedNetwork: %s --> %s\r\n",
                                  networkName[network->requestedNetwork],
-                                 networkName[NETWORK_TYPE_ACTIVE]);
+                                 networkName[network->type]);
                 network->requestedNetwork = NETWORK_TYPE_ACTIVE;
                 if (settings.debugNetworkLayer)
                     systemPrintf("Network starting %s\r\n", networkName[network->type]);
