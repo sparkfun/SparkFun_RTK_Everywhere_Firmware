@@ -70,6 +70,8 @@ MQTT_Client.ino
 enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,            // Using Bluetooth or NTRIP server
+    MQTT_CLIENT_ON,                 // WIFI_START state
+    MQTT_CLIENT_NETWORK_STARTED,    // Connecting to WiFi access point or Ethernet
     // Insert new states here
     MQTT_CLIENT_STATE_MAX           // Last entry in the state list
 };
@@ -77,6 +79,8 @@ enum MQTTClientState
 const char * const mqttClientStateName[] =
 {
     "MQTT_CLIENT_OFF",
+    "MQTT_CLIENT_ON",
+    "MQTT_CLIENT_NETWORK_STARTED",
 };
 
 const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqttClientStateName[0]);
@@ -104,6 +108,11 @@ void mqttClientPrintStateSummary()
         break;
     case MQTT_CLIENT_OFF:
         systemPrint("Off");
+        break;
+
+    case MQTT_CLIENT_ON:
+    case MQTT_CLIENT_NETWORK_STARTED:
+        systemPrint("Disconnected");
         break;
     }
 }
@@ -150,6 +159,39 @@ void mqttClientSetState(uint8_t newState)
     }
 }
 
+// Start the MQTT client
+void mqttClientStart()
+{
+    // Display the heap state
+    reportHeapNow(settings.debugMqttClientState);
+
+    // Start the MQTT client
+    systemPrintln("MQTT Client start");
+    mqttClientStop(false);
+}
+
+// Shutdown or restart the MQTT client
+void mqttClientStop(bool shutdown)
+{
+    // Increase timeouts if we started the network
+    if (mqttClientState > MQTT_CLIENT_ON)
+    {
+        // Done with the network
+        if (networkGetUserNetwork(NETWORK_USER_MQTT_CLIENT))
+            networkUserClose(NETWORK_USER_MQTT_CLIENT);
+    }
+
+    // Determine the next MQTT client state
+    online.mqttClient = false;
+    if (shutdown)
+    {
+        mqttClientSetState(MQTT_CLIENT_OFF);
+        settings.enableMqttClient = false;
+    }
+    else
+        mqttClientSetState(MQTT_CLIENT_ON);
+}
+
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
@@ -162,6 +204,15 @@ void mqttClientUpdate()
     {
         default:
         case MQTT_CLIENT_OFF: {
+            if (EQ_RTK_MODE(mqttClientMode) && settings.enableMqttClient)
+                mqttClientStart();
+            break;
+        }
+
+        // Start the network
+        case MQTT_CLIENT_ON: {
+            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_WIFI))
+                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
             break;
         }
     }
