@@ -66,12 +66,18 @@ MQTT_Client.ino
 // Constants
 //----------------------------------------
 
+// Give up connecting after this number of attempts
+// Connection attempts are throttled to increase the time between attempts
+// 30 attempts with 15 second increases will take almost two hours
+static const int MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS = 30;
+
 // Define the MQTT client states
 enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,            // Using Bluetooth or NTRIP server
     MQTT_CLIENT_ON,                 // WIFI_START state
     MQTT_CLIENT_NETWORK_STARTED,    // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_SERVICES_CONNECTED, // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX           // Last entry in the state list
 };
@@ -81,6 +87,7 @@ const char * const mqttClientStateName[] =
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
     "MQTT_CLIENT_NETWORK_STARTED",
+    "MQTT_CLIENT_SERVICES_CONNECTED",
 };
 
 const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqttClientStateName[0]);
@@ -92,11 +99,68 @@ const RtkMode_t mqttClientMode = RTK_MODE_ROVER
 // Locals
 //----------------------------------------
 
+// Throttle the time between connection attempts
+static int mqttClientConnectionAttempts; // Count the number of connection attempts between restarts
+static uint32_t mqttClientConnectionAttemptTimeout;
+static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
+
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
 //----------------------------------------
 // MQTT Client Routines
 //----------------------------------------
+
+// Determine if another connection is possible or if the limit has been reached
+bool mqttClientConnectLimitReached()
+{
+    bool limitReached;
+    int seconds;
+
+    // Retry the connection a few times
+    limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
+
+    // Attempt to restart the network if possible
+    if (settings.enableMqttClient && (!limitReached))
+        networkRestart(NETWORK_USER_MQTT_CLIENT);
+
+    // Restart the MQTT client
+    mqttClientStop(limitReached || (!settings.enableMqttClient));
+
+    mqttClientConnectionAttempts++;
+    mqttClientConnectionAttemptsTotal++;
+    if (settings.debugMqttClientState)
+        mqttClientPrintStatus();
+
+    if (limitReached == false)
+    {
+        if (mqttClientConnectionAttempts == 1)
+            mqttClientConnectionAttemptTimeout = 15 * 1000L; // Wait 15s
+        else if (mqttClientConnectionAttempts == 2)
+            mqttClientConnectionAttemptTimeout = 30 * 1000L; // Wait 30s
+        else if (mqttClientConnectionAttempts == 3)
+            mqttClientConnectionAttemptTimeout = 1 * 60 * 1000L; // Wait 1 minute
+        else if (mqttClientConnectionAttempts == 4)
+            mqttClientConnectionAttemptTimeout = 2 * 60 * 1000L; // Wait 2 minutes
+        else
+            mqttClientConnectionAttemptTimeout =
+                (mqttClientConnectionAttempts - 4) * 5 * 60 * 1000L; // Wait 5, 10, 15, etc minutes between attempts
+
+        // Display the delay before starting the MQTT client
+        if (settings.debugMqttClientState && mqttClientConnectionAttemptTimeout)
+        {
+            seconds = mqttClientConnectionAttemptTimeout / 1000;
+            if (seconds < 120)
+                systemPrintf("MQTT Client trying again in %d seconds.\r\n", seconds);
+            else
+                systemPrintf("MQTT Client trying again in %d minutes.\r\n", seconds / 60);
+        }
+    }
+    else
+        // No more connection attempts, switching to Bluetooth
+        systemPrintln("MQTT Client connection attempts exceeded!");
+
+    return limitReached;
+}
 
 // Print the MQTT client state summary
 void mqttClientPrintStateSummary()
@@ -133,6 +197,12 @@ void mqttClientPrintStatus()
         mqttClientPrintStateSummary();
         systemPrintln();
     }
+}
+
+// Restart the MQTT client
+void mqttClientRestart()
+{
+    mqttClientConnectLimitReached();
 }
 
 // Update the state of the MQTT client state machine
@@ -187,6 +257,8 @@ void mqttClientStop(bool shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);
         settings.enableMqttClient = false;
+        mqttClientConnectionAttempts = 0;
+        mqttClientConnectionAttemptTimeout = 0;
     }
     else
         mqttClientSetState(MQTT_CLIENT_ON);
@@ -197,7 +269,19 @@ void mqttClientStop(bool shutdown)
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
 void mqttClientUpdate()
 {
+    // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
+    if (NEQ_RTK_MODE(mqttClientMode) || (!settings.enableMqttClient))
+    {
+        if (mqttClientState > MQTT_CLIENT_OFF)
+        {
+            systemPrintln("MQTT Client stopping");
+            mqttClientStop(false);
+            mqttClientConnectionAttempts = 0;
+            mqttClientConnectionAttemptTimeout = 0;
+            mqttClientSetState(MQTT_CLIENT_OFF);
+        }
+    }
 
     // Enable the network and the MQTT client if requested
     switch (mqttClientState)

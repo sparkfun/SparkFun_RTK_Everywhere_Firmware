@@ -869,6 +869,12 @@ void networkStop(uint8_t networkType)
                 // Stop the network client
                 switch(user)
                 {
+                case NETWORK_USER_MQTT_CLIENT:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping MQTT client");
+                    mqttClientRestart();
+                    break;
+
                 case NETWORK_USER_NTP_SERVER:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping NTP server");
