@@ -270,7 +270,7 @@ unsigned int binBytesSent = 0;                // Tracks firmware bytes sent over
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
 #include <DNSServer.h>        //Built-in.
-
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient
 #include "esp_wifi.h" //Needed for esp_wifi_set_protocol()
 
 #endif // COMPILE_WIFI
