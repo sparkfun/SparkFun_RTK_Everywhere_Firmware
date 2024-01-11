@@ -296,6 +296,11 @@ bool pointperfectProvisionDevice()
 
         String json;
         serializeJson(pointPerfectAPIPost, json);
+        if (settings.debugPpCertificate)
+        {
+            systemPrintln("JSON:");
+            dumpBuffer((uint8_t *)json.c_str(), strlen(json.c_str()) + 1);
+        }
 
         systemPrintf("Connecting to: %s\r\n", pointPerfectAPI);
 
@@ -306,6 +311,11 @@ bool pointperfectProvisionDevice()
         int httpResponseCode = http.POST(json);
 
         String response = http.getString();
+        if (settings.debugPpCertificate)
+        {
+            systemPrintln("Response:");
+            dumpBuffer((uint8_t *)response.c_str(), strlen(response.c_str()) + 1);
+        }
 
         http.end();
 
