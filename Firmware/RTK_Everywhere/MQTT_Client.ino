@@ -277,12 +277,15 @@ void mqttClientReceiveMessage(char *topic, byte *message, unsigned int length)
     // Record the arrival of SPARTN data over MQTT
     mqttClientLastDataReceived = millis();
 
+    // Push the correction data to GNSS module over I2C / SPI
+    gnssPushRawData(message, length);
+
     if ((settings.debugMqttClientData || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA))
         && (!inMainMenu))
     {
         PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
         systemPrintf("MQTT Client received %d SPARTN bytes, pushed to ZED\r\n", length);
-        dumpBuffer(message, length);
+//        dumpBuffer(message, length);
     }
 }
 
