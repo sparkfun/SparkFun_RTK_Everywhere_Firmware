@@ -219,6 +219,8 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 // Over-the-Air (OTA) update support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+#define MQTT_CERT_SIZE 2000
+
 #if COMPILE_NETWORK
 #endif // COMPILE_NETWORK
 #include <ArduinoJson.h>  //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4

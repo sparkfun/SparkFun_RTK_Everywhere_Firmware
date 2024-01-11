@@ -294,6 +294,125 @@ class NetworkWiFiClient : public NetworkClient
         this->~NetworkClient();
     }
 };
+
+class NetworkSecureWiFiClient : public NetworkClient
+{
+  protected:
+
+    WiFiClientSecure _client;
+
+  public:
+
+    NetworkSecureWiFiClient() :
+        _client{WiFiClientSecure()},
+        NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    {
+    }
+
+    NetworkSecureWiFiClient(WiFiClient& client) :
+        _client{client},
+        NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    {
+    }
+
+    ~NetworkSecureWiFiClient()
+    {
+        this->~NetworkClient();
+    }
+
+    WiFiClientSecure * getClient()
+    {
+        return &_client;
+    }
+
+    int lastError(char *buf, const size_t size)
+    {
+        return _client.lastError(buf, size);
+    }
+
+    void setInsecure() // Don't validate the chain, just accept whatever is given.  VERY INSECURE!
+    {
+        _client.setInsecure();
+    }
+
+    void setPreSharedKey(const char *pskIdent, const char *psKey) // psKey in Hex
+    {
+        _client.setPreSharedKey(pskIdent, psKey);
+    }
+
+    void setCACert(const char *rootCA)
+    {
+        _client.setCACert(rootCA);
+    }
+
+    void setCertificate(const char *client_ca)
+    {
+        _client.setCertificate(client_ca);
+    }
+
+    void setPrivateKey (const char *private_key)
+    {
+        _client.setPrivateKey(private_key);
+    }
+
+    bool loadCACert(Stream& stream, size_t size)
+    {
+        return _client.loadCACert(stream, size);
+    }
+
+    void setCACertBundle(const uint8_t * bundle)
+    {
+        _client.setCACertBundle(bundle);
+    }
+
+    bool loadCertificate(Stream& stream, size_t size)
+    {
+        return _client.loadCertificate(stream, size);
+    }
+
+    bool loadPrivateKey(Stream& stream, size_t size)
+    {
+        return _client.loadPrivateKey(stream, size);
+    }
+
+    bool verify(const char* fingerprint, const char* domain_name)
+    {
+        return _client.verify(fingerprint, domain_name);
+    }
+
+    void setHandshakeTimeout(unsigned long handshake_timeout)
+    {
+        _client.setHandshakeTimeout(handshake_timeout);
+    }
+
+    void setAlpnProtocols(const char **alpn_protos)
+    {
+        _client.setAlpnProtocols(alpn_protos);
+    }
+
+/*
+    const mbedtls_x509_crt* getPeerCertificate()
+    {
+        return mbedtls_ssl_get_peer_cert(&_client.sslclient->ssl_ctx);
+    }
+
+    bool getFingerprintSHA256(uint8_t sha256_result[32])
+    {
+        return get_peer_fingerprint(_client.sslclient, sha256_result);
+    }
+*/
+
+    int setTimeout(uint32_t seconds)
+    {
+        return _client.setTimeout(seconds);
+    }
+
+    int fd() const
+    {
+        return _client.fd();
+    }
+};
+
 #endif  // COMPILE_WIFI
 
 #endif  // __NETWORK_CLIENT_H__

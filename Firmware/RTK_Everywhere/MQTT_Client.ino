@@ -78,6 +78,7 @@ enum MQTTClientState
     MQTT_CLIENT_ON,                 // WIFI_START state
     MQTT_CLIENT_NETWORK_STARTED,    // Connecting to WiFi access point or Ethernet
     MQTT_CLIENT_CONNECTING_2_SERVER,// Connecting to the MQTT server
+    MQTT_CLIENT_SUBSCRIBE_KEY,      // Subscribe to the MQTT_TOPIC_KEY
     MQTT_CLIENT_SERVICES_CONNECTED, // Connected to the MQTT services
     // Insert new states here
     MQTT_CLIENT_STATE_MAX           // Last entry in the state list
@@ -89,6 +90,7 @@ const char * const mqttClientStateName[] =
     "MQTT_CLIENT_ON",
     "MQTT_CLIENT_NETWORK_STARTED",
     "MQTT_CLIENT_CONNECTING_2_SERVER",
+    "MQTT_CLIENT_SUBSCRIBE_KEY",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
 
@@ -101,10 +103,20 @@ const RtkMode_t mqttClientMode = RTK_MODE_ROVER
 // Locals
 //----------------------------------------
 
+static PubSubClient *mqttClient;
+
+static bool mqttClientBluetoothOnline;
+
+static char * mqttClientCertificateBuffer; // Buffer for client certificate
+
 // Throttle the time between connection attempts
 static int mqttClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
+
+static char * mqttClientPrivateKeyBuffer; // Buffer for client private key
+
+static NetworkSecureWiFiClient *mqttSecureClient;
 
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
@@ -189,6 +201,7 @@ void mqttClientPrintStateSummary()
         break;
 
     case MQTT_CLIENT_CONNECTING_2_SERVER:
+    case MQTT_CLIENT_SUBSCRIBE_KEY:
         systemPrint("Connecting");
         break;
     }
@@ -239,6 +252,11 @@ void mqttClientPrintStatus()
     }
 }
 
+// Called when a subscribed to message arrives
+void mqttClientReceiveMessage(char *topic, byte *message, unsigned int length)
+{
+}
+
 // Restart the MQTT client
 void mqttClientRestart()
 {
@@ -272,6 +290,12 @@ void mqttClientSetState(uint8_t newState)
     }
 }
 
+// Shutdown the MQTT client
+void mqttClientShutdown()
+{
+    mqttClientStop(true);
+}
+
 // Start the MQTT client
 void mqttClientStart()
 {
@@ -286,6 +310,41 @@ void mqttClientStart()
 // Shutdown or restart the MQTT client
 void mqttClientStop(bool shutdown)
 {
+    if (mqttClient)
+    {
+        if (settings.debugMqttClientState)
+            systemPrintln("Freeing mqttClient");
+
+        // Free the MQTT client resources
+        delete mqttClient;
+        mqttClient = nullptr;
+        reportHeapNow(settings.debugMqttClientState);
+    }
+
+    if (mqttSecureClient)
+    {
+        if (settings.debugMqttClientState)
+            systemPrintln("Freeing mqttSecureClient");
+        delete mqttSecureClient;
+        mqttSecureClient = nullptr;
+        reportHeapNow(settings.debugMqttClientState);
+    }
+
+    // Release the buffers
+    if (mqttClientPrivateKeyBuffer)
+        free(mqttClientPrivateKeyBuffer);
+    if (mqttClientCertificateBuffer)
+        free(mqttClientCertificateBuffer);
+
+    // Start bluetooth if necessary
+    if (mqttClientBluetoothOnline)
+    {
+        if (settings.debugMqttClientState)
+            systemPrintln("MQTT Client starting Bluetooth");
+        bluetoothStart();
+    }
+    reportHeapNow(settings.debugMqttClientState);
+
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_ON)
     {
@@ -357,6 +416,103 @@ void mqttClientUpdate()
             else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
                 // The network is available for the MQTT client
                 mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+            break;
+        }
+
+        // Connect to the MQTT server
+        case MQTT_CLIENT_CONNECTING_2_SERVER: {
+            // Determine if the network has failed
+            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+            {
+                // Failed to connect to to the network, attempt to restart the network
+                mqttClientRestart();
+                break;
+            }
+
+            // Release available heap to allow room for TLS
+            mqttClientBluetoothOnline = online.bluetooth;
+            if (mqttClientBluetoothOnline)
+            {
+                if (settings.debugMqttClientState)
+                    systemPrintln("MQTT Client stopping Bluetooth");
+                bluetoothStop();
+                reportHeapNow(settings.debugMqttClientState);
+            }
+
+            // Allocate the mqttSecureClient structure
+            mqttSecureClient = new NetworkSecureWiFiClient();
+            if (!mqttSecureClient)
+            {
+                systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
+                mqttClientShutdown();
+                break;
+            }
+
+            // Allocate the buffers
+            mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
+            mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
+            if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
+            {
+                if (mqttClientCertificateBuffer)
+                {
+                    free(mqttClientCertificateBuffer);
+                    systemPrintln("Failed to allocate key buffers!");
+                }
+                else
+                    systemPrintln("Failed to allocate certificate buffers!");
+                mqttClientShutdown();
+                break;
+            }
+
+            // Get the certificate
+            memset(mqttClientCertificateBuffer, 0, MQTT_CERT_SIZE);
+            if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
+            {
+                mqttClientShutdown();
+                break;
+            }
+            mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
+
+            // Get the private key
+            memset(mqttClientPrivateKeyBuffer, 0, MQTT_CERT_SIZE);
+            if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
+            {
+                mqttClientShutdown();
+                break;
+            }
+            mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
+
+            // Set the Amazon Web Services public certificate
+            mqttSecureClient->setCACert(AWS_PUBLIC_CERT);
+
+            // Allocate the mqttClient structure
+            mqttClient = new PubSubClient(*mqttSecureClient->getClient());
+            if (!mqttClient)
+            {
+                // Failed to allocate the mqttClient structure
+                systemPrintln("ERROR: Failed to allocate the mqttClient structure!");
+                mqttClientShutdown();
+                break;
+            }
+
+            // Configure the MQTT client
+            mqttClient->setCallback(mqttClientReceiveMessage);
+            mqttClient->setServer(settings.pointPerfectBrokerHost, 8883);
+
+            if (settings.debugMqttClientState)
+                systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
+
+            // Attempt to the MQTT broker
+            if (!mqttClient->connect(settings.pointPerfectClientID))
+            {
+                systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
+                mqttClientRestart();
+                break;
+            }
+
+            // The MQTT server is now connected
+            reportHeapNow(settings.debugMqttClientState);
+            mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_KEY);
             break;
         }
     }
