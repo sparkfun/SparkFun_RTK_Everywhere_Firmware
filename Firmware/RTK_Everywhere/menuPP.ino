@@ -320,7 +320,7 @@ bool pointperfectProvisionDevice()
         {
             // Device is now active with ThingStream
             // Pull pertinent values from response
-            jsonZtp = new DynamicJsonDocument(4096);
+            jsonZtp = new DynamicJsonDocument(8192);
             if (!jsonZtp)
             {
                 systemPrintln("ERROR - Failed to allocate jsonZtp!\r\n");
