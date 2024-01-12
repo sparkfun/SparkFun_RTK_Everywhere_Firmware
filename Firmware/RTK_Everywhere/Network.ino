@@ -181,6 +181,7 @@ const int networkStateEntries = sizeof(networkState) / sizeof(networkState[0]);
 // List of network users
 const char * const networkUser[] =
 {
+    "MQTT Server",
     "NTP Server",
     "NTRIP Client",
     "NTRIP Server",
@@ -868,6 +869,12 @@ void networkStop(uint8_t networkType)
                 // Stop the network client
                 switch(user)
                 {
+                case NETWORK_USER_MQTT_CLIENT:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping MQTT client");
+                    mqttClientRestart();
+                    break;
+
                 case NETWORK_USER_NTP_SERVER:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping NTP server");
@@ -1159,6 +1166,7 @@ void networkUpdate()
         PERIODIC_CLEAR(PD_NETWORK_STATE);
 
     // Update the network services
+    mqttClientUpdate();  // Process any Point Perfect MQTT messages
     ntpServerUpdate();   // Process any received NTP requests
     ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
     ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP

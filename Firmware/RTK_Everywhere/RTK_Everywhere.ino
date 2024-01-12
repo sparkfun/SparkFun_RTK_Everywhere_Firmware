@@ -219,6 +219,8 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 // Over-the-Air (OTA) update support
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+#define MQTT_CERT_SIZE 2000
+
 #if COMPILE_NETWORK
 #endif // COMPILE_NETWORK
 #include <ArduinoJson.h>  //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
@@ -268,7 +270,7 @@ unsigned int binBytesSent = 0;                // Tracks firmware bytes sent over
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
 #include <DNSServer.h>        //Built-in.
-
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient
 #include "esp_wifi.h" //Needed for esp_wifi_set_protocol()
 
 #endif // COMPILE_WIFI
@@ -718,6 +720,7 @@ bool netIncomingRTCM = false;
 bool netOutgoingRTCM = false;
 bool espnowIncomingRTCM = false;
 bool espnowOutgoingRTCM = false;
+volatile bool mqttClientDataReceived; // Flag for display
 
 static RtcmTransportState rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
 uint16_t failedParserMessages_UBX = 0;

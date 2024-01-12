@@ -135,6 +135,9 @@ void menuSystem()
         systemPrintf("%d %02d:%02d:%02d.%03lld (Resets: %d)\r\n", uptimeDays, uptimeHours, uptimeMinutes, uptimeSeconds,
                      uptimeMilliseconds, settings.resetCount);
 
+        // Display MQTT Client status and uptime
+        mqttClientPrintStatus();
+
         // Display NTRIP Client status and uptime
         ntripClientPrintStatus();
 
@@ -564,6 +567,12 @@ void menuDebugNetwork()
         systemPrint("27) Debug PVT UDP server: ");
         systemPrintf("%s\r\n", settings.debugPvtUdpServer ? "Enabled" : "Disabled");
 
+        // MQTT Client
+        systemPrint("28) Debug MQTT client data: ");
+        systemPrintf("%s\r\n", settings.debugMqttClientData ? "Enabled" : "Disabled");
+        systemPrint("29) Debug MQTT client state: ");
+        systemPrintf("%s\r\n", settings.debugMqttClientState ? "Enabled" : "Disabled");
+
         systemPrintln("r) Force system reset");
 
         systemPrintln("x) Exit");
@@ -596,6 +605,10 @@ void menuDebugNetwork()
             settings.debugPvtServer ^= 1;
         else if (incoming == 27)
             settings.debugPvtUdpServer ^= 1;
+        else if (incoming == 28)
+            settings.debugMqttClientData ^= 1;
+        else if (incoming == 29)
+            settings.debugMqttClientState ^= 1;
 
         // Menu exit control
         else if (incoming == 'r')
@@ -1223,7 +1236,7 @@ void menuPeriodicPrint()
 
         systemPrintln("-----  Software  -----");
 
-        systemPrintf("20) Periodic print: %d (0x%08x)\r\n", settings.periodicDisplay, settings.periodicDisplay);
+        systemPrintf("20) Periodic print: %llu (0x%016llx)\r\n", settings.periodicDisplay, settings.periodicDisplay);
 
         systemPrintf("21) Interval (seconds): %d\r\n", settings.periodicDisplayInterval / 1000);
 
@@ -1275,6 +1288,12 @@ void menuPeriodicPrint()
 
         systemPrint("51) PVT server state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_STATE) ? "Enabled" : "Disabled");
+
+        systemPrint("52) MQTT client data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_MQTT_CLIENT_DATA) ? "Enabled" : "Disabled");
+
+        systemPrint("53) MQTT client state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_MQTT_CLIENT_STATE) ? "Enabled" : "Disabled");
 
         systemPrintln("-------  Tasks  ------");
         systemPrint("70) btReadTask state: ");
@@ -1360,6 +1379,10 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_PVT_SERVER_DATA);
         else if (incoming == 51)
             PERIODIC_TOGGLE(PD_PVT_SERVER_STATE);
+        else if (incoming == 52)
+            PERIODIC_TOGGLE(PD_MQTT_CLIENT_DATA);
+        else if (incoming == 53)
+            PERIODIC_TOGGLE(PD_MQTT_CLIENT_STATE);
 
         else if (incoming == 70)
             PERIODIC_TOGGLE(PD_TASK_BLUETOOTH_READ);

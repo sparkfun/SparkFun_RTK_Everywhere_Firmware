@@ -551,6 +551,8 @@ bool wifiConnect(unsigned long timeout)
 // This function is used to turn WiFi off if nothing needs it.
 bool wifiIsNeeded()
 {
+    if (settings.enableMqttClient)
+        return true;
     if (settings.enablePvtClient == true)
         return true;
     if (settings.enablePvtServer == true)

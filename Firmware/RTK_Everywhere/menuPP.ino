@@ -6,8 +6,6 @@
 // Locals - compiled out
 //----------------------------------------
 
-#define MQTT_CERT_SIZE 2000
-
 // The PointPerfect token is provided at compile time via build flags
 #define DEVELOPMENT_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
 #ifndef POINTPERFECT_TOKEN
