@@ -1763,7 +1763,7 @@ void recordFile(const char *fileID, char *fileContents, uint32_t fileSize)
 }
 
 // Read file into given char array
-void loadFile(const char *fileID, char *fileContents)
+bool loadFile(const char *fileID, char *fileContents, bool debug)
 {
     char fileName[80];
     snprintf(fileName, sizeof(fileName), "/%s_%s_%d.txt", platformFilePrefix, fileID, profileNumber);
@@ -1771,12 +1771,17 @@ void loadFile(const char *fileID, char *fileContents)
     File fileToRead = LittleFS.open(fileName, FILE_READ);
     if (fileToRead)
     {
-        fileToRead.read((uint8_t *)fileContents, fileToRead.size()); // Read contents into pointer
+        int length = fileToRead.size();
+        int bytesRead = fileToRead.read((uint8_t *)fileContents, length);  // Read contents into pointer
         fileToRead.close();
-        log_d("File loaded from LittleFS: %s", fileName);
+        if (length == bytesRead)
+        {
+            if (debug)
+                systemPrintf("File loaded from LittleFS: %s\r\n", fileName);
+            return true;
+        }
     }
-    else
-    {
-        log_d("Failed to read from LittleFS: %s", fileName);
-    }
+    else if (debug)
+        systemPrintf("Failed to read from LittleFS: %s\r\n", fileName);
+    return false;
 }

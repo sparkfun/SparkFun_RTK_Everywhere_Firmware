@@ -439,7 +439,7 @@ bool checkCertificates()
 
     // Load the certificate
     memset(certificateContents, 0, MQTT_CERT_SIZE);
-    loadFile("certificate", certificateContents);
+    loadFile("certificate", certificateContents, settings.debugPpCertificate);
 
     if (checkCertificateValidity(certificateContents, strlen(certificateContents)) == false)
     {
@@ -450,7 +450,7 @@ bool checkCertificates()
 
     // Load the private key
     memset(keyContents, 0, MQTT_CERT_SIZE);
-    loadFile("privateKey", keyContents);
+    loadFile("privateKey", keyContents, settings.debugPpCertificate);
 
     if (checkPrivateKeyValidity(keyContents, strlen(keyContents)) == false)
     {
@@ -563,12 +563,12 @@ bool pointperfectUpdateKeys()
 
         // Get the certificate
         memset(certificateContents, 0, MQTT_CERT_SIZE);
-        loadFile("certificate", certificateContents);
+        loadFile("certificate", certificateContents, false);
         secureClient.setCertificate(certificateContents);
 
         // Get the private key
         memset(keyContents, 0, MQTT_CERT_SIZE);
-        loadFile("privateKey", keyContents);
+        loadFile("privateKey", keyContents, false);
         secureClient.setPrivateKey(keyContents);
 
         secureClient.setCACert(AWS_PUBLIC_CERT);
