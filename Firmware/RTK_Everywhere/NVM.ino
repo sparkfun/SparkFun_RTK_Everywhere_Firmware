@@ -460,6 +460,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%s\r\n", "otaRcFirmwareJsonUrl", otaRcFirmwareJsonUrl);
     settingsFile->printf("%s=%s\r\n", "otaFirmwareJsonUrl", otaFirmwareJsonUrl);
 
+    // Measurement scale
+    settingsFile->printf("%s=%d\r\n", "measurementScale", settings.measurementScale);
+
     // Add new settings above <------------------------------------------------------------>
 }
 
@@ -1414,6 +1417,10 @@ bool parseLine(char *str, Settings *settings)
         memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
         strcpy(otaFirmwareJsonUrl, url.c_str());
     }
+
+    // Measurement scale
+    else if (strcmp(settingName, "measurementScale") == 0)
+        settings->measurementScale = d;
 
     // Add new settings above
     //<------------------------------------------------------------>

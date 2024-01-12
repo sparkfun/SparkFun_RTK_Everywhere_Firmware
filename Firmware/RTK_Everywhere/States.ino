@@ -298,8 +298,16 @@ void stateUpdate()
             float hpa = gnssGetHorizontalAccuracy();
 
             // Check for <1m horz accuracy before starting surveyIn
-            systemPrintf("Waiting for Horz Accuracy < %0.2f meters: %0.2f, SIV: %d\r\n",
-                         settings.surveyInStartingAccuracy, hpa, siv);
+            char accuracy[20];
+            char temp[20];
+            const char * units = getHpa(hpa, temp, sizeof(temp), 2);
+            const char * accUnits = getHpa(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2);
+            systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n",
+                         accuracy, accUnits, temp,
+                         (accUnits != units) ? " (" : "",
+                         (accUnits != units) ? units : "",
+                         (accUnits != units) ? ")" : "",
+                         siv);
 
             if (hpa > 0.0 && hpa < settings.surveyInStartingAccuracy)
             {
@@ -353,13 +361,10 @@ void stateUpdate()
             }
             else
             {
-                systemPrint("Time elapsed: ");
-                systemPrint(observationTime);
-                systemPrint(" Accuracy: ");
-                systemPrint(meanAccuracy, 3);
-                systemPrint(" SIV: ");
-                systemPrint(siv);
-                systemPrintln();
+                char temp[20];
+                const char * units = getHpa(meanAccuracy, temp, sizeof(temp), 3);
+                systemPrintf("Time elapsed: %d Accuracy (%s): %s SIV: %d\r\n",
+                             observationTime, units, temp, siv);
 
                 if (observationTime > maxSurveyInWait_s)
                 {

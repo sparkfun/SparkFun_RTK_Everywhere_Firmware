@@ -815,6 +815,12 @@ void verifyTables()
     if (platformProvisionTableEntries != (RTK_UNKNOWN + 1))
         reportFatalError("Fix platformProvisionTable to match ProductVariant");
 
+    // Verify the measurement scales
+    if (measurementScaleNameEntries != MEASUREMENT_SCALE_MAX)
+        reportFatalError("Fix measurementScaleName to match MeasurementScale");
+    if (measurementScaleUnitsEntries != MEASUREMENT_SCALE_MAX)
+        reportFatalError("Fix measurementScaleUnits to match MeasurementScale");
+
     // Verify the consistency of the internal tables
     ethernetVerifyTables();
     networkVerifyTables();
