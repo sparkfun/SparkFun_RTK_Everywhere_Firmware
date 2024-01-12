@@ -232,7 +232,7 @@ int gnssGetSurveyInObservationTime()
 }
 
 // TODO make sure we're not slowing down a ZED base
-int gnssGetSurveyInMeanAccuracy()
+float gnssGetSurveyInMeanAccuracy()
 {
     static float svinMeanAccuracy = 0;
     static unsigned long lastCheck = 0;

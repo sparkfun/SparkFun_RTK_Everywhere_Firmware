@@ -330,7 +330,7 @@ void stateUpdate()
 
             // Get the data once to avoid duplicate slow responses
             int observationTime = gnssGetSurveyInObservationTime();
-            int meanAccuracy = gnssGetSurveyInMeanAccuracy();
+            float meanAccuracy = gnssGetSurveyInMeanAccuracy();
             int siv = gnssGetSatellitesInView();
 
             if (gnssIsSurveyComplete() == true) // Survey in complete
