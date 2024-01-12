@@ -148,8 +148,9 @@ void bluetoothFlush()
 void bluetoothStart()
 {
 #ifdef COMPILE_BT
-    if (bluetoothState == BT_OFF)
+    if (!online.bluetooth)
     {
+        bluetoothState = BT_OFF;
         char stateName[11] = {0};
         if (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX)
             strncpy(stateName, "Rover-", sizeof(stateName) - 1);
@@ -176,7 +177,7 @@ void bluetoothStart()
         if (strlen(deviceName) > 28)
         {
             if (ENABLE_DEVELOPER)
-                systemPrintf("Warning! The Bluetooth device name '%s' is %d characters long. It may not work in BLE mode.\r\n", deviceName, 
+                systemPrintf("Warning! The Bluetooth device name '%s' is %d characters long. It may not work in BLE mode.\r\n", deviceName,
                              strlen(deviceName));
         }
 
@@ -245,6 +246,7 @@ void bluetoothStart()
 
         bluetoothState = BT_NOTCONNECTED;
         reportHeapNow(false);
+        online.bluetooth = true;
     }
 #endif // COMPILE_BT
 }
@@ -274,7 +276,7 @@ void pinBluetoothTask(void *pvParameters)
 void bluetoothStop()
 {
 #ifdef COMPILE_BT
-    if (bluetoothState == BT_NOTCONNECTED || bluetoothState == BT_CONNECTED)
+    if (online.bluetooth)
     {
         bluetoothSerial->register_callback(nullptr);
         bluetoothSerial->flush();      // Complete any transfers
@@ -286,6 +288,7 @@ void bluetoothStop()
 
         bluetoothState = BT_OFF;
         reportHeapNow(false);
+        online.bluetooth = false;
     }
 #endif // COMPILE_BT
     bluetoothIncomingRTCM = false;

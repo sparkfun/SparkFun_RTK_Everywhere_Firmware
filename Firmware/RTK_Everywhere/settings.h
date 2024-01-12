@@ -1254,6 +1254,7 @@ struct struct_online
     bool imu = false;
     bool tilt = false;
     bool otaFirmwareUpdate = false;
+    bool bluetooth = false;
 } online;
 
 #ifdef COMPILE_WIFI

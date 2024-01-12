@@ -25,7 +25,7 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 // Locals
 //----------------------------------------
 
-static byte otaBluetoothState = BT_OFF;
+static bool otaBluetoothOnline;
 static uint32_t otaLastUpdateCheck;
 static OtaState otaState;
 
@@ -137,11 +137,10 @@ void menuFirmware()
                 {
                     bool previouslyConnected = wifiIsConnected();
 
-                    bool bluetoothOriginallyConnected = false;
-                    if(bluetoothState == BT_CONNECTED)
-                        bluetoothOriginallyConnected = true;
-
-                    bluetoothStop(); // Stop Bluetooth to allow for SSL on the heap
+                    // Stop Bluetooth to allow for SSL on the heap
+                    bool bluetoothOriginallyOnline = online.bluetooth;
+                    if (bluetoothOriginallyOnline)
+                        bluetoothStop();
 
                     // Attempt to connect to local WiFi
                     if (wifiConnect(10000) == true)
@@ -174,7 +173,7 @@ void menuFirmware()
                     if (previouslyConnected == false)
                         WIFI_STOP();
 
-                    if(bluetoothOriginallyConnected == true)
+                    if(bluetoothOriginallyOnline == true)
                         bluetoothStart(); // Restart BT according to settings
                 }
             } //End wifiNetworkCount() check
@@ -960,9 +959,8 @@ void otaAutoUpdateStop()
         otaLastUpdateCheck = millis();
 
         // Restart bluetooth if necessary
-        if (otaBluetoothState == BT_CONNECTED)
+        if (otaBluetoothOnline)
         {
-            otaBluetoothState = BT_OFF;
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Firmware update restarting Bluetooth");
             bluetoothStart(); // Restart BT according to settings
@@ -1030,8 +1028,8 @@ void otaAutoUpdate()
                     systemPrintln("Firmware update connected to WiFi");
 
                 // Stop Bluetooth
-                otaBluetoothState = bluetoothGetState();
-                if (otaBluetoothState != BT_OFF)
+                otaBluetoothOnline = online.bluetooth;
+                if (otaBluetoothOnline)
                 {
                     if (settings.debugFirmwareUpdate)
                         systemPrintln("Firmware update stopping Bluetooth");
