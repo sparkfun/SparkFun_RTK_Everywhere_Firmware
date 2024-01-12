@@ -541,7 +541,8 @@ void ntripClientStop(bool shutdown)
 }
 
 // Check for the arrival of any correction data. Push it to the GNSS.
-// Stop task if the connection has dropped or if we receive no data for maxTimeBeforeHangup_ms
+// Stop task if the connection has dropped or if we receive no data for
+// NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT
 void ntripClientUpdate()
 {
     // Shutdown the NTRIP client when the mode or setting changes
