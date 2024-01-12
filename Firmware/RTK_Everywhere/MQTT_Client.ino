@@ -279,6 +279,7 @@ void mqttClientReceiveMessage(char *topic, byte *message, unsigned int length)
 
     // Push the correction data to GNSS module over I2C / SPI
     gnssPushRawData(message, length);
+    mqttClientDataReceived = true;
 
     if ((settings.debugMqttClientData || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA))
         && (!inMainMenu))
@@ -390,6 +391,7 @@ void mqttClientStop(bool shutdown)
 
     // Determine the next MQTT client state
     online.mqttClient = false;
+    mqttClientDataReceived = false;
     if (shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);

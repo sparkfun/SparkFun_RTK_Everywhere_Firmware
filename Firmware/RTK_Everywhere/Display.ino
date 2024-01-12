@@ -1027,7 +1027,7 @@ uint32_t setWiFiIcon_TwoRadios()
         {
             firstRadioSpotTimer = millis();
 
-            if (netIncomingRTCM == true || netOutgoingRTCM == true)
+            if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
                 firstRadioSpotBlink ^= 1; // Share the spot
             else
                 firstRadioSpotBlink = false;
@@ -1053,10 +1053,13 @@ uint32_t setWiFiIcon_TwoRadios()
         else
         {
             // Share the spot. Determine if we need to indicate Up, or Down
-            if (netIncomingRTCM == true)
+            if (netIncomingRTCM || mqttClientDataReceived)
             {
                 icons |= ICON_DOWN_ARROW_LEFT;
-                netIncomingRTCM = false; // Reset, set during NTRIP Client
+                if (netIncomingRTCM)
+                    netIncomingRTCM = false; // Reset, set during NTRIP Client
+                if (mqttClientDataReceived)
+                    mqttClientDataReceived = false; // Reset, set by MQTT client
             }
             else if (netOutgoingRTCM == true)
             {
@@ -1114,7 +1117,7 @@ uint32_t setWiFiIcon_ThreeRadios()
         {
             thirdRadioSpotTimer = millis();
 
-            if (netIncomingRTCM == true || netOutgoingRTCM == true)
+            if (netIncomingRTCM|| netOutgoingRTCM || mqttClientDataReceived)
                 thirdRadioSpotBlink ^= 1; // Share the spot
             else
                 thirdRadioSpotBlink = false;
@@ -1140,10 +1143,13 @@ uint32_t setWiFiIcon_ThreeRadios()
         else
         {
             // Share the spot. Determine if we need to indicate Up, or Down
-            if (netIncomingRTCM == true)
+            if (netIncomingRTCM || mqttClientDataReceived)
             {
                 icons |= ICON_DOWN_ARROW_RIGHT;
-                netIncomingRTCM = false; // Reset, set during NTRIP Client
+                if (netIncomingRTCM)
+                    netIncomingRTCM = false; // Reset, set during NTRIP Client
+                if (mqttClientDataReceived)
+                    mqttClientDataReceived = false; // Reset, set by MQTT Client
             }
             else if (netOutgoingRTCM == true)
             {

@@ -720,6 +720,7 @@ bool netIncomingRTCM = false;
 bool netOutgoingRTCM = false;
 bool espnowIncomingRTCM = false;
 bool espnowOutgoingRTCM = false;
+volatile bool mqttClientDataReceived; // Flag for display
 
 static RtcmTransportState rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
 uint16_t failedParserMessages_UBX = 0;
