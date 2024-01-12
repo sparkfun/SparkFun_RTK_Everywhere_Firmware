@@ -343,17 +343,22 @@ void mqttClientStart()
 // Shutdown or restart the MQTT client
 void mqttClientStop(bool shutdown)
 {
+    // Display the uptime
+    if (settings.debugMqttClientState)
+        mqttClientPrintStatus();
+
+    // Free the mqttClient resources
     if (mqttClient)
     {
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttClient");
 
-        // Free the MQTT client resources
         delete mqttClient;
         mqttClient = nullptr;
         reportHeapNow(settings.debugMqttClientState);
     }
 
+    // Free the mqttSecureClient resources
     if (mqttSecureClient)
     {
         if (settings.debugMqttClientState)
