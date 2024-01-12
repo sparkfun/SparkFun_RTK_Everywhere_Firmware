@@ -839,6 +839,10 @@ void menuOperation()
         systemPrintf("12) RTCM timeout before L-Band override (seconds): %d\r\n",
                      settings.rtcmTimeoutBeforeUsingLBand_s);
 
+        // Measurement scale
+        systemPrintf("13) Toggle printed measurement scale: %s\r\n",
+                     measurementScaleName[settings.measurementScale]);
+
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
         systemPrintln(settings.bluetoothInterruptsCore);
@@ -1022,6 +1026,12 @@ void menuOperation()
                 else
                     settings.rtcmTimeoutBeforeUsingLBand_s = rtcmTimeoutBeforeUsingLBand_s; // Recorded to NVM and file
             }
+        }
+        else if (incoming == 13)
+        {
+            settings.measurementScale += 1;
+            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+                settings.measurementScale = 0;
         }
 
         else if (incoming == 30)
@@ -1385,8 +1395,10 @@ void printCurrentConditions()
         systemPrint("SIV: ");
         systemPrint(gnssGetSatellitesInView());
 
-        systemPrint(", HPA (m): ");
-        systemPrint(gnssGetHorizontalAccuracy(), 3);
+        float hpa = gnssGetHorizontalAccuracy();
+        char temp[20];
+        const char * units = getHpa(hpa, temp, sizeof(temp), 3);
+        systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");
         systemPrint(gnssGetLatitude(), haeNumberOfDecimals);

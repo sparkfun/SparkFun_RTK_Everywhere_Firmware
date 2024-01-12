@@ -703,6 +703,45 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
+const char * getHpa(double hpa, char * buffer, int length, int decimals)
+{
+    const char * units;
+
+    // Return the units
+    if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+    {
+        units = "Unknown";
+        strcpy(buffer, "Unknown");
+    }
+    else
+    {
+        units = measurementScaleUnits[settings.measurementScale];
+
+        // Convert the HPA value to a string
+        switch (settings.measurementScale)
+        {
+        case MEASUREMENTS_IN_METERS:
+            snprintf(buffer, length, "%.*f", decimals, hpa);
+            break;
+
+        case MEASUREMENTS_IN_FEET_INCHES:
+            double inches;
+            double feet;
+            inches = hpa * INCHES_IN_A_METER;
+            feet = inches / 12.;
+            if (inches >= 36.)
+                snprintf(buffer, length, "%.*f", decimals, feet);
+            else
+            {
+                units = "in";
+                snprintf(buffer, length, "%.*f", decimals, inches);
+            }
+            break;
+        }
+    }
+    return units;
+}
+
 // Turn on the three accuracy LEDs depending on our current HPA (horizontal positional accuracy)
 void updateAccuracyLEDs()
 {
@@ -719,11 +758,10 @@ void updateAccuracyLEDs()
             {
                 if (settings.enablePrintRoverAccuracy)
                 {
-                    systemPrint("Rover Accuracy (m): ");
-                    systemPrint(hpa, 3); // Print the accuracy with 4 decimal places
-                    systemPrint(", SIV: ");
-                    systemPrint(gnssGetSatellitesInView());
-                    systemPrintln();
+                    char temp[20];
+                    const char * units = getHpa(hpa, temp, sizeof(temp), 3);
+                    systemPrintf("Rover Accuracy (%s): %s, SIV: %d\r\n",
+                                 units, temp, gnssGetSatellitesInView());
                 }
 
                 if (productVariant == RTK_SURVEYOR)

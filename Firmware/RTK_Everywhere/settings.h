@@ -603,6 +603,32 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay ^= PERIODIC_MASK(x)
 
+#define INCHES_IN_A_METER       39.37009424
+
+enum MeasurementScale
+{
+    MEASUREMENTS_IN_METERS = 0,
+    MEASUREMENTS_IN_FEET_INCHES,
+    // Add new measurement scales above this line
+    MEASUREMENT_SCALE_MAX
+};
+
+const char * const measurementScaleName[] =
+{
+    "meters",
+    "feet and inches",
+};
+
+const int measurementScaleNameEntries = sizeof(measurementScaleName) / sizeof(measurementScaleName[0]);
+
+const char * const measurementScaleUnits[] =
+{
+    "m",
+    "ft",
+};
+
+const int measurementScaleUnitsEntries = sizeof(measurementScaleUnits) / sizeof(measurementScaleUnits[0]);
+
 // These are the allowable messages to broadcast and log (if enabled)
 
 // Struct to describe the necessary info for each type of UBX message
@@ -1223,6 +1249,9 @@ typedef struct
 
     // Partition table
     bool printPartitionTable = false;
+
+    // Measurement scale
+    uint8_t measurementScale = MEASUREMENTS_IN_METERS;
 
     // Add new settings above <------------------------------------------------------------>
 
