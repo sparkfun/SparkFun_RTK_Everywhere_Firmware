@@ -66,6 +66,9 @@
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
+#define IDLE_COUNT_PER_SECOND 1000
+#define IDLE_TIME_DISPLAY_SECONDS 5
+#define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
 #define MILLISECONDS_IN_A_SECOND 1000
 #define MILLISECONDS_IN_A_MINUTE (60 * MILLISECONDS_IN_A_SECOND)
 #define MILLISECONDS_IN_AN_HOUR (60 * MILLISECONDS_IN_A_MINUTE)
@@ -707,6 +710,9 @@ unsigned long systemTestDisplayTime = 0;   // Timestamp for swapping the graphic
 uint8_t systemTestDisplayNumber = 0;       // Tracks which test screen we're looking at
 unsigned long rtcWaitTime = 0; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
+TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
+uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
+
 bool firstRadioSpotBlink = false; // Controls when the shared icon space is toggled
 unsigned long firstRadioSpotTimer = 0;
 bool secondRadioSpotBlink = false; // Controls when the shared icon space is toggled
@@ -806,6 +812,7 @@ volatile bool deadManWalking;
         settings.enableTaskReports = true;                                                                             \
         settings.enablePrintState = true;                                                                              \
         settings.enablePrintPosition = true;                                                                           \
+        settings.enablePrintIdleTime = true;                                                                           \
         settings.enablePrintBatteryMessages = true;                                                                    \
         settings.enablePrintRoverAccuracy = true;                                                                      \
         settings.enablePrintBadMessages = true;                                                                        \
@@ -1000,6 +1007,9 @@ void setup()
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
         printPartitionTable();
+
+    DMW_b("beginIdleTasks");
+    beginIdleTasks(); // Requires settings. Enable processor load calculations
 
     DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
