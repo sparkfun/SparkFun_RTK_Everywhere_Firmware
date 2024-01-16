@@ -101,7 +101,7 @@ void espnowStart()
 
     if (wifiState == WIFI_OFF && espnowState == ESPNOW_OFF)
     {
-        if (WiFi.getMode() == WIFI_OFF)
+        if (WiFi.getMode() != WIFI_STA)
             WiFi.mode(WIFI_STA);
 
         // Radio is off, turn it on
@@ -115,6 +115,9 @@ void espnowStart()
     // If WiFi is on but ESP NOW is off, then enable LR protocol
     else if (wifiState > WIFI_OFF && espnowState == ESPNOW_OFF)
     {
+        if (WiFi.getMode() != WIFI_STA)
+            WiFi.mode(WIFI_STA);
+
         // Enable WiFi + ESP-Now
         // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
         // esp_wifi_set_protocol requires WiFi to be started
@@ -216,6 +219,9 @@ void espnowStop()
     // Forget all ESP-Now Peers
     for (int x = 0; x < settings.espnowPeerCount; x++)
         espnowRemovePeer(settings.espnowPeers[x]);
+
+    if (WiFi.getMode() != WIFI_STA)
+        WiFi.mode(WIFI_STA);
 
     // Leave WiFi with default settings (no WIFI_PROTOCOL_LR for ESP NOW)
     // esp_wifi_set_protocol requires WiFi to be started
