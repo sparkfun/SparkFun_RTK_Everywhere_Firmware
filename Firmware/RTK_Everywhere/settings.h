@@ -1008,7 +1008,7 @@ typedef struct
     bool enableLogging = true;                            // If an SD card is present, log default sentences
     bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
     uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
-    uint16_t sppRxQueueSize = 512 * 2;
+    uint16_t sppRxQueueSize = 512 * 4;
     uint16_t sppTxQueueSize = 32;
     uint8_t dynamicModel = DYN_MODEL_PORTABLE;
     SystemState lastState = STATE_NOT_SET; // Start unit in last known state
@@ -1074,6 +1074,7 @@ typedef struct
     // Debug settings
     bool enablePrintState = false;
     bool enablePrintPosition = false;
+    bool enablePrintIdleTime = false;
     bool enablePrintBatteryMessages = true;
     bool enablePrintRoverAccuracy = true;
     bool enablePrintBadMessages = false;
@@ -1262,6 +1263,8 @@ typedef struct
 
     // Measurement scale
     uint8_t measurementScale = MEASUREMENTS_IN_METERS;
+
+    bool debugWiFiConfig = false;
 
     // Add new settings above <------------------------------------------------------------>
 

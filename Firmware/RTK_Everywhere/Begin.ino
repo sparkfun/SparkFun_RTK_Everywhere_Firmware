@@ -9,10 +9,10 @@ Begin.ino
 // Constants
 //----------------------------------------
 
-#define MAX_ADC_VOLTAGE     3300    // Millivolts
+#define MAX_ADC_VOLTAGE 3300 // Millivolts
 
 // Testing shows the combined ADC+resistors is under a 1% window
-#define TOLERANCE           4.75    // Percent:  95.25% - 104.75%
+#define TOLERANCE 5.20 // Percent:  94.8% - 105.2%
 
 //----------------------------------------
 // Locals
@@ -24,34 +24,29 @@ static uint32_t i2cPowerUpDelay;
 // Hardware initialization functions
 //----------------------------------------
 
-//                                ADC input
-//                       Ra KOhms     |     Rb KOhms
-//  MAX_ADC_VOLTAGE -----/\/\/\/\-----+-----/\/\/\/\----- Ground
-//
-
 // Determine if the measured value matches the product ID value
-bool idWithAdc(uint16_t mvMeasured, float resVcc, float resGnd)
+// idWithAdc applies resistor tolerance using worst-case tolerances:
+// Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
+// Lower threshold: R1 up by TOLERANCE, R2 down by TOLERANCE
+bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
 {
-    uint16_t lowerThreshold;
-    float raK;
-    float rbK;
-    uint16_t upperThreshold;
-    float voltage;
+    float lowerThreshold;
+    float upperThreshold;
 
-    // Compute the upper threshold
-    raK = resVcc * (1.0 - (TOLERANCE / 100.));
-    rbK = resGnd * (1.0 + (TOLERANCE / 100.));
-    voltage = MAX_ADC_VOLTAGE * rbK / (raK + rbK);
-    upperThreshold = (int)ceil(voltage);
-
-    // Compute the lower threshold
-    raK = (double)resVcc * (1.0 + (TOLERANCE / 100.));
-    rbK = (double)resGnd * (1.0 - (TOLERANCE / 100.));
-    voltage = MAX_ADC_VOLTAGE * rbK / (raK + rbK);
-    lowerThreshold = (int)floor(voltage);
+    //                                ADC input
+    //                       r1 KOhms     |     r2 KOhms
+    //  MAX_ADC_VOLTAGE -----/\/\/\/\-----+-----/\/\/\/\----- Ground
 
     // Return true if the mvMeasured value is within the tolerance range
     // of the mvProduct value
+    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (TOLERANCE / 100.0))) /
+                          ((r1 * (1.0 - (TOLERANCE / 100.0))) + (r2 * (1.0 + (TOLERANCE / 100.0)))));
+    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (TOLERANCE / 100.0))) /
+                           ((r1 * (1.0 + (TOLERANCE / 100.0))) + (r2 * (1.0 - (TOLERANCE / 100.0)))));
+
+    // systemPrintf("r1: %0.2f r2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
+    // lowerThreshold, mvMeasured, upperThreshold);
+
     return (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
 }
 
@@ -67,20 +62,24 @@ void identifyBoard()
     uint16_t idValue = analogReadMilliVolts(pin_deviceID);
     log_d("Board ADC ID (mV): %d", idValue);
 
-    // Order checks by millivolt values high to low
+    // Order the following ID checks, by millivolt values high to low
 
-    // Facet L-Band Direct: 4.7/1  -->  534mV < 578mV < 626mV
+    // Facet L-Band Direct: 4.7/1  -->  534mV < 579mV < 626mV
     if (idWithAdc(idValue, 4.7, 1))
         productVariant = RTK_FACET_LBAND_DIRECT;
 
-    // Express: 10/3.3  -->  761mV < 818mV < 879mV
+    // Express: 10/3.3  -->  761mV < 819mV < 879mV
     else if (idWithAdc(idValue, 10, 3.3))
         productVariant = RTK_EXPRESS;
 
     // Reference Station: 20/10  -->  1031mV < 1100mV < 1171mV
     else if (idWithAdc(idValue, 20, 10))
+    {
         productVariant = REFERENCE_STATION;
-
+        // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
+        // so fake it here - otherwise messageSupported always returns false
+        zedFirmwareVersionInt = 112;
+    }
     // Facet: 10/10  -->  1571mV < 1650mV < 1729mV
     else if (idWithAdc(idValue, 10, 10))
         productVariant = RTK_FACET;
@@ -1260,6 +1259,28 @@ void beginSystemState()
                     &ButtonCheckTaskHandle); // Task handle
 }
 
+void beginIdleTasks()
+{
+    if (settings.enablePrintIdleTime == true)
+    {
+        char taskName[32];
+
+        for (int index = 0; index < MAX_CPU_CORES; index++)
+        {
+            snprintf(taskName, sizeof(taskName), "IdleTask%d", index);
+            if (idleTaskHandle[index] == nullptr)
+                xTaskCreatePinnedToCore(
+                    idleTask,
+                    taskName, // Just for humans
+                    2000,     // Stack Size
+                    nullptr,  // Task input parameter
+                    0,        // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    &idleTaskHandle[index], // Task handle
+                    index);                 // Core where task should run, 0=core, 1=Arduino
+        }
+    }
+}
+
 void beginI2C()
 {
     // Complete the power up delay
@@ -1317,7 +1338,7 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
                     break;
                 }
 
-                case 0x0B: {
+                case 0x0b: {
                     systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                     break;
                 }
@@ -1327,7 +1348,7 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
                     break;
                 }
 
-                case 0x2C: {
+                case 0x2c: {
                     systemPrintf("  0x%02X - USB251xB USB Hub\r\n", addr);
                     break;
                 }
@@ -1337,7 +1358,7 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
                     break;
                 }
 
-                case 0x3D: {
+                case 0x3d: {
                     systemPrintf("  0x%02X - SSD1306 OLED Driver\r\n", addr);
                     break;
                 }
@@ -1352,7 +1373,7 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
                     break;
                 }
 
-                case 0x5C: {
+                case 0x5c: {
                     systemPrintf("  0x%02X - MP27692A Power Management / Charger\r\n", addr);
                     break;
                 }

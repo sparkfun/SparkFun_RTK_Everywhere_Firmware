@@ -530,6 +530,10 @@ void menuDebugNetwork()
         systemPrint("3) Debug WiFi state: ");
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
 
+        // WiFi Config
+        systemPrint("4) Debug WiFi Config: ");
+        systemPrintf("%s\r\n", settings.debugWiFiConfig ? "Enabled" : "Disabled");
+
         // Network
         systemPrint("10) Debug network layer: ");
         systemPrintf("%s\r\n", settings.debugNetworkLayer ? "Enabled" : "Disabled");
@@ -585,6 +589,8 @@ void menuDebugNetwork()
             settings.espnowBroadcast ^= 1;
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
+        else if (incoming == 4)
+            settings.debugWiFiConfig ^= 1;
         else if (incoming == 10)
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
@@ -1240,6 +1246,9 @@ void menuPeriodicPrint()
 
         systemPrintf("21) Interval (seconds): %d\r\n", settings.periodicDisplayInterval / 1000);
 
+        systemPrint("22) CPU idle time: ");
+        systemPrintf("%s\r\n", settings.enablePrintIdleTime ? "Enabled" : "Disabled");
+
         systemPrint("23) Network state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NETWORK_STATE) ? "Enabled" : "Disabled");
 
@@ -1346,6 +1355,8 @@ void menuPeriodicPrint()
             if ((seconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (seconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplayInterval = seconds * 1000;
         }
+        else if (incoming == 22)
+            settings.enablePrintIdleTime ^= 1;
         else if (incoming == 23)
             PERIODIC_TOGGLE(PD_NETWORK_STATE);
         else if (incoming == 24)

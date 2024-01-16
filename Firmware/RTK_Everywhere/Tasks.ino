@@ -1485,8 +1485,20 @@ void ButtonCheckTask(void *e)
                             setupState = STATE_WIFI_CONFIG_NOT_STARTED;
                             break;
                         case STATE_WIFI_CONFIG_NOT_STARTED:
+                            if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+                            {
+                                lBandForceGetKeys = true;
+                                setupState = STATE_KEYS_NEEDED;
+                            }
+                            else
+                                setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
+                            break;
+
+                        case STATE_KEYS_NEEDED:
+                            lBandForceGetKeys = false; // User has scrolled past the GetKeys option
                             setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
                             break;
+
                         case STATE_ESPNOW_PAIRING_NOT_STARTED:
                             // If only one active profile do not show any profiles
                             index = getProfileNumberFromUnit(0);
@@ -1655,6 +1667,54 @@ void ButtonCheckTask(void *e)
 
         delay(1); // Poor man's way of feeding WDT. Required to prevent Priority 1 tasks from causing WDT reset
         taskYIELD();
+    }
+}
+
+void idleTask(void *e)
+{
+    int cpu = xPortGetCoreID();
+    uint32_t idleCount = 0;
+    uint32_t lastDisplayIdleTime = 0;
+    uint32_t lastStackPrintTime = 0;
+
+    while (1)
+    {
+        // Increment a count during the idle time
+        idleCount++;
+
+        // Determine if it is time to print the CPU idle times
+        if ((millis() - lastDisplayIdleTime) >= (IDLE_TIME_DISPLAY_SECONDS * 1000) && !inMainMenu)
+        {
+            lastDisplayIdleTime = millis();
+
+            // Get the idle time
+            if (idleCount > max_idle_count)
+                max_idle_count = idleCount;
+
+            // Display the idle times
+            if (settings.enablePrintIdleTime)
+            {
+                systemPrintf("CPU %d idle time: %d%% (%d/%d)\r\n", cpu, idleCount * 100 / max_idle_count, idleCount,
+                             max_idle_count);
+
+                // Print the task count
+                if (cpu)
+                    systemPrintf("%d Tasks\r\n", uxTaskGetNumberOfTasks());
+            }
+
+            // Restart the idle count for the next display time
+            idleCount = 0;
+        }
+
+        // Display the high water mark if requested
+        if ((settings.enableTaskReports == true) &&
+            ((millis() - lastStackPrintTime) >= (IDLE_TIME_DISPLAY_SECONDS * 1000)))
+        {
+            lastStackPrintTime = millis();
+            systemPrintf("idleTask %d High watermark: %d\r\n", xPortGetCoreID(), uxTaskGetStackHighWaterMark(nullptr));
+        }
+
+        // The idle task should NOT delay or yield
     }
 }
 
