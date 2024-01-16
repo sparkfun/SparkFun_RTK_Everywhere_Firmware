@@ -469,6 +469,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enableMqttClient", settings.enableMqttClient);
     settingsFile->printf("%s=%d\r\n", "useEuropeCorrections", settings.useEuropeCorrections);
 
+    settingsFile->printf("%s=%d\r\n", "debugWiFiConfig", settings.debugWiFiConfig);
+
     // Add new settings above <------------------------------------------------------------>
 }
 
@@ -1437,6 +1439,9 @@ bool parseLine(char *str, Settings *settings)
         settings->enableMqttClient = d;
     else if (strcmp(settingName, "useEuropeCorrections") == 0)
         settings->useEuropeCorrections = d;
+
+    else if (strcmp(settingName, "debugWiFiConfig") == 0)
+        settings->debugWiFiConfig = d;
 
     // Add new settings above
     //<------------------------------------------------------------>

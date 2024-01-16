@@ -1263,6 +1263,8 @@ typedef struct
     // Measurement scale
     uint8_t measurementScale = MEASUREMENTS_IN_METERS;
 
+    bool debugWiFiConfig = false;
+
     // Add new settings above <------------------------------------------------------------>
 
 } Settings;
