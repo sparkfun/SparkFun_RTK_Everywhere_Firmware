@@ -715,7 +715,6 @@ bool parseLine(char *str, Settings *settings)
     snprintf(settingName, sizeof(settingName), "%s", str);
 
     double d = 0.0;
-    char settingValue[100] = "";
     char settingString[100] = "";
 
     // Move pointer to end of line
@@ -743,7 +742,7 @@ bool parseLine(char *str, Settings *settings)
         {
             if (settingString[x] == '.')
                 decimalCount++;
-            else if (x == 0 && settingValue[x] == '-')
+            else if (x == 0 && settingString[x] == '-')
             {
                 ; // Do nothing
             }
@@ -768,16 +767,12 @@ bool parseLine(char *str, Settings *settings)
 
             if (d == 0.0) // strtod failed, may be string or may be 0 but let it pass
             {
-                snprintf(settingValue, sizeof(settingValue), "%s", str);
+                snprintf(settingString, sizeof(settingString), "%s", str);
             }
             else
             {
                 if (str == ptr || *skipSpace(ptr))
                     return false; // Check str pointer
-
-                // See issue https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/47
-                snprintf(settingString, sizeof(settingString), "%1.0lf",
-                         d); // Catch when the input is pure numbers (strtod was successful), store as settingString
             }
         }
     }
@@ -1424,13 +1419,13 @@ bool parseLine(char *str, Settings *settings)
     // Firmware URLs
     else if (strcmp(settingName, "otaRcFirmwareJsonUrl") == 0)
     {
-        String url = String(settingValue);
+        String url = String(settingString);
         memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
         strcpy(otaRcFirmwareJsonUrl, url.c_str());
     }
     else if (strcmp(settingName, "otaFirmwareJsonUrl") == 0)
     {
-        String url = String(settingValue);
+        String url = String(settingString);
         memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
         strcpy(otaFirmwareJsonUrl, url.c_str());
     }

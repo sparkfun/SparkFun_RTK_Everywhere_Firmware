@@ -1944,6 +1944,21 @@ void displayNoWiFi(uint16_t displayTime)
     displayMessage("No WiFi", displayTime);
 }
 
+void displayNoSSIDs(uint16_t displayTime)
+{
+  displayMessage("No SSIDs", displayTime);
+}
+
+void displayAccountExpired(uint16_t displayTime)
+{
+  displayMessage("Account Expired", displayTime);
+}
+
+void displayNotListed(uint16_t displayTime)
+{
+  displayMessage("Not Listed", displayTime);
+}
+
 void displayRoverStart(uint16_t displayTime)
 {
     if (online.display == true)
@@ -2806,16 +2821,16 @@ void paintDisplaySetup()
                 // If we are on an L-Band unit, scroll GetKeys option
                 if (online.accelerometer)
                 {
-                    printTextCenter("Bubble", 12 * 1, QW_FONT_8X16, 1, false);
-                    printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                    printTextCenter("GetKeys", 12 * 0, QW_FONT_8X16, 1, false);
+                    printTextCenter("Bubble", 12 * 0, QW_FONT_8X16, 1, false);
+                    printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
+                    printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
                     printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
                 }
                 else
                 {
-                    printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
-                    printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                    printTextCenter("GetKeys", 12 * 0, QW_FONT_8X16, 1, false);
+                    printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
+                    printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
+                    printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
                     printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
                 }
             }

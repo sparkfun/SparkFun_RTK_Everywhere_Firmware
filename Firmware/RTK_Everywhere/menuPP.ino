@@ -235,7 +235,8 @@ bool pointperfectProvisionDevice()
 
         char hardwareID[13];
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0], lbandMACAddress[1],
-                 lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4], lbandMACAddress[5]); // Get ready for JSON
+                 lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4],
+                 lbandMACAddress[5]); // Get ready for JSON
 
 #ifdef WHITELISTED_ID
         // Override ID with testing ID
@@ -325,9 +326,47 @@ bool pointperfectProvisionDevice()
 
         if (httpResponseCode != 200)
         {
-            systemPrintf("givenName: %s\r\n", givenName);
             systemPrintf("HTTP response error %d: ", httpResponseCode);
             systemPrintln(response);
+
+            // If a device has been deactivated, response will be: "HTTP response error 403: No plan for device
+            // device:9f49e97f-e6a7-4a08-8d58-ac7ecdc90e23"
+            if (response.indexOf("No plan for device") >= 0)
+            {
+                char hardwareID[13];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0],
+                         lbandMACAddress[1], lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4],
+                         lbandMACAddress[5]);
+
+                systemPrintf("This device has been deactivated. Please contact "
+                             "support@sparkfun.com to renew the L-Band "
+                             "subscription. Please reference device ID: %s\r\n",
+                             hardwareID);
+
+                displayAccountExpired(5000);
+            }
+            // If a device is not whitelisted, reponse will be: "HTTP response error 403: Device hardware code not
+            // whitelisted"
+            else if (response.indexOf("not whitelisted") >= 0)
+            {
+                char hardwareID[13];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0],
+                         lbandMACAddress[1], lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4],
+                         lbandMACAddress[5]);
+
+                systemPrintf(
+                    "This device is not white-listed. Please contact "
+                    "support@sparkfun.com to get your subscription activated. Please reference device ID: %s\r\n",
+                    hardwareID);
+
+                displayNotListed(5000);
+            }
+            else
+            {
+                systemPrintf("givenName: %s\r\n", givenName);
+                systemPrintf("HTTP response error %d: ", httpResponseCode);
+                systemPrintln(response);
+            }
             break;
         }
         else
@@ -475,7 +514,8 @@ bool checkCertificates()
     if (keyContents)
         free(keyContents);
 
-    systemPrintln("Stored certificates are valid!");
+    if (settings.debugPpCertificate)
+        systemPrintln("Stored certificates are valid!");
     return (validCertificates);
 }
 
@@ -584,46 +624,30 @@ bool pointperfectUpdateKeys()
         mqttClient.setCallback(mqttCallback);
         mqttClient.setServer(settings.pointPerfectBrokerHost, 8883);
 
-        if (settings.debugLBand == true)
-            systemPrintf("Connecting to MQTT broker: %s\r\n", settings.pointPerfectBrokerHost);
+        systemPrintf("Attempting to connect to MQTT broker: %s\r\n", settings.pointPerfectBrokerHost);
 
-        // Loop until we're connected or until the maximum retries are exceeded
-        mqttMessageReceived = false;
-        int maxTries = 3;
-        do
+        if (mqttClient.connect(settings.pointPerfectClientID) == true)
         {
-            systemPrint("MQTT connecting...");
+            // Successful connection
+            systemPrintln("MQTT connected");
 
-            // Attempt to the key broker
-            if (mqttClient.connect(settings.pointPerfectClientID))
-            {
-                // Successful connection
-                systemPrintln("connected");
-
-                // Originally the provisioning process reported the '/pp/key/Lb' channel which fails to respond with
-                // keys. Looks like they fixed it to /pp/ubx/0236/Lb.
-                mqttClient.subscribe(settings.pointPerfectLBandTopic);
-                break;
-            }
-
-            // Retry the connection attempt
-            if (--maxTries)
-            {
-                systemPrint(".");
-                if (settings.debugLBand == true)
-                    systemPrintf("failed, status code: %d try again in 1 second\r\n", mqttClient.state());
-                delay(1000);
-            }
-        } while (maxTries);
-
-        // Check for connection failure
-        if (mqttClient.connected() == false)
+            // Originally the provisioning process reported the '/pp/key/Lb' channel which fails to respond with
+            // keys. Looks like they fixed it to /pp/ubx/0236/Lb.
+            mqttClient.subscribe(settings.pointPerfectLBandTopic);
+        }
+        else
         {
-            systemPrintln("failed!");
-            break;
+            systemPrintln("Failed to connect to MQTT Broker");
+
+            // MQTT does not provide good error reporting.
+            // Throw out everything and attempt to provision the device to get better error checking.
+            pointperfectProvisionDevice();
+            break; //Skip the remaining MQTT checking, release resources
         }
 
         systemPrint("Waiting for keys");
+
+        mqttMessageReceived = false;
 
         // Wait for callback
         startTime = millis();
