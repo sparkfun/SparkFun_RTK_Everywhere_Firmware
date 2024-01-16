@@ -659,6 +659,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 // Exits by either updating firmware and resetting, or failing to connect
 void overTheAirUpdate()
 {
+#ifdef COMPILE_WIFI
     char versionString[9];
     formatFirmwareVersion(0, 0, versionString, sizeof(versionString), false);
 
@@ -689,6 +690,7 @@ void overTheAirUpdate()
         systemPrintln("OTA Update: Firmware server not available");
     else
         systemPrintln("OTA Update: OTA failed");
+#endif
 }
 
 // Start WiFi and perform the over-the-air update

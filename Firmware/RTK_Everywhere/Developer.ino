@@ -45,6 +45,10 @@ void menuNetwork() {systemPrint("**Network not compiled**");}
 void networkUpdate() {}
 void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
+void mqttClientValidateTables() {}
+void mqttClientPrintStatus() {}
+NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
+void networkUserClose(uint8_t user) {}
 
 //----------------------------------------
 // NTRIP client
