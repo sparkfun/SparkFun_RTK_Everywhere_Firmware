@@ -1298,6 +1298,7 @@ struct struct_online
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;
+    bool psram = false;    
 } online;
 
 #ifdef COMPILE_WIFI

@@ -982,6 +982,8 @@ void setup()
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
+    psramBegin(); //Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).

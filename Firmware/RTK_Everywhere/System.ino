@@ -1,3 +1,21 @@
+uint32_t psramSize = 0;
+
+void psramBegin()
+{
+    if (psramInit() == false)
+        systemPrintln("PSRAM failed to initialize");
+    else
+    {
+        online.psram = true;
+
+        psramSize = ESP.getPsramSize();
+
+        systemPrintf("PSRAM Size (bytes): %d\r\n", psramSize);
+        systemPrintf("PSRAM Size available (bytes): %d\r\n", ESP.getFreePsram());
+
+        heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
+    }
+}
 
 // Turn on indicator LEDs to verify LED function and indicate setup success
 void danceLEDs()
@@ -155,7 +173,7 @@ void checkBatteryLevels()
 }
 
 // Ping an I2C device and see if it responds
-bool i2cIsDevicePresent(TwoWire * i2cBus, uint8_t deviceAddress)
+bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
 {
     i2cBus->beginTransmission(deviceAddress);
     if (i2cBus->endTransmission() == 0)
@@ -207,8 +225,22 @@ void reportHeapNow(bool alwaysPrint)
     if (alwaysPrint || (settings.enableHeapReport == true))
     {
         lastHeapReport = millis();
-        systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
-                     xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+
+        if (online.psram == true)
+        {
+            // The following functions cause WDT reset when PSRAM is initialized on WROVER 8MB PSRAM
+            // heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+            // ESP.getPsramSize(); 
+
+            systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / Used PSRAM: %d\r\n", ESP.getFreeHeap(),
+                         xPortGetMinimumEverFreeHeapSize() - psramSize, psramSize - ESP.getFreePsram());
+        }
+        else
+        {
+            systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d / Used PSRAM: %d\r\n",
+                         ESP.getFreeHeap(), xPortGetMinimumEverFreeHeapSize(),
+                         heap_caps_get_largest_free_block(MALLOC_CAP_8BIT), ESP.getPsramSize() - ESP.getFreePsram());
+        }
     }
 }
 
@@ -703,9 +735,9 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
-const char * getHpa(double hpa, char * buffer, int length, int decimals)
+const char *getHpa(double hpa, char *buffer, int length, int decimals)
 {
-    const char * units;
+    const char *units;
 
     // Return the units
     if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
@@ -759,9 +791,8 @@ void updateAccuracyLEDs()
                 if (settings.enablePrintRoverAccuracy)
                 {
                     char temp[20];
-                    const char * units = getHpa(hpa, temp, sizeof(temp), 3);
-                    systemPrintf("Rover Accuracy (%s): %s, SIV: %d\r\n",
-                                 units, temp, gnssGetSatellitesInView());
+                    const char *units = getHpa(hpa, temp, sizeof(temp), 3);
+                    systemPrintf("Rover Accuracy (%s): %s, SIV: %d\r\n", units, temp, gnssGetSatellitesInView());
                 }
 
                 if (productVariant == RTK_SURVEYOR)
