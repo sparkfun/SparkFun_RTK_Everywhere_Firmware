@@ -1,19 +1,17 @@
-uint32_t psramSize = 0;
-
 void psramBegin()
 {
     if (psramInit() == false)
         systemPrintln("PSRAM failed to initialize");
     else
     {
-        online.psram = true;
+        if (ESP.getPsramSize() > 0)
+        {
+            online.psram = true;
 
-        psramSize = ESP.getPsramSize();
+            systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
 
-        systemPrintf("PSRAM Size (bytes): %d\r\n", psramSize);
-        systemPrintf("PSRAM Size available (bytes): %d\r\n", ESP.getFreePsram());
-
-        heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
+            heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
+        }
     }
 }
 
@@ -228,18 +226,14 @@ void reportHeapNow(bool alwaysPrint)
 
         if (online.psram == true)
         {
-            // The following functions cause WDT reset when PSRAM is initialized on WROVER 8MB PSRAM
-            // heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
-            // ESP.getPsramSize(); 
-
-            systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / Used PSRAM: %d\r\n", ESP.getFreeHeap(),
-                         xPortGetMinimumEverFreeHeapSize() - psramSize, psramSize - ESP.getFreePsram());
-        }
-        else
-        {
             systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d / Used PSRAM: %d\r\n",
                          ESP.getFreeHeap(), xPortGetMinimumEverFreeHeapSize(),
                          heap_caps_get_largest_free_block(MALLOC_CAP_8BIT), ESP.getPsramSize() - ESP.getFreePsram());
+        }
+        else
+        {
+            systemPrintf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
+                         xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
         }
     }
 }
