@@ -641,6 +641,13 @@ void beginSD()
 
             DMW_if
                 systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+            if (pin_microSD_CS == -1)
+            {
+                systemPrintln("Illegal SD CS pin assignment. Freezing.");
+                while (1)
+                    ;
+            }
+
             pinMode(pin_microSD_CS, OUTPUT);
             digitalWrite(pin_microSD_CS, HIGH); // Be sure SD is deselected
             resetSPI();                         // Re-initialize the SPI/SD interface
@@ -920,6 +927,14 @@ void pinGnssUartTask(void *pvParameters)
         serialGNSS->setRxBufferSize(
             settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
         serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+
+        if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
+        {
+            systemPrintln("Illegal UART pin assignment. Freezing.");
+            while (1)
+                ;
+        }
+
         serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
                           pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
                                             // to output NMEA over its UART at the same rate.
@@ -1410,6 +1425,13 @@ bool i2cBusInitialization(TwoWire * i2cBus, int sda, int scl, int clockKHz)
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
+    if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
+    {
+        systemPrintln("Illegal I2C pin assignment. Freezing.");
+        while (1)
+            ;
+    }
+
     // Initialize I2C bus 0
     if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
         // Update the I2C status
@@ -1417,7 +1439,15 @@ void pinI2CTask(void *pvParameters)
 
     // Initialize I2C bus 1
     if (i2c_1)
+    {
+        if (pin_I2C1_SDA == -1 || pin_I2C1_SCL == -1)
+        {
+            systemPrintln("Illegal I2C1 pin assignment. Freezing.");
+            while (1)
+                ;
+        }
         i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
+    }
 
     i2cPinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
