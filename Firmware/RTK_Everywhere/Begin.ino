@@ -94,7 +94,12 @@ void identifyBoard()
 
     // Everywhere: 10/100  -->  2973mV < 3000mV < 3025mV
     else if (idWithAdc(idValue, 10, 100))
+    {
+        //Assign UART pins before beginGnssUart
+        pin_GnssUart_RX = 12;
+        pin_GnssUart_TX = 14;
         productVariant = RTK_EVERYWHERE;
+    }
 
     // ID resistors do not exist for the following:
     //      Surveyor
@@ -527,6 +532,8 @@ void beginBoard()
     else if (productVariant == RTK_EVERYWHERE)
     {
         // No powerOnCheck
+
+        // Serial pins are set during identifyBoard()
 
         settings.enablePrintBatteryMessages = false; // No pesky battery messages
     }
