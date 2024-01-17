@@ -33,8 +33,8 @@
 #define COMPILE_SD_MMC // Comment out to remove REFERENCE_STATION microSD SD_MMC support
 // #define REF_STN_GNSS_DEBUG //Uncomment this line to output GNSS library debug messages on serialGNSS-> Ref Stn only.
 // Needs ENABLE_DEVELOPER
-#define COMPILE_UM980   // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU    // Comment out to remove IM19_IMU functionality
+#define COMPILE_UM980    // Comment out to remove UM980 functionality
+#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -45,7 +45,8 @@
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
 #define ENABLE_DEVELOPER                                                                                               \
-    true // This enables special developer modes (don't check the power button at startup). Passed in from compiler flags.
+    true // This enables special developer modes (don't check the power button at startup). Passed in from compiler
+         // flags.
 #endif   // ENABLE_DEVELOPER
 
 // This is passed in from compiler extra flags
@@ -66,7 +67,7 @@
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
-#define IDLE_COUNT_PER_SECOND 515400 //Found by empirical sketch
+#define IDLE_COUNT_PER_SECOND 515400 // Found by empirical sketch
 #define IDLE_TIME_DISPLAY_SECONDS 5
 #define MAX_IDLE_TIME_COUNT (IDLE_TIME_DISPLAY_SECONDS * IDLE_COUNT_PER_SECOND)
 #define MILLISECONDS_IN_A_SECOND 1000
@@ -139,9 +140,9 @@ int pin_gnssStatusLED = -1;
 // I2C for GNSS, battery gauge, display, accelerometer
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h>
-TwoWire * i2c_0 = &Wire;
-TwoWire * i2c_1;
-TwoWire * i2cDisplay;
+TwoWire *i2c_0 = &Wire;
+TwoWire *i2c_1;
+TwoWire *i2cDisplay;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles
@@ -177,7 +178,7 @@ SdFat *sd;
 
 #include "FileSdFatMMC.h" //Hybrid SdFat and SD_MMC file access
 
-#define platformFilePrefix      platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
+#define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
 
 FileSdFatMMC *ubxFile;                // File that all GNSS ubx messages sentences are written to
 unsigned long lastUBXLogSyncTime = 0; // Used to record to SD every half second
@@ -225,16 +226,16 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 #define MQTT_CERT_SIZE 2000
 
 #if COMPILE_NETWORK
-#endif // COMPILE_NETWORK
-#include <ArduinoJson.h>  //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
+#endif                   // COMPILE_NETWORK
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
 
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
-#define NETWORK_STOP(type)                                                                                                    \
+#define NETWORK_STOP(type)                                                                                             \
     {                                                                                                                  \
-        if (settings.debugNetworkLayer)                                                                                   \
-            systemPrintf("networkStop called by %s %d\r\n", __FILE__, __LINE__);                                          \
-        networkStop(type);                                                                                                    \
+        if (settings.debugNetworkLayer)                                                                                \
+            systemPrintf("networkStop called by %s %d\r\n", __FILE__, __LINE__);                                       \
+        networkStop(type);                                                                                             \
     }
 
 #ifdef COMPILE_WIFI
@@ -248,9 +249,9 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 #endif // COMPILE_WIFI
 
-#define OTA_FIRMWARE_JSON_URL_LENGTH    128
-//                                                                                                      1         1         1
-//            1         2         3         4         5         6         7         8         9         0         1         2
+#define OTA_FIRMWARE_JSON_URL_LENGTH 128
+//                                                                                                      1         1 1
+//            1         2         3         4         5         6         7         8         9         0         1 2
 //   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
 #define OTA_FIRMWARE_JSON_URL                                                                                          \
     "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Firmware_Binaries/main/RTK-Firmware.json"
@@ -266,15 +267,15 @@ unsigned int binBytesSent = 0;                // Tracks firmware bytes sent over
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_WIFI
-#include <ESPmDNS.h>      //Built-in.
-#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
+#include "esp_wifi.h"   //Needed for esp_wifi_set_protocol()
+#include <DNSServer.h>  //Built-in.
+#include <ESPmDNS.h>    //Built-in.
+#include <HTTPClient.h> //Built-in. Needed for ThingStream API for ZTP
+#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient
 #include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
-#include <DNSServer.h>        //Built-in.
-#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient
-#include "esp_wifi.h" //Needed for esp_wifi_set_protocol()
 
 #endif // COMPILE_WIFI
 
@@ -384,8 +385,9 @@ uint16_t ARPECEFH = 0;
 
 const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
 bool lBandCommunicationEnabled = false;
-bool lBandForceGetKeys = false; //Used to allow key update from display
-unsigned long rtcmLastPacketReceived = 0; //Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+bool lBandForceGetKeys = false; // Used to allow key update from display
+unsigned long rtcmLastPacketReceived =
+    0; // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GPS parse table
@@ -396,9 +398,9 @@ unsigned long rtcmLastPacketReceived = 0; //Monitors the last time we received R
 #define PARSE_NMEA_MESSAGES
 #define PARSE_RTCM_MESSAGES
 #define PARSE_UBLOX_MESSAGES
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
 #define PARSE_UNICORE_MESSAGES
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
 // Build the GPS message parse table
 GPS_PARSE_TABLE;
@@ -409,7 +411,7 @@ GPS_PARSE_TABLE;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-#endif  // COMPILE_UM980
+#endif                                             // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
@@ -445,7 +447,7 @@ float battChangeRate = 0.0;
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
-#define platformPrefix      platformPrefixTable[productVariant] // Sets the prefix for broadcast names
+#define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
 #include <driver/uart.h>              //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
@@ -492,7 +494,7 @@ const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter
 
 // External Display
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_Qwiic_OLED.h> //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
+#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -629,10 +631,10 @@ HardwareSerial *SerialForTilt = nullptr; // Don't instantiate until we know the 
 bool tiltSupported = false;              // Variant specific. Set at beginBoard().
 unsigned long lastTiltCheck = 0;         // Limits polling on IM19 to 5Hz
 
-#define TILT_SUPPORTED          tiltSupported
+#define TILT_SUPPORTED tiltSupported
 #else
-#define TILT_SUPPORTED          false
-#endif  // COMPILE_IM19_IMU
+#define TILT_SUPPORTED false
+#endif // COMPILE_IM19_IMU
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
@@ -762,10 +764,10 @@ RtkMode_t rtkMode; // Mode of operation
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES   33
+#define MAX_BOOT_TIME_ENTRIES 33
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
-const char * bootTimeString[MAX_BOOT_TIME_ENTRIES];
+const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Support to trackdown a system hang.
@@ -785,16 +787,16 @@ const char * bootTimeString[MAX_BOOT_TIME_ENTRIES];
 // from 0 to 1
 volatile bool deadManWalking;
 #define DMW_if if (deadManWalking)
-#define DMW_b(string)                               \
-{                                                   \
-    if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)      \
-    {                                               \
-        bootTime[bootTimeIndex] = millis();         \
-        bootTimeString[bootTimeIndex] = string;     \
-    }                                               \
-    bootTimeIndex += 1;                             \
-    DMW_if systemPrintf("%s called\r\n", string);   \
-}
+#define DMW_b(string)                                                                                                  \
+    {                                                                                                                  \
+        if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)                                                                     \
+        {                                                                                                              \
+            bootTime[bootTimeIndex] = millis();                                                                        \
+            bootTimeString[bootTimeIndex] = string;                                                                    \
+        }                                                                                                              \
+        bootTimeIndex += 1;                                                                                            \
+        DMW_if systemPrintf("%s called\r\n", string);                                                                  \
+    }
 #define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
 #define DMW_m(string) DMW_if systemPrintln(string);
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
@@ -844,15 +846,15 @@ volatile bool deadManWalking;
 // Production substitutions
 #define deadManWalking 0
 #define DMW_if if (0)
-#define DMW_b(string)                               \
-{                                                   \
-    if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)      \
-    {                                               \
-        bootTime[bootTimeIndex] = millis();         \
-        bootTimeString[bootTimeIndex] = string;     \
-    }                                               \
-    bootTimeIndex += 1;                             \
-}
+#define DMW_b(string)                                                                                                  \
+    {                                                                                                                  \
+        if (bootTimeIndex < MAX_BOOT_TIME_ENTRIES)                                                                     \
+        {                                                                                                              \
+            bootTime[bootTimeIndex] = millis();                                                                        \
+            bootTimeString[bootTimeIndex] = string;                                                                    \
+        }                                                                                                              \
+        bootTimeIndex += 1;                                                                                            \
+    }
 #define DMW_c(string)
 #define DMW_m(string)
 #define DMW_r(string)
@@ -946,7 +948,7 @@ void setup()
     systemPrintln();
 
     DMW_b("verifyTables");
-    verifyTables (); // Verify the consistency of the internal tables
+    verifyTables(); // Verify the consistency of the internal tables
 
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
@@ -982,7 +984,7 @@ void setup()
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
-    psramBegin(); //Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+    psramBegin(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
