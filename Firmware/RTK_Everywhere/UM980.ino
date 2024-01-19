@@ -19,15 +19,15 @@ void um980Begin()
 {
     // During identifyBoard(), the GNSS UART and DR pins are set
 
-    // Instantiate the library
-    um980 = new UM980();
-
     // The GNSS UART is already started. We can now pass it to the library.
     if (serialGNSS == nullptr)
     {
         systemPrintln("GNSS UART not started");
         return;
     }
+
+    // Instantiate the library
+    um980 = new UM980();
 
     // Turn on/off debug messages
     if (settings.enableGNSSdebug == true)
@@ -47,6 +47,10 @@ void um980Begin()
         }
     }
     systemPrintln("GNSS UM980 online");
+
+    // We must wait before the UM980 is ready for VERSION queries
+    // The library waits up to 1s for a response but the query is lost if the UM980 is not ready
+    delay(2000);
 
     // Check firmware version and print info
     um980PrintInfo();
