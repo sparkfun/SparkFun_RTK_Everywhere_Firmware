@@ -1038,10 +1038,7 @@ bool parseLine(char *str, Settings *settings)
         }
     }
     else if (strcmp(settingName, "profileName") == 0)
-    {
-        Serial.printf("record profileName: %s\r\n", settings->profileName);
         strcpy(settings->profileName, settingString);
-    }
     else if (strcmp(settingName, "enableNtripServer") == 0)
         settings->enableNtripServer = d;
     else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
