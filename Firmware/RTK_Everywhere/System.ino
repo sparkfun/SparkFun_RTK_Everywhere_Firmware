@@ -1,3 +1,4 @@
+//Initialize PSRAM if available
 void psramBegin()
 {
     if (psramInit() == false)
@@ -67,6 +68,29 @@ void danceLEDs()
                 delay(1);
         }
     }
+}
+
+//Start the beeper and limit its beep length using the tickerBeepUpdate task
+void beepDuration(uint16_t lengthMs)
+{
+  beepStopMs = millis() + lengthMs;
+  beepOn();
+}
+
+void beepOn()
+{
+  if (pin_beeper >= 0)
+  {
+    digitalWrite(pin_beeper, HIGH);
+  }
+}
+
+void beepOff()
+{
+  if (pin_beeper >= 0)
+  {
+    digitalWrite(pin_beeper, LOW);
+  }
 }
 
 // Update Battery level LEDs every 5s

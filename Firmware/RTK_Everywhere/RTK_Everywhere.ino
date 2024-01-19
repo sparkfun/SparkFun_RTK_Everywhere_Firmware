@@ -138,6 +138,7 @@ int pin_gnssStatusLED = -1;
 
 int pin_powerAdapterDetect = -1;
 int pin_usbSelect = -1;
+int pin_beeper = -1;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display, accelerometer
@@ -522,6 +523,9 @@ float bluetoothLedTaskPace33Hz = 0.03;
 
 Ticker gnssLedTask;
 const int gnssTaskUpdatesHz = 20; // Update GNSS LED 20 times a second
+
+Ticker beepTask;
+const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest duration = 50ms.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Accelerometer for bubble leveling
@@ -761,6 +765,8 @@ unsigned long shutdownNoChargeTimer = 0;
 unsigned long um980BaseStartTimer = 0; // Tracks how long the base averaging mode has been running
 
 RtkMode_t rtkMode; // Mode of operation
+
+unsigned long beepStopMs = 0; // Time at which to turn off beeper
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1357,7 +1363,7 @@ void rtcUpdate()
                 if (gnssIsValidTime() == true &&
                     gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
-                
+
                 if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
 

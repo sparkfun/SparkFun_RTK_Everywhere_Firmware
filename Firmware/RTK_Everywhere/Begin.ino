@@ -468,7 +468,6 @@ void beginBoard()
                 settings.useI2cForLbandCorrections = false;
         }
     }
-#ifdef COMPILE_IM19_IMU
     else if (productVariant == RTK_TORCH)
     {
         // I2C pins have already been assigned
@@ -480,13 +479,14 @@ void beginBoard()
 
         pin_batteryLevelLED_Red = 0;
 
-        pin_IMU_RX = 14; //Pin 16 is not available on Torch due to PSRAM
+        pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
+        pin_beeper = 33;
 
         DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT);
@@ -499,6 +499,11 @@ void beginBoard()
         pinMode(pin_usbSelect, OUTPUT);
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
+        pinMode(pin_beeper, OUTPUT);
+        beepOff(); // Turn off sound
+
+        beepDuration(250); // Signal power on state
+
         settings.enableSD = false; // SD does not exist on the Torch
 
         tiltSupported = true; // Allow tiltUpdate() to run
@@ -509,7 +514,6 @@ void beginBoard()
 
         fuelGaugeType = FUEL_GAUGE_TYPE_BQ40Z50;
     }
-#endif // COMPILE_IM19_IMU
     else if (productVariant == REFERENCE_STATION)
     {
         pin_GnssUart_RX = 16;
@@ -1106,6 +1110,13 @@ void beginLEDs()
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
+
+    // Start ticker task for controlling the beeper
+    if (productVariant == RTK_TORCH)
+    {
+        beepTask.detach();                                          // Turn off any previous task
+        beepTask.attach(1.0 / beepTaskUpdatesHz, tickerBeepUpdate); // Rate in seconds, callback
+    }
 }
 
 // Configure the battery fuel gauge
@@ -1151,7 +1162,6 @@ void beginFuelGauge()
     }
     else if (fuelGaugeType == FUEL_GAUGE_TYPE_BQ40Z50)
     {
-        
     }
 }
 

@@ -1154,6 +1154,22 @@ void tickerGnssLedUpdate()
     }
 }
 
+// Control the length of time the beeper makes noise
+void tickerBeepUpdate()
+{
+  if (productVariant == RTK_TORCH)
+  {
+    if (beepStopMs > 0)
+    {
+      if (millis() >= beepStopMs)
+      {
+        beepStopMs = 0; //Signal the beeper is off
+        beepOff();
+      }
+    }
+  }
+}
+
 // For RTK Express and RTK Facet, monitor momentary buttons
 void ButtonCheckTask(void *e)
 {
