@@ -48,10 +48,6 @@ void um980Begin()
     }
     systemPrintln("GNSS UM980 online");
 
-    // We must wait before the UM980 is ready for VERSION queries
-    // The library waits up to 1s for a response but the query is lost if the UM980 is not ready
-    delay(2000);
-
     // Check firmware version and print info
     um980PrintInfo();
 
