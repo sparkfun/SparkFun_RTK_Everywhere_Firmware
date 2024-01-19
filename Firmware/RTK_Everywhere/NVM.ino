@@ -1632,7 +1632,7 @@ void loadProfileNumber()
     {
         log_d("profileNumber.txt not found");
         settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);            // Record profile
+        recordProfileNumber(0);             // Record profile
     }
     else
     {
@@ -1645,7 +1645,7 @@ void loadProfileNumber()
     {
         log_d("ProfileNumber invalid. Going to zero.");
         settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);            // Record profile
+        recordProfileNumber(0);             // Record profile
     }
 
     log_d("Using profile #%d", profileNumber);
@@ -1804,7 +1804,7 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
     if (fileToRead)
     {
         int length = fileToRead.size();
-        int bytesRead = fileToRead.read((uint8_t *)fileContents, length);  // Read contents into pointer
+        int bytesRead = fileToRead.read((uint8_t *)fileContents, length); // Read contents into pointer
         fileToRead.close();
         if (length == bytesRead)
         {

@@ -157,4 +157,4 @@ void w5500DisableSocketInterrupt(uint8_t sockIndex)
     w5500write(SPI, pin_Ethernet_CS, w5500SIMR, w5500CommonRegister, &SIMR, 1); // Disable the socket interrupt
 }
 
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET

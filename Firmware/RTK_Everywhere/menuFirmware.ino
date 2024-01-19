@@ -10,15 +10,12 @@ menuFirmware.ino
 
 #ifdef COMPILE_OTA_AUTO
 
-static const char * const otaStateNames[] =
-{
-    "OTA_STATE_OFF",
-    "OTA_STATE_START_WIFI",
-    "OTA_STATE_WAIT_FOR_WIFI",
-    "OTA_STATE_GET_FIRMWARE_VERSION",
-    "OTA_STATE_CHECK_FIRMWARE_VERSION",
-    "OTA_STATE_UPDATE_FIRMWARE"
-};
+static const char *const otaStateNames[] = {"OTA_STATE_OFF",
+                                            "OTA_STATE_START_WIFI",
+                                            "OTA_STATE_WAIT_FOR_WIFI",
+                                            "OTA_STATE_GET_FIRMWARE_VERSION",
+                                            "OTA_STATE_CHECK_FIRMWARE_VERSION",
+                                            "OTA_STATE_UPDATE_FIRMWARE"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
 
 //----------------------------------------
@@ -29,7 +26,7 @@ static bool otaBluetoothOnline;
 static uint32_t otaLastUpdateCheck;
 static OtaState otaState;
 
-#endif  // COMPILE_OTA_AUTO
+#endif // COMPILE_OTA_AUTO
 
 //----------------------------------------
 // Menu
@@ -173,7 +170,7 @@ void menuFirmware()
                     if (previouslyConnected == false)
                         WIFI_STOP();
 
-                    if(bluetoothOriginallyOnline == true)
+                    if (bluetoothOriginallyOnline == true)
                         bluetoothStart(); // Restart BT according to settings
                 }
             } // End wifiNetworkCount() check
@@ -524,7 +521,7 @@ void updateFromSD(const char *firmwareFileName)
 #ifdef COMPILE_SD_MMC
                 else
                     SD_MMC.remove(firmwareFileName);
-#endif  // COMPILE_SD_MMC
+#endif // COMPILE_SD_MMC
                 gnssFactoryReset();
             }
 
@@ -582,7 +579,7 @@ void getFirmwareVersion(char *buffer, int bufferLength, bool includeDate)
 
 const char *otaGetUrl()
 {
-    const char * url;
+    const char *url;
 
     // Return the user specified URL if it was specified
     url = enableRCFirmware ? otaRcFirmwareJsonUrl : otaFirmwareJsonUrl;
@@ -896,7 +893,7 @@ int mapMonthName(char *mmm)
 #ifdef COMPILE_OTA_AUTO
 
 // Get the OTA state name
-const char * otaGetStateName(OtaState state, char * string)
+const char *otaGetStateName(OtaState state, char *string)
 {
     if (state < OTA_STATE_MAX)
         return otaStateNames[state];
@@ -909,10 +906,10 @@ void otaSetState(OtaState newState)
 {
     char string1[40];
     char string2[40];
-    const char * arrow;
-    const char * asterisk;
-    const char * initialState;
-    const char * endingState;
+    const char *arrow;
+    const char *asterisk;
+    const char *initialState;
+    const char *endingState;
 
     // Display the state transition
     if (settings.debugFirmwareUpdate)
@@ -1075,10 +1072,9 @@ void otaAutoUpdate()
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
-                //Allow update if locally compiled developer version
-                if ((isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true)
-                    || (currentVersion[0] == 'd')
-                    || (FIRMWARE_VERSION_MAJOR == 99))
+                // Allow update if locally compiled developer version
+                if ((isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true) ||
+                    (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
                     if (settings.debugFirmwareUpdate)
                         systemPrintf("Firmware update detected new firmware version %s\r\n", reportedVersion);
@@ -1123,4 +1119,4 @@ void otaVerifyTables()
         reportFatalError("Fix otaStateNames table to match OtaState");
 }
 
-#endif  // COMPILE_OTA_AUTO
+#endif // COMPILE_OTA_AUTO

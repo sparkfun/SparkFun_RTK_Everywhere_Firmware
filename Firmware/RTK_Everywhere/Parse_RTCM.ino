@@ -10,7 +10,7 @@ Parse_RTCM.ino
 // Macros
 //----------------------------------------
 
-#define COMPUTE_CRC24Q(parse, data)  (((parse)->crc << 8) ^ rtk_crc24q[data ^ (((parse)->crc >> 16) & 0xff)])
+#define COMPUTE_CRC24Q(parse, data) (((parse)->crc << 8) ^ rtk_crc24q[data ^ (((parse)->crc >> 16) & 0xff)])
 
 //----------------------------------------
 // RTCM parse routines

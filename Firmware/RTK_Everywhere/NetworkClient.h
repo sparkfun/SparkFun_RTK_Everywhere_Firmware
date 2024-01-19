@@ -6,17 +6,15 @@ extern uint8_t networkGetType(uint8_t user);
 class NetworkClient : public Client
 {
   protected:
-
-    Client * _client; // Ethernet or WiFi client
+    Client *_client; // Ethernet or WiFi client
     bool _friendClass;
     uint8_t _networkType;
 
   public:
-
     //------------------------------
     // Create the network client
     //------------------------------
-    NetworkClient(Client * client, uint8_t networkType)
+    NetworkClient(Client *client, uint8_t networkType)
     {
         _friendClass = true;
         _networkType = networkType;
@@ -34,9 +32,9 @@ class NetworkClient : public Client
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
             _client = new WiFiClient;
-#else   // COMPILE_WIFI
-            _client = nullptr;
-#endif  // COMPILE_WIFI
+#else  // COMPILE_WIFI
+        _client = nullptr;
+#endif // COMPILE_WIFI
     };
 
     //------------------------------
@@ -168,7 +166,7 @@ class NetworkClient : public Client
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
             return ((WiFiClient *)_client)->remoteIP();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         return IPAddress((uint32_t)0);
     }
 
@@ -185,7 +183,7 @@ class NetworkClient : public Client
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
             return ((WiFiClient *)_client)->remotePort();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         return 0;
     }
 
@@ -222,12 +220,11 @@ class NetworkClient : public Client
     }
 
   protected:
-
     //------------------------------
     // Return the IP address
     //------------------------------
 
-    uint8_t* rawIPAddress(IPAddress& addr)
+    uint8_t *rawIPAddress(IPAddress &addr)
     {
         return Client::rawIPAddress(addr);
     }
@@ -242,23 +239,19 @@ class NetworkClient : public Client
     friend class NetworkWiFiSslClient;
 };
 
-#ifdef  COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
 class NetworkEthernetClient : public NetworkClient
 {
   private:
-
     EthernetClient _ethernetClient;
 
   public:
-
-    NetworkEthernetClient() :
-        NetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
+    NetworkEthernetClient() : NetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
     {
     }
 
-    NetworkEthernetClient(EthernetClient& client) :
-        _ethernetClient{client},
-        NetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
+    NetworkEthernetClient(EthernetClient &client)
+        : _ethernetClient{client}, NetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
     {
     }
 
@@ -267,25 +260,20 @@ class NetworkEthernetClient : public NetworkClient
         this->~NetworkClient();
     }
 };
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
-#ifdef  COMPILE_WIFI
+#ifdef COMPILE_WIFI
 class NetworkWiFiClient : public NetworkClient
 {
   protected:
-
     WiFiClient _client;
 
   public:
-
-    NetworkWiFiClient() :
-        NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkWiFiClient() : NetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
-    NetworkWiFiClient(WiFiClient& client) :
-        _client{client},
-        NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkWiFiClient(WiFiClient &client) : _client{client}, NetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
@@ -298,20 +286,14 @@ class NetworkWiFiClient : public NetworkClient
 class NetworkSecureWiFiClient : public NetworkClient
 {
   protected:
-
     WiFiClientSecure _client;
 
   public:
-
-    NetworkSecureWiFiClient() :
-        _client{WiFiClientSecure()},
-        NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkSecureWiFiClient() : _client{WiFiClientSecure()}, NetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
-    NetworkSecureWiFiClient(WiFiClient& client) :
-        _client{client},
-        NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkSecureWiFiClient(WiFiClient &client) : _client{client}, NetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
@@ -320,7 +302,7 @@ class NetworkSecureWiFiClient : public NetworkClient
         this->~NetworkClient();
     }
 
-    WiFiClientSecure * getClient()
+    WiFiClientSecure *getClient()
     {
         return &_client;
     }
@@ -350,32 +332,32 @@ class NetworkSecureWiFiClient : public NetworkClient
         _client.setCertificate(client_ca);
     }
 
-    void setPrivateKey (const char *private_key)
+    void setPrivateKey(const char *private_key)
     {
         _client.setPrivateKey(private_key);
     }
 
-    bool loadCACert(Stream& stream, size_t size)
+    bool loadCACert(Stream &stream, size_t size)
     {
         return _client.loadCACert(stream, size);
     }
 
-    void setCACertBundle(const uint8_t * bundle)
+    void setCACertBundle(const uint8_t *bundle)
     {
         _client.setCACertBundle(bundle);
     }
 
-    bool loadCertificate(Stream& stream, size_t size)
+    bool loadCertificate(Stream &stream, size_t size)
     {
         return _client.loadCertificate(stream, size);
     }
 
-    bool loadPrivateKey(Stream& stream, size_t size)
+    bool loadPrivateKey(Stream &stream, size_t size)
     {
         return _client.loadPrivateKey(stream, size);
     }
 
-    bool verify(const char* fingerprint, const char* domain_name)
+    bool verify(const char *fingerprint, const char *domain_name)
     {
         return _client.verify(fingerprint, domain_name);
     }
@@ -390,17 +372,17 @@ class NetworkSecureWiFiClient : public NetworkClient
         _client.setAlpnProtocols(alpn_protos);
     }
 
-/*
-    const mbedtls_x509_crt* getPeerCertificate()
-    {
-        return mbedtls_ssl_get_peer_cert(&_client.sslclient->ssl_ctx);
-    }
+    /*
+        const mbedtls_x509_crt* getPeerCertificate()
+        {
+            return mbedtls_ssl_get_peer_cert(&_client.sslclient->ssl_ctx);
+        }
 
-    bool getFingerprintSHA256(uint8_t sha256_result[32])
-    {
-        return get_peer_fingerprint(_client.sslclient, sha256_result);
-    }
-*/
+        bool getFingerprintSHA256(uint8_t sha256_result[32])
+        {
+            return get_peer_fingerprint(_client.sslclient, sha256_result);
+        }
+    */
 
     int setTimeout(uint32_t seconds)
     {
@@ -413,6 +395,6 @@ class NetworkSecureWiFiClient : public NetworkClient
     }
 };
 
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
-#endif  // __NETWORK_CLIENT_H__
+#endif // __NETWORK_CLIENT_H__

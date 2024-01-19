@@ -250,7 +250,7 @@ void menuGNSS()
         else if ((incoming == 7) && settings.enableNtripClient == true)
         {
             // Arbitrary 99k max port #
-            if (getNewSetting("Enter new Caster Port", 1, 99999, (int*)&settings.ntripClient_CasterPort) ==
+            if (getNewSetting("Enter new Caster Port", 1, 99999, (int *)&settings.ntripClient_CasterPort) ==
                 INPUT_RESPONSE_VALID)
             {
                 restartRover = true;

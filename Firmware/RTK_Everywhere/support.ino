@@ -934,9 +934,9 @@ void printPartitionTable(void)
     {
         do
         {
-            const esp_partition_t* p = esp_partition_get(pi);
-            systemPrintf("|  %02x  | %02x  | 0x%06X | 0x%06X | %-16s |\r\n",
-                         p->type, p->subtype, p->address, p->size, p->label);
+            const esp_partition_t *p = esp_partition_get(pi);
+            systemPrintf("|  %02x  | %02x  | 0x%06X | 0x%06X | %-16s |\r\n", p->type, p->subtype, p->address, p->size,
+                         p->label);
         } while (pi = (esp_partition_next(pi)));
     }
 }
@@ -948,7 +948,7 @@ bool findSpiffsPartition(void)
     {
         do
         {
-            const esp_partition_t* p = esp_partition_get(pi);
+            const esp_partition_t *p = esp_partition_get(pi);
             if (strcmp(p->label, "spiffs") == 0)
                 return true;
         } while (pi = (esp_partition_next(pi)));

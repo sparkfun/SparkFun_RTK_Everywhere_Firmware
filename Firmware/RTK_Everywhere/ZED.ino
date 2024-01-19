@@ -273,8 +273,7 @@ bool zedConfigure()
     if (settings.enableGNSSdebug)
     {
 #if defined(REF_STN_GNSS_DEBUG)
-        if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION)
-            || (productVariant == RTK_EVERYWHERE)))
+        if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)))
             theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
         else
 #endif                                              // REF_STN_GNSS_DEBUG
@@ -1112,7 +1111,8 @@ bool zedEnableLBandCommunication()
 
 #ifdef COMPILE_L_BAND
 
-    response &= theGNSS->setRXMCORcallbackPtr(&checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
+    response &= theGNSS->setRXMCORcallbackPtr(
+        &checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
 
     if (productVariant == RTK_FACET_LBAND_DIRECT)
     {
@@ -1140,10 +1140,12 @@ bool zedEnableLBandCommunication()
             i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback to push raw PMP over I2C
 
             response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
 
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0);         // Disable UBX output on NEO's UART2
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
         }
         else // Setup ZED to NEO serial communication
         {
@@ -1152,7 +1154,8 @@ bool zedEnableLBandCommunication()
             i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback to push raw PMP over I2C
 
             response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP on NEO's I2C port
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP on NEO's I2C port
 
             response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 1);         // Enable UBX output on UART2
             response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 1); // Output UBX-RXM-PMP on UART2
@@ -1379,8 +1382,7 @@ void zedSaveConfiguration()
 void zedEnableDebugging()
 {
 #if defined(REF_STN_GNSS_DEBUG)
-    if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION)
-        || (productVariant == RTK_EVERYWHERE)))
+    if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)))
         theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
     else
 #endif                                          // REF_STN_GNSS_DEBUG
@@ -1406,9 +1408,8 @@ void zedEnableGgaForNtrip()
     if (measurementFrequency < 0.2)
         measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
     log_d("Adjusting GGA setting to %f", measurementFrequency);
-    theGNSS->setVal8(
-        UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
-        measurementFrequency); // Enable GGA over I2C. Tell the module to output GGA every second
+    theGNSS->setVal8(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
+                     measurementFrequency); // Enable GGA over I2C. Tell the module to output GGA every second
 }
 
 // Enable all the valid messages for this platform
@@ -1640,7 +1641,7 @@ bool zedSetConstellations(bool sendCompleteBatch)
 
 uint16_t zedFileBufferAvailable()
 {
-    return(theGNSS->fileBufferAvailable());
+    return (theGNSS->fileBufferAvailable());
 }
 
 uint16_t zedRtcmBufferAvailable()
@@ -1655,7 +1656,8 @@ uint16_t zedRtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 
 uint16_t zedExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
 {
-    theGNSS->extractFileBufferData(fileBuffer, fileBytesToRead); //TODO Does extractFileBufferData not return the bytes read?
+    theGNSS->extractFileBufferData(fileBuffer,
+                                   fileBytesToRead); // TODO Does extractFileBufferData not return the bytes read?
     return (1);
 }
 
@@ -1666,7 +1668,8 @@ bool zedDisableLBandCommunication()
 
 #ifdef COMPILE_L_BAND
     response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
-    response &= theGNSS->setRXMCORcallbackPtr(nullptr); // Disable callback to check if the PMP data is being decrypted successfully
+    response &= theGNSS->setRXMCORcallbackPtr(
+        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
 
     if (productVariant == RTK_FACET_LBAND_DIRECT)
     {
@@ -1680,7 +1683,8 @@ bool zedDisableLBandCommunication()
         if (settings.useI2cForLbandCorrections == true)
         {
             response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
         }
         else // Setup ZED to NEO serial communication
         {

@@ -859,8 +859,7 @@ void menuOperation()
                      settings.rtcmTimeoutBeforeUsingLBand_s);
 
         // Measurement scale
-        systemPrintf("13) Toggle printed measurement scale: %s\r\n",
-                     measurementScaleName[settings.measurementScale]);
+        systemPrintf("13) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
 
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
@@ -1431,7 +1430,7 @@ void printCurrentConditions()
 
         float hpa = gnssGetHorizontalAccuracy();
         char temp[20];
-        const char * units = getHpa(hpa, temp, sizeof(temp), 3);
+        const char *units = getHpa(hpa, temp, sizeof(temp), 3);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");

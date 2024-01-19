@@ -938,7 +938,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enableTiltCompensation", settings.enableTiltCompensation);
     stringRecord(newSettings, "tiltPoleLength", settings.tiltPoleLength, 3);
 
-    //Add new settings above this line <--------------------------->
+    // Add new settings above this line <--------------------------->
 
     // Add ECEF and Geodetic station data to the end of settings
     for (int index = 0; index < COMMON_COORDINATES_MAX_STATIONS; index++) // Arbitrary 50 station limit

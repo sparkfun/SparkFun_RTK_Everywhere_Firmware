@@ -252,8 +252,7 @@ bool pointperfectProvisionDevice()
         // Build the givenName:   Name vxx.yy AABBCCDD1122
         // Get ready for JSON
         memset(givenName, 0, sizeof(givenName));
-        snprintf(givenName, sizeof(givenName), "%s %s - %s",
-                 platformProvisionTable[productVariant], versionString,
+        snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
                  hardwareID);
 
         // Verify the givenName
@@ -642,7 +641,7 @@ bool pointperfectUpdateKeys()
             // MQTT does not provide good error reporting.
             // Throw out everything and attempt to provision the device to get better error checking.
             pointperfectProvisionDevice();
-            break; //Skip the remaining MQTT checking, release resources
+            break; // Skip the remaining MQTT checking, release resources
         }
 
         systemPrint("Waiting for keys");
@@ -1076,11 +1075,11 @@ void pointperfectApplyKeys()
             theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
 
             theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                            3); // Set the differential mode - ambiguities are fixed whenever possible
+                             3); // Set the differential mode - ambiguities are fixed whenever possible
 
             bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                         settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                         nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+                                                          settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                          nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
 
             if (response == false)
                 systemPrintln("setDynamicSPARTNKeys failed");
@@ -1160,13 +1159,15 @@ void beginLBand()
     // If we have a fix, check which frequency to use
     if (gnssIsFixed())
     {
-        if ((gnssGetLongitude() > -125 && gnssGetLongitude() < -67) && (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
+        if ((gnssGetLongitude() > -125 && gnssGetLongitude() < -67) &&
+            (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
         {
             if (settings.debugLBand == true)
                 systemPrintln("Setting L-Band to US");
             settings.LBandFreq = 1556290000; // We are in US band
         }
-        else if ((gnssGetLongitude() > -25 && gnssGetLongitude() < 70) && (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
+        else if ((gnssGetLongitude() > -25 && gnssGetLongitude() < 70) &&
+                 (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
         {
             if (settings.debugLBand == true)
                 systemPrintln("Setting L-Band to EU");
@@ -1198,7 +1199,6 @@ void beginLBand()
     response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
     response &=
         i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Diasable UBX-RXM-PMP on UART1. Not used.
-
 
     response &= i2cLBand.sendCfgValset();
 

@@ -159,24 +159,20 @@ enum NTRIPClientState
     NTRIP_CLIENT_WAIT_RESPONSE,     // Wait for a response from the NTRIP caster
     NTRIP_CLIENT_CONNECTED,         // Connected to the NTRIP caster
     // Insert new states here
-    NTRIP_CLIENT_STATE_MAX          // Last entry in the state list
+    NTRIP_CLIENT_STATE_MAX // Last entry in the state list
 };
 
-const char * const ntripClientStateName[] =
-{
-    "NTRIP_CLIENT_OFF",
-    "NTRIP_CLIENT_ON",
-    "NTRIP_CLIENT_NETWORK_STARTED",
-    "NTRIP_CLIENT_NETWORK_CONNECTED",
-    "NTRIP_CLIENT_CONNECTING",
-    "NTRIP_CLIENT_WAIT_RESPONSE",
-    "NTRIP_CLIENT_CONNECTED"
-};
+const char *const ntripClientStateName[] = {"NTRIP_CLIENT_OFF",
+                                            "NTRIP_CLIENT_ON",
+                                            "NTRIP_CLIENT_NETWORK_STARTED",
+                                            "NTRIP_CLIENT_NETWORK_CONNECTED",
+                                            "NTRIP_CLIENT_CONNECTING",
+                                            "NTRIP_CLIENT_WAIT_RESPONSE",
+                                            "NTRIP_CLIENT_CONNECTED"};
 
 const int ntripClientStateNameEntries = sizeof(ntripClientStateName) / sizeof(ntripClientStateName[0]);
 
-const RtkMode_t ntripClientMode = RTK_MODE_ROVER
-                                | RTK_MODE_BASE_SURVEY_IN;
+const RtkMode_t ntripClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 
 //----------------------------------------
 // Locals
@@ -197,7 +193,7 @@ static int ntripClientConnectionAttemptsTotal; // Count the number of connection
 //  * Measure the connection response time
 //  * Receive NTRIP data timeout
 static uint32_t ntripClientTimer;
-static uint32_t ntripClientStartTime;          // For calculating uptime
+static uint32_t ntripClientStartTime; // For calculating uptime
 
 // Throttle GGA transmission to Caster to 1 report every 5 seconds
 unsigned long lastGGAPush;
@@ -224,8 +220,7 @@ bool ntripClientConnect()
     }
 
     if (settings.debugNtripClientState)
-        systemPrintf("NTRIP Client connecting to %s:%d\r\n",
-                     settings.ntripClient_CasterHost,
+        systemPrintf("NTRIP Client connecting to %s:%d\r\n", settings.ntripClient_CasterHost,
                      settings.ntripClient_CasterPort);
 
     int connectResponse = ntripClient->connect(settings.ntripClient_CasterHost, settings.ntripClient_CasterPort);
@@ -233,8 +228,7 @@ bool ntripClientConnect()
     if (connectResponse < 1)
     {
         if (settings.debugNtripClientState)
-            systemPrintf("NTRIP Client connection to NTRIP caster %s:%d failed\r\n",
-                         settings.ntripClient_CasterHost,
+            systemPrintf("NTRIP Client connection to NTRIP caster %s:%d failed\r\n", settings.ntripClient_CasterHost,
                          settings.ntripClient_CasterPort);
         return false;
     }
@@ -391,8 +385,8 @@ void ntripClientPrintStatus()
     {
         systemPrint("NTRIP Client ");
         ntripClientPrintStateSummary();
-        systemPrintf(" - %s/%s:%d", settings.ntripClient_CasterHost,
-                     settings.ntripClient_MountPoint, settings.ntripClient_CasterPort);
+        systemPrintf(" - %s/%s:%d", settings.ntripClient_CasterHost, settings.ntripClient_MountPoint,
+                     settings.ntripClient_CasterPort);
 
         if (ntripClientState == NTRIP_CLIENT_CONNECTED)
             // Use ntripClientTimer since it gets reset after each successful data
@@ -418,8 +412,8 @@ void ntripClientPrintStatus()
         milliseconds %= MILLISECONDS_IN_A_SECOND;
 
         systemPrint(" Uptime: ");
-        systemPrintf("%d %02d:%02d:%02d.%03lld (Reconnects: %d)\r\n",
-                     days, hours, minutes, seconds, milliseconds, ntripClientConnectionAttemptsTotal);
+        systemPrintf("%d %02d:%02d:%02d.%03lld (Reconnects: %d)\r\n", days, hours, minutes, seconds, milliseconds,
+                     ntripClientConnectionAttemptsTotal);
     }
 }
 
@@ -618,15 +612,15 @@ void ntripClientUpdate()
                 {
                     // Assume service not available
                     if (ntripClientConnectLimitReached()) // Updates ntripClientConnectionAttemptTimeout
-                        systemPrintln("NTRIP caster failed to connect. Do you have your caster address and port correct?");
+                        systemPrintln(
+                            "NTRIP caster failed to connect. Do you have your caster address and port correct?");
                 }
                 else
                 {
                     // Socket opened to NTRIP system
                     if (settings.debugNtripClientState)
                         systemPrintf("NTRIP Client waiting for response from %s:%d\r\n",
-                                     settings.ntripClient_CasterHost,
-                                     settings.ntripClient_CasterPort);
+                                     settings.ntripClient_CasterHost, settings.ntripClient_CasterPort);
                     ntripClientSetState(NTRIP_CLIENT_WAIT_RESPONSE);
                 }
             }
@@ -671,14 +665,16 @@ void ntripClientUpdate()
                     systemPrintf("NTRIP Client connected to caster but caster responded with banned error: %s\r\n",
                                  response);
 
-                    ntripClientConnectLimitReached(); //Re-attempted after a period of time. Shuts down NTRIP Client if limit reached.
+                    ntripClientConnectLimitReached(); // Re-attempted after a period of time. Shuts down NTRIP Client if
+                                                      // limit reached.
                 }
                 else if (strcasestr(response, "sandbox") != nullptr)
                 {
                     systemPrintf("NTRIP Client connected to caster but caster responded with sandbox error: %s\r\n",
                                  response);
 
-                    ntripClientConnectLimitReached(); //Re-attempted after a period of time. Shuts down NTRIP Client if limit reached.
+                    ntripClientConnectLimitReached(); // Re-attempted after a period of time. Shuts down NTRIP Client if
+                                                      // limit reached.
                 }
                 else if (strcasestr(response, "SOURCETABLE") != nullptr)
                 {
@@ -733,9 +729,9 @@ void ntripClientUpdate()
             else if (strstr(response, "401") != nullptr)
             {
                 // Look for '401 Unauthorized'
-                systemPrintf(
-                    "NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials are correct?\r\n",
-                    response);
+                systemPrintf("NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials "
+                             "are correct?\r\n",
+                             response);
 
                 // Stop NTRIP client operations
                 ntripClientShutdown();
@@ -772,8 +768,8 @@ void ntripClientUpdate()
             // connection.  However increasing backoff delays should be
             // added when the NTRIP caster fails after a short connection
             // interval.
-            if (((millis() - ntripClientStartTime) > NTRIP_CLIENT_CONNECTION_TIME)
-                && (ntripClientConnectionAttempts || ntripClientConnectionAttemptTimeout))
+            if (((millis() - ntripClientStartTime) > NTRIP_CLIENT_CONNECTION_TIME) &&
+                (ntripClientConnectionAttempts || ntripClientConnectionAttemptTimeout))
             {
                 // After a long connection period, reset the attempt counter
                 ntripClientConnectionAttempts = 0;
@@ -800,8 +796,8 @@ void ntripClientUpdate()
                         seconds -= hours * SECONDS_IN_AN_HOUR;
                         minutes = seconds / SECONDS_IN_A_MINUTE;
                         seconds -= minutes * SECONDS_IN_A_MINUTE;
-                        systemPrintf("NTRIP Client timeout receiving data at %d:%02d:%02d\r\n",
-                                     hours, minutes, seconds);
+                        systemPrintf("NTRIP Client timeout receiving data at %d:%02d:%02d\r\n", hours, minutes,
+                                     seconds);
                     }
                     else
                         systemPrintln("NTRIP Client timeout receiving data");
@@ -823,15 +819,15 @@ void ntripClientUpdate()
                         // Restart the NTRIP receive data timer
                         ntripClientTimer = millis();
 
-                        // Record the arrival of RTCM from the WiFi connection. This resets the RTCM timeout used on the L-Band.
+                        // Record the arrival of RTCM from the WiFi connection. This resets the RTCM timeout used on the
+                        // L-Band.
                         rtcmLastPacketReceived = millis();
 
                         // Push RTCM to GNSS module over I2C / SPI
                         gnssPushRawData(rtcmData, rtcmCount);
                         netIncomingRTCM = true;
 
-                        if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA))
-                            && (!inMainMenu))
+                        if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
                         {
                             PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
                             systemPrintf("NTRIP Client received %d RTCM bytes, pushed to ZED\r\n", rtcmCount);
@@ -876,4 +872,4 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData)
     }
 }
 
-#endif  // COMPILE_NETWORK
+#endif // COMPILE_NETWORK

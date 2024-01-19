@@ -475,7 +475,7 @@ void menuSensorFusion()
         {
             double yaw;
             // 0 to 36,000
-            if(getNewSetting("Enter yaw alignment in degrees", 0.00, 360.0, &yaw) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter yaw alignment in degrees", 0.00, 360.0, &yaw) == INPUT_RESPONSE_VALID)
             {
                 settings.imuYaw = yaw * 100; // 56.44 to 5644
             }
@@ -483,7 +483,7 @@ void menuSensorFusion()
         else if (settings.enableSensorFusion == true && settings.autoIMUmountAlignment == false && incoming == 4)
         {
             double pitch;
-            if(getNewSetting("Enter pitch alignment in degrees", -90.00, 90.0, &pitch) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter pitch alignment in degrees", -90.00, 90.0, &pitch) == INPUT_RESPONSE_VALID)
             {
                 settings.imuPitch = pitch * 100; // 56.44 to 5644
             }
@@ -491,7 +491,7 @@ void menuSensorFusion()
         else if (settings.enableSensorFusion == true && settings.autoIMUmountAlignment == false && incoming == 5)
         {
             double roll;
-            if(getNewSetting("Enter roll alignment in degrees", -180.00, 180.0, &roll) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter roll alignment in degrees", -180.00, 180.0, &roll) == INPUT_RESPONSE_VALID)
             {
                 settings.imuRoll = roll * 100; // 56.44 to 5644
             }

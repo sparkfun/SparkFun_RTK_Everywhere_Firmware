@@ -180,8 +180,9 @@ void bluetoothStart()
         if (strlen(deviceName) > 28)
         {
             if (ENABLE_DEVELOPER)
-                systemPrintf("Warning! The Bluetooth device name '%s' is %d characters long. It may not work in BLE mode.\r\n", deviceName,
-                             strlen(deviceName));
+                systemPrintf(
+                    "Warning! The Bluetooth device name '%s' is %d characters long. It may not work in BLE mode.\r\n",
+                    deviceName, strlen(deviceName));
         }
 
         // Select Bluetooth setup
@@ -313,7 +314,7 @@ void bluetoothTest(bool runTest)
 
             serialGNSS->begin(115200 * 2, SERIAL_8N1, pin_GnssUart_RX,
                               pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
-                                             // configured to output NMEA over its UART at the same rate.
+                                                // configured to output NMEA over its UART at the same rate.
 
             SFE_UBLOX_GNSS_SERIAL myGNSS;
             if (myGNSS.begin(*serialGNSS) == true) // begin() attempts 3 connections
@@ -328,7 +329,7 @@ void bluetoothTest(bool runTest)
 
             serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
                               pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
-                                             // configured to output NMEA over its UART at the same rate.
+                                                // configured to output NMEA over its UART at the same rate.
 
             tasksStartGnssUart(); // Return to normal operation
         }

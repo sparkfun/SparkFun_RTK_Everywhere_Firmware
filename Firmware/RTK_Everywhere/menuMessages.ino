@@ -109,8 +109,9 @@ void menuLog()
         }
         else if (incoming == 3 && settings.enableLogging == true)
         {
-            //Arbitrary 48 hour limit
-            getNewSetting("Enter max minutes of logging before new log is created", 0, 60 * 48, &settings.maxLogLength_minutes);
+            // Arbitrary 48 hour limit
+            getNewSetting("Enter max minutes of logging before new log is created", 0, 60 * 48,
+                          &settings.maxLogLength_minutes);
         }
         else if (incoming == 4 && settings.enableLogging == true && online.logging == true)
         {
@@ -125,7 +126,8 @@ void menuLog()
         else if (incoming == 6 && settings.enableLogging == true && settings.enableARPLogging == true)
         {
             // Arbitrary 10 minute limit
-            getNewSetting("Enter the ARP logging interval in seconds", 0, 60 * 10, (int*)&settings.ARPLoggingInterval_s);
+            getNewSetting("Enter the ARP logging interval in seconds", 0, 60 * 10,
+                          (int *)&settings.ARPLoggingInterval_s);
         }
         else if (incoming == 7)
         {
@@ -581,7 +583,7 @@ void beginLogging(const char *customFileName)
                 // SparkFun RTK Express v1.10-Feb 11 2022
                 char firmwareVersion[30]; // v1.3 December 31 2021
                 firmwareVersion[0] = 'v';
-                getFirmwareVersion(&firmwareVersion[1], sizeof(firmwareVersion) -1, true);
+                getFirmwareVersion(&firmwareVersion[1], sizeof(firmwareVersion) - 1, true);
                 createNMEASentence(CUSTOM_NMEA_TYPE_SYSTEM_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    firmwareVersion); // textID, buffer, sizeOfBuffer, text
                 ubxFile->println(nmeaMessage);
@@ -772,7 +774,7 @@ bool findLastLog(char *lastLogNamePrt, size_t lastLogNameSize)
                     }
                 }
             }
-#endif  // COMPILE_SD_MMC
+#endif // COMPILE_SD_MMC
 
             xSemaphoreGive(sdCardSemaphore);
         }
@@ -913,28 +915,28 @@ void checkArrayDefaults()
             settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
     }
 
-    if(settings.um980Constellations[0] == 254)
+    if (settings.um980Constellations[0] == 254)
     {
         // Reset constellations to defaults
         for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            settings.um980Constellations[x] = true; 
+            settings.um980Constellations[x] = true;
     }
 
-    if(settings.um980MessageRatesNMEA[0] == 254)
+    if (settings.um980MessageRatesNMEA[0] == 254)
     {
         // Reset rates to defaults
         for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
             settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
     }
 
-    if(settings.um980MessageRatesRTCMRover[0] == 254)
+    if (settings.um980MessageRatesRTCMRover[0] == 254)
     {
         // For rovers, RTCM should be zero by default.
         for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
             settings.um980MessageRatesRTCMRover[x] = 0;
     }
 
-    if(settings.um980MessageRatesRTCMBase[0] == 254)
+    if (settings.um980MessageRatesRTCMBase[0] == 254)
     {
         // Reset RTCM rates to defaults
         for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
@@ -970,8 +972,8 @@ void setLoggingType()
 void setLogTestFrequencyMessages(int rate, int messages)
 {
     // Set measurement frequency
-    gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate, and
-                         // GSV message
+    gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate,
+                             // and GSV message
 
     // Set messages
     setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages

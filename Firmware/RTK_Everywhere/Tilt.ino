@@ -48,7 +48,6 @@ void menuTilt()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-
 }
 
 void tiltUpdate()
@@ -171,7 +170,7 @@ void tiltBegin()
     if (tiltSupported == false)
         return;
 
-    if(settings.enableTiltCompensation == false)
+    if (settings.enableTiltCompensation == false)
         return;
 
     tiltSensor = new IM19();

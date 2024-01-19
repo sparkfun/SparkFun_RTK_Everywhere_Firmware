@@ -72,11 +72,10 @@ enum PvtUdpServerStates
     PVT_UDP_SERVER_STATE_NETWORK_STARTED,
     PVT_UDP_SERVER_STATE_RUNNING,
     // Insert new states here
-    PVT_UDP_SERVER_STATE_MAX            // Last entry in the state list
+    PVT_UDP_SERVER_STATE_MAX // Last entry in the state list
 };
 
-const char * const pvtUdpServerStateName[] =
-{
+const char *const pvtUdpServerStateName[] = {
     "PVT_UDP_SERVER_STATE_OFF",
     "PVT_UDP_SERVER_STATE_NETWORK_STARTED",
     "PVT_UDP_SERVER_STATE_RUNNING",
@@ -84,9 +83,7 @@ const char * const pvtUdpServerStateName[] =
 
 const int pvtUdpServerStateNameEntries = sizeof(pvtUdpServerStateName) / sizeof(pvtUdpServerStateName[0]);
 
-const RtkMode_t pvtUdpServerMode = RTK_MODE_BASE_FIXED
-                                 | RTK_MODE_BASE_SURVEY_IN
-                                 | RTK_MODE_ROVER;
+const RtkMode_t pvtUdpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | RTK_MODE_ROVER;
 
 //----------------------------------------
 // Locals
@@ -104,7 +101,7 @@ static volatile RING_BUFFER_OFFSET pvtUdpServerTail;
 // Send data as broadcast
 int32_t pvtUdpServerSendDataBroadcast(uint8_t *data, uint16_t length)
 {
-     if (!length)
+    if (!length)
         return 0;
 
     // Send the data as broadcast
@@ -112,11 +109,13 @@ int32_t pvtUdpServerSendDataBroadcast(uint8_t *data, uint16_t length)
     {
         pvtUdpServer->beginPacket(WiFi.broadcastIP(), settings.pvtUdpServerPort);
         pvtUdpServer->write(data, length);
-        if(pvtUdpServer->endPacket()){
+        if (pvtUdpServer->endPacket())
+        {
             if ((settings.debugPvtUdpServer || PERIODIC_DISPLAY(PD_PVT_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
             {
-              systemPrintf("PVT UDP Server wrote %d bytes as broadcast on port %d\r\n", length, settings.pvtUdpServerPort);
-              PERIODIC_CLEAR(PD_PVT_UDP_SERVER_BROADCAST_DATA);
+                systemPrintf("PVT UDP Server wrote %d bytes as broadcast on port %d\r\n", length,
+                             settings.pvtUdpServerPort);
+                PERIODIC_CLEAR(PD_PVT_UDP_SERVER_BROADCAST_DATA);
             }
         }
         // Failed to write the data

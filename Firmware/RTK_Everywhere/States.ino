@@ -154,7 +154,7 @@ void stateUpdate()
 
             if (gnssIsRTKFloat())
             {
-                //Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+                // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
                 lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
             }
@@ -180,7 +180,7 @@ void stateUpdate()
                 changeState(STATE_ROVER_FIX);
             if (gnssIsRTKFloat())
             {
-                //Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
+                // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
                 lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
             }
@@ -290,8 +290,8 @@ void stateUpdate()
             {
                 lastBaseLEDupdate = millis();
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
-                    || (productVariant == RTK_EVERYWHERE))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
+                    (productVariant == RTK_EVERYWHERE))
                     // Toggle the base/status LED
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
@@ -302,14 +302,11 @@ void stateUpdate()
             // Check for <1m horz accuracy before starting surveyIn
             char accuracy[20];
             char temp[20];
-            const char * units = getHpa(hpa, temp, sizeof(temp), 2);
-            const char * accUnits = getHpa(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2);
-            systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n",
-                         accuracy, accUnits, temp,
-                         (accUnits != units) ? " (" : "",
-                         (accUnits != units) ? units : "",
-                         (accUnits != units) ? ")" : "",
-                         siv);
+            const char *units = getHpa(hpa, temp, sizeof(temp), 2);
+            const char *accUnits = getHpa(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2);
+            systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
+                         (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
+                         (accUnits != units) ? ")" : "", siv);
 
             if (hpa > 0.0 && hpa < settings.surveyInStartingAccuracy)
             {
@@ -332,8 +329,8 @@ void stateUpdate()
             {
                 lastBaseLEDupdate = millis();
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
-                    || (productVariant == RTK_EVERYWHERE))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
+                    (productVariant == RTK_EVERYWHERE))
                     // Toggle the base/status LED
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
@@ -348,8 +345,8 @@ void stateUpdate()
                 systemPrintf("Observation Time: %d\r\n", observationTime);
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
-                    || (productVariant == RTK_EVERYWHERE))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
+                    (productVariant == RTK_EVERYWHERE))
                     // Turn on the base/status LED
                     digitalWrite(pin_baseStatusLED, HIGH); // Indicate survey complete
 
@@ -364,9 +361,8 @@ void stateUpdate()
             else
             {
                 char temp[20];
-                const char * units = getHpa(meanAccuracy, temp, sizeof(temp), 3);
-                systemPrintf("Time elapsed: %d Accuracy (%s): %s SIV: %d\r\n",
-                             observationTime, units, temp, siv);
+                const char *units = getHpa(meanAccuracy, temp, sizeof(temp), 3);
+                systemPrintf("Time elapsed: %d Accuracy (%s): %s SIV: %d\r\n", observationTime, units, temp, siv);
 
                 if (observationTime > maxSurveyInWait_s)
                 {
@@ -422,8 +418,8 @@ void stateUpdate()
             bool response = gnssFixedBaseStart();
             if (response == true)
             {
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION)
-                    || (productVariant == RTK_EVERYWHERE))
+                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
+                    (productVariant == RTK_EVERYWHERE))
                     // Turn on the base/status LED
                     digitalWrite(pin_baseStatusLED, HIGH);
 
@@ -649,8 +645,9 @@ void stateUpdate()
             if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
             {
                 // Start BT LED Fade to indicate the start of WiFi
-                bluetoothLedTask.detach();                              // Increase BT LED blinker task rate
-                bluetoothLedTask.attach(bluetoothLedTaskPace33Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+                bluetoothLedTask.detach(); // Increase BT LED blinker task rate
+                bluetoothLedTask.attach(bluetoothLedTaskPace33Hz,
+                                        tickerBluetoothLedUpdate); // Rate in seconds, callback
 
                 if (productVariant == RTK_SURVEYOR)
                 {
@@ -670,7 +667,7 @@ void stateUpdate()
             bluetoothStop();
             espnowStop();
 
-            tasksStopGnssUart(); // Delete F9 serial tasks if running
+            tasksStopGnssUart();   // Delete F9 serial tasks if running
             if (!startWebServer()) // Start in AP mode and show config html page
                 changeState(STATE_ROVER_NOT_STARTED);
             else
@@ -1134,8 +1131,8 @@ void stateUpdate()
 
             displayConfigViaEthStarted(1500);
 
-            bluetoothStop();  // Should be redundant - but just in case
-            espnowStop();     // Should be redundant - but just in case
+            bluetoothStop();     // Should be redundant - but just in case
+            espnowStop();        // Should be redundant - but just in case
             tasksStopGnssUart(); // Delete F9 serial tasks if running
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
@@ -1387,28 +1384,27 @@ void changeState(SystemState newState)
 }
 
 // RTK mode structure
-typedef struct _RTK_MODE_ENTRY {
-    const char * modeName;
+typedef struct _RTK_MODE_ENTRY
+{
+    const char *modeName;
     SystemState first;
     SystemState last;
 } RTK_MODE_ENTRY;
 
-const RTK_MODE_ENTRY stateModeTable[] =
-{
-    {           "Rover", STATE_ROVER_NOT_STARTED,          STATE_ROVER_RTK_FIX},
-    {            "Base", STATE_BASE_NOT_STARTED,           STATE_BASE_FIXED_TRANSMITTING},
-    {           "Setup", STATE_BUBBLE_LEVEL,               STATE_PROFILE},
-    {"Key Provisioning", STATE_KEYS_STARTED,               STATE_KEYS_PROVISION_WIFI_CONNECTED},
-    {  "ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
-    {             "NTP", STATE_NTPSERVER_NOT_STARTED,      STATE_NTPSERVER_SYNC},
-    { "Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
-    {        "Shutdown", STATE_SHUTDOWN,                   STATE_SHUTDOWN}
-};
+const RTK_MODE_ENTRY stateModeTable[] = {
+    {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+    {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
+    {"Setup", STATE_BUBBLE_LEVEL, STATE_PROFILE},
+    {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_WIFI_CONNECTED},
+    {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+    {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
+    {"Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
+    {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
 
-const char * stateToRtkMode(SystemState state)
+const char *stateToRtkMode(SystemState state)
 {
-    const RTK_MODE_ENTRY * mode;
+    const RTK_MODE_ENTRY *mode;
 
     // Walk the RTK mode table
     for (int index = 0; index < stateModeTableEntries; index++)

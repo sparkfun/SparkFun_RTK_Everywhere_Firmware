@@ -71,25 +71,24 @@ MQTT_Client.ino
 // 30 attempts with 15 second increases will take almost two hours
 static const int MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS = 30;
 
-static const int MQTT_CLIENT_DATA_TIMEOUT = (30 * 1000);    // milliseconds
+static const int MQTT_CLIENT_DATA_TIMEOUT = (30 * 1000); // milliseconds
 
 // Define the MQTT client states
 enum MQTTClientState
 {
-    MQTT_CLIENT_OFF = 0,            // Using Bluetooth or NTRIP server
-    MQTT_CLIENT_ON,                 // WIFI_START state
-    MQTT_CLIENT_NETWORK_STARTED,    // Connecting to WiFi access point or Ethernet
-    MQTT_CLIENT_CONNECTING_2_SERVER,// Connecting to the MQTT server
-    MQTT_CLIENT_SUBSCRIBE_KEY,      // Subscribe to the MQTT_TOPIC_KEY
-    MQTT_CLIENT_SUBSCRIBE_SPARTN,   // Subscribe to the MQTT_TOPIC_SPARTN
-    MQTT_CLIENT_SUBSCRIBE_ASSIST,   // Subscribe to the MQTT_TOPIC_ASSISTNOW
-    MQTT_CLIENT_SERVICES_CONNECTED, // Connected to the MQTT services
+    MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
+    MQTT_CLIENT_ON,                  // WIFI_START state
+    MQTT_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
+    MQTT_CLIENT_SUBSCRIBE_KEY,       // Subscribe to the MQTT_TOPIC_KEY
+    MQTT_CLIENT_SUBSCRIBE_SPARTN,    // Subscribe to the MQTT_TOPIC_SPARTN
+    MQTT_CLIENT_SUBSCRIBE_ASSIST,    // Subscribe to the MQTT_TOPIC_ASSISTNOW
+    MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
-    MQTT_CLIENT_STATE_MAX           // Last entry in the state list
+    MQTT_CLIENT_STATE_MAX // Last entry in the state list
 };
 
-const char * const mqttClientStateName[] =
-{
+const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
     "MQTT_CLIENT_NETWORK_STARTED",
@@ -102,13 +101,12 @@ const char * const mqttClientStateName[] =
 
 const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqttClientStateName[0]);
 
-const RtkMode_t mqttClientMode = RTK_MODE_ROVER
-                               | RTK_MODE_BASE_SURVEY_IN;
+const RtkMode_t mqttClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 
 const char MQTT_TOPIC_ASSISTNOW[] = "/pp/ubx/mga"; // AssistNow (MGA) topic
-const char MQTT_TOPIC_KEY[]       = "/pp/ubx/0236/ip"; // This topic provides the IP only dynamic keys in UBX format
-const char MQTT_TOPIC_SPARTN_EU[] = "/pp/ip/eu"; // European SPARTN correction data
-const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us"; // North American SPARTN correction data
+const char MQTT_TOPIC_KEY[] = "/pp/ubx/0236/ip";   // This topic provides the IP only dynamic keys in UBX format
+const char MQTT_TOPIC_SPARTN_EU[] = "/pp/ip/eu";   // European SPARTN correction data
+const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us";   // North American SPARTN correction data
 
 //----------------------------------------
 // Locals
@@ -118,7 +116,7 @@ static PubSubClient *mqttClient;
 
 static bool mqttClientBluetoothOnline;
 
-static char * mqttClientCertificateBuffer; // Buffer for client certificate
+static char *mqttClientCertificateBuffer; // Buffer for client certificate
 
 // Throttle the time between connection attempts
 static int mqttClientConnectionAttempts; // Count the number of connection attempts between restarts
@@ -127,7 +125,7 @@ static int mqttClientConnectionAttemptsTotal; // Count the number of connection 
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
 
-static char * mqttClientPrivateKeyBuffer; // Buffer for client private key
+static char *mqttClientPrivateKeyBuffer; // Buffer for client private key
 
 static NetworkSecureWiFiClient *mqttSecureClient;
 
@@ -137,7 +135,7 @@ static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 //  * Reconnection delay
 //  * Measure the connection response time
 //  * Receive MQTT data timeout
-static uint32_t mqttClientStartTime;          // For calculating uptime
+static uint32_t mqttClientStartTime; // For calculating uptime
 static uint32_t mqttClientTimer;
 
 //----------------------------------------
@@ -265,8 +263,8 @@ void mqttClientPrintStatus()
         milliseconds %= MILLISECONDS_IN_A_SECOND;
 
         systemPrint(" Uptime: ");
-        systemPrintf("%d %02d:%02d:%02d.%03lld (Reconnects: %d)",
-                     days, hours, minutes, seconds, milliseconds, mqttClientConnectionAttemptsTotal);
+        systemPrintf("%d %02d:%02d:%02d.%03lld (Reconnects: %d)", days, hours, minutes, seconds, milliseconds,
+                     mqttClientConnectionAttemptsTotal);
         systemPrintln();
     }
 }
@@ -281,12 +279,11 @@ void mqttClientReceiveMessage(char *topic, byte *message, unsigned int length)
     gnssPushRawData(message, length);
     mqttClientDataReceived = true;
 
-    if ((settings.debugMqttClientData || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA))
-        && (!inMainMenu))
+    if ((settings.debugMqttClientData || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && (!inMainMenu))
     {
         PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
         systemPrintf("MQTT Client received %d SPARTN bytes, pushed to ZED\r\n", length);
-//        dumpBuffer(message, length);
+        //        dumpBuffer(message, length);
     }
 }
 
@@ -430,244 +427,243 @@ void mqttClientUpdate()
     // Enable the network and the MQTT client if requested
     switch (mqttClientState)
     {
-        default:
-        case MQTT_CLIENT_OFF: {
-            if (EQ_RTK_MODE(mqttClientMode) && settings.enableMqttClient)
-                mqttClientStart();
+    default:
+    case MQTT_CLIENT_OFF: {
+        if (EQ_RTK_MODE(mqttClientMode) && settings.enableMqttClient)
+            mqttClientStart();
+        break;
+    }
+
+    // Start the network
+    case MQTT_CLIENT_ON: {
+        if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_WIFI))
+            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+        break;
+    }
+
+    // Wait for a network media connection
+    case MQTT_CLIENT_NETWORK_STARTED: {
+        // Determine if the network has failed
+        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+            // Failed to connect to to the network, attempt to restart the network
+            mqttClientRestart();
+
+        // Determine if the network is connected to the media
+        else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
+            // The network is available for the MQTT client
+            mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
+        break;
+    }
+
+    // Connect to the MQTT server
+    case MQTT_CLIENT_CONNECTING_2_SERVER: {
+        // Determine if the network has failed
+        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        {
+            // Failed to connect to to the network, attempt to restart the network
+            mqttClientRestart();
             break;
         }
 
-        // Start the network
-        case MQTT_CLIENT_ON: {
-            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_WIFI))
-                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
-            break;
-        }
-
-        // Wait for a network media connection
-        case MQTT_CLIENT_NETWORK_STARTED: {
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-                // Failed to connect to to the network, attempt to restart the network
-                mqttClientRestart();
-
-            // Determine if the network is connected to the media
-            else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
-                // The network is available for the MQTT client
-                mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
-            break;
-        }
-
-        // Connect to the MQTT server
-        case MQTT_CLIENT_CONNECTING_2_SERVER: {
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            {
-                // Failed to connect to to the network, attempt to restart the network
-                mqttClientRestart();
-                break;
-            }
-
-            // Release available heap to allow room for TLS
-            mqttClientBluetoothOnline = online.bluetooth;
-            if (mqttClientBluetoothOnline)
-            {
-                if (settings.debugMqttClientState)
-                    systemPrintln("MQTT Client stopping Bluetooth");
-                bluetoothStop();
-                reportHeapNow(settings.debugMqttClientState);
-            }
-
-            // Allocate the mqttSecureClient structure
-            mqttSecureClient = new NetworkSecureWiFiClient();
-            if (!mqttSecureClient)
-            {
-                systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
-                mqttClientShutdown();
-                break;
-            }
-
-            // Allocate the buffers
-            mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
-            mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
-            if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
-            {
-                if (mqttClientCertificateBuffer)
-                {
-                    free(mqttClientCertificateBuffer);
-                    systemPrintln("Failed to allocate key buffers!");
-                }
-                else
-                    systemPrintln("Failed to allocate certificate buffers!");
-                mqttClientShutdown();
-                break;
-            }
-
-            // Get the certificate
-            memset(mqttClientCertificateBuffer, 0, MQTT_CERT_SIZE);
-            if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
-            {
-                mqttClientShutdown();
-                break;
-            }
-            mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
-
-            // Get the private key
-            memset(mqttClientPrivateKeyBuffer, 0, MQTT_CERT_SIZE);
-            if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
-            {
-                mqttClientShutdown();
-                break;
-            }
-            mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
-
-            // Set the Amazon Web Services public certificate
-            mqttSecureClient->setCACert(AWS_PUBLIC_CERT);
-
-            // Allocate the mqttClient structure
-            mqttClient = new PubSubClient(*mqttSecureClient->getClient());
-            if (!mqttClient)
-            {
-                // Failed to allocate the mqttClient structure
-                systemPrintln("ERROR: Failed to allocate the mqttClient structure!");
-                mqttClientShutdown();
-                break;
-            }
-
-            // Configure the MQTT client
-            mqttClient->setCallback(mqttClientReceiveMessage);
-            mqttClient->setServer(settings.pointPerfectBrokerHost, 8883);
-
+        // Release available heap to allow room for TLS
+        mqttClientBluetoothOnline = online.bluetooth;
+        if (mqttClientBluetoothOnline)
+        {
             if (settings.debugMqttClientState)
-                systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
-
-            // Attempt to the MQTT broker
-            if (!mqttClient->connect(settings.pointPerfectClientID))
-            {
-                systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
-                mqttClientRestart();
-                break;
-            }
-
-            // The MQTT server is now connected
+                systemPrintln("MQTT Client stopping Bluetooth");
+            bluetoothStop();
             reportHeapNow(settings.debugMqttClientState);
-            mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_KEY);
+        }
+
+        // Allocate the mqttSecureClient structure
+        mqttSecureClient = new NetworkSecureWiFiClient();
+        if (!mqttSecureClient)
+        {
+            systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
+            mqttClientShutdown();
             break;
         }
 
-        // Subscribe to the topic key
-        case MQTT_CLIENT_SUBSCRIBE_KEY: {
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        // Allocate the buffers
+        mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
+        mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
+        if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
+        {
+            if (mqttClientCertificateBuffer)
             {
-                // Failed to connect to to the network, attempt to restart the network
-                mqttClientRestart();
-                break;
+                free(mqttClientCertificateBuffer);
+                systemPrintln("Failed to allocate key buffers!");
             }
-
-            // Subscribe to the MQTT_TOPIC_KEY
-            if (!mqttClient->subscribe(MQTT_TOPIC_KEY))
-            {
-                mqttClientRestart();
-                Serial.println("ERROR: Subscription to MQTT_TOPIC_KEY failed!!");
-                mqttClientRestart();
-                break;
-            }
-
-            if (settings.debugMqttClientState)
-                Serial.println("MQTT client subscribed to MQTT_TOPIC_KEY");
-
-            // Now subscribed to the MQTT_TOPIC_KEY
-            mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_SPARTN);
+            else
+                systemPrintln("Failed to allocate certificate buffers!");
+            mqttClientShutdown();
             break;
         }
 
-        // Subscribe to the topic SPARTN
-        case MQTT_CLIENT_SUBSCRIBE_SPARTN: {
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            {
-                // Failed to connect to to the network, attempt to restart the network
-                mqttClientRestart();
-                break;
-            }
+        // Get the certificate
+        memset(mqttClientCertificateBuffer, 0, MQTT_CERT_SIZE);
+        if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
+        {
+            mqttClientShutdown();
+            break;
+        }
+        mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
 
-            // Subscribe to the MQTT_TOPIC_SPARTN
-            const char * topic = settings.useEuropeCorrections
-                               ? MQTT_TOPIC_SPARTN_EU : MQTT_TOPIC_SPARTN_US;
-            if (!mqttClient->subscribe(topic))
-            {
-                mqttClientRestart();
-                Serial.println("ERROR: Subscription to MQTT_TOPIC_SPARTN failed!!");
-                mqttClientRestart();
-                break;
-            }
+        // Get the private key
+        memset(mqttClientPrivateKeyBuffer, 0, MQTT_CERT_SIZE);
+        if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
+        {
+            mqttClientShutdown();
+            break;
+        }
+        mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
 
-            if (settings.debugMqttClientState)
-                Serial.println("MQTT client subscribed to MQTT_TOPIC_SPARTN");
+        // Set the Amazon Web Services public certificate
+        mqttSecureClient->setCACert(AWS_PUBLIC_CERT);
 
-            // Now subscribed to the MQTT_TOPIC_SPARTN
-            mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_ASSIST);
+        // Allocate the mqttClient structure
+        mqttClient = new PubSubClient(*mqttSecureClient->getClient());
+        if (!mqttClient)
+        {
+            // Failed to allocate the mqttClient structure
+            systemPrintln("ERROR: Failed to allocate the mqttClient structure!");
+            mqttClientShutdown();
             break;
         }
 
-        // Subscribe to the topic ASSISTNOW
-        case MQTT_CLIENT_SUBSCRIBE_ASSIST: {
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            {
-                // Failed to connect to to the network, attempt to restart the network
-                mqttClientRestart();
-                break;
-            }
+        // Configure the MQTT client
+        mqttClient->setCallback(mqttClientReceiveMessage);
+        mqttClient->setServer(settings.pointPerfectBrokerHost, 8883);
 
-            // Subscribe to the MQTT_TOPIC_ASSISTNOW
-            if (!mqttClient->subscribe(MQTT_TOPIC_ASSISTNOW))
-            {
-                mqttClientRestart();
-                Serial.println("ERROR: Subscription to MQTT_TOPIC_ASSISTNOW failed!!");
-                mqttClientRestart();
-                break;
-            }
+        if (settings.debugMqttClientState)
+            systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
 
-            if (settings.debugMqttClientState)
-            {
-                Serial.println("MQTT client subscribed to MQTT_TOPIC_ASSISTNOW");
-                Serial.println("MQTT client waiting on correction data");
-            }
-
-            // Now subscribed to the MQTT_TOPIC_ASSISTNOW
-            mqttClientLastDataReceived = millis();
-            mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
+        // Attempt to the MQTT broker
+        if (!mqttClient->connect(settings.pointPerfectClientID))
+        {
+            systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
+            mqttClientRestart();
             break;
         }
 
-        case MQTT_CLIENT_SERVICES_CONNECTED: {
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            {
-                // Failed to connect to to the network, attempt to restart the network
-                mqttClientRestart();
-                break;
-            }
+        // The MQTT server is now connected
+        reportHeapNow(settings.debugMqttClientState);
+        mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_KEY);
+        break;
+    }
 
-            // Attempt to receive data
-            if (!mqttClient->loop())
-            {
-                // The MQTT link was broken
-                Serial.println(F("MQTT client link failed!"));
-                mqttClientRestart();
-                break;
-            }
-
-            // Determine if a data timeout has occurred
-            if (millis() - mqttClientLastDataReceived >= MQTT_CLIENT_DATA_TIMEOUT)
-            {
-                Serial.println(F("MQTT client data timeout. Disconnecting..."));
-                mqttClientRestart();
-            }
+    // Subscribe to the topic key
+    case MQTT_CLIENT_SUBSCRIBE_KEY: {
+        // Determine if the network has failed
+        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        {
+            // Failed to connect to to the network, attempt to restart the network
+            mqttClientRestart();
             break;
         }
+
+        // Subscribe to the MQTT_TOPIC_KEY
+        if (!mqttClient->subscribe(MQTT_TOPIC_KEY))
+        {
+            mqttClientRestart();
+            Serial.println("ERROR: Subscription to MQTT_TOPIC_KEY failed!!");
+            mqttClientRestart();
+            break;
+        }
+
+        if (settings.debugMqttClientState)
+            Serial.println("MQTT client subscribed to MQTT_TOPIC_KEY");
+
+        // Now subscribed to the MQTT_TOPIC_KEY
+        mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_SPARTN);
+        break;
+    }
+
+    // Subscribe to the topic SPARTN
+    case MQTT_CLIENT_SUBSCRIBE_SPARTN: {
+        // Determine if the network has failed
+        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        {
+            // Failed to connect to to the network, attempt to restart the network
+            mqttClientRestart();
+            break;
+        }
+
+        // Subscribe to the MQTT_TOPIC_SPARTN
+        const char *topic = settings.useEuropeCorrections ? MQTT_TOPIC_SPARTN_EU : MQTT_TOPIC_SPARTN_US;
+        if (!mqttClient->subscribe(topic))
+        {
+            mqttClientRestart();
+            Serial.println("ERROR: Subscription to MQTT_TOPIC_SPARTN failed!!");
+            mqttClientRestart();
+            break;
+        }
+
+        if (settings.debugMqttClientState)
+            Serial.println("MQTT client subscribed to MQTT_TOPIC_SPARTN");
+
+        // Now subscribed to the MQTT_TOPIC_SPARTN
+        mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_ASSIST);
+        break;
+    }
+
+    // Subscribe to the topic ASSISTNOW
+    case MQTT_CLIENT_SUBSCRIBE_ASSIST: {
+        // Determine if the network has failed
+        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        {
+            // Failed to connect to to the network, attempt to restart the network
+            mqttClientRestart();
+            break;
+        }
+
+        // Subscribe to the MQTT_TOPIC_ASSISTNOW
+        if (!mqttClient->subscribe(MQTT_TOPIC_ASSISTNOW))
+        {
+            mqttClientRestart();
+            Serial.println("ERROR: Subscription to MQTT_TOPIC_ASSISTNOW failed!!");
+            mqttClientRestart();
+            break;
+        }
+
+        if (settings.debugMqttClientState)
+        {
+            Serial.println("MQTT client subscribed to MQTT_TOPIC_ASSISTNOW");
+            Serial.println("MQTT client waiting on correction data");
+        }
+
+        // Now subscribed to the MQTT_TOPIC_ASSISTNOW
+        mqttClientLastDataReceived = millis();
+        mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
+        break;
+    }
+
+    case MQTT_CLIENT_SERVICES_CONNECTED: {
+        // Determine if the network has failed
+        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        {
+            // Failed to connect to to the network, attempt to restart the network
+            mqttClientRestart();
+            break;
+        }
+
+        // Attempt to receive data
+        if (!mqttClient->loop())
+        {
+            // The MQTT link was broken
+            Serial.println(F("MQTT client link failed!"));
+            mqttClientRestart();
+            break;
+        }
+
+        // Determine if a data timeout has occurred
+        if (millis() - mqttClientLastDataReceived >= MQTT_CLIENT_DATA_TIMEOUT)
+        {
+            Serial.println(F("MQTT client data timeout. Disconnecting..."));
+            mqttClientRestart();
+        }
+        break;
+    }
     }
 
     // Periodically display the MQTT client state
@@ -682,4 +678,4 @@ void mqttClientValidateTables()
         reportFatalError("Fix mqttClientStateNameEntries to match MQTTClientState");
 }
 
-#endif  // COMPILE_NETWORK
+#endif // COMPILE_NETWORK

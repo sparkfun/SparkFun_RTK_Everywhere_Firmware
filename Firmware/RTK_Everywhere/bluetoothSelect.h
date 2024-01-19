@@ -1,8 +1,8 @@
 #ifdef COMPILE_BT
 
-//We use a local copy of the BluetoothSerial library so that we can increase the RX buffer. See issues:
-//https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/23
-//https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
+// We use a local copy of the BluetoothSerial library so that we can increase the RX buffer. See issues:
+// https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/23
+// https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
 #include "src/BluetoothSerial/BluetoothSerial.h"
 
 #include <BleSerial.h> //Click here to get the library: http://librarymanager/All#ESP32_BleSerial v1.0.4 by Avinab Malla
@@ -166,4 +166,4 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
     esp_spp_cb_t connectionCallback;
 };
 
-#endif  // COMPILE_BT
+#endif // COMPILE_BT

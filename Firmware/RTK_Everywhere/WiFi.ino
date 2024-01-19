@@ -220,7 +220,7 @@ void wifiSetState(byte newState)
 // We can also start as a WiFi station and attempt to connect to local WiFi for config
 bool wifiStartAP()
 {
-    return(wifiStartAP(false)); //Don't force AP mode
+    return (wifiStartAP(false)); // Don't force AP mode
 }
 
 bool wifiStartAP(bool forceAP)
@@ -286,7 +286,8 @@ bool wifiStartAP(bool forceAP)
         if (x == maxTries)
         {
             displayNoWiFi(2000);
-            return(wifiStartAP(true)); // Because there is no local WiFi available, force AP mode so user can still get access/configure it
+            return (wifiStartAP(true)); // Because there is no local WiFi available, force AP mode so user can still get
+                                        // access/configure it
         }
     }
 

@@ -111,11 +111,11 @@ bool um980ConfigureOnce()
     // SIGNALGROUP causes the UM980 to automatically save and reset
 
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
-    response &= um980->sendCommand("BESTPOSB COM2 0.2"); //5Hz
+    response &= um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
     response &= um980->sendCommand("PSRVELB COM2 0.2");
 
     // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
-    response &= um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); //5Hz
+    response &= um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
 
     // Configure UM980 to output binary reports out COM3, connected to ESP32 UART2
     // These messages are used for things like SIV and System menu printing of current location
@@ -455,7 +455,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     }
     response &= um980EnableRTCMRover(); // Enact these rates
 
-      // If we successfully set rates, only then record to settings
+    // If we successfully set rates, only then record to settings
     if (response == true)
     {
         settings.measurementRate = 1.0 / secondsBetweenSolutions; // 1 / 0.2 = 5Hz
@@ -466,7 +466,7 @@ bool um980SetRate(double secondsBetweenSolutions)
         systemPrintln("Failed to set measurement and navigation rates");
         return (false);
     }
-  
+
     return (true);
 }
 

@@ -196,8 +196,8 @@ void ethernetBegin()
 
             if (Ethernet.begin(ethernetMACAddress, 20000)) // Restart Ethernet with DHCP. Use 20s timeout
             {
-              log_d("Ethernet started with DHCP");
-              online.ethernetStatus = ETH_CONNECTED;
+                log_d("Ethernet started with DHCP");
+                online.ethernetStatus = ETH_CONNECTED;
             }
         }
         break;
@@ -243,19 +243,17 @@ bool ethernetIsNeeded()
 
     // Does Base mode NTRIP Server need Ethernet?
     if (settings.enableNtripServer == true &&
-        (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
-    )
+        (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING))
         return true;
 
     // Does Rover mode NTRIP Client need Ethernet?
     if (settings.enableNtripClient == true &&
-        (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX)
-    )
+        (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX))
         return true;
 
     // Does PVT client or server need Ethernet?
-    if (settings.enablePvtClient || settings.enablePvtServer
-        || settings.enablePvtUdpServer || settings.enableAutoFirmwareUpdate)
+    if (settings.enablePvtClient || settings.enablePvtServer || settings.enablePvtUdpServer ||
+        settings.enableAutoFirmwareUpdate)
         return true;
 
     return false;

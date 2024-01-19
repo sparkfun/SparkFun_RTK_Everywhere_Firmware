@@ -45,8 +45,7 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if ((productVariant == REFERENCE_STATION)
-        || (productVariant == RTK_EVERYWHERE))
+    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
     {
         if (sdPresent() == false)
             endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
@@ -95,8 +94,7 @@ void sdUpdate()
 // This test takes approximately 13ms to complete
 bool sdPresent(void)
 {
-    if ((productVariant == REFERENCE_STATION)
-        || (productVariant == RTK_EVERYWHERE))
+    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
     {
         if (pin_microSD_CardDetect > 0)
         {
@@ -126,13 +124,13 @@ bool sdPresent(void)
         {
             response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
             if (response == 1)
-                return (true); //Card responded
+                return (true); // Card responded
         }
         if (response != 1)
             return (false); // Card failed to respond to idle
     }
 
-    //Unknown platform type. Return no SD detected.
+    // Unknown platform type. Return no SD detected.
     return (false);
 }
 

@@ -50,7 +50,7 @@ NTP.ino
 
 ------------------------------------------------------------------------------*/
 
-#ifdef  COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
 
 //----------------------------------------
 // Constants
@@ -66,13 +66,8 @@ enum NTP_STATE
     NTP_STATE_MAX
 };
 
-const char * const ntpServerStateName[] =
-{
-    "NTP_STATE_OFF",
-    "NTP_STATE_NETWORK_STARTING",
-    "NTP_STATE_NETWORK_CONNECTED",
-    "NTP_STATE_SERVER_RUNNING"
-};
+const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_STARTING", "NTP_STATE_NETWORK_CONNECTED",
+                                          "NTP_STATE_SERVER_RUNNING"};
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
 const RtkMode_t ntpServerMode = RTK_MODE_NTP;
@@ -83,7 +78,8 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 
 static derivedEthernetUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
-static volatile uint8_t ntpSockIndex; // The W5500 socket index for NTP - so we can enable and read the correct interrupt
+static volatile uint8_t
+    ntpSockIndex; // The W5500 socket index for NTP - so we can enable and read the correct interrupt
 static uint32_t lastLoggedNTPRequest;
 
 //----------------------------------------
@@ -660,8 +656,8 @@ bool configureUbloxModuleNTP()
 
     // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
     // Unless this is a Ref Syn - where the GNSS has no battery-backed RAM
-    if ((productVariant != REFERENCE_STATION) && (productVariant != RTK_EVERYWHERE)
-        && (settings.updateGNSSSettings == false) && (firstPowerOn == true))
+    if ((productVariant != REFERENCE_STATION) && (productVariant != RTK_EVERYWHERE) &&
+        (settings.updateGNSSSettings == false) && (firstPowerOn == true))
     {
         firstPowerOn = false; // Next time user switches modes, new settings will be applied
         log_d("Skipping ZED NTP configuration");
@@ -699,11 +695,11 @@ bool configureUbloxModuleNTP()
         response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, DYN_MODEL_STATIONARY); // Set dynamic model
 
         // Set time pulse to 1Hz (100:900)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0);        // Time pulse definition is a period (in us)
+        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0); // Time pulse definition is a period (in us)
         response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
-        response &=
-            theGNSS->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                                 1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+        response &= theGNSS->addCfgValset(
+            UBLOX_CFG_TP_USE_LOCKED_TP1,
+            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
         response &= theGNSS->addCfgValset(UBLOX_CFG_TP_TP1_ENA, 1); // Enable timepulse
         response &= theGNSS->addCfgValset(UBLOX_CFG_TP_POL_TP1, 1); // 1 = rising edge
 
@@ -876,8 +872,8 @@ void ntpServerUpdate()
                 // Start the NTP server
                 ntpServer->begin(settings.ethernetNtpPort);
                 ntpSockIndex = ntpServer->getSockIndex(); // Get the socket index
-                w5500ClearSocketInterrupts();                     // Clear all interrupts
-                w5500EnableSocketInterrupt(ntpSockIndex);         // Enable the RECV interrupt for the desired socket index
+                w5500ClearSocketInterrupts();             // Clear all interrupts
+                w5500EnableSocketInterrupt(ntpSockIndex); // Enable the RECV interrupt for the desired socket index
                 online.ethernetNTPServer = true;
                 if (!inMainMenu)
                     reportHeapNow(settings.debugNtp);
@@ -946,12 +942,12 @@ void ntpServerUpdate()
                             {
                                 ntpFileExists = sd->exists(fileName);
                             }
-        #ifdef COMPILE_SD_MMC
+#ifdef COMPILE_SD_MMC
                             else
                             {
                                 ntpFileExists = SD_MMC.exists(fileName);
                             }
-        #endif  // COMPILE_SD_MMC
+#endif // COMPILE_SD_MMC
 
                             // Open the NTP file
                             FileSdFatMMC ntpFile;
@@ -1019,4 +1015,4 @@ void ntpValidateTables()
         reportFatalError("Fix ntpServerStateNameEntries to match NTP_STATE");
 }
 
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET

@@ -80,7 +80,7 @@
 // Locals
 //----------------------------------------
 
-static QwiicCustomOLED * oled;
+static QwiicCustomOLED *oled;
 static uint32_t blinking_icons;
 static uint32_t icons;
 static uint32_t iconsRadio;
@@ -100,7 +100,7 @@ bool ssidDisplayFirstHalf = false;
 // Routines
 //----------------------------------------
 
-void beginDisplay(TwoWire * i2cBus)
+void beginDisplay(TwoWire *i2cBus)
 {
     uint8_t i2cAddress;
     uint16_t x;
@@ -109,51 +109,52 @@ void beginDisplay(TwoWire * i2cBus)
     // Select the display type
     switch (productVariant)
     {
-        // Assume the microOLED display (64 x 48) is available
-        default: {
-            i2cAddress = kOLEDMicroDefaultAddress;
-            oled = new QwiicCustomOLED;
-            if (!oled)            {
-                systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
-                return;
-            }
-
-            // Set the display parameters
-            oled->setXOffset(kOLEDMicroXOffset);
-            oled->setYOffset(kOLEDMicroYOffset);
-            oled->setDisplayWidth(kOLEDMicroWidth);
-            oled->setDisplayHeight(kOLEDMicroHeight);
-            oled->setPinConfig(kOLEDMicroPinConfig);
-            oled->setPreCharge(kOLEDMicroPreCharge);
-            oled->setVcomDeselect(kOLEDMicroVCOM);
-            break;
-        }
-
-        // Large display (128 x 64) in RTK Everywhere
-        case RTK_EVERYWHERE: {
-            i2cAddress = kOLEDMicroDefaultAddress;
-            oled = new QwiicCustomOLED;
-            if (!oled)
-            {
-                systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
-                return;
-            }
-
-            oled->setXOffset(0);         // Set the active area X offset. For the Micro 64x48, set this to 2
-            oled->setYOffset(0);         // Set the active area Y offset
-            oled->setDisplayWidth(128);  // Set the active area width. For the Micro 64x48, set this to 64
-            oled->setDisplayHeight(64);  // Set the active area height. For the Micro 64x48, set this to 48
-            oled->setPinConfig(0x12);    // Set COM Pins Hardware Configuration (DAh)
-            oled->setPreCharge(0xF1);    // Set Pre-charge Period (D9h)
-            oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
-            oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h). For the Micro 64x48, set this to 0x8F
-            break;
-        }
-
-        // No display in these products
-        case RTK_TORCH:
-        case RTK_SURVEYOR:
+    // Assume the microOLED display (64 x 48) is available
+    default: {
+        i2cAddress = kOLEDMicroDefaultAddress;
+        oled = new QwiicCustomOLED;
+        if (!oled)
+        {
+            systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
             return;
+        }
+
+        // Set the display parameters
+        oled->setXOffset(kOLEDMicroXOffset);
+        oled->setYOffset(kOLEDMicroYOffset);
+        oled->setDisplayWidth(kOLEDMicroWidth);
+        oled->setDisplayHeight(kOLEDMicroHeight);
+        oled->setPinConfig(kOLEDMicroPinConfig);
+        oled->setPreCharge(kOLEDMicroPreCharge);
+        oled->setVcomDeselect(kOLEDMicroVCOM);
+        break;
+    }
+
+    // Large display (128 x 64) in RTK Everywhere
+    case RTK_EVERYWHERE: {
+        i2cAddress = kOLEDMicroDefaultAddress;
+        oled = new QwiicCustomOLED;
+        if (!oled)
+        {
+            systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
+            return;
+        }
+
+        oled->setXOffset(0);         // Set the active area X offset. For the Micro 64x48, set this to 2
+        oled->setYOffset(0);         // Set the active area Y offset
+        oled->setDisplayWidth(128);  // Set the active area width. For the Micro 64x48, set this to 64
+        oled->setDisplayHeight(64);  // Set the active area height. For the Micro 64x48, set this to 48
+        oled->setPinConfig(0x12);    // Set COM Pins Hardware Configuration (DAh)
+        oled->setPreCharge(0xF1);    // Set Pre-charge Period (D9h)
+        oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
+        oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h). For the Micro 64x48, set this to 0x8F
+        break;
+    }
+
+    // No display in these products
+    case RTK_TORCH:
+    case RTK_SURVEYOR:
+        return;
     }
 
     blinking_icons = 0;
@@ -237,7 +238,7 @@ void displayUpdate()
             forceDisplayUpdate = false;
 
             oled->reset(false); // Incase of previous corruption, force re-alignment of CGRAM. Do not init buffers as it
-                               // takes time and causes screen to blink.
+                                // takes time and causes screen to blink.
 
             oled->erase();
 
@@ -1038,7 +1039,7 @@ uint32_t setWiFiIcon_TwoRadios()
 #ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
 #else  // COMPILE_WIFI
-            int wifiRSSI = -40;     // Dummy
+            int wifiRSSI = -40; // Dummy
 #endif // COMPILE_WIFI
        // Based on RSSI, select icon
             if (wifiRSSI >= -40)
@@ -1117,7 +1118,7 @@ uint32_t setWiFiIcon_ThreeRadios()
         {
             thirdRadioSpotTimer = millis();
 
-            if (netIncomingRTCM|| netOutgoingRTCM || mqttClientDataReceived)
+            if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
                 thirdRadioSpotBlink ^= 1; // Share the spot
             else
                 thirdRadioSpotBlink = false;
@@ -1128,7 +1129,7 @@ uint32_t setWiFiIcon_ThreeRadios()
 #ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
 #else  // COMPILE_WIFI
-            int wifiRSSI = -40;     // Dummy
+            int wifiRSSI = -40; // Dummy
 #endif // COMPILE_WIFI
        // Based on RSSI, select icon
             if (wifiRSSI >= -40)
@@ -1345,7 +1346,7 @@ void paintHorizontalAccuracy()
     }
     else
     {
-        oled->print(".");                                       // Remove leading zero
+        oled->print(".");                        // Remove leading zero
         oled->printf("%03d", (int)(hpa * 1000)); // Print down to millimeter
     }
 }
@@ -1946,17 +1947,17 @@ void displayNoWiFi(uint16_t displayTime)
 
 void displayNoSSIDs(uint16_t displayTime)
 {
-  displayMessage("No SSIDs", displayTime);
+    displayMessage("No SSIDs", displayTime);
 }
 
 void displayAccountExpired(uint16_t displayTime)
 {
-  displayMessage("Account Expired", displayTime);
+    displayMessage("Account Expired", displayTime);
 }
 
 void displayNotListed(uint16_t displayTime)
 {
-  displayMessage("Not Listed", displayTime);
+    displayMessage("Not Listed", displayTime);
 }
 
 void displayRoverStart(uint16_t displayTime)
@@ -1987,9 +1988,9 @@ void displayNoRingBuffer(uint16_t displayTime)
         uint8_t fontHeight = 8;
         uint8_t yPos = oled->getHeight() / 3 - fontHeight;
 
-        printTextCenter("Fix GNSS", yPos, QW_FONT_5X7, 1, false);  // text, y, font type, kerning, inverted
+        printTextCenter("Fix GNSS", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Handler", yPos, QW_FONT_5X7, 1, false);   // text, y, font type, kerning, inverted
+        printTextCenter("Handler", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
         printTextCenter("Buffer Sz", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
@@ -2103,11 +2104,11 @@ void displayWiFiConfig()
         snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
     else
     {
-        if(WiFi.getMode() == WIFI_STA)
+        if (WiFi.getMode() == WIFI_STA)
             snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
 
-        //If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
-        else if(WiFi.getMode() == WIFI_AP)
+        // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP)
             snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
 
         else

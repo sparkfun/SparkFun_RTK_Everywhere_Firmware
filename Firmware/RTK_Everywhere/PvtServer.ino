@@ -38,7 +38,7 @@ pvtServer.ino
 //----------------------------------------
 
 #define PVT_SERVER_MAX_CLIENTS 4
-#define PVT_SERVER_CLIENT_DATA_TIMEOUT  (15 * 1000)
+#define PVT_SERVER_CLIENT_DATA_TIMEOUT (15 * 1000)
 
 // Define the PVT server states
 enum PvtServerStates
@@ -47,11 +47,10 @@ enum PvtServerStates
     PVT_SERVER_STATE_NETWORK_STARTED,
     PVT_SERVER_STATE_RUNNING,
     // Insert new states here
-    PVT_SERVER_STATE_MAX            // Last entry in the state list
+    PVT_SERVER_STATE_MAX // Last entry in the state list
 };
 
-const char * const pvtServerStateName[] =
-{
+const char *const pvtServerStateName[] = {
     "PVT_SERVER_STATE_OFF",
     "PVT_SERVER_STATE_NETWORK_STARTED",
     "PVT_SERVER_STATE_RUNNING",
@@ -59,16 +58,14 @@ const char * const pvtServerStateName[] =
 
 const int pvtServerStateNameEntries = sizeof(pvtServerStateName) / sizeof(pvtServerStateName[0]);
 
-const RtkMode_t pvtServerMode = RTK_MODE_BASE_FIXED
-                              | RTK_MODE_BASE_SURVEY_IN
-                              | RTK_MODE_ROVER;
+const RtkMode_t pvtServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | RTK_MODE_ROVER;
 
 //----------------------------------------
 // Locals
 //----------------------------------------
 
 // PVT server
-static WiFiServer * pvtServer = nullptr;
+static WiFiServer *pvtServer = nullptr;
 static uint8_t pvtServerState;
 static uint32_t pvtServerTimer;
 
@@ -76,7 +73,7 @@ static uint32_t pvtServerTimer;
 static volatile uint8_t pvtServerClientConnected;
 static volatile uint8_t pvtServerClientDataSent;
 static volatile uint8_t pvtServerClientWriteError;
-static NetworkClient * pvtServerClient[PVT_SERVER_MAX_CLIENTS];
+static NetworkClient *pvtServerClient[PVT_SERVER_MAX_CLIENTS];
 static IPAddress pvtServerClientIpAddress[PVT_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET pvtServerClientTails[PVT_SERVER_MAX_CLIENTS];
 
@@ -97,11 +94,8 @@ int32_t pvtServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugPvtServer || PERIODIC_DISPLAY(PD_PVT_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_PVT_SERVER_CLIENT_DATA);
-            systemPrintf("PVT server wrote %d bytes to %d.%d.%d.%d\r\n",
-                         length,
-                         pvtServerClientIpAddress[index][0],
-                         pvtServerClientIpAddress[index][1],
-                         pvtServerClientIpAddress[index][2],
+            systemPrintf("PVT server wrote %d bytes to %d.%d.%d.%d\r\n", length, pvtServerClientIpAddress[index][0],
+                         pvtServerClientIpAddress[index][1], pvtServerClientIpAddress[index][2],
                          pvtServerClientIpAddress[index][3]);
         }
     }
@@ -113,12 +107,9 @@ int32_t pvtServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugPvtServer || PERIODIC_DISPLAY(PD_PVT_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_PVT_SERVER_CLIENT_DATA);
-            systemPrintf("PVT server breaking connection %d with client %d.%d.%d.%d\r\n",
-                         index,
-                         pvtServerClientIpAddress[index][0],
-                         pvtServerClientIpAddress[index][1],
-                         pvtServerClientIpAddress[index][2],
-                         pvtServerClientIpAddress[index][3]);
+            systemPrintf("PVT server breaking connection %d with client %d.%d.%d.%d\r\n", index,
+                         pvtServerClientIpAddress[index][0], pvtServerClientIpAddress[index][1],
+                         pvtServerClientIpAddress[index][2], pvtServerClientIpAddress[index][3]);
         }
 
         pvtServerClient[index]->stop();
@@ -251,8 +242,7 @@ bool pvtServerStart()
     pvtServer->begin();
     online.pvtServer = true;
     localIp = wifiGetIpAddress();
-    systemPrintf("PVT server online, IP address %d.%d.%d.%d:%d\r\n",
-                 localIp[0], localIp[1], localIp[2], localIp[3],
+    systemPrintf("PVT server online, IP address %d.%d.%d.%d:%d\r\n", localIp[0], localIp[1], localIp[2], localIp[3],
                  settings.pvtServerPort);
     return true;
 }
@@ -312,21 +302,16 @@ void pvtServerStopClient(int index)
         PERIODIC_CLEAR(PD_PVT_SERVER_DATA);
 
         // Determine the shutdown reason
-        connected = pvtServerClient[index]->connected()
-                    && (!(pvtServerClientWriteError & (1 << index)));
-        dataSent = ((millis() - pvtServerTimer) < PVT_SERVER_CLIENT_DATA_TIMEOUT)
-                 || (pvtServerClientDataSent & (1 << index));
+        connected = pvtServerClient[index]->connected() && (!(pvtServerClientWriteError & (1 << index)));
+        dataSent =
+            ((millis() - pvtServerTimer) < PVT_SERVER_CLIENT_DATA_TIMEOUT) || (pvtServerClientDataSent & (1 << index));
         if (!dataSent)
-            systemPrintf("PVT Server: No data sent over %d seconds\r\n",
-                         PVT_SERVER_CLIENT_DATA_TIMEOUT / 1000);
+            systemPrintf("PVT Server: No data sent over %d seconds\r\n", PVT_SERVER_CLIENT_DATA_TIMEOUT / 1000);
         if (!connected)
             systemPrintf("PVT Server: Link to client broken\r\n");
-        systemPrintf("PVT server client %d disconnected from %d.%d.%d.%d\r\n",
-                     index,
-                     pvtServerClientIpAddress[index][0],
-                     pvtServerClientIpAddress[index][1],
-                     pvtServerClientIpAddress[index][2],
-                     pvtServerClientIpAddress[index][3]);
+        systemPrintf("PVT server client %d disconnected from %d.%d.%d.%d\r\n", index,
+                     pvtServerClientIpAddress[index][0], pvtServerClientIpAddress[index][1],
+                     pvtServerClientIpAddress[index][2], pvtServerClientIpAddress[index][3]);
     }
 
     // Shutdown the PVT server client link
@@ -439,20 +424,17 @@ void pvtServerUpdate()
                 // Data structure in use
                 // Check for a working PVT server client connection
                 connected = pvtServerClient[index]->connected();
-                dataSent = ((millis() - pvtServerTimer) < PVT_SERVER_CLIENT_DATA_TIMEOUT)
-                         || (pvtServerClientDataSent & (1 << index));
+                dataSent = ((millis() - pvtServerTimer) < PVT_SERVER_CLIENT_DATA_TIMEOUT) ||
+                           (pvtServerClientDataSent & (1 << index));
                 if (connected && dataSent)
                 {
                     // Display this client connection
                     if (PERIODIC_DISPLAY(PD_PVT_SERVER_DATA) && (!inMainMenu))
                     {
                         PERIODIC_CLEAR(PD_PVT_SERVER_DATA);
-                        systemPrintf("PVT server client %d connected to %d.%d.%d.%d\r\n",
-                                     index,
-                                     pvtServerClientIpAddress[index][0],
-                                     pvtServerClientIpAddress[index][1],
-                                     pvtServerClientIpAddress[index][2],
-                                     pvtServerClientIpAddress[index][3]);
+                        systemPrintf("PVT server client %d connected to %d.%d.%d.%d\r\n", index,
+                                     pvtServerClientIpAddress[index][0], pvtServerClientIpAddress[index][1],
+                                     pvtServerClientIpAddress[index][2], pvtServerClientIpAddress[index][3]);
                     }
                 }
 
@@ -486,12 +468,9 @@ void pvtServerUpdate()
                 if ((settings.debugPvtServer || PERIODIC_DISPLAY(PD_PVT_SERVER_DATA)) && (!inMainMenu))
                 {
                     PERIODIC_CLEAR(PD_PVT_SERVER_DATA);
-                    systemPrintf("PVT server client %d connected to %d.%d.%d.%d\r\n",
-                                 index,
-                                 pvtServerClientIpAddress[index][0],
-                                 pvtServerClientIpAddress[index][1],
-                                 pvtServerClientIpAddress[index][2],
-                                 pvtServerClientIpAddress[index][3]);
+                    systemPrintf("PVT server client %d connected to %d.%d.%d.%d\r\n", index,
+                                 pvtServerClientIpAddress[index][0], pvtServerClientIpAddress[index][1],
+                                 pvtServerClientIpAddress[index][2], pvtServerClientIpAddress[index][3]);
                 }
             }
         }

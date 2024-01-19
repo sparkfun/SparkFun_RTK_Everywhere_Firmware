@@ -122,8 +122,8 @@ PvtClient.ino
 // Constants
 //----------------------------------------
 
-#define PVT_MAX_CONNECTIONS             6
-#define PVT_DELAY_BETWEEN_CONNECTIONS   (5 * 1000)
+#define PVT_MAX_CONNECTIONS 6
+#define PVT_DELAY_BETWEEN_CONNECTIONS (5 * 1000)
 
 // Define the PVT client states
 enum PvtClientStates
@@ -133,28 +133,21 @@ enum PvtClientStates
     PVT_CLIENT_STATE_CLIENT_STARTING,
     PVT_CLIENT_STATE_CONNECTED,
     // Insert new states here
-    PVT_CLIENT_STATE_MAX            // Last entry in the state list
+    PVT_CLIENT_STATE_MAX // Last entry in the state list
 };
 
-const char * const pvtClientStateName[] =
-{
-    "PVT_CLIENT_STATE_OFF",
-    "PVT_CLIENT_STATE_NETWORK_STARTED",
-    "PVT_CLIENT_STATE_CLIENT_STARTING",
-    "PVT_CLIENT_STATE_CONNECTED"
-};
+const char *const pvtClientStateName[] = {"PVT_CLIENT_STATE_OFF", "PVT_CLIENT_STATE_NETWORK_STARTED",
+                                          "PVT_CLIENT_STATE_CLIENT_STARTING", "PVT_CLIENT_STATE_CONNECTED"};
 
 const int pvtClientStateNameEntries = sizeof(pvtClientStateName) / sizeof(pvtClientStateName[0]);
 
-const RtkMode_t pvtClientMode = RTK_MODE_BASE_FIXED
-                              | RTK_MODE_BASE_SURVEY_IN
-                              | RTK_MODE_ROVER;
+const RtkMode_t pvtClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | RTK_MODE_ROVER;
 
 //----------------------------------------
 // Locals
 //----------------------------------------
 
-static NetworkClient * pvtClient;
+static NetworkClient *pvtClient;
 static IPAddress pvtClientIpAddress;
 static uint8_t pvtClientState;
 static volatile RING_BUFFER_OFFSET pvtClientTail;
@@ -217,8 +210,8 @@ int32_t pvtClientSendData(uint16_t dataHead)
             {
                 // Done with this client connection
                 if (!inMainMenu)
-                    systemPrintf("PVT client breaking connection with %s:%d\r\n",
-                         pvtClientIpAddress.toString().c_str(), settings.pvtClientPort);
+                    systemPrintf("PVT client breaking connection with %s:%d\r\n", pvtClientIpAddress.toString().c_str(),
+                                 settings.pvtClientPort);
 
                 pvtClientWriteError = true;
                 bytesToSend = 0;
@@ -278,7 +271,7 @@ void discardPvtClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 // Start the PVT client
 bool pvtClientStart()
 {
-    NetworkClient * client;
+    NetworkClient *client;
 
     // Allocate the PVT client
     client = new NetworkClient(NETWORK_USER_PVT_CLIENT);
@@ -310,8 +303,8 @@ bool pvtClientStart()
             pvtClientIpAddress = client->remoteIP();
 
             // Display the PVT client connection
-            systemPrintf("PVT client connected to %s:%d\r\n",
-                         pvtClientIpAddress.toString().c_str(), settings.pvtClientPort);
+            systemPrintf("PVT client connected to %s:%d\r\n", pvtClientIpAddress.toString().c_str(),
+                         settings.pvtClientPort);
 
             // The PVT client is connected
             pvtClient = client;
@@ -332,7 +325,7 @@ bool pvtClientStart()
 // Stop the PVT client
 void pvtClientStop()
 {
-    NetworkClient * client;
+    NetworkClient *client;
     IPAddress ipAddress;
 
     client = pvtClient;
@@ -351,8 +344,8 @@ void pvtClientStop()
 
         // Notify the user of the PVT client shutdown
         if (!inMainMenu)
-            systemPrintf("PVT client disconnected from %s:%d\r\n",
-                         ipAddress.toString().c_str(), settings.pvtClientPort);
+            systemPrintf("PVT client disconnected from %s:%d\r\n", ipAddress.toString().c_str(),
+                         settings.pvtClientPort);
     }
 
     // Done with the network
@@ -487,8 +480,8 @@ void pvtClientUpdate()
                 seconds = milliseconds / MILLISECONDS_IN_A_SECOND;
                 milliseconds %= MILLISECONDS_IN_A_SECOND;
                 if (settings.debugPvtClient)
-                    systemPrintf("PVT Client delaying %d %02d:%02d:%02d.%03lld\r\n",
-                                 days, hours, minutes, seconds, milliseconds);
+                    systemPrintf("PVT Client delaying %d %02d:%02d:%02d.%03lld\r\n", days, hours, minutes, seconds,
+                                 milliseconds);
             }
             else
             {
@@ -531,4 +524,4 @@ void pvtClientZeroTail()
     pvtClientTail = 0;
 }
 
-#endif  // COMPILE_NETWORK
+#endif // COMPILE_NETWORK
