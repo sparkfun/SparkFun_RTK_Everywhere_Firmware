@@ -173,6 +173,14 @@ void identifyBoard()
                 DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
                 pinMode(pin_gnssStatusLED, OUTPUT);
                 digitalWrite(pin_gnssStatusLED, HIGH);
+
+                pin_beeper = 33;
+                pinMode(pin_beeper, OUTPUT);
+
+                // Do a blocking beep as close to power on as possible to indicate power on
+                beepOn();
+                delay(50);
+                beepOff();
             }
             else
             {
@@ -474,6 +482,7 @@ void beginBoard()
 
         // During identifyBoard(), the GNSS UART and DR pins are assigned
         // During identifyBoard(), the Bluetooth and GNSS LEDs are assigned and turned on
+        // During identifyBoard(), the beep pin is assigned
 
         pin_powerSenseAndControl = 34;
 
@@ -486,7 +495,6 @@ void beginBoard()
 
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
-        pin_beeper = 33;
 
         DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
         pinMode(pin_powerSenseAndControl, INPUT);
@@ -498,11 +506,6 @@ void beginBoard()
 
         pinMode(pin_usbSelect, OUTPUT);
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
-
-        pinMode(pin_beeper, OUTPUT);
-        beepOff(); // Turn off sound
-
-        beepDuration(250); // Signal power on state
 
         settings.enableSD = false; // SD does not exist on the Torch
 
