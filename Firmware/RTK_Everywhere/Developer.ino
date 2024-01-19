@@ -214,6 +214,6 @@ void     um980SetMinElevation(uint8_t elevationDegrees) {}
 void     um980SetModel(uint8_t modelNumber) {}
 bool     um980SetModeRoverSurvey() {return false;}
 bool     um980SetRate(double secondsBetweenSolutions) {return false;}
-void     un980UnicoreHandler(uint8_t * buffer, int length) {}
+void     um980UnicoreHandler(uint8_t * buffer, int length) {}
 
 #endif  // COMPILE_UM980

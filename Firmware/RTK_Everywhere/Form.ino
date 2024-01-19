@@ -74,7 +74,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                 MDNS.addService("http", "tcp", 80); // Add service to MDNS-SD
         }
 
-        incomingSettings = (char *)malloc(AP_CONFIG_SETTING_SIZE);
+        incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         if (!incomingSettings)
         {
             systemPrintln("ERROR: Failed to allocate incomingSettings");
@@ -83,7 +83,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
         // Pre-load settings CSV
-        settingsCSV = (char *)malloc(AP_CONFIG_SETTING_SIZE);
+        settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         if (!settingsCSV)
         {
             systemPrintln("ERROR: Failed to allocate settingsCSV");
@@ -882,7 +882,7 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "logFileName", logFileName);
 
-    if (HAS_NO_BATTERY) // Ref Stn does not have a battery
+    if (fuelGaugeType == FUEL_GAUGE_TYPE_NONE) // Product has no battery
     {
         stringRecord(newSettings, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(newSettings, "batteryPercent", (char *)" ");
@@ -1066,7 +1066,7 @@ void createDynamicDataString(char *settingsCSV)
     stringRecord(settingsCSV, "ecefY", ecefY, 3);
     stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
 
-    if (HAS_NO_BATTERY) // Ref Stn does not have a battery
+    if (fuelGaugeType == FUEL_GAUGE_TYPE_NONE) // Product has no battery
     {
         stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(settingsCSV, "batteryPercent", (char *)" ");

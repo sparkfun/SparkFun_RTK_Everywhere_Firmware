@@ -200,6 +200,15 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
+// Different Battery Fuel Gauge ICs require different libraries and configuration
+typedef enum
+{
+    FUEL_GAUGE_TYPE_NONE = 0,
+    FUEL_GAUGE_TYPE_MAX1704X,
+    FUEL_GAUGE_TYPE_BQ40Z50,
+} FuelGaugeType;
+FuelGaugeType fuelGaugeType = FUEL_GAUGE_TYPE_MAX1704X;
+
 // Macros to show if the GNSS is I2C or SPI
 #define USE_SPI_GNSS (productVariant == REFERENCE_STATION)
 #define USE_I2C_GNSS (!USE_SPI_GNSS)
@@ -219,10 +228,6 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 // The GNSS UBX PVT message is sent ahead of the top-of-second
 // The rising edge of the TP signal indicates the true top-of-second
 #define HAS_GNSS_TP_INT (((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)) && (pin_GNSS_TimePulse != -1))
-
-// Macro to show if the the RTK variant has no battery
-#define HAS_NO_BATTERY ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
-#define HAS_BATTERY (!HAS_NO_BATTERY)
 
 // Macro to show if the the RTK variant has antenna short circuit / open circuit detection
 #define HAS_ANTENNA_SHORT_OPEN ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))

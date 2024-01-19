@@ -135,6 +135,10 @@ int pin_IMU_TX = -1;
 
 int pin_GNSS_DR_Reset = -1;
 int pin_gnssStatusLED = -1;
+
+int pin_powerAdapterDetect = -1;
+int pin_usbSelect = -1;
+int pin_beeper = -1;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display, accelerometer
@@ -392,8 +396,6 @@ unsigned long rtcmLastPacketReceived =
 
 // GPS parse table
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include "GpsMessageParser.h" // Include the parser
-
 // Define the parsers that get included
 #define PARSE_NMEA_MESSAGES
 #define PARSE_RTCM_MESSAGES
@@ -401,6 +403,8 @@ unsigned long rtcmLastPacketReceived =
 #ifdef COMPILE_UM980
 #define PARSE_UNICORE_MESSAGES
 #endif // COMPILE_UM980
+
+#include "GpsMessageParser.h" // Include the parser
 
 // Build the GPS message parse table
 GPS_PARSE_TABLE;
@@ -518,8 +522,10 @@ float bluetoothLedTaskPace2Hz = 0.5;
 float bluetoothLedTaskPace33Hz = 0.03;
 
 Ticker gnssLedTask;
-float gnssLedTaskPace10Hz = 0.1;
+const int gnssTaskUpdatesHz = 20; // Update GNSS LED 20 times a second
 
+Ticker beepTask;
+const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest duration = 50ms.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Accelerometer for bubble leveling
@@ -759,6 +765,8 @@ unsigned long shutdownNoChargeTimer = 0;
 unsigned long um980BaseStartTimer = 0; // Tracks how long the base averaging mode has been running
 
 RtkMode_t rtkMode; // Mode of operation
+
+unsigned long beepStopMs = 0; // Time at which to turn off beeper
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1045,7 +1053,7 @@ void setup()
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
 
-    Serial.flush(); // Complete any previous prints
+    systemFlush(); // Complete any previous prints
 
     log_d("Boot time: %d", millis());
 
@@ -1351,11 +1359,14 @@ void rtcUpdate()
                 gnssUpdate();
 
                 bool timeValid = false;
+
                 if (gnssIsValidTime() == true &&
                     gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
+
                 if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
+
                 if (timeValid &&
                     (gnssGetFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
                     timeValid = false;

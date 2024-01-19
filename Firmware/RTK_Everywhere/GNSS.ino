@@ -11,7 +11,7 @@ void gnssBegin()
 }
 
 // Setup the general configuration of the GNSS
-// Not Rover or Base sepecific (ie, baud rates)
+// Not Rover or Base specific (ie, baud rates)
 bool gnssConfigure()
 {
     if (online.gnss == false)
@@ -203,7 +203,6 @@ void gnssEnableRtcmOnGnss()
 }
 
 // Return the number of seconds the survey-in process has been running
-//  TODO make sure we're not slowing down a ZED base
 int gnssGetSurveyInObservationTime()
 {
     static uint16_t svinObservationTime = 0;
@@ -1081,4 +1080,21 @@ uint16_t gnssExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
     }
 
     return (0);
+}
+
+char * gnssGetId()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedUniqueId);
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980GetId());
+        }
+    }
+
+    return ("\0");
 }

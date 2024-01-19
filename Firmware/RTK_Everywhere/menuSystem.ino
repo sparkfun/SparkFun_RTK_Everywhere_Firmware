@@ -20,7 +20,7 @@ void menuSystem()
 
             gnssPrintModuleInfo();
 
-            systemPrintf("Module unique chip ID: %s\r\n", zedUniqueId);
+            systemPrintf("Module ID: %s\r\n", gnssGetId());
 
             printCurrentConditions();
         }

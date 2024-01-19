@@ -440,7 +440,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "bluetoothInterruptsCore", settings.bluetoothInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "i2cInterruptsCore", settings.i2cInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
-    settingsFile->printf("%s=%d\r\n", "tiltPoleLength", settings.tiltPoleLength);
+    settingsFile->printf("%s=%0.2f\r\n", "tiltPoleLength", settings.tiltPoleLength);
     settingsFile->printf("%s=%d\r\n", "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
     settingsFile->printf("%s=%d\r\n", "enableImuDebug", settings.enableImuDebug);
 
@@ -1038,10 +1038,7 @@ bool parseLine(char *str, Settings *settings)
         }
     }
     else if (strcmp(settingName, "profileName") == 0)
-    {
-        Serial.printf("record profileName: %s\r\n", settings->profileName);
         strcpy(settings->profileName, settingString);
-    }
     else if (strcmp(settingName, "enableNtripServer") == 0)
         settings->enableNtripServer = d;
     else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
