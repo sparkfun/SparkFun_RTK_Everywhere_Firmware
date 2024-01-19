@@ -6,6 +6,8 @@ Parse_Unicore.ino
   Unicore message parsing support routines
 ------------------------------------------------------------------------------*/
 
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> // Get constants and crc32Table
+
 //
 //    Unicore Binary Response
 //
