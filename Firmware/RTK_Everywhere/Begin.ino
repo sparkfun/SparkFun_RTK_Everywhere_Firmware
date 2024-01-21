@@ -875,7 +875,12 @@ void beginGnssUart()
     rbOffsetEntries = (length >> 1) / AVERAGE_SENTENCE_LENGTH_IN_BYTES;
     length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
-    rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
+
+    if (online.psram == true)
+        rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
+    else
+        rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
+
     if (!rbOffsetArray)
     {
         rbOffsetEntries = 0;

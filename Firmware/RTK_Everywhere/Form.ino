@@ -74,7 +74,11 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                 MDNS.addService("http", "tcp", 80); // Add service to MDNS-SD
         }
 
-        incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
+        if (online.psram == true)
+            incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
+        else
+            incomingSettings = (char *)malloc(AP_CONFIG_SETTING_SIZE);
+
         if (!incomingSettings)
         {
             systemPrintln("ERROR: Failed to allocate incomingSettings");
@@ -83,7 +87,11 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
         // Pre-load settings CSV
-        settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
+        if (online.psram == true)
+            settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
+        else
+            settingsCSV = (char *)malloc(AP_CONFIG_SETTING_SIZE);
+
         if (!settingsCSV)
         {
             systemPrintln("ERROR: Failed to allocate settingsCSV");
