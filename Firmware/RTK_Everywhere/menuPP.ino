@@ -388,7 +388,7 @@ bool pointperfectProvisionDevice()
             else
             {
                 if (online.psram == true)
-                    tempHolderPtr = (char *)ps_Fmalloc(MQTT_CERT_SIZE);
+                    tempHolderPtr = (char *)ps_malloc(MQTT_CERT_SIZE);
                 else
                     tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
 
