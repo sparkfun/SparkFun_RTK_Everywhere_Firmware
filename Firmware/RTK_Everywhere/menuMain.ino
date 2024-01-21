@@ -100,8 +100,7 @@ void menuMain()
         systemPrintln("r) **ESP-Now Not Compiled**");
 #endif // COMPILE_ESPNOW
 
-        if (online.lband == true)
-            systemPrintln("P) Configure PointPerfect");
+        systemPrintln("P) Configure PointPerfect");
 
         systemPrintln("s) Configure System");
 
@@ -141,7 +140,7 @@ void menuMain()
             menuNTP();
         else if (incoming == 'p')
             menuUserProfiles();
-        else if (incoming == 'P' && online.lband == true)
+        else if (incoming == 'P')
             menuPointPerfect();
 #ifdef COMPILE_ESPNOW
         else if (incoming == 'r')
