@@ -387,7 +387,11 @@ bool pointperfectProvisionDevice()
             }
             else
             {
-                tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
+                if (online.psram == true)
+                    tempHolderPtr = (char *)ps_Fmalloc(MQTT_CERT_SIZE);
+                else
+                    tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
+
                 if (!tempHolderPtr)
                 {
                     systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
@@ -473,8 +477,17 @@ bool checkCertificates()
     char *keyContents = nullptr;
 
     // Allocate the buffers
-    certificateContents = (char *)malloc(MQTT_CERT_SIZE);
-    keyContents = (char *)malloc(MQTT_CERT_SIZE);
+    if (online.psram == true)
+    {
+        certificateContents = (char *)ps_malloc(MQTT_CERT_SIZE);
+        keyContents = (char *)ps_malloc(MQTT_CERT_SIZE);
+    }
+    else
+    {
+        certificateContents = (char *)malloc(MQTT_CERT_SIZE);
+        keyContents = (char *)malloc(MQTT_CERT_SIZE);
+    }
+
     if ((!certificateContents) || (!keyContents))
     {
         if (certificateContents)
@@ -597,8 +610,17 @@ bool pointperfectUpdateKeys()
     do
     {
         // Allocate the buffers
-        certificateContents = (char *)malloc(MQTT_CERT_SIZE);
-        keyContents = (char *)malloc(MQTT_CERT_SIZE);
+        if (online.psram == true)
+        {
+            certificateContents = (char *)ps_malloc(MQTT_CERT_SIZE);
+            keyContents = (char *)ps_malloc(MQTT_CERT_SIZE);
+        }
+        else
+        {
+            certificateContents = (char *)malloc(MQTT_CERT_SIZE);
+            keyContents = (char *)malloc(MQTT_CERT_SIZE);
+        }
+
         if ((!certificateContents) || (!keyContents))
         {
             if (certificateContents)

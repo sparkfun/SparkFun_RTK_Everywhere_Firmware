@@ -485,8 +485,17 @@ void mqttClientUpdate()
         }
 
         // Allocate the buffers
-        mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
-        mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
+        if (online.psram == true)
+        {
+            mqttClientCertificateBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
+            mqttClientPrivateKeyBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
+        }
+        else
+        {
+            mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
+            mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
+        }
+
         if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))
         {
             if (mqttClientCertificateBuffer)
