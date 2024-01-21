@@ -474,6 +474,8 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%d\r\n", "debugWiFiConfig", settings.debugWiFiConfig);
 
+    settingsFile->printf("%s=%d\r\n", "printTaskStartStop", settings.printTaskStartStop);
+
     // Add new settings above <------------------------------------------------------------>
 }
 
@@ -1443,6 +1445,9 @@ bool parseLine(char *str, Settings *settings)
 
     else if (strcmp(settingName, "debugWiFiConfig") == 0)
         settings->debugWiFiConfig = d;
+
+    else if (strcmp(settingName, "printTaskStartStop") == 0)
+        settings->printTaskStartStop = d;
 
     // Add new settings above
     //<------------------------------------------------------------>

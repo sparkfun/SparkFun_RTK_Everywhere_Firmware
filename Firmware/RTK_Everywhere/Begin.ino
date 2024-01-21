@@ -885,17 +885,17 @@ void beginGnssUart()
     {
         ringBuffer = (uint8_t *)&rbOffsetArray[rbOffsetEntries];
         rbOffsetArray[0] = 0;
-        if (pinGnssUartTaskHandle == nullptr)
+        if (!online.gnssUartpinned)
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
                 "GnssUartStart", // Just for humans
                 2000,            // Stack Size
                 nullptr,         // Task input parameter
                 0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &pinGnssUartTaskHandle,           // Task handle
+                nullptr,         // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-        while (gnssUartpinned == false) // Wait for task to run once
+        while (!online.gnssUartpinned) // Wait for task to run once
             delay(1);
     }
 }
@@ -904,6 +904,10 @@ void beginGnssUart()
 // https://github.com/espressif/arduino-esp32/issues/3386
 void pinGnssUartTask(void *pvParameters)
 {
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinGnssUartTask started");
+
     if (productVariant == RTK_TORCH)
     {
         // Override user setting. Required because beginGnssUart() is called before beginBoard().
@@ -944,8 +948,10 @@ void pinGnssUartTask(void *pvParameters)
         uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
     }
 
-    gnssUartpinned = true;
-
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinGnssUartTask stopped");
+    online.gnssUartpinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
@@ -1212,10 +1218,10 @@ void beginSystemState()
         else if (settings.lastState == STATE_BASE_NOT_STARTED && digitalRead(pin_setupButton) == HIGH)
             settings.updateGNSSSettings = true;
 
-        systemState = STATE_ROVER_NOT_STARTED; // Assume Rover. ButtonCheckTask() will correct as needed.
+        systemState = STATE_ROVER_NOT_STARTED; // Assume Rover. buttonCheckTask() will correct as needed.
 
         setupBtn = new Button(pin_setupButton); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
+        // Allocation failure handled in buttonCheckTask
     }
     else if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
     {
@@ -1228,7 +1234,7 @@ void beginSystemState()
 
         setupBtn = new Button(pin_setupButton);          // Create the button in memory
         powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
-        // Allocation failures handled in ButtonCheckTask
+        // Allocation failures handled in buttonCheckTask
     }
     else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
              productVariant == RTK_FACET_LBAND_DIRECT)
@@ -1245,7 +1251,7 @@ void beginSystemState()
             firstRoverStart = false;
 
         powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
+        // Allocation failure handled in buttonCheckTask
     }
     else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
     {
@@ -1254,7 +1260,7 @@ void beginSystemState()
                 .lastState; // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
 
         setupBtn = new Button(pin_setupButton); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
+        // Allocation failure handled in buttonCheckTask
     }
     else if (productVariant == RTK_TORCH)
     {
@@ -1271,13 +1277,13 @@ void beginSystemState()
     }
 
     // Starts task for monitoring button presses
-    if (ButtonCheckTaskHandle == nullptr)
-        xTaskCreate(ButtonCheckTask,
+    if (!online.buttonCheckTaskRunning)
+        xTaskCreate(buttonCheckTask,
                     "BtnCheck",          // Just for humans
                     buttonTaskStackSize, // Stack Size
                     nullptr,             // Task input parameter
                     ButtonCheckTaskPriority,
-                    &ButtonCheckTaskHandle); // Task handle
+                    nullptr);            // Task handle
 }
 
 void beginIdleTasks()
@@ -1309,17 +1315,18 @@ void beginI2C()
         while (millis() < i2cPowerUpDelay)
             ;
 
-    if (pinI2CTaskHandle == nullptr)
+    if (!online.i2cPinned)
         xTaskCreatePinnedToCore(
             pinI2CTask,
             "I2CStart",        // Just for humans
             2000,              // Stack Size
             nullptr,           // Task input parameter
             0,                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &pinI2CTaskHandle, // Task handle
+            nullptr,           // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-    while (i2cPinned == false) // Wait for task to run once
+    // Wait for task to run once
+    while (!online.i2cPinned)
         delay(1);
 }
 
@@ -1424,6 +1431,10 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinI2CTask started");
+
     if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
     {
         systemPrintln("Illegal I2C pin assignment. Freezing.");
@@ -1448,7 +1459,10 @@ void pinI2CTask(void *pvParameters)
         i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
     }
 
-    i2cPinned = true;
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinI2CTask stopped");
+    online.i2cPinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 

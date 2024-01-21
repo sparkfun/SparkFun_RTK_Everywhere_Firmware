@@ -457,8 +457,6 @@ HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-TaskHandle_t btReadTaskHandle;
-    // Store handles so that we can kill them if the user goes into WiFi NTRIP Server mode
 const int btReadTaskStackSize = 2000;
 
 // Array of start-of-sentence offsets into the ring buffer
@@ -469,17 +467,9 @@ uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
-TaskHandle_t gnssReadTaskHandle; // Store handles so that we can kill them if user goes into WiFi NTRIP Server mode
 const int gnssReadTaskStackSize = 3000;
 
-TaskHandle_t handleGnssDataTaskHandle;
 const int handleGnssDataTaskStackSize = 3000;
-
-TaskHandle_t pinGnssUartTaskHandle; // Dummy task to start hardware on an assigned core
-volatile bool gnssUartpinned;  // This variable is touched by core 0 but checked by core 1. Must be volatile.
-
-TaskHandle_t pinI2CTaskHandle; // Dummy task to start hardware on an assigned core
-volatile bool i2cPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool bluetoothPinned; // This variable is touched by core 0 but checked by core 1. Must be volatile.
@@ -538,8 +528,7 @@ SPARKFUN_LIS2DH12 accel;
 Button *setupBtn; // We can't instantiate the buttons here because we don't yet know what pin numbers to use
 Button *powerBtn;
 
-TaskHandle_t ButtonCheckTaskHandle;
-const uint8_t ButtonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
+#define ButtonCheckTaskPriority     1 // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;
 
 const int shutDownButtonTime = 2000;  // ms press and hold before shutdown

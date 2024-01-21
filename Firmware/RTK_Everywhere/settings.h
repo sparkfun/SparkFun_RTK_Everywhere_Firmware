@@ -1270,6 +1270,7 @@ typedef struct
     uint8_t measurementScale = MEASUREMENTS_IN_METERS;
 
     bool debugWiFiConfig = false;
+    bool printTaskStartStop = false;
 
     // Add new settings above <------------------------------------------------------------>
 
@@ -1303,7 +1304,16 @@ struct struct_online
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;
-    bool psram = false;    
+    bool psram = false;
+    volatile bool gnssUartpinned = false;
+    volatile bool i2cPinned = false;
+    volatile bool btReadTaskRunning = false;
+    volatile bool buttonCheckTaskRunning = false;
+    volatile bool gnssReadTaskRunning = false;
+    volatile bool handleGnssDataTaskRunning = false;
+    volatile bool idleTask0Running = false;
+    volatile bool idleTask1Running = false;
+    volatile bool sdSizeCheckTaskRunning = false;
 } online;
 
 #ifdef COMPILE_WIFI
