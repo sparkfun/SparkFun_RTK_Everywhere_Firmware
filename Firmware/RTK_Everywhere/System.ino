@@ -2,7 +2,9 @@
 void psramBegin()
 {
     if (psramInit() == false)
-        systemPrintln("PSRAM failed to initialize");
+    {
+        systemPrintln("No PSRAM initialize");
+    }
     else
     {
         if (ESP.getPsramSize() > 0)
