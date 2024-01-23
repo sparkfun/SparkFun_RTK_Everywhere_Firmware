@@ -70,7 +70,12 @@ void identifyBoard()
 
     // Express: 10/3.3  -->  761mV < 819mV < 879mV
     else if (idWithAdc(idValue, 10, 3.3))
+    {
+        // Assign UART pins before beginGnssUart
+        pin_GnssUart_RX = 16;
+        pin_GnssUart_TX = 17;
         productVariant = RTK_EXPRESS;
+    }
 
     // Reference Station: 20/10  -->  1031mV < 1100mV < 1171mV
     else if (idWithAdc(idValue, 20, 10))
@@ -105,7 +110,7 @@ void identifyBoard()
     //      Surveyor
     //      Torch
     //      Unknown
-    //      Unknown ZED
+    //      Unknown ZED (Express without ID resistors)
     else
     {
         bool zedPresent;
@@ -130,6 +135,10 @@ void identifyBoard()
             {
                 log_d("ZED-TX_Ready Detected. ZED type to be determined.");
                 productVariant = RTK_UNKNOWN_ZED; // The ZED-F9x module type is determined at zedBegin()
+
+                // Assume Express/Express+
+                pin_GnssUart_RX = 16;
+                pin_GnssUart_TX = 17;
             }
             else // No connection to pin 34
             {
