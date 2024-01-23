@@ -507,9 +507,9 @@ void beginBoard()
         pinMode(pin_usbSelect, OUTPUT);
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
-        settings.enableSD = false; // SD does not exist on the Torch
-
+#ifdef COMPILE_IM19_IMU
         tiltSupported = true; // Allow tiltUpdate() to run
+#endif // COMPILE_IM19_IMU
 
         settings.enableSD = false; // Torch has no SD socket
 
