@@ -612,37 +612,6 @@ void mqttClientUpdate()
             Serial.println("MQTT client subscribed to MQTT_TOPIC_SPARTN");
 
         // Now subscribed to the MQTT_TOPIC_SPARTN
-        mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_ASSIST);
-        break;
-    }
-
-    // Subscribe to the topic ASSISTNOW
-    case MQTT_CLIENT_SUBSCRIBE_ASSIST: {
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-        {
-            // Failed to connect to to the network, attempt to restart the network
-            mqttClientRestart();
-            break;
-        }
-
-        // Subscribe to the MQTT_TOPIC_ASSISTNOW
-        if (!mqttClient->subscribe(MQTT_TOPIC_ASSISTNOW))
-        {
-            mqttClientRestart();
-            Serial.println("ERROR: Subscription to MQTT_TOPIC_ASSISTNOW failed!!");
-            mqttClientRestart();
-            break;
-        }
-
-        if (settings.debugMqttClientState)
-        {
-            Serial.println("MQTT client subscribed to MQTT_TOPIC_ASSISTNOW");
-            Serial.println("MQTT client waiting on correction data");
-        }
-
-        // Now subscribed to the MQTT_TOPIC_ASSISTNOW
-        mqttClientLastDataReceived = millis();
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
         break;
     }
