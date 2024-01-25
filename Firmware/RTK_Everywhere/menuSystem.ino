@@ -210,7 +210,7 @@ void menuSystem()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 'b')
         {
@@ -227,7 +227,7 @@ void menuSystem()
         else if (incoming == 'c')
         {
             systemPrint("Enter time in seconds to shutdown unit if not charging (0 to disable): ");
-            int shutdownNoChargeTimeout_s = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int shutdownNoChargeTimeout_s = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((shutdownNoChargeTimeout_s != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (shutdownNoChargeTimeout_s != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -260,7 +260,7 @@ void menuSystem()
         else if (incoming == 'r')
         {
             systemPrintln("\r\nResetting to factory defaults. Press 'y' to confirm:");
-            byte bContinue = getCharacterNumber();
+            byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
                 factoryReset(false); // We do not have the SD semaphore
@@ -271,7 +271,7 @@ void menuSystem()
         else if (incoming == 'z')
         {
             systemPrint("Enter time zone hour offset (-23 <= offset <= 23): ");
-            int value = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int value = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (value < -23 || value > 23)
@@ -281,7 +281,7 @@ void menuSystem()
                     settings.timeZoneHours = value;
 
                     systemPrint("Enter time zone minute offset (-59 <= offset <= 59): ");
-                    int value = getNumber(); // Returns EXIT, TIMEOUT, or long
+                    int value = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
                     if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                     {
                         if (value < -59 || value > 59)
@@ -291,7 +291,7 @@ void menuSystem()
                             settings.timeZoneMinutes = value;
 
                             systemPrint("Enter time zone second offset (-59 <= offset <= 59): ");
-                            int value = getNumber(); // Returns EXIT, TIMEOUT, or long
+                            int value = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
                             if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                             {
                                 if (value < -59 || value > 59)
@@ -430,7 +430,7 @@ void menuDebugHardware()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
             settings.enablePrintBatteryMessages ^= 1;
@@ -601,7 +601,7 @@ void menuDebugNetwork()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
             settings.enablePrintEthernetDiag ^= 1;
@@ -734,7 +734,7 @@ void menuDebugSoftware()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
             settings.enableHeapReport ^= 1;
@@ -753,7 +753,7 @@ void menuDebugSoftware()
         else if (incoming == 32)
         {
             systemPrint("Enter uptime seconds before reboot, Disabled = 0, Reboot range (30 - 4294967): ");
-            int rebootSeconds = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int rebootSeconds = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((rebootSeconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootSeconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (rebootSeconds < 30 || rebootSeconds > 4294967) // Disable the reboot
@@ -910,7 +910,7 @@ void menuOperation()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
         {
@@ -924,7 +924,7 @@ void menuOperation()
         else if (incoming == 2)
         {
             systemPrint("Enter GNSS Serial Timeout in milliseconds (0 to 1000): ");
-            int serialTimeoutGNSS = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int serialTimeoutGNSS = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((serialTimeoutGNSS != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (serialTimeoutGNSS != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -938,7 +938,7 @@ void menuOperation()
         {
             systemPrintln("Warning: changing the Handler Buffer Size will restart the RTK. Enter 0 to abort");
             systemPrint("Enter GNSS Handler Buffer Size in Bytes (32 to 65535): ");
-            int queSize = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (queSize < 32 || queSize > 65535) // Arbitrary 64k limit
@@ -960,7 +960,7 @@ void menuOperation()
         else if (incoming == 4)
         {
             systemPrint("Enter Serial GNSS RX Full Threshold (1 to 127): ");
-            int serialGNSSRxFullThreshold = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int serialGNSSRxFullThreshold = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((serialGNSSRxFullThreshold != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (serialGNSSRxFullThreshold != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -975,7 +975,7 @@ void menuOperation()
         else if (incoming == 5)
         {
             systemPrint("Enter number of seconds in RTK float before hot-start (0-disable to 3600): ");
-            int timeout = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int timeout = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((timeout != INPUT_RESPONSE_GETNUMBER_EXIT) && (timeout != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (timeout < 0 || timeout > 3600) // Arbitrary 60 minute limit
@@ -987,7 +987,7 @@ void menuOperation()
         else if (incoming == 6)
         {
             systemPrint("Enter SPI frequency in MHz (1 to 16): ");
-            int freq = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int freq = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((freq != INPUT_RESPONSE_GETNUMBER_EXIT) && (freq != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (freq < 1 || freq > 16) // Arbitrary 16MHz limit
@@ -999,7 +999,7 @@ void menuOperation()
         else if (incoming == 7)
         {
             systemPrint("Enter SPP RX Queue Size in Bytes (32 to 16384): ");
-            int queSize = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (queSize < 32 || queSize > 16384) // Arbitrary 16k limit
@@ -1011,7 +1011,7 @@ void menuOperation()
         else if (incoming == 8)
         {
             systemPrint("Enter SPP TX Queue Size in Bytes (32 to 16384): ");
-            int queSize = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (queSize < 32 || queSize > 16384) // Arbitrary 16k limit
@@ -1024,7 +1024,7 @@ void menuOperation()
         {
             systemPrintln("Warning: changing the Receive Buffer Size will restart the RTK. Enter 0 to abort");
             systemPrint("Enter UART Receive Buffer Size in Bytes (32 to 16384): ");
-            int queSize = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (queSize < 32 || queSize > 16384) // Arbitrary 16k limit
@@ -1055,7 +1055,7 @@ void menuOperation()
         else if (incoming == 12)
         {
             systemPrint("Enter the number of seconds before L-Band is used once RTCM is absent (1 to 255): ");
-            int rtcmTimeoutBeforeUsingLBand_s = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int rtcmTimeoutBeforeUsingLBand_s = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((rtcmTimeoutBeforeUsingLBand_s != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (rtcmTimeoutBeforeUsingLBand_s != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1075,7 +1075,7 @@ void menuOperation()
         else if (incoming == 30)
         {
             systemPrint("Not yet implemented! - Enter Core used for Bluetooth Interrupts (0 or 1): ");
-            int bluetoothInterruptsCore = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int bluetoothInterruptsCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((bluetoothInterruptsCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (bluetoothInterruptsCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1090,7 +1090,7 @@ void menuOperation()
         else if (incoming == 31)
         {
             systemPrint("Enter Core used for GNSS UART Interrupts (0 or 1): ");
-            int gnssUartInterruptsCore = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int gnssUartInterruptsCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((gnssUartInterruptsCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (gnssUartInterruptsCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1105,7 +1105,7 @@ void menuOperation()
         else if (incoming == 32)
         {
             systemPrint("Enter Core used for I2C Interrupts (0 or 1): ");
-            int i2cInterruptsCore = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int i2cInterruptsCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((i2cInterruptsCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (i2cInterruptsCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1121,7 +1121,7 @@ void menuOperation()
         else if (incoming == 50)
         {
             systemPrint("Enter BT Read Task Core (0 or 1): ");
-            int btReadTaskCore = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int btReadTaskCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((btReadTaskCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (btReadTaskCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1136,7 +1136,7 @@ void menuOperation()
         else if (incoming == 51)
         {
             systemPrint("Enter BT Read Task Priority (0 to 3): ");
-            int btReadTaskPriority = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int btReadTaskPriority = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((btReadTaskPriority != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (btReadTaskPriority != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1151,7 +1151,7 @@ void menuOperation()
         else if (incoming == 52)
         {
             systemPrint("Enter GNSS Data Handler Task Core (0 or 1): ");
-            int handleGnssDataTaskCore = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int handleGnssDataTaskCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((handleGnssDataTaskCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (handleGnssDataTaskCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1166,7 +1166,7 @@ void menuOperation()
         else if (incoming == 53)
         {
             systemPrint("Enter GNSS Data Handle Task Priority (0 to 3): ");
-            int handleGnssDataTaskPriority = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int handleGnssDataTaskPriority = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((handleGnssDataTaskPriority != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (handleGnssDataTaskPriority != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1181,7 +1181,7 @@ void menuOperation()
         else if (incoming == 54)
         {
             systemPrint("Enter GNSS Read Task Core (0 or 1): ");
-            int gnssReadTaskCore = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int gnssReadTaskCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((gnssReadTaskCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (gnssReadTaskCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1196,7 +1196,7 @@ void menuOperation()
         else if (incoming == 55)
         {
             systemPrint("Enter GNSS Read Task Priority (0 to 3): ");
-            int gnssReadTaskPriority = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int gnssReadTaskPriority = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((gnssReadTaskPriority != INPUT_RESPONSE_GETNUMBER_EXIT) &&
                 (gnssReadTaskPriority != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
@@ -1341,7 +1341,7 @@ void menuPeriodicPrint()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
             PERIODIC_TOGGLE(PD_BLUETOOTH_DATA_RX);
@@ -1364,13 +1364,13 @@ void menuPeriodicPrint()
 
         else if (incoming == 20)
         {
-            int value = getNumber();
+            int value = getUserInputNumber();
             if ((value != INPUT_RESPONSE_GETNUMBER_EXIT) && (value != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplay = value;
         }
         else if (incoming == 21)
         {
-            int seconds = getNumber();
+            int seconds = getUserInputNumber();
             if ((seconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (seconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
                 settings.periodicDisplayInterval = seconds * 1000;
         }

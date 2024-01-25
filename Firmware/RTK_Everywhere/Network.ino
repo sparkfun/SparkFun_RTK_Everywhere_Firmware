@@ -242,7 +242,7 @@ void menuNetwork()
         //------------------------------
 
         systemPrintln("x) Exit");
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         //------------------------------
         // Get the PVT client parameters
@@ -280,7 +280,7 @@ void menuNetwork()
         else if ((incoming == 3) && settings.enablePvtClient)
         {
             systemPrint("Enter the PVT client port number to use (0 to 65535): ");
-            int portNumber = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int portNumber = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((portNumber != INPUT_RESPONSE_GETNUMBER_EXIT) && (portNumber != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if ((portNumber < 0) || (portNumber > 65535))
@@ -303,7 +303,7 @@ void menuNetwork()
         else if (incoming == 5)
         {
             systemPrint("Enter the TCP port to use (0 to 65535): ");
-            int portNumber = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int portNumber = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((portNumber != INPUT_RESPONSE_GETNUMBER_EXIT) && (portNumber != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (portNumber < 0 || portNumber > 65535)
@@ -324,7 +324,7 @@ void menuNetwork()
         else if (incoming == 7 && settings.enablePvtUdpServer)
         {
             systemPrint("Enter the UDP port to use (0 to 65535): ");
-            int portNumber = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int portNumber = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((portNumber != INPUT_RESPONSE_GETNUMBER_EXIT) && (portNumber != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (portNumber < 0 || portNumber > 65535)

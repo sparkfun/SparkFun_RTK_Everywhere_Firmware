@@ -94,7 +94,7 @@ void menuWiFi()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming >= 1 && incoming <= MAX_WIFI_NETWORKS * 2)
         {

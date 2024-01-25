@@ -336,7 +336,7 @@ InputResponse getIPAddress(char *userString, uint8_t stringSize)
 // Numbers larger than 32 are allowed but will be confused with characters: ie, 74 = 'J'.
 // Returns 255 if timeout
 // Returns 0 if no data, only carriage return or newline
-byte getCharacterNumber()
+byte getUserInputCharacterNumber()
 {
     char userEntry[50]; // Allow user to enter more than one char. sscanf will remove extra.
     int userByte = 0;
@@ -371,7 +371,7 @@ byte getCharacterNumber()
 // Get a long int from user, uses sscanf to obtain 64-bit int
 // Returns INPUT_RESPONSE_GETNUMBER_EXIT if user presses 'x' or doesn't enter data
 // Returns INPUT_RESPONSE_GETNUMBER_TIMEOUT if input times out
-long getNumber()
+long getUserInputNumber()
 {
     char userEntry[50]; // Allow user to enter more than one char. sscanf will remove extra.
     long userNumber = 0;
@@ -399,7 +399,7 @@ long getNumber()
 
 // Gets a double (float) from the user
 // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
-InputResponse getDouble(double *userDouble)
+InputResponse getUserInputDouble(double *userDouble)
 {
     char userEntry[50];
 
@@ -844,7 +844,7 @@ InputResponse getNewSetting(const char *settingPrompt, int min, int max, int *se
 
         double enteredValueDouble;
         // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
-        InputResponse response = getDouble(&enteredValueDouble);
+        InputResponse response = getUserInputDouble(&enteredValueDouble);
 
         if (response == INPUT_RESPONSE_VALID)
         {
@@ -873,7 +873,7 @@ InputResponse getNewSetting(const char *settingPrompt, float min, float max, flo
 
         double enteredValue;
         // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
-        InputResponse response = getDouble(&enteredValue);
+        InputResponse response = getUserInputDouble(&enteredValue);
 
         if (response == INPUT_RESPONSE_VALID)
         {
@@ -901,7 +901,7 @@ InputResponse getNewSetting(const char *settingPrompt, float min, float max, dou
         systemPrintf("%s [min: %0.2f max: %0.2f] (or x to exit): ", settingPrompt, min, max);
 
         double enteredValue;
-        InputResponse response = getDouble(&enteredValue);
+        InputResponse response = getUserInputDouble(&enteredValue);
 
         if (response == INPUT_RESPONSE_VALID)
         {

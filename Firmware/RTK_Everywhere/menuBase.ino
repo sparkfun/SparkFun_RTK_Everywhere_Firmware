@@ -138,7 +138,7 @@ void menuBase()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -161,20 +161,20 @@ void menuBase()
                 double fixedEcefX;
 
                 // Progress with additional prompts only if the user enters valid data
-                if (getDouble(&fixedEcefX) == INPUT_RESPONSE_VALID)
+                if (getUserInputDouble(&fixedEcefX) == INPUT_RESPONSE_VALID)
                 {
                     settings.fixedEcefX = fixedEcefX;
 
                     systemPrint("\nECEF Y in meters (ex: -4716808.5807): ");
                     double fixedEcefY;
 
-                    if (getDouble(&fixedEcefY) == INPUT_RESPONSE_VALID)
+                    if (getUserInputDouble(&fixedEcefY) == INPUT_RESPONSE_VALID)
                     {
                         settings.fixedEcefY = fixedEcefY;
 
                         systemPrint("\nECEF Z in meters (ex: 4086669.6393): ");
                         double fixedEcefZ;
-                        if (getDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
+                        if (getUserInputDouble(&fixedEcefZ) == INPUT_RESPONSE_VALID)
                             settings.fixedEcefZ = fixedEcefZ;
                     }
                 }
@@ -212,7 +212,7 @@ void menuBase()
 
                                 systemPrint("\nAltitude in meters (ex: 1560.2284): ");
                                 double fixedAltitude;
-                                if (getDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
+                                if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                                     settings.fixedAltitude = fixedAltitude;
                             } // idInput on fixedLong
                         }     // getString for fixedLong
@@ -330,7 +330,7 @@ void menuBaseCoordinateType()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming >= 1 && incoming < (COORDINATE_INPUT_TYPE_INVALID_UNKNOWN + 1))
         {
@@ -449,7 +449,7 @@ void menuSensorFusion()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -501,7 +501,7 @@ void menuSensorFusion()
                                                          (settings.autoIMUmountAlignment == false && incoming == 8)))
         {
             systemPrint("Enter the output rate of priority nav mode message (0 to 30Hz): "); // TODO check maximum
-            int rate = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((rate != INPUT_RESPONSE_GETNUMBER_EXIT) && (rate != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (rate < 0 || rate > 30)

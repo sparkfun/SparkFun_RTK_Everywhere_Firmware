@@ -137,7 +137,7 @@ void menuGNSS()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -191,7 +191,7 @@ void menuGNSS()
                 systemPrintln("3) Automotive");
             }
 
-            int dynamicModel = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (gnssPlatform == PLATFORM_ZED)
@@ -372,7 +372,7 @@ void menuConstellations()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
         {

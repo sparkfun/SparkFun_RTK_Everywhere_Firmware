@@ -33,12 +33,12 @@ void menuPortsSurveyor()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
             systemPrint("Enter baud rate (4800 to 921600) for Radio Port: ");
-            int newBaud = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
@@ -57,7 +57,7 @@ void menuPortsSurveyor()
         else if (incoming == 2)
         {
             systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
-            int newBaud = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
@@ -151,12 +151,12 @@ void menuPortsMultiplexed()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
             systemPrint("Enter baud rate (4800 to 921600) for Radio Port: ");
-            int newBaud = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
@@ -183,7 +183,7 @@ void menuPortsMultiplexed()
                 systemPrintln("3) Wheel Tick/Direction");
             systemPrintln("4) ESP32 DAC Out/ADC In");
 
-            int muxPort = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int muxPort = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if (muxPort < 1 || muxPort > 4)
             {
                 systemPrintln("Error: Pin connection out of range");
@@ -197,7 +197,7 @@ void menuPortsMultiplexed()
         else if (incoming == 3 && settings.dataPortChannel == MUX_UBLOX_NMEA)
         {
             systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
-            int newBaud = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((newBaud != INPUT_RESPONSE_GETNUMBER_EXIT) && (newBaud != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (newBaud == 4800 || newBaud == 9600 || newBaud == 19200 || newBaud == 38400 || newBaud == 57600 ||
@@ -283,7 +283,7 @@ void menuPortHardwareTriggers()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -293,7 +293,7 @@ void menuPortHardwareTriggers()
         else if (incoming == 2 && settings.enableExternalPulse == true)
         {
             systemPrint("Time between pulses in milliseconds: ");
-            long pulseTime = getNumber(); // Returns EXIT, TIMEOUT, or long
+            long pulseTime = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
             if (pulseTime != INPUT_RESPONSE_GETNUMBER_TIMEOUT && pulseTime != INPUT_RESPONSE_GETNUMBER_EXIT)
             {
@@ -315,7 +315,7 @@ void menuPortHardwareTriggers()
         else if (incoming == 3 && settings.enableExternalPulse == true)
         {
             systemPrint("Pulse length in milliseconds: ");
-            long pulseLength = getNumber(); // Returns EXIT, TIMEOUT, or long
+            long pulseLength = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
             if (pulseLength != INPUT_RESPONSE_GETNUMBER_TIMEOUT && pulseLength != INPUT_RESPONSE_GETNUMBER_EXIT)
             {

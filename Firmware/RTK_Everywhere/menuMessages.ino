@@ -90,7 +90,7 @@ void menuLog()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -184,7 +184,7 @@ void menuMessages()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
             menuMessagesSubtype(settings.ubxMessageRates, "NMEA_"); // The following _ avoids listing NMEANAV2 messages
@@ -285,7 +285,7 @@ void menuMessagesBaseRTCM()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -380,7 +380,7 @@ void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming >= 1 && incoming <= (endOfBlock - startOfBlock))
         {
@@ -408,7 +408,7 @@ void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
 void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
 {
     systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);
-    int rate = getNumber(); // Returns EXIT, TIMEOUT, or long
+    int rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
     if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
         return;
@@ -417,7 +417,7 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
     {
         systemPrintln("Error: Message rate out of range");
         systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);
-        rate = getNumber(); // Returns EXIT, TIMEOUT, or long
+        rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
             return; // Give up

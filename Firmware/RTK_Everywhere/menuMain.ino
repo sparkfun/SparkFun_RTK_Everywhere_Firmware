@@ -114,7 +114,7 @@ void menuMain()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
             menuGNSS();
@@ -232,7 +232,7 @@ void menuUserProfiles()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming >= 1 && incoming <= MAX_PROFILE_COUNT)
         {
@@ -250,7 +250,7 @@ void menuUserProfiles()
         {
             systemPrintf("\r\nReset profile '%s' to factory defaults. Press 'y' to confirm:",
                          profileNames[profileNumber]);
-            byte bContinue = getCharacterNumber();
+            byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
                 settingsToDefaults(); // Overwrite our current settings with defaults
@@ -268,7 +268,7 @@ void menuUserProfiles()
         else if (incoming == MAX_PROFILE_COUNT + 3)
         {
             systemPrintf("\r\nDelete profile '%s'. Press 'y' to confirm:", profileNames[profileNumber]);
-            byte bContinue = getCharacterNumber();
+            byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
                 // Remove profile from LittleFS
@@ -473,7 +473,7 @@ void menuRadio()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -489,7 +489,7 @@ void menuRadio()
         else if (settings.radioType == RADIO_ESPNOW && incoming == 3)
         {
             systemPrintln("\r\nForgetting all paired radios. Press 'y' to confirm:");
-            byte bContinue = getCharacterNumber();
+            byte bContinue = getUserInputCharacterNumber();
             if (bContinue == 'y')
             {
                 if (espnowState > ESPNOW_OFF)

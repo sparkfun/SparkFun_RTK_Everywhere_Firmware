@@ -563,7 +563,6 @@ void mqttClientUpdate()
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
 
-
         // Allocate the mqttClient structure
         mqttClient = new MqttClient(mqttSecureClient);
         if (!mqttClient)

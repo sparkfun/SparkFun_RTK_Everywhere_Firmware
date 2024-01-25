@@ -41,7 +41,7 @@ void menuTilt()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
         {

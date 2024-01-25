@@ -86,7 +86,7 @@ void menuPointPerfectKeys()
 
         systemPrintln("x) Exit");
 
-        int incoming = getNumber(); // Returns EXIT, TIMEOUT, or long
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
         {
@@ -808,13 +808,13 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
 bool getDate(uint8_t &dd, uint8_t &mm, uint16_t &yy)
 {
     systemPrint("Enter Day: ");
-    dd = getNumber(); // Returns EXIT, TIMEOUT, or long
+    dd = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
     systemPrint("Enter Month: ");
-    mm = getNumber(); // Returns EXIT, TIMEOUT, or long
+    mm = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
     systemPrint("Enter Year (YYYY): ");
-    yy = getNumber(); // Returns EXIT, TIMEOUT, or long
+    yy = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
     // check year
     if (yy >= 2022 && yy <= 9999)
@@ -1297,7 +1297,7 @@ void menuPointPerfect()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
         {

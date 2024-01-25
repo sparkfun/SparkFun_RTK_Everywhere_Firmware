@@ -78,7 +78,7 @@ void menuFirmware()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming > 0 && incoming < (binCount + 1))
         {
@@ -191,7 +191,7 @@ void menuFirmware()
         else if ((incoming == 'i') && settings.enableAutoFirmwareUpdate)
         {
             systemPrint("Enter minutes (1 - 999999) before next firmware check: ");
-            int minutes = getNumber(); // Returns EXIT, TIMEOUT, or long
+            int minutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((minutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (minutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if ((minutes < 1) || (minutes > 999999))

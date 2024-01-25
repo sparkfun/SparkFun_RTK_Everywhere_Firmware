@@ -117,12 +117,12 @@ void menuNTP()
 
         systemPrintln("x) Exit");
 
-        byte incoming = getCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
         {
             systemPrint("Enter new poll exponent (2^, Min 3, Max 17): ");
-            long newVal = getNumber();
+            long newVal = getUserInputNumber();
             if ((newVal >= 3) && (newVal <= 17))
                 settings.ntpPollExponent = newVal;
             else
@@ -131,7 +131,7 @@ void menuNTP()
         else if (incoming == 2)
         {
             systemPrint("Enter new precision (2^, Min -30, Max 0): ");
-            long newVal = getNumber();
+            long newVal = getUserInputNumber();
             if ((newVal >= -30) && (newVal <= 0))
                 settings.ntpPrecision = newVal;
             else
@@ -140,7 +140,7 @@ void menuNTP()
         else if (incoming == 3)
         {
             systemPrint("Enter new root delay (us): ");
-            long newVal = getNumber();
+            long newVal = getUserInputNumber();
             if ((newVal >= 0) && (newVal <= 1000000))
                 settings.ntpRootDelay = newVal;
             else
@@ -149,7 +149,7 @@ void menuNTP()
         else if (incoming == 4)
         {
             systemPrint("Enter new root dispersion (us): ");
-            long newVal = getNumber();
+            long newVal = getUserInputNumber();
             if ((newVal >= 0) && (newVal <= 1000000))
                 settings.ntpRootDispersion = newVal;
             else
