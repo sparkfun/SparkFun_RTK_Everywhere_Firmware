@@ -406,6 +406,22 @@ void menuDebugHardware()
         if (productVariant == RTK_TORCH)
             systemPrintln("12) UM980 Direct connect");
 
+        systemPrint("13) PSRAM (");
+        if (ESP.getPsramSize() == 0)
+        {
+            systemPrint("None");
+        }
+        else
+        {
+            if (online.psram == true)
+                systemPrint("online");
+            else
+                systemPrint("offline");
+        }
+        systemPrint("): ");
+        systemPrintf("%s\r\n", settings.enablePsram ? "Enabled" : "Disabled");
+
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -479,6 +495,10 @@ void menuDebugHardware()
             }
         }
 
+        else if (incoming == 13)
+        {
+            settings.enablePsram ^= 1;
+        }
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");

@@ -473,8 +473,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "useEuropeCorrections", settings.useEuropeCorrections);
 
     settingsFile->printf("%s=%d\r\n", "debugWiFiConfig", settings.debugWiFiConfig);
+    settingsFile->printf("%s=%d\r\n", "enablePsram", settings.enablePsram);
 
-    // Add new settings above <------------------------------------------------------------>
+    // Add new settings above <--------------------------------------------------->
 }
 
 // Given a fileName, parse the file and load the given settings struct
@@ -1443,9 +1444,10 @@ bool parseLine(char *str, Settings *settings)
 
     else if (strcmp(settingName, "debugWiFiConfig") == 0)
         settings->debugWiFiConfig = d;
+    else if (strcmp(settingName, "enablePsram") == 0)
+        settings->enablePsram = d;
 
-    // Add new settings above
-    //<------------------------------------------------------------>
+    // Add new settings above <--------------------------------------------------->
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list

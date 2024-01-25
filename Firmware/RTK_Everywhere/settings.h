@@ -1270,6 +1270,7 @@ typedef struct
     uint8_t measurementScale = MEASUREMENTS_IN_METERS;
 
     bool debugWiFiConfig = false;
+    bool enablePsram = false; // Controls if PSRAM is disabled, if it is available
 
     // Add new settings above <------------------------------------------------------------>
 

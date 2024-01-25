@@ -1,19 +1,22 @@
-//Initialize PSRAM if available
+// Initialize PSRAM if available
 void psramBegin()
 {
-    if (psramInit() == false)
+    if (settings.enablePsram == true)
     {
-        systemPrintln("No PSRAM initialize");
-    }
-    else
-    {
-        if (ESP.getPsramSize() > 0)
+        if (psramInit() == false)
         {
-            online.psram = true;
+            systemPrintln("No PSRAM initialize");
+        }
+        else
+        {
+            if (ESP.getPsramSize() > 0)
+            {
+                online.psram = true;
 
-            systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
+                systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
 
-            heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
+                heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
+            }
         }
     }
 }
@@ -72,27 +75,27 @@ void danceLEDs()
     }
 }
 
-//Start the beeper and limit its beep length using the tickerBeepUpdate task
+// Start the beeper and limit its beep length using the tickerBeepUpdate task
 void beepDuration(uint16_t lengthMs)
 {
-  beepStopMs = millis() + lengthMs;
-  beepOn();
+    beepStopMs = millis() + lengthMs;
+    beepOn();
 }
 
 void beepOn()
 {
-  if (pin_beeper >= 0)
-  {
-    digitalWrite(pin_beeper, HIGH);
-  }
+    if (pin_beeper >= 0)
+    {
+        digitalWrite(pin_beeper, HIGH);
+    }
 }
 
 void beepOff()
 {
-  if (pin_beeper >= 0)
-  {
-    digitalWrite(pin_beeper, LOW);
-  }
+    if (pin_beeper >= 0)
+    {
+        digitalWrite(pin_beeper, LOW);
+    }
 }
 
 // Update Battery level LEDs every 5s
