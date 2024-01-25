@@ -59,7 +59,7 @@ void powerDown(bool displayInfo)
 
     if ((productVariant == RTK_FACET) || (productVariant == RTK_FACET_LBAND) ||
         (productVariant == RTK_FACET_LBAND_DIRECT) || (productVariant == REFERENCE_STATION) ||
-        (productVariant == RTK_EVERYWHERE))
+        (productVariant == RTK_EVK))
         digitalWrite(pin_peripheralPowerControl, LOW);
 
     while (1)

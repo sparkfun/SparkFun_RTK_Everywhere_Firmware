@@ -103,7 +103,7 @@ void stateUpdate()
                 ledcWrite(ledBtChannel, 0); // Turn off BT LED
             }
 
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
                 // Turn off the status LED
                 digitalWrite(pin_baseStatusLED, LOW);
 
@@ -246,7 +246,7 @@ void stateUpdate()
                 ledcWrite(ledBtChannel, 0); // Turn off BT LED
             }
 
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
                 // Turn off the status LED
                 digitalWrite(pin_baseStatusLED, LOW);
 
@@ -291,7 +291,7 @@ void stateUpdate()
                 lastBaseLEDupdate = millis();
 
                 if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVERYWHERE))
+                    (productVariant == RTK_EVK))
                     // Toggle the base/status LED
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
@@ -330,7 +330,7 @@ void stateUpdate()
                 lastBaseLEDupdate = millis();
 
                 if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVERYWHERE))
+                    (productVariant == RTK_EVK))
                     // Toggle the base/status LED
                     digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
             }
@@ -346,7 +346,7 @@ void stateUpdate()
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
 
                 if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVERYWHERE))
+                    (productVariant == RTK_EVK))
                     // Turn on the base/status LED
                     digitalWrite(pin_baseStatusLED, HIGH); // Indicate survey complete
 
@@ -419,7 +419,7 @@ void stateUpdate()
             if (response == true)
             {
                 if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVERYWHERE))
+                    (productVariant == RTK_EVK))
                     // Turn on the base/status LED
                     digitalWrite(pin_baseStatusLED, HIGH);
 
@@ -658,7 +658,7 @@ void stateUpdate()
                 }
             }
 
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
                 // Turn off the status LED
                 digitalWrite(pin_baseStatusLED, LOW);
 

@@ -131,7 +131,7 @@ void ethernetBegin()
         return;
     }
 
-    if ((productVariant != RTK_EVERYWHERE) && (!ethernetIsNeeded()))
+    if ((productVariant != RTK_EVK) && (!ethernetIsNeeded()))
         return;
 
     if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))

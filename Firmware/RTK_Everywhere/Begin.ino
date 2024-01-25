@@ -97,13 +97,13 @@ void identifyBoard()
     else if (idWithAdc(idValue, 3.3, 10))
         productVariant = RTK_EXPRESS_PLUS;
 
-    // Everywhere: 10/100  -->  2973mV < 3000mV < 3025mV
+    // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
     else if (idWithAdc(idValue, 10, 100))
     {
         // Assign UART pins before beginGnssUart
         pin_GnssUart_RX = 12;
         pin_GnssUart_TX = 14;
-        productVariant = RTK_EVERYWHERE;
+        productVariant = RTK_EVK;
     }
 
     // ID resistors do not exist for the following:
@@ -290,7 +290,7 @@ void initializePowerPins()
 
         fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
     }
-    else if (productVariant == RTK_EVERYWHERE)
+    else if (productVariant == RTK_EVK)
     {
         // v01
         // Pin Allocations:
@@ -518,7 +518,7 @@ void beginBoard()
 
 #ifdef COMPILE_IM19_IMU
         tiltSupported = true; // Allow tiltUpdate() to run
-#endif // COMPILE_IM19_IMU
+#endif                        // COMPILE_IM19_IMU
 
         settings.enableSD = false; // Torch has no SD socket
 
@@ -537,7 +537,7 @@ void beginBoard()
 
         fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
     }
-    else if (productVariant == RTK_EVERYWHERE)
+    else if (productVariant == RTK_EVK)
     {
         // No powerOnCheck
 
@@ -1087,7 +1087,7 @@ void beginLEDs()
         ledcWrite(ledGreenChannel, 0);
         ledcWrite(ledBtChannel, 0);
     }
-    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
     {
         DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
@@ -1261,7 +1261,7 @@ void beginSystemState()
         powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
         // Allocation failure handled in ButtonCheckTask
     }
-    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
     {
         systemState =
             settings

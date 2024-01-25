@@ -195,7 +195,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         webserver->on("/src/rtk-setup.png", HTTP_GET, [](AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
                 response = request->beginResponse_P(200, "image/png", rtkSetup_png, sizeof(rtkSetup_png));
             else
                 response = request->beginResponse_P(200, "image/png", rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
@@ -833,7 +833,7 @@ void createSettingsString(char *newSettings)
 
     // System state at power on. Convert various system states to either Rover or Base or NTP.
     int lastState; // 0 = Rover, 1 = Base, 2 = NTP
-    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
     {
         lastState = 1; // Default Base
         if (settings.lastState >= STATE_ROVER_NOT_STARTED && settings.lastState <= STATE_ROVER_RTK_FIX)
@@ -1442,7 +1442,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 
         // If update is successful, it will force system reset and not get here.
 
-        if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+        if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
             requestChangeState(STATE_BASE_NOT_STARTED); // If update failed, return to Base mode.
         else
             requestChangeState(STATE_ROVER_NOT_STARTED); // If update failed, return to Rover mode.

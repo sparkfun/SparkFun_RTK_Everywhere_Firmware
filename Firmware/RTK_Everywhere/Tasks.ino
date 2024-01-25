@@ -1562,7 +1562,7 @@ void ButtonCheckTask(void *e)
             }
         }                                              // End Platform = RTK Facet
         else if ((productVariant == REFERENCE_STATION) // Check one momentary button
-                 || (productVariant == RTK_EVERYWHERE))
+                 || (productVariant == RTK_EVK))
         {
             if (setupBtn != nullptr)
                 setupBtn->read();

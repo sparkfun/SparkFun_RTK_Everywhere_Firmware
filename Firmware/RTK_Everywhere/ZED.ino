@@ -287,7 +287,7 @@ bool zedConfigure()
     if (settings.enableGNSSdebug)
     {
 #if defined(REF_STN_GNSS_DEBUG)
-        if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)))
+        if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK)))
             theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
         else
 #endif                                              // REF_STN_GNSS_DEBUG
@@ -437,7 +437,7 @@ bool zedConfigure()
 
         if (commandSupported(UBLOX_CFG_I2CINPROT_SPARTN) == true)
         {
-            if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVERYWHERE))
+            if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVK))
                 response &= theGNSS->addCfgValset(
                     UBLOX_CFG_I2CINPROT_SPARTN,
                     1); // We push NEO-D9S correction data (SPARTN) to ZED-F9P over the I2C interface
@@ -1143,7 +1143,7 @@ bool zedEnableLBandCommunication()
         response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 1); // Output UBX-RXM-PMP on NEO's UART2
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud); // Match baudrate with ZED
     }
-    else if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVERYWHERE))
+    else if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVK))
     {
         // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
         // to the ZED. If the user has explicitly disabled I2C corrections, enable a UART connection.
@@ -1396,7 +1396,7 @@ void zedSaveConfiguration()
 void zedEnableDebugging()
 {
 #if defined(REF_STN_GNSS_DEBUG)
-    if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)))
+    if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK)))
         theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
     else
 #endif                                          // REF_STN_GNSS_DEBUG
@@ -1690,7 +1690,7 @@ bool zedDisableLBandCommunication()
         response &= i2cLBand.newCfgValset();
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
     }
-    else if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVERYWHERE))
+    else if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVK))
     {
         // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
         // to the ZED. Check if the user has explicitly set I2C corrections.

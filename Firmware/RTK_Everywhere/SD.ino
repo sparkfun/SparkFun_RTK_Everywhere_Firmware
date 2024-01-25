@@ -45,7 +45,7 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
     {
         if (sdPresent() == false)
             endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
@@ -94,7 +94,7 @@ void sdUpdate()
 // This test takes approximately 13ms to complete
 bool sdPresent(void)
 {
-    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
     {
         if (pin_microSD_CardDetect > 0)
         {

@@ -85,7 +85,7 @@ typedef enum
     RTK_FACET_LBAND_DIRECT,
     RTK_TORCH,
     RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
-    RTK_EVERYWHERE,
+    RTK_EVK,
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
@@ -102,7 +102,7 @@ const char * const productDisplayNames[] =
     "Facet LD",
     "Torch",
     "Unkn ZED",
-    "Everywhere",
+    "EVK",
     // Add new values just above this line
     "Unknown"
 };
@@ -119,7 +119,7 @@ const char * const platformFilePrefixTable[] =
     "SFE_Facet_LBand_Direct",
     "SFE_TORCH",
     "SFE_Unknown_ZED",
-    "SFE_Everywhere",
+    "SFE_EVK",
     // Add new values just above this line
     "SFE_Unknown"
 };
@@ -136,7 +136,7 @@ const char * const platformPrefixTable[] =
     "Facet L-Band Direct",
     "Torch",
     "Unknown ZED",
-    "Everywhere",
+    "EVK",
     // Add new values just above this line
     "Unknown"
 };
@@ -153,7 +153,7 @@ const char * const platformProvisionTable[] =
     "Facet LBand Direct",
     "Torch",
     "Unknown ZED",
-    "Everywhere",
+    "EVK",
     // Add new values just above this line
     "Unknown"
 };
@@ -170,7 +170,7 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED,    // Facet L-Band Direct
     STATE_ROVER_NOT_STARTED,    // Torch
     STATE_ROVER_NOT_STARTED,    // Unknown ZED
-    STATE_BASE_NOT_STARTED,     // Everywhere
+    STATE_BASE_NOT_STARTED,     // EVK
     // Add new values just above this line
     STATE_ROVER_NOT_STARTED     // Unknown
 };
@@ -194,7 +194,7 @@ const GnssPlatform platformGnssTable[] =
     PLATFORM_ZED,   // Facet L-Band Direct
     PLATFORM_UM980, // Torch
     PLATFORM_ZED,   // Unknown ZED
-    PLATFORM_ZED,   // Everywhere
+    PLATFORM_ZED,   // EVK
     // Add new values just above this line
     PLATFORM_ZED    // Unknown
 };
@@ -219,7 +219,7 @@ FuelGaugeType fuelGaugeType = FUEL_GAUGE_TYPE_MAX1704X;
 
 // Macro to show if the the RTK variant has Ethernet
 #ifdef COMPILE_ETHERNET
-#define HAS_ETHERNET ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+#define HAS_ETHERNET ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
 #else // COMPILE_ETHERNET
 #define HAS_ETHERNET false
 #endif // COMPILE_ETHERNET
@@ -227,10 +227,10 @@ FuelGaugeType fuelGaugeType = FUEL_GAUGE_TYPE_MAX1704X;
 // Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
 // The GNSS UBX PVT message is sent ahead of the top-of-second
 // The rising edge of the TP signal indicates the true top-of-second
-#define HAS_GNSS_TP_INT (((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE)) && (pin_GNSS_TimePulse != -1))
+#define HAS_GNSS_TP_INT (((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK)) && (pin_GNSS_TimePulse != -1))
 
 // Macro to show if the the RTK variant has antenna short circuit / open circuit detection
-#define HAS_ANTENNA_SHORT_OPEN ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVERYWHERE))
+#define HAS_ANTENNA_SHORT_OPEN ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
 
 #define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
 
