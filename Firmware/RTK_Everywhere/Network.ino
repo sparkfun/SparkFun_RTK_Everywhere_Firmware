@@ -261,7 +261,7 @@ void menuNetwork()
 
             // Get the host name or IP address
             memset(hostname, 0, sizeof(hostname));
-            getString(hostname, sizeof(hostname) - 1);
+            getUserInputString(hostname, sizeof(hostname) - 1);
             strcpy(settings.pvtClientHost, hostname);
 
             // Remove any http:// or https:// prefix from host name

@@ -205,13 +205,13 @@ void menuFirmware()
         {
             systemPrint("Enter RC Firmware JSON URL (empty to use default): ");
             memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
-            getString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
+            getUserInputString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
         }
         else if (incoming == 's')
         {
             systemPrint("Enter Firmware JSON URL (empty to use default): ");
             memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
-            getString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
+            getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
         }
 
         else if ((incoming == 'u') && newOTAFirmwareAvailable)

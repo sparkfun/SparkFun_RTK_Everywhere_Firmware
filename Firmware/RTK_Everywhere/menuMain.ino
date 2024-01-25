@@ -241,7 +241,7 @@ void menuUserProfiles()
         else if (incoming == MAX_PROFILE_COUNT + 1)
         {
             systemPrint("Enter new profile name: ");
-            getString(settings.profileName, sizeof(settings.profileName));
+            getUserInputString(settings.profileName, sizeof(settings.profileName));
             recordSystemSettings(); // We need to update this immediately in case user lists the available profiles
                                     // again
             setProfileName(profileNumber);

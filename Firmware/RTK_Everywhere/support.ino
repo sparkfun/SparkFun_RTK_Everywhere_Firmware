@@ -243,7 +243,7 @@ void clearBuffer()
 // Used for raw mixed entry (SSID, pws, etc)
 // Used by other menu input methods that use sscanf
 // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
-InputResponse getString(char *userString, uint8_t stringSize)
+InputResponse getUserInputString(char *userString, uint8_t stringSize)
 {
     clearBuffer();
 
@@ -317,7 +317,7 @@ InputResponse getString(char *userString, uint8_t stringSize)
 // INPUT_RESPONSE_VALID
 InputResponse getIPAddress(char *userString, uint8_t stringSize)
 {
-    InputResponse result = getString(userString, stringSize);
+    InputResponse result = getUserInputString(userString, stringSize);
     if (result != INPUT_RESPONSE_VALID)
         return result;
     int dummy[4];
@@ -341,7 +341,7 @@ byte getUserInputCharacterNumber()
     char userEntry[50]; // Allow user to enter more than one char. sscanf will remove extra.
     int userByte = 0;
 
-    InputResponse response = getString(userEntry, sizeof(userEntry));
+    InputResponse response = getUserInputString(userEntry, sizeof(userEntry));
     if (response == INPUT_RESPONSE_VALID)
     {
         int filled = sscanf(userEntry, "%d", &userByte);
@@ -376,7 +376,7 @@ long getUserInputNumber()
     char userEntry[50]; // Allow user to enter more than one char. sscanf will remove extra.
     long userNumber = 0;
 
-    InputResponse response = getString(userEntry, sizeof(userEntry));
+    InputResponse response = getUserInputString(userEntry, sizeof(userEntry));
     if (response == INPUT_RESPONSE_VALID)
     {
         if (strcmp(userEntry, "x") == 0 || strcmp(userEntry, "X") == 0)
@@ -403,9 +403,9 @@ InputResponse getUserInputDouble(double *userDouble)
 {
     char userEntry[50];
 
-    // getString() returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or
+    // getUserInputString() returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or
     // INPUT_RESPONSE_EMPTY
-    InputResponse response = getString(userEntry, sizeof(userEntry));
+    InputResponse response = getUserInputString(userEntry, sizeof(userEntry));
 
     if (response == INPUT_RESPONSE_VALID)
     {

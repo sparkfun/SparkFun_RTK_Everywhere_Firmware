@@ -451,7 +451,7 @@ typedef enum
     BT_CONNECTED,
 } BTState;
 
-// Return values for getString()
+// Return values for getUserInputString()
 typedef enum
 {
     INPUT_RESPONSE_GETNUMBER_EXIT =

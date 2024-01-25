@@ -159,7 +159,7 @@ void menuNTP()
         {
             systemPrint("Enter new Reference ID (4 Chars Max): ");
             char newId[5];
-            if (getString(newId, 5) == INPUT_RESPONSE_VALID)
+            if (getUserInputString(newId, 5) == INPUT_RESPONSE_VALID)
             {
                 int i = 0;
                 for (; i < strlen(newId); i++)

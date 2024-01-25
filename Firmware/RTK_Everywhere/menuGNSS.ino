@@ -244,7 +244,7 @@ void menuGNSS()
         else if ((incoming == 6) && settings.enableNtripClient == true)
         {
             systemPrint("Enter new Caster Address: ");
-            getString(settings.ntripClient_CasterHost, sizeof(settings.ntripClient_CasterHost));
+            getUserInputString(settings.ntripClient_CasterHost, sizeof(settings.ntripClient_CasterHost));
             restartRover = true;
         }
         else if ((incoming == 7) && settings.enableNtripClient == true)
@@ -259,25 +259,25 @@ void menuGNSS()
         else if ((incoming == 8) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter user name for %s: ", settings.ntripClient_CasterHost);
-            getString(settings.ntripClient_CasterUser, sizeof(settings.ntripClient_CasterUser));
+            getUserInputString(settings.ntripClient_CasterUser, sizeof(settings.ntripClient_CasterUser));
             restartRover = true;
         }
         else if ((incoming == 9) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter user password for %s: ", settings.ntripClient_CasterHost);
-            getString(settings.ntripClient_CasterUserPW, sizeof(settings.ntripClient_CasterUserPW));
+            getUserInputString(settings.ntripClient_CasterUserPW, sizeof(settings.ntripClient_CasterUserPW));
             restartRover = true;
         }
         else if ((incoming == 10) && settings.enableNtripClient == true)
         {
             systemPrint("Enter new Mount Point: ");
-            getString(settings.ntripClient_MountPoint, sizeof(settings.ntripClient_MountPoint));
+            getUserInputString(settings.ntripClient_MountPoint, sizeof(settings.ntripClient_MountPoint));
             restartRover = true;
         }
         else if ((incoming == 11) && settings.enableNtripClient == true)
         {
             systemPrintf("Enter password for Mount Point %s: ", settings.ntripClient_MountPoint);
-            getString(settings.ntripClient_MountPointPW, sizeof(settings.ntripClient_MountPointPW));
+            getUserInputString(settings.ntripClient_MountPointPW, sizeof(settings.ntripClient_MountPointPW));
             restartRover = true;
         }
         else if ((incoming == 12) && settings.enableNtripClient == true)

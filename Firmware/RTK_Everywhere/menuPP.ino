@@ -91,12 +91,12 @@ void menuPointPerfectKeys()
         if (incoming == 1)
         {
             systemPrint("Enter Device Profile Token: ");
-            getString(settings.pointPerfectDeviceProfileToken, sizeof(settings.pointPerfectDeviceProfileToken));
+            getUserInputString(settings.pointPerfectDeviceProfileToken, sizeof(settings.pointPerfectDeviceProfileToken));
         }
         else if (incoming == 2)
         {
             systemPrint("Enter Current Key: ");
-            getString(settings.pointPerfectCurrentKey, sizeof(settings.pointPerfectCurrentKey));
+            getUserInputString(settings.pointPerfectCurrentKey, sizeof(settings.pointPerfectCurrentKey));
         }
         else if (incoming == 3)
         {
@@ -142,7 +142,7 @@ void menuPointPerfectKeys()
         else if (incoming == 4)
         {
             systemPrint("Enter Next Key: ");
-            getString(settings.pointPerfectNextKey, sizeof(settings.pointPerfectNextKey));
+            getUserInputString(settings.pointPerfectNextKey, sizeof(settings.pointPerfectNextKey));
         }
         else if (incoming == 5)
         {

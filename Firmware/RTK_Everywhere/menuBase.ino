@@ -188,7 +188,7 @@ void menuBase()
 
                 systemPrint("Latitude in degrees (ex: 40.090335429, 40 05.4201257, 40-05.4201257, 4005.4201257, 40 05 "
                             "25.207544, etc): ");
-                if (getString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
                 {
                     double fixedLat = 0.0;
                     // Identify which type of method they used
@@ -199,7 +199,7 @@ void menuBase()
                         // Progress with additional prompts only if the user enters valid data
                         systemPrint("\r\nLongitude in degrees (ex: -105.184774720, -105 11.0864832, -105-11.0864832, "
                                     "-105 11 05.188992, etc): ");
-                        if (getString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
+                        if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
                         {
                             double fixedLong = 0.0;
 
@@ -265,7 +265,7 @@ void menuBase()
         else if ((incoming == 8) && settings.enableNtripServer == true)
         {
             systemPrint("Enter new Caster Address: ");
-            if (getString(settings.ntripServer_CasterHost,
+            if (getUserInputString(settings.ntripServer_CasterHost,
                           sizeof(settings.ntripServer_CasterHost) == INPUT_RESPONSE_VALID))
                 restartBase = true;
         }
@@ -279,14 +279,14 @@ void menuBase()
         else if ((incoming == 10) && settings.enableNtripServer == true)
         {
             systemPrint("Enter new Mount Point: ");
-            if (getString(settings.ntripServer_MountPoint, sizeof(settings.ntripServer_MountPoint)) ==
+            if (getUserInputString(settings.ntripServer_MountPoint, sizeof(settings.ntripServer_MountPoint)) ==
                 INPUT_RESPONSE_VALID)
                 restartBase = true;
         }
         else if ((incoming == 11) && settings.enableNtripServer == true)
         {
             systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint);
-            if (getString(settings.ntripServer_MountPointPW, sizeof(settings.ntripServer_MountPointPW)) ==
+            if (getUserInputString(settings.ntripServer_MountPointPW, sizeof(settings.ntripServer_MountPointPW)) ==
                 INPUT_RESPONSE_VALID)
                 restartBase = true;
         }
