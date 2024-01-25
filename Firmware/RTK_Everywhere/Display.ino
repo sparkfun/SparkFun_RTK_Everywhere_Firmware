@@ -1960,6 +1960,16 @@ void displayNotListed(uint16_t displayTime)
     displayMessage("Not Listed", displayTime);
 }
 
+void displayUpdateZEDF9P(uint16_t displayTime)
+{
+    displayMessage("Update ZED-F9P", displayTime);
+}
+
+void displayUpdateZEDF9R(uint16_t displayTime)
+{
+    displayMessage("Update ZED-F9R", displayTime);
+}
+
 void displayRoverStart(uint16_t displayTime)
 {
     if (online.display == true)

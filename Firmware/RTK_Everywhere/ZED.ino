@@ -240,11 +240,17 @@ void zedBegin()
 
         if (strcmp(theGNSS->getFirmwareType(), "HPG") == 0)
             if ((theGNSS->getFirmwareVersionHigh() == 1) && (theGNSS->getFirmwareVersionLow() < 30))
+            {
                 systemPrintln("ZED-F9P module is running old firmware which does not support SPARTN. Please upgrade: https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#updating-u-blox-firmware");
+                displayUpdateZEDF9P(3000);
+            }
 
         if (strcmp(theGNSS->getFirmwareType(), "HPS") == 0)
             if ((theGNSS->getFirmwareVersionHigh() == 1) && (theGNSS->getFirmwareVersionLow() < 21))
+            {
                 systemPrintln("ZED-F9R module is running old firmware which does not support SPARTN. Please upgrade: https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#updating-u-blox-firmware");
+                displayUpdateZEDF9R(3000);
+            }
 
         zedPrintInfo(); // Print module type and firmware version
     }
