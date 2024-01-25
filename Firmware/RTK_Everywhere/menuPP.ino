@@ -1,5 +1,3 @@
-#ifdef COMPILE_L_BAND
-
 #include "mbedtls/ssl.h" //Needed for certificate validation
 
 //----------------------------------------
@@ -1241,7 +1239,6 @@ void beginLBand()
 // Download keys
 void menuPointPerfect()
 {
-#ifdef COMPILE_L_BAND
     while (1)
     {
         systemPrintln();
