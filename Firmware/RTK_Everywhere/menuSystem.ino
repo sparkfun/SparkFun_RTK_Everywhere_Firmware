@@ -923,8 +923,6 @@ void menuOperation()
                 // Stop the GNSS UART tasks to prevent the system from crashing
                 tasksStopGnssUart();
 
-                // Update the buffer size
-                settings.gnssHandlerBufferSize = queSize; // Recorded to NVM and file
                 recordSystemSettings();
 
                 // Reboot the system
