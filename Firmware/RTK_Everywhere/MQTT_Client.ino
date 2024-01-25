@@ -112,7 +112,7 @@ const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us";   // North American SPARTN corr
 // Locals
 //----------------------------------------
 
-static PubSubClient *mqttClient;
+static MqttClient *mqttClient;
 
 static bool mqttClientBluetoothOnline;
 
@@ -269,22 +269,52 @@ void mqttClientPrintStatus()
     }
 }
 
-// Called when a subscribed to message arrives
-void mqttClientReceiveMessage(char *topic, byte *message, unsigned int length)
+// Called when a subscribed message arrives
+void mqttClientReceiveMessage(int messageSize)
 {
-    // Record the arrival of SPARTN data over MQTT
-    mqttClientLastDataReceived = millis();
-
-    // Push the correction data to GNSS module over I2C / SPI
-    gnssPushRawData(message, length);
-    mqttClientDataReceived = true;
-
-    if ((settings.debugMqttClientData || PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)) && (!inMainMenu))
+    const uint16_t mqttLimit = 512;
+    static uint8_t mqttData[mqttLimit]; // Allocate memory to hold the MQTT data
+    if (mqttData == NULL)
     {
-        PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
-        systemPrintf("MQTT Client received %d SPARTN bytes, pushed to ZED\r\n", length);
-        //        dumpBuffer(message, length);
+        systemPrintln(F("Memory allocation for mqttData failed!"));
+        return;
     }
+
+    if (settings.debugMqttClientData)
+    {
+        systemPrint("Pushing data from ");
+        systemPrint(mqttClient->messageTopic());
+        systemPrint(" topic to ZED - ");
+    }
+
+    int bytesPushed = 0;
+
+    while (mqttClient->available())
+    {
+        uint16_t mqttCount = 0;
+
+        while (mqttClient->available())
+        {
+            char ch = mqttClient->read();
+            mqttData[mqttCount++] = ch;
+
+            if (mqttCount == mqttLimit)
+                break;
+        }
+
+        if (mqttCount > 0)
+        {
+            // Push KEYS or SPARTN data to GNSS module over I2C
+            gnssPushRawData(mqttData, mqttCount);
+            bytesPushed += mqttCount;
+
+            // Record the arrival of SPARTN data over MQTT
+            mqttClientLastDataReceived = millis();
+        }
+    }
+
+    if (settings.debugMqttClientData)
+        systemPrintf("Pushed %d bytes.\r\n", bytesPushed);
 }
 
 // Restart the MQTT client
@@ -333,7 +363,7 @@ void mqttClientStart()
     reportHeapNow(settings.debugMqttClientState);
 
     // Change ZED source of corrections to IP
-    theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); //Set source to IP
+    theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Set source to IP
 
     // Start the MQTT client
     systemPrintln("MQTT Client start");
@@ -512,6 +542,9 @@ void mqttClientUpdate()
             break;
         }
 
+        // Set the Amazon Web Services public certificate
+        mqttSecureClient->setCACert(AWS_PUBLIC_CERT);
+
         // Get the certificate
         memset(mqttClientCertificateBuffer, 0, MQTT_CERT_SIZE);
         if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
@@ -534,7 +567,7 @@ void mqttClientUpdate()
         mqttSecureClient->setCACert(AWS_PUBLIC_CERT);
 
         // Allocate the mqttClient structure
-        mqttClient = new PubSubClient(*mqttSecureClient->getClient());
+        mqttClient = new MqttClient(mqttSecureClient);
         if (!mqttClient)
         {
             // Failed to allocate the mqttClient structure
@@ -544,14 +577,13 @@ void mqttClientUpdate()
         }
 
         // Configure the MQTT client
-        mqttClient->setCallback(mqttClientReceiveMessage);
-        mqttClient->setServer(settings.pointPerfectBrokerHost, 8883);
+        mqttClient->setId(settings.pointPerfectClientID);
 
         if (settings.debugMqttClientState)
             systemPrintf("MQTT client connecting to %s\r\n", settings.pointPerfectBrokerHost);
 
         // Attempt to the MQTT broker
-        if (!mqttClient->connect(settings.pointPerfectClientID))
+        if (!mqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
             systemPrintf("Failed to connect to MQTT broker %s\r\n", settings.pointPerfectBrokerHost);
             mqttClientRestart();
@@ -559,6 +591,8 @@ void mqttClientUpdate()
         }
 
         // The MQTT server is now connected
+        mqttClient->onMessage(mqttClientReceiveMessage);
+
         reportHeapNow(settings.debugMqttClientState);
         mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_KEY);
         break;
@@ -578,13 +612,13 @@ void mqttClientUpdate()
         if (!mqttClient->subscribe(MQTT_TOPIC_KEY))
         {
             mqttClientRestart();
-            Serial.println("ERROR: Subscription to MQTT_TOPIC_KEY failed!!");
+            systemPrintln("ERROR: Subscription to MQTT_TOPIC_KEY failed!!");
             mqttClientRestart();
             break;
         }
 
         if (settings.debugMqttClientState)
-            Serial.println("MQTT client subscribed to MQTT_TOPIC_KEY");
+            systemPrintln("MQTT client subscribed to MQTT_TOPIC_KEY");
 
         // Now subscribed to the MQTT_TOPIC_KEY
         mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_SPARTN);
@@ -606,13 +640,13 @@ void mqttClientUpdate()
         if (!mqttClient->subscribe(topic))
         {
             mqttClientRestart();
-            Serial.println("ERROR: Subscription to MQTT_TOPIC_SPARTN failed!!");
+            systemPrintln("ERROR: Subscription to MQTT_TOPIC_SPARTN failed!!");
             mqttClientRestart();
             break;
         }
 
         if (settings.debugMqttClientState)
-            Serial.println("MQTT client subscribed to MQTT_TOPIC_SPARTN");
+            systemPrintln("MQTT client subscribed to MQTT_TOPIC_SPARTN");
 
         // Now subscribed to the MQTT_TOPIC_SPARTN
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
@@ -628,19 +662,13 @@ void mqttClientUpdate()
             break;
         }
 
-        // Attempt to receive data
-        if (!mqttClient->loop())
-        {
-            // The MQTT link was broken
-            Serial.println(F("MQTT client link failed!"));
-            mqttClientRestart();
-            break;
-        }
+        // Check for new data
+        mqttClient->poll();
 
         // Determine if a data timeout has occurred
         if (millis() - mqttClientLastDataReceived >= MQTT_CLIENT_DATA_TIMEOUT)
         {
-            Serial.println(F("MQTT client data timeout. Disconnecting..."));
+            systemPrintln("MQTT client data timeout. Disconnecting...");
             mqttClientRestart();
         }
         break;
