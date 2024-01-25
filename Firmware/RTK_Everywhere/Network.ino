@@ -279,17 +279,7 @@ void menuNetwork()
         // Get the PVT client port number
         else if ((incoming == 3) && settings.enablePvtClient)
         {
-            systemPrint("Enter the PVT client port number to use (0 to 65535): ");
-            int portNumber = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((portNumber != INPUT_RESPONSE_GETNUMBER_EXIT) && (portNumber != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if ((portNumber < 0) || (portNumber > 65535))
-                    systemPrintln("Error: Port number out of range");
-                else
-                {
-                    settings.pvtClientPort = portNumber; // Recorded to NVM and file at main menu exit
-                }
-            }
+            getNewSetting("Enter the PVT client port number to use", 0, 65535, (int *)&settings.pvtClientPort);
         }
 
         //------------------------------
@@ -302,15 +292,7 @@ void menuNetwork()
 
         else if (incoming == 5)
         {
-            systemPrint("Enter the TCP port to use (0 to 65535): ");
-            int portNumber = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((portNumber != INPUT_RESPONSE_GETNUMBER_EXIT) && (portNumber != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (portNumber < 0 || portNumber > 65535)
-                    systemPrintln("Error: TCP Port out of range");
-                else
-                    settings.pvtServerPort = portNumber; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter the TCP port to use", 0, 65535, (int *)&settings.pvtServerPort);
         }
 
         //------------------------------
@@ -323,15 +305,7 @@ void menuNetwork()
 
         else if (incoming == 7 && settings.enablePvtUdpServer)
         {
-            systemPrint("Enter the UDP port to use (0 to 65535): ");
-            int portNumber = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((portNumber != INPUT_RESPONSE_GETNUMBER_EXIT) && (portNumber != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (portNumber < 0 || portNumber > 65535)
-                    systemPrintln("Error: UDP Port out of range");
-                else
-                    settings.pvtUdpServerPort = portNumber; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter the UDP port to use", 0, 65535, (int *)&settings.pvtUdpServerPort);
         }
 
         //------------------------------

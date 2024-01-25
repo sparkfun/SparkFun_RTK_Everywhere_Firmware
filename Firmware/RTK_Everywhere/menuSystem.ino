@@ -912,118 +912,55 @@ void menuOperation()
         }
         else if (incoming == 2)
         {
-            systemPrint("Enter GNSS Serial Timeout in milliseconds (0 to 1000): ");
-            int serialTimeoutGNSS = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((serialTimeoutGNSS != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (serialTimeoutGNSS != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (serialTimeoutGNSS < 0 || serialTimeoutGNSS > 1000) // Arbitrary 1s limit
-                    systemPrintln("Error: Timeout is out of range");
-                else
-                    settings.serialTimeoutGNSS = serialTimeoutGNSS; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter GNSS Serial Timeout in milliseconds", 0, 1000, (int *)&settings.serialTimeoutGNSS);
         }
         else if (incoming == 3)
         {
-            systemPrintln("Warning: changing the Handler Buffer Size will restart the RTK. Enter 0 to abort");
-            systemPrint("Enter GNSS Handler Buffer Size in Bytes (32 to 65535): ");
-            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            systemPrintln("Warning: changing the Handler Buffer Size will restart the device.");
+            if (getNewSetting("Enter GNSS Handler Buffer Size in Bytes", 32, 65535,
+                              (int *)&settings.gnssHandlerBufferSize) == INPUT_RESPONSE_VALID)
             {
-                if (queSize < 32 || queSize > 65535) // Arbitrary 64k limit
-                    systemPrintln("Error: Queue size out of range");
-                else
-                {
-                    // Stop the GNSS UART tasks to prevent the system from crashing
-                    tasksStopGnssUart();
+                // Stop the GNSS UART tasks to prevent the system from crashing
+                tasksStopGnssUart();
 
-                    // Update the buffer size
-                    settings.gnssHandlerBufferSize = queSize; // Recorded to NVM and file
-                    recordSystemSettings();
+                // Update the buffer size
+                settings.gnssHandlerBufferSize = queSize; // Recorded to NVM and file
+                recordSystemSettings();
 
-                    // Reboot the system
-                    ESP.restart();
-                }
+                // Reboot the system
+                ESP.restart();
             }
         }
         else if (incoming == 4)
         {
-            systemPrint("Enter Serial GNSS RX Full Threshold (1 to 127): ");
-            int serialGNSSRxFullThreshold = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((serialGNSSRxFullThreshold != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (serialGNSSRxFullThreshold != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (serialGNSSRxFullThreshold < 1 || serialGNSSRxFullThreshold > 127)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.serialGNSSRxFullThreshold = serialGNSSRxFullThreshold; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter Serial GNSS RX Full Threshold", 1, 127, (int *)&settings.serialGNSSRxFullThreshold);
         }
         else if (incoming == 5)
         {
-            systemPrint("Enter number of seconds in RTK float before hot-start (0-disable to 3600): ");
-            int timeout = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((timeout != INPUT_RESPONSE_GETNUMBER_EXIT) && (timeout != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (timeout < 0 || timeout > 3600) // Arbitrary 60 minute limit
-                    systemPrintln("Error: Timeout out of range");
-                else
-                    settings.lbandFixTimeout_seconds = timeout; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter number of seconds in RTK float before hot-start", 0, 3600,
+                          (int *)&settings.lbandFixTimeout_seconds); // Arbitrary 60 minute limit
         }
         else if (incoming == 6)
         {
-            systemPrint("Enter SPI frequency in MHz (1 to 16): ");
-            int freq = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((freq != INPUT_RESPONSE_GETNUMBER_EXIT) && (freq != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (freq < 1 || freq > 16) // Arbitrary 16MHz limit
-                    systemPrintln("Error: SPI frequency out of range");
-                else
-                    settings.spiFrequency = freq; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter SPI frequency in MHz", 1, 16, (int *)&settings.spiFrequency);
         }
         else if (incoming == 7)
         {
-            systemPrint("Enter SPP RX Queue Size in Bytes (32 to 16384): ");
-            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (queSize < 32 || queSize > 16384) // Arbitrary 16k limit
-                    systemPrintln("Error: Queue size out of range");
-                else
-                    settings.sppRxQueueSize = queSize; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter SPP RX Queue Size in Bytes", 32, 16384, (int *)&settings.sppRxQueueSize);
         }
         else if (incoming == 8)
         {
-            systemPrint("Enter SPP TX Queue Size in Bytes (32 to 16384): ");
-            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (queSize < 32 || queSize > 16384) // Arbitrary 16k limit
-                    systemPrintln("Error: Queue size out of range");
-                else
-                    settings.sppTxQueueSize = queSize; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter SPP TX Queue Size in Bytes", 32, 16384, (int *)&settings.sppTxQueueSize);
         }
         else if (incoming == 9)
         {
-            systemPrintln("Warning: changing the Receive Buffer Size will restart the RTK. Enter 0 to abort");
-            systemPrint("Enter UART Receive Buffer Size in Bytes (32 to 16384): ");
-            int queSize = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((queSize != INPUT_RESPONSE_GETNUMBER_EXIT) && (queSize != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            systemPrintln("Warning: changing the Receive Buffer Size will restart the device.");
+
+            if (getNewSetting("Enter UART Receive Buffer Size in Bytes", 32, 16384,
+                              (int *)&settings.uartReceiveBufferSize) == INPUT_RESPONSE_VALID)
             {
-                if (queSize < 32 || queSize > 16384) // Arbitrary 16k limit
-                    systemPrintln("Error: Queue size out of range");
-                else
-                {
-                    settings.uartReceiveBufferSize = queSize; // Recorded to NVM and file
-                    recordSystemSettings();
-                    ESP.restart();
-                }
+                recordSystemSettings();
+                ESP.restart();
             }
         }
         else if (incoming == 10)
@@ -1043,16 +980,7 @@ void menuOperation()
         }
         else if (incoming == 12)
         {
-            systemPrint("Enter the number of seconds before L-Band is used once RTCM is absent (1 to 255): ");
-            int rtcmTimeoutBeforeUsingLBand_s = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((rtcmTimeoutBeforeUsingLBand_s != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (rtcmTimeoutBeforeUsingLBand_s != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (rtcmTimeoutBeforeUsingLBand_s < 1 || rtcmTimeoutBeforeUsingLBand_s > 255)
-                    systemPrintln("Error: RTCM timeout out of range");
-                else
-                    settings.rtcmTimeoutBeforeUsingLBand_s = rtcmTimeoutBeforeUsingLBand_s; // Recorded to NVM and file
-            }
+            getNewSetting("Enter the number of seconds before L-Band is used once RTCM is absent", 1, 255, (int *)&settings.rtcmTimeoutBeforeUsingLBand_s);
         }
         else if (incoming == 13)
         {
@@ -1063,139 +991,39 @@ void menuOperation()
 
         else if (incoming == 30)
         {
-            systemPrint("Not yet implemented! - Enter Core used for Bluetooth Interrupts (0 or 1): ");
-            int bluetoothInterruptsCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((bluetoothInterruptsCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (bluetoothInterruptsCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (bluetoothInterruptsCore < 0 || bluetoothInterruptsCore > 1)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.bluetoothInterruptsCore = bluetoothInterruptsCore; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Not yet implemented! - Enter Core used for Bluetooth Interrupts", 0, 1, (int *)&settings.bluetoothInterruptsCore);
         }
         else if (incoming == 31)
         {
-            systemPrint("Enter Core used for GNSS UART Interrupts (0 or 1): ");
-            int gnssUartInterruptsCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((gnssUartInterruptsCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (gnssUartInterruptsCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (gnssUartInterruptsCore < 0 || gnssUartInterruptsCore > 1)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.gnssUartInterruptsCore = gnssUartInterruptsCore; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter Core used for GNSS UART Interrupts", 0, 1, (int *)&settings.gnssUartInterruptsCore);
         }
         else if (incoming == 32)
         {
-            systemPrint("Enter Core used for I2C Interrupts (0 or 1): ");
-            int i2cInterruptsCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((i2cInterruptsCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (i2cInterruptsCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (i2cInterruptsCore < 0 || i2cInterruptsCore > 1)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.i2cInterruptsCore = i2cInterruptsCore; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter Core used for I2C Interrupts", 0, 1, (int *)&settings.i2cInterruptsCore);
         }
-
         else if (incoming == 50)
         {
-            systemPrint("Enter BT Read Task Core (0 or 1): ");
-            int btReadTaskCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((btReadTaskCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (btReadTaskCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (btReadTaskCore < 0 || btReadTaskCore > 1)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.btReadTaskCore = btReadTaskCore; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter BT Read Task Core", 0, 1, (int *)&settings.btReadTaskCore);
         }
         else if (incoming == 51)
         {
-            systemPrint("Enter BT Read Task Priority (0 to 3): ");
-            int btReadTaskPriority = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((btReadTaskPriority != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (btReadTaskPriority != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (btReadTaskPriority < 0 || btReadTaskPriority > 3)
-                    systemPrintln("Error: Task priority out of range");
-                else
-                {
-                    settings.btReadTaskPriority = btReadTaskPriority; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter BT Read Task Priority", 0, 3, (int *)&settings.btReadTaskPriority);
         }
         else if (incoming == 52)
         {
-            systemPrint("Enter GNSS Data Handler Task Core (0 or 1): ");
-            int handleGnssDataTaskCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((handleGnssDataTaskCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (handleGnssDataTaskCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (handleGnssDataTaskCore < 0 || handleGnssDataTaskCore > 1)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.handleGnssDataTaskCore = handleGnssDataTaskCore; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter GNSS Data Handler Task Core", 0, 1, (int *)&settings.handleGnssDataTaskCore);
         }
         else if (incoming == 53)
         {
-            systemPrint("Enter GNSS Data Handle Task Priority (0 to 3): ");
-            int handleGnssDataTaskPriority = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((handleGnssDataTaskPriority != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (handleGnssDataTaskPriority != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (handleGnssDataTaskPriority < 0 || handleGnssDataTaskPriority > 3)
-                    systemPrintln("Error: Task priority out of range");
-                else
-                {
-                    settings.handleGnssDataTaskPriority = handleGnssDataTaskPriority; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter GNSS Data Handle Task Priority", 0, 3, (int *)&settings.handleGnssDataTaskPriority);
         }
         else if (incoming == 54)
         {
-            systemPrint("Enter GNSS Read Task Core (0 or 1): ");
-            int gnssReadTaskCore = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((gnssReadTaskCore != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (gnssReadTaskCore != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (gnssReadTaskCore < 0 || gnssReadTaskCore > 1)
-                    systemPrintln("Error: Core out of range");
-                else
-                {
-                    settings.gnssReadTaskCore = gnssReadTaskCore; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter GNSS Read Task Core", 0, 1, (int *)&settings.gnssReadTaskCore);
         }
         else if (incoming == 55)
         {
-            systemPrint("Enter GNSS Read Task Priority (0 to 3): ");
-            int gnssReadTaskPriority = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((gnssReadTaskPriority != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (gnssReadTaskPriority != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (gnssReadTaskPriority < 0 || gnssReadTaskPriority > 3)
-                    systemPrintln("Error: Task priority out of range");
-                else
-                {
-                    settings.gnssReadTaskPriority = gnssReadTaskPriority; // Recorded to NVM and file
-                }
-            }
+            getNewSetting("Enter GNSS Read Task Priority", 0, 3, (int *)&settings.gnssReadTaskPriority);
         }
 
         // Menu exit control
