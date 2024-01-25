@@ -315,7 +315,7 @@ InputResponse getUserInputString(char *userString, uint8_t stringSize)
 // Get a valid IP Address (nnn.nnn.nnn.nnn) using getString
 // Returns INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, INPUT_RESPONSE_EMPTY, INPUT_RESPONSE_INVALID or
 // INPUT_RESPONSE_VALID
-InputResponse getIPAddress(char *userString, uint8_t stringSize)
+InputResponse getUserInputIPAddress(char *userString, uint8_t stringSize)
 {
     InputResponse result = getUserInputString(userString, stringSize);
     if (result != INPUT_RESPONSE_VALID)

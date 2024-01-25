@@ -48,7 +48,7 @@ void menuEthernet()
         {
             systemPrint("Enter new IP Address: ");
             char tempStr[20];
-            if (getIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
+            if (getUserInputIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
             {
                 String tempString = String(tempStr);
                 settings.ethernetIP.fromString(tempString);
@@ -61,7 +61,7 @@ void menuEthernet()
         {
             systemPrint("Enter new DNS: ");
             char tempStr[20];
-            if (getIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
+            if (getUserInputIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
             {
                 String tempString = String(tempStr);
                 settings.ethernetDNS.fromString(tempString);
@@ -74,7 +74,7 @@ void menuEthernet()
         {
             systemPrint("Enter new Gateway: ");
             char tempStr[20];
-            if (getIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
+            if (getUserInputIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
             {
                 String tempString = String(tempStr);
                 settings.ethernetGateway.fromString(tempString);
@@ -87,7 +87,7 @@ void menuEthernet()
         {
             systemPrint("Enter new Subnet Mask: ");
             char tempStr[20];
-            if (getIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
+            if (getUserInputIPAddress(tempStr, sizeof(tempStr)) == INPUT_RESPONSE_VALID)
             {
                 String tempString = String(tempStr);
                 settings.ethernetSubnet.fromString(tempString);
