@@ -332,6 +332,9 @@ void mqttClientStart()
     // Display the heap state
     reportHeapNow(settings.debugMqttClientState);
 
+    // Change ZED source of corrections to IP
+    theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); //Set source to IP
+
     // Start the MQTT client
     systemPrintln("MQTT Client start");
     mqttClientStop(false);
