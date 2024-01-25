@@ -21,7 +21,7 @@ MQTT_Client.ino
 
   MQTT Client Testing:
 
-     Using WiFi on RTK Everywhere:
+     Using WiFi on RTK EVK:
 
         1. Internet link failure - Disconnect Ethernet cable between Ethernet
            switch and the firewall to simulate an internet failure, expecting

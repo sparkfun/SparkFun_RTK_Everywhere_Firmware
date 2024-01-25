@@ -449,7 +449,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "debugFirmwareUpdate", settings.debugFirmwareUpdate);
     settingsFile->printf("%s=%d\r\n", "enableAutoFirmwareUpdate", settings.enableAutoFirmwareUpdate);
 
-    settingsFile->printf("%s=%d\r\n", "debugLBand", settings.debugLBand);
+    settingsFile->printf("%s=%d\r\n", "debugCorrections", settings.debugCorrections);
     settingsFile->printf("%s=%d\r\n", "enableCaptivePortal", settings.enableCaptivePortal);
     settingsFile->printf("%s=%d\r\n", "minCNO_um980", settings.minCNO_um980);
 
@@ -1399,8 +1399,8 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
         settings->enableAutoFirmwareUpdate = d;
 
-    else if (strcmp(settingName, "debugLBand") == 0)
-        settings->debugLBand = d;
+    else if (strcmp(settingName, "debugCorrections") == 0)
+        settings->debugCorrections = d;
     else if (strcmp(settingName, "enableCaptivePortal") == 0)
         settings->enableCaptivePortal = d;
     else if (strcmp(settingName, "minCNO_um980") == 0)

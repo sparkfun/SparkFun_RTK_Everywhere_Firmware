@@ -58,7 +58,7 @@ void menuPointPerfectKeys()
 
             systemPrintf("%s\r\n", printDateFromGPSEpoch(gpsEpoch));
 
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
                 systemPrintf("settings.pointPerfectCurrentKeyDuration: %lld (%d)\r\n",
                              settings.pointPerfectCurrentKeyDuration,
                              settings.pointPerfectCurrentKeyDuration / (1000L * 60 * 60 * 24));
@@ -126,7 +126,7 @@ void menuPointPerfectKeys()
                                                 1; // Next key starts after current key
             settings.pointPerfectNextKeyDuration = settings.pointPerfectCurrentKeyDuration;
 
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
             {
                 systemPrintf("  settings.pointPerfectCurrentKeyStart: %lld - %s\r\n",
                              settings.pointPerfectCurrentKeyStart,
@@ -426,7 +426,7 @@ bool pointperfectProvisionDevice()
                     settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
                     settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
 
-                    if (settings.debugLBand == true)
+                    if (settings.debugCorrections == true)
                     {
                         systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
                         systemPrintf("  pointPerfectCurrentKeyStart: %lld - %s\r\n",
@@ -679,13 +679,13 @@ bool pointperfectUpdateKeys()
                 break;
             if (mqttClient.connected() == false)
             {
-                if (settings.debugLBand == true)
+                if (settings.debugCorrections == true)
                     systemPrintln("Client disconnected");
                 break;
             }
             if (millis() - startTime > 8000)
             {
-                if (settings.debugLBand == true)
+                if (settings.debugCorrections == true)
                     systemPrintln("Channel failed to respond");
                 break;
             }
@@ -785,7 +785,7 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
 
         settings.pointPerfectNextKeyDuration = (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
 
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
         {
             systemPrintln();
             systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
@@ -858,7 +858,7 @@ int daysFromEpoch(long long endEpoch)
     if (online.rtc == false)
     {
         // If we don't have RTC we can't calculate days to expire
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintln("No RTC available");
         return (0);
     }
@@ -980,7 +980,7 @@ void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t
     epochToWeekToW(gpsEpoch, &keyGPSWeek, &keyGPSToW);
 
     // Print ToW and Week for debugging
-    if (settings.debugLBand == true)
+    if (settings.debugCorrections == true)
     {
         systemPrintf("  expireUnixEpoch: %lld - %s\r\n", expireUnixEpoch, printDateFromUnixEpoch(expireUnixEpoch));
         systemPrintf("  startUnixEpoch: %lld - %s\r\n", startUnixEpoch, printDateFromUnixEpoch(startUnixEpoch));
@@ -1044,7 +1044,7 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 {
     uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
 
-    if (settings.debugLBand == true && !inMainMenu)
+    if (settings.debugCorrections == true && !inMainMenu)
         systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
 
     gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
@@ -1058,7 +1058,7 @@ void pointperfectApplyKeys()
     {
         if (online.gnss == false)
         {
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
                 systemPrintln("ZED-F9P not available");
             return;
         }
@@ -1107,14 +1107,14 @@ void pointperfectApplyKeys()
                 systemPrintln("setDynamicSPARTNKeys failed");
             else
             {
-                if (settings.debugLBand == true)
+                if (settings.debugCorrections == true)
                     systemPrintln("PointPerfect keys applied");
                 online.lbandCorrections = true;
             }
         }
         else
         {
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
                 systemPrintln("No PointPerfect keys available");
         }
     }
@@ -1123,7 +1123,7 @@ void pointperfectApplyKeys()
 // Check if the PMP data is being decrypted successfully
 void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
 {
-    if (settings.debugLBand == true && !inMainMenu)
+    if (settings.debugCorrections == true && !inMainMenu)
         systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
 
     lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
@@ -1135,12 +1135,10 @@ void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
     }
     else
     {
-        if (settings.debugLBand == true && !inMainMenu)
+        if (settings.debugCorrections == true && !inMainMenu)
             systemPrintln("PMP decryption failed");
     }
 }
-
-#endif // COMPILE_L_BAND
 
 //----------------------------------------
 // Global L-Band Routines
@@ -1152,7 +1150,7 @@ void beginLBand()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintln("configureViaEthernet: skipping beginLBand");
         return;
     }
@@ -1161,7 +1159,7 @@ void beginLBand()
     if (i2cLBand.begin(Wire, 0x43) ==
         false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
     {
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintln("L-Band not detected");
         return;
     }
@@ -1184,14 +1182,14 @@ void beginLBand()
         if ((gnssGetLongitude() > -125 && gnssGetLongitude() < -67) &&
             (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
         {
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
                 systemPrintln("Setting L-Band to US");
             settings.LBandFreq = 1556290000; // We are in US band
         }
         else if ((gnssGetLongitude() > -25 && gnssGetLongitude() < 70) &&
                  (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
         {
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
                 systemPrintln("Setting L-Band to EU");
             settings.LBandFreq = 1545260000; // We are in EU band
         }
@@ -1204,7 +1202,7 @@ void beginLBand()
     }
     else
     {
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintln("No fix available for L-Band frequency determination");
     }
 
@@ -1231,7 +1229,7 @@ void beginLBand()
 
     i2cLBand.softwareResetGNSSOnly(); // Do a restart
 
-    if (settings.debugLBand == true)
+    if (settings.debugCorrections == true)
         systemPrintln("L-Band online");
 
     online.lband = true;
@@ -1249,10 +1247,10 @@ void menuPointPerfect()
         systemPrintln();
         systemPrintln("Menu: PointPerfect Corrections");
 
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintf("Time to first L-Band fix: %ds Restarts: %d\r\n", lbandTimeToFix / 1000, lbandRestarts);
 
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintf("settings.pointPerfectLBandTopic: %s\r\n", settings.pointPerfectLBandTopic);
 
         systemPrint("Days until keys expire: ");
@@ -1394,7 +1392,6 @@ void menuPointPerfect()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-#endif             // COMPILE_L_BAND
 }
 
 // Process any new L-Band from I2C
@@ -1403,7 +1400,7 @@ void updateLBand()
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        if (settings.debugLBand == true)
+        if (settings.debugCorrections == true)
             systemPrintln("configureViaEthernet: skipping updateLBand");
         return;
     }
@@ -1425,7 +1422,7 @@ void updateLBand()
             {
                 lbandLastReport = millis();
 
-                if (settings.debugLBand == true)
+                if (settings.debugCorrections == true)
                     systemPrintf("ZED restarts: %d Time remaining before L-Band forced restart: %ds\r\n", lbandRestarts,
                                  settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
             }
@@ -1442,7 +1439,7 @@ void updateLBand()
                     // Hotstart ZED to try to get RTK lock
                     theGNSS->softwareResetGNSSOnly();
 
-                    if (settings.debugLBand == true)
+                    if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of L-Band restarts: %d\r\n", lbandRestarts);
                 }
             }
@@ -1450,7 +1447,7 @@ void updateLBand()
         else if (gnssIsRTKFix() && lbandTimeToFix == 0)
         {
             lbandTimeToFix = millis();
-            if (settings.debugLBand == true)
+            if (settings.debugCorrections == true)
                 systemPrintf("Time to first L-Band fix: %ds\r\n", lbandTimeToFix / 1000);
         }
 
@@ -1461,7 +1458,7 @@ void updateLBand()
             // re-enable L-Band communcation
             if (lBandCommunicationEnabled == false)
             {
-                if (settings.debugLBand == true)
+                if (settings.debugCorrections == true)
                     systemPrintln("Enabling L-Band communication due to RTCM timeout");
                 lBandCommunicationEnabled = zedEnableLBandCommunication();
             }
@@ -1471,7 +1468,7 @@ void updateLBand()
             // If we *have* recently received RTCM then disable corrections from then NEO-D9S L-Band receiver
             if (lBandCommunicationEnabled == true)
             {
-                if (settings.debugLBand == true)
+                if (settings.debugCorrections == true)
                     systemPrintln("Disabling L-Band communication due to RTCM reception");
                 lBandCommunicationEnabled = !zedDisableLBandCommunication(); // zedDisableLBandCommunication() returns
                                                                              // true if we successfully disabled

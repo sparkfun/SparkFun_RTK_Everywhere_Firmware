@@ -397,8 +397,8 @@ void menuDebugHardware()
         systemPrint("9) GNSS Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableGNSSdebug ? "Enabled" : "Disabled");
 
-        systemPrint("10) L-Band Debugging Output: ");
-        systemPrintf("%s\r\n", settings.debugLBand ? "Enabled" : "Disabled");
+        systemPrint("10) Corrections Debugging Output: ");
+        systemPrintf("%s\r\n", settings.debugCorrections ? "Enabled" : "Disabled");
 
         systemPrint("11) IMU Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
@@ -466,7 +466,7 @@ void menuDebugHardware()
         }
         else if (incoming == 10)
         {
-            settings.debugLBand ^= 1;
+            settings.debugCorrections ^= 1;
         }
         else if (incoming == 11)
         {

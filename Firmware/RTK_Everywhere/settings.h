@@ -1257,7 +1257,7 @@ typedef struct
     bool enableAutoFirmwareUpdate = false;
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
 
-    bool debugLBand = false;
+    bool debugCorrections = false;
     bool enableCaptivePortal = true;
 
     // Boot times
