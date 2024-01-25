@@ -190,15 +190,9 @@ void menuFirmware()
 
         else if ((incoming == 'i') && settings.enableAutoFirmwareUpdate)
         {
-            systemPrint("Enter minutes (1 - 999999) before next firmware check: ");
-            int minutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((minutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (minutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if ((minutes < 1) || (minutes > 999999))
-                    systemPrintln("Error: Out of range (1 - 999999)");
-                else
-                    settings.autoFirmwareCheckMinutes = minutes;
-            }
+
+            getNewSetting("Enter minutes before next firmware check", 1, 999999,
+                          (int *)&settings.autoFirmwareCheckMinutes);
         }
 
         else if (incoming == 'r')

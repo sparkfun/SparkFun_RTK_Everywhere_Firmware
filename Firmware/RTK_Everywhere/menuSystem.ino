@@ -226,18 +226,8 @@ void menuSystem()
         }
         else if (incoming == 'c')
         {
-            systemPrint("Enter time in seconds to shutdown unit if not charging (0 to disable): ");
-            int shutdownNoChargeTimeout_s = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((shutdownNoChargeTimeout_s != INPUT_RESPONSE_GETNUMBER_EXIT) &&
-                (shutdownNoChargeTimeout_s != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (shutdownNoChargeTimeout_s < 0 ||
-                    shutdownNoChargeTimeout_s > 60 * 60 * 24 * 7) // Arbitrary 7 day limit
-                    systemPrintln("Error: Time out of range");
-                else
-                    settings.shutdownNoChargeTimeout_s =
-                        shutdownNoChargeTimeout_s; // Recorded to NVM and file at main menu exit
-            }
+            getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
+                          (int *)&settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
         }
         else if (incoming == 'd')
             menuDebugSoftware();
@@ -420,7 +410,6 @@ void menuDebugHardware()
         }
         systemPrint("): ");
         systemPrintf("%s\r\n", settings.enablePsram ? "Enabled" : "Disabled");
-
 
         systemPrintln("e) Erase LittleFS");
 

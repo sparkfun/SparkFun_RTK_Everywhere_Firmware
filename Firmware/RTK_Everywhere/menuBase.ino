@@ -266,7 +266,7 @@ void menuBase()
         {
             systemPrint("Enter new Caster Address: ");
             if (getUserInputString(settings.ntripServer_CasterHost,
-                          sizeof(settings.ntripServer_CasterHost) == INPUT_RESPONSE_VALID))
+                                   sizeof(settings.ntripServer_CasterHost) == INPUT_RESPONSE_VALID))
                 restartBase = true;
         }
         else if ((incoming == 9) && settings.enableNtripServer == true)
@@ -500,15 +500,8 @@ void menuSensorFusion()
         else if (settings.enableSensorFusion == true && ((settings.autoIMUmountAlignment == true && incoming == 5) ||
                                                          (settings.autoIMUmountAlignment == false && incoming == 8)))
         {
-            systemPrint("Enter the output rate of priority nav mode message (0 to 30Hz): "); // TODO check maximum
-            int rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((rate != INPUT_RESPONSE_GETNUMBER_EXIT) && (rate != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (rate < 0 || rate > 30)
-                    systemPrintln("Error: Output rate out of range");
-                else
-                    settings.rateNavPrio = rate;
-            }
+            getNewSetting("Enter the output rate of priority nav mode message in Hz", 0, 30,
+                          (int *)&settings.rateNavPrio);
         }
 
         else if (settings.enableSensorFusion == true && ((settings.autoIMUmountAlignment == true && incoming == 6) ||
