@@ -563,8 +563,6 @@ void mqttClientUpdate()
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
 
-        // Set the Amazon Web Services public certificate
-        mqttSecureClient->setCACert(AWS_PUBLIC_CERT);
 
         // Allocate the mqttClient structure
         mqttClient = new MqttClient(mqttSecureClient);
