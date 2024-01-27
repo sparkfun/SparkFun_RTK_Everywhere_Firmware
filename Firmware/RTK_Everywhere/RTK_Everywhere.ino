@@ -966,8 +966,8 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
-    DMW_b("initializePowerPins");
-    initializePowerPins(); // Initialize any essential power pins - e.g. enable power for the Display
+    DMW_b("powerDisplay");
+    powerDisplay(); //Enable power for the Display
 
     DMW_b("beginFS");
     beginFS(); // Load NVM settings

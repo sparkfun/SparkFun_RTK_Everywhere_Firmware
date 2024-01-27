@@ -125,18 +125,36 @@ void identifyBoard()
     }
 }
 
-// Setup any essential power pins
-// E.g. turn on power for the display before beginDisplay
-void initializePowerPins()
+// Turn on power for the display before beginDisplay
+void powerDisplay()
 {
-    // Assume the display is on I2C0
-    i2cDisplay = i2c_0;
+    if (present.display)
+    {
+        // Assume the display is on I2C0
+        i2cDisplay = i2c_0;
 
-    // Set the default I2C0 pins
-    pin_I2C0_SDA = 21;
-    pin_I2C0_SCL = 22;
+        // Set the default I2C0 pins
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
 
-    if (productVariant == RTK_TORCH)
+        if (productVariant == RTK_EVK)
+        {
+            // Turn on power to the I2C_1 bus
+            DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+            pinMode(pin_peripheralPowerControl, OUTPUT);
+            digitalWrite(pin_peripheralPowerControl, HIGH);
+            i2cPowerUpDelay = millis() + 860;
+
+            // Use I2C bus 1 for the display
+            i2c_1 = new TwoWire(1);
+            i2cDisplay = i2c_1;
+
+            // Display splash screen for 1 second
+            minSplashFor = 1000;
+        }
+    }
+}
+
     {
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
