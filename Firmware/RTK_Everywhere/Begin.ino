@@ -64,38 +64,9 @@ void identifyBoard()
 
     // Order the following ID checks, by millivolt values high to low
 
-    // Facet L-Band Direct: 4.7/1  -->  534mV < 579mV < 626mV
-    if (idWithAdc(idValue, 4.7, 1))
-        productVariant = RTK_FACET_LBAND_DIRECT;
-
-    // Express: 10/3.3  -->  761mV < 819mV < 879mV
-    else if (idWithAdc(idValue, 10, 3.3))
-    {
-        // Assign UART pins before beginGnssUart
-        pin_GnssUart_RX = 16;
-        pin_GnssUart_TX = 17;
-        productVariant = RTK_EXPRESS;
-    }
-
-    // Reference Station: 20/10  -->  1031mV < 1100mV < 1171mV
-    else if (idWithAdc(idValue, 20, 10))
-    {
-        productVariant = REFERENCE_STATION;
-        // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
-        // so fake it here - otherwise messageSupported always returns false
-        zedFirmwareVersionInt = 112;
-    }
-    // Facet: 10/10  -->  1571mV < 1650mV < 1729mV
-    else if (idWithAdc(idValue, 10, 10))
+    // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
+    if (idWithAdc(idValue, 10, 10))
         productVariant = RTK_FACET;
-
-    // Facet L-Band: 10/20  -->  2129mV < 2200mV < 2269mV
-    else if (idWithAdc(idValue, 10, 20))
-        productVariant = RTK_FACET_LBAND;
-
-    // Express+: 3.3/10  -->  2421mV < 2481mV < 2539mV
-    else if (idWithAdc(idValue, 3.3, 10))
-        productVariant = RTK_EXPRESS_PLUS;
 
     // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
     else if (idWithAdc(idValue, 10, 100))
@@ -103,51 +74,31 @@ void identifyBoard()
         // Assign UART pins before beginGnssUart
         pin_GnssUart_RX = 12;
         pin_GnssUart_TX = 14;
+
+        present.psram_4mb = true;
+        present.gnss_zedf9p = true;
+        present.lband = true;
+        present.cellular_lara = true;
+        present.ethernet_ws5500 = true;
+        present.microSd = true;
+        present.microSdCardDetect = true;
+        present.display = true;
+        present.button_setup = true;
+
         productVariant = RTK_EVK;
     }
 
     // ID resistors do not exist for the following:
-    //      Surveyor
     //      Torch
-    //      Unknown
-    //      Unknown ZED (Express without ID resistors)
     else
     {
-        bool zedPresent;
-
         log_d("Out of band or nonexistent resistor IDs");
 
-        // Check if ZED-F9x is on the I2C bus, using the default I2C pins
-        i2c_0->begin();
-        zedPresent = i2cIsDevicePresent(i2c_0, 0x42);
-        i2c_0->end();
-        if (zedPresent)
-        {
-            log_d("Detected ZED-F9x");
+        // Check if a bq40Z50 battery manager is on the I2C bus
+        int pin_SCL = 4;
 
-            // Use ZedTxReady to detect RTK Expresses (v1.3 and below) that do not have an accel or device ID resistors
 
-            // On a Surveyor, pin 34 is not connected. On Express and Express Plus, 34 is connected to ZED_TX_READY
-            const int pin_ZedTxReady = 34;
-            uint16_t pinValue = analogReadMilliVolts(pin_ZedTxReady);
-            log_d("Alternate ID pinValue (mV): %d", pinValue); // Surveyor = 142 to 152, //Express = 3129
-            if (pinValue > 3000)                               // ZED is indicating data ready
-            {
-                log_d("ZED-TX_Ready Detected. ZED type to be determined.");
-                productVariant = RTK_UNKNOWN_ZED; // The ZED-F9x module type is determined at zedBegin()
-
-                // Assume Express/Express+
-                pin_GnssUart_RX = 16;
-                pin_GnssUart_TX = 17;
-            }
-            else // No connection to pin 34
-            {
-                log_d("Surveyor determined via ZedTxReady");
-                productVariant = RTK_SURVEYOR;
-            }
-        }
 #ifdef COMPILE_UM980
-        else // No ZED on I2C so look for UM980 over serial
         {
             // Start Serial to test for GNSS on UART
             pin_GnssUart_RX = 26;   // ZED_TX_READY on Surveyor
