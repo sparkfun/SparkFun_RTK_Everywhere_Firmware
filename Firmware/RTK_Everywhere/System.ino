@@ -116,19 +116,15 @@ void batteryUpdate()
 // And outputs a serial message to USB
 void checkBatteryLevels()
 {
-    if (online.battery == true)
-    {
-        battLevel = lipo.getSOC();
-        battVoltage = lipo.getVoltage();
-        battChangeRate = lipo.getChangeRate();
-    }
-    else
-    {
-        // False numbers but above system cut-off level
-        battLevel = 10;
-        battVoltage = 3.7;
-        battChangeRate = 0;
-    }
+    if (present.battery == false)
+        return;
+
+    if (online.battery == false)
+        return;
+
+    battLevel = lipo.getSOC();
+    battVoltage = lipo.getVoltage();
+    battChangeRate = lipo.getChangeRate();
 
     if (battChangeRate >= -0.01)
         externalPowerConnected = true;
@@ -171,30 +167,6 @@ void checkBatteryLevels()
         else
         {
             shutdownNoChargeTimer = millis(); // Reset timer because power is attached
-        }
-    }
-
-    if (productVariant == RTK_SURVEYOR)
-    {
-        if (battLevel < 10)
-        {
-            ledcWrite(ledRedChannel, 255);
-            ledcWrite(ledGreenChannel, 0);
-        }
-        else if (battLevel < 50)
-        {
-            ledcWrite(ledRedChannel, 128);
-            ledcWrite(ledGreenChannel, 128);
-        }
-        else if (battLevel <= 110)
-        {
-            ledcWrite(ledRedChannel, 0);
-            ledcWrite(ledGreenChannel, 255);
-        }
-        else
-        {
-            ledcWrite(ledRedChannel, 10);
-            ledcWrite(ledGreenChannel, 0);
         }
     }
 }
