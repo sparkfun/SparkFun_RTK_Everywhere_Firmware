@@ -12,7 +12,8 @@ Begin.ino
 #define MAX_ADC_VOLTAGE 3300 // Millivolts
 
 // Testing shows the combined ADC+resistors is under a 1% window
-#define TOLERANCE 5.20 // Percent:  94.8% - 105.2%
+// But the internal ESP32 VRef fuse is not always set correctly
+#define TOLERANCE 4.75 // Percent:  95.25% - 104.75%
 
 //----------------------------------------
 // Locals
