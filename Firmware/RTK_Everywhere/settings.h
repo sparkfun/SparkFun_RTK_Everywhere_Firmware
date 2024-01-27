@@ -1277,6 +1277,38 @@ typedef struct
 } Settings;
 Settings settings;
 
+// Indicate which peripherals are present on a given platform
+struct struct_present
+{
+    bool psram_2mb = false;    
+    bool psram_4mb = false;    
+
+    bool gnss_zedf9p = false;
+    bool gnss_zedf9r = false;
+    bool gnss_um980 = false;
+    bool gnss_mosaic = false;
+
+    bool lband = false;
+    bool cellular_lara = false;
+    bool ethernet_ws5500 = false;
+    bool radio_lora = false;
+
+    bool imu_im19 = false;
+    bool imu_zedf9r = false;
+
+    bool microSd = false;
+    bool microSdCardDetect = false;
+
+    bool display = false;
+    bool battery = false;
+    bool beeper = false;
+
+    bool encryption_atecc608a = false;
+
+    bool button_setup = false;
+    bool button_power = false;
+} present;
+
 // Monitor which devices on the device are on or offline.
 struct struct_online
 {
