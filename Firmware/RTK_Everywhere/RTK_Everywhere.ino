@@ -948,6 +948,7 @@ void setup()
     bootTimeString[bootTimeIndex++] = "CPU/Runtime Initialization";
     bootTime[bootTimeIndex] = millis();
     bootTimeString[bootTimeIndex++] = "Serial.begin";
+    
     Serial.begin(115200); // UART0 for programming and debugging
     systemPrintln();
     systemPrintln();
@@ -963,7 +964,7 @@ void setup()
     }
 
     DMW_b("identifyBoard");
-    identifyBoard(); // Determine what hardware platform we are running on. Uses I2C for RTK Torch.
+    identifyBoard(); // Determine what hardware platform we are running on.
 
     DMW_b("initializePowerPins");
     initializePowerPins(); // Initialize any essential power pins - e.g. enable power for the Display
