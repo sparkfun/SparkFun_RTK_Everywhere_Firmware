@@ -96,62 +96,30 @@ void identifyBoard()
         log_d("Out of band or nonexistent resistor IDs");
 
         // Check if a bq40Z50 battery manager is on the I2C bus
+        int pin_SDA = 15;
         int pin_SCL = 4;
 
+        i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
+        // 0x0B - BQ40Z50 Li-Ion Battery Pack Manager / Fuel gauge
+        bool bq40z50Present = i2cIsDevicePresent(i2c_0, 0x0B);
+        i2c_0->end();
 
 #ifdef COMPILE_UM980
+        if (bq40z50Present)
         {
-            // Start Serial to test for GNSS on UART
-            pin_GnssUart_RX = 26;   // ZED_TX_READY on Surveyor
-            pin_GnssUart_TX = 27;   // ZED_RESET on Surveyor
-            pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR. SCL on Surveyor.
+            present.psram_2mb = true;
+            present.gnss_um980 = true;
+            present.radio_lora = true;
+            present.battery = true;
+            present.encryption_atecc608a = true;
+            present.button_power = true;
+            present.beeper = true;
 
-            HardwareSerial SerialGNSS(2); // Use UART2 on the ESP32 for GNSS communication
+#ifdef COMPILE_IM19_IMU
+            present.imu_im19 = true; // Allow tiltUpdate() to run
+#endif // COMPILE_IM19_IMU
 
-            UM980 testGNSS;
-
-            DMW_if systemPrintf("pin_GNSS_DR_Reset: %d\r\n", pin_GNSS_DR_Reset);
-            pinMode(pin_GNSS_DR_Reset, OUTPUT);
-            digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
-
-            // We must start the serial port before handing it over to the library
-            SerialGNSS.begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
-
-            // testGNSS.enableDebugging(); // Print all debug to Serial
-
-            if (testGNSS.begin(SerialGNSS) == true) // Give the serial port over to the library
-            {
-                productVariant = RTK_TORCH;
-
-                // Turn on Bluetooth and GNSS LEDs to indicate power on
-                pin_bluetoothStatusLED = 32;
-                pin_gnssStatusLED = 13;
-
-                DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
-                pinMode(pin_bluetoothStatusLED, OUTPUT);
-                digitalWrite(pin_bluetoothStatusLED, HIGH);
-
-                DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
-                pinMode(pin_gnssStatusLED, OUTPUT);
-                digitalWrite(pin_gnssStatusLED, HIGH);
-
-                pin_beeper = 33;
-                pinMode(pin_beeper, OUTPUT);
-
-                // Do a blocking beep as close to power on as possible to indicate power on
-                beepOn();
-                delay(50);
-                beepOff();
-            }
-            else
-            {
-                productVariant = RTK_UNKNOWN;
-
-                // Undo pin assignments
-                pin_GnssUart_RX = -1;
-                pin_GnssUart_TX = -1;
-                pin_GNSS_DR_Reset = -1;
-            }
+            productVariant = RTK_TORCH;
         }
 #endif // COMPILE_UM980
     }
