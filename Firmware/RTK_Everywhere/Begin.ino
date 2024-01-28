@@ -67,7 +67,9 @@ void identifyBoard()
 
     // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
     if (idWithAdc(idValue, 10, 10))
-        productVariant = RTK_FACET;
+    {
+        productVariant = RTK_FACET_V2;
+    }
 
     // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
     else if (idWithAdc(idValue, 10, 100))
@@ -117,7 +119,7 @@ void identifyBoard()
 
 #ifdef COMPILE_IM19_IMU
             present.imu_im19 = true; // Allow tiltUpdate() to run
-#endif // COMPILE_IM19_IMU
+#endif                               // COMPILE_IM19_IMU
 
             productVariant = RTK_TORCH;
         }
