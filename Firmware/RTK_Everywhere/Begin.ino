@@ -552,9 +552,11 @@ void beginBoard()
 
 void beginSD()
 {
+    if (present.microSd == false)
+        return;
+
     bool gotSemaphore;
 
-    online.microSD = false;
     gotSemaphore = false;
 
     while (settings.enableSD == true)
@@ -575,34 +577,9 @@ void beginSD()
         {
             log_d("Initializing microSD - using SPI, SdFat and SdFile");
 
-            DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
-            if (pin_microSD_CS == -1)
-            {
-                systemPrintln("Illegal SD CS pin assignment. Freezing.");
-                while (1)
-                    ;
-            }
-
-            pinMode(pin_microSD_CS, OUTPUT);
-            digitalWrite(pin_microSD_CS, HIGH); // Be sure SD is deselected
-            resetSPI();                         // Re-initialize the SPI/SD interface
-
-            // Do a quick test to see if a card is present
-            int tries = 0;
-            int maxTries = 5;
-            while (tries < maxTries)
-            {
-                if (sdPresent() == true)
-                    break;
-                // log_d("SD present failed. Trying again %d out of %d", tries + 1, maxTries);
-
-                // Max power up time is 250ms: https://www.kingston.com/datasheets/SDCIT-specsheet-64gb_en.pdf
-                // Max current is 200mA average across 1s, peak 300mA
-                delay(10);
-                tries++;
-            }
-            if (tries == maxTries)
-                break; // Give up loop
+            // Check to see if a card is present
+            if (sdCardPresent() == false)
+                break; // Give up on loop
 
             // If an SD card is present, allow SdFat to take over
             log_d("SD card detected - using SPI and SdFat");
@@ -628,8 +605,8 @@ void beginSD()
 
             if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == false)
             {
-                tries = 0;
-                maxTries = 1;
+                int tries = 0;
+                int maxTries = 1;
                 for (; tries < maxTries; tries++)
                 {
                     log_d("SD init failed - using SPI and SdFat. Trying again %d out of %d", tries + 1, maxTries);
@@ -642,7 +619,7 @@ void beginSD()
                 if (tries == maxTries)
                 {
                     systemPrintln("SD init failed - using SPI and SdFat. Is card formatted?");
-                    digitalWrite(pin_microSD_CS, HIGH); // Be sure SD is deselected
+                    deselectCard();
 
                     // Check reset count and prevent rolling reboot
                     if (settings.resetCount < 5)
@@ -661,50 +638,6 @@ void beginSD()
                 break;
             }
         }
-#ifdef COMPILE_SD_MMC
-        else
-        {
-            // Check to see if a card is present
-            if (sdPresent() == false)
-                break; // Give up on loop
-
-            systemPrintln("Initializing microSD - using SDIO, SD_MMC and File");
-
-            // SDIO MMC
-            if (SD_MMC.begin() == false)
-            {
-                int tries = 0;
-                int maxTries = 1;
-                for (; tries < maxTries; tries++)
-                {
-                    log_d("SD init failed - using SD_MMC. Trying again %d out of %d", tries + 1, maxTries);
-
-                    delay(250); // Give SD more time to power up, then try again
-                    if (SD_MMC.begin() == true)
-                        break;
-                }
-
-                if (tries == maxTries)
-                {
-                    systemPrintln("SD init failed - using SD_MMC. Is card formatted?");
-
-                    // Check reset count and prevent rolling reboot
-                    if (settings.resetCount < 5)
-                    {
-                        if (settings.forceResetOnSDFail == true)
-                            ESP.restart();
-                    }
-                    break;
-                }
-            }
-        }
-#else  // COMPILE_SD_MMC
-        else
-        {
-            log_d("SD_MMC not compiled");
-            break; // No SD available.
-        }
-#endif // COMPILE_SD_MMC
 
         if (createTestFile() == false)
         {
