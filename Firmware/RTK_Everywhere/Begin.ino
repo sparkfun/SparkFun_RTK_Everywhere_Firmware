@@ -797,9 +797,7 @@ void pinGnssUartTask(void *pvParameters)
 
         if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
         {
-            systemPrintln("Illegal UART pin assignment. Freezing.");
-            while (1)
-                ;
+            reportFatalError("Illegal UART pin assignment.");
         }
 
         serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
