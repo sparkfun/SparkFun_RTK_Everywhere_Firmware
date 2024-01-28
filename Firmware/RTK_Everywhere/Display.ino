@@ -133,11 +133,10 @@ void beginDisplay(TwoWire *i2cBus)
 
     if (present.display_128x64_i2c1 == true)
     {
-        Serial.println("Here");
-        delay(50);
-
         i2cAddress = kOLEDMicroDefaultAddress;
+
         oled = new QwiicCustomOLED;
+
         if (!oled)
         {
             systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
@@ -153,9 +152,6 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
         oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h). For the Micro 64x48, set this to 0x8F
     }
-
-    Serial.println("Here 3");
-    delay(50);
 
     blinking_icons = 0;
 
