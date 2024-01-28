@@ -1192,6 +1192,33 @@ void beginI2C()
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
+void pinI2CTask(void *pvParameters)
+{
+    if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
+    {
+        reportFatalError("Illegal I2C0 pin assignment.");
+    }
+
+    // Initialize I2C bus 0
+    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
+        // Update the I2C status
+        online.i2c = true;
+
+    // Initialize I2C bus 1
+    if (i2c_1)
+    {
+        if (pin_I2C1_SDA == -1 || pin_I2C1_SCL == -1)
+        {
+            reportFatalError("Illegal I2C1 pin assignment.");
+        }
+        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
+    }
+
+    i2cPinned = true;
+    vTaskDelete(nullptr); // Delete task once it has run once
+}
+
+// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 {
     bool deviceFound;
@@ -1287,37 +1314,6 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         return false;
     }
     return true;
-}
-
-// Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
-void pinI2CTask(void *pvParameters)
-{
-    if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
-    {
-        systemPrintln("Illegal I2C pin assignment. Freezing.");
-        while (1)
-            ;
-    }
-
-    // Initialize I2C bus 0
-    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
-        // Update the I2C status
-        online.i2c = true;
-
-    // Initialize I2C bus 1
-    if (i2c_1)
-    {
-        if (pin_I2C1_SDA == -1 || pin_I2C1_SCL == -1)
-        {
-            systemPrintln("Illegal I2C1 pin assignment. Freezing.");
-            while (1)
-                ;
-        }
-        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
-    }
-
-    i2cPinned = true;
-    vTaskDelete(nullptr); // Delete task once it has run once
 }
 
 // Depending on radio selection, begin hardware
