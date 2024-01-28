@@ -104,6 +104,7 @@ const char * const productDisplayNames[] =
     "Torch",
     "Unkn ZED",
     "EVK",
+    "Facet v2",
     // Add new values just above this line
     "Unknown"
 };
@@ -121,6 +122,7 @@ const char * const platformFilePrefixTable[] =
     "SFE_TORCH",
     "SFE_Unknown_ZED",
     "SFE_EVK",
+    "SFE_Facet_v2",
     // Add new values just above this line
     "SFE_Unknown"
 };
@@ -138,6 +140,7 @@ const char * const platformPrefixTable[] =
     "Torch",
     "Unknown ZED",
     "EVK",
+    "Facet v2",
     // Add new values just above this line
     "Unknown"
 };
@@ -155,6 +158,7 @@ const char * const platformProvisionTable[] =
     "Torch",
     "Unknown ZED",
     "EVK",
+    "Facet v2",
     // Add new values just above this line
     "Unknown"
 };
@@ -171,7 +175,8 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED,    // Facet L-Band Direct
     STATE_ROVER_NOT_STARTED,    // Torch
     STATE_ROVER_NOT_STARTED,    // Unknown ZED
-    STATE_BASE_NOT_STARTED,     // EVK
+    STATE_ROVER_NOT_STARTED,     // EVK
+    STATE_ROVER_NOT_STARTED,     // Facet v2
     // Add new values just above this line
     STATE_ROVER_NOT_STARTED     // Unknown
 };
@@ -196,6 +201,7 @@ const GnssPlatform platformGnssTable[] =
     PLATFORM_UM980, // Torch
     PLATFORM_ZED,   // Unknown ZED
     PLATFORM_ZED,   // EVK
+    PLATFORM_ZED,   // Facet v2
     // Add new values just above this line
     PLATFORM_ZED    // Unknown
 };
