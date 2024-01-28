@@ -265,10 +265,10 @@ void powerDisplay()
         pinMode(pin_Ethernet_CS, OUTPUT);
         digitalWrite(pin_Ethernet_CS, HIGH);
 
-        // Disable the microSD card
         DMW_if systemPrintf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
         pinMode(pin_microSD_CardDetect, INPUT); // Internal pullups not supported on input only pins
 
+        // Disable the microSD card
         DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
         digitalWrite(pin_microSD_CS, HIGH);
