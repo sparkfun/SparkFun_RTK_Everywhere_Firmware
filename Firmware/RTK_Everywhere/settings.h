@@ -1299,7 +1299,8 @@ struct struct_present
     bool microSd = false;
     bool microSdCardDetect = false;
 
-    bool display = false;
+    bool display_64x48 = false;
+    bool display_128x64 = false;
     bool battery = false;
     bool beeper = false;
 

@@ -83,7 +83,7 @@ void identifyBoard()
         present.ethernet_ws5500 = true;
         present.microSd = true;
         present.microSdCardDetect = true;
-        present.display = true;
+        present.display_64x48 = true;
         present.button_setup = true;
 
         productVariant = RTK_EVK;
