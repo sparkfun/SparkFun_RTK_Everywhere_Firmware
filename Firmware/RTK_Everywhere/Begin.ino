@@ -259,7 +259,8 @@ void beginBoard()
         // Disable the microSD card
         DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
-        digitalWrite(pin_microSD_CS, HIGH);
+        deselectSdCard();
+
     }
     else if (productVariant == RTK_FACET_V2)
     {
@@ -418,7 +419,7 @@ void beginSD()
                 if (tries == maxTries)
                 {
                     systemPrintln("SD init failed - using SPI and SdFat. Is card formatted?");
-                    deselectCard();
+                    deselectSdCard();
 
                     // Check reset count and prevent rolling reboot
                     if (settings.resetCount < 5)
@@ -500,7 +501,7 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
 // https://github.com/greiman/SdFat/issues/351
 void resetSPI()
 {
-    deselectCard();
+    deselectSdCard();
 
     // Flush SPI interface
     SPI.begin();
@@ -510,7 +511,7 @@ void resetSPI()
     SPI.endTransaction();
     SPI.end();
 
-    selectCard();
+    selectSdCard();
 
     // Flush SD interface
     SPI.begin();
@@ -520,7 +521,7 @@ void resetSPI()
     SPI.endTransaction();
     SPI.end();
 
-    deselectCard();
+    deselectSdCard();
 }
 
 // We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
