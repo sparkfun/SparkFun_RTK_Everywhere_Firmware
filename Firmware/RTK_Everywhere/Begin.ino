@@ -132,13 +132,6 @@ void powerDisplay()
 {
     if (present.display)
     {
-        // Assume the display is on I2C0
-        i2cDisplay = i2c_0;
-
-        // Set the default I2C0 pins
-        pin_I2C0_SDA = 21;
-        pin_I2C0_SCL = 22;
-
         if (productVariant == RTK_EVK)
         {
             // Turn on power to the I2C_1 bus
@@ -146,13 +139,6 @@ void powerDisplay()
             pinMode(pin_peripheralPowerControl, OUTPUT);
             digitalWrite(pin_peripheralPowerControl, HIGH);
             i2cPowerUpDelay = millis() + 860;
-
-            // Use I2C bus 1 for the display
-            i2c_1 = new TwoWire(1);
-            i2cDisplay = i2c_1;
-
-            // Display splash screen for 1 second
-            minSplashFor = 1000;
         }
     }
 }
