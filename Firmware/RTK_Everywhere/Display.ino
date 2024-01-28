@@ -102,15 +102,17 @@ bool ssidDisplayFirstHalf = false;
 
 void beginDisplay(TwoWire *i2cBus)
 {
+    if (present.display_64x48_i2c0 == false && present.display_128x64_i2c1 == false)
+        return;
+
     uint8_t i2cAddress;
     uint16_t x;
     uint16_t y;
 
-    // Select the display type
-    switch (productVariant)
+    // Setup the appropriate display
+
+    if (present.display_64x48_i2c0 == true)
     {
-    // Assume the microOLED display (64 x 48) is available
-    default: {
         i2cAddress = kOLEDMicroDefaultAddress;
         oled = new QwiicCustomOLED;
         if (!oled)
@@ -127,11 +129,13 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setPinConfig(kOLEDMicroPinConfig);
         oled->setPreCharge(kOLEDMicroPreCharge);
         oled->setVcomDeselect(kOLEDMicroVCOM);
-        break;
     }
 
-    // Large display (128 x 64) in RTK EVK
-    case RTK_EVK: {
+    if (present.display_128x64_i2c1 == true)
+    {
+        Serial.println("Here");
+        delay(50);
+
         i2cAddress = kOLEDMicroDefaultAddress;
         oled = new QwiicCustomOLED;
         if (!oled)
@@ -148,20 +152,15 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setPreCharge(0xF1);    // Set Pre-charge Period (D9h)
         oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
         oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h). For the Micro 64x48, set this to 0x8F
-        break;
     }
 
-    // No display in these products
-    case RTK_TORCH:
-    case RTK_SURVEYOR:
-        return;
-    }
+    Serial.println("Here 3");
+    delay(50);
 
     blinking_icons = 0;
 
-    // At this point we have not identified the RTK platform
-    // If it's surveyor, there won't be a display and we have a 100ms delay
-    // If it's other platforms, we will try 3 times
+    // Display may still be powering up
+    // Try multiple times to communicate then display logo
     int maxTries = 3;
     for (int x = 0; x < maxTries; x++)
     {
@@ -189,8 +188,8 @@ void beginDisplay(TwoWire *i2cBus)
 void displayBatteryVsEthernet()
 {
     if (fuelGaugeType != FUEL_GAUGE_TYPE_NONE) // Product has a battery
-        icons |= ICON_BATTERY; // Top right
-    else                       // if (HAS_ETHERNET)
+        icons |= ICON_BATTERY;                 // Top right
+    else                                       // if (HAS_ETHERNET)
     {
         if (online.ethernetStatus == ETH_NOT_STARTED)
             blinking_icons &= ~ICON_ETHERNET; // If Ethernet has not stated because not needed, don't display the icon
