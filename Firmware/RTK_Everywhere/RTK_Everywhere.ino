@@ -986,6 +986,8 @@ void setup()
     DMW_b("powerDisplay");
     powerDisplay(); // Enable power for the display
 
+    DMW_b("beginDisplay");
+    beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
 
