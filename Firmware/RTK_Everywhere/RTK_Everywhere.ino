@@ -82,63 +82,64 @@
 // Hardware connections
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
-int pin_batteryLevelLED_Red = -1;
-int pin_batteryLevelLED_Green = -1;
-int pin_positionAccuracyLED_1cm = -1;
-int pin_positionAccuracyLED_10cm = -1;
-int pin_positionAccuracyLED_100cm = -1;
-int pin_baseStatusLED = -1;
-int pin_bluetoothStatusLED = -1;
-int pin_zed_tx_ready = -1;
-int pin_zed_reset = -1;
-int pin_batteryLevel_alert = -1;
+#define PIN_UNDEFINED -1
+int pin_batteryLevelLED_Red = PIN_UNDEFINED;
+int pin_batteryLevelLED_Green = PIN_UNDEFINED;
+int pin_positionAccuracyLED_1cm = PIN_UNDEFINED;
+int pin_positionAccuracyLED_10cm = PIN_UNDEFINED;
+int pin_positionAccuracyLED_100cm = PIN_UNDEFINED;
+int pin_baseStatusLED = PIN_UNDEFINED;
+int pin_bluetoothStatusLED = PIN_UNDEFINED;
+int pin_zed_tx_ready = PIN_UNDEFINED;
+int pin_zed_reset = PIN_UNDEFINED;
+int pin_batteryLevel_alert = PIN_UNDEFINED;
 
-int pin_muxA = -1;
-int pin_muxB = -1;
-int pin_powerSenseAndControl = -1;
-int pin_setupButton = -1;
-int pin_powerFastOff = -1;
-int pin_dac26 = -1;
-int pin_adc39 = -1;
-int pin_peripheralPowerControl = -1;
+int pin_muxA = PIN_UNDEFINED;
+int pin_muxB = PIN_UNDEFINED;
+int pin_powerSenseAndControl = PIN_UNDEFINED;
+int pin_setupButton = PIN_UNDEFINED;
+int pin_powerFastOff = PIN_UNDEFINED;
+int pin_dac26 = PIN_UNDEFINED;
+int pin_adc39 = PIN_UNDEFINED;
+int pin_peripheralPowerControl = PIN_UNDEFINED;
 
-int pin_radio_rx = -1;
-int pin_radio_tx = -1;
-int pin_radio_rst = -1;
-int pin_radio_pwr = -1;
-int pin_radio_cts = -1;
-int pin_radio_rts = -1;
+int pin_radio_rx = PIN_UNDEFINED;
+int pin_radio_tx = PIN_UNDEFINED;
+int pin_radio_rst = PIN_UNDEFINED;
+int pin_radio_pwr = PIN_UNDEFINED;
+int pin_radio_cts = PIN_UNDEFINED;
+int pin_radio_rts = PIN_UNDEFINED;
 
-int pin_Ethernet_CS = -1;
-int pin_Ethernet_Interrupt = -1;
-int pin_GNSS_CS = -1;
-int pin_GNSS_TimePulse = -1;
+int pin_Ethernet_CS = PIN_UNDEFINED;
+int pin_Ethernet_Interrupt = PIN_UNDEFINED;
+int pin_GNSS_CS = PIN_UNDEFINED;
+int pin_GNSS_TimePulse = PIN_UNDEFINED;
 
 // microSD card pins
 int pin_PICO = 23;
 int pin_POCI = 19;
 int pin_SCK = 18;
-int pin_microSD_CardDetect = -1;
-int pin_microSD_CS = -1;
+int pin_microSD_CardDetect = PIN_UNDEFINED;
+int pin_microSD_CS = PIN_UNDEFINED;
 
-int pin_I2C0_SDA = -1;
-int pin_I2C0_SCL = -1;
+int pin_I2C0_SDA = PIN_UNDEFINED;
+int pin_I2C0_SCL = PIN_UNDEFINED;
 
-int pin_I2C1_SDA = -1;
-int pin_I2C1_SCL = -1;
+int pin_I2C1_SDA = PIN_UNDEFINED;
+int pin_I2C1_SCL = PIN_UNDEFINED;
 
-int pin_GnssUart_RX = -1;
-int pin_GnssUart_TX = -1;
+int pin_GnssUart_RX = PIN_UNDEFINED;
+int pin_GnssUart_TX = PIN_UNDEFINED;
 
-int pin_IMU_RX = -1;
-int pin_IMU_TX = -1;
+int pin_IMU_RX = PIN_UNDEFINED;
+int pin_IMU_TX = PIN_UNDEFINED;
 
-int pin_GNSS_DR_Reset = -1;
-int pin_gnssStatusLED = -1;
+int pin_GNSS_DR_Reset = PIN_UNDEFINED;
+int pin_gnssStatusLED = PIN_UNDEFINED;
 
-int pin_powerAdapterDetect = -1;
-int pin_usbSelect = -1;
-int pin_beeper = -1;
+int pin_powerAdapterDetect = PIN_UNDEFINED;
+int pin_usbSelect = PIN_UNDEFINED;
+int pin_beeper = PIN_UNDEFINED;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display, accelerometer

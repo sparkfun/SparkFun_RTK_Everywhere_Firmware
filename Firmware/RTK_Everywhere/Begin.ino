@@ -166,8 +166,6 @@ void beginBoard()
 
         pin_powerSenseAndControl = 34;
 
-        pin_batteryLevelLED_Red = 0;
-
         pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
 
@@ -177,16 +175,17 @@ void beginBoard()
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
         // Turn on Bluetooth and GNSS LEDs to indicate power on
+        pin_batteryLevelLED_Red = 0;
         pin_bluetoothStatusLED = 32;
         pin_gnssStatusLED = 13;
 
         pin_beeper = 33;
 
         pinMode(pin_bluetoothStatusLED, OUTPUT);
-        digitalWrite(pin_bluetoothStatusLED, HIGH);
+        bluetoothLedOn();
 
         pinMode(pin_gnssStatusLED, OUTPUT);
-        digitalWrite(pin_gnssStatusLED, HIGH);
+        gnssStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
 
