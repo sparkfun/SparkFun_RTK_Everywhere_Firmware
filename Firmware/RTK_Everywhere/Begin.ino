@@ -85,7 +85,7 @@ void identifyBoard()
         present.ethernet_ws5500 = true;
         present.microSd = true;
         present.microSdCardDetect = true;
-        present.display_64x48 = true;
+        present.display_128x64_i2c1 = true;
         present.button_setup = true;
 
         productVariant = RTK_EVK;
@@ -143,79 +143,62 @@ void powerDisplay()
     }
 }
 
+// Assign pin numbers and initial pin states
+void beginBoard()
+{
+    if (productVariant == RTK_UNKNOWN)
     {
-        pin_I2C0_SDA = 15;
-        pin_I2C0_SCL = 4;
+        systemPrintln("Product variant unknown. Assigning no hardware pins.");
     }
-    else if (productVariant == REFERENCE_STATION)
+    else if (productVariant == RTK_TORCH)
     {
-        // v10
-        // Pin Allocations:
-        // 35, D1  : Serial TX (CH340 RX)
-        // 34, D3  : Serial RX (CH340 TX)
+        pin_GnssUart_RX = 26;
+        pin_GnssUart_TX = 27;
+        pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
 
-        // 25, D0  : Boot + Boot Button
-        // 24, D2  : SDIO DAT0 - via 74HC4066 switch
-        // 29, D5  : GNSS Chip Select
-        // 14, D12 : SDIO DAT2 - via 74HC4066 switch
-        // 23, D15 : SDIO CMD - via 74HC4066 switch
+        pin_powerSenseAndControl = 34;
 
-        // 26, D4  : SDIO DAT1
-        // 16, D13 : SDIO DAT3
-        // 13, D14 : SDIO CLK
-        // 27, D16 : Serial1 RXD : Note: connected to the I/O connector only - not to the ZED-F9P
-        // 28, D17 : Serial1 TXD : Note: connected to the I/O connector only - not to the ZED-F9P
-        // 30, D18 : SPI SCK
-        // 31, D19 : SPI POCI
-        // 33, D21 : I2C SDA
-        // 36, D22 : I2C SCL
-        // 37, D23 : SPI PICO
-        // 10, D25 : GNSS Time Pulse
-        // 11, D26 : STAT LED
-        // 12, D27 : Ethernet Chip Select
-        //  8, D32 : PWREN
-        //  9, D33 : Ethernet Interrupt
-        //  6, A34 : GNSS TX RDY
-        //  7, A35 : Board Detect (1.1V)
-        //  4, A36 : microSD card detect
-        //  5, A39 : Unused analog pin - used to generate random values for SSL
+        pin_batteryLevelLED_Red = 0;
 
-        pin_baseStatusLED = 26;
-        pin_peripheralPowerControl = 32;
-        pin_Ethernet_CS = 27;
-        pin_GNSS_CS = 5;
-        pin_GNSS_TimePulse = 25;
-        pin_adc39 = 39;
-        pin_zed_tx_ready = 34;
-        pin_microSD_CardDetect = 36;
-        pin_Ethernet_Interrupt = 33;
-        pin_setupButton = 0;
+        pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
+        pin_IMU_TX = 17;
 
-        pin_radio_rx = 17; // Radio RX In = ESP TX Out
-        pin_radio_tx = 16; // Radio TX Out = ESP RX In
+        pin_GNSS_TimePulse = 39; // PPS on UM980
 
-        DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
-        pinMode(pin_Ethernet_CS, OUTPUT);
-        digitalWrite(pin_Ethernet_CS, HIGH);
+        pin_usbSelect = 21;
+        pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
-        DMW_if systemPrintf("pin_GNSS_CS: %d\r\n", pin_GNSS_CS);
-        pinMode(pin_GNSS_CS, OUTPUT);
-        digitalWrite(pin_GNSS_CS, HIGH);
+        // Turn on Bluetooth and GNSS LEDs to indicate power on
+        pin_bluetoothStatusLED = 32;
+        pin_gnssStatusLED = 13;
 
-        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
-        pinMode(pin_peripheralPowerControl, OUTPUT);
-        digitalWrite(pin_peripheralPowerControl, HIGH); // Turn on SD, W5500, etc
-        delay(100);
+        pin_beeper = 33;
 
-        // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
-        // so fake it here - otherwise messageSupported always returns false
-        zedFirmwareVersionInt = 112;
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
+        digitalWrite(pin_bluetoothStatusLED, HIGH);
 
-        // Display splash screen for 1 second
-        minSplashFor = 1000;
+        pinMode(pin_gnssStatusLED, OUTPUT);
+        digitalWrite(pin_gnssStatusLED, HIGH);
 
-        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
+        pinMode(pin_beeper, OUTPUT);
+
+        pinMode(pin_powerSenseAndControl, INPUT);
+
+        pinMode(pin_GNSS_TimePulse, INPUT);
+
+        pinMode(pin_GNSS_DR_Reset, OUTPUT);
+        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+
+        pinMode(pin_powerAdapterDetect, INPUT);
+
+        pinMode(pin_usbSelect, OUTPUT);
+        digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
+
+        settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
+
+        fuelGaugeType = FUEL_GAUGE_TYPE_BQ40Z50;
     }
+
     else if (productVariant == RTK_EVK)
     {
         // v01
@@ -272,208 +255,19 @@ void powerDisplay()
         DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
         digitalWrite(pin_microSD_CS, HIGH);
-
-        // Connect the I2C_1 bus to the display
-        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
-        pinMode(pin_peripheralPowerControl, OUTPUT);
-        digitalWrite(pin_peripheralPowerControl, HIGH);
-        i2cPowerUpDelay = millis() + 860;
-
-        // Use I2C bus 1 for the display
-        i2c_1 = new TwoWire(1);
-        i2cDisplay = i2c_1;
-
-        // Display splash screen for 1 second
-        minSplashFor = 1000;
-
-        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
+    }
+    else if (productVariant == RTK_FACET_V2)
+    {
+        pin_muxA = 2;
+        pin_muxB = 0;
+        
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
     }
 }
 
-// Based on hardware features, determine if this is RTK Surveyor or RTK Express hardware
-// Must be called after beginI2C so that we can do I2C tests
-// Must be called after beginGNSS so the GNSS type is known
-void beginBoard()
+void beginVersion()
 {
-    if (productVariant == RTK_UNKNOWN_ZED)
-    {
-        if (zedModuleType == PLATFORM_F9P)
-            productVariant = RTK_EXPRESS;
-        else if (zedModuleType == PLATFORM_F9R)
-            productVariant = RTK_EXPRESS_PLUS;
-    }
-
-    if (productVariant == RTK_UNKNOWN)
-    {
-        systemPrintln("Product variant unknown. Assigning no hardware pins.");
-    }
-    else if (productVariant == RTK_SURVEYOR)
-    {
-        pin_batteryLevelLED_Red = 32;
-        pin_batteryLevelLED_Green = 33;
-        pin_positionAccuracyLED_1cm = 2;
-        pin_positionAccuracyLED_10cm = 15;
-        pin_positionAccuracyLED_100cm = 13;
-        pin_baseStatusLED = 4;
-        pin_bluetoothStatusLED = 12;
-        pin_setupButton = 5;
-        pin_microSD_CS = 25;
-        pin_zed_tx_ready = 26;
-        pin_zed_reset = 27;
-        pin_batteryLevel_alert = 36;
-
-        pin_GnssUart_RX = 16;
-        pin_GnssUart_TX = 17;
-
-        // Bug in ZED-F9P v1.13 firmware causes RTK LED to not light when RTK Floating with SBAS on.
-        // The following changes the POR default but will be overwritten by settings in NVM or settings file
-        settings.ubxConstellations[1].enabled = false;
-    }
-    else if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
-    {
-        pin_muxA = 2;
-        pin_muxB = 4;
-        pin_powerSenseAndControl = 13;
-        pin_setupButton = 14;
-        pin_microSD_CS = 25;
-        pin_dac26 = 26;
-        pin_powerFastOff = 27;
-        pin_adc39 = 39;
-
-        pin_GnssUart_RX = 16;
-        pin_GnssUart_TX = 17;
-
-        DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
-        pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
-
-        DMW_if systemPrintf("pin_powerFastOff: %d\r\n", pin_powerFastOff);
-        pinMode(pin_powerFastOff, INPUT);
-
-        if (esp_reset_reason() == ESP_RST_POWERON)
-        {
-            powerOnCheck(); // Only do check if we POR start
-        }
-
-        DMW_if systemPrintf("pin_setupButton: %d\r\n", pin_setupButton);
-        pinMode(pin_setupButton, INPUT_PULLUP);
-
-        setMuxport(settings.dataPortChannel); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
-    }
-    else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
-             productVariant == RTK_FACET_LBAND_DIRECT)
-    {
-        // v11
-        pin_muxA = 2;
-        pin_muxB = 0;
-        pin_powerSenseAndControl = 13;
-        pin_peripheralPowerControl = 14;
-        pin_microSD_CS = 25;
-        pin_dac26 = 26;
-        pin_powerFastOff = 27;
-        pin_adc39 = 39;
-
-        pin_radio_rx = 33;
-        pin_radio_tx = 32;
-        pin_radio_rst = 15;
-        pin_radio_pwr = 4;
-        pin_radio_cts = 5;
-        // pin_radio_rts = 255; //Not implemented
-
-        pin_GnssUart_RX = 16;
-        pin_GnssUart_TX = 17;
-
-        DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
-        pinMode(pin_powerSenseAndControl, INPUT_PULLUP);
-
-        DMW_if systemPrintf("pin_powerFastOff: %d\r\n", pin_powerFastOff);
-        pinMode(pin_powerFastOff, INPUT);
-
-        if (esp_reset_reason() == ESP_RST_POWERON)
-        {
-            powerOnCheck(); // Only do check if we POR start
-        }
-
-        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
-        pinMode(pin_peripheralPowerControl, OUTPUT);
-        digitalWrite(pin_peripheralPowerControl, HIGH); // Turn on SD, ZED, etc
-
-        setMuxport(settings.dataPortChannel); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
-
-        // CTS is active low. ESP32 pin 5 has pullup at POR. We must drive it low.
-        DMW_if systemPrintf("pin_radio_cts: %d\r\n", pin_radio_cts);
-        pinMode(pin_radio_cts, OUTPUT);
-        digitalWrite(pin_radio_cts, LOW);
-
-        if (productVariant == RTK_FACET_LBAND_DIRECT)
-        {
-            // Override the default setting if a user has not explicitly configured the setting
-            if (settings.useI2cForLbandCorrectionsConfigured == false)
-                settings.useI2cForLbandCorrections = false;
-        }
-    }
-    else if (productVariant == RTK_TORCH)
-    {
-        // I2C pins have already been assigned
-
-        // During identifyBoard(), the GNSS UART and DR pins are assigned
-        // During identifyBoard(), the Bluetooth and GNSS LEDs are assigned and turned on
-        // During identifyBoard(), the beep pin is assigned
-
-        pin_powerSenseAndControl = 34;
-
-        pin_batteryLevelLED_Red = 0;
-
-        pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
-        pin_IMU_TX = 17;
-
-        pin_GNSS_TimePulse = 39; // PPS on UM980
-
-        pin_usbSelect = 21;
-        pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
-
-        DMW_if systemPrintf("pin_powerSenseAndControl: %d\r\n", pin_powerSenseAndControl);
-        pinMode(pin_powerSenseAndControl, INPUT);
-
-        DMW_if systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
-        pinMode(pin_GNSS_TimePulse, INPUT);
-
-        pinMode(pin_powerAdapterDetect, INPUT);
-
-        pinMode(pin_usbSelect, OUTPUT);
-        digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
-
-#ifdef COMPILE_IM19_IMU
-        tiltSupported = true; // Allow tiltUpdate() to run
-#endif                        // COMPILE_IM19_IMU
-
-        settings.enableSD = false; // Torch has no SD socket
-
-        settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
-
-        fuelGaugeType = FUEL_GAUGE_TYPE_BQ40Z50;
-    }
-    else if (productVariant == REFERENCE_STATION)
-    {
-        pin_GnssUart_RX = 16;
-        pin_GnssUart_TX = 17;
-
-        // No powerOnCheck
-
-        settings.enablePrintBatteryMessages = false; // No pesky battery messages
-
-        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
-    }
-    else if (productVariant == RTK_EVK)
-    {
-        // No powerOnCheck
-
-        // Serial pins are set during identifyBoard()
-
-        settings.enablePrintBatteryMessages = false; // No pesky battery messages
-
-        fuelGaugeType = FUEL_GAUGE_TYPE_NONE;
-    }
-
     char versionString[21];
     getFirmwareVersion(versionString, sizeof(versionString), true);
     systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
