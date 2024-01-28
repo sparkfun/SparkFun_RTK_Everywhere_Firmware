@@ -130,7 +130,7 @@ void identifyBoard()
 // Turn on power for the display before beginDisplay
 void powerDisplay()
 {
-    if (present.display)
+    if (present.display_128x64_i2c1)
     {
         if (productVariant == RTK_EVK)
         {
