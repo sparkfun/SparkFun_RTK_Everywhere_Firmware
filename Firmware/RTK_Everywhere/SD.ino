@@ -19,10 +19,10 @@ void sdUpdate()
         // Are we offline because we are out of space?
         if (outOfSDSpace == true)
         {
-            if (sdPresent() == false) // Poll card to see if user has removed card
+            if (sdCardPresent() == false) // Poll card to see if user has removed card
                 outOfSDSpace = false;
         }
-        else if (sdPresent() == true) // Poll card to see if a card is inserted
+        else if (sdCardPresent() == true) // Poll card to see if a card is inserted
         {
             systemPrintln("SD inserted");
             beginSD(); // Attempt to start SD
@@ -47,7 +47,7 @@ void sdUpdate()
     // Check if SD card is still present
     if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
     {
-        if (sdPresent() == false)
+        if (sdCardPresent() == false)
             endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
     }
 }
@@ -86,52 +86,79 @@ void sdUpdate()
 #define LOCK_UNLOCK_MASK (1 << 2)
 #define ERASE_MASK (1 << 3)
 
-// Begin initialization by sending CMD0 and waiting until SD card
-// responds with In Idle Mode (0x01). If the response is not 0x01
-// within a reasonable amount of time, there is no SD card on the bus.
-// Returns false if not card is detected
-// Returns true if a card responds
-// This test takes approximately 13ms to complete
-bool sdPresent(void)
+// Some platforms have a card detect hardware pin
+// For platforms that don't, we use software to detect the SD card
+// Returns true if a card is detected
+bool sdCardPresent(void)
 {
-    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+    if (present.microSdCardDetect == true)
     {
-        if (pin_microSD_CardDetect > 0)
+        if (productVariant == RTK_EVK)
         {
-            pinMode(pin_microSD_CardDetect, INPUT); // Internal pullups not supported on input only pins
             if (digitalRead(pin_microSD_CardDetect) == LOW)
                 return (true); // Card low - SD in place
             return (false);    // Card detect high - No SD
         }
+        systemPrintln("sdCardPresent: Unknown platform variant");
+        return (false);
     }
-    else if (USE_SPI_MICROSD)
+
+    // Use software to detect a card
+    DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+    if (pin_microSD_CS == -1)
     {
-        byte response = 0;
-
-        SPI.begin();
-        SPI.setClockDivider(SPI_CLOCK_DIV2);
-        SPI.setDataMode(SPI_MODE0);
-        SPI.setBitOrder(MSBFIRST);
-        pinMode(pin_microSD_CS, OUTPUT);
-
-        // Sending clocks while card power stabilizes...
-        deselectCard();               // always make sure
-        for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
-            xchg(0xff);
-
-        // Sending CMD0 - GO IDLE...
-        for (byte i = 0; i < 0x10; i++) // Attempt to go idle
-        {
-            response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
-            if (response == 1)
-                return (true); // Card responded
-        }
-        if (response != 1)
-            return (false); // Card failed to respond to idle
+        reportFatalError("Illegal SD CS pin assignment.");
     }
 
-    // Unknown platform type. Return no SD detected.
-    return (false);
+    resetSPI();                         // Re-initialize the SPI/SD interface
+
+    // Do a quick test to see if a card is present
+    int tries = 0;
+    int maxTries = 5;
+    while (tries < maxTries)
+    {
+        if (sdCardPresentSoftwareTest() == true)
+            return(true);
+
+        // log_d("SD present failed. Trying again %d out of %d", tries + 1, maxTries);
+
+        // Max power up time is 250ms: https://www.kingston.com/datasheets/SDCIT-specsheet-64gb_en.pdf
+        // Max current is 200mA average across 1s, peak 300mA
+        delay(10);
+        tries++;
+    }
+
+    return (false); // No card detected
+}
+
+// Begin initialization by sending CMD0 and waiting until SD card
+// responds with In Idle Mode (0x01). If the response is not 0x01
+// within a reasonable amount of time, there is no SD card on the bus.
+// This test takes approximately 13ms to complete
+
+bool sdCardPresentSoftwareTest()
+{
+    SPI.begin();
+    SPI.setClockDivider(SPI_CLOCK_DIV2);
+    SPI.setDataMode(SPI_MODE0);
+    SPI.setBitOrder(MSBFIRST);
+
+    // Sending clocks while card power stabilizes...
+    deselectCard();               // always make sure
+    for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
+        xchg(0xff);
+
+    byte response;
+
+    // Sending CMD0 - GO IDLE...
+    for (byte i = 0; i < 0x10; i++) // Attempt to go idle
+    {
+        response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
+        if (response == 1)
+            return (true); // Card responded
+    }
+    if (response != 1)
+        return (false); // Card failed to respond to idle    
 }
 
 /*

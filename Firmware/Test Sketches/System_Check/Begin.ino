@@ -419,7 +419,7 @@ void beginSD()
     int maxTries = 5;
     while (tries < maxTries)
     {
-      if (sdPresent() == true) break;
+      if (sdCardPresent() == true) break;
       log_d("SD present failed. Trying again %d out of %d", tries + 1, maxTries);
 
       //Max power up time is 250ms: https://www.kingston.com/datasheets/SDCIT-specsheet-64gb_en.pdf
