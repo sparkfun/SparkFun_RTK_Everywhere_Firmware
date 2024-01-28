@@ -116,7 +116,7 @@ void batteryUpdate()
 // And outputs a serial message to USB
 void checkBatteryLevels()
 {
-    if (present.battery == false)
+    if(present.battery_max17048 == false && present.battery_bq40z50 == false)
         return;
 
     if (online.battery == false)

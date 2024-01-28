@@ -183,7 +183,7 @@ void beginDisplay(TwoWire *i2cBus)
 // Avoid code repetition
 void displayBatteryVsEthernet()
 {
-    if (fuelGaugeType != FUEL_GAUGE_TYPE_NONE) // Product has a battery
+    if (online.battery) // Product has a battery
         icons |= ICON_BATTERY;                 // Top right
     else                                       // if (HAS_ETHERNET)
     {

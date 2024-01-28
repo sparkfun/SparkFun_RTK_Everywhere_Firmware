@@ -207,15 +207,6 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
-// Different Battery Fuel Gauge ICs require different libraries and configuration
-typedef enum
-{
-    FUEL_GAUGE_TYPE_NONE = 0,
-    FUEL_GAUGE_TYPE_MAX1704X,
-    FUEL_GAUGE_TYPE_BQ40Z50,
-} FuelGaugeType;
-FuelGaugeType fuelGaugeType = FUEL_GAUGE_TYPE_MAX1704X;
-
 // Macros to show if the GNSS is I2C or SPI
 #define USE_SPI_GNSS (productVariant == REFERENCE_STATION)
 #define USE_I2C_GNSS (!USE_SPI_GNSS)
@@ -1308,7 +1299,10 @@ struct struct_present
 
     bool display_64x48_i2c0 = false;
     bool display_128x64_i2c1 = false;
-    bool battery = false;
+
+    bool battery_max17048 = false;
+    bool battery_bq40z50 = false;
+
     bool beeper = false;
 
     bool encryption_atecc608a = false;

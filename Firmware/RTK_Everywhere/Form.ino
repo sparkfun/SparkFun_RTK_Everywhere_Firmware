@@ -890,7 +890,7 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "logFileName", logFileName);
 
-    if (fuelGaugeType == FUEL_GAUGE_TYPE_NONE) // Product has no battery
+    if (online.battery == false) // Product has no battery
     {
         stringRecord(newSettings, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(newSettings, "batteryPercent", (char *)" ");
@@ -1074,7 +1074,7 @@ void createDynamicDataString(char *settingsCSV)
     stringRecord(settingsCSV, "ecefY", ecefY, 3);
     stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
 
-    if (fuelGaugeType == FUEL_GAUGE_TYPE_NONE) // Product has no battery
+    if (online.battery == false) // Product has no battery
     {
         stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(settingsCSV, "batteryPercent", (char *)" ");

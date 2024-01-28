@@ -68,6 +68,14 @@ void identifyBoard()
     // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
     if (idWithAdc(idValue, 10, 10))
     {
+        present.psram_2mb = true;
+        present.gnss_zedf9p = true;
+        present.microSd = true;
+        present.display_64x48_i2c0 = true;
+        present.button_power = true;
+        present.battery_max17048 = true;
+        present.portDataMux = true;
+
         productVariant = RTK_FACET_V2;
     }
 
@@ -112,7 +120,7 @@ void identifyBoard()
             present.psram_2mb = true;
             present.gnss_um980 = true;
             present.radio_lora = true;
-            present.battery = true;
+            present.battery_bq40z50 = true;
             present.encryption_atecc608a = true;
             present.button_power = true;
             present.beeper = true;
@@ -195,8 +203,6 @@ void beginBoard()
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
-
-        fuelGaugeType = FUEL_GAUGE_TYPE_BQ40Z50;
     }
 
     else if (productVariant == RTK_EVK)
@@ -785,11 +791,10 @@ void beginLEDs()
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if (fuelGaugeType == FUEL_GAUGE_TYPE_NONE)
-    {
-        return; // Product does not have a battery
-    }
-    else if (fuelGaugeType == FUEL_GAUGE_TYPE_MAX1704X)
+    if(present.battery_max17048 == false && present.battery_bq40z50 == false)
+        return;
+
+    if (present.battery_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
         if (lipo.begin() == false)
@@ -823,8 +828,10 @@ void beginFuelGauge()
             powerDown(false); // Don't display 'Shutting Down'
         }
     }
-    else if (fuelGaugeType == FUEL_GAUGE_TYPE_BQ40Z50)
+    else if (present.battery_bq40z50 == true)
     {
+        online.battery = true;
+        //TODO
     }
 }
 
