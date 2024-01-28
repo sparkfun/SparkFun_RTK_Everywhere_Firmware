@@ -966,8 +966,8 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
-    DMW_b("powerDisplay");
-    powerDisplay(); //Enable power for the Display
+    DMW_b("beginBoard");
+    beginBoard(); // Set all pin numbers and pin initial states
 
     DMW_b("beginFS");
     beginFS(); // Load NVM settings
@@ -983,8 +983,14 @@ void setup()
     DMW_b("beginI2C");
     beginI2C(); // Requires settings.
 
+    DMW_b("powerDisplay");
+    powerDisplay(); //Enable power for the display
+
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
+
+    beginVersion(); //Requires settings/LFS.
+
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
@@ -999,8 +1005,6 @@ void setup()
     DMW_b("gnssBegin");
     gnssBegin(); // Requires settings. Connect to GNSS to get module type
 
-    DMW_b("beginBoard");
-    beginBoard(); // Requires settings. Now finish setting up the board and check the on button
 
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
