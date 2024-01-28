@@ -1170,7 +1170,17 @@ void beginIdleTasks()
 
 void beginI2C()
 {
-    // Complete the power up delay
+    if (present.display_128x64_i2c1 == true)
+    {
+        // Display is on I2C bus 1
+        i2c_1 = new TwoWire(1);
+        i2cDisplay = i2c_1;
+
+        // Display splash screen for at least 1 second
+        minSplashFor = 1000;
+    }
+
+    // Complete the power-up delay for a power-controlled I2C bus
     if (i2cPowerUpDelay)
         while (millis() < i2cPowerUpDelay)
             ;
