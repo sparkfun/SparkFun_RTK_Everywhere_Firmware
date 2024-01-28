@@ -184,11 +184,11 @@ SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
 
-FileSdFatMMC *ubxFile;                // File that all GNSS ubx messages sentences are written to
-unsigned long lastUBXLogSyncTime;     // Used to record to SD every half second
-int startLogTime_minutes;             // Mark when we start any logging so we can stop logging after maxLogTime_minutes
+FileSdFatMMC *ubxFile;            // File that all GNSS ubx messages sentences are written to
+unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
+int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
 int startCurrentLogTime_minutes;
-    // Mark when we start this specific log file so we can close it after x minutes and start a new one
+// Mark when we start this specific log file so we can close it after x minutes and start a new one
 
 // System crashes if two tasks access a file at the same time
 // So we use a semaphore to see if the file system is available
@@ -303,7 +303,7 @@ char neoFirmwareVersion[20];   // Output to system status menu.
 uint8_t zedFirmwareVersionInt; // Controls which features (constellations) can be configured (v1.12 doesn't support
                                // SBAS). Note: will fail above 2.55!
 UbxPlatform zedModuleType = PLATFORM_F9P; // Controls which messages are supported and configured
-char zedUniqueId[11]; // Output to system status menu and log file.
+char zedUniqueId[11];                     // Output to system status menu and log file.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called.
@@ -390,7 +390,7 @@ const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lo
 bool lBandCommunicationEnabled;
 bool lBandForceGetKeys; // Used to allow key update from display
 unsigned long rtcmLastPacketReceived;
-    // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+// Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GPS parse table
@@ -458,7 +458,7 @@ HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
 TaskHandle_t btReadTaskHandle;
-    // Store handles so that we can kill them if the user goes into WiFi NTRIP Server mode
+// Store handles so that we can kill them if the user goes into WiFi NTRIP Server mode
 const int btReadTaskStackSize = 2000;
 
 // Array of start-of-sentence offsets into the ring buffer
@@ -476,13 +476,13 @@ TaskHandle_t handleGnssDataTaskHandle;
 const int handleGnssDataTaskStackSize = 3000;
 
 TaskHandle_t pinGnssUartTaskHandle; // Dummy task to start hardware on an assigned core
-volatile bool gnssUartpinned;  // This variable is touched by core 0 but checked by core 1. Must be volatile.
+volatile bool gnssUartpinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 TaskHandle_t pinI2CTaskHandle; // Dummy task to start hardware on an assigned core
 volatile bool i2cPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
-volatile bool bluetoothPinned; // This variable is touched by core 0 but checked by core 1. Must be volatile.
+volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static long fileSize;              // Updated with each write
@@ -534,8 +534,8 @@ SPARKFUN_LIS2DH12 accel;
 
 // Buttons - Interrupt driven and debounce
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <JC_Button.h>      //http://librarymanager/All#JC_Button v2.1.2
-Button *setupBtn; // We can't instantiate the buttons here because we don't yet know what pin numbers to use
+#include <JC_Button.h> //http://librarymanager/All#JC_Button v2.1.2
+Button *setupBtn;      // We can't instantiate the buttons here because we don't yet know what pin numbers to use
 Button *powerBtn;
 
 TaskHandle_t ButtonCheckTaskHandle;
@@ -586,11 +586,11 @@ float lBandEBNO; // Used on system status menu
 
 #include <esp_now.h>
 
-uint8_t espnowOutgoing[250];    // ESP NOW has max of 250 characters
-unsigned long espnowLastAdd;    // Tracks how long since the last byte was added to the outgoing buffer
-uint8_t espnowOutgoingSpot;     // ESP Now has a max of 250 characters
-uint16_t espnowBytesSent;       // May be more than 255
-uint8_t receivedMAC[6];         // Holds the broadcast MAC during pairing
+uint8_t espnowOutgoing[250]; // ESP NOW has max of 250 characters
+unsigned long espnowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
+uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
+uint16_t espnowBytesSent;    // May be more than 255
+uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
 
 int packetRSSI;
 unsigned long lastEspnowRssiUpdate;
@@ -660,11 +660,11 @@ bool btPrintEchoExit;                 // When true, exit all config menus.
 
 uint32_t lastBattUpdate;
 uint32_t lastDisplayUpdate;
-bool forceDisplayUpdate;      // Goes true when setup is pressed, causes the display to refresh in real-time
+bool forceDisplayUpdate; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;
-bool forceSystemStateUpdate;  // Set true to avoid update wait
+bool forceSystemStateUpdate; // Set true to avoid update wait
 uint32_t lastAccuracyLEDUpdate;
-uint32_t lastBaseLEDupdate;   // Controls the blinking of the Base LED
+uint32_t lastBaseLEDupdate; // Controls the blinking of the Base LED
 
 uint32_t lastFileReport;      // When logging, print file record stats every few seconds
 long lastStackReport;         // Controls the report rate of stack highwater mark within a task
@@ -682,10 +682,10 @@ uint8_t loggingIconDisplayed; // Increases every 500ms while logging
 uint8_t espnowIconDisplayed;  // Increases every 500ms while transmitting
 
 uint64_t lastLogSize;
-bool logIncreasing;           // Goes true when log file is greater than lastLogSize or logPosition changes
-bool reuseLastLog;            // Goes true if we have a reset due to software (rather than POR)
+bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
+bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
 
-uint16_t rtcmPacketsSent;     // Used to count RTCM packets sent via processRTCM()
+uint16_t rtcmPacketsSent; // Used to count RTCM packets sent via processRTCM()
 uint32_t rtcmBytesSent;
 uint32_t rtcmLastReceived;
 
@@ -694,18 +694,18 @@ uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 uint32_t lastSetupMenuChange; // Auto-selects the setup menu option after 1500ms
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
 
-bool firstRoverStart;         // Used to detect if the user is toggling the power button at POR to enter the test menu
+bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
-bool newEventToRecord;        // Goes true when INT pin goes high
-uint32_t triggerCount;        // Global copy - TM2 event counter
-uint32_t triggerTowMsR;       // Global copy - Time Of Week of rising edge (ms)
-uint32_t triggerTowSubMsR;    // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
-uint32_t triggerAccEst;       // Global copy - Accuracy estimate in nanoseconds
+bool newEventToRecord;     // Goes true when INT pin goes high
+uint32_t triggerCount;     // Global copy - TM2 event counter
+uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
+uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
+uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
-bool firstPowerOn = true;      // After boot, apply new settings to ZED if the user switches between base or rover
-unsigned long splashStart;     // Controls how long the splash is displayed for. Currently min of 2s.
-bool restartBase;              // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover;             // If the user modifies any NTRIP Client settings, we need to restart the rover
+bool firstPowerOn = true;  // After boot, apply new settings to ZED if the user switches between base or rover
+unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
+bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
+bool restartRover;         // If the user modifies any NTRIP Client settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
@@ -714,7 +714,7 @@ volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT chann
 uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
-unsigned long rtcWaitTime;           // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
+unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
@@ -739,9 +739,9 @@ uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
-unsigned long btLastByteReceived; // Track when the last BT transmission was received.
+unsigned long btLastByteReceived;  // Track when the last BT transmission was received.
 const long btMinEscapeTime = 2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
-uint8_t btEscapeCharsReceived; // Used to enter command mode
+uint8_t btEscapeCharsReceived;     // Used to enter command mode
 
 bool externalPowerConnected; // Goes true when a high voltage is seen on the power control pin
 
@@ -948,7 +948,7 @@ void setup()
     bootTimeString[bootTimeIndex++] = "CPU/Runtime Initialization";
     bootTime[bootTimeIndex] = millis();
     bootTimeString[bootTimeIndex++] = "Serial.begin";
-    
+
     Serial.begin(115200); // UART0 for programming and debugging
     systemPrintln();
     systemPrintln();
@@ -989,8 +989,8 @@ void setup()
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
-    beginVersion(); //Requires settings/LFS.
 
+    beginVersion(); // Assemble platform name. Requires settings/LFS.
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
@@ -1004,7 +1004,6 @@ void setup()
 
     DMW_b("gnssBegin");
     gnssBegin(); // Requires settings. Connect to GNSS to get module type
-
 
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
