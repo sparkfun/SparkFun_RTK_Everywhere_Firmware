@@ -86,6 +86,7 @@ typedef enum
     RTK_TORCH,
     RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
     RTK_EVK,
+    RTK_FACET_V2,
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
@@ -1299,12 +1300,13 @@ struct struct_present
     bool microSd = false;
     bool microSdCardDetect = false;
 
-    bool display_64x48 = false;
-    bool display_128x64 = false;
+    bool display_64x48_i2c0 = false;
+    bool display_128x64_i2c1 = false;
     bool battery = false;
     bool beeper = false;
 
     bool encryption_atecc608a = false;
+    bool portDataMux = false;
 
     bool button_setup = false;
     bool button_power = false;

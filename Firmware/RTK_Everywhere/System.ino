@@ -286,16 +286,8 @@ void cyclePositionLEDs()
 // See issue #474: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 void beginMux()
 {
-    if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
-    {
-        pin_muxA = 2;
-        pin_muxB = 4;
-    }
-    else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND)
-    {
-        pin_muxA = 2;
-        pin_muxB = 0;
-    }
+    if (present.portDataMux == false)
+        return;
 
     setMuxport(MUX_ADC_DAC); // Set mux to user's choice: NMEA, I2C, PPS, or DAC
 }
@@ -304,33 +296,30 @@ void beginMux()
 // This allows NMEA, I2C, PPS/Event, and ADC/DAC to be routed through data port via software select
 void setMuxport(int channelNumber)
 {
-    if (pin_muxA >= 0 && pin_muxB >= 0)
+    if (present.portDataMux == false)
+        return;
+
+    if (channelNumber > 3)
+        return; // Error check
+
+    switch (channelNumber)
     {
-        pinMode(pin_muxA, OUTPUT);
-        pinMode(pin_muxB, OUTPUT);
-
-        if (channelNumber > 3)
-            return; // Error check
-
-        switch (channelNumber)
-        {
-        case 0:
-            digitalWrite(pin_muxA, LOW);
-            digitalWrite(pin_muxB, LOW);
-            break;
-        case 1:
-            digitalWrite(pin_muxA, HIGH);
-            digitalWrite(pin_muxB, LOW);
-            break;
-        case 2:
-            digitalWrite(pin_muxA, LOW);
-            digitalWrite(pin_muxB, HIGH);
-            break;
-        case 3:
-            digitalWrite(pin_muxA, HIGH);
-            digitalWrite(pin_muxB, HIGH);
-            break;
-        }
+    case 0:
+        digitalWrite(pin_muxA, LOW);
+        digitalWrite(pin_muxB, LOW);
+        break;
+    case 1:
+        digitalWrite(pin_muxA, HIGH);
+        digitalWrite(pin_muxB, LOW);
+        break;
+    case 2:
+        digitalWrite(pin_muxA, LOW);
+        digitalWrite(pin_muxB, HIGH);
+        break;
+    case 3:
+        digitalWrite(pin_muxA, HIGH);
+        digitalWrite(pin_muxB, HIGH);
+        break;
     }
 }
 
