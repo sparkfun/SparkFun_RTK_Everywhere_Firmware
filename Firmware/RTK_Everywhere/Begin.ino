@@ -768,32 +768,27 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
 // https://github.com/greiman/SdFat/issues/351
 void resetSPI()
 {
-    if (USE_SPI_MICROSD)
-    {
-        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
-        pinMode(pin_microSD_CS, OUTPUT);
-        digitalWrite(pin_microSD_CS, HIGH); // De-select SD card
+    deselectCard();
 
-        // Flush SPI interface
-        SPI.begin();
-        SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
-        for (int x = 0; x < 10; x++)
-            SPI.transfer(0XFF);
-        SPI.endTransaction();
-        SPI.end();
+    // Flush SPI interface
+    SPI.begin();
+    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
+    for (int x = 0; x < 10; x++)
+        SPI.transfer(0XFF);
+    SPI.endTransaction();
+    SPI.end();
 
-        digitalWrite(pin_microSD_CS, LOW); // Select SD card
+    selectCard();
 
-        // Flush SD interface
-        SPI.begin();
-        SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
-        for (int x = 0; x < 10; x++)
-            SPI.transfer(0XFF);
-        SPI.endTransaction();
-        SPI.end();
+    // Flush SD interface
+    SPI.begin();
+    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
+    for (int x = 0; x < 10; x++)
+        SPI.transfer(0XFF);
+    SPI.endTransaction();
+    SPI.end();
 
-        digitalWrite(pin_microSD_CS, HIGH); // Deselet SD card
-    }
+    deselectCard();
 }
 
 // We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
