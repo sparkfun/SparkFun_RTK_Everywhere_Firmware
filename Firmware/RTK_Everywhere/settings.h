@@ -76,8 +76,7 @@ typedef uint8_t RtkMode_t;
 
 typedef enum
 {
-    RTK_SURVEYOR = 0,
-    RTK_EXPRESS,
+    RTK_EXPRESS = 0,
     RTK_FACET,
     RTK_EXPRESS_PLUS,
     RTK_FACET_LBAND,
@@ -90,11 +89,10 @@ typedef enum
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
-ProductVariant productVariant = RTK_SURVEYOR;
+ProductVariant productVariant = RTK_FACET;
 
 const char * const productDisplayNames[] =
 {
-    "Surveyor",
     "Express",
     "Facet",
     "Express+",
@@ -112,7 +110,6 @@ const int productDisplayNamesEntries = sizeof (productDisplayNames) / sizeof(pro
 
 const char * const platformFilePrefixTable[] =
 {
-    "SFE_Surveyor",
     "SFE_Express",
     "SFE_Facet",
     "SFE_Express_Plus",
@@ -130,7 +127,6 @@ const int platformFilePrefixTableEntries = sizeof (platformFilePrefixTable) / si
 
 const char * const platformPrefixTable[] =
 {
-    "Surveyor",
     "Express",
     "Facet",
     "Express Plus",
@@ -148,7 +144,6 @@ const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(pla
 
 const char * const platformProvisionTable[] =
 {
-    "Surveyor",
     "Express",
     "Facet",
     "Express Plus",
@@ -166,7 +161,6 @@ const int platformProvisionTableEntries = sizeof (platformProvisionTable) / size
 
 const SystemState platformPreviousStateTable[] =
 {
-    STATE_ROVER_NOT_STARTED,    // Surveyor
     STATE_ROVER_NOT_STARTED,    // Express
     STATE_ROVER_NOT_STARTED,    // Facet
     STATE_ROVER_NOT_STARTED,    // Express Plus
@@ -191,7 +185,6 @@ typedef enum
 
 const GnssPlatform platformGnssTable[] =
 {
-    PLATFORM_ZED,   // Surveyor
     PLATFORM_ZED,   // Express
     PLATFORM_ZED,   // Facet
     PLATFORM_ZED,   // Express Plus

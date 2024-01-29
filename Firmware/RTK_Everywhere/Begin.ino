@@ -261,6 +261,9 @@ void beginBoard()
         pinMode(pin_microSD_CS, OUTPUT);
         deselectSdCard();
 
+        DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
+        pinMode(pin_baseStatusLED, OUTPUT);
+        baseStatusLedOff();
     }
     else if (productVariant == RTK_FACET_V2)
     {
@@ -701,51 +704,7 @@ void beginInterrupts()
 // Set LEDs for output and configure PWM
 void beginLEDs()
 {
-    if (productVariant == RTK_SURVEYOR)
-    {
-        DMW_if systemPrintf("pin_positionAccuracyLED_1cm: %d\r\n", pin_positionAccuracyLED_1cm);
-        pinMode(pin_positionAccuracyLED_1cm, OUTPUT);
-
-        DMW_if systemPrintf("pin_positionAccuracyLED_10cm: %d\r\n", pin_positionAccuracyLED_10cm);
-        pinMode(pin_positionAccuracyLED_10cm, OUTPUT);
-
-        DMW_if systemPrintf("pin_positionAccuracyLED_100cm: %d\r\n", pin_positionAccuracyLED_100cm);
-        pinMode(pin_positionAccuracyLED_100cm, OUTPUT);
-
-        DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
-        pinMode(pin_baseStatusLED, OUTPUT);
-
-        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
-        pinMode(pin_bluetoothStatusLED, OUTPUT);
-
-        DMW_if systemPrintf("pin_setupButton: %d\r\n", pin_setupButton);
-        pinMode(pin_setupButton, INPUT_PULLUP); // HIGH = rover, LOW = base
-
-        digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-        digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-        digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-        digitalWrite(pin_baseStatusLED, LOW);
-        digitalWrite(pin_bluetoothStatusLED, LOW);
-
-        ledcSetup(ledRedChannel, pwmFreq, pwmResolution);
-        ledcSetup(ledGreenChannel, pwmFreq, pwmResolution);
-        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
-
-        ledcAttachPin(pin_batteryLevelLED_Red, ledRedChannel);
-        ledcAttachPin(pin_batteryLevelLED_Green, ledGreenChannel);
-        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
-
-        ledcWrite(ledRedChannel, 0);
-        ledcWrite(ledGreenChannel, 0);
-        ledcWrite(ledBtChannel, 0);
-    }
-    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
-    {
-        DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
-        pinMode(pin_baseStatusLED, OUTPUT);
-        digitalWrite(pin_baseStatusLED, LOW);
-    }
-    else if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH)
     {
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -769,7 +728,7 @@ void beginLEDs()
     }
 
     // Start ticker task for controlling LEDs
-    if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH)
     {
         ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED
         bluetoothLedTask.detach();                                                  // Turn off any previous task
@@ -870,34 +829,7 @@ void beginSystemState()
         settings.lastState = systemState;
     }
 
-    if (productVariant == RTK_SURVEYOR)
-    {
-        // If the rocker switch was moved while off, force module settings
-        // When switch is set to '1' = BASE, pin will be shorted to ground
-        if (settings.lastState == STATE_ROVER_NOT_STARTED && digitalRead(pin_setupButton) == LOW)
-            settings.updateGNSSSettings = true;
-        else if (settings.lastState == STATE_BASE_NOT_STARTED && digitalRead(pin_setupButton) == HIGH)
-            settings.updateGNSSSettings = true;
-
-        systemState = STATE_ROVER_NOT_STARTED; // Assume Rover. ButtonCheckTask() will correct as needed.
-
-        setupBtn = new Button(pin_setupButton); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
-    }
-    else if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
-    {
-        if (online.lband == false)
-            systemState =
-                settings
-                    .lastState; // Return to either Rover or Base Not Started. The last state previous to power down.
-        else
-            systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
-
-        setupBtn = new Button(pin_setupButton);          // Create the button in memory
-        powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
-        // Allocation failures handled in ButtonCheckTask
-    }
-    else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
+    if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
              productVariant == RTK_FACET_LBAND_DIRECT)
     {
         if (online.lband == false)

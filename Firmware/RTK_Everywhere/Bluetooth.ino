@@ -44,7 +44,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     {
         systemPrintln("BT client Connected");
         bluetoothState = BT_CONNECTED;
-        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
+        if (productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, HIGH);
     }
 
@@ -57,7 +57,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         printEndpoint = PRINT_ENDPOINT_SERIAL;
 
         bluetoothState = BT_NOTCONNECTED;
-        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
+        if (productVariant == RTK_TORCH)
             digitalWrite(pin_bluetoothStatusLED, LOW);
     }
 }
@@ -212,7 +212,7 @@ void bluetoothStart()
         {
             systemPrintln("An error occurred initializing Bluetooth");
 
-            if (productVariant == RTK_SURVEYOR)
+            if (productVariant == RTK_TORCH)
                 digitalWrite(pin_bluetoothStatusLED, LOW);
             return;
         }
@@ -265,8 +265,7 @@ void pinBluetoothTask(void *pvParameters)
     {
         systemPrintln("An error occurred initializing Bluetooth");
 
-        if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
-            digitalWrite(pin_bluetoothStatusLED, LOW);
+        bluetoothLedOff();
     }
 
     bluetoothPinned = true;

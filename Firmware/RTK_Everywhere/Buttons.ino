@@ -43,8 +43,6 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
-    beginLEDs(); // Turn LEDs off
-
     if (pin_powerSenseAndControl >= 0)
     {
         pinMode(pin_powerSenseAndControl, OUTPUT);

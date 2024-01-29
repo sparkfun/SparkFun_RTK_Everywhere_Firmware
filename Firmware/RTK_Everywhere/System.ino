@@ -24,43 +24,7 @@ void psramBegin()
 // Turn on indicator LEDs to verify LED function and indicate setup success
 void danceLEDs()
 {
-    if (productVariant == RTK_SURVEYOR)
-    {
-        for (int x = 0; x < 2; x++)
-        {
-            digitalWrite(pin_positionAccuracyLED_1cm, HIGH);
-            digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
-            digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
-            digitalWrite(pin_baseStatusLED, HIGH);
-            digitalWrite(pin_bluetoothStatusLED, HIGH);
-            delay(100);
-            digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-            digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-            digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-            digitalWrite(pin_baseStatusLED, LOW);
-            digitalWrite(pin_bluetoothStatusLED, LOW);
-            delay(100);
-        }
-
-        digitalWrite(pin_positionAccuracyLED_1cm, HIGH);
-        digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
-        digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
-        digitalWrite(pin_baseStatusLED, HIGH);
-        digitalWrite(pin_bluetoothStatusLED, HIGH);
-
-        delay(250);
-        digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-        delay(250);
-        digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-        delay(250);
-        digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-
-        delay(250);
-        digitalWrite(pin_baseStatusLED, LOW);
-        delay(250);
-        digitalWrite(pin_bluetoothStatusLED, LOW);
-    }
-    else if (productVariant == RTK_TORCH)
+    if (productVariant == RTK_TORCH)
     {
         // LEDs are already on. Just boot.
     }
@@ -112,11 +76,11 @@ void batteryUpdate()
     }
 }
 
-// When called, checks level of battery and updates the LED brightnesses
+// When called, checks level of battery
 // And outputs a serial message to USB
 void checkBatteryLevels()
 {
-    if(present.battery_max17048 == false && present.battery_bq40z50 == false)
+    if (present.battery_max17048 == false && present.battery_bq40z50 == false)
         return;
 
     if (online.battery == false)
@@ -744,34 +708,6 @@ void updateAccuracyLEDs()
                     char temp[20];
                     const char *units = getHpa(hpa, temp, sizeof(temp), 3);
                     systemPrintf("Rover Accuracy (%s): %s, SIV: %d\r\n", units, temp, gnssGetSatellitesInView());
-                }
-
-                if (productVariant == RTK_SURVEYOR)
-                {
-                    if (hpa <= 0.02)
-                    {
-                        digitalWrite(pin_positionAccuracyLED_1cm, HIGH);
-                        digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
-                        digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
-                    }
-                    else if (hpa <= 0.100)
-                    {
-                        digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                        digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
-                        digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
-                    }
-                    else if (hpa <= 1.0000)
-                    {
-                        digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                        digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                        digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
-                    }
-                    else if (hpa > 1.0)
-                    {
-                        digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                        digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                        digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-                    }
                 }
             }
             else if (settings.enablePrintRoverAccuracy)
