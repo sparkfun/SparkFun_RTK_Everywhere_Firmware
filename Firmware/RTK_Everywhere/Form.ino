@@ -398,16 +398,7 @@ static void handleFileManager(AsyncWebServerRequest *request)
         snprintf(slashFileName, sizeof(slashFileName), "/%s", request->getParam("name")->value().c_str());
 
         bool fileExists;
-        if (USE_SPI_MICROSD)
-        {
-            fileExists = sd->exists(slashFileName);
-        }
-#ifdef COMPILE_SD_MMC
-        else
-        {
-            fileExists = SD_MMC.exists(slashFileName);
-        }
-#endif // COMPILE_SD_MMC
+        fileExists = sd->exists(slashFileName);
 
         if (fileExists == false)
         {
@@ -427,7 +418,7 @@ static void handleFileManager(AsyncWebServerRequest *request)
                     // Allocate the managerTempFile
                     if (!managerTempFile)
                     {
-                        managerTempFile = new FileSdFatMMC;
+                        managerTempFile = new SdFile;
                         if (!managerTempFile)
                         {
                             systemPrintln("Failed to allocate managerTempFile!");
@@ -480,12 +471,7 @@ static void handleFileManager(AsyncWebServerRequest *request)
             else if (strcmp(fileAction, "delete") == 0)
             {
                 logmessage += " deleted";
-                if (USE_SPI_MICROSD)
-                    sd->remove(slashFileName);
-#ifdef COMPILE_SD_MMC
-                else
-                    SD_MMC.remove(slashFileName);
-#endif // COMPILE_SD_MMC
+                sd->remove(slashFileName);
                 request->send(200, "text/plain", "Deleted File: " + String(fileName));
             }
             else
@@ -1827,58 +1813,27 @@ void getFileList(String &returnText)
     {
         markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
 
-        if (USE_SPI_MICROSD)
+        SdFile root;
+        root.open("/"); // Open root
+        SdFile file;
+        uint16_t fileCount = 0;
+
+        while (file.openNext(&root, O_READ))
         {
-            SdFile root;
-            root.open("/"); // Open root
-            SdFile file;
-            uint16_t fileCount = 0;
-
-            while (file.openNext(&root, O_READ))
+            if (file.isFile())
             {
-                if (file.isFile())
-                {
-                    fileCount++;
+                fileCount++;
 
-                    file.getName(fileName, sizeof(fileName));
+                file.getName(fileName, sizeof(fileName));
 
-                    String fileSize;
-                    stringHumanReadableSize(fileSize, file.fileSize());
-                    returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
-                }
+                String fileSize;
+                stringHumanReadableSize(fileSize, file.fileSize());
+                returnText += "fmName," + String(fileName) + ",fmSize," + fileSize + ",";
             }
-
-            root.close();
-            file.close();
         }
-#ifdef COMPILE_SD_MMC
-        else
-        {
-            File root = SD_MMC.open("/"); // Open root
 
-            if (root && root.isDirectory())
-            {
-                uint16_t fileCount = 0;
-
-                File file = root.openNextFile();
-                while (file)
-                {
-                    if (!file.isDirectory())
-                    {
-                        fileCount++;
-
-                        String fileSize;
-                        stringHumanReadableSize(fileSize, file.size());
-                        returnText += "fmName," + String(file.name()) + ",fmSize," + fileSize + ",";
-                    }
-
-                    file = root.openNextFile();
-                }
-            }
-
-            root.close();
-        }
-#endif // COMPILE_SD_MMC
+        root.close();
+        file.close();
 
         xSemaphoreGive(sdCardSemaphore);
     }
@@ -1949,7 +1904,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
         // Allocate the managerTempFile
         if (!managerTempFile)
         {
-            managerTempFile = new FileSdFatMMC;
+            managerTempFile = new SdFile;
             if (!managerTempFile)
             {
                 systemPrintln("Failed to allocate managerTempFile!");
@@ -1991,7 +1946,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD3);
 
-            managerTempFile->updateFileCreateTimestamp(); // Update the file create time & date
+            managerTempFile->sdUpdateFileCreateTimestamp(); // Update the file create time & date
 
             managerTempFile->close();
 

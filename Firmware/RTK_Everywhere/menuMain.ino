@@ -278,18 +278,8 @@ void menuUserProfiles()
                 // Remove profile from SD if available
                 if (online.microSD == true)
                 {
-                    if (USE_SPI_MICROSD)
-                    {
-                        if (sd->exists(settingsFileName))
-                            sd->remove(settingsFileName);
-                    }
-#ifdef COMPILE_SD_MMC
-                    else
-                    {
-                        if (SD_MMC.exists(settingsFileName))
-                            SD_MMC.remove(settingsFileName);
-                    }
-#endif // COMPILE_SD_MMC
+                    if (sd->exists(settingsFileName))
+                        sd->remove(settingsFileName);
                 }
 
                 recordProfileNumber(0); // Move to Profile1
@@ -374,23 +364,11 @@ void factoryReset(bool alreadyHasSemaphore)
     {
         if (alreadyHasSemaphore == true || xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
-            if (USE_SPI_MICROSD)
-            {
-                // Remove this specific settings file. Don't remove the other profiles.
-                sd->remove(settingsFileName);
+            // Remove this specific settings file. Don't remove the other profiles.
+            sd->remove(settingsFileName);
 
-                sd->remove(stationCoordinateECEFFileName); // Remove station files
-                sd->remove(stationCoordinateGeodeticFileName);
-            }
-#ifdef COMPILE_SD_MMC
-            else
-            {
-                SD_MMC.remove(settingsFileName);
-
-                SD_MMC.remove(stationCoordinateECEFFileName); // Remove station files
-                SD_MMC.remove(stationCoordinateGeodeticFileName);
-            }
-#endif // COMPILE_SD_MMC
+            sd->remove(stationCoordinateECEFFileName); // Remove station files
+            sd->remove(stationCoordinateGeodeticFileName);
 
             xSemaphoreGive(sdCardSemaphore);
         } // End sdCardSemaphore

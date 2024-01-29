@@ -623,79 +623,39 @@ bool getFileLineSD(const char *fileName, int lineToFind, char *lineData, int lin
 
             gotSemaphore = true;
 
-            if (USE_SPI_MICROSD)
+            SdFile file; // FAT32
+            if (file.open(fileName, O_READ) == false)
             {
-                SdFile file; // FAT32
-                if (file.open(fileName, O_READ) == false)
+                log_d("File %s not found", fileName);
+                break;
+            }
+
+            int lineNumber = 0;
+
+            while (file.available())
+            {
+                // Get the next line from the file
+                int n = file.fgets(lineData, lineDataLength);
+                if (n <= 0)
                 {
-                    log_d("File %s not found", fileName);
+                    systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
                     break;
                 }
-
-                int lineNumber = 0;
-
-                while (file.available())
+                else
                 {
-                    // Get the next line from the file
-                    int n = file.fgets(lineData, lineDataLength);
-                    if (n <= 0)
+                    if (lineNumber == lineToFind)
                     {
-                        systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+                        lineFound = true;
                         break;
                     }
-                    else
-                    {
-                        if (lineNumber == lineToFind)
-                        {
-                            lineFound = true;
-                            break;
-                        }
-                    }
-
-                    if (strlen(lineData) > 0) // Ignore single \n or \r
-                        lineNumber++;
                 }
 
-                file.close();
+                if (strlen(lineData) > 0) // Ignore single \n or \r
+                    lineNumber++;
             }
-#ifdef COMPILE_SD_MMC
-            else
-            {
-                File file = SD_MMC.open(fileName, FILE_READ);
 
-                if (!file)
-                {
-                    log_d("File %s not found", fileName);
-                    break;
-                }
+            file.close();
 
-                int lineNumber = 0;
-
-                while (file.available())
-                {
-                    // Get the next line from the file
-                    int n = getLine(&file, lineData, lineDataLength);
-                    if (n <= 0)
-                    {
-                        systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
-                        break;
-                    }
-                    else
-                    {
-                        if (lineNumber == lineToFind)
-                        {
-                            lineFound = true;
-                            break;
-                        }
-                    }
-
-                    if (strlen(lineData) > 0) // Ignore single \n or \r
-                        lineNumber++;
-                }
-
-                file.close();
-            }
-#endif // COMPILE_SD_MMC
             break;
         } // End Semaphore check
         else
@@ -747,26 +707,12 @@ bool removeFileSD(const char *fileName)
 
             gotSemaphore = true;
 
-            if (USE_SPI_MICROSD)
+            if (sd->exists(fileName))
             {
-                if (sd->exists(fileName))
-                {
-                    log_d("Removing from SD: %s", fileName);
-                    sd->remove(fileName);
-                    removed = true;
-                }
+                log_d("Removing from SD: %s", fileName);
+                sd->remove(fileName);
+                removed = true;
             }
-#ifdef COMPILE_SD_MMC
-            else
-            {
-                if (SD_MMC.exists(fileName))
-                {
-                    log_d("Removing from SD: %s", fileName);
-                    SD_MMC.remove(fileName);
-                    removed = true;
-                }
-            }
-#endif // COMPILE_SD_MMC
 
             break;
         } // End Semaphore check
@@ -831,7 +777,7 @@ void recordLineToSD(const char *fileName, const char *lineData)
 
             gotSemaphore = true;
 
-            FileSdFatMMC file;
+            SdFile file;
             if (!file)
             {
                 systemPrintln("ERROR - Failed to allocate file");

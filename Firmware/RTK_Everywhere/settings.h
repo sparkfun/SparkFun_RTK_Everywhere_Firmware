@@ -184,13 +184,6 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
-// Macros to show if the microSD is SPI or SDIO
-#define USE_MMC_MICROSD false
-#define USE_SPI_MICROSD (!USE_MMC_MICROSD)
-
-// #define USE_MMC_MICROSD (productVariant == REFERENCE_STATION)
-// #define USE_SPI_MICROSD (!USE_MMC_MICROSD)
-
 // Macro to show if the the RTK variant has Ethernet
 #ifdef COMPILE_ETHERNET
 #define HAS_ETHERNET (productVariant == RTK_EVK)

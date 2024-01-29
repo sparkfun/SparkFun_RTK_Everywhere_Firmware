@@ -147,12 +147,12 @@ bool i2cIsDevicePresent(TwoWire *i2cBus, uint8_t deviceAddress)
 // Create a test file in file structure to make sure we can
 bool createTestFile()
 {
-    FileSdFatMMC testFile;
+    SdFile testFile;
 
     char testFileName[40] = "/testfile.txt";
 
     // Attempt to write to the file system
-    if ((!testFile) || (testFile.open(testFileName, O_CREAT | O_APPEND | O_WRITE) != true))
+    if (testFile.open(testFileName, O_CREAT | O_APPEND | O_WRITE) != true)
     {
         systemPrintln("createTestFile: failed to create (open) test file");
         return (false);
@@ -163,20 +163,9 @@ bool createTestFile()
     // File successfully created
     testFile.close();
 
-    if (USE_SPI_MICROSD)
-    {
-        if (sd->exists(testFileName))
-            sd->remove(testFileName);
-        return (!sd->exists(testFileName));
-    }
-#ifdef COMPILE_SD_MMC
-    else
-    {
-        if (SD_MMC.exists(testFileName))
-            SD_MMC.remove(testFileName);
-        return (!SD_MMC.exists(testFileName));
-    }
-#endif // COMPILE_SD_MMC
+    if (sd->exists(testFileName))
+        sd->remove(testFileName);
+    return (!sd->exists(testFileName));
 
     return (false);
 }

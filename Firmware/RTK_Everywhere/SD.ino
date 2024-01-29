@@ -110,7 +110,7 @@ bool sdCardPresent(void)
         reportFatalError("Illegal SD CS pin assignment.");
     }
 
-    resetSPI();                         // Re-initialize the SPI/SD interface
+    resetSPI(); // Re-initialize the SPI/SD interface
 
     // Do a quick test to see if a card is present
     int tries = 0;
@@ -118,7 +118,7 @@ bool sdCardPresent(void)
     while (tries < maxTries)
     {
         if (sdCardPresentSoftwareTest() == true)
-            return(true);
+            return (true);
 
         // log_d("SD present failed. Trying again %d out of %d", tries + 1, maxTries);
 
@@ -144,7 +144,7 @@ bool sdCardPresentSoftwareTest()
     SPI.setBitOrder(MSBFIRST);
 
     // Sending clocks while card power stabilizes...
-    deselectSdCard();               // always make sure
+    deselectSdCard();             // always make sure
     for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
         xchg(0xff);
 
@@ -158,7 +158,7 @@ bool sdCardPresentSoftwareTest()
             return (true); // Card responded
     }
     if (response != 1)
-        return (false); // Card failed to respond to idle    
+        return (false); // Card failed to respond to idle
 }
 
 /*
@@ -225,7 +225,7 @@ byte sdSendCommand(byte command, unsigned long arg)
         (command != SD_LOCK_UNLOCK))
     {
         deselectSdCard(); // all done
-        xchg(0xFF);     // close with eight more clocks
+        xchg(0xFF);       // close with eight more clocks
     }
 
     return (response); // let the caller sort it out
@@ -248,4 +248,25 @@ byte xchg(byte val)
 {
     byte receivedVal = SPI.transfer(val);
     return receivedVal;
+}
+
+// Update the file access and write time with date and time obtained from GNSS
+void sdUpdateFileAccessTimestamp(SdFile *dataFile)
+{
+    if (online.rtc == true)
+    {
+        // ESP32Time returns month:0-11
+        dataFile->timestamp(T_ACCESS, rtc.getYear(), rtc.getMonth() + 1, rtc.getDay(), rtc.getHour(true),
+                            rtc.getMinute(), rtc.getSecond());
+        dataFile->timestamp(T_WRITE, rtc.getYear(), rtc.getMonth() + 1, rtc.getDay(), rtc.getHour(true),
+                            rtc.getMinute(), rtc.getSecond());
+    }
+}
+
+// Update the file create time with date and time obtained from GNSS
+void sdUpdateFileCreateTimestamp(SdFile *dataFile)
+{
+    if (online.rtc == true)
+        dataFile->timestamp(T_CREATE, rtc.getYear(), rtc.getMonth() + 1, rtc.getDay(), rtc.getHour(true),
+                            rtc.getMinute(), rtc.getSecond()); // ESP32Time returns month:0-11
 }

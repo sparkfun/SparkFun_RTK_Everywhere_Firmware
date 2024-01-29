@@ -924,26 +924,17 @@ void ntpServerUpdate()
                         {
                             // Check if the NTP file already exists
                             bool ntpFileExists = false;
-                            if (USE_SPI_MICROSD)
-                            {
-                                ntpFileExists = sd->exists(fileName);
-                            }
-#ifdef COMPILE_SD_MMC
-                            else
-                            {
-                                ntpFileExists = SD_MMC.exists(fileName);
-                            }
-#endif // COMPILE_SD_MMC
+                            ntpFileExists = sd->exists(fileName);
 
                             // Open the NTP file
-                            FileSdFatMMC ntpFile;
+                            SdFile ntpFile;
 
                             if (ntpFileExists)
                             {
                                 if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
                                 {
                                     fileOpen = true;
-                                    ntpFile.updateFileCreateTimestamp();
+                                    ntpFile.sdUpdateFileCreateTimestamp();
                                 }
                             }
                             else
@@ -963,7 +954,7 @@ void ntpServerUpdate()
                                 ntpFile.write((const uint8_t *)ntpDiag, strlen(ntpDiag));
 
                                 // Update the file to create time & date
-                                ntpFile.updateFileCreateTimestamp();
+                                ntpFile.sdUpdateFileCreateTimestamp();
 
                                 // Close the mark file
                                 ntpFile.close();

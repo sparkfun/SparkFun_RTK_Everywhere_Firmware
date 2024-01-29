@@ -975,7 +975,8 @@ void menuOperation()
         }
         else if (incoming == 12)
         {
-            getNewSetting("Enter the number of seconds before L-Band is used once RTCM is absent", 1, 255, (int *)&settings.rtcmTimeoutBeforeUsingLBand_s);
+            getNewSetting("Enter the number of seconds before L-Band is used once RTCM is absent", 1, 255,
+                          (int *)&settings.rtcmTimeoutBeforeUsingLBand_s);
         }
         else if (incoming == 13)
         {
@@ -986,7 +987,8 @@ void menuOperation()
 
         else if (incoming == 30)
         {
-            getNewSetting("Not yet implemented! - Enter Core used for Bluetooth Interrupts", 0, 1, (int *)&settings.bluetoothInterruptsCore);
+            getNewSetting("Not yet implemented! - Enter Core used for Bluetooth Interrupts", 0, 1,
+                          (int *)&settings.bluetoothInterruptsCore);
         }
         else if (incoming == 31)
         {
@@ -1321,115 +1323,55 @@ void printFileList()
         {
             markSemaphore(FUNCTION_PRINT_FILE_LIST);
 
-            if (USE_SPI_MICROSD)
+            SdFile dir;
+            dir.open("/"); // Open root
+            uint16_t fileCount = 0;
+
+            SdFile tempFile;
+
+            systemPrintln("Files found:");
+
+            while (tempFile.openNext(&dir, O_READ))
             {
-                SdFile dir;
-                dir.open("/"); // Open root
-                uint16_t fileCount = 0;
-
-                SdFile tempFile;
-
-                systemPrintln("Files found:");
-
-                while (tempFile.openNext(&dir, O_READ))
+                if (tempFile.isFile())
                 {
-                    if (tempFile.isFile())
-                    {
-                        fileCount++;
+                    fileCount++;
 
-                        // 2017-05-19 187362648 800_0291.MOV
+                    // 2017-05-19 187362648 800_0291.MOV
 
-                        // Get File Date from sdFat
-                        uint16_t fileDate;
-                        uint16_t fileTime;
-                        tempFile.getCreateDateTime(&fileDate, &fileTime);
+                    // Get File Date from sdFat
+                    uint16_t fileDate;
+                    uint16_t fileTime;
+                    tempFile.getCreateDateTime(&fileDate, &fileTime);
 
-                        // Convert sdFat file date fromat into YYYY-MM-DD
-                        char fileDateChar[20];
-                        snprintf(fileDateChar, sizeof(fileDateChar), "%d-%02d-%02d",
-                                 ((fileDate >> 9) + 1980),   // Year
-                                 ((fileDate >> 5) & 0b1111), // Month
-                                 (fileDate & 0b11111)        // Day
-                        );
+                    // Convert sdFat file date fromat into YYYY-MM-DD
+                    char fileDateChar[20];
+                    snprintf(fileDateChar, sizeof(fileDateChar), "%d-%02d-%02d",
+                             ((fileDate >> 9) + 1980),   // Year
+                             ((fileDate >> 5) & 0b1111), // Month
+                             (fileDate & 0b11111)        // Day
+                    );
 
-                        char fileSizeChar[20];
-                        String fileSize;
-                        stringHumanReadableSize(fileSize, tempFile.fileSize());
-                        fileSize.toCharArray(fileSizeChar, sizeof(fileSizeChar));
+                    char fileSizeChar[20];
+                    String fileSize;
+                    stringHumanReadableSize(fileSize, tempFile.fileSize());
+                    fileSize.toCharArray(fileSizeChar, sizeof(fileSizeChar));
 
-                        char fileName[50]; // Handle long file names
-                        tempFile.getName(fileName, sizeof(fileName));
+                    char fileName[50]; // Handle long file names
+                    tempFile.getName(fileName, sizeof(fileName));
 
-                        char fileRecord[100];
-                        snprintf(fileRecord, sizeof(fileRecord), "%s\t%s\t%s", fileDateChar, fileSizeChar, fileName);
+                    char fileRecord[100];
+                    snprintf(fileRecord, sizeof(fileRecord), "%s\t%s\t%s", fileDateChar, fileSizeChar, fileName);
 
-                        systemPrintln(fileRecord);
-                    }
+                    systemPrintln(fileRecord);
                 }
-
-                dir.close();
-                tempFile.close();
-
-                if (fileCount == 0)
-                    systemPrintln("No files found");
             }
-#ifdef COMPILE_SD_MMC
-            else
-            {
-                File dir = SD_MMC.open("/"); // Open root
-                uint16_t fileCount = 0;
 
-                if (dir && dir.isDirectory())
-                {
-                    systemPrintln("Files found:");
+            dir.close();
+            tempFile.close();
 
-                    File tempFile = dir.openNextFile();
-                    while (tempFile)
-                    {
-                        if (!tempFile.isDirectory())
-                        {
-                            fileCount++;
-
-                            // 2017-05-19 187362648 800_0291.MOV
-
-                            // Get time of last write
-                            time_t lastWrite = tempFile.getLastWrite();
-
-                            struct tm *timeinfo = localtime(&lastWrite);
-
-                            char fileDateChar[20];
-                            snprintf(fileDateChar, sizeof(fileDateChar), "%.0f-%02.0f-%02.0f",
-                                     (float)timeinfo->tm_year + 1900, // Year - ESP32 2.0.2 starts the year at 1900...
-                                     (float)timeinfo->tm_mon + 1,     // Month
-                                     (float)timeinfo->tm_mday         // Day
-                            );
-
-                            char fileSizeChar[20];
-                            String fileSize;
-                            stringHumanReadableSize(fileSize, tempFile.size());
-                            fileSize.toCharArray(fileSizeChar, sizeof(fileSizeChar));
-
-                            char fileName[50]; // Handle long file names
-                            snprintf(fileName, sizeof(fileName), "%s", tempFile.name());
-
-                            char fileRecord[100];
-                            snprintf(fileRecord, sizeof(fileRecord), "%s\t%s\t%s", fileDateChar, fileSizeChar,
-                                     fileName);
-
-                            systemPrintln(fileRecord);
-                        }
-
-                        tempFile.close();
-                        tempFile = dir.openNextFile();
-                    }
-                }
-
-                dir.close();
-
-                if (fileCount == 0)
-                    systemPrintln("No files found");
-            }
-#endif // COMPILE_SD_MMC
+            if (fileCount == 0)
+                systemPrintln("No files found");
         }
         else
         {

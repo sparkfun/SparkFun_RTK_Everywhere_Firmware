@@ -497,7 +497,7 @@ void beginLogging(const char *customFileName)
             // Allocate the ubxFile
             if (!ubxFile)
             {
-                ubxFile = new FileSdFatMMC;
+                ubxFile = new SdFile;
                 if (!ubxFile)
                 {
                     systemPrintln("Failed to allocate ubxFile!");
@@ -526,7 +526,7 @@ void beginLogging(const char *customFileName)
 
                 bufferOverruns = 0; // Reset counter
 
-                ubxFile->updateFileCreateTimestamp(); // Update the file to create time & date
+                sdUpdateFileCreateTimestamp(ubxFile); // Update the file to create time & date
 
                 startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
 
@@ -708,73 +708,33 @@ bool findLastLog(char *lastLogNamePrt, size_t lastLogNameSize)
             markSemaphore(FUNCTION_FINDLOG);
 
             // Count available binaries
-            if (USE_SPI_MICROSD)
+            SdFile tempFile;
+            SdFile dir;
+            const char *LOG_EXTENSION = "ubx";
+            const char *LOG_PREFIX = platformFilePrefix;
+            char fname[100]; // Handle long file names
+
+            dir.open("/"); // Open root
+
+            while (tempFile.openNext(&dir, O_READ))
             {
-                SdFile tempFile;
-                SdFile dir;
-                const char *LOG_EXTENSION = "ubx";
-                const char *LOG_PREFIX = platformFilePrefix;
-                char fname[100]; // Handle long file names
-
-                dir.open("/"); // Open root
-
-                while (tempFile.openNext(&dir, O_READ))
+                if (tempFile.isFile())
                 {
-                    if (tempFile.isFile())
-                    {
-                        tempFile.getName(fname, sizeof(fname));
+                    tempFile.getName(fname, sizeof(fname));
 
-                        // Check for matching file name prefix and extension
-                        if (strcmp(LOG_EXTENSION, &fname[strlen(fname) - strlen(LOG_EXTENSION)]) == 0)
+                    // Check for matching file name prefix and extension
+                    if (strcmp(LOG_EXTENSION, &fname[strlen(fname) - strlen(LOG_EXTENSION)]) == 0)
+                    {
+                        if (strstr(fname, LOG_PREFIX) != nullptr)
                         {
-                            if (strstr(fname, LOG_PREFIX) != nullptr)
-                            {
-                                strncpy(lastLogNamePrt, fname,
-                                        lastLogNameSize - 1); // Store this file as last known log file
-                                foundAFile = true;
-                            }
+                            strncpy(lastLogNamePrt, fname,
+                                    lastLogNameSize - 1); // Store this file as last known log file
+                            foundAFile = true;
                         }
                     }
-                    tempFile.close();
                 }
+                tempFile.close();
             }
-#ifdef COMPILE_SD_MMC
-            else
-            {
-                File tempFile;
-                File dir;
-                const char *LOG_EXTENSION = "ubx";
-                const char *LOG_PREFIX = platformFilePrefix;
-                char fname[100]; // Handle long file names
-
-                dir = SD_MMC.open("/"); // Open root
-
-                if (dir && dir.isDirectory())
-                {
-                    tempFile = dir.openNextFile();
-                    while (tempFile)
-                    {
-                        if (!tempFile.isDirectory())
-                        {
-                            snprintf(fname, sizeof(fname), "%s", tempFile.name());
-
-                            // Check for matching file name prefix and extension
-                            if (strcmp(LOG_EXTENSION, &fname[strlen(fname) - strlen(LOG_EXTENSION)]) == 0)
-                            {
-                                if (strstr(fname, LOG_PREFIX) != nullptr)
-                                {
-                                    strncpy(lastLogNamePrt, fname,
-                                            lastLogNameSize - 1); // Store this file as last known log file
-                                    foundAFile = true;
-                                }
-                            }
-                        }
-                        tempFile.close();
-                        tempFile = dir.openNextFile();
-                    }
-                }
-            }
-#endif // COMPILE_SD_MMC
 
             xSemaphoreGive(sdCardSemaphore);
         }

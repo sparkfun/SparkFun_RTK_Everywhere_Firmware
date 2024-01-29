@@ -848,14 +848,6 @@ void handleGnssDataTask(void *e)
                     }
 
                     static unsigned long lastFlush = 0;
-                    if (USE_MMC_MICROSD)
-                    {
-                        if (millis() > (lastFlush + 250)) // Flush every 250ms, not every write
-                        {
-                            ubxFile->flush();
-                            lastFlush += 250;
-                        }
-                    }
                     fileSize = ubxFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD
@@ -866,7 +858,7 @@ void handleGnssDataTask(void *e)
                         baseStatusLedBlink(); // Blink LED to indicate logging activity
 
                         ubxFile->sync();
-                        ubxFile->updateFileAccessTimestamp(); // Update the file access time & date
+                        sdUpdateFileAccessTimestamp(ubxFile); // Update the file access time & date
 
                         baseStatusLedBlink(); // Blink LED to indicate logging activity
 
@@ -1551,26 +1543,16 @@ void sdSizeCheckTask(void *e)
             {
                 markSemaphore(FUNCTION_SDSIZECHECK);
 
-                if (USE_SPI_MICROSD)
-                {
-                    csd_t csd;
-                    sd->card()->readCSD(&csd); // Card Specific Data
-                    sdCardSize = (uint64_t)512 * sd->card()->sectorCount();
+                csd_t csd;
+                sd->card()->readCSD(&csd); // Card Specific Data
+                sdCardSize = (uint64_t)512 * sd->card()->sectorCount();
 
-                    sd->volumeBegin();
+                sd->volumeBegin();
 
-                    // Find available cluster/space
-                    sdFreeSpace = sd->vol()->freeClusterCount(); // This takes a few seconds to complete
-                    sdFreeSpace *= sd->vol()->sectorsPerCluster();
-                    sdFreeSpace *= 512L; // Bytes per sector
-                }
-#ifdef COMPILE_SD_MMC
-                else
-                {
-                    sdCardSize = SD_MMC.cardSize();
-                    sdFreeSpace = SD_MMC.totalBytes() - SD_MMC.usedBytes();
-                }
-#endif // COMPILE_SD_MMC
+                // Find available cluster/space
+                sdFreeSpace = sd->vol()->freeClusterCount(); // This takes a few seconds to complete
+                sdFreeSpace *= sd->vol()->sectorsPerCluster();
+                sdFreeSpace *= 512L; // Bytes per sector
 
                 xSemaphoreGive(sdCardSemaphore);
 

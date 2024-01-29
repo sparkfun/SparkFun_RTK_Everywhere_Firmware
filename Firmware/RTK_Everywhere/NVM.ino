@@ -93,51 +93,26 @@ void recordSystemSettingsToFileSD(char *fileName)
 
             gotSemaphore = true;
 
-            if (USE_SPI_MICROSD)
+            if (sd->exists(fileName))
             {
-                if (sd->exists(fileName))
-                {
-                    log_d("Removing from SD: %s", fileName);
-                    sd->remove(fileName);
-                }
-
-                SdFile settingsFile; // FAT32
-                if (settingsFile.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
-                {
-                    systemPrintln("Failed to create settings file");
-                    break;
-                }
-
-                updateDataFileCreate(&settingsFile); // Update the file to create time & date
-
-                recordSystemSettingsToFile((File *)&settingsFile); // Record all the settings via strings to file
-
-                updateDataFileAccess(&settingsFile); // Update the file access time & date
-
-                settingsFile.close();
+                log_d("Removing from SD: %s", fileName);
+                sd->remove(fileName);
             }
-#ifdef COMPILE_SD_MMC
-            else
+
+            SdFile settingsFile; // FAT32
+            if (settingsFile.open(fileName, O_CREAT | O_APPEND | O_WRITE) == false)
             {
-                if (SD_MMC.exists(fileName))
-                {
-                    log_d("Removing from SD: %s", fileName);
-                    SD_MMC.remove(fileName);
-                }
-
-                File settingsFile = SD_MMC.open(fileName, FILE_WRITE);
-
-                if (!settingsFile)
-                {
-                    systemPrintln("Failed to create settings file");
-                    break;
-                }
-
-                recordSystemSettingsToFile(&settingsFile); // Record all the settings via strings to file
-
-                settingsFile.close();
+                systemPrintln("Failed to create settings file");
+                break;
             }
-#endif // COMPILE_SD_MMC
+
+            sdUpdateFileCreateTimestamp(&settingsFile); // Update the file to create time & date
+
+            recordSystemSettingsToFile((File *)&settingsFile); // Record all the settings via strings to file
+
+            sdUpdateFileAccessTimestamp(&settingsFile); // Update the file access time & date
+
+            settingsFile.close();
 
             log_d("Settings recorded to SD: %s", fileName);
         }
@@ -502,119 +477,59 @@ bool loadSystemSettingsFromFileSD(char *fileName, Settings *settings)
 
             gotSemaphore = true;
 
-            if (USE_SPI_MICROSD)
+            if (!sd->exists(fileName))
             {
-                if (!sd->exists(fileName))
-                {
-                    log_d("File %s not found", fileName);
-                    break;
-                }
-
-                SdFile settingsFile; // FAT32
-                if (settingsFile.open(fileName, O_READ) == false)
-                {
-                    systemPrintln("Failed to open settings file");
-                    break;
-                }
-
-                char line[100];
-                int lineNumber = 0;
-
-                while (settingsFile.available())
-                {
-                    // Get the next line from the file
-                    int n = settingsFile.fgets(line, sizeof(line));
-                    if (n <= 0)
-                    {
-                        systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
-                    }
-                    else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
-                    {
-                        systemPrintf("Settings line %d too long\r\n", lineNumber);
-                        if (lineNumber == 0)
-                        {
-                            // If we can't read the first line of the settings file, give up
-                            systemPrintln("Giving up on settings file");
-                            break;
-                        }
-                    }
-                    else if (parseLine(line, settings) == false)
-                    {
-                        systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
-                        if (lineNumber == 0)
-                        {
-                            // If we can't read the first line of the settings file, give up
-                            systemPrintln("Giving up on settings file");
-                            break;
-                        }
-                    }
-
-                    lineNumber++;
-                }
-
-                // systemPrintln("Config file read complete");
-                settingsFile.close();
-                status = true;
+                log_d("File %s not found", fileName);
                 break;
             }
-#ifdef COMPILE_SD_MMC
-            else
+
+            SdFile settingsFile; // FAT32
+            if (settingsFile.open(fileName, O_READ) == false)
             {
-                if (!SD_MMC.exists(fileName))
-                {
-                    log_d("File %s not found", fileName);
-                    break;
-                }
-
-                File settingsFile = SD_MMC.open(fileName, FILE_READ);
-
-                if (!settingsFile)
-                {
-                    systemPrintln("Failed to open settings file");
-                    break;
-                }
-
-                char line[100];
-                int lineNumber = 0;
-
-                while (settingsFile.available())
-                {
-                    // Get the next line from the file
-                    int n = getLine(&settingsFile, line, sizeof(line));
-                    if (n <= 0)
-                    {
-                        systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
-                    }
-                    else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
-                    {
-                        systemPrintf("Settings line %d too long\r\n", lineNumber);
-                        if (lineNumber == 0)
-                        {
-                            // If we can't read the first line of the settings file, give up
-                            systemPrintln("Giving up on settings file");
-                            break;
-                        }
-                    }
-                    else if (parseLine(line, settings) == false)
-                    {
-                        systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
-                        if (lineNumber == 0)
-                        {
-                            // If we can't read the first line of the settings file, give up
-                            systemPrintln("Giving up on settings file");
-                            break;
-                        }
-                    }
-
-                    lineNumber++;
-                }
-
-                // systemPrintln("Config file read complete");
-                settingsFile.close();
-                status = true;
+                systemPrintln("Failed to open settings file");
                 break;
             }
-#endif    // COMPILE_SD_MMC
+
+            char line[100];
+            int lineNumber = 0;
+
+            while (settingsFile.available())
+            {
+                // Get the next line from the file
+                int n = settingsFile.fgets(line, sizeof(line));
+                if (n <= 0)
+                {
+                    systemPrintf("Failed to read line %d from settings file\r\n", lineNumber);
+                }
+                else if (line[n - 1] != '\n' && n == (sizeof(line) - 1))
+                {
+                    systemPrintf("Settings line %d too long\r\n", lineNumber);
+                    if (lineNumber == 0)
+                    {
+                        // If we can't read the first line of the settings file, give up
+                        systemPrintln("Giving up on settings file");
+                        break;
+                    }
+                }
+                else if (parseLine(line, settings) == false)
+                {
+                    systemPrintf("Failed to parse line %d: %s\r\n", lineNumber, line);
+                    if (lineNumber == 0)
+                    {
+                        // If we can't read the first line of the settings file, give up
+                        systemPrintln("Giving up on settings file");
+                        break;
+                    }
+                }
+
+                lineNumber++;
+            }
+
+            // systemPrintln("Config file read complete");
+            settingsFile.close();
+            status = true;
+            break;
+
         } // End Semaphore check
         else
         {

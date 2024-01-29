@@ -460,26 +460,17 @@ void stateUpdate()
                     {
                         // Check if the marks file already exists
                         bool marksFileExists = false;
-                        if (USE_SPI_MICROSD)
-                        {
-                            marksFileExists = sd->exists(fileName);
-                        }
-#ifdef COMPILE_SD_MMC
-                        else
-                        {
-                            marksFileExists = SD_MMC.exists(fileName);
-                        }
-#endif // COMPILE_SD_MMC
+                        marksFileExists = sd->exists(fileName);
 
                         // Open the marks file
-                        FileSdFatMMC marksFile;
+                        SdFile marksFile;
 
                         if (marksFileExists)
                         {
                             if (marksFile && marksFile.open(fileName, O_APPEND | O_WRITE))
                             {
                                 fileOpen = true;
-                                marksFile.updateFileCreateTimestamp();
+                                sdUpdateFileCreateTimestamp(&marksFile);
                             }
                         }
                         else
@@ -487,7 +478,7 @@ void stateUpdate()
                             if (marksFile && marksFile.open(fileName, O_CREAT | O_WRITE))
                             {
                                 fileOpen = true;
-                                marksFile.updateFileAccessTimestamp();
+                                sdUpdateFileAccessTimestamp(&marksFile);
 
                                 // Add the column headers
                                 // YYYYMMDDHHMMSS, Lat: xxxx, Long: xxxx, Alt: xxxx, SIV: xx, HPA: xxxx, Batt: xxx
@@ -538,7 +529,7 @@ void stateUpdate()
                             marksFile.write((const uint8_t *)markBuffer, strlen(markBuffer));
 
                             // Update the file to create time & date
-                            marksFile.updateFileCreateTimestamp();
+                            sdUpdateFileCreateTimestamp(&marksFile);
 
                             // Close the mark file
                             marksFile.close();

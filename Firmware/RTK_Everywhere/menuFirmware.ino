@@ -278,92 +278,44 @@ void mountSDThenUpdate(const char *firmwareFileName)
 void scanForFirmware()
 {
     // Count available binaries
-    if (USE_SPI_MICROSD)
+    SdFile tempFile;
+    SdFile dir;
+    const char *BIN_EXT = "bin";
+    const char *BIN_HEADER = "RTK_Surveyor_Firmware";
+
+    char fname[50]; // Handle long file names
+
+    dir.open("/"); // Open root
+
+    binCount = 0; // Reset count in case scanForFirmware is called again
+
+    while (tempFile.openNext(&dir, O_READ) && binCount < maxBinFiles)
     {
-        SdFile tempFile;
-        SdFile dir;
-        const char *BIN_EXT = "bin";
-        const char *BIN_HEADER = "RTK_Surveyor_Firmware";
-
-        char fname[50]; // Handle long file names
-
-        dir.open("/"); // Open root
-
-        binCount = 0; // Reset count in case scanForFirmware is called again
-
-        while (tempFile.openNext(&dir, O_READ) && binCount < maxBinFiles)
+        if (tempFile.isFile())
         {
-            if (tempFile.isFile())
+            tempFile.getName(fname, sizeof(fname));
+
+            if (strcmp(forceFirmwareFileName, fname) == 0)
             {
-                tempFile.getName(fname, sizeof(fname));
-
-                if (strcmp(forceFirmwareFileName, fname) == 0)
-                {
-                    systemPrintln("Forced firmware detected. Loading...");
-                    displayForcedFirmwareUpdate();
-                    updateFromSD(forceFirmwareFileName);
-                }
-
-                // Check 'bin' extension
-                if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
-                {
-                    // Check for 'RTK_Surveyor_Firmware' start of file name
-                    if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
-                    {
-                        strncpy(binFileNames[binCount++], fname, sizeof(binFileNames[0]) - 1); // Add this to the array
-                    }
-                    else
-                        systemPrintf("Unknown: %s\r\n", fname);
-                }
+                systemPrintln("Forced firmware detected. Loading...");
+                displayForcedFirmwareUpdate();
+                updateFromSD(forceFirmwareFileName);
             }
-            tempFile.close();
-        }
-    }
-#ifdef COMPILE_SD_MMC
-    else
-    {
-        const char *BIN_EXT = "bin";
-        const char *BIN_HEADER = "/RTK_Surveyor_Firmware";
 
-        char fname[60]; // Handle long file names
-
-        File dir = SD_MMC.open("/"); // Open root
-        if (!dir || !dir.isDirectory())
-            return;
-
-        binCount = 0; // Reset count in case scanForFirmware is called again
-
-        File tempFile = dir.openNextFile();
-        while (tempFile && (binCount < maxBinFiles))
-        {
-            if (!tempFile.isDirectory())
+            // Check 'bin' extension
+            if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
             {
-                snprintf(fname, sizeof(fname), "%s", tempFile.name());
-
-                if (strcmp(forceFirmwareFileName, fname) == 0)
+                // Check for 'RTK_Surveyor_Firmware' start of file name
+                if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
                 {
-                    systemPrintln("Forced firmware detected. Loading...");
-                    displayForcedFirmwareUpdate();
-                    updateFromSD(forceFirmwareFileName);
+                    strncpy(binFileNames[binCount++], fname, sizeof(binFileNames[0]) - 1); // Add this to the array
                 }
-
-                // Check 'bin' extension
-                if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
-                {
-                    // Check for 'RTK_Surveyor_Firmware' start of file name
-                    if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
-                    {
-                        strncpy(binFileNames[binCount++], fname, sizeof(binFileNames[0]) - 1); // Add this to the array
-                    }
-                    else
-                        systemPrintf("Unknown: %s\r\n", fname);
-                }
+                else
+                    systemPrintf("Unknown: %s\r\n", fname);
             }
-            tempFile.close();
-            tempFile = dir.openNextFile();
         }
+        tempFile.close();
     }
-#endif // COMPILE_SD_MMC
 }
 
 // Look for firmware file on SD card and update as needed
@@ -398,26 +350,13 @@ void updateFromSD(const char *firmwareFileName)
 
     systemPrintf("Loading %s\r\n", firmwareFileName);
 
-    if (USE_SPI_MICROSD)
+    if (!sd->exists(firmwareFileName))
     {
-        if (!sd->exists(firmwareFileName))
-        {
-            systemPrintln("No firmware file found");
-            return;
-        }
+        systemPrintln("No firmware file found");
+        return;
     }
-#ifdef COMPILE_SD_MMC
-    else
-    {
-        if (!SD_MMC.exists(firmwareFileName))
-        {
-            systemPrintln("No firmware file found");
-            return;
-        }
-    }
-#endif // COMPILE_SD_MMC
 
-    FileSdFatMMC firmwareFile;
+    SdFile firmwareFile;
     if (!firmwareFile)
     {
         systemPrintln("ERROR - Failed to allocate firmwareFile");
@@ -509,12 +448,7 @@ void updateFromSD(const char *firmwareFileName)
                 // Remove forced firmware file to prevent endless loading
                 firmwareFile.close();
 
-                if (USE_SPI_MICROSD)
-                    sd->remove(firmwareFileName);
-#ifdef COMPILE_SD_MMC
-                else
-                    SD_MMC.remove(firmwareFileName);
-#endif // COMPILE_SD_MMC
+                sd->remove(firmwareFileName);
                 gnssFactoryReset();
             }
 

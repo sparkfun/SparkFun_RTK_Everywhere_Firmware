@@ -386,70 +386,67 @@ void beginSD()
         gotSemaphore = true;
         markSemaphore(FUNCTION_BEGINSD);
 
-        if (USE_SPI_MICROSD)
+        log_d("Checking for microSD card");
+
+        // Check to see if a card is present
+        if (sdCardPresent() == false)
+            break; // Give up on loop
+
+        // If an SD card is present, allow SdFat to take over
+        log_d("SD card detected");
+
+        // Allocate the data structure that manages the microSD card
+        if (!sd)
         {
-            log_d("Initializing microSD - using SPI, SdFat and SdFile");
-
-            // Check to see if a card is present
-            if (sdCardPresent() == false)
-                break; // Give up on loop
-
-            // If an SD card is present, allow SdFat to take over
-            log_d("SD card detected - using SPI and SdFat");
-
-            // Allocate the data structure that manages the microSD card
+            sd = new SdFat();
             if (!sd)
             {
-                sd = new SdFat();
-                if (!sd)
-                {
-                    log_d("Failed to allocate the SdFat structure!");
-                    break;
-                }
-            }
-
-            if (settings.spiFrequency > 16)
-            {
-                systemPrintln("Error: SPI Frequency out of range. Default to 16MHz");
-                settings.spiFrequency = 16;
-            }
-
-            resetSPI(); // Re-initialize the SPI/SD interface
-
-            if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == false)
-            {
-                int tries = 0;
-                int maxTries = 1;
-                for (; tries < maxTries; tries++)
-                {
-                    log_d("SD init failed - using SPI and SdFat. Trying again %d out of %d", tries + 1, maxTries);
-
-                    delay(250); // Give SD more time to power up, then try again
-                    if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == true)
-                        break;
-                }
-
-                if (tries == maxTries)
-                {
-                    systemPrintln("SD init failed - using SPI and SdFat. Is card formatted?");
-                    deselectSdCard();
-
-                    // Check reset count and prevent rolling reboot
-                    if (settings.resetCount < 5)
-                    {
-                        if (settings.forceResetOnSDFail == true)
-                            ESP.restart();
-                    }
-                    break;
-                }
-            }
-
-            // Change to root directory. All new file creation will be in root.
-            if (sd->chdir() == false)
-            {
-                systemPrintln("SD change directory failed");
+                log_d("Failed to allocate the SdFat structure!");
                 break;
             }
+        }
+
+        if (settings.spiFrequency > 16)
+        {
+            systemPrintln("Error: SPI Frequency out of range. Default to 16MHz");
+            settings.spiFrequency = 16;
+        }
+
+        resetSPI(); // Re-initialize the SPI/SD interface
+
+        if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == false)
+        {
+            int tries = 0;
+            int maxTries = 1;
+            for (; tries < maxTries; tries++)
+            {
+                log_d("SD init failed - using SPI and SdFat. Trying again %d out of %d", tries + 1, maxTries);
+
+                delay(250); // Give SD more time to power up, then try again
+                if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == true)
+                    break;
+            }
+
+            if (tries == maxTries)
+            {
+                systemPrintln("SD init failed - using SPI and SdFat. Is card formatted?");
+                deselectSdCard();
+
+                // Check reset count and prevent rolling reboot
+                if (settings.resetCount < 5)
+                {
+                    if (settings.forceResetOnSDFail == true)
+                        ESP.restart();
+                }
+                break;
+            }
+        }
+
+        // Change to root directory. All new file creation will be in root.
+        if (sd->chdir() == false)
+        {
+            systemPrintln("SD change directory failed");
+            break;
         }
 
         if (createTestFile() == false)
@@ -484,25 +481,17 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
     // Done with the SD card
     if (online.microSD)
     {
-        if (USE_SPI_MICROSD)
-            sd->end();
-#ifdef COMPILE_SD_MMC
-        else
-            SD_MMC.end();
-#endif // COMPILE_SD_MMC
+        sd->end();
 
         online.microSD = false;
         systemPrintln("microSD: Offline");
     }
 
     // Free the caches for the microSD card
-    if (USE_SPI_MICROSD)
+    if (sd)
     {
-        if (sd)
-        {
-            delete sd;
-            sd = nullptr;
-        }
+        delete sd;
+        sd = nullptr;
     }
 
     // Release the semaphore
