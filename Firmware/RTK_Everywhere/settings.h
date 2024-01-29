@@ -1274,6 +1274,7 @@ struct struct_present
 
     bool button_setup = false;
     bool button_power = false;
+    bool fastPowerOff = false;
 } present;
 
 // Monitor which devices on the device are on or offline.

@@ -75,6 +75,7 @@ void identifyBoard()
         present.button_power = true;
         present.battery_max17048 = true;
         present.portDataMux = true;
+        present.fastPowerOff = true;
 
         productVariant = RTK_FACET_V2;
     }
@@ -281,6 +282,8 @@ void beginBoard()
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
 
+        present.button_power = true;
+
         i2cPowerUpDelay = millis() + 860;
     }
     else if (productVariant == RTK_FACET_V2)
@@ -290,6 +293,9 @@ void beginBoard()
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
+
+        pinMode(pin_powerFastOff, OUTPUT);
+        digitalWrite(pin_powerFastOff, HIGH); // Stay on
     }
 }
 

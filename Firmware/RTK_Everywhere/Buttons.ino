@@ -4,9 +4,10 @@
 void powerOnCheck()
 {
     powerPressedStartTime = millis();
-    if (pin_powerSenseAndControl >= 0)
+    if (pin_powerSenseAndControl != PIN_UNDEFINED)
         if (digitalRead(pin_powerSenseAndControl) == LOW)
             delay(500);
+
 
     if (FIRMWARE_VERSION_MAJOR == 99)
     {
@@ -14,7 +15,7 @@ void powerOnCheck()
     }
     else
     {
-        if (pin_powerSenseAndControl >= 0)
+        if (pin_powerSenseAndControl != PIN_UNDEFINED)
             if (digitalRead(pin_powerSenseAndControl) != LOW)
                 powerDown(false); // Power button tap. Returning to off state.
     }
@@ -43,15 +44,14 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
-    if (pin_powerSenseAndControl >= 0)
+    if (pin_powerSenseAndControl != PIN_UNDEFINED)
     {
         pinMode(pin_powerSenseAndControl, OUTPUT);
         digitalWrite(pin_powerSenseAndControl, LOW);
     }
 
-    if (pin_powerFastOff >= 0)
+    if (present.fastPowerOff == true)
     {
-        pinMode(pin_powerFastOff, OUTPUT);
         digitalWrite(pin_powerFastOff, LOW);
     }
 
