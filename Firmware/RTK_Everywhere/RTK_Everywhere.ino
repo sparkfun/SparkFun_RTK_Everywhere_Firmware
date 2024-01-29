@@ -176,7 +176,7 @@ SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
 
-SdFile *ubxFile;            // File that all GNSS ubx messages sentences are written to
+SdFile *ubxFile;                  // File that all GNSS ubx messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
 int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
 int startCurrentLogTime_minutes;

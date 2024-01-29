@@ -8,7 +8,6 @@ void powerOnCheck()
         if (digitalRead(pin_powerSenseAndControl) == LOW)
             delay(500);
 
-
     if (FIRMWARE_VERSION_MAJOR == 99)
     {
         // Do not check button if this is a locally compiled developer firmware
@@ -46,6 +45,7 @@ void powerDown(bool displayInfo)
 
     if (pin_powerSenseAndControl != PIN_UNDEFINED)
     {
+        // Change the button input to an output
         pinMode(pin_powerSenseAndControl, OUTPUT);
         digitalWrite(pin_powerSenseAndControl, LOW);
     }
@@ -57,7 +57,7 @@ void powerDown(bool displayInfo)
 
     if (present.peripheralPowerControl == true)
         peripheralsOff();
-    
+
     while (1)
         delay(1);
 }
