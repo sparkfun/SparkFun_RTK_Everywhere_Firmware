@@ -250,38 +250,6 @@ void reportHeap()
     }
 }
 
-// Based on current LED state, blink upwards fashion
-// Used to indicate casting
-void cyclePositionLEDs()
-{
-    if (productVariant == RTK_SURVEYOR)
-    {
-        // Cycle position LEDs to indicate casting
-        if (millis() - lastCasterLEDupdate > 500)
-        {
-            lastCasterLEDupdate = millis();
-            if (digitalRead(pin_positionAccuracyLED_100cm) == HIGH)
-            {
-                digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_10cm, HIGH);
-                digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-            }
-            else if (digitalRead(pin_positionAccuracyLED_10cm) == HIGH)
-            {
-                digitalWrite(pin_positionAccuracyLED_1cm, HIGH);
-                digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-            }
-            else // Catch all
-            {
-                digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_100cm, HIGH);
-            }
-        }
-    }
-}
-
 // Determine MUX pins for this platform and set MUX to ADC/DAC to avoid I2C bus failure
 // See issue #474: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 void beginMux()

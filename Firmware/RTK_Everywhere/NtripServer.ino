@@ -776,9 +776,6 @@ void ntripServerUpdate()
                 if (settings.debugNtripServerState)
                     systemPrintln("NTRIP Server resetting connection attempt counter and timeout");
             }
-
-            // All is well
-            cyclePositionLEDs();
         }
         break;
     }

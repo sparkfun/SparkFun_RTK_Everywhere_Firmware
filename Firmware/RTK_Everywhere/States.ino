@@ -607,7 +607,7 @@ void stateUpdate()
         break;
 
         case (STATE_WIFI_CONFIG_NOT_STARTED): {
-            if (productVariant == RTK_SURVEYOR || productVariant == RTK_TORCH)
+            if (productVariant == RTK_TORCH)
             {
                 // Start BT LED Fade to indicate the start of WiFi
                 bluetoothLedTask.detach(); // Increase BT LED blinker task rate
