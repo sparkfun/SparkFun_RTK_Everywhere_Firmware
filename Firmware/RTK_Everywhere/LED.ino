@@ -51,3 +51,21 @@ void baseStatusLedBlink()
     if (pin_baseStatusLED != PIN_UNDEFINED)
         digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
 }
+
+void batteryStatusLedOn()
+{
+    if (pin_batteryStatusLED != PIN_UNDEFINED)
+        digitalWrite(pin_batteryStatusLED, HIGH);
+}
+
+void batteryStatusLedOff()
+{
+    if (pin_batteryStatusLED != PIN_UNDEFINED)
+        digitalWrite(pin_batteryStatusLED, LOW);
+}
+
+void batteryStatusLedBlink()
+{
+    if (pin_batteryStatusLED != PIN_UNDEFINED)
+        digitalWrite(pin_batteryStatusLED, !digitalRead(pin_batteryStatusLED));
+}

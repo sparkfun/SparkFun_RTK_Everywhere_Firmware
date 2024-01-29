@@ -74,14 +74,13 @@ typedef uint8_t RtkMode_t;
 
 typedef enum
 {
-    RTK_FACET = 0,
-    RTK_EXPRESS_PLUS,
+    RTK_FACET_V2 = 0,
+    RTK_FACET,
     RTK_FACET_LBAND,
     RTK_FACET_LBAND_DIRECT,
     RTK_TORCH,
     RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
     RTK_EVK,
-    RTK_FACET_V2,
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
@@ -89,14 +88,13 @@ ProductVariant productVariant = RTK_FACET;
 
 const char * const productDisplayNames[] =
 {
+    "Facet v2",
     "Facet",
-    "Express+",
     "Facet LB",
     "Facet LD",
     "Torch",
     "Unkn ZED",
     "EVK",
-    "Facet v2",
     // Add new values just above this line
     "Unknown"
 };
@@ -104,14 +102,13 @@ const int productDisplayNamesEntries = sizeof (productDisplayNames) / sizeof(pro
 
 const char * const platformFilePrefixTable[] =
 {
+    "SFE_Facet_v2",
     "SFE_Facet",
-    "SFE_Express_Plus",
     "SFE_Facet_LBand",
     "SFE_Facet_LBand_Direct",
     "SFE_TORCH",
     "SFE_Unknown_ZED",
     "SFE_EVK",
-    "SFE_Facet_v2",
     // Add new values just above this line
     "SFE_Unknown"
 };
@@ -119,14 +116,13 @@ const int platformFilePrefixTableEntries = sizeof (platformFilePrefixTable) / si
 
 const char * const platformPrefixTable[] =
 {
+    "Facet v2",
     "Facet",
-    "Express Plus",
     "Facet L-Band",
     "Facet L-Band Direct",
     "Torch",
     "Unknown ZED",
     "EVK",
-    "Facet v2",
     // Add new values just above this line
     "Unknown"
 };
@@ -134,14 +130,13 @@ const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(pla
 
 const char * const platformProvisionTable[] =
 {
+    "Facet v2",
     "Facet",
-    "Express Plus",
     "Facet LBand",
     "Facet LBand Direct",
     "Torch",
     "Unknown ZED",
     "EVK",
-    "Facet v2",
     // Add new values just above this line
     "Unknown"
 };
@@ -149,14 +144,13 @@ const int platformProvisionTableEntries = sizeof (platformProvisionTable) / size
 
 const SystemState platformPreviousStateTable[] =
 {
+    STATE_ROVER_NOT_STARTED,    // Facet v2
     STATE_ROVER_NOT_STARTED,    // Facet
-    STATE_ROVER_NOT_STARTED,    // Express Plus
     STATE_ROVER_NOT_STARTED,    // Facet L-Band
     STATE_ROVER_NOT_STARTED,    // Facet L-Band Direct
     STATE_ROVER_NOT_STARTED,    // Torch
     STATE_ROVER_NOT_STARTED,    // Unknown ZED
-    STATE_ROVER_NOT_STARTED,     // EVK
-    STATE_ROVER_NOT_STARTED,     // Facet v2
+    STATE_ROVER_NOT_STARTED,    // EVK
     // Add new values just above this line
     STATE_ROVER_NOT_STARTED     // Unknown
 };
@@ -171,14 +165,13 @@ typedef enum
 
 const GnssPlatform platformGnssTable[] =
 {
+    PLATFORM_ZED,   // Facet v2
     PLATFORM_ZED,   // Facet
-    PLATFORM_ZED,   // Express Plus
     PLATFORM_ZED,   // Facet L-Band
     PLATFORM_ZED,   // Facet L-Band Direct
     PLATFORM_UM980, // Torch
     PLATFORM_ZED,   // Unknown ZED
     PLATFORM_ZED,   // EVK
-    PLATFORM_ZED,   // Facet v2
     // Add new values just above this line
     PLATFORM_ZED    // Unknown
 };
@@ -1255,7 +1248,7 @@ struct struct_present
     bool gnss_um980 = false;
     bool gnss_mosaic = false;
 
-    bool lband = false;
+    bool lband_neo = false;
     bool cellular_lara = false;
     bool ethernet_ws5500 = false;
     bool radio_lora = false;

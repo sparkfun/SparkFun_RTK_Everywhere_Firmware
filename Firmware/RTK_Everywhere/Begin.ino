@@ -88,7 +88,7 @@ void identifyBoard()
 
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
-        present.lband = true;
+        present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
         present.microSd = true;
@@ -178,17 +178,25 @@ void beginBoard()
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
         // Turn on Bluetooth and GNSS LEDs to indicate power on
-        pin_batteryLevelLED_Red = 0;
+        pin_batteryStatusLED = 0;
         pin_bluetoothStatusLED = 32;
         pin_gnssStatusLED = 13;
 
         pin_beeper = 33;
 
+        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+        DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
+        pinMode(pin_gnssStatusLED, OUTPUT);
+
         bluetoothLedOn();
 
-        pinMode(pin_gnssStatusLED, OUTPUT);
         gnssStatusLedOn();
+
+        DMW_if systemPrintf("pin_batteryStatusLED: %d\r\n", pin_batteryStatusLED);
+        pinMode(pin_batteryStatusLED, OUTPUT);
+        batteryStatusLedOff();
 
         pinMode(pin_beeper, OUTPUT);
 
@@ -694,18 +702,6 @@ void beginLEDs()
 {
     if (productVariant == RTK_TORCH)
     {
-        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
-        pinMode(pin_bluetoothStatusLED, OUTPUT);
-        digitalWrite(pin_bluetoothStatusLED, HIGH);
-
-        DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
-        pinMode(pin_gnssStatusLED, OUTPUT);
-        digitalWrite(pin_gnssStatusLED, HIGH);
-
-        DMW_if systemPrintf("pin_batteryLevelLED_Red: %d\r\n", pin_batteryLevelLED_Red);
-        pinMode(pin_batteryLevelLED_Red, OUTPUT);
-        digitalWrite(pin_batteryLevelLED_Red, LOW);
-
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
         ledcWrite(ledBtChannel, 255); // On at startup
@@ -798,14 +794,10 @@ void beginSystemState()
         settings.lastState = systemState;
     }
 
-    if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+    if (productVariant == RTK_FACET_V2)
     {
-        if (online.lband == false)
-            systemState =
-                settings
-                    .lastState; // Return to either Rover or Base Not Started. The last state previous to power down.
-        else
-            systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
+        systemState =
+            settings.lastState; // Return to either Rover or Base Not Started. The last state previous to power down.
 
         firstRoverStart = true; // Allow user to enter test screen during first rover start
         if (systemState == STATE_BASE_NOT_STARTED)
