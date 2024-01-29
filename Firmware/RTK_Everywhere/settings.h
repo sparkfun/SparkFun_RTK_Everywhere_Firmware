@@ -77,7 +77,6 @@ typedef enum
     RTK_FACET = 0,
     RTK_EXPRESS_PLUS,
     RTK_FACET_LBAND,
-    REFERENCE_STATION,
     RTK_FACET_LBAND_DIRECT,
     RTK_TORCH,
     RTK_UNKNOWN_ZED, //This variant does not have resistor IDs but ZED-F9x
@@ -93,7 +92,6 @@ const char * const productDisplayNames[] =
     "Facet",
     "Express+",
     "Facet LB",
-    "Ref Stn",
     "Facet LD",
     "Torch",
     "Unkn ZED",
@@ -109,7 +107,6 @@ const char * const platformFilePrefixTable[] =
     "SFE_Facet",
     "SFE_Express_Plus",
     "SFE_Facet_LBand",
-    "SFE_Reference_Station",
     "SFE_Facet_LBand_Direct",
     "SFE_TORCH",
     "SFE_Unknown_ZED",
@@ -125,7 +122,6 @@ const char * const platformPrefixTable[] =
     "Facet",
     "Express Plus",
     "Facet L-Band",
-    "Reference Station",
     "Facet L-Band Direct",
     "Torch",
     "Unknown ZED",
@@ -141,7 +137,6 @@ const char * const platformProvisionTable[] =
     "Facet",
     "Express Plus",
     "Facet LBand",
-    "Reference Station",
     "Facet LBand Direct",
     "Torch",
     "Unknown ZED",
@@ -157,7 +152,6 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED,    // Facet
     STATE_ROVER_NOT_STARTED,    // Express Plus
     STATE_ROVER_NOT_STARTED,    // Facet L-Band
-    STATE_BASE_NOT_STARTED,     // Reference Station
     STATE_ROVER_NOT_STARTED,    // Facet L-Band Direct
     STATE_ROVER_NOT_STARTED,    // Torch
     STATE_ROVER_NOT_STARTED,    // Unknown ZED
@@ -180,7 +174,6 @@ const GnssPlatform platformGnssTable[] =
     PLATFORM_ZED,   // Facet
     PLATFORM_ZED,   // Express Plus
     PLATFORM_ZED,   // Facet L-Band
-    PLATFORM_ZED,   // Reference Station
     PLATFORM_ZED,   // Facet L-Band Direct
     PLATFORM_UM980, // Torch
     PLATFORM_ZED,   // Unknown ZED
@@ -192,16 +185,19 @@ const GnssPlatform platformGnssTable[] =
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
 // Macros to show if the GNSS is I2C or SPI
-#define USE_SPI_GNSS (productVariant == REFERENCE_STATION)
+#define USE_SPI_GNSS false
 #define USE_I2C_GNSS (!USE_SPI_GNSS)
 
 // Macros to show if the microSD is SPI or SDIO
-#define USE_MMC_MICROSD (productVariant == REFERENCE_STATION)
+#define USE_MMC_MICROSD false
 #define USE_SPI_MICROSD (!USE_MMC_MICROSD)
+
+// #define USE_MMC_MICROSD (productVariant == REFERENCE_STATION)
+// #define USE_SPI_MICROSD (!USE_MMC_MICROSD)
 
 // Macro to show if the the RTK variant has Ethernet
 #ifdef COMPILE_ETHERNET
-#define HAS_ETHERNET ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+#define HAS_ETHERNET (productVariant == RTK_EVK)
 #else // COMPILE_ETHERNET
 #define HAS_ETHERNET false
 #endif // COMPILE_ETHERNET
@@ -209,10 +205,10 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 // Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
 // The GNSS UBX PVT message is sent ahead of the top-of-second
 // The rising edge of the TP signal indicates the true top-of-second
-#define HAS_GNSS_TP_INT (((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK)) && (pin_GNSS_TimePulse != -1))
+#define HAS_GNSS_TP_INT ((productVariant == RTK_EVK) && (pin_GNSS_TimePulse != -1))
 
 // Macro to show if the the RTK variant has antenna short circuit / open circuit detection
-#define HAS_ANTENNA_SHORT_OPEN ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+#define HAS_ANTENNA_SHORT_OPEN (productVariant == RTK_EVK)
 
 #define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
 

@@ -45,7 +45,7 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+    if (productVariant == RTK_EVK)
     {
         if (sdCardPresent() == false)
             endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.

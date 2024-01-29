@@ -2370,7 +2370,7 @@ void paintSystemTest()
             else
                 oled->print("FAIL");
 
-            if ((productVariant != REFERENCE_STATION) && (productVariant != RTK_EVK))
+            if (present.battery_max17048 || present.battery_bq40z50)
             {
                 oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
                 oled->print("Batt:");
@@ -2560,7 +2560,7 @@ void paintDisplaySetup()
     {
         if (setupState == STATE_MARK_EVENT)
         {
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+            if (productVariant == RTK_EVK)
             {
                 // setupState defaults to STATE_MARK_EVENT, which is not a valid state for the Ref Stn.
                 // It will be corrected by ButtonCheckTask. Until then, display but don't highlight an option.
@@ -2579,7 +2579,7 @@ void paintDisplaySetup()
         }
         else if (setupState == STATE_ROVER_NOT_STARTED)
         {
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+            if (productVariant == RTK_EVK)
             {
                 printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
                 printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
@@ -2596,7 +2596,7 @@ void paintDisplaySetup()
         }
         else if (setupState == STATE_BASE_NOT_STARTED)
         {
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+            if (productVariant == RTK_EVK)
             {
                 printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
                 printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
@@ -2629,7 +2629,7 @@ void paintDisplaySetup()
         }
         else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
         {
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+            if (productVariant == RTK_EVK)
             {
                 printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
                 printTextCenter("NTP", 12 * 1, QW_FONT_8X16, 1, false);
@@ -2656,7 +2656,7 @@ void paintDisplaySetup()
 
         else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
         {
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+            if (productVariant == RTK_EVK)
             {
                 printTextCenter("NTP", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
                 printTextCenter("Cfg Eth", 12 * 1, QW_FONT_8X16, 1, false);

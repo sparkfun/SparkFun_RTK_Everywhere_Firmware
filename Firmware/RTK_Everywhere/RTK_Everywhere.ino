@@ -975,11 +975,11 @@ void setup()
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
 
-    DMW_b("beginI2C");
-    beginI2C(); // Requires settings.
-
     DMW_b("peripheralsOn");
     peripheralsOn(); // Enable power for the display, SD, etc
+
+    DMW_b("beginI2C");
+    beginI2C(); // Requires settings and peripheral power (if applicable).
 
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors

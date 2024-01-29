@@ -55,12 +55,9 @@ void powerDown(bool displayInfo)
         digitalWrite(pin_powerFastOff, LOW);
     }
 
-    if ((productVariant == RTK_FACET) || (productVariant == RTK_FACET_LBAND) ||
-        (productVariant == RTK_FACET_LBAND_DIRECT) || (productVariant == REFERENCE_STATION) ||
-        (productVariant == RTK_EVK))
+    if (present.peripheralPowerControl == true)
         peripheralsOff();
     
-
     while (1)
         delay(1);
 }

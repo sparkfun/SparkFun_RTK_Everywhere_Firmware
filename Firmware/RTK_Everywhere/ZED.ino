@@ -160,9 +160,10 @@ void zedBegin()
     }
     else
     {
+
         if (theGNSS->begin(SPI, pin_GNSS_CS) == false)
         {
-            log_d("GNSS Failed to begin. Trying again.");
+            log_d("GNSS Failed to begin via SPI. Trying again.");
 
             // Try again with power on delay
             delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
@@ -287,7 +288,7 @@ bool zedConfigure()
     if (settings.enableGNSSdebug)
     {
 #if defined(REF_STN_GNSS_DEBUG)
-        if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK)))
+        if (ENABLE_DEVELOPER && (productVariant == RTK_EVK))
             theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
         else
 #endif                                              // REF_STN_GNSS_DEBUG
@@ -1396,7 +1397,7 @@ void zedSaveConfiguration()
 void zedEnableDebugging()
 {
 #if defined(REF_STN_GNSS_DEBUG)
-    if (ENABLE_DEVELOPER && ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK)))
+    if (ENABLE_DEVELOPER && (productVariant == RTK_EVK))
         theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
     else
 #endif                                          // REF_STN_GNSS_DEBUG
