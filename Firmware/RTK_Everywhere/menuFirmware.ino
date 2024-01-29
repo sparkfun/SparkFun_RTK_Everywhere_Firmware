@@ -98,8 +98,6 @@ void menuFirmware()
             }
             else
             {
-                bool previouslyConnected = wifiIsConnected();
-
                 bluetoothStop(); // Stop Bluetooth to allow for SSL on the heap
 
                 // Attempt to connect to local WiFi

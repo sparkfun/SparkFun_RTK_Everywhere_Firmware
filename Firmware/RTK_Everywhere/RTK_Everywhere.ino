@@ -83,16 +83,9 @@
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
-int pin_batteryLevelLED_Red = PIN_UNDEFINED;
-int pin_batteryLevelLED_Green = PIN_UNDEFINED;
-int pin_positionAccuracyLED_1cm = PIN_UNDEFINED;
-int pin_positionAccuracyLED_10cm = PIN_UNDEFINED;
-int pin_positionAccuracyLED_100cm = PIN_UNDEFINED;
+int pin_batteryStatusLED = PIN_UNDEFINED;
 int pin_baseStatusLED = PIN_UNDEFINED;
 int pin_bluetoothStatusLED = PIN_UNDEFINED;
-int pin_zed_tx_ready = PIN_UNDEFINED;
-int pin_zed_reset = PIN_UNDEFINED;
-int pin_batteryLevel_alert = PIN_UNDEFINED;
 
 int pin_muxA = PIN_UNDEFINED;
 int pin_muxB = PIN_UNDEFINED;
@@ -181,11 +174,9 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
 SdFat *sd;
 
-#include "FileSdFatMMC.h" //Hybrid SdFat and SD_MMC file access
-
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
 
-FileSdFatMMC *ubxFile;            // File that all GNSS ubx messages sentences are written to
+SdFile *ubxFile;            // File that all GNSS ubx messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
 int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
 int startCurrentLogTime_minutes;
@@ -214,7 +205,7 @@ typedef enum LoggingType
 } LoggingType;
 LoggingType loggingType;
 
-FileSdFatMMC *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
+SdFile *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen;
 
 TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can kill the task once the size is found
@@ -1401,7 +1392,7 @@ void rtcUpdate()
         {
             time_t nowtime;
             struct tm *nowtm;
-            char tmbuf[64], buf[64];
+            char tmbuf[64];
 
             nowtime = gnssSyncTv.tv_sec;
             nowtm = localtime(&nowtime);

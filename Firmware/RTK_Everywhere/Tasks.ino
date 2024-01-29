@@ -274,8 +274,6 @@ void gnssReadTask(void *e)
 {
     static PARSE_STATE parse = {gpsMessageParserFirstByte, processUart1Message, "Log"};
 
-    uint8_t incomingData = 0;
-
     while (true)
     {
         // Display an alive message
@@ -388,7 +386,6 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
         int32_t discardedBytes;
         int32_t listEnd;
         int32_t messageLength;
-        int32_t offsetBytes;
         int32_t previousTail;
         int32_t rbOffsetTail;
 
@@ -651,10 +648,8 @@ void discardRingBufferBytes(RING_BUFFER_OFFSET *tail, RING_BUFFER_OFFSET previou
 void handleGnssDataTask(void *e)
 {
     int32_t bytesToSend;
-    bool connected;
     uint32_t deltaMillis;
     int32_t freeSpace;
-    uint16_t listEnd;
     static uint32_t maxMillis[RBC_MAX];
     uint32_t startMillis;
     int32_t usedSpace;
@@ -847,7 +842,6 @@ void handleGnssDataTask(void *e)
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
                     }
 
-                    static unsigned long lastFlush = 0;
                     fileSize = ubxFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD

@@ -1272,10 +1272,10 @@ void changeState(SystemState newState)
 {
     char string1[30];
     char string2[30];
-    const char *arrow;
-    const char *asterisk;
-    const char *initialState;
-    const char *endingState;
+    const char *arrow = "";
+    const char *asterisk = "";
+    const char *initialState = "";
+    const char *endingState = "";
 
     // Log the heap size at the state change
     reportHeapNow(false);

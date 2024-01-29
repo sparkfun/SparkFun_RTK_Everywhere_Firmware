@@ -157,8 +157,8 @@ bool sdCardPresentSoftwareTest()
         if (response == 1)
             return (true); // Card responded
     }
-    if (response != 1)
-        return (false); // Card failed to respond to idle
+
+    return (false); // Card failed to respond to idle
 }
 
 /*

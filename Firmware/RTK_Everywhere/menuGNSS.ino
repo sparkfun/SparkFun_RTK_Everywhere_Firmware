@@ -286,7 +286,7 @@ void menuGNSS()
             restartRover = true;
         }
         else if (((incoming == 13) && settings.enableNtripClient == true) ||
-                 incoming == 6 && settings.enableNtripClient == false)
+                 (incoming == 6 && settings.enableNtripClient == false))
         {
             // Arbitrary 90 degree max
             if (getNewSetting("Enter minimum elevation in degrees", 0, 90, (int *)&settings.minElev) ==
@@ -296,7 +296,7 @@ void menuGNSS()
             }
         }
         else if (((incoming == 14) && settings.enableNtripClient == true) ||
-                 incoming == 7 && settings.enableNtripClient == false)
+                 (incoming == 7 && settings.enableNtripClient == false))
         {
             int minCNO = 0;
             // Arbitrary 90 dBHz max

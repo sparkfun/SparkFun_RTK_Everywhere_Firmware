@@ -215,6 +215,6 @@ void     um980SetModel(uint8_t modelNumber) {}
 bool     um980SetModeRoverSurvey() {return false;}
 bool     um980SetRate(double secondsBetweenSolutions) {return false;}
 void     um980UnicoreHandler(uint8_t * buffer, int length) {}
-char*    um980GetId() {return ("No compiled");}
+char*    um980GetId() {return ((char*)"No compiled");}
 
 #endif  // COMPILE_UM980

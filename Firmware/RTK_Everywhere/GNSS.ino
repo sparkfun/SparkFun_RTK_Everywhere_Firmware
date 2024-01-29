@@ -1096,5 +1096,5 @@ char * gnssGetId()
         }
     }
 
-    return ("\0");
+    return ((char*)"\0");
 }
