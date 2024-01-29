@@ -794,25 +794,6 @@ void beginFuelGauge()
     }
 }
 
-// Begin accelerometer if available
-void beginAccelerometer()
-{
-    if (accel.begin() == false)
-    {
-        online.accelerometer = false;
-
-        return;
-    }
-
-    // The larger the avgAmount the faster we should read the sensor
-    // accel.setDataRate(LIS2DH12_ODR_100Hz); //6 measurements a second
-    accel.setDataRate(LIS2DH12_ODR_400Hz); // 25 measurements a second
-
-    systemPrintln("Accelerometer configuration complete");
-
-    online.accelerometer = true;
-}
-
 // Depending on platform and previous power down state, set system state
 void beginSystemState()
 {

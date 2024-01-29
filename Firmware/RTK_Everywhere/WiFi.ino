@@ -577,7 +577,7 @@ bool wifiIsNeeded()
         return true;
 
     // If WiFi is on while we are in the following states, allow WiFi to continue to operate
-    if (systemState >= STATE_BUBBLE_LEVEL && systemState <= STATE_PROFILE)
+    if (systemState >= STATE_MARK_EVENT && systemState <= STATE_PROFILE)
     {
         // Keep WiFi on if user presses setup button, enters bubble level, is in AP config mode, etc
         return true;

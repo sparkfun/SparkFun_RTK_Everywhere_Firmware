@@ -407,11 +407,6 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_BUBBLE_LEVEL): {
-            // Do nothing - display only
-        }
-        break;
-
         case (STATE_PROFILE): {
             // Do nothing - display only
         }
@@ -600,8 +595,6 @@ void stateUpdate()
             {
                 forceSystemStateUpdate = true; // Immediately go to this new state
                 changeState(setupState);       // Change to last setup state
-                if (setupState == STATE_BUBBLE_LEVEL)
-                    RTK_MODE(RTK_MODE_BUBBLE_LEVEL);
             }
         }
         break;
@@ -1212,8 +1205,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_NOT_STARTED";
     case (STATE_BASE_FIXED_TRANSMITTING):
         return "STATE_BASE_FIXED_TRANSMITTING";
-    case (STATE_BUBBLE_LEVEL):
-        return "STATE_BUBBLE_LEVEL";
     case (STATE_MARK_EVENT):
         return "STATE_MARK_EVENT";
     case (STATE_DISPLAY_SETUP):
@@ -1349,7 +1340,7 @@ typedef struct _RTK_MODE_ENTRY
 const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-    {"Setup", STATE_BUBBLE_LEVEL, STATE_PROFILE},
+    {"Setup", STATE_MARK_EVENT, STATE_PROFILE},
     {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_WIFI_CONNECTED},
     {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
     {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},

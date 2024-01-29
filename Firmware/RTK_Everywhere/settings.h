@@ -17,7 +17,6 @@ typedef enum
     STATE_BASE_TEMP_TRANSMITTING,
     STATE_BASE_FIXED_NOT_STARTED,
     STATE_BASE_FIXED_TRANSMITTING,
-    STATE_BUBBLE_LEVEL,
     STATE_MARK_EVENT,
     STATE_DISPLAY_SETUP,
     STATE_WIFI_CONFIG_NOT_STARTED,
@@ -60,12 +59,11 @@ SystemState setupState = STATE_MARK_EVENT;
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
 #define RTK_MODE_BASE_SURVEY_IN     0x0002
-#define RTK_MODE_BUBBLE_LEVEL       0x0004
-#define RTK_MODE_ETHERNET_CONFIG    0x0008
-#define RTK_MODE_NTP                0x0010
-#define RTK_MODE_ROVER              0x0020
-#define RTK_MODE_TESTING            0x0040
-#define RTK_MODE_WIFI_CONFIG        0x0080
+#define RTK_MODE_ETHERNET_CONFIG    0x0004
+#define RTK_MODE_NTP                0x0008
+#define RTK_MODE_ROVER              0x0010
+#define RTK_MODE_TESTING            0x0020
+#define RTK_MODE_WIFI_CONFIG        0x0040
 
 typedef uint8_t RtkMode_t;
 
@@ -1316,7 +1314,6 @@ struct struct_online
     bool fs = false;
     bool rtc = false;
     bool battery = false;
-    bool accelerometer = false;
     bool ntripClient = false;
     bool ntripServer = false;
     bool lband = false;

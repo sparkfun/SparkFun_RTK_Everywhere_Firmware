@@ -183,9 +183,9 @@ void beginDisplay(TwoWire *i2cBus)
 // Avoid code repetition
 void displayBatteryVsEthernet()
 {
-    if (online.battery) // Product has a battery
-        icons |= ICON_BATTERY;                 // Top right
-    else                                       // if (HAS_ETHERNET)
+    if (online.battery)        // Product has a battery
+        icons |= ICON_BATTERY; // Top right
+    else                       // if (HAS_ETHERNET)
     {
         if (online.ethernetStatus == ETH_NOT_STARTED)
             blinking_icons &= ~ICON_ETHERNET; // If Ethernet has not stated because not needed, don't display the icon
@@ -415,9 +415,6 @@ void displayUpdate()
             case (STATE_CONFIG_VIA_ETH_RESTART_BASE):
                 break;
 
-            case (STATE_BUBBLE_LEVEL):
-                paintBubbleLevel();
-                break;
             case (STATE_PROFILE):
                 paintProfile(displayProfile);
                 break;
@@ -2373,17 +2370,6 @@ void paintSystemTest()
             else
                 oled->print("FAIL");
 
-            if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS || productVariant == RTK_FACET ||
-                productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
-            {
-                oled->setCursor(xOffset, yOffset + (1 * charHeight)); // x, y
-                oled->print("Accel:");
-                if (online.accelerometer == true)
-                    oled->print("OK");
-                else
-                    oled->print("FAIL");
-            }
-
             if ((productVariant != REFERENCE_STATION) && (productVariant != RTK_EVK))
             {
                 oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
@@ -2514,94 +2500,6 @@ void paintSystemTest()
     }
 }
 
-// Globals but only used for Bubble Level
-double averagedRoll = 0.0;
-double averagedPitch = 0.0;
-
-// A bubble level
-void paintBubbleLevel()
-{
-    if (online.accelerometer == true)
-    {
-        forceDisplayUpdate = true; // Update the display as quickly as possible
-
-        getAngles();
-
-        // Draw dot in middle
-        oled->pixel(oled->getWidth() / 2, oled->getHeight() / 2);
-        oled->pixel(oled->getWidth() / 2 + 1, oled->getHeight() / 2);
-        oled->pixel(oled->getWidth() / 2, oled->getHeight() / 2 + 1);
-        oled->pixel(oled->getWidth() / 2 + 1, oled->getHeight() / 2 + 1);
-
-        // Draw circle relative to dot
-        const int radiusLarge = 10;
-        const int radiusSmall = 4;
-
-        oled->circle(oled->getWidth() / 2 - averagedPitch, oled->getHeight() / 2 + averagedRoll, radiusLarge);
-        oled->circle(oled->getWidth() / 2 - averagedPitch, oled->getHeight() / 2 + averagedRoll, radiusSmall);
-    }
-    else
-    {
-        displayAccelFail(0);
-    }
-}
-
-void getAngles()
-{
-    if (online.accelerometer == true)
-    {
-        averagedRoll = 0.0;
-        averagedPitch = 0.0;
-        const int avgAmount = 16;
-
-        // Take an average readings
-        for (int reading = 0; reading < avgAmount; reading++)
-        {
-            while (accel.available() == false)
-                delay(1);
-
-            float accelX = 0;
-            float accelY = 0;
-            float accelZ = 0;
-
-            // Express Accel orientation is different from Facet
-            if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS)
-            {
-                accelX = accel.getX();
-                accelZ = accel.getY();
-                accelY = accel.getZ();
-                accelZ *= -1.0;
-                accelX *= -1.0;
-            }
-            else if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
-                     productVariant == RTK_FACET_LBAND_DIRECT)
-            {
-                accelZ = accel.getX();
-                accelX = accel.getY();
-                accelY = accel.getZ();
-                accelZ *= -1.0;
-                accelY *= -1.0;
-                accelX *= -1.0;
-            }
-
-            double roll = atan2(accelY, accelZ) * 57.3;
-            double pitch = atan2((-accelX), sqrt(accelY * accelY + accelZ * accelZ)) * 57.3;
-
-            averagedRoll += roll;
-            averagedPitch += pitch;
-        }
-
-        averagedRoll /= (float)avgAmount;
-        averagedPitch /= (float)avgAmount;
-
-        // Avoid -0 since we're not printing the decimal portion
-        if (averagedRoll < 0.5 && averagedRoll > -0.5)
-            averagedRoll = 0;
-        if (averagedPitch < 0.5 && averagedPitch > -0.5)
-            averagedPitch = 0;
-    }
-}
-
 // Display the setup profiles
 void paintDisplaySetupProfile(const char *firstState)
 {
@@ -2672,13 +2570,6 @@ void paintDisplaySetup()
                 printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
             }
-            else if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 3, QW_FONT_8X16, 1, false);
-            }
             else
             {
                 printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
@@ -2695,13 +2586,6 @@ void paintDisplaySetup()
                 printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
                 printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 3, QW_FONT_8X16, 1, false);
             }
             else
             {
@@ -2720,13 +2604,6 @@ void paintDisplaySetup()
                 printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
             }
-            else if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, true);
-                printTextCenter("Bubble", 12 * 3, QW_FONT_8X16, 1, false);
-            }
             else
             {
                 printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
@@ -2742,24 +2619,6 @@ void paintDisplaySetup()
                 printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
                 printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, true);
                 printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-        }
-        else if (setupState == STATE_BUBBLE_LEVEL)
-        {
-            if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else
-            {
-                // We should never get here, but just in case
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
             }
         }
         else if (setupState == STATE_CONFIG_VIA_ETH_NOT_STARTED)
@@ -2778,13 +2637,6 @@ void paintDisplaySetup()
                 printTextCenter("Cfg Eth", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("CfgWiFi", 12 * 3, QW_FONT_8X16, 1, true);
             }
-            else if (online.accelerometer)
-            {
-                printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
-            }
             else
             {
                 printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
@@ -2797,20 +2649,10 @@ void paintDisplaySetup()
         // If we are on an L-Band unit, display GetKeys option
         else if (setupState == STATE_KEYS_NEEDED)
         {
-            if (online.accelerometer)
-            {
-                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else
-            {
-                printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
-            }
+            printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
         }
 
         else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
@@ -2825,26 +2667,9 @@ void paintDisplaySetup()
             else if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
             {
                 // If we are on an L-Band unit, scroll GetKeys option
-                if (online.accelerometer)
-                {
-                    printTextCenter("Bubble", 12 * 0, QW_FONT_8X16, 1, false);
-                    printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
-                    printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
-                    printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-                }
-                else
-                {
-                    printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
-                    printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
-                    printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
-                    printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-                }
-            }
-            else if (online.accelerometer)
-            {
                 printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+                printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
+                printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
             }
             else
@@ -2863,89 +2688,31 @@ void paintDisplaySetup()
     {
         if (setupState == STATE_MARK_EVENT)
         {
-            if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
         }
         else if (setupState == STATE_ROVER_NOT_STARTED)
         {
-            if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-                printTextCenter("Bubble", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-        }
-        else if (setupState == STATE_BUBBLE_LEVEL)
-        {
-            if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 2, QW_FONT_8X16, 1, true);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else
-            {
-                // We should never get here, but just in case
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, true);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
+            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
         }
         else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
         {
-            if (online.accelerometer)
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, true);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, true);
+            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
         }
         else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
         {
-            if (online.accelerometer)
-            {
-                printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Bubble", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-            }
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
         }
         else if (setupState == STATE_PROFILE)
             paintDisplaySetupProfile("Rover");

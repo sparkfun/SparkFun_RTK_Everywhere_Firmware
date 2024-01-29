@@ -1117,17 +1117,17 @@ void tickerGnssLedUpdate()
 // Control the length of time the beeper makes noise
 void tickerBeepUpdate()
 {
-  if (productVariant == RTK_TORCH)
-  {
-    if (beepStopMs > 0)
+    if (productVariant == RTK_TORCH)
     {
-      if (millis() >= beepStopMs)
-      {
-        beepStopMs = 0; //Signal the beeper is off
-        beepOff();
-      }
+        if (beepStopMs > 0)
+        {
+            if (millis() >= beepStopMs)
+            {
+                beepStopMs = 0; // Signal the beeper is off
+                beepOff();
+            }
+        }
     }
-  }
 }
 
 // For RTK Express and RTK Facet, monitor momentary buttons
@@ -1183,7 +1183,7 @@ void ButtonCheckTask(void *e)
         */
 
         if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
-                 productVariant == RTK_FACET_LBAND_DIRECT) // Check one momentary button
+            productVariant == RTK_FACET_LBAND_DIRECT) // Check one momentary button
         {
             if (powerBtn != nullptr)
                 powerBtn->read();
@@ -1227,7 +1227,6 @@ void ButtonCheckTask(void *e)
                     case STATE_BASE_TEMP_TRANSMITTING:
                     case STATE_BASE_FIXED_NOT_STARTED:
                     case STATE_BASE_FIXED_TRANSMITTING:
-                    case STATE_BUBBLE_LEVEL:
                     case STATE_WIFI_CONFIG_NOT_STARTED:
                     case STATE_WIFI_CONFIG:
                     case STATE_ESPNOW_PAIRING_NOT_STARTED:
@@ -1273,24 +1272,11 @@ void ButtonCheckTask(void *e)
                         case STATE_ROVER_NOT_STARTED:
                             // If F9R, skip base state
                             if (zedModuleType == PLATFORM_F9R)
-                            {
-                                // If accel offline, skip bubble
-                                if (online.accelerometer == true)
-                                    setupState = STATE_BUBBLE_LEVEL;
-                                else
-                                    setupState = STATE_WIFI_CONFIG_NOT_STARTED;
-                            }
+                                setupState = STATE_WIFI_CONFIG_NOT_STARTED;
                             else
                                 setupState = STATE_BASE_NOT_STARTED;
                             break;
                         case STATE_BASE_NOT_STARTED:
-                            // If accel offline, skip bubble
-                            if (online.accelerometer == true)
-                                setupState = STATE_BUBBLE_LEVEL;
-                            else
-                                setupState = STATE_WIFI_CONFIG_NOT_STARTED;
-                            break;
-                        case STATE_BUBBLE_LEVEL:
                             setupState = STATE_WIFI_CONFIG_NOT_STARTED;
                             break;
                         case STATE_WIFI_CONFIG_NOT_STARTED:

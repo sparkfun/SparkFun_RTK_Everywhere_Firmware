@@ -172,7 +172,7 @@ void menuMain()
     gnssSaveConfiguration();
 
     // Reboot as base only if currently operating as a base station
-    if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState < STATE_BUBBLE_LEVEL))
+    if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING))
     {
         restartBase = false;
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
