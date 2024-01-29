@@ -541,10 +541,6 @@ void ntripServerStop(bool shutdown)
 // Update the NTRIP server state machine
 void ntripServerUpdate()
 {
-    // For Ref Stn, process any RTCM data waiting in the u-blox library RTCM Buffer
-    // This causes the state change from NTRIP_SERVER_WAIT_GNSS_DATA to NTRIP_SERVER_CONNECTING
-    processRTCMBuffer();
-
     // Shutdown the NTRIP server when the mode or setting changes
     DMW_st(ntripServerSetState, ntripServerState);
     if (NEQ_RTK_MODE(ntripServerMode) || (!settings.enableNtripServer))

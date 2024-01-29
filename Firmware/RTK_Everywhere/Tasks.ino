@@ -135,13 +135,7 @@ void btReadTask(void *e)
                     else
                     {
                         // Ignore this escape character, pass it along to the output
-                        if (USE_I2C_GNSS)
-                        {
-                            // serialGNSS->write(incoming);
-                            addToGnssBuffer(btEscapeCharacter);
-                        }
-                        else
-                            gnssPushRawData(&incoming, 1);
+                        addToGnssBuffer(btEscapeCharacter);
                     }
                 }
                 else // This is just a character in the stream, ignore
@@ -149,29 +143,16 @@ void btReadTask(void *e)
                     // Pass any escape characters that turned out to not be a complete escape sequence
                     while (btEscapeCharsReceived-- > 0)
                     {
-                        if (USE_I2C_GNSS)
-                        {
-                            // serialGNSS->write(btEscapeCharacter);
-                            addToGnssBuffer(btEscapeCharacter);
-                        }
-                        else
-                        {
-                            uint8_t escChar = btEscapeCharacter;
-                            gnssPushRawData(&escChar, 1);
-                        }
+                        addToGnssBuffer(btEscapeCharacter);
                     }
 
                     // Pass byte to GNSS receiver or to system
                     // TODO - control if this RTCM source should be listened to or not
-                    if (USE_I2C_GNSS)
-                    {
-                        // UART RX can be corrupted by UART TX
-                        // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
-                        // serialGNSS->write(incoming);
-                        addToGnssBuffer(incoming);
-                    }
-                    else
-                        gnssPushRawData(&incoming, 1);
+
+                    // UART RX can be corrupted by UART TX
+                    // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
+                    // serialGNSS->write(incoming);
+                    addToGnssBuffer(incoming);
 
                     btLastByteReceived = millis();
                     btEscapeCharsReceived = 0; // Update timeout check for escape char and partial frame
@@ -308,48 +289,24 @@ void gnssReadTask(void *e)
             systemPrintf("SerialReadTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
         // Determine if serial data is available
-        if (USE_I2C_GNSS)
+        while (serialGNSS->available())
         {
-            while (serialGNSS->available())
+            // Read the data from UART1
+            uint8_t incomingData[500];
+            int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
+
+            for (int x = 0; x < bytesIncoming; x++)
             {
-                // Read the data from UART1
-                uint8_t incomingData[500];
-                int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
-
-                for (int x = 0; x < bytesIncoming; x++)
-                {
-                    // Save the data byte
-                    parse.buffer[parse.length++] = incomingData[x];
-                    parse.length %= PARSE_BUFFER_LENGTH;
-
-                    // Compute the CRC value for the message
-                    if (parse.computeCrc)
-                        parse.crc = COMPUTE_CRC24Q(&parse, incomingData[x]);
-
-                    // Update the parser state based on the incoming byte
-                    parse.state(&parse, incomingData[x]);
-                }
-            }
-        }
-        else // SPI GNSS
-        {
-            gnssUpdate(); // Check for new data
-            while (gnssFileBufferAvailable() > 0)
-            {
-                // Read the data from the logging buffer
-                gnssExtractFileBufferData(&incomingData,
-                                          1); // TODO: make this more efficient by reading multiple bytes?
-
                 // Save the data byte
-                parse.buffer[parse.length++] = incomingData;
+                parse.buffer[parse.length++] = incomingData[x];
                 parse.length %= PARSE_BUFFER_LENGTH;
 
                 // Compute the CRC value for the message
                 if (parse.computeCrc)
-                    parse.crc = COMPUTE_CRC24Q(&parse, incomingData);
+                    parse.crc = COMPUTE_CRC24Q(&parse, incomingData[x]);
 
                 // Update the parser state based on the incoming byte
-                parse.state(&parse, incomingData);
+                parse.state(&parse, incomingData[x]);
             }
         }
 
@@ -869,21 +826,10 @@ void handleGnssDataTask(void *e)
 
                     if (settings.enablePrintSDBuffers && (!inMainMenu))
                     {
-                        int bufferAvailable;
-                        if (USE_I2C_GNSS)
-                            bufferAvailable = serialGNSS->available();
-                        else
-                        {
-                            gnssUpdate(); // Regularly poll to get latest data
-                            bufferAvailable = gnssFileBufferAvailable();
-                        }
-                        int availableUARTSpace;
-                        if (USE_I2C_GNSS)
-                            availableUARTSpace = settings.uartReceiveBufferSize - bufferAvailable;
-                        else
-                            // Use gnssHandlerBufferSize for now. TODO: work out if the SPI GNSS needs its own buffer
-                            // size setting
-                            availableUARTSpace = settings.gnssHandlerBufferSize - bufferAvailable;
+                        int bufferAvailable = serialGNSS->available();
+
+                        int availableUARTSpace = settings.uartReceiveBufferSize - bufferAvailable;
+
                         systemPrintf("SD Incoming Serial: %04d\tToRead: %04d\tMovedToBuffer: %04d\tavailableUARTSpace: "
                                      "%04d\tavailableHandlerSpace: %04d\tToRecord: %04d\tRecorded: %04d\tBO: %d\r\n",
                                      bufferAvailable, 0, 0, availableUARTSpace, availableHandlerSpace, bytesToSend, 0,
@@ -1321,7 +1267,7 @@ void ButtonCheckTask(void *e)
                     }
                 } // End disableSetupButton check
             }
-        }                                              // End Platform = RTK Facet
+        }                                   // End Platform = RTK Facet
         else if (productVariant == RTK_EVK) // Check one momentary button
         {
             if (setupBtn != nullptr)

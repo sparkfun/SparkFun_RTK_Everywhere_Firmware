@@ -184,10 +184,6 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
-// Macros to show if the GNSS is I2C or SPI
-#define USE_SPI_GNSS false
-#define USE_I2C_GNSS (!USE_SPI_GNSS)
-
 // Macros to show if the microSD is SPI or SDIO
 #define USE_MMC_MICROSD false
 #define USE_SPI_MICROSD (!USE_MMC_MICROSD)

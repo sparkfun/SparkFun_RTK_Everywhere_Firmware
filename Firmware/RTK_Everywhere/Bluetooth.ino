@@ -305,7 +305,7 @@ void bluetoothTest(bool runTest)
 
     if (online.gnss == true)
     {
-        if (runTest && (zedUartPassed == false) && (USE_I2C_GNSS))
+        if (runTest && (zedUartPassed == false))
         {
             tasksStopGnssUart(); // Stop absoring serial via task from GNSS receiver
 

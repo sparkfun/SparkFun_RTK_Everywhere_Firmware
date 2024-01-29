@@ -722,25 +722,12 @@ bool configureUbloxModuleNTP()
         response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
 
         // Ensure PVT, HPPOSLLH and TP messages are being output at 1Hz on the correct port
-        if (USE_I2C_GNSS)
+        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_PVT_I2C, 1);
+        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_I2C, 1);
+        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_TIM_TP_I2C, 1);
+        if (zedModuleType == PLATFORM_F9R)
         {
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_PVT_I2C, 1);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_I2C, 1);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_TIM_TP_I2C, 1);
-            if (zedModuleType == PLATFORM_F9R)
-            {
-                response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_ESF_STATUS_I2C, 1);
-            }
-        }
-        else
-        {
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_PVT_SPI, 1);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_SPI, 1);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_TIM_TP_SPI, 1);
-            if (zedModuleType == PLATFORM_F9R)
-            {
-                response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_ESF_STATUS_SPI, 1);
-            }
+            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_ESF_STATUS_I2C, 1);
         }
 
         response &= theGNSS->sendCfgValset(); // Closing value

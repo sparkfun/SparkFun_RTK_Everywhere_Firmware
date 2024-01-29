@@ -591,37 +591,26 @@ void pinGnssUartTask(void *pvParameters)
         settings.dataPortBaud = 115200;
     }
 
-    // Note: ESP32 2.0.6 does some strange auto-bauding thing here which takes 20s to complete if there is no data for
-    // it to auto-baud.
-    //       That's fine for most RTK products, but causes the Ref Stn to stall for 20s. However, it doesn't stall with
-    //       ESP32 2.0.2... Uncomment these lines to prevent the stall if/when we upgrade to ESP32 ~2.0.6.
-    // #if defined(REF_STN_GNSS_DEBUG)
-    //   if (ENABLE_DEVELOPER && productVariant == REFERENCE_STATION)
-    // #else   // REF_STN_GNSS_DEBUG
-    //   if (USE_I2C_GNSS)
-    // #endif  // REF_STN_GNSS_DEBUG
+    if (serialGNSS == nullptr)
+        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+
+    serialGNSS->setRxBufferSize(
+        settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
+    serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
+
+    if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
     {
-        if (serialGNSS == nullptr)
-            serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
-
-        serialGNSS->setRxBufferSize(
-            settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
-        serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
-
-        if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
-        {
-            reportFatalError("Illegal UART pin assignment.");
-        }
-
-        serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
-                          pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
-                                            // to output NMEA over its UART at the same rate.
-
-        // Reduce threshold value above which RX FIFO full interrupt is generated
-        // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
-        // serialGNSS->setRxFIFOFull(50); //Available in >v2.0.5
-        uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
+        reportFatalError("Illegal UART pin assignment.");
     }
+
+    serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
+                      pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
+                                        // to output NMEA over its UART at the same rate.
+
+    // Reduce threshold value above which RX FIFO full interrupt is generated
+    // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
+    // serialGNSS->setRxFIFOFull(50); //Available in >v2.0.5
+    uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
 
     gnssUartpinned = true;
 
