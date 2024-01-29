@@ -48,18 +48,14 @@ void beepDuration(uint16_t lengthMs)
 
 void beepOn()
 {
-    if (pin_beeper >= 0)
-    {
+    if (pin_beeper != PIN_UNDEFINED)
         digitalWrite(pin_beeper, HIGH);
-    }
 }
 
 void beepOff()
 {
-    if (pin_beeper >= 0)
-    {
+    if (pin_beeper != PIN_UNDEFINED)
         digitalWrite(pin_beeper, LOW);
-    }
 }
 
 // Update Battery level LEDs every 5s
@@ -222,6 +218,9 @@ void setMuxport(int channelNumber)
 
     if (channelNumber > 3)
         return; // Error check
+
+    if(pin_muxA == PIN_UNDEFINED || pin_muxB == PIN_UNDEFINED)
+        reportFatalError("Illegal MUX pin assignment.");
 
     switch (channelNumber)
     {
