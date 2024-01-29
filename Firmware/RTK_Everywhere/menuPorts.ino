@@ -1,16 +1,13 @@
 void menuPorts()
 {
-    if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
-        menuPortsSurveyor();
-    else if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS || productVariant == RTK_FACET ||
-             productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+    if(present.portDataMux == true)
         menuPortsMultiplexed();
     else
-        systemPrintln("No ports menu for this platform");
+        menuPorts();
 }
 
 // Set the baud rates for the radio and data ports
-void menuPortsSurveyor()
+void menuPorts()
 {
     while (1)
     {
