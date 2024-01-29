@@ -269,7 +269,7 @@ void createNMEASentence(customNmeaType_e textID, char *nmeaMessage, size_t sizeO
 void settingsToDefaults()
 {
     static const Settings defaultSettings;
-    memcpy(&settings, &defaultSettings, sizeof(defaultSettings));
+    settings = defaultSettings;
 }
 
 // Given a spot in the ubxMsg array, return true if this message is supported on this platform and firmware version
