@@ -195,7 +195,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         webserver->on("/src/rtk-setup.png", HTTP_GET, [](AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
-            if ((productVariant == RTK_EVK)
+            if (productVariant == RTK_EVK)
                 response = request->beginResponse_P(200, "image/png", rtkSetup_png, sizeof(rtkSetup_png));
             else
                 response = request->beginResponse_P(200, "image/png", rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
@@ -1428,7 +1428,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 
         // If update is successful, it will force system reset and not get here.
 
-        if (productVariant == RTK_EVK))
+        if (productVariant == RTK_EVK)
             requestChangeState(STATE_BASE_NOT_STARTED); // If update failed, return to Base mode.
         else
             requestChangeState(STATE_ROVER_NOT_STARTED); // If update failed, return to Rover mode.
