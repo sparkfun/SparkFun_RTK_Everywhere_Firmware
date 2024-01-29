@@ -2399,8 +2399,7 @@ void paintSystemTest()
             else
                 oled->print("FAIL");
 
-            if (productVariant == RTK_EXPRESS || productVariant == RTK_EXPRESS_PLUS || productVariant == RTK_FACET ||
-                productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+            if (present.portDataMux == true)
             {
                 oled->setCursor(xOffset, yOffset + (4 * charHeight)); // x, y
                 oled->print("Mux:");

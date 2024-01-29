@@ -74,8 +74,7 @@ typedef uint8_t RtkMode_t;
 
 typedef enum
 {
-    RTK_EXPRESS = 0,
-    RTK_FACET,
+    RTK_FACET = 0,
     RTK_EXPRESS_PLUS,
     RTK_FACET_LBAND,
     REFERENCE_STATION,
@@ -91,7 +90,6 @@ ProductVariant productVariant = RTK_FACET;
 
 const char * const productDisplayNames[] =
 {
-    "Express",
     "Facet",
     "Express+",
     "Facet LB",
@@ -108,7 +106,6 @@ const int productDisplayNamesEntries = sizeof (productDisplayNames) / sizeof(pro
 
 const char * const platformFilePrefixTable[] =
 {
-    "SFE_Express",
     "SFE_Facet",
     "SFE_Express_Plus",
     "SFE_Facet_LBand",
@@ -125,7 +122,6 @@ const int platformFilePrefixTableEntries = sizeof (platformFilePrefixTable) / si
 
 const char * const platformPrefixTable[] =
 {
-    "Express",
     "Facet",
     "Express Plus",
     "Facet L-Band",
@@ -142,7 +138,6 @@ const int platformPrefixTableEntries = sizeof (platformPrefixTable) / sizeof(pla
 
 const char * const platformProvisionTable[] =
 {
-    "Express",
     "Facet",
     "Express Plus",
     "Facet LBand",
@@ -159,7 +154,6 @@ const int platformProvisionTableEntries = sizeof (platformProvisionTable) / size
 
 const SystemState platformPreviousStateTable[] =
 {
-    STATE_ROVER_NOT_STARTED,    // Express
     STATE_ROVER_NOT_STARTED,    // Facet
     STATE_ROVER_NOT_STARTED,    // Express Plus
     STATE_ROVER_NOT_STARTED,    // Facet L-Band
@@ -183,7 +177,6 @@ typedef enum
 
 const GnssPlatform platformGnssTable[] =
 {
-    PLATFORM_ZED,   // Express
     PLATFORM_ZED,   // Facet
     PLATFORM_ZED,   // Express Plus
     PLATFORM_ZED,   // Facet L-Band
