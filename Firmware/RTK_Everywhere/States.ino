@@ -94,18 +94,7 @@ void stateUpdate()
                 return;
             }
 
-            if (productVariant == RTK_SURVEYOR)
-            {
-                digitalWrite(pin_baseStatusLED, LOW);
-                digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-                ledcWrite(ledBtChannel, 0); // Turn off BT LED
-            }
-
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
-                // Turn off the status LED
-                digitalWrite(pin_baseStatusLED, LOW);
+            baseStatusLedOff();
 
             // Configure for rover mode
             displayRoverStart(0);
@@ -236,19 +225,7 @@ void stateUpdate()
             if (online.gnss == false)
                 return;
 
-            // Turn off base LED until we successfully enter temp/fix state
-            if (productVariant == RTK_SURVEYOR)
-            {
-                digitalWrite(pin_baseStatusLED, LOW);
-                digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-                ledcWrite(ledBtChannel, 0); // Turn off BT LED
-            }
-
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
-                // Turn off the status LED
-                digitalWrite(pin_baseStatusLED, LOW);
+            baseStatusLedOff();
 
             displayBaseStart(0); // Show 'Base'
 
@@ -290,10 +267,7 @@ void stateUpdate()
             {
                 lastBaseLEDupdate = millis();
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVK))
-                    // Toggle the base/status LED
-                    digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
+                baseStatusLedBlink(); // Toggle the base/status LED
             }
 
             int siv = gnssGetSatellitesInView();
@@ -329,10 +303,7 @@ void stateUpdate()
             {
                 lastBaseLEDupdate = millis();
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVK))
-                    // Toggle the base/status LED
-                    digitalWrite(pin_baseStatusLED, !digitalRead(pin_baseStatusLED));
+                baseStatusLedBlink(); // Toggle the base/status LED
             }
 
             // Get the data once to avoid duplicate slow responses
@@ -345,10 +316,7 @@ void stateUpdate()
                 systemPrintf("Observation Time: %d\r\n", observationTime);
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
 
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVK))
-                    // Turn on the base/status LED
-                    digitalWrite(pin_baseStatusLED, HIGH); // Indicate survey complete
+                baseStatusLedOn(); // Indicate survey complete
 
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
@@ -418,10 +386,7 @@ void stateUpdate()
             bool response = gnssFixedBaseStart();
             if (response == true)
             {
-                if ((productVariant == RTK_SURVEYOR) || (productVariant == REFERENCE_STATION) ||
-                    (productVariant == RTK_EVK))
-                    // Turn on the base/status LED
-                    digitalWrite(pin_baseStatusLED, HIGH);
+                baseStatusLedOn(); // Turn on the base/status LED
 
                 radioStart(); // Start internal radio if enabled, otherwise disable
 
@@ -648,19 +613,9 @@ void stateUpdate()
                 bluetoothLedTask.detach(); // Increase BT LED blinker task rate
                 bluetoothLedTask.attach(bluetoothLedTaskPace33Hz,
                                         tickerBluetoothLedUpdate); // Rate in seconds, callback
-
-                if (productVariant == RTK_SURVEYOR)
-                {
-                    digitalWrite(pin_baseStatusLED, LOW);
-                    digitalWrite(pin_positionAccuracyLED_1cm, LOW);
-                    digitalWrite(pin_positionAccuracyLED_10cm, LOW);
-                    digitalWrite(pin_positionAccuracyLED_100cm, LOW);
-                }
             }
 
-            if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
-                // Turn off the status LED
-                digitalWrite(pin_baseStatusLED, LOW);
+            baseStatusLedOff(); // Turn off the status LED
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
 

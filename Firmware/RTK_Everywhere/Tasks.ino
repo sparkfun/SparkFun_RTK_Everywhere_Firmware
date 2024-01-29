@@ -917,16 +917,12 @@ void handleGnssDataTask(void *e)
                     // Force file sync every 60s
                     if (millis() - lastUBXLogSyncTime > 60000)
                     {
-                        if (productVariant == RTK_SURVEYOR)
-                            digitalWrite(pin_baseStatusLED,
-                                         !digitalRead(pin_baseStatusLED)); // Blink LED to indicate logging activity
+                        baseStatusLedBlink(); // Blink LED to indicate logging activity
 
                         ubxFile->sync();
                         ubxFile->updateFileAccessTimestamp(); // Update the file access time & date
 
-                        if (productVariant == RTK_SURVEYOR)
-                            digitalWrite(pin_baseStatusLED,
-                                         !digitalRead(pin_baseStatusLED)); // Return LED to previous state
+                        baseStatusLedBlink(); // Blink LED to indicate logging activity
 
                         lastUBXLogSyncTime = millis();
                     }
