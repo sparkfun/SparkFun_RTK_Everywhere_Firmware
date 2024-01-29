@@ -552,6 +552,7 @@ void beginGnssUart()
         return;
 
     size_t length;
+    TaskHandle_t taskHandle;
 
     // Determine the length of data to be retained in the ring buffer
     // after discarding the oldest data
@@ -574,17 +575,17 @@ void beginGnssUart()
     {
         ringBuffer = (uint8_t *)&rbOffsetArray[rbOffsetEntries];
         rbOffsetArray[0] = 0;
-        if (pinGnssUartTaskHandle == nullptr)
+        if (!online.gnssUartPinned)
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
                 "GnssUartStart", // Just for humans
                 2000,            // Stack Size
                 nullptr,         // Task input parameter
                 0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &pinGnssUartTaskHandle,           // Task handle
+                &taskHandle,     // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-        while (gnssUartpinned == false) // Wait for task to run once
+        while (!online.gnssUartPinned) // Wait for task to run once
             delay(1);
     }
 }
@@ -627,7 +628,7 @@ void pinGnssUartTask(void *pvParameters)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask stopped");
-    gnssUartpinned = true;
+    online.gnssUartPinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
@@ -798,6 +799,8 @@ void beginFuelGauge()
 // Depending on platform and previous power down state, set system state
 void beginSystemState()
 {
+    TaskHandle_t taskHandle;
+
     if (systemState > STATE_NOT_SET)
     {
         systemPrintln("Unknown state - factory reset");
@@ -847,13 +850,13 @@ void beginSystemState()
     }
 
     // Starts task for monitoring button presses
-    if (ButtonCheckTaskHandle == nullptr)
+    if (!online.buttonCheckTaskRunning)
         xTaskCreate(buttonCheckTask,
                     "BtnCheck",          // Just for humans
                     buttonTaskStackSize, // Stack Size
                     nullptr,             // Task input parameter
-                    ButtonCheckTaskPriority,
-                    &ButtonCheckTaskHandle); // Task handle
+                    buttonCheckTaskPriority,
+                    &taskHandle); // Task handle
 }
 
 void beginIdleTasks()
@@ -880,6 +883,8 @@ void beginIdleTasks()
 
 void beginI2C()
 {
+    TaskHandle_t taskHandle;
+
     if (present.display_128x64_i2c1 == true)
     {
         // Display is on I2C bus 1
@@ -895,23 +900,28 @@ void beginI2C()
         while (millis() < i2cPowerUpDelay)
             ;
 
-    if (pinI2CTaskHandle == nullptr)
+    if (!online.i2cPinned)
         xTaskCreatePinnedToCore(
             pinI2CTask,
             "I2CStart",        // Just for humans
             2000,              // Stack Size
             nullptr,           // Task input parameter
             0,                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &pinI2CTaskHandle, // Task handle
+            &taskHandle,       // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-    while (i2cPinned == false) // Wait for task to run once
+    // Wait for task to run once
+    while (!online.i2cPinned)
         delay(1);
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinI2CTask started");
+
     if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
         reportFatalError("Illegal I2C0 pin assignment.");
 
@@ -928,7 +938,10 @@ void pinI2CTask(void *pvParameters)
         i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
     }
 
-    i2cPinned = true;
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinI2CTask stopped");
+    online.i2cPinned = true;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
