@@ -96,6 +96,10 @@ void btReadTask(void *e)
 {
     int rxBytes;
 
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task btReadTask started");
+
     while (true)
     {
         // Display an alive message
@@ -185,6 +189,10 @@ void btReadTask(void *e)
         feedWdt();
         taskYIELD();
     } // End while(true)
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task btReadTask stopped");
 }
 
 // Add byte to buffer that will be sent to GNSS
@@ -274,6 +282,10 @@ void gnssReadTask(void *e)
 {
     static PARSE_STATE parse = {gpsMessageParserFirstByte, processUart1Message, "Log"};
 
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task gnssReadTask started");
+
     while (true)
     {
         // Display an alive message
@@ -311,6 +323,10 @@ void gnssReadTask(void *e)
         feedWdt();
         taskYIELD();
     }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task gnssReadTask stopped");
 }
 
 // Call back from within parser, for end of message
@@ -654,6 +670,10 @@ void handleGnssDataTask(void *e)
     uint32_t startMillis;
     int32_t usedSpace;
 
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task handleGnssDataTask started");
+
     // Initialize the tails
     btRingBufferTail = 0;
     pvtClientZeroTail();
@@ -946,6 +966,10 @@ void handleGnssDataTask(void *e)
         delay(1);
         taskYIELD();
     }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task handleGnssDataTask stopped");
 }
 
 // Control Bluetooth LED on variants
@@ -1063,9 +1087,13 @@ void tickerBeepUpdate()
 }
 
 // For RTK Express and RTK Facet, monitor momentary buttons
-void ButtonCheckTask(void *e)
+void buttonCheckTask(void *e)
 {
     uint8_t index;
+
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task buttonCheckTask started");
 
     if (userBtn != nullptr)
         userBtn->begin();
@@ -1252,6 +1280,10 @@ void ButtonCheckTask(void *e)
         delay(1); // Poor man's way of feeding WDT. Required to prevent Priority 1 tasks from causing WDT reset
         taskYIELD();
     }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task buttonCheckTask stopped");
 }
 
 void idleTask(void *e)
@@ -1260,6 +1292,10 @@ void idleTask(void *e)
     uint32_t idleCount = 0;
     uint32_t lastDisplayIdleTime = 0;
     uint32_t lastStackPrintTime = 0;
+
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintf("Task idleTask%d started\r\n", cpu);
 
     while (1)
     {
@@ -1300,6 +1336,10 @@ void idleTask(void *e)
 
         // The idle task should NOT delay or yield
     }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintf("Task idleTask%d stopped\r\n", cpu);
 }
 
 // Serial Read/Write tasks for the GNSS receiver must be started after BT is up and running otherwise
@@ -1379,6 +1419,10 @@ void tasksStopGnssUart()
 // Once the size check is complete, the task is removed
 void sdSizeCheckTask(void *e)
 {
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task sdSizeCheckTask started");
+
     while (true)
     {
         // Display an alive message
@@ -1431,6 +1475,10 @@ void sdSizeCheckTask(void *e)
         delay(1);
         taskYIELD(); // Let other tasks run
     }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task sdSizeCheckTask stopped");
 }
 
 // Validate the task table lengths

@@ -588,6 +588,10 @@ void beginGnssUart()
 // https://github.com/espressif/arduino-esp32/issues/3386
 void pinGnssUartTask(void *pvParameters)
 {
+    // Start notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinGnssUartTask started");
+
     if (productVariant == RTK_TORCH)
     {
         // Override user setting. Required because beginGnssUart() is called before beginBoard().
@@ -615,8 +619,10 @@ void pinGnssUartTask(void *pvParameters)
     // serialGNSS->setRxFIFOFull(50); //Available in >v2.0.5
     uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
 
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task pinGnssUartTask stopped");
     gnssUartpinned = true;
-
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
@@ -837,7 +843,7 @@ void beginSystemState()
 
     // Starts task for monitoring button presses
     if (ButtonCheckTaskHandle == nullptr)
-        xTaskCreate(ButtonCheckTask,
+        xTaskCreate(buttonCheckTask,
                     "BtnCheck",          // Just for humans
                     buttonTaskStackSize, // Stack Size
                     nullptr,             // Task input parameter
