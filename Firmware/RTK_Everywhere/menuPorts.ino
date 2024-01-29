@@ -3,11 +3,11 @@ void menuPorts()
     if(present.portDataMux == true)
         menuPortsMultiplexed();
     else
-        menuPorts();
+        menuPortsNoMux();
 }
 
 // Set the baud rates for the radio and data ports
-void menuPorts()
+void menuPortsNoMux()
 {
     while (1)
     {
