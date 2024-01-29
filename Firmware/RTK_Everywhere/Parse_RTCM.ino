@@ -4,13 +4,10 @@ Parse_RTCM.ino
   RTCM message parsing support routines
 ------------------------------------------------------------------------------*/
 
-#include "rtk_crc24q.h" // 24-bit CRC-24Q cyclic redundancy checksum for RTCM parsing
-
 //----------------------------------------
 // Macros
 //----------------------------------------
 
-#define COMPUTE_CRC24Q(parse, data) (((parse)->crc << 8) ^ rtk_crc24q[data ^ (((parse)->crc >> 16) & 0xff)])
 
 //----------------------------------------
 // RTCM parse routines
