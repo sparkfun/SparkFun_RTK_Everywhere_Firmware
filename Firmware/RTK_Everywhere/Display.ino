@@ -158,7 +158,7 @@ void beginDisplay(TwoWire *i2cBus)
     // Display may still be powering up
     // Try multiple times to communicate then display logo
     int maxTries = 3;
-    for (int x = 0; x < maxTries; x++)
+    for (int tries = 0; tries < maxTries; tries++)
     {
         if (oled->begin(*i2cBus, i2cAddress) == true)
         {
