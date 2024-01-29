@@ -142,7 +142,7 @@ int pin_usbSelect = PIN_UNDEFINED;
 int pin_beeper = PIN_UNDEFINED;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// I2C for GNSS, battery gauge, display, accelerometer
+// I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h>
 TwoWire *i2c_0 = &Wire;
@@ -525,12 +525,6 @@ const int gnssTaskUpdatesHz = 20; // Update GNSS LED 20 times a second
 
 Ticker beepTask;
 const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest duration = 50ms.
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-// Accelerometer for bubble leveling
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include "SparkFun_LIS2DH12.h" //Click here to get the library: http://librarymanager/All#SparkFun_LIS2DH12
-SPARKFUN_LIS2DH12 accel;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Buttons - Interrupt driven and debounce
@@ -984,8 +978,8 @@ void setup()
     DMW_b("beginI2C");
     beginI2C(); // Requires settings.
 
-    DMW_b("powerDisplay");
-    powerDisplay(); // Enable power for the display
+    DMW_b("peripheralsOn");
+    peripheralsOn(); // Enable power for the display, SD, etc
 
     DMW_b("beginDisplay");
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
@@ -1032,9 +1026,6 @@ void setup()
 
     DMW_b("ethernetBegin");
     ethernetBegin(); // Requires settings. Start up the Ethernet connection
-
-    DMW_b("beginAccelerometer");
-    beginAccelerometer();
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band

@@ -95,6 +95,9 @@ void identifyBoard()
         present.microSdCardDetect = true;
         present.display_128x64_i2c1 = true;
         present.button_setup = true;
+        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
+        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.antennaDetection = true;
 
         productVariant = RTK_EVK;
     }
@@ -136,18 +139,18 @@ void identifyBoard()
 }
 
 // Turn on power for the display before beginDisplay
-void powerDisplay()
+void peripheralsOn()
 {
-    if (present.display_128x64_i2c1)
+    if (present.peripheralPowerControl)
     {
-        if (productVariant == RTK_EVK)
-        {
-            // Turn on power to the I2C_1 bus
-            DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
-            pinMode(pin_peripheralPowerControl, OUTPUT);
-            digitalWrite(pin_peripheralPowerControl, HIGH);
-            i2cPowerUpDelay = millis() + 860;
-        }
+        digitalWrite(pin_peripheralPowerControl, HIGH);
+    }
+}
+void peripheralsOff()
+{
+    if (present.peripheralPowerControl)
+    {
+        digitalWrite(pin_peripheralPowerControl, LOW);
     }
 }
 
@@ -264,12 +267,19 @@ void beginBoard()
         DMW_if systemPrintf("pin_baseStatusLED: %d\r\n", pin_baseStatusLED);
         pinMode(pin_baseStatusLED, OUTPUT);
         baseStatusLedOff();
+
+        // Turn on power to the I2C_1 bus
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
+
+        i2cPowerUpDelay = millis() + 860;
     }
     else if (productVariant == RTK_FACET_V2)
     {
         pin_muxA = 2;
         pin_muxB = 0;
-        
+
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
     }
@@ -750,7 +760,7 @@ void beginLEDs()
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if(present.battery_max17048 == false && present.battery_bq40z50 == false)
+    if (present.battery_max17048 == false && present.battery_bq40z50 == false)
         return;
 
     if (present.battery_max17048 == true)
@@ -790,7 +800,7 @@ void beginFuelGauge()
     else if (present.battery_bq40z50 == true)
     {
         online.battery = true;
-        //TODO
+        // TODO
     }
 }
 
@@ -810,8 +820,7 @@ void beginSystemState()
         settings.lastState = systemState;
     }
 
-    if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND ||
-             productVariant == RTK_FACET_LBAND_DIRECT)
+    if (productVariant == RTK_FACET || productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
     {
         if (online.lband == false)
             systemState =
@@ -827,7 +836,7 @@ void beginSystemState()
         powerBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
         // Allocation failure handled in ButtonCheckTask
     }
-    else if ((productVariant == REFERENCE_STATION) || (productVariant == RTK_EVK))
+    else if (productVariant == RTK_EVK)
     {
         systemState =
             settings

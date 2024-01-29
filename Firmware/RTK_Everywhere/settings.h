@@ -1288,9 +1288,11 @@ struct struct_present
     bool battery_bq40z50 = false;
 
     bool beeper = false;
-
     bool encryption_atecc608a = false;
     bool portDataMux = false;
+    bool peripheralPowerControl = false;
+    bool laraPowerControl = false;
+    bool antennaDetection = false;
 
     bool button_setup = false;
     bool button_power = false;
