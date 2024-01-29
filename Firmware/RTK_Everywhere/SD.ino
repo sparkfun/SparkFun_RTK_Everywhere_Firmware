@@ -144,7 +144,7 @@ bool sdCardPresentSoftwareTest()
     SPI.setBitOrder(MSBFIRST);
 
     // Sending clocks while card power stabilizes...
-    deselectSdCard();             // always make sure
+    sdDeselectCard();             // always make sure
     for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
         xchg(0xff);
 
@@ -190,9 +190,9 @@ byte sdSendCommand(byte command, unsigned long arg)
             return (response);
     }
 
-    deselectSdCard();
+    sdDeselectCard();
     xchg(0xFF);
-    selectSdCard(); // enable CS
+    sdSelectCard(); // enable CS
     xchg(0xFF);
 
     xchg(command | 0x40);    // command always has bit 6 set!
@@ -224,7 +224,7 @@ byte sdSendCommand(byte command, unsigned long arg)
     if ((command != SD_READ_OCR) && (command != SD_SEND_STATUS) && (command != SD_SEND_IF_COND) &&
         (command != SD_LOCK_UNLOCK))
     {
-        deselectSdCard(); // all done
+        sdDeselectCard(); // all done
         xchg(0xFF);       // close with eight more clocks
     }
 
@@ -232,13 +232,13 @@ byte sdSendCommand(byte command, unsigned long arg)
 }
 
 // Select (enable) the SD card
-void selectSdCard(void)
+void sdSelectCard(void)
 {
     digitalWrite(pin_microSD_CS, LOW);
 }
 
 // Deselect (disable) the SD card
-void deselectSdCard(void)
+void sdDeselectCard(void)
 {
     digitalWrite(pin_microSD_CS, HIGH);
 }
