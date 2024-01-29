@@ -1946,7 +1946,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD3);
 
-            managerTempFile->sdUpdateFileCreateTimestamp(); // Update the file create time & date
+            sdUpdateFileCreateTimestamp(managerTempFile); // Update the file create time & date
 
             managerTempFile->close();
 

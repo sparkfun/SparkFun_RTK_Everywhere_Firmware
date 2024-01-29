@@ -934,7 +934,7 @@ void ntpServerUpdate()
                                 if (ntpFile && ntpFile.open(fileName, O_APPEND | O_WRITE))
                                 {
                                     fileOpen = true;
-                                    ntpFile.sdUpdateFileCreateTimestamp();
+                                    sdUpdateFileCreateTimestamp(&ntpFile);
                                 }
                             }
                             else
@@ -942,7 +942,7 @@ void ntpServerUpdate()
                                 if (ntpFile && ntpFile.open(fileName, O_CREAT | O_WRITE))
                                 {
                                     fileOpen = true;
-                                    ntpFile.updateFileAccessTimestamp();
+                                    sdUpdateFileAccessTimestamp(&ntpFile);
 
                                     // If you want to add a file header, do it here
                                 }
@@ -954,7 +954,7 @@ void ntpServerUpdate()
                                 ntpFile.write((const uint8_t *)ntpDiag, strlen(ntpDiag));
 
                                 // Update the file to create time & date
-                                ntpFile.sdUpdateFileCreateTimestamp();
+                                sdUpdateFileCreateTimestamp(&ntpFile);
 
                                 // Close the mark file
                                 ntpFile.close();
