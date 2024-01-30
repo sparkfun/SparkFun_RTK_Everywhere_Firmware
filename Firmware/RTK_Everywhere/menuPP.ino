@@ -1278,7 +1278,7 @@ void menuPointPerfect()
         systemPrint("1) PointPerfect Corrections: ");
         if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
             systemPrintln("L-Band and IP");
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
             systemPrintln("IP");
         else
             systemPrintln("Disabled");
