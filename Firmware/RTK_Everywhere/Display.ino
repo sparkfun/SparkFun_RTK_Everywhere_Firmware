@@ -418,9 +418,6 @@ void displayUpdate()
             case (STATE_PROFILE):
                 paintProfile(displayProfile);
                 break;
-            case (STATE_MARK_EVENT):
-                // Do nothing. Static display shown during state change.
-                break;
             case (STATE_DISPLAY_SETUP):
                 paintDisplaySetup();
                 break;

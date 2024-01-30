@@ -67,13 +67,7 @@ void menuLog()
             }
         }
 
-        systemPrint("7) Write Marks_date.csv file to microSD: ");
-        if (settings.enableMarksFile == true)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
-
-        systemPrint("8) Reset system if the SD card is detected but fails to initialize: ");
+        systemPrint("7) Reset system if the SD card is detected but fails to initialize: ");
         if (settings.forceResetOnSDFail == true)
             systemPrintln("Enabled");
         else
@@ -81,7 +75,7 @@ void menuLog()
 
         if (HAS_ETHERNET)
         {
-            systemPrint("9) Write NTP requests to microSD: ");
+            systemPrint("8) Write NTP requests to microSD: ");
             if (settings.enableNTPFile == true)
                 systemPrintln("Enabled");
             else
@@ -131,13 +125,9 @@ void menuLog()
         }
         else if (incoming == 7)
         {
-            settings.enableMarksFile ^= 1;
-        }
-        else if (incoming == 8)
-        {
             settings.forceResetOnSDFail ^= 1;
         }
-        else if ((HAS_ETHERNET) && (incoming == 9))
+        else if ((HAS_ETHERNET) && (incoming == 8))
         {
             settings.enableNTPFile ^= 1;
         }

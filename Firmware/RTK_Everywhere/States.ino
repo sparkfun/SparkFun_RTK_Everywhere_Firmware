@@ -412,175 +412,6 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_MARK_EVENT): {
-            bool logged = false;
-            bool marked = false;
-
-            // Gain access to the SPI controller for the microSD card
-            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
-            {
-                markSemaphore(FUNCTION_MARKEVENT);
-
-                // Record this user event to the log
-                if (online.logging == true)
-                {
-                    char nmeaMessage[82]; // Max NMEA sentence length is 82
-                    createNMEASentence(CUSTOM_NMEA_TYPE_WAYPOINT, nmeaMessage, sizeof(nmeaMessage),
-                                       (char *)"CustomEvent"); // textID, buffer, sizeOfBuffer, text
-                    ubxFile->println(nmeaMessage);
-                    logged = true;
-                }
-
-                // Record this point to the marks file
-                if (settings.enableMarksFile)
-                {
-                    // Get the marks file name
-                    char fileName[32];
-                    bool fileOpen = false;
-                    char markBuffer[100];
-                    bool sdCardWasOnline;
-                    int rtcYear;
-                    int rtcMonth;
-                    int rtcDay;
-
-                    // Get the date
-                    rtcYear = rtc.getYear();
-                    rtcMonth = rtc.getMonth() + 1;
-                    rtcDay = rtc.getDay();
-
-                    // Build the file name
-                    snprintf(fileName, sizeof(fileName), "/Marks_%04d_%02d_%02d.csv", rtcYear, rtcMonth, rtcDay);
-
-                    // Try to gain access the SD card
-                    sdCardWasOnline = online.microSD;
-                    if (online.microSD != true)
-                        beginSD();
-
-                    if (online.microSD == true)
-                    {
-                        // Check if the marks file already exists
-                        bool marksFileExists = false;
-                        marksFileExists = sd->exists(fileName);
-
-                        // Open the marks file
-                        SdFile marksFile;
-
-                        if (marksFileExists)
-                        {
-                            if (marksFile && marksFile.open(fileName, O_APPEND | O_WRITE))
-                            {
-                                fileOpen = true;
-                                sdUpdateFileCreateTimestamp(&marksFile);
-                            }
-                        }
-                        else
-                        {
-                            if (marksFile && marksFile.open(fileName, O_CREAT | O_WRITE))
-                            {
-                                fileOpen = true;
-                                sdUpdateFileAccessTimestamp(&marksFile);
-
-                                // Add the column headers
-                                // YYYYMMDDHHMMSS, Lat: xxxx, Long: xxxx, Alt: xxxx, SIV: xx, HPA: xxxx, Batt: xxx
-                                //                            1         2         3         4         5         6 7 8 9
-                                //                   1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901
-                                strcpy(markBuffer, "Date, Time, Latitude, Longitude, Altitude Meters, SIV, HPA Meters, "
-                                                   "Battery Level, Voltage\n");
-                                marksFile.write((const uint8_t *)markBuffer, strlen(markBuffer));
-                            }
-                        }
-
-                        if (fileOpen)
-                        {
-                            // Create the mark text
-                            //          1         2         3         4         5         6         7         8
-                            // 12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
-                            // YYYY-MM-DD, HH:MM:SS, ---Latitude---, --Longitude---, --Alt--,SIV, --HPA---,Level,Volts\n
-                            if (gnssGetHorizontalAccuracy() >= 100.)
-                                snprintf(
-                                    markBuffer, sizeof(markBuffer),
-                                    "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.0f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
-                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
-                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
-                            else if (gnssGetHorizontalAccuracy() >= 10.)
-                                snprintf(
-                                    markBuffer, sizeof(markBuffer),
-                                    "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.1f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
-                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
-                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
-                            else if (gnssGetHorizontalAccuracy() >= 1.)
-                                snprintf(
-                                    markBuffer, sizeof(markBuffer),
-                                    "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.2f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
-                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
-                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
-                            else
-                                snprintf(
-                                    markBuffer, sizeof(markBuffer),
-                                    "%04d-%02d-%02d, %02d:%02d:%02d, %14.9f, %14.9f, %7.1f, %2d, %8.3f, %3d%%, %4.2f\n",
-                                    gnssGetYear(), gnssGetMonth(), gnssGetDay(), rtc.getHour(true), rtc.getMinute(),
-                                    rtc.getSecond(), gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(),
-                                    gnssGetSatellitesInView(), gnssGetHorizontalAccuracy(), battLevel, battVoltage);
-
-                            // Write the mark to the file
-                            marksFile.write((const uint8_t *)markBuffer, strlen(markBuffer));
-
-                            // Update the file to create time & date
-                            sdUpdateFileCreateTimestamp(&marksFile);
-
-                            // Close the mark file
-                            marksFile.close();
-
-                            marked = true;
-                        }
-
-                        // Dismount the SD card
-                        if (!sdCardWasOnline)
-                            endSD(true, false);
-                    }
-                }
-
-                // Done with the SPI controller
-                xSemaphoreGive(sdCardSemaphore);
-
-                // Record this event to the log
-                if ((online.logging == true) && (settings.enableMarksFile))
-                {
-                    if (logged && marked)
-                        displayEventMarked(500); // Show 'Event Marked'
-                    else if (marked)
-                        displayNoLogging(500); // Show 'No Logging'
-                    else if (logged)
-                        displayNotMarked(500); // Show 'Not Marked'
-                    else
-                        displayMarkFailure(500); // Show 'Mark Failure'
-                }
-                else if (settings.enableMarksFile)
-                {
-                    if (marked)
-                        displayMarked(500); // Show 'Marked'
-                    else
-                        displayNotMarked(500); // Show 'Not Marked'
-                }
-                else if (logged)
-                    displayEventMarked(500); // Show 'Event Marked'
-                else
-                    displayNoLogging(500); // Show 'No Logging'
-
-                // Return to the previous state
-                changeState(lastSystemState);
-            } // End sdCardSemaphore
-            else
-            {
-                // Enable retry by not changing states
-                log_d("sdCardSemaphore failed to yield in STATE_MARK_EVENT");
-            }
-        }
-        break;
-
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 1500)
             {
@@ -1196,8 +1027,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_NOT_STARTED";
     case (STATE_BASE_FIXED_TRANSMITTING):
         return "STATE_BASE_FIXED_TRANSMITTING";
-    case (STATE_MARK_EVENT):
-        return "STATE_MARK_EVENT";
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
     case (STATE_WIFI_CONFIG_NOT_STARTED):
@@ -1331,7 +1160,7 @@ typedef struct _RTK_MODE_ENTRY
 const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-    {"Setup", STATE_MARK_EVENT, STATE_PROFILE},
+    {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
     {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_WIFI_CONNECTED},
     {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
     {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},

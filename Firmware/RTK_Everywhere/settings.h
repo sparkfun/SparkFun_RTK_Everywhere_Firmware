@@ -17,7 +17,6 @@ typedef enum
     STATE_BASE_TEMP_TRANSMITTING,
     STATE_BASE_FIXED_NOT_STARTED,
     STATE_BASE_FIXED_TRANSMITTING,
-    STATE_MARK_EVENT,
     STATE_DISPLAY_SETUP,
     STATE_WIFI_CONFIG_NOT_STARTED,
     STATE_WIFI_CONFIG,
@@ -54,7 +53,7 @@ bool newSystemStateRequested = false;
 
 // The setup display can show a limited set of states
 // When user pauses for X amount of time, system will enter that state
-SystemState setupState = STATE_MARK_EVENT;
+SystemState setupState = STATE_ROVER_NOT_STARTED;
 
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
@@ -966,7 +965,6 @@ typedef struct
     uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
     pulseEdgeType_e externalPulsePolarity = PULSE_RISING_EDGE; // Pulse rises for pulse length, then falls
     bool enableExternalHardwareEventLogging = false;           // Log when INT/TM2 pin goes low
-    bool enableMarksFile = false;                              // Log marks to the marks file
     bool enableUART2UBXIn = false;                             // UBX Protocol In on UART2
 
     uint8_t ubxMessageRates[MAX_UBX_MSG] = {254}; // Mark first record with key so defaults will be applied.

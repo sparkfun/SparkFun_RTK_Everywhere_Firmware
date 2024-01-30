@@ -1234,10 +1234,6 @@ void ButtonCheckTask(void *e)
                         if (!getProfileNumberFromUnit(displayProfile))
                             setupState = STATE_BASE_NOT_STARTED;
                         break;
-                    case STATE_MARK_EVENT: // Skip the warning message if setupState is still in the default Mark
-                                           // Event state
-                        setupState = STATE_BASE_NOT_STARTED;
-                        break;
                     default:
                         systemPrintf("ButtonCheckTask unknown setup state: %d\r\n", setupState);
                         setupState = STATE_BASE_NOT_STARTED;
