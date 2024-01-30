@@ -175,7 +175,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%s\r\n", "zedUniqueId", zedUniqueId);
 
-    if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+    if (present.lband_neo == true)
         settingsFile->printf("%s=%s\r\n", "neoFirmwareVersion", neoFirmwareVersion);
 
     settingsFile->printf("%s=%d\r\n", "printDebugMessages", settings.printDebugMessages);

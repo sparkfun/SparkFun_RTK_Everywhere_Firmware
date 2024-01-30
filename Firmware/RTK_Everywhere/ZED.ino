@@ -354,7 +354,7 @@ bool zedConfigure()
 
     if (commandSupported(UBLOX_CFG_I2CINPROT_SPARTN) == true)
     {
-        if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVK))
+        if (present.lband_neo == true)
             response &=
                 theGNSS->addCfgValset(UBLOX_CFG_I2CINPROT_SPARTN,
                                       1); // We push NEO-D9S correction data (SPARTN) to ZED-F9P over the I2C interface
@@ -991,22 +991,7 @@ bool zedEnableLBandCommunication()
     response &= theGNSS->setRXMCORcallbackPtr(
         &checkRXMCOR); // Enable callback to check if the PMP data is being decrypted successfully
 
-    if (productVariant == RTK_FACET_LBAND_DIRECT)
-    {
-        // Setup for ZED to NEO serial communication
-        response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
-
-        // Disable PMP callback over I2C. Enable UARTs.
-        response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback to push raw PMP over I2C
-
-        response &= i2cLBand.newCfgValset();
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP on NEO's I2C port
-
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 1);         // Enable UBX output on NEO's UART2
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 1); // Output UBX-RXM-PMP on NEO's UART2
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud); // Match baudrate with ZED
-    }
-    else if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVK))
+    if (present.lband_neo == true)
     {
         // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
         // to the ZED. If the user has explicitly disabled I2C corrections, enable a UART connection.
@@ -1474,12 +1459,7 @@ bool zedDisableLBandCommunication()
     response &= theGNSS->setRXMCORcallbackPtr(
         nullptr); // Disable callback to check if the PMP data is being decrypted successfully
 
-    if (productVariant == RTK_FACET_LBAND_DIRECT)
-    {
-        response &= i2cLBand.newCfgValset();
-        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
-    }
-    else if ((productVariant == RTK_FACET_LBAND) || (productVariant == RTK_EVK))
+    if (present.lband_neo == true)
     {
         // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
         // to the ZED. Check if the user has explicitly set I2C corrections.

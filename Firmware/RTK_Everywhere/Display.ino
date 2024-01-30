@@ -2335,7 +2335,7 @@ void paintProfile(uint8_t profileUnit)
 // Display unit self-tests until user presses a button to exit
 // Allows operator to check:
 //  Display alignment
-//  Internal connections to: SD, Accel, Fuel guage, GNSS
+//  Internal connections to: SD, Fuel guage, GNSS
 //  External connections: Loop back test on DATA
 void paintSystemTest()
 {
@@ -2349,7 +2349,9 @@ void paintSystemTest()
             systemTestDisplayNumber %= 2;
         }
 
-        if (systemTestDisplayNumber == 1 || productVariant != RTK_FACET_LBAND)
+        // Tests to run: SD, batt, GNSS firmware, mux, IMU, LBand, LARA
+
+        if (systemTestDisplayNumber == 1)
         {
             int xOffset = 2;
             int yOffset = 2;
@@ -2358,7 +2360,6 @@ void paintSystemTest()
 
             drawFrame(); // Outside edge
 
-            // Test SD, accel, batt, GNSS, mux
             oled->setFont(QW_FONT_5X7);        // Set font to smallest
             oled->setCursor(xOffset, yOffset); // x, y
             oled->print("SD:");
@@ -2462,40 +2463,37 @@ void paintSystemTest()
                 oled->print("OK");
         } // End display 1
 
-        if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+        if (systemTestDisplayNumber == 0)
         {
-            if (systemTestDisplayNumber == 0)
-            {
-                int xOffset = 2;
-                int yOffset = 2;
+            int xOffset = 2;
+            int yOffset = 2;
 
-                int charHeight = 7;
+            int charHeight = 7;
 
-                drawFrame(); // Outside edge
+            drawFrame(); // Outside edge
 
-                // Test ZED Firmware, L-Band
+            // Test ZED Firmware, L-Band
 
-                oled->setFont(QW_FONT_5X7); // Set font to smallest
+            oled->setFont(QW_FONT_5X7); // Set font to smallest
 
-                oled->setCursor(xOffset, yOffset); // x, y
-                oled->print("ZED Firm:");
-                oled->setCursor(xOffset, yOffset + (1 * charHeight)); // x, y
-                oled->print("  ");
-                oled->print(zedFirmwareVersionInt);
-                oled->print("-");
-                if (zedFirmwareVersionInt < 130)
-                    oled->print("FAIL");
-                else
-                    oled->print("OK");
+            oled->setCursor(xOffset, yOffset); // x, y
+            oled->print("ZED Firm:");
+            oled->setCursor(xOffset, yOffset + (1 * charHeight)); // x, y
+            oled->print("  ");
+            oled->print(zedFirmwareVersionInt);
+            oled->print("-");
+            if (zedFirmwareVersionInt < 130)
+                oled->print("FAIL");
+            else
+                oled->print("OK");
 
-                oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
-                oled->print("LBand:");
-                if (online.lband == true)
-                    oled->print("OK");
-                else
-                    oled->print("FAIL");
-            } // End display 0
-        }     // End Facet L-Band testing
+            oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
+            oled->print("LBand:");
+            if (online.lband == true)
+                oled->print("OK");
+            else
+                oled->print("FAIL");
+        } // End display 0
     }
 }
 
@@ -2663,7 +2661,7 @@ void paintDisplaySetup()
                 printTextCenter("CfgWiFi", 12 * 2, QW_FONT_8X16, 1, false);
                 printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
             }
-            else if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+            else if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
             {
                 // If we are on an L-Band unit, scroll GetKeys option
                 printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);

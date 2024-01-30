@@ -395,6 +395,6 @@ void menuConstellations()
 // Print the NEO firmware version
 void printNEOInfo()
 {
-    if (productVariant == RTK_FACET_LBAND || productVariant == RTK_FACET_LBAND_DIRECT)
+    if (present.lband_neo == true)
         systemPrintf("NEO-D9S firmware: %s\r\n", neoFirmwareVersion);
 }
