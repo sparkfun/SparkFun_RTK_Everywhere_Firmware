@@ -706,6 +706,8 @@ void menuDebugSoftware()
             systemPrintln("Enabled");
         else
             systemPrintln("Disabled");
+        systemPrintf("51) Print task start/stop: %s\r\n",
+                     settings.printTaskStartStop ? "Enabled" : "Disabled");
 
         // Automatic Firmware Update
         systemPrintf("60) Print firmware update states: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
@@ -776,6 +778,8 @@ void menuDebugSoftware()
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;
+        else if (incoming == 51)
+            settings.printTaskStartStop ^= 1;
         else if (incoming == 60)
             settings.debugFirmwareUpdate ^= 1;
         else if (incoming == 70)

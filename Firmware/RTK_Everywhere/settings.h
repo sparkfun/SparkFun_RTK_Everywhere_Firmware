@@ -1208,6 +1208,7 @@ typedef struct
 
     bool debugWiFiConfig = false;
     bool enablePsram = false; // Controls if PSRAM is disabled, if it is available
+    bool printTaskStartStop = false;
 
     // Add new settings above <------------------------------------------------------------>
 
