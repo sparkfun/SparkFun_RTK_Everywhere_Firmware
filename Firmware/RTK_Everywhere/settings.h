@@ -481,6 +481,15 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
 
+// All units should be able to obtain corrections over IP
+// Only units with an lband receiver can obtain LBand corrections
+typedef enum
+{
+    POINTPERFECT_CORRECTIONS_DISABLED = 0,
+    POINTPERFECT_CORRECTIONS_IP,
+    POINTPERFECT_CORRECTIONS_LBAND_IP,
+} PointPerfect_Corrections_Source;
+
 // Different ZED modules support different messages (F9P vs F9R vs F9T)
 // Create binary packed struct for different platforms
 typedef enum
@@ -1011,7 +1020,8 @@ typedef struct
 
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
-    bool enablePointPerfectCorrections = true;
+    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
+
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = "";
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
@@ -1137,7 +1147,6 @@ typedef struct
     // MQTT Client (Point Perfect)
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
     bool debugMqttClientState = false; // Debug the MQTT state machine
-    bool enableMqttClient = false;     // Enable the MQTT client
     bool useEuropeCorrections = false; // Use US corrections by default
 
     // NTP

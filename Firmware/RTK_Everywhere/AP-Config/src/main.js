@@ -344,7 +344,7 @@ function parseIncoming(msg) {
         ge("enableNtripServer").dispatchEvent(new CustomEvent('change'));
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
-        ge("enablePointPerfectCorrections").dispatchEvent(new CustomEvent('change'));
+        ge("pointPerfectCorrectionsSource").dispatchEvent(new CustomEvent('change'));
         ge("radioType").dispatchEvent(new CustomEvent('change'));
         ge("antennaReferencePoint").dispatchEvent(new CustomEvent('change'));
         ge("autoIMUmountAlignment").dispatchEvent(new CustomEvent('change'));
@@ -564,7 +564,7 @@ function validateFields() {
 
     //PointPerfect Config
     if (platformPrefix == "Facet L-Band" || platformPrefix == "Facet L-Band Direct") {
-        if (ge("enablePointPerfectCorrections").checked == true) {
+        if (ge("pointPerfectCorrectionsSource").checked == true) {
             value = ge("pointPerfectDeviceProfileToken").value;
             if (value.length > 0)
                 checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
@@ -1135,8 +1135,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("enablePointPerfectCorrections").addEventListener("change", function () {
-        if (ge("enablePointPerfectCorrections").checked) {
+    ge("pointPerfectCorrectionsSource").addEventListener("change", function () {
+        if (ge("pointPerfectCorrectionsSource").checked) {
             show("ppSettingsConfig");
         }
         else {

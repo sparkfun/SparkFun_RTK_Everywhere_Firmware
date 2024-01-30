@@ -132,8 +132,6 @@ void menuGNSS()
 
             systemPrintf("7) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnssGetMinCno());
         }
-        systemPrintf("15) Toggle MQTT Client: %s\r\n", settings.enableMqttClient ? "Enabled" : "Disabled");
-        systemPrintf("16) Toggle MQTT Client corrections: %s\r\n", settings.useEuropeCorrections ? "EU" : "US");
 
         systemPrintln("x) Exit");
 
@@ -306,16 +304,6 @@ void menuGNSS()
                 // We don't know which platform we are using so we cannot explicitly use the settings.minCNO_F9P, eg
                 gnssSetMinCno(minCNO);
             }
-        }
-        else if (incoming == 15)
-        {
-            settings.enableMqttClient ^= 1;
-            restartRover = true;
-        }
-        else if (incoming == 16)
-        {
-            settings.useEuropeCorrections ^= 1;
-            restartRover = true;
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

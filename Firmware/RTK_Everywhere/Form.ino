@@ -794,7 +794,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "daysRemaining", apDaysRemaining);
 
     stringRecord(newSettings, "pointPerfectDeviceProfileToken", settings.pointPerfectDeviceProfileToken);
-    stringRecord(newSettings, "enablePointPerfectCorrections", settings.enablePointPerfectCorrections);
+    stringRecord(newSettings, "pointPerfectCorrectionsSource", (int)settings.pointPerfectCorrectionsSource);
     stringRecord(newSettings, "autoKeyRenewal", settings.autoKeyRenewal);
 
     // External PPS/Triggers
@@ -1237,8 +1237,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.serialTimeoutGNSS = settingValue;
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         strcpy(settings.pointPerfectDeviceProfileToken, settingValueStr);
-    else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
-        settings.enablePointPerfectCorrections = settingValueBool;
+    else if (strcmp(settingName, "pointPerfectCorrectionsSource") == 0)
+        settings.pointPerfectCorrectionsSource = (PointPerfect_Corrections_Source)settingValue;
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         settings.autoKeyRenewal = settingValueBool;
     else if (strcmp(settingName, "antennaHeight") == 0)

@@ -151,12 +151,16 @@ bool mqttClientConnectLimitReached()
     // Retry the connection a few times
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
 
+    bool enableMqttClient = true;
+    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+        enableMqttClient = false;
+
     // Attempt to restart the network if possible
-    if (settings.enableMqttClient && (!limitReached))
+    if (enableMqttClient && (!limitReached))
         networkRestart(NETWORK_USER_MQTT_CLIENT);
 
     // Restart the MQTT client
-    mqttClientStop(limitReached || (!settings.enableMqttClient));
+    mqttClientStop(limitReached || (!enableMqttClient));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -233,8 +237,12 @@ void mqttClientPrintStatus()
     byte minutes;
     byte seconds;
 
+    bool enableMqttClient = true;
+    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+        enableMqttClient = false;
+
     // Display MQTT Client status and uptime
-    if (settings.enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
+    if (enableMqttClient && (EQ_RTK_MODE(mqttClientMode)))
     {
         systemPrint("MQTT Client ");
         mqttClientPrintStateSummary();
@@ -430,7 +438,7 @@ void mqttClientStop(bool shutdown)
     if (shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);
-        settings.enableMqttClient = false;
+        settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
     }
@@ -443,9 +451,13 @@ void mqttClientStop(bool shutdown)
 // MQTT_CLIENT_RECEIVE_DATA_TIMEOUT
 void mqttClientUpdate()
 {
+    bool enableMqttClient = true;
+    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+        enableMqttClient = false;
+
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
-    if (NEQ_RTK_MODE(mqttClientMode) || (!settings.enableMqttClient))
+    if (NEQ_RTK_MODE(mqttClientMode) || (!enableMqttClient))
     {
         if (mqttClientState > MQTT_CLIENT_OFF)
         {
@@ -462,7 +474,7 @@ void mqttClientUpdate()
     {
     default:
     case MQTT_CLIENT_OFF: {
-        if (EQ_RTK_MODE(mqttClientMode) && settings.enableMqttClient)
+        if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
             mqttClientStart();
         break;
     }

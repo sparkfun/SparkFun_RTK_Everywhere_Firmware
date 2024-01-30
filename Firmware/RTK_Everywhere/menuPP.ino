@@ -91,7 +91,8 @@ void menuPointPerfectKeys()
         if (incoming == 1)
         {
             systemPrint("Enter Device Profile Token: ");
-            getUserInputString(settings.pointPerfectDeviceProfileToken, sizeof(settings.pointPerfectDeviceProfileToken));
+            getUserInputString(settings.pointPerfectDeviceProfileToken,
+                               sizeof(settings.pointPerfectDeviceProfileToken));
         }
         else if (incoming == 2)
         {
@@ -1272,9 +1273,13 @@ void menuPointPerfect()
         else
             systemPrintln("No keys");
 
-        systemPrint("1) Use PointPerfect Corrections: ");
-        if (settings.enablePointPerfectCorrections == true)
-            systemPrintln("Enabled");
+        // All units should be able to obtain corrections over IP
+        // Only units with an lband receiver can obtain LBand corrections
+        systemPrint("1) PointPerfect Corrections: ");
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+            systemPrintln("L-Band and IP");
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            systemPrintln("IP");
         else
             systemPrintln("Disabled");
 
@@ -1301,8 +1306,26 @@ void menuPointPerfect()
 
         if (incoming == 1)
         {
-            settings.enablePointPerfectCorrections ^= 1;
+
+            // We have three states: disabled, Ip only, Ip+Lband (if supported)
+            if (present.lband_neo == true || present.gnss_mosaic == true)
+            {
+                if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
+                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND_IP;
+                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
+            }
+            else // No L-Band support
+            {
+                if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
+                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
+            }
         }
+
         else if (incoming == 2)
         {
             settings.autoKeyRenewal ^= 1;

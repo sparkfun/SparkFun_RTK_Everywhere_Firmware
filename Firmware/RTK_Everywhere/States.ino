@@ -694,7 +694,7 @@ void stateUpdate()
             forceSystemStateUpdate = true; // Immediately go to this new state
 
             // If user has turned off PointPerfect, skip everything
-            if (settings.enablePointPerfectCorrections == false)
+            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
             {
                 changeState(settings.lastState); // Go to either rover or base
             }
