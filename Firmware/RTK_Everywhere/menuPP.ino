@@ -1063,11 +1063,6 @@ void pointperfectApplyKeys()
         }
 
         // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
-        if (zedModuleType != PLATFORM_F9P)
-        {
-            systemPrintln("Error: PointPerfect corrections currently only supported on the ZED-F9P.");
-            return;
-        }
         if (zedFirmwareVersionInt < 130)
         {
             systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "

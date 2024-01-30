@@ -180,16 +180,9 @@ void zedBegin()
             zedFirmwareVersionInt = 99; // 0.99 invalid firmware version
         }
 
-        // Determine if we have a ZED-F9P (Express/Facet) or an ZED-F9R (Express Plus/Facet Plus)
-        if (strstr(theGNSS->getModuleName(), "ZED-F9P") != nullptr)
-            zedModuleType = PLATFORM_F9P;
-        else if (strstr(theGNSS->getModuleName(), "ZED-F9R") != nullptr)
-            zedModuleType = PLATFORM_F9R;
-        else
-        {
+        // Determine if we have a ZED-F9P or an ZED-F9R
+        if (strstr(theGNSS->getModuleName(), "ZED-F9P") == nullptr)
             systemPrintf("Unknown ZED module: %s\r\n", theGNSS->getModuleName());
-            zedModuleType = PLATFORM_F9P;
-        }
 
         if (strcmp(theGNSS->getFirmwareType(), "HPG") == 0)
             if ((theGNSS->getFirmwareVersionHigh() == 1) && (theGNSS->getFirmwareVersionLow() < 30))
@@ -376,14 +369,9 @@ bool zedConfigure()
 
     if (commandSupported(UBLOX_CFG_NAVSPG_INFIL_MINCNO) == true)
     {
-        if (zedModuleType == PLATFORM_F9R)
-            response &= theGNSS->addCfgValset(
-                UBLOX_CFG_NAVSPG_INFIL_MINCNO,
-                settings.minCNO_F9R); // Set minimum satellite signal level for navigation - default 20
-        else
-            response &= theGNSS->addCfgValset(
-                UBLOX_CFG_NAVSPG_INFIL_MINCNO,
-                settings.minCNO_F9P); // Set minimum satellite signal level for navigation - default 6
+        response &=
+            theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
+                                  settings.minCNO_F9P); // Set minimum satellite signal level for navigation - default 6
     }
 
     if (commandSupported(UBLOX_CFG_NAV2_OUT_ENABLED) == true)
@@ -467,12 +455,6 @@ bool zedConfigure()
         }
     }
 
-    if (zedModuleType == PLATFORM_F9R)
-    {
-        response &= theGNSS->setAutoESFSTATUS(
-            true, false); // Tell the GPS to "send" each ESF Status, but do not update stale data when accessed
-    }
-
     return (response);
 }
 
@@ -532,24 +514,21 @@ bool zedConfigureRover()
         // Find first RTCM record in ubxMessage array
         int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
 
-        if (zedModuleType == PLATFORM_F9P)
-        {
-            // Set RTCM messages to user's settings
-            for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-                response &=
-                    theGNSS->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                          settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 - 1 = I2C
+        // Set RTCM messages to user's settings
+        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+            response &=
+                theGNSS->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                      settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 - 1 = I2C
 
-            // Set RTCM messages to user's settings
-            for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-            {
-                response &=
-                    theGNSS->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
-                                          settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 1 = UART2
-                response &=
-                    theGNSS->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                          settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 2 = USB
-            }
+        // Set RTCM messages to user's settings
+        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+        {
+            response &=
+                theGNSS->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
+                                      settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 1 = UART2
+            response &=
+                theGNSS->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                      settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 2 = USB
         }
 
         response &= theGNSS->addCfgValset(UBLOX_CFG_NMEA_MAINTALKERID,
@@ -568,38 +547,6 @@ bool zedConfigureRover()
 
     if (!success)
         log_d("Rover config failed 1");
-
-    if (zedModuleType == PLATFORM_F9R)
-    {
-        bool response = true;
-
-        response &= theGNSS->newCfgValset();
-
-        response &=
-            theGNSS->addCfgValset(UBLOX_CFG_SFCORE_USE_SF, settings.enableSensorFusion); // Enable/disable sensor fusion
-        response &=
-            theGNSS->addCfgValset(UBLOX_CFG_SFIMU_AUTO_MNTALG_ENA,
-                                  settings.autoIMUmountAlignment); // Enable/disable Automatic IMU-mount Alignment
-
-        if (zedFirmwareVersionInt >= 121)
-        {
-            response &= theGNSS->addCfgValset(UBLOX_CFG_SFIMU_IMU_MNTALG_YAW, settings.imuYaw);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_SFIMU_IMU_MNTALG_PITCH, settings.imuPitch);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_SFIMU_IMU_MNTALG_ROLL, settings.imuRoll);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_SFODO_DIS_AUTODIRPINPOL, settings.sfDisableWheelDirection);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_SFODO_COMBINE_TICKS, settings.sfCombineWheelTicks);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV_PRIO, settings.rateNavPrio);
-            response &= theGNSS->addCfgValset(UBLOX_CFG_SFODO_USE_SPEED, settings.sfUseSpeed);
-        }
-
-        response &= theGNSS->sendCfgValset(); // Closing - 28 keys
-
-        if (response == false)
-        {
-            log_d("Rover config failed 2");
-            success = false;
-        }
-    }
 
     if (!success)
         systemPrintln("Rover config fail");
@@ -1221,12 +1168,7 @@ uint16_t zedFixAgeMilliseconds()
 // Print the module type and firmware version
 void zedPrintInfo()
 {
-    if (zedModuleType == PLATFORM_F9P)
-        systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
-    else if (zedModuleType == PLATFORM_F9R)
-        systemPrintf("ZED-F9R firmware: %s\r\n", zedFirmwareVersion);
-    else
-        systemPrintf("Unknown module with firmware: %s\r\n", zedFirmwareVersion);
+    systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
 }
 
 void zedFactoryReset()
@@ -1383,7 +1325,7 @@ bool zedSetConstellations(bool sendCompleteBatch)
 
     // v1.12 ZED-F9P firmware does not allow for SBAS control
     // Also, if we can't identify the version (99), skip SBAS enable
-    if ((zedModuleType == PLATFORM_F9P) && ((zedFirmwareVersionInt == 112) || (zedFirmwareVersionInt == 99)))
+    if ((zedFirmwareVersionInt == 112) || (zedFirmwareVersionInt == 99))
     {
         // Skip
     }
@@ -1409,10 +1351,7 @@ bool zedSetConstellations(bool sendCompleteBatch)
     response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, settings.ubxConstellations[4].enabled);
 
     // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
-    if (zedModuleType == PLATFORM_F9P)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
-    else if ((zedModuleType == PLATFORM_F9R) && (zedFirmwareVersionInt > 121))
-        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
 
     response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, settings.ubxConstellations[4].enabled);
 

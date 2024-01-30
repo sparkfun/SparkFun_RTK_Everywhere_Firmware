@@ -431,10 +431,7 @@ void gnssSetMinCno(uint8_t cnoValue)
             zedSetMinCno(cnoValue);
 
             // Update the setting
-            if (zedModuleType == PLATFORM_F9P)
-                settings.minCNO_F9P = cnoValue;
-            else if (zedModuleType == PLATFORM_F9R)
-                settings.minCNO_F9R = cnoValue;
+            settings.minCNO_F9P = cnoValue;
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
@@ -448,10 +445,7 @@ uint8_t gnssGetMinCno()
 {
     if (gnssPlatform == PLATFORM_ZED)
     {
-        if (zedModuleType == PLATFORM_F9R)
-            return (settings.minCNO_F9R);
-        else
-            return (settings.minCNO_F9P);
+        return (settings.minCNO_F9P);
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
@@ -1082,7 +1076,7 @@ uint16_t gnssExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
     return (0);
 }
 
-char * gnssGetId()
+char *gnssGetId()
 {
     if (online.gnss == true)
     {
@@ -1096,5 +1090,5 @@ char * gnssGetId()
         }
     }
 
-    return ((char*)"\0");
+    return ((char *)"\0");
 }

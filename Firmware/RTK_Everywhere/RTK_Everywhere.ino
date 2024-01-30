@@ -294,7 +294,6 @@ char zedFirmwareVersion[20];   // The string looks like 'HPG 1.12'. Output to sy
 char neoFirmwareVersion[20];   // Output to system status menu.
 uint8_t zedFirmwareVersionInt; // Controls which features (constellations) can be configured (v1.12 doesn't support
                                // SBAS). Note: will fail above 2.55!
-UbxPlatform zedModuleType = PLATFORM_F9P; // Controls which messages are supported and configured
 char zedUniqueId[11];                     // Output to system status menu and log file.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and

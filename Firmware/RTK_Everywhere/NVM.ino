@@ -344,7 +344,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "sfUseSpeed", settings.sfUseSpeed);
     settingsFile->printf("%s=%d\r\n", "coordinateInputType", settings.coordinateInputType);
     settingsFile->printf("%s=%d\r\n", "lbandFixTimeout_seconds", settings.lbandFixTimeout_seconds);
-    settingsFile->printf("%s=%d\r\n", "minCNO_F9R", settings.minCNO_F9R);
     settingsFile->printf("%s=%d\r\n", "minCNO_F9P", settings.minCNO_F9P);
     settingsFile->printf("%s=%d\r\n", "shutdownNoChargeTimeout_s", settings.shutdownNoChargeTimeout_s);
     settingsFile->printf("%s=%d\r\n", "disableSetupButton", settings.disableSetupButton);
@@ -1239,14 +1238,6 @@ bool parseLine(char *str, Settings *settings)
         settings->coordinateInputType = (CoordinateInputType)d;
     else if (strcmp(settingName, "lbandFixTimeout_seconds") == 0)
         settings->lbandFixTimeout_seconds = d;
-    else if (strcmp(settingName, "minCNO_F9R") == 0)
-    {
-        if (settings->minCNO_F9R != d)
-        {
-            settings->minCNO_F9R = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
     else if (strcmp(settingName, "minCNO_F9P") == 0)
     {
         if (settings->minCNO_F9P != d)

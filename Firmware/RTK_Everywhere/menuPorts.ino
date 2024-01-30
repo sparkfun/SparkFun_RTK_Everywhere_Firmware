@@ -1,6 +1,6 @@
 void menuPorts()
 {
-    if(present.portDataMux == true)
+    if (present.portDataMux == true)
         menuPortsMultiplexed();
     else
         menuPortsNoMux();
@@ -107,12 +107,7 @@ void menuPortsMultiplexed()
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
             systemPrintln("PPS OUT/Event Trigger In");
         else if (settings.dataPortChannel == MUX_I2C_WT)
-        {
-            if (zedModuleType == PLATFORM_F9P)
-                systemPrintln("I2C SDA/SCL");
-            else if (zedModuleType == PLATFORM_F9R)
-                systemPrintln("Wheel Tick/Direction");
-        }
+            systemPrintln("I2C SDA/SCL");
         else if (settings.dataPortChannel == MUX_ADC_DAC)
             systemPrintln("ESP32 DAC Out/ADC In");
 
@@ -161,10 +156,7 @@ void menuPortsMultiplexed()
             systemPrintln("\r\nEnter the pin connection to use (1 to 4) for Data Port: ");
             systemPrintln("1) NMEA TX Out/RX In");
             systemPrintln("2) PPS OUT/Event Trigger In");
-            if (zedModuleType == PLATFORM_F9P)
-                systemPrintln("3) I2C SDA/SCL");
-            else if (zedModuleType == PLATFORM_F9R)
-                systemPrintln("3) Wheel Tick/Direction");
+            systemPrintln("3) I2C SDA/SCL");
             systemPrintln("4) ESP32 DAC Out/ADC In");
 
             int muxPort = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long

@@ -276,11 +276,7 @@ bool messageSupported(int messageNumber)
 {
     bool messageSupported = false;
 
-    if ((zedModuleType == PLATFORM_F9P) &&
-        (zedFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported))
-        messageSupported = true;
-    else if ((zedModuleType == PLATFORM_F9R) &&
-             (zedFirmwareVersionInt >= ubxMessages[messageNumber].f9rFirmwareVersionSupported))
+    if (zedFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
         messageSupported = true;
 
     return (messageSupported);
@@ -304,11 +300,7 @@ bool commandSupported(const uint32_t key)
     }
     else
     {
-        if ((zedModuleType == PLATFORM_F9P) &&
-            (zedFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported))
-            commandSupported = true;
-        else if ((zedModuleType == PLATFORM_F9R) &&
-                 (zedFirmwareVersionInt >= ubxCommands[commandNumber].f9rFirmwareVersionSupported))
+        if (zedFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
             commandSupported = true;
     }
     return (commandSupported);

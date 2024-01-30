@@ -1445,42 +1445,7 @@ void paintDynamicModel()
         displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_3_Pedestrian);
         break;
     case (DYN_MODEL_AUTOMOTIVE):
-        // Normal rover for ZED-F9P, fusion rover for ZED-F9R
-        if (zedModuleType == PLATFORM_F9P)
-        {
-            displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_4_Automotive);
-        }
-        else if (zedModuleType == PLATFORM_F9R)
-        {
-            // Blink fusion rover until we have calibration
-            if (gnssGetFusionMode() == 0) // Initializing
-            {
-                // Blink Fusion Rover icon until sensor calibration is complete
-                if (millis() - lastBaseIconUpdate > 500)
-                {
-                    lastBaseIconUpdate = millis();
-                    if (baseIconDisplayed == false)
-                    {
-                        baseIconDisplayed = true;
-
-                        // Draw the icon
-                        displayBitmap(28, 2, Rover_Fusion_Width, Rover_Fusion_Height, Rover_Fusion);
-                    }
-                    else
-                        baseIconDisplayed = false;
-                }
-            }
-            else if (gnssGetFusionMode() == 1) // Calibrated
-            {
-                // Solid fusion rover
-                displayBitmap(28, 2, Rover_Fusion_Width, Rover_Fusion_Height, Rover_Fusion);
-            }
-            else if (gnssGetFusionMode() == 2 || gnssGetFusionMode() == 3) // Suspended or disabled
-            {
-                // Empty rover
-                displayBitmap(28, 2, Rover_Fusion_Empty_Width, Rover_Fusion_Empty_Height, Rover_Fusion_Empty);
-            }
-        }
+        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_4_Automotive);
         break;
     case (DYN_MODEL_SEA):
         displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_5_Sea);
@@ -2554,166 +2519,111 @@ void paintDisplaySetupProfile(const char *firstState)
 // Show different menu 'buttons' to allow user to pause on one to select it
 void paintDisplaySetup()
 {
-    if (zedModuleType == PLATFORM_F9P)
+    if (setupState == STATE_ROVER_NOT_STARTED)
     {
-        if (setupState == STATE_MARK_EVENT)
+        if (productVariant == RTK_EVK)
         {
-            if (productVariant == RTK_EVK)
-            {
-                // setupState defaults to STATE_MARK_EVENT, which is not a valid state for the Ref Stn.
-                // It will be corrected by ButtonCheckTask. Until then, display but don't highlight an option.
-                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
+            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
         }
-        else if (setupState == STATE_ROVER_NOT_STARTED)
+        else
         {
-            if (productVariant == RTK_EVK)
-            {
-                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-                printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
+            printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
         }
-        else if (setupState == STATE_BASE_NOT_STARTED)
+    }
+    else if (setupState == STATE_BASE_NOT_STARTED)
+    {
+        if (productVariant == RTK_EVK)
         {
-            if (productVariant == RTK_EVK)
-            {
-                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, true);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
         }
-        else if (setupState == STATE_NTPSERVER_NOT_STARTED)
+        else
         {
-            {
-                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, true);
-                printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-            }
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, true);
+            printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
         }
-        else if (setupState == STATE_CONFIG_VIA_ETH_NOT_STARTED)
+    }
+    else if (setupState == STATE_NTPSERVER_NOT_STARTED)
+    {
         {
             printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
             printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, true);
+            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, true);
+            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
         }
-        else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
+    }
+    else if (setupState == STATE_CONFIG_VIA_ETH_NOT_STARTED)
+    {
+        printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
+        printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+        printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
+        printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, true);
+    }
+    else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
+    {
+        if (productVariant == RTK_EVK)
         {
-            if (productVariant == RTK_EVK)
-            {
-                printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("NTP", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Cfg Eth", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("CfgWiFi", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else
-            {
-                printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
-            }
+            printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
+            printTextCenter("NTP", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Cfg Eth", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("CfgWiFi", 12 * 3, QW_FONT_8X16, 1, true);
         }
+        else
+        {
+            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
+        }
+    }
 
-        // If we are on an L-Band unit, display GetKeys option
-        else if (setupState == STATE_KEYS_NEEDED)
+    // If we are on an L-Band unit, display GetKeys option
+    else if (setupState == STATE_KEYS_NEEDED)
+    {
+        printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
+        printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
+        printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
+        printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
+    }
+
+    else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
+    {
+        if (productVariant == RTK_EVK)
+        {
+            printTextCenter("NTP", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
+            printTextCenter("Cfg Eth", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("CfgWiFi", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
+        }
+        else if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+        {
+            // If we are on an L-Band unit, scroll GetKeys option
+            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
+            printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
+            printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
+            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
+        }
+        else
         {
             printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
             printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
             printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
-        }
-
-        else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
-        {
-            if (productVariant == RTK_EVK)
-            {
-                printTextCenter("NTP", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-                printTextCenter("Cfg Eth", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("CfgWiFi", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
-            {
-                // If we are on an L-Band unit, scroll GetKeys option
-                printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-            else
-            {
-                printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
-                printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
-                printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-                printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-            }
-        }
-
-        else if (setupState == STATE_PROFILE)
-            paintDisplaySetupProfile("Base");
-    } // end type F9P
-    else if (zedModuleType == PLATFORM_F9R)
-    {
-        if (setupState == STATE_MARK_EVENT)
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-        else if (setupState == STATE_ROVER_NOT_STARTED)
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-        else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, true);
-            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-        else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
             printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
         }
-        else if (setupState == STATE_PROFILE)
-            paintDisplaySetupProfile("Rover");
-    } // end type F9R
+    }
+
+    else if (setupState == STATE_PROFILE)
+        paintDisplaySetupProfile("Base");
 }
 
 // Given text, and location, print text center of the screen

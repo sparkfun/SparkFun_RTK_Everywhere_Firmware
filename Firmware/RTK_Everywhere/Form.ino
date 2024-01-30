@@ -634,10 +634,7 @@ void createSettingsString(char *newSettings)
     if (!configureViaEthernet) // ZED type is unknown if we are in configure-via-ethernet mode
     {
         char apZedPlatform[50];
-        if (zedModuleType == PLATFORM_F9P)
-            strcpy(apZedPlatform, "ZED-F9P");
-        else if (zedModuleType == PLATFORM_F9R)
-            strcpy(apZedPlatform, "ZED-F9R");
+        strcpy(apZedPlatform, "ZED-F9P");
 
         char apZedFirmwareVersion[80];
         snprintf(apZedFirmwareVersion, sizeof(apZedFirmwareVersion), "%s Firmware: %s ID: %s", apZedPlatform,
@@ -1311,12 +1308,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     else if (strcmp(settingName, "rateNavPrio") == 0)
         settings.rateNavPrio = settingValue;
     else if (strcmp(settingName, "minCNO") == 0)
-    {
-        if (zedModuleType == PLATFORM_F9R)
-            settings.minCNO_F9R = settingValue;
-        else
-            settings.minCNO_F9P = settingValue;
-    }
+        settings.minCNO_F9P = settingValue;
 
     else if (strcmp(settingName, "ethernetDHCP") == 0)
         settings.ethernetDHCP = settingValueBool;

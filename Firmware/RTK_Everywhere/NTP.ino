@@ -687,8 +687,7 @@ bool configureUbloxModuleNTP()
         response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, 1);
 
         // Survey mode is only available on ZED-F9P modules
-        if (zedModuleType == PLATFORM_F9P)
-            response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
+        response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
 
         // Set dynamic model to stationary
         response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, DYN_MODEL_STATIONARY); // Set dynamic model
@@ -725,10 +724,6 @@ bool configureUbloxModuleNTP()
         response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_PVT_I2C, 1);
         response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_I2C, 1);
         response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_TIM_TP_I2C, 1);
-        if (zedModuleType == PLATFORM_F9R)
-        {
-            response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_ESF_STATUS_I2C, 1);
-        }
 
         response &= theGNSS->sendCfgValset(); // Closing value
 

@@ -470,15 +470,6 @@ typedef enum
     POINTPERFECT_CORRECTIONS_LBAND_IP,
 } PointPerfect_Corrections_Source;
 
-// Different ZED modules support different messages (F9P vs F9R vs F9T)
-// Create binary packed struct for different platforms
-typedef enum
-{
-    PLATFORM_F9P = 0b0001,
-    PLATFORM_F9R = 0b0010,
-    PLATFORM_F9T = 0b0100,
-} UbxPlatform;
-
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
 typedef enum
@@ -1077,7 +1068,6 @@ typedef struct
     CoordinateInputType coordinateInputType = COORDINATE_INPUT_TYPE_DD; // Default DD.ddddddddd
     uint16_t lbandFixTimeout_seconds = 180; // Number of seconds of no L-Band fix before resetting ZED
     int16_t minCNO_F9P = 6;                 // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
-    int16_t minCNO_F9R = 20;                // Minimum satellite signal level for navigation. ZED-F9R default is 20 dBHz
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
     uint8_t btReadTaskPriority = 1; // Read from BT SPP and Write to GNSS. 3 being the highest, and 0 being the lowest
     uint8_t gnssReadTaskPriority =

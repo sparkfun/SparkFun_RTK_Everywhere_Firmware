@@ -165,10 +165,7 @@ void menuMessages()
         systemPrintf("Active messages: %d\r\n", getActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
-        if (zedModuleType == PLATFORM_F9P)
-            systemPrintln("2) Set RTCM Messages");
-        else if (zedModuleType == PLATFORM_F9R)
-            systemPrintln("2) Set ESF Messages");
+        systemPrintln("2) Set RTCM Messages");
         systemPrintln("3) Set RXM Messages");
         systemPrintln("4) Set NAV Messages");
         systemPrintln("5) Set NAV2 Messages");
@@ -188,10 +185,8 @@ void menuMessages()
 
         if (incoming == 1)
             menuMessagesSubtype(settings.ubxMessageRates, "NMEA_"); // The following _ avoids listing NMEANAV2 messages
-        else if (incoming == 2 && zedModuleType == PLATFORM_F9P)
+        else if (incoming == 2)
             menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
-        else if (incoming == 2 && zedModuleType == PLATFORM_F9R)
-            menuMessagesSubtype(settings.ubxMessageRates, "ESF");
         else if (incoming == 3)
             menuMessagesSubtype(settings.ubxMessageRates, "RXM");
         else if (incoming == 4)

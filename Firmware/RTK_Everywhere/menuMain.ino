@@ -57,10 +57,7 @@ void menuMain()
 
         systemPrintln("2) Configure GNSS Messages");
 
-        if (zedModuleType == PLATFORM_F9P)
-            systemPrintln("3) Configure Base");
-        else if (zedModuleType == PLATFORM_F9R)
-            systemPrintln("3) Configure Sensor Fusion");
+        systemPrintln("3) Configure Base");
 
         if (productVariant != RTK_TORCH) // Torch does not have external ports
             systemPrintln("4) Configure Ports");
@@ -120,10 +117,8 @@ void menuMain()
             menuGNSS();
         else if (incoming == 2)
             menuMessages();
-        else if (incoming == 3 && zedModuleType == PLATFORM_F9P)
+        else if (incoming == 3)
             menuBase();
-        else if (incoming == 3 && zedModuleType == PLATFORM_F9R)
-            menuSensorFusion();
         else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
             menuPorts();
         else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging

@@ -894,9 +894,8 @@ void paintDynamicModel()
       break;
     case (DYN_MODEL_AUTOMOTIVE):
       //Normal rover for ZED-F9P, fusion rover for ZED-F9R
-      if (zedModuleType == PLATFORM_F9P)
-      {
         displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_4_Automotive);
+
       }
       else if (zedModuleType == PLATFORM_F9R)
       {
