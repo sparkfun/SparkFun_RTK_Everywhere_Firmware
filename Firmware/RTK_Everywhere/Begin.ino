@@ -145,7 +145,10 @@ void peripheralsOn()
     if (present.peripheralPowerControl)
     {
         digitalWrite(pin_peripheralPowerControl, HIGH);
-        i2cPowerUpDelay = millis() + 860; //Allow devices on I2C bus to stabilize before 
+        i2cPowerUpDelay = millis() + 860; //Allow devices on I2C bus to stabilize before I2C communication begins
+        
+        if(ENABLE_DEVELOPER)
+            i2cPowerUpDelay = millis(); //Skip startup time
     }
 }
 void peripheralsOff()
