@@ -631,9 +631,13 @@ void displaySplash()
 {
     if (online.display == true)
     {
-        // Finish displaying the SparkFun LOGO
-        while ((millis() - splashStart) < minSplashFor)
-            delay(10);
+        //Shorten logo display if locally compiled
+        if (ENABLE_DEVELOPER == false)
+        {
+            // Finish displaying the SparkFun LOGO
+            while ((millis() - splashStart) < minSplashFor)
+                delay(10);
+        }
 
         oled->erase();
         oled->display(); // Post a clear display
