@@ -30,7 +30,11 @@ void danceLEDs()
     }
     else
     {
-        if (online.display == true)
+        if (ENABLE_DEVELOPER)
+        {
+            Serial.println("Skipping splash delay");
+        }
+        else if (online.display == true)
         {
             // Units can boot under 1s. Keep the splash screen up for at least 2s.
             while ((millis() - splashStart) < 2000)
@@ -219,7 +223,7 @@ void setMuxport(int channelNumber)
     if (channelNumber > 3)
         return; // Error check
 
-    if(pin_muxA == PIN_UNDEFINED || pin_muxB == PIN_UNDEFINED)
+    if (pin_muxA == PIN_UNDEFINED || pin_muxB == PIN_UNDEFINED)
         reportFatalError("Illegal MUX pin assignment.");
 
     switch (channelNumber)
