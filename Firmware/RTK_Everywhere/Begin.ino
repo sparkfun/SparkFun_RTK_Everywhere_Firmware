@@ -399,8 +399,6 @@ void beginSD()
         gotSemaphore = true;
         markSemaphore(FUNCTION_BEGINSD);
 
-        log_d("Checking for microSD card");
-
         // Check to see if a card is present
         if (sdCardPresent() == false)
             break; // Give up on loop
@@ -907,9 +905,7 @@ void beginI2C()
 void pinI2CTask(void *pvParameters)
 {
     if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
-    {
         reportFatalError("Illegal I2C0 pin assignment.");
-    }
 
     // Initialize I2C bus 0
     if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
@@ -920,9 +916,7 @@ void pinI2CTask(void *pvParameters)
     if (i2c_1)
     {
         if (pin_I2C1_SDA == -1 || pin_I2C1_SCL == -1)
-        {
             reportFatalError("Illegal I2C1 pin assignment.");
-        }
         i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
     }
 
