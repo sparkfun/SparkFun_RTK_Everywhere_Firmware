@@ -145,6 +145,7 @@ void peripheralsOn()
     if (present.peripheralPowerControl)
     {
         digitalWrite(pin_peripheralPowerControl, HIGH);
+        i2cPowerUpDelay = millis() + 860; //Allow devices on I2C bus to stabilize before 
     }
 }
 void peripheralsOff()
@@ -283,8 +284,6 @@ void beginBoard()
         peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
 
         present.button_power = true;
-
-        i2cPowerUpDelay = millis() + 860;
     }
     else if (productVariant == RTK_FACET_V2)
     {
