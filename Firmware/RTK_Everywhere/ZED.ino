@@ -235,14 +235,7 @@ bool zedConfigure()
 
     // Turn on/off debug messages
     if (settings.enableGNSSdebug)
-    {
-#if defined(REF_STN_GNSS_DEBUG)
-        if (ENABLE_DEVELOPER && (productVariant == RTK_EVK))
-            theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
-        else
-#endif                                              // REF_STN_GNSS_DEBUG
-            theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
-    }
+        theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
     else
         theGNSS->disableDebugging();
 
@@ -1185,12 +1178,7 @@ void zedSaveConfiguration()
 
 void zedEnableDebugging()
 {
-#if defined(REF_STN_GNSS_DEBUG)
-    if (ENABLE_DEVELOPER && (productVariant == RTK_EVK))
-        theGNSS->enableDebugging(serialGNSS); // Output all debug messages over serialGNSS
-    else
-#endif                                          // REF_STN_GNSS_DEBUG
-        theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
+    theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
 }
 void zedDisableDebugging()
 {
