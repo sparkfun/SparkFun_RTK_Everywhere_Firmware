@@ -28,7 +28,11 @@ bool gnssConfigure()
         if (um980Configure() == false)
             return (false);
     }
-    systemPrintln("GNSS configuration complete");
+
+    if (settings.updateGNSSSettings == true)
+        systemPrintln("GNSS configuration updated");
+    else
+        systemPrintln("GNSS configuration maintained");
 
     return (true);
 }
