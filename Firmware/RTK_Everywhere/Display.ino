@@ -636,6 +636,7 @@ void displaySplash()
             delay(10);
 
         oled->erase();
+        oled->display(); // Post a clear display
 
         int fontHeight = 8;
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
