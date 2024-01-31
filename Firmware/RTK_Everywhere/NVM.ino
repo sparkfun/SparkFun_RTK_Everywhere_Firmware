@@ -24,15 +24,22 @@ void loadSettings()
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
 
-    loadSystemSettingsFromFileSD(settingsFileName, &settings);
+    bool readFromSD = false;
+    if(loadSystemSettingsFromFileSD(settingsFileName, &settings) == true)
+        readFromSD = true;
+
     settings.resetCount = resetCount;
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
         snprintf(settings.profileName, sizeof(settings.profileName), "Profile%d", profileNumber + 1);
 
-    // Record these settings to LittleFS and SD file to be sure they are the same
-    recordSystemSettings();
+    // Only re-record settings if SD was accessed
+    if(readFromSD == true)
+    {
+        // Record these settings to LittleFS and SD file to be sure they are the same
+        recordSystemSettings();
+    }
 
     // Get bitmask of active profiles
     activeProfiles = loadProfileNames();
@@ -538,9 +545,6 @@ bool loadSystemSettingsFromFileSD(char *fileName, Settings *settings)
         }
         break;
     } // End SD online
-
-    if (online.microSD != true)
-        log_d("Config file read failed: SD offline");
 
     // Release access the SD card
     if (online.microSD && (!wasSdCardOnline))
@@ -1533,7 +1537,7 @@ void loadProfileNumber()
     {
         log_d("profileNumber.txt not found");
         settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0);             // Record profile
+        recordProfileNumber(0); // Record profile
     }
     else
     {
