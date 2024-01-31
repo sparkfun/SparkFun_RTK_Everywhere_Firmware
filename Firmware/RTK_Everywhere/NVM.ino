@@ -1021,10 +1021,7 @@ bool parseLine(char *str, Settings *settings)
         settings->debugPpCertificate = d;
 
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
-    {
-        if (settings->updateGNSSSettings != d)
-            settings->updateGNSSSettings = true; // If there is a discrepancy, push GNSS reconfig
-    }
+        settings->updateGNSSSettings = d;
     else if (strcmp(settingName, "LBandFreq") == 0)
         settings->LBandFreq = d;
     else if (strcmp(settingName, "timeZoneHours") == 0)
