@@ -485,7 +485,7 @@ bool loadSystemSettingsFromFileSD(char *fileName, Settings *settings)
 
             if (!sd->exists(fileName))
             {
-                log_d("File %s not found", fileName);
+                // log_d("File %s not found", fileName);
                 break;
             }
 
