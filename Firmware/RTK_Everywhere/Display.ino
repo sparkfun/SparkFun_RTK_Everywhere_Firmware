@@ -143,14 +143,14 @@ void beginDisplay(TwoWire *i2cBus)
             return;
         }
 
-        oled->setXOffset(0);         // Set the active area X offset. For the Micro 64x48, set this to 2
+        oled->setXOffset(0);         // Set the active area X offset
         oled->setYOffset(0);         // Set the active area Y offset
-        oled->setDisplayWidth(128);  // Set the active area width. For the Micro 64x48, set this to 64
-        oled->setDisplayHeight(64);  // Set the active area height. For the Micro 64x48, set this to 48
+        oled->setDisplayWidth(128);  // Set the active area width
+        oled->setDisplayHeight(64);  // Set the active area height
         oled->setPinConfig(0x12);    // Set COM Pins Hardware Configuration (DAh)
         oled->setPreCharge(0xF1);    // Set Pre-charge Period (D9h)
         oled->setVcomDeselect(0x40); // Set VCOMH Deselect Level (DBh)
-        oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h). For the Micro 64x48, set this to 0x8F
+        oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h)
     }
 
     blinking_icons = 0;
