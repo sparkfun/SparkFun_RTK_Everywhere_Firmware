@@ -1158,8 +1158,7 @@ void buttonCheckTask(void *e)
                 powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                  // as needed
         }
-        else if (systemState == STATE_BASE_NOT_STARTED && firstRoverStart == true &&
-                 userBtn->pressedFor(500))
+        else if (systemState == STATE_BASE_NOT_STARTED && firstRoverStart == true && userBtn->pressedFor(500))
         {
             forceSystemStateUpdate = true;
             requestChangeState(STATE_TEST);
@@ -1346,6 +1345,9 @@ void idleTask(void *e)
 // SerialBT->available will cause reboot
 bool tasksStartGnssUart()
 {
+    if (present.gnss_to_uart == false)
+        return (true);
+
     // Verify that the ring buffer was successfully allocated
     if (!ringBuffer)
     {
