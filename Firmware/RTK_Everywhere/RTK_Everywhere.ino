@@ -1033,8 +1033,6 @@ void setup()
 
     systemFlush(); // Complete any previous prints
 
-    log_d("Boot time: %d", millis());
-
     DMW_b("danceLEDs");
     danceLEDs(); // Turn on LEDs like a car dashboard
 
