@@ -128,6 +128,7 @@ void identifyBoard()
             present.encryption_atecc608a = true;
             present.button_power = true;
             present.beeper = true;
+            present.gnss_to_uart = true;
 
 #ifdef COMPILE_IM19_IMU
             present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -145,10 +146,10 @@ void peripheralsOn()
     if (present.peripheralPowerControl)
     {
         digitalWrite(pin_peripheralPowerControl, HIGH);
-        i2cPowerUpDelay = millis() + 860; //Allow devices on I2C bus to stabilize before I2C communication begins
-        
-        if(ENABLE_DEVELOPER)
-            i2cPowerUpDelay = millis(); //Skip startup time
+        i2cPowerUpDelay = millis() + 860; // Allow devices on I2C bus to stabilize before I2C communication begins
+
+        if (ENABLE_DEVELOPER)
+            i2cPowerUpDelay = millis(); // Skip startup time
     }
 }
 void peripheralsOff()
@@ -285,8 +286,6 @@ void beginBoard()
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
-
-        present.button_power = true;
     }
     else if (productVariant == RTK_FACET_V2)
     {
@@ -546,6 +545,9 @@ void resetSPI()
 // See issue: https://github.com/espressif/arduino-esp32/issues/3386
 void beginGnssUart()
 {
+    if (present.gnss_to_uart == false)
+        return;
+
     size_t length;
 
     // Determine the length of data to be retained in the ring buffer

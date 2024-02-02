@@ -1230,6 +1230,7 @@ struct struct_present
     bool cellular_lara = false;
     bool ethernet_ws5500 = false;
     bool radio_lora = false;
+    bool gnss_to_uart = false;
 
     bool imu_im19 = false;
     bool imu_zedf9r = false;
