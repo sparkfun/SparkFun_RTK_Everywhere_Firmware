@@ -1243,6 +1243,8 @@ struct struct_present
     bool button_mode = false;
     bool button_power = false;
     bool fastPowerOff = false;
+
+    float antennaReferencePoint_mm = 0.0;
 } present;
 
 // Monitor which devices on the device are on or offline.
