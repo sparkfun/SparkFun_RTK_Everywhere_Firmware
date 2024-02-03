@@ -758,46 +758,6 @@ void stringHumanReadableSize(String &returnText, uint64_t bytes)
     returnText = String(readableSize);
 }
 
-// Print the NMEA checksum error
-void printNmeaChecksumError(PARSE_STATE *parse)
-{
-    printTimeStamp();
-    systemPrintf("    %s NMEA %s, %2d bytes, bad checksum, expecting 0x%c%c, computed: 0x%02x\r\n", parse->parserName,
-                 parse->nmeaMessageName, parse->length, parse->buffer[parse->nmeaLength - 2],
-                 parse->buffer[parse->nmeaLength - 1], parse->crc);
-}
-
-// Print the RTCM checksum error
-void printRtcmChecksumError(PARSE_STATE *parse)
-{
-    printTimeStamp();
-    systemPrintf("    %s RTCM %d, %2d bytes, bad CRC, expecting 0x%02x%02x%02x, computed: 0x%06x\r\n",
-                 parse->parserName, parse->message, parse->length, parse->buffer[parse->length - 3],
-                 parse->buffer[parse->length - 2], parse->buffer[parse->length - 1], parse->rtcmCrc);
-}
-
-// Print the RTCM maximum length
-void printRtcmMaxLength(PARSE_STATE *parse)
-{
-    systemPrintf("RTCM parser error maxLength: %d bytes\r\n", parse->maxLength);
-}
-
-// Print the u-blox checksum error
-void printUbloxChecksumError(PARSE_STATE *parse)
-{
-    printTimeStamp();
-    systemPrintf("    %s u-blox %d.%d, %2d bytes, bad checksum, expecting 0x%02X%02X, computed: 0x%02X%02X\r\n",
-                 parse->parserName, parse->message >> 8, parse->message & 0xff, parse->length,
-                 parse->buffer[parse->nmeaLength - 2], parse->buffer[parse->nmeaLength - 1], parse->ck_a, parse->ck_b);
-}
-
-// Print the u-blox invalid data error
-void printUbloxInvalidData(PARSE_STATE *parse)
-{
-    dumpBuffer(parse->buffer, parse->length - 1);
-    systemPrintf("    %s Invalid UBX data, %d bytes\r\n", parse->parserName, parse->length - 1);
-}
-
 // Verify table sizes match enum definitions
 void verifyTables()
 {

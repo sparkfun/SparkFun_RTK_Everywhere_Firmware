@@ -66,6 +66,35 @@ const char *const ringBufferConsumer[] = {
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
 
+// Define the index values into the parserTable
+#define RTK_NMEA_PARSER_INDEX           0
+#define RTK_UNICORE_HASH_PARSER_INDEX   1
+#define RTK_RTCM_PARSER_INDEX           2
+#define RTK_UBLOX_PARSER_INDEX          3
+#define RTK_UNICORE_BINARY_PARSER_INDEX 4
+
+// List the parsers to be included
+SEMP_PARSE_ROUTINE const parserTable[] =
+{
+    sempNmeaPreamble,
+    sempUnicoreHashPreamble,
+    sempRtcmPreamble,
+    sempUbloxPreamble,
+    sempUnicoreBinaryPreamble,
+};
+const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
+
+// List the names of the parsers
+const char * const parserNames[] =
+{
+    "NMEA",
+    "Unicore Hash_(#)",
+    "RTCM",
+    "U-Blox"
+    "Unicore Binary",
+};
+const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -284,12 +313,19 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
-    static PARSE_STATE parse = {gpsMessageParserFirstByte, processUart1Message, "Log"};
+    static SEMP_PARSE_STATE *parse;
 
     // Start notification
     online.gnssReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask started");
+
+    // Initialize the parser
+    parse = sempBeginParser(parserTable, parserCount,
+                            parserNames, parserNameCount,
+                            0, 3000, processUart1Message, "Log");
+    if (!parse)
+        reportFatalError("Failed to initialize the parser");
 
     // Verify that the task is still running
     while (online.gnssReadTaskRunning)
@@ -312,23 +348,16 @@ void gnssReadTask(void *e)
             int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
 
             for (int x = 0; x < bytesIncoming; x++)
-            {
-                // Save the data byte
-                parse.buffer[parse.length++] = incomingData[x];
-                parse.length %= PARSE_BUFFER_LENGTH;
-
-                // Compute the CRC value for the message
-                if (parse.computeCrc)
-                    parse.crc = COMPUTE_CRC24Q(&parse, incomingData[x]);
-
                 // Update the parser state based on the incoming byte
-                parse.state(&parse, incomingData[x]);
-            }
+                parse->state(parse, incomingData[x]);
         }
 
         feedWdt();
         taskYIELD();
     }
+
+    // Done parsing incoming data, free the parse buffer
+    sempStopParser(&parse);
 
     // Stop notification
     if (settings.printTaskStartStop)
@@ -340,10 +369,11 @@ void gnssReadTask(void *e)
 // Call back from within parser, for end of message
 // Process a complete message incoming from parser
 // If we get a complete NMEA/UBX/RTCM message, pass on to SD/BT/PVT interfaces
-void processUart1Message(PARSE_STATE *parse, uint8_t type)
+void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     int32_t bytesToCopy;
     const char *consumer;
+    uint16_t message;
     RING_BUFFER_OFFSET remainingBytes;
     int32_t space;
     int32_t use;
@@ -361,21 +391,45 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
             systemPrint("GNSS RX: ");
         switch (type)
         {
-        case SENTENCE_TYPE_NMEA:
-            systemPrintf("%s NMEA %s, %2d bytes\r\n", parse->parserName, parse->nmeaMessageName, parse->length);
+        case RTK_NMEA_PARSER_INDEX:
+            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n",
+                         parse->parserName,
+                         parserNames[type],
+                         sempNmeaGetSentenceName(parse),
+                         parse->length, parse->length);
             break;
 
-        case SENTENCE_TYPE_RTCM:
-            systemPrintf("%s RTCM %d, %2d bytes\r\n", parse->parserName, parse->message, parse->length);
+        case RTK_UNICORE_HASH_PARSER_INDEX:
+            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n",
+                         parse->parserName,
+                         parserNames[type],
+                         sempUnicoreHashGetSentenceName(parse),
+                         parse->length, parse->length);
             break;
 
-        case SENTENCE_TYPE_UBX:
-            systemPrintf("%s UBX %d.%d, %2d bytes\r\n", parse->parserName, parse->message >> 8, parse->message & 0xff,
-                         parse->length);
+        case RTK_RTCM_PARSER_INDEX:
+            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n",
+                         parse->parserName,
+                         parserNames[type],
+                         sempRtcmGetMessageNumber(parse),
+                         parse->length, parse->length);
             break;
 
-        case SENTENCE_TYPE_UNICORE:
-            systemPrintf("%s UNICORE, %2d bytes\r\n", parse->parserName, parse->length);
+        case RTK_UBLOX_PARSER_INDEX:
+            message = sempUbloxGetMessageNumber(parse);
+            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n",
+                         parse->parserName,
+                         parserNames[type],
+                         message >> 8,
+                         message & 0xff,
+                         parse->length, parse->length);
+            break;
+
+        case RTK_UNICORE_BINARY_PARSER_INDEX:
+            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n",
+                         parse->parserName,
+                         parserNames[type],
+                         parse->length, parse->length);
             break;
         }
     }
@@ -384,7 +438,7 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
     {
         if (settings.enableTiltCompensation == true && online.tilt == true)
         {
-            if (type == SENTENCE_TYPE_NMEA)
+            if (type == RTK_NMEA_PARSER_INDEX)
             {
                 parse->buffer[parse->length++] = '\0'; // Null terminate string
                 tiltApplyCompensation((char *)&parse->buffer, parse->length);
@@ -392,7 +446,10 @@ void processUart1Message(PARSE_STATE *parse, uint8_t type)
         }
     }
 
-    if (type == SENTENCE_TYPE_UNICORE)
+    // Determine if this message should be processed by the Unicore library
+    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX)
+        || (type == RTK_UNICORE_HASH_PARSER_INDEX)
+        || (type == RTK_NMEA_PARSER_INDEX))
     {
         // Give this data to the library to update its internal variables
         um980UnicoreHandler(parse->buffer, parse->length);
