@@ -239,7 +239,7 @@ void tiltBegin()
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
-    if (productVariant == RTK_TORCH)
+    if (present.imu_im19 == true)
         // result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925"); //v1 hardware
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // v2 hardware from stock firmware
 
