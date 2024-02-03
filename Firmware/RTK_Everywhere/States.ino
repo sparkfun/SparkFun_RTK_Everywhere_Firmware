@@ -8,7 +8,7 @@
 static uint32_t lastStateTime = 0;
 
 // Given the current state, see if conditions have moved us to a new state
-// A user pressing the setup button (change between rover/base) is handled by checkpin_setupButton()
+// A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
 {
     if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)

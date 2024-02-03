@@ -1240,7 +1240,7 @@ struct struct_present
     bool laraPowerControl = false;
     bool antennaShortOpen = false;
 
-    bool button_setup = false;
+    bool button_mode = false;
     bool button_power = false;
     bool fastPowerOff = false;
 } present;

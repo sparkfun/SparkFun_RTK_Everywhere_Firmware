@@ -1093,9 +1093,6 @@ void buttonCheckTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task buttonCheckTask started");
 
-    if (userBtn != nullptr)
-        userBtn->begin();
-
     while (true)
     {
         // Display an alive message
@@ -1137,9 +1134,6 @@ void buttonCheckTask(void *e)
               '------------------'   '------------------'
 
         */
-
-        if (userBtn == nullptr)
-            return;
 
         userBtn->read();
 
