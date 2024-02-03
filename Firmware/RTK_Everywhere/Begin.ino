@@ -93,7 +93,7 @@ void identifyBoard()
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
         present.microSd = true;
-        present.microSdCardDetect = true;
+        present.microSdCardDetectLow = true;
         present.display_128x64_i2c1 = true;
         present.button_setup = true;
         present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,

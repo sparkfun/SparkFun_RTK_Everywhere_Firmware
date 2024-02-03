@@ -45,11 +45,8 @@ void sdUpdate()
         deleteSDSizeCheckTask();
 
     // Check if SD card is still present
-    if (productVariant == RTK_EVK)
-    {
-        if (sdCardPresent() == false)
-            endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
-    }
+    if (sdCardPresent() == false)
+        endSD(false, true); //(alreadyHaveSemaphore, releaseSemaphore) Close down SD.
 }
 
 /*
@@ -91,24 +88,24 @@ void sdUpdate()
 // Returns true if a card is detected
 bool sdCardPresent(void)
 {
-    if (present.microSdCardDetect == true)
+    if (present.microSdCardDetectLow == true)
     {
-        if (productVariant == RTK_EVK)
-        {
-            if (digitalRead(pin_microSD_CardDetect) == LOW)
-                return (true); // Card low - SD in place
-            return (false);    // Card detect high - No SD
-        }
-        systemPrintln("sdCardPresent: Unknown platform variant");
-        return (false);
+        if (digitalRead(pin_microSD_CardDetect) == LOW)
+            return (true); // Card detect low - SD in place
+        return (false);    // Card detect high - No SD
     }
+    else if (present.microSdCardDetectHigh == true)
+    {
+        if (digitalRead(pin_microSD_CardDetect) == HIGH)
+            return (true); // Card detect high - SD in place
+        return (false);    // Card detect low - No SD
+    }
+    //else - no card detect pin. Use software detect
 
     // Use software to detect a card
     DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
     if (pin_microSD_CS == -1)
-    {
         reportFatalError("Illegal SD CS pin assignment.");
-    }
 
     resetSPI(); // Re-initialize the SPI/SD interface
 
