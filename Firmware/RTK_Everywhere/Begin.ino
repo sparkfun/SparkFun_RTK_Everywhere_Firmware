@@ -139,6 +139,8 @@ void beginBoard()
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
 #endif                           // COMPILE_IM19_IMU
+        pin_I2C0_SDA = 15;
+        pin_I2C0_SCL = 4;
 
         pin_GnssUart_RX = 26;
         pin_GnssUart_TX = 27;
