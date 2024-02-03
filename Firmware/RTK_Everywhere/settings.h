@@ -156,11 +156,6 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
-// Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
-// The GNSS UBX PVT message is sent ahead of the top-of-second
-// The rising edge of the TP signal indicates the true top-of-second
-#define HAS_GNSS_TP_INT ((productVariant == RTK_EVK) && (pin_GNSS_TimePulse != -1))
-
 typedef enum
 {
     BUTTON_ROVER = 0,
@@ -1224,7 +1219,7 @@ struct struct_present
     // The GNSS UBX PVT message is sent ahead of the top-of-second
     // The rising edge of the TP signal indicates the true top-of-second
     bool timePulseInterrupt = false;
-    
+
     bool imu_im19 = false;
     bool imu_zedf9r = false;
 
