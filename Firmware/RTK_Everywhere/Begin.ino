@@ -793,6 +793,8 @@ void beginButtons()
     if (present.button_power == false && present.button_mode == false)
         return;
 
+    TaskHandle_t taskHandle;
+
     // Currently only one button is supported but can be expanded in the future
     if (present.button_power == true && present.button_mode == true)
         reportFatalError("Illegal button assignment.");
@@ -824,8 +826,6 @@ void beginButtons()
 // Depending on platform and previous power down state, set system state
 void beginSystemState()
 {
-    TaskHandle_t taskHandle;
-
     if (systemState > STATE_NOT_SET)
     {
         systemPrintln("Unknown state - factory reset");
