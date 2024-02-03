@@ -1033,8 +1033,8 @@ void setup()
 
     systemFlush(); // Complete any previous prints
 
-    DMW_b("danceLEDs");
-    danceLEDs(); // Turn on LEDs like a car dashboard
+    DMW_b("finishDisplay");
+    finishDisplay(); // Continue showing display until time threshold
 
     // Save the time we transfer into loop
     bootTime[bootTimeIndex] = millis();
