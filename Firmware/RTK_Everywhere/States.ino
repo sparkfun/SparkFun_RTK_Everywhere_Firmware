@@ -8,7 +8,7 @@
 static uint32_t lastStateTime = 0;
 
 // Given the current state, see if conditions have moved us to a new state
-// A user pressing the setup button (change between rover/base) is handled by checkpin_setupButton()
+// A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
 {
     if (millis() - lastSystemStateUpdate > 500 || forceSystemStateUpdate == true)
@@ -422,7 +422,7 @@ void stateUpdate()
         break;
 
         case (STATE_WIFI_CONFIG_NOT_STARTED): {
-            if (productVariant == RTK_TORCH)
+            if (pin_bluetoothStatusLED != PIN_UNDEFINED)
             {
                 // Start BT LED Fade to indicate the start of WiFi
                 bluetoothLedTask.detach(); // Increase BT LED blinker task rate

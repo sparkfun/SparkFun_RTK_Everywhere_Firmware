@@ -250,7 +250,7 @@ bool zedConfigure()
     theGNSS->setRTCM1006InputcallbackPtr(
         &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
 
-    if (HAS_GNSS_TP_INT)
+    if (present.timePulseInterrupt == true)
         theGNSS->setAutoTIMTPcallbackPtr(
             &storeTIMTPdata); // Enable automatic TIM TP messages with callback to storeTIMTPdata
 
@@ -430,7 +430,7 @@ bool zedConfigure()
     if (response == false)
         systemPrintln("Module failed config block 3");
 
-    if (HAS_ANTENNA_SHORT_OPEN)
+    if (present.antennaShortOpen)
     {
         theGNSS->newCfgValset();
 

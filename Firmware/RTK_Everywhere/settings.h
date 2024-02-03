@@ -156,23 +156,6 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
-// Macro to show if the the RTK variant has Ethernet
-#ifdef COMPILE_ETHERNET
-#define HAS_ETHERNET (productVariant == RTK_EVK)
-#else // COMPILE_ETHERNET
-#define HAS_ETHERNET false
-#endif // COMPILE_ETHERNET
-
-// Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
-// The GNSS UBX PVT message is sent ahead of the top-of-second
-// The rising edge of the TP signal indicates the true top-of-second
-#define HAS_GNSS_TP_INT ((productVariant == RTK_EVK) && (pin_GNSS_TimePulse != -1))
-
-// Macro to show if the the RTK variant has antenna short circuit / open circuit detection
-#define HAS_ANTENNA_SHORT_OPEN (productVariant == RTK_EVK)
-
-#define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
-
 typedef enum
 {
     BUTTON_ROVER = 0,
@@ -1232,11 +1215,17 @@ struct struct_present
     bool radio_lora = false;
     bool gnss_to_uart = false;
 
+    // A GNSS TP interrupt - for accurate clock setting
+    // The GNSS UBX PVT message is sent ahead of the top-of-second
+    // The rising edge of the TP signal indicates the true top-of-second
+    bool timePulseInterrupt = false;
+
     bool imu_im19 = false;
     bool imu_zedf9r = false;
 
     bool microSd = false;
-    bool microSdCardDetect = false;
+    bool microSdCardDetectLow = false; // Card detect low = SD in place
+    bool microSdCardDetectHigh = false; // Card detect high = SD in place
 
     bool display_64x48_i2c0 = false;
     bool display_128x64_i2c1 = false;
@@ -1249,11 +1238,13 @@ struct struct_present
     bool portDataMux = false;
     bool peripheralPowerControl = false;
     bool laraPowerControl = false;
-    bool antennaDetection = false;
+    bool antennaShortOpen = false;
 
-    bool button_setup = false;
+    bool button_mode = false;
     bool button_power = false;
     bool fastPowerOff = false;
+
+    float antennaReferencePoint_mm = 0.0;
 } present;
 
 // Monitor which devices on the device are on or offline.

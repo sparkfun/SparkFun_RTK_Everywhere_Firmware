@@ -15,10 +15,10 @@
 
 #ifdef COMPILE_IM19_IMU
 
-// Get the Ethernet parameters
+// Get the parameters needed for tilt compensation
 void menuTilt()
 {
-    if (HAS_TILT_COMPENSATION == false)
+    if (present.imu_im19 == false)
     {
         clearBuffer(); // Empty buffer of any newline chars
         return;
@@ -239,17 +239,14 @@ void tiltBegin()
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
-    if (productVariant == RTK_TORCH)
+    if (present.imu_im19 == true)
         // result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925"); //v1 hardware
         result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // v2 hardware from stock firmware
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
-    float arp = 0.0;
-    if (productVariant == RTK_TORCH)
-        // arp = 0.116; // In m, v1 hardware
-        arp = 0.102; // In m, v2 hardware from stock firmware
+    float arp_m = antennaReferencePoint_mm / 1000.0;
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp);
     result &= tiltSensor->sendCommand(clubVector);

@@ -87,7 +87,7 @@ int pin_bluetoothStatusLED = PIN_UNDEFINED;
 int pin_muxA = PIN_UNDEFINED;
 int pin_muxB = PIN_UNDEFINED;
 int pin_powerSenseAndControl = PIN_UNDEFINED;
-int pin_setupButton = PIN_UNDEFINED;
+int pin_modeButton = PIN_UNDEFINED;
 int pin_powerFastOff = PIN_UNDEFINED;
 int pin_dac26 = PIN_UNDEFINED;
 int pin_adc39 = PIN_UNDEFINED;
@@ -988,8 +988,8 @@ void setup()
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
 
-    DMW_b("beginLEDs");
-    beginLEDs(); // LED and PWM setup
+    DMW_b("tickerBegin");
+    tickerBegin(); // Start ticker tasks for LEDs and beeper
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1025,16 +1025,19 @@ void setup()
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP and W5500 interrupts
 
+    DMW_b("beginButtons");
+    beginButtons(); // Start task for button monitoring.
+
     DMW_b("beginSystemState");
-    beginSystemState(); // Determine initial system state. Start task for button monitoring.
+    beginSystemState(); // Determine initial system state.
 
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
 
     systemFlush(); // Complete any previous prints
 
-    DMW_b("danceLEDs");
-    danceLEDs(); // Turn on LEDs like a car dashboard
+    DMW_b("finishDisplay");
+    finishDisplay(); // Continue showing display until time threshold
 
     // Save the time we transfer into loop
     bootTime[bootTimeIndex] = millis();

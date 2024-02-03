@@ -973,42 +973,40 @@ void handleGnssDataTask(void *e)
 }
 
 // Control Bluetooth LED on variants
+// This is only called if ticker task is started so no pin tests are done
 void tickerBluetoothLedUpdate()
 {
-    if (productVariant == RTK_TORCH)
+    // Blink on/off while we wait for BT connection
+    if (bluetoothGetState() == BT_NOTCONNECTED)
     {
-        // Blink on/off while we wait for BT connection
-        if (bluetoothGetState() == BT_NOTCONNECTED)
-        {
-            if (btFadeLevel == 0)
-                btFadeLevel = 255;
-            else
-                btFadeLevel = 0;
-            ledcWrite(ledBtChannel, btFadeLevel);
-        }
-
-        // Solid LED if BT Connected
-        else if (bluetoothGetState() == BT_CONNECTED)
-            ledcWrite(ledBtChannel, 255);
-
-        // Pulse LED while no BT and we wait for WiFi connection
-        else if (wifiState == WIFI_CONNECTING || wifiState == WIFI_CONNECTED)
-        {
-            // Fade in/out the BT LED during WiFi AP mode
-            btFadeLevel += pwmFadeAmount;
-            if (btFadeLevel <= 0 || btFadeLevel >= 255)
-                pwmFadeAmount *= -1;
-
-            if (btFadeLevel > 255)
-                btFadeLevel = 255;
-            if (btFadeLevel < 0)
-                btFadeLevel = 0;
-
-            ledcWrite(ledBtChannel, btFadeLevel);
-        }
+        if (btFadeLevel == 0)
+            btFadeLevel = 255;
         else
-            ledcWrite(ledBtChannel, 0);
+            btFadeLevel = 0;
+        ledcWrite(ledBtChannel, btFadeLevel);
     }
+
+    // Solid LED if BT Connected
+    else if (bluetoothGetState() == BT_CONNECTED)
+        ledcWrite(ledBtChannel, 255);
+
+    // Pulse LED while no BT and we wait for WiFi connection
+    else if (wifiState == WIFI_CONNECTING || wifiState == WIFI_CONNECTED)
+    {
+        // Fade in/out the BT LED during WiFi AP mode
+        btFadeLevel += pwmFadeAmount;
+        if (btFadeLevel <= 0 || btFadeLevel >= 255)
+            pwmFadeAmount *= -1;
+
+        if (btFadeLevel > 255)
+            btFadeLevel = 255;
+        if (btFadeLevel < 0)
+            btFadeLevel = 0;
+
+        ledcWrite(ledBtChannel, btFadeLevel);
+    }
+    else
+        ledcWrite(ledBtChannel, 0);
 }
 
 // Control GNSS LED on variants
@@ -1073,7 +1071,7 @@ void tickerGnssLedUpdate()
 // Control the length of time the beeper makes noise
 void tickerBeepUpdate()
 {
-    if (productVariant == RTK_TORCH)
+    if (present.beeper == true)
     {
         if (beepStopMs > 0)
         {
@@ -1094,9 +1092,6 @@ void buttonCheckTask(void *e)
     // Start notification
     if (settings.printTaskStartStop)
         systemPrintln("Task buttonCheckTask started");
-
-    if (userBtn != nullptr)
-        userBtn->begin();
 
     while (true)
     {
@@ -1139,9 +1134,6 @@ void buttonCheckTask(void *e)
               '------------------'   '------------------'
 
         */
-
-        if (userBtn == nullptr)
-            return;
 
         userBtn->read();
 

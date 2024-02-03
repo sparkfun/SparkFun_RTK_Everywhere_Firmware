@@ -67,41 +67,11 @@ void identifyBoard()
 
     // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
     if (idWithAdc(idValue, 10, 10))
-    {
-        present.psram_2mb = true;
-        present.gnss_zedf9p = true;
-        present.microSd = true;
-        present.display_64x48_i2c0 = true;
-        present.button_power = true;
-        present.battery_max17048 = true;
-        present.portDataMux = true;
-        present.fastPowerOff = true;
-
         productVariant = RTK_FACET_V2;
-    }
 
     // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
     else if (idWithAdc(idValue, 10, 100))
-    {
-        // Assign UART pins before beginGnssUart
-        pin_GnssUart_RX = 12;
-        pin_GnssUart_TX = 14;
-
-        present.psram_4mb = true;
-        present.gnss_zedf9p = true;
-        present.lband_neo = true;
-        present.cellular_lara = true;
-        present.ethernet_ws5500 = true;
-        present.microSd = true;
-        present.microSdCardDetect = true;
-        present.display_128x64_i2c1 = true;
-        present.button_setup = true;
-        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
-        present.laraPowerControl = true;       // Tertiary power controls the LARA
-        present.antennaDetection = true;
-
         productVariant = RTK_EVK;
-    }
 
     // ID resistors do not exist for the following:
     //      Torch
@@ -120,22 +90,7 @@ void identifyBoard()
 
 #ifdef COMPILE_UM980
         if (bq40z50Present)
-        {
-            present.psram_2mb = true;
-            present.gnss_um980 = true;
-            present.radio_lora = true;
-            present.battery_bq40z50 = true;
-            present.encryption_atecc608a = true;
-            present.button_power = true;
-            present.beeper = true;
-            present.gnss_to_uart = true;
-
-#ifdef COMPILE_IM19_IMU
-            present.imu_im19 = true; // Allow tiltUpdate() to run
-#endif                               // COMPILE_IM19_IMU
-
             productVariant = RTK_TORCH;
-        }
 #endif // COMPILE_UM980
     }
 }
@@ -161,6 +116,8 @@ void peripheralsOff()
 }
 
 // Assign pin numbers and initial pin states
+// Generally speaking, digitalWrites should be done in separate functions,
+// and this is the only function where pinModes are set
 void beginBoard()
 {
     if (productVariant == RTK_UNKNOWN)
@@ -169,6 +126,20 @@ void beginBoard()
     }
     else if (productVariant == RTK_TORCH)
     {
+        present.psram_2mb = true;
+        present.gnss_um980 = true;
+        present.radio_lora = true;
+        present.battery_bq40z50 = true;
+        present.encryption_atecc608a = true;
+        present.button_power = true;
+        present.beeper = true;
+        present.gnss_to_uart = true;
+        present.antennaReferencePoint_mm = 102.0;
+
+#ifdef COMPILE_IM19_IMU
+        present.imu_im19 = true; // Allow tiltUpdate() to run
+#endif                           // COMPILE_IM19_IMU
+
         pin_I2C0_SDA = 15;
         pin_I2C0_SCL = 4;
 
@@ -226,13 +197,26 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
-        // v01
+        present.psram_4mb = true;
+        present.gnss_zedf9p = true;
+        present.lband_neo = true;
+        present.cellular_lara = true;
+        present.ethernet_ws5500 = true;
+        present.microSd = true;
+        present.microSdCardDetectLow = true;
+        present.display_128x64_i2c1 = true;
+        present.button_mode = true;
+        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
+        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.antennaShortOpen = true;
+        present.timePulseInterrupt = true;
+
         // Pin Allocations:
         // 35, D1  : Serial TX (CH340 RX)
         // 34, D3  : Serial RX (CH340 TX)
 
         // 25, D0  : Boot + Boot Button
-        pin_setupButton = 0;
+        pin_modeButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
         // 29, D5  : ESP5 test point
@@ -292,6 +276,15 @@ void beginBoard()
     }
     else if (productVariant == RTK_FACET_V2)
     {
+        present.psram_2mb = true;
+        present.gnss_zedf9p = true;
+        present.microSd = true;
+        present.display_64x48_i2c0 = true;
+        present.button_power = true;
+        present.battery_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+
         pin_muxA = 2;
         pin_muxB = 0;
 
@@ -611,9 +604,7 @@ void pinGnssUartTask(void *pvParameters)
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
-    {
         reportFatalError("Illegal UART pin assignment.");
-    }
 
     serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
                       pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
@@ -697,7 +688,8 @@ void beginInterrupts()
         return;
     }
 
-    if (HAS_GNSS_TP_INT) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
+    if (present.timePulseInterrupt ==
+        true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
         DMW_if systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
@@ -705,7 +697,7 @@ void beginInterrupts()
     }
 
 #ifdef COMPILE_ETHERNET
-    if (HAS_ETHERNET)
+    if (present.ethernet_ws5500 == true)
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
         pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
@@ -714,34 +706,32 @@ void beginInterrupts()
 #endif // COMPILE_ETHERNET
 }
 
-// Set LEDs for output and configure PWM
-void beginLEDs()
+// Start ticker tasks for LEDs and beeper
+void tickerBegin()
 {
-    if (productVariant == RTK_TORCH)
+    if (pin_bluetoothStatusLED != PIN_UNDEFINED)
     {
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
         ledcWrite(ledBtChannel, 255); // On at startup
 
-        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
-        ledcWrite(ledGnssChannel, 255); // On at startup
-    }
-
-    // Start ticker task for controlling LEDs
-    if (productVariant == RTK_TORCH)
-    {
         ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED
         bluetoothLedTask.detach();                                                  // Turn off any previous task
         bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+    }
+
+    if (pin_gnssStatusLED != PIN_UNDEFINED)
+    {
+        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
+        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
+        ledcWrite(ledGnssChannel, 255); // On at startup
 
         ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 
-    // Start ticker task for controlling the beeper
-    if (productVariant == RTK_TORCH)
+    if (pin_beeper != PIN_UNDEFINED)
     {
         beepTask.detach();                                          // Turn off any previous task
         beepTask.attach(1.0 / beepTaskUpdatesHz, tickerBeepUpdate); // Rate in seconds, callback
@@ -795,6 +785,39 @@ void beginFuelGauge()
     }
 }
 
+void beginButtons()
+{
+    if (present.button_power == false && present.button_mode == false)
+        return;
+
+    // Currently only one button is supported but can be expanded in the future
+    if (present.button_power == true && present.button_mode == true)
+        reportFatalError("Illegal button assignment.");
+
+    if (present.button_power == true)
+        userBtn = new Button(pin_powerSenseAndControl);
+
+    if (present.button_mode == true)
+        userBtn = new Button(pin_modeButton);
+
+    if (userBtn == nullptr)
+    {
+        systemPrintln("Failed to begin button");
+        return;
+    }
+
+    userBtn->begin();
+
+    // Starts task for monitoring button presses
+    if (ButtonCheckTaskHandle == nullptr)
+        xTaskCreate(buttonCheckTask,
+                    "BtnCheck",          // Just for humans
+                    buttonTaskStackSize, // Stack Size
+                    nullptr,             // Task input parameter
+                    ButtonCheckTaskPriority,
+                    &ButtonCheckTaskHandle); // Task handle
+}
+
 // Depending on platform and previous power down state, set system state
 void beginSystemState()
 {
@@ -813,47 +836,29 @@ void beginSystemState()
 
     if (productVariant == RTK_FACET_V2)
     {
-        systemState =
-            settings.lastState; // Return to either Rover or Base Not Started. The last state previous to power down.
+        // Return to either Rover or Base Not Started. The last state previous to power down.
+        systemState = settings.lastState;
 
         firstRoverStart = true; // Allow user to enter test screen during first rover start
         if (systemState == STATE_BASE_NOT_STARTED)
             firstRoverStart = false;
-
-        userBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
     }
     else if (productVariant == RTK_EVK)
     {
-        systemState =
-            settings
-                .lastState; // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
-
-        userBtn = new Button(pin_setupButton); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
+        // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
     }
     else if (productVariant == RTK_TORCH)
     {
-        firstRoverStart =
-            false; // Do not allow user to enter test screen during first rover start because there is no screen
+        // Do not allow user to enter test screen during first rover start because there is no screen
+        firstRoverStart = false;
 
-        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover.
-
-        userBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
+        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover mode.
     }
     else
     {
         systemPrintf("beginSystemState: Unknown product variant: %d\r\n", productVariant);
     }
-
-    // Starts task for monitoring button presses
-    if (ButtonCheckTaskHandle == nullptr)
-        xTaskCreate(buttonCheckTask,
-                    "BtnCheck",          // Just for humans
-                    buttonTaskStackSize, // Stack Size
-                    nullptr,             // Task input parameter
-                    ButtonCheckTaskPriority,
-                    &ButtonCheckTaskHandle); // Task handle
 }
 
 void beginIdleTasks()

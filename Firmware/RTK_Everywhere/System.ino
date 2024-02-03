@@ -5,7 +5,7 @@ void psramBegin()
     {
         if (psramInit() == false)
         {
-            systemPrintln("No PSRAM initialize");
+            systemPrintln("No PSRAM initialized");
         }
         else
         {
@@ -21,25 +21,18 @@ void psramBegin()
     }
 }
 
-// Turn on indicator LEDs to verify LED function and indicate setup success
-void danceLEDs()
+// Continue showing display until time threshold
+void finishDisplay()
 {
-    if (productVariant == RTK_TORCH)
+    if (ENABLE_DEVELOPER)
     {
-        // LEDs are already on. Just boot.
+        // Skip splash delay
     }
-    else
+    else if (online.display == true)
     {
-        if (ENABLE_DEVELOPER)
-        {
-            Serial.println("Skipping splash delay");
-        }
-        else if (online.display == true)
-        {
-            // Units can boot under 1s. Keep the splash screen up for at least 2s.
-            while ((millis() - splashStart) < 2000)
-                delay(1);
-        }
+        // Units can boot under 1s. Keep the splash screen up for at least 2s.
+        while ((millis() - splashStart) < 2000)
+            delay(1);
     }
 }
 
