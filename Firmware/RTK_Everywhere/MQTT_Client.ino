@@ -370,8 +370,15 @@ void mqttClientStart()
     // Display the heap state
     reportHeapNow(settings.debugMqttClientState);
 
-    // Change ZED source of corrections to IP
-    theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Set source to IP
+    // Change ZED source of corrections
+    if(settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+        theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Set source to IP
+    else if(settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
+        theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // Set source to L-Band
+    else if(settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+    {
+        //TODO
+    }
 
     // Start the MQTT client
     systemPrintln("MQTT Client start");
