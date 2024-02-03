@@ -1274,6 +1274,15 @@ struct struct_online
     bool bluetooth = false;
     bool mqttClient = false;
     bool psram = false;    
+    volatile bool gnssUartPinned = false;
+    volatile bool i2cPinned = false;
+    volatile bool btReadTaskRunning = false;
+    volatile bool buttonCheckTaskRunning = false;
+    volatile bool gnssReadTaskRunning = false;
+    volatile bool handleGnssDataTaskRunning = false;
+    volatile bool idleTask0Running = false;
+    volatile bool idleTask1Running = false;
+    volatile bool sdSizeCheckTaskRunning = false;
 } online;
 
 #ifdef COMPILE_WIFI
