@@ -169,6 +169,9 @@ void beginBoard()
     }
     else if (productVariant == RTK_TORCH)
     {
+        pin_I2C0_SDA = 15;
+        pin_I2C0_SCL = 4;
+
         pin_GnssUart_RX = 26;
         pin_GnssUart_TX = 27;
         pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
