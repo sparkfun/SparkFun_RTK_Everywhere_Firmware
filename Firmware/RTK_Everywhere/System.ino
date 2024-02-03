@@ -5,7 +5,7 @@ void psramBegin()
     {
         if (psramInit() == false)
         {
-            systemPrintln("No PSRAM initialize");
+            systemPrintln("No PSRAM initialized");
         }
         else
         {
