@@ -648,7 +648,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 // Configure specific aspects of the receiver for NTP mode
 bool configureUbloxModuleNTP()
 {
-    if (!HAS_GNSS_TP_INT)
+    if (present.timePulseInterrupt == false)
         return (false);
 
     if (online.gnss == false)

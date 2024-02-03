@@ -99,6 +99,7 @@ void identifyBoard()
         present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
         present.laraPowerControl = true;       // Tertiary power controls the LARA
         present.antennaShortOpen = true;
+        present.timePulseInterrupt = true;
 
         productVariant = RTK_EVK;
     }
@@ -694,7 +695,7 @@ void beginInterrupts()
         return;
     }
 
-    if (HAS_GNSS_TP_INT) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
+    if (present.timePulseInterrupt == true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
         DMW_if systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
