@@ -153,7 +153,7 @@ void displayBatteryVsEthernet()
 {
     if (fuelGaugeType != FUEL_GAUGE_TYPE_NONE) // Product has a battery
     icons |= ICON_BATTERY; //Top right
-  else //if (HAS_ETHERNET)
+  else //if (present.ethernet_ws5500 == true)
   {
     if (online.ethernetStatus == ETH_NOT_STARTED)
       blinking_icons &= ~ICON_ETHERNET; //If Ethernet has not stated because not needed, don't display the icon

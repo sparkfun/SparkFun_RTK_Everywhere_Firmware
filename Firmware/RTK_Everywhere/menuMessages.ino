@@ -73,7 +73,7 @@ void menuLog()
         else
             systemPrintln("Disabled");
 
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
         {
             systemPrint("8) Write NTP requests to microSD: ");
             if (settings.enableNTPFile == true)
@@ -127,7 +127,7 @@ void menuLog()
         {
             settings.forceResetOnSDFail ^= 1;
         }
-        else if ((HAS_ETHERNET) && (incoming == 8))
+        else if ((present.ethernet_ws5500 == true) && (incoming == 8))
         {
             settings.enableNTPFile ^= 1;
         }

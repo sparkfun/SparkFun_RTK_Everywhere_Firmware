@@ -85,7 +85,7 @@ void menuSystem()
 #endif // COMPILE_WIFI
 
 #ifdef COMPILE_ETHERNET
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
         {
             systemPrint("Ethernet cable: ");
             if (Ethernet.linkStatus() == LinkON)
@@ -151,7 +151,7 @@ void menuSystem()
 
         // Support mode switching
         systemPrintln("B) Switch to Base mode");
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
         systemPrintln("W) Switch to WiFi Config mode");
@@ -306,22 +306,22 @@ void menuSystem()
         // Support mode switching
         else if (incoming == 'B')
         {
-            forceSystemStateUpdate = true; // Imediately go to this new state
+            forceSystemStateUpdate = true; // Immediately go to this new state
             changeState(STATE_BASE_NOT_STARTED);
         }
-        else if ((incoming == 'N') && HAS_ETHERNET)
+        else if ((incoming == 'N') && (present.ethernet_ws5500 == true))
         {
-            forceSystemStateUpdate = true; // Imediately go to this new state
+            forceSystemStateUpdate = true; // Immediately go to this new state
             changeState(STATE_NTPSERVER_NOT_STARTED);
         }
         else if (incoming == 'R')
         {
-            forceSystemStateUpdate = true; // Imediately go to this new state
+            forceSystemStateUpdate = true; // Immediately go to this new state
             changeState(STATE_ROVER_NOT_STARTED);
         }
         else if (incoming == 'W')
         {
-            forceSystemStateUpdate = true; // Imediately go to this new state
+            forceSystemStateUpdate = true; // Immediately go to this new state
             changeState(STATE_WIFI_CONFIG_NOT_STARTED);
         }
 

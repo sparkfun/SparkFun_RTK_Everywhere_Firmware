@@ -78,14 +78,14 @@ void menuMain()
 #endif // COMPILE_NETWORK
 
 #ifdef COMPILE_ETHERNET
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
             systemPrintln("e) Configure Ethernet");
 #endif // COMPILE_ETHERNET
 
         systemPrintln("f) Firmware upgrade");
 
 #ifdef COMPILE_ETHERNET
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
             systemPrintln("n) Configure NTP");
 #endif // COMPILE_ETHERNET
 
@@ -127,11 +127,11 @@ void menuMain()
             menuWiFi();
         else if (incoming == 7)
             menuNetwork();
-        else if (incoming == 'e' && (HAS_ETHERNET))
+        else if (incoming == 'e' && (present.ethernet_ws5500 == true))
             menuEthernet();
         else if (incoming == 'f')
             menuFirmware();
-        else if (incoming == 'n' && (HAS_ETHERNET))
+        else if (incoming == 'n' && (present.ethernet_ws5500 == true))
             menuNTP();
         else if (incoming == 'p')
             menuUserProfiles();

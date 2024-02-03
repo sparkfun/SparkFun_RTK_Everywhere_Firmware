@@ -3,7 +3,7 @@
 // Get the Ethernet parameters
 void menuEthernet()
 {
-    if (!HAS_ETHERNET)
+    if (present.ethernet_ws5500 == false)
     {
         clearBuffer(); // Empty buffer of any newline chars
         return;
@@ -121,7 +121,7 @@ void menuEthernet()
 // Regularly called to update the Ethernet status
 void ethernetBegin()
 {
-    if (HAS_ETHERNET == false)
+    if (present.ethernet_ws5500 == false)
         return;
 
     // Skip if going into configure-via-ethernet mode
@@ -287,12 +287,9 @@ void ethernetUpdate()
 {
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
-    {
-        // log_d("configureViaEthernet: skipping updateEthernet");
         return;
-    }
 
-    if (!HAS_ETHERNET)
+    if (present.ethernet_ws5500 == false)
         return;
 
     if (online.ethernetStatus == ETH_CAN_NOT_BEGIN)

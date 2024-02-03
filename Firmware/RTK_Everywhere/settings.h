@@ -156,13 +156,6 @@ const GnssPlatform platformGnssTable[] =
 };
 const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
-// Macro to show if the the RTK variant has Ethernet
-#ifdef COMPILE_ETHERNET
-#define HAS_ETHERNET (productVariant == RTK_EVK)
-#else // COMPILE_ETHERNET
-#define HAS_ETHERNET false
-#endif // COMPILE_ETHERNET
-
 // Macro to show if the the RTK variant has a GNSS TP interrupt - for accurate clock setting
 // The GNSS UBX PVT message is sent ahead of the top-of-second
 // The rising edge of the TP signal indicates the true top-of-second

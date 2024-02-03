@@ -223,7 +223,7 @@ void menuNetwork()
         if (settings.enablePvtUdpServer)
             systemPrintf("7) PVT UDP Server Port: %ld\r\n", settings.pvtUdpServerPort);
 
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
         {
             //------------------------------
             // Display the network layer menu items
@@ -312,14 +312,14 @@ void menuNetwork()
         // Get the network layer parameters
         //------------------------------
 
-        else if ((incoming == 'd') && HAS_ETHERNET)
+        else if ((incoming == 'd') && (present.ethernet_ws5500 == true))
         {
             // Toggle the network type
             settings.defaultNetworkType += 1;
             if (settings.defaultNetworkType > NETWORK_TYPE_USE_DEFAULT)
                 settings.defaultNetworkType = 0;
         }
-        else if ((incoming == 'f') && HAS_ETHERNET)
+        else if ((incoming == 'f') && (present.ethernet_ws5500 == true))
         {
             // Toggle failover support
             settings.enableNetworkFailover ^= 1;
@@ -619,7 +619,7 @@ void networkPrintName(uint8_t networkType)
 {
     if (networkType > NETWORK_TYPE_USE_DEFAULT)
         systemPrint("Unknown");
-    else if (HAS_ETHERNET)
+    else if (present.ethernet_ws5500 == true)
         systemPrint(networkName[networkType]);
     else
         systemPrint(networkName[NETWORK_TYPE_WIFI]);
@@ -662,7 +662,7 @@ void networkRetry(NETWORK_DATA *network, uint8_t previousNetworkType)
     network->timeout = NETWORK_DELAY_BEFORE_RETRY << (network->connectionAttempt - 1);
 
     // Determine if failover is possible
-    if (HAS_ETHERNET && (wifiNetworkCount() > 0) && settings.enableNetworkFailover &&
+    if ((present.ethernet_ws5500 == true) && (wifiNetworkCount() > 0) && settings.enableNetworkFailover &&
         (network->requestedNetwork >= NETWORK_TYPE_MAX))
     {
         // Get the next failover network
@@ -946,7 +946,7 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
     // Translate the default network type
     if (newNetworkType == NETWORK_TYPE_USE_DEFAULT)
     {
-        if (HAS_ETHERNET)
+        if (present.ethernet_ws5500 == true)
             newNetworkType = NETWORK_TYPE_ETHERNET;
         else
             newNetworkType = NETWORK_TYPE_WIFI;

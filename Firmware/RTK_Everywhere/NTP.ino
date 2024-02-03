@@ -88,7 +88,7 @@ static uint32_t lastLoggedNTPRequest;
 
 void menuNTP()
 {
-    if (!HAS_ETHERNET)
+    if (!present.ethernet_ws5500 == true)
     {
         clearBuffer(); // Empty buffer of any newline chars
         return;
@@ -795,7 +795,7 @@ void ntpServerUpdate()
 {
     char ntpDiag[512]; // Char array to hold diagnostic messages
 
-    if (!HAS_ETHERNET)
+    if (present.ethernet_ws5500 == false)
         return;
 
     // Shutdown the NTP server when the mode or setting changes

@@ -702,7 +702,7 @@ void beginInterrupts()
     }
 
 #ifdef COMPILE_ETHERNET
-    if (HAS_ETHERNET)
+    if (present.ethernet_ws5500 == true)
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
         pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
