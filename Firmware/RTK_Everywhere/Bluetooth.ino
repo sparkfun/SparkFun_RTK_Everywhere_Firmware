@@ -44,9 +44,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     {
         systemPrintln("BT client Connected");
         bluetoothState = BT_CONNECTED;
-        if (productVariant == RTK_TORCH)
-            bluetoothLedOn();
-        
+        bluetoothLedOn();
     }
 
     if (event == ESP_SPP_CLOSE_EVT)
@@ -58,8 +56,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         printEndpoint = PRINT_ENDPOINT_SERIAL;
 
         bluetoothState = BT_NOTCONNECTED;
-        if (productVariant == RTK_TORCH)
-            bluetoothLedOff();
+        bluetoothLedOff();
     }
 }
 
