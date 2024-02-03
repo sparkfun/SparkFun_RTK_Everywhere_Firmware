@@ -381,23 +381,6 @@ unsigned long rtcmLastPacketReceived;
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// GPS parse table
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Define the parsers that get included
-#define PARSE_NMEA_MESSAGES
-#define PARSE_RTCM_MESSAGES
-#define PARSE_UBLOX_MESSAGES
-#ifdef COMPILE_UM980
-#define PARSE_UNICORE_MESSAGES
-#endif // COMPILE_UM980
-
-#include "GpsMessageParser.h" // Include the parser
-
-// Build the GPS message parse table
-GPS_PARSE_TABLE;
-
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
