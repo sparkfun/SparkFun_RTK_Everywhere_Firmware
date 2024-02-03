@@ -988,8 +988,8 @@ void setup()
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
 
-    DMW_b("beginLEDs");
-    beginLEDs(); // LED and PWM setup
+    DMW_b("tickerBegin");
+    tickerBegin(); // Start ticker tasks for LEDs and beeper
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
