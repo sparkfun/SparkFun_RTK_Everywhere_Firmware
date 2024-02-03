@@ -2523,7 +2523,7 @@ void paintDisplaySetup()
 {
     if (setupState == STATE_ROVER_NOT_STARTED)
     {
-        if (productVariant == RTK_EVK)
+        if (present.ethernet_ws5500 == true)
         {
             printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
             printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
@@ -2540,7 +2540,7 @@ void paintDisplaySetup()
     }
     else if (setupState == STATE_BASE_NOT_STARTED)
     {
-        if (productVariant == RTK_EVK)
+        if (present.ethernet_ws5500 == true)
         {
             printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
             printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
@@ -2573,7 +2573,7 @@ void paintDisplaySetup()
     }
     else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
     {
-        if (productVariant == RTK_EVK)
+        if (present.ethernet_ws5500 == true)
         {
             printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
             printTextCenter("NTP", 12 * 1, QW_FONT_8X16, 1, false);
@@ -2600,7 +2600,7 @@ void paintDisplaySetup()
 
     else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
     {
-        if (productVariant == RTK_EVK)
+        if (present.ethernet_ws5500 == true)
         {
             printTextCenter("NTP", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
             printTextCenter("Cfg Eth", 12 * 1, QW_FONT_8X16, 1, false);

@@ -209,9 +209,7 @@ void bluetoothStart()
             false) // localName, isMaster, rxBufferSize, txBufferSize
         {
             systemPrintln("An error occurred initializing Bluetooth");
-
-            if (productVariant == RTK_TORCH)
-                bluetoothLedOff();
+            bluetoothLedOff();
             return;
         }
 

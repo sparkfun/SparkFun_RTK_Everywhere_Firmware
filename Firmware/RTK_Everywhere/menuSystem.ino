@@ -390,7 +390,7 @@ void menuDebugHardware()
         systemPrint("11) IMU Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
 
-        if (productVariant == RTK_TORCH)
+        if (present.gnss_um980 == true)
             systemPrintln("12) UM980 Direct connect");
 
         systemPrint("13) PSRAM (");
@@ -458,7 +458,7 @@ void menuDebugHardware()
         {
             settings.enableImuDebug ^= 1;
         }
-        else if (incoming == 12 && productVariant == RTK_TORCH)
+        else if (incoming == 12 && present.gnss_um980 == true)
         {
             systemPrintln("Press ! to exit");
 

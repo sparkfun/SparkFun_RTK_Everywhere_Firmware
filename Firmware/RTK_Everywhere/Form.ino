@@ -816,7 +816,7 @@ void createSettingsString(char *newSettings)
 
     // System state at power on. Convert various system states to either Rover or Base or NTP.
     int lastState; // 0 = Rover, 1 = Base, 2 = NTP
-    if (productVariant == RTK_EVK)
+    if (present.ethernet_ws5500 == true)
     {
         lastState = 1; // Default Base
         if (settings.lastState >= STATE_ROVER_NOT_STARTED && settings.lastState <= STATE_ROVER_RTK_FIX)
