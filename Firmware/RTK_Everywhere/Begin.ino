@@ -711,34 +711,32 @@ void beginInterrupts()
 #endif // COMPILE_ETHERNET
 }
 
-// Set LEDs for output and configure PWM
-void beginLEDs()
+// Start ticker tasks for LEDs and beeper
+void tickerBegin()
 {
-    if (productVariant == RTK_TORCH)
+    if (pin_bluetoothStatusLED != PIN_UNDEFINED)
     {
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
         ledcWrite(ledBtChannel, 255); // On at startup
 
-        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
-        ledcWrite(ledGnssChannel, 255); // On at startup
-    }
-
-    // Start ticker task for controlling LEDs
-    if (productVariant == RTK_TORCH)
-    {
         ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED
         bluetoothLedTask.detach();                                                  // Turn off any previous task
         bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+    }
+
+    if (pin_gnssStatusLED != PIN_UNDEFINED)
+    {
+        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
+        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
+        ledcWrite(ledGnssChannel, 255); // On at startup
 
         ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 
-    // Start ticker task for controlling the beeper
-    if (productVariant == RTK_TORCH)
+    if (pin_beeper != PIN_UNDEFINED)
     {
         beepTask.detach();                                          // Turn off any previous task
         beepTask.attach(1.0 / beepTaskUpdatesHz, tickerBeepUpdate); // Rate in seconds, callback
