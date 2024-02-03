@@ -1115,21 +1115,30 @@ void networkUpdate()
     uint8_t networkType;
 
     // Update the network layer
+    DMW_c("networkTypeUpdate");
     for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
         networkTypeUpdate(networkType);
     if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
         PERIODIC_CLEAR(PD_NETWORK_STATE);
 
     // Update the network services
+    DMW_c("mqttClientUpdate");
     mqttClientUpdate();   // Process any Point Perfect MQTT messages
+    DMW_c("ntpServerUpdate");
     ntpServerUpdate();    // Process any received NTP requests
+    DMW_c("ntripClientUpdate");
     ntripClientUpdate();  // Check the NTRIP client connection and move data NTRIP --> ZED
+    DMW_c("ntripServerUpdate");
     ntripServerUpdate();  // Check the NTRIP server connection and move data ZED --> NTRIP
+    DMW_c("pvtClientUpdate");
     pvtClientUpdate();    // Turn on the PVT client as needed
+    DMW_c("pvtServerUpdate");
     pvtServerUpdate();    // Turn on the PVT server as needed
+    DMW_c("pvtUdpServerUpdate");
     pvtUdpServerUpdate(); // Turn on the PVT UDP server as needed
 
     // Display the IP addresses
+    DMW_c("networkPeriodicallyDisplayIpAddress");
     networkPeriodicallyDisplayIpAddress();
 }
 
