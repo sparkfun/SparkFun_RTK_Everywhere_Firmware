@@ -161,8 +161,6 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 // The rising edge of the TP signal indicates the true top-of-second
 #define HAS_GNSS_TP_INT ((productVariant == RTK_EVK) && (pin_GNSS_TimePulse != -1))
 
-#define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
-
 typedef enum
 {
     BUTTON_ROVER = 0,

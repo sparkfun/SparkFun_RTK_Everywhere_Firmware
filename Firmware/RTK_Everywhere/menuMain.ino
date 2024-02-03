@@ -101,10 +101,8 @@ void menuMain()
 
         systemPrintln("s) Configure System");
 
-        if (HAS_TILT_COMPENSATION)
-        {
+        if (present.imu_im19 == true)
             systemPrintln("t) Configure Tilt Compensation");
-        }
 
         if (btPrintEcho)
             systemPrintln("b) Exit Bluetooth Echo mode");
@@ -143,7 +141,7 @@ void menuMain()
 #endif // COMPILE_ESPNOW
         else if (incoming == 's')
             menuSystem();
-        else if (incoming == 't' && (HAS_TILT_COMPENSATION))
+        else if (incoming == 't' && (present.imu_im19 == true))
             menuTilt();
         else if (incoming == 'b')
         {

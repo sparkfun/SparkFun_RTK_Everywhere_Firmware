@@ -15,10 +15,10 @@
 
 #ifdef COMPILE_IM19_IMU
 
-// Get the Ethernet parameters
+// Get the parameters needed for tilt compensation
 void menuTilt()
 {
-    if (HAS_TILT_COMPENSATION == false)
+    if (present.imu_im19 == false)
     {
         clearBuffer(); // Empty buffer of any newline chars
         return;
