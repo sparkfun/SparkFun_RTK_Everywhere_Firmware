@@ -129,7 +129,7 @@ void beginBoard()
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.radio_lora = true;
-        present.battery_bq40z50 = true;
+        //present.battery_bq40z50 = true;
         present.encryption_atecc608a = true;
         present.button_power = true;
         present.beeper = true;
