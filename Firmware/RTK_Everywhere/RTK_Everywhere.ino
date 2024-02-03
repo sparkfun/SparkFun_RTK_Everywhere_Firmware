@@ -1025,8 +1025,11 @@ void setup()
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP and W5500 interrupts
 
+    DMW_b("beginButtons");
+    beginButtons(); // Start task for button monitoring.
+
     DMW_b("beginSystemState");
-    beginSystemState(); // Determine initial system state. Start task for button monitoring.
+    beginSystemState(); // Determine initial system state.
 
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.

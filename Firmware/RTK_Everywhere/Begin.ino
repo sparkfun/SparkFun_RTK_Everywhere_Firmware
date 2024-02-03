@@ -781,6 +781,39 @@ void beginFuelGauge()
     }
 }
 
+void beginButtons()
+{
+    if (present.button_power == false && present.button_mode == false)
+        return;
+
+    // Currently only one button is supported but can be expanded in the future
+    if (present.button_power == true && present.button_mode == true)
+        reportFatalError("Illegal button assignment.");
+
+    if (present.button_power == true)
+        userBtn = new Button(pin_powerSenseAndControl);
+
+    if (present.button_mode == true)
+        userBtn = new Button(pin_modeButton);
+
+    if (userBtn == nullptr)
+    {
+        systemPrintln("Failed to begin button");
+        return;
+    }
+
+    userBtn->begin();
+
+    // Starts task for monitoring button presses
+    if (ButtonCheckTaskHandle == nullptr)
+        xTaskCreate(buttonCheckTask,
+                    "BtnCheck",          // Just for humans
+                    buttonTaskStackSize, // Stack Size
+                    nullptr,             // Task input parameter
+                    ButtonCheckTaskPriority,
+                    &ButtonCheckTaskHandle); // Task handle
+}
+
 // Depending on platform and previous power down state, set system state
 void beginSystemState()
 {
@@ -799,47 +832,29 @@ void beginSystemState()
 
     if (productVariant == RTK_FACET_V2)
     {
-        systemState =
-            settings.lastState; // Return to either Rover or Base Not Started. The last state previous to power down.
+        // Return to either Rover or Base Not Started. The last state previous to power down.
+        systemState = settings.lastState;
 
         firstRoverStart = true; // Allow user to enter test screen during first rover start
         if (systemState == STATE_BASE_NOT_STARTED)
             firstRoverStart = false;
-
-        userBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
     }
     else if (productVariant == RTK_EVK)
     {
-        systemState =
-            settings
-                .lastState; // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
-
-        userBtn = new Button(pin_setupButton); // Create the button in memory
-        // Allocation failure handled in ButtonCheckTask
+        // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
     }
     else if (productVariant == RTK_TORCH)
     {
-        firstRoverStart =
-            false; // Do not allow user to enter test screen during first rover start because there is no screen
+        // Do not allow user to enter test screen during first rover start because there is no screen
+        firstRoverStart = false;
 
-        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover.
-
-        userBtn = new Button(pin_powerSenseAndControl); // Create the button in memory
+        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover mode.
     }
     else
     {
         systemPrintf("beginSystemState: Unknown product variant: %d\r\n", productVariant);
     }
-
-    // Starts task for monitoring button presses
-    if (ButtonCheckTaskHandle == nullptr)
-        xTaskCreate(buttonCheckTask,
-                    "BtnCheck",          // Just for humans
-                    buttonTaskStackSize, // Stack Size
-                    nullptr,             // Task input parameter
-                    ButtonCheckTaskPriority,
-                    &ButtonCheckTaskHandle); // Task handle
 }
 
 void beginIdleTasks()
