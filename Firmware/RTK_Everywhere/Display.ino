@@ -198,7 +198,7 @@ void displayBatteryVsEthernet()
 }
 void displaySivVsOpenShort()
 {
-    if (!HAS_ANTENNA_SHORT_OPEN)
+    if (present.antennaShortOpen == false)
         icons |= paintSIV();
     else
     {
@@ -1692,7 +1692,7 @@ void paintBaseTempSurveyStarted()
     else
         oled->print(">10");
 
-    if (!HAS_ANTENNA_SHORT_OPEN)
+    if (present.antennaShortOpen == false)
     {
         oled->setCursor(0, 39); // x, y
         oled->setFont(QW_FONT_5X7);
@@ -1752,7 +1752,7 @@ void paintRTCM()
     else
         printTextCenter("Xmitting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
-    if (!HAS_ANTENNA_SHORT_OPEN)
+    if (present.antennaShortOpen == false)
     {
         oled->setCursor(0, 39); // x, y
         oled->setFont(QW_FONT_5X7);

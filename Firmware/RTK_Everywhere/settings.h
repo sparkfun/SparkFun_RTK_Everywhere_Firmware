@@ -161,9 +161,6 @@ const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platfor
 // The rising edge of the TP signal indicates the true top-of-second
 #define HAS_GNSS_TP_INT ((productVariant == RTK_EVK) && (pin_GNSS_TimePulse != -1))
 
-// Macro to show if the the RTK variant has antenna short circuit / open circuit detection
-#define HAS_ANTENNA_SHORT_OPEN (productVariant == RTK_EVK)
-
 #define HAS_TILT_COMPENSATION (productVariant == RTK_TORCH)
 
 typedef enum
@@ -1243,7 +1240,7 @@ struct struct_present
     bool portDataMux = false;
     bool peripheralPowerControl = false;
     bool laraPowerControl = false;
-    bool antennaDetection = false;
+    bool antennaShortOpen = false;
 
     bool button_setup = false;
     bool button_power = false;

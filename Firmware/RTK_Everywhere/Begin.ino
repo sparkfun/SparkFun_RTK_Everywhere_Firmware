@@ -98,7 +98,7 @@ void identifyBoard()
         present.button_setup = true;
         present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
         present.laraPowerControl = true;       // Tertiary power controls the LARA
-        present.antennaDetection = true;
+        present.antennaShortOpen = true;
 
         productVariant = RTK_EVK;
     }

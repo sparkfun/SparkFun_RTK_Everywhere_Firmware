@@ -430,7 +430,7 @@ bool zedConfigure()
     if (response == false)
         systemPrintln("Module failed config block 3");
 
-    if (HAS_ANTENNA_SHORT_OPEN)
+    if (present.antennaShortOpen)
     {
         theGNSS->newCfgValset();
 
