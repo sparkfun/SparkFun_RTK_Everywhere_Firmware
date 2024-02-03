@@ -1220,6 +1220,11 @@ struct struct_present
     bool radio_lora = false;
     bool gnss_to_uart = false;
 
+    // A GNSS TP interrupt - for accurate clock setting
+    // The GNSS UBX PVT message is sent ahead of the top-of-second
+    // The rising edge of the TP signal indicates the true top-of-second
+    bool timePulseInterrupt = false;
+    
     bool imu_im19 = false;
     bool imu_zedf9r = false;
 
