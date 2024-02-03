@@ -7,6 +7,7 @@ Parse_Unicore.ino
 ------------------------------------------------------------------------------*/
 
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> // Get constants and crc32Table
+#include "rtk_crc32.h"
 
 //
 //    Unicore Binary Response
