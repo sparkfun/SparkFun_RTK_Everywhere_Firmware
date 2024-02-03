@@ -3,6 +3,9 @@
 // Capture card size when mounted
 void sdUpdate()
 {
+    if (!present.microSd)
+        return;
+
     if (settings.enableSD == false)
     {
         if (online.microSD == true)
