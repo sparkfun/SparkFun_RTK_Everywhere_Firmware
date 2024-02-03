@@ -67,42 +67,11 @@ void identifyBoard()
 
     // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
     if (idWithAdc(idValue, 10, 10))
-    {
-        present.psram_2mb = true;
-        present.gnss_zedf9p = true;
-        present.microSd = true;
-        present.display_64x48_i2c0 = true;
-        present.button_power = true;
-        present.battery_max17048 = true;
-        present.portDataMux = true;
-        present.fastPowerOff = true;
-
         productVariant = RTK_FACET_V2;
-    }
 
     // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
     else if (idWithAdc(idValue, 10, 100))
-    {
-        // Assign UART pins before beginGnssUart
-        pin_GnssUart_RX = 12;
-        pin_GnssUart_TX = 14;
-
-        present.psram_4mb = true;
-        present.gnss_zedf9p = true;
-        present.lband_neo = true;
-        present.cellular_lara = true;
-        present.ethernet_ws5500 = true;
-        present.microSd = true;
-        present.microSdCardDetectLow = true;
-        present.display_128x64_i2c1 = true;
-        present.button_setup = true;
-        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
-        present.laraPowerControl = true;       // Tertiary power controls the LARA
-        present.antennaShortOpen = true;
-        present.timePulseInterrupt = true;
-
         productVariant = RTK_EVK;
-    }
 
     // ID resistors do not exist for the following:
     //      Torch
@@ -121,22 +90,7 @@ void identifyBoard()
 
 #ifdef COMPILE_UM980
         if (bq40z50Present)
-        {
-            present.psram_2mb = true;
-            present.gnss_um980 = true;
-            present.radio_lora = true;
-            present.battery_bq40z50 = true;
-            present.encryption_atecc608a = true;
-            present.button_power = true;
-            present.beeper = true;
-            present.gnss_to_uart = true;
-
-#ifdef COMPILE_IM19_IMU
-            present.imu_im19 = true; // Allow tiltUpdate() to run
-#endif                               // COMPILE_IM19_IMU
-
             productVariant = RTK_TORCH;
-        }
 #endif // COMPILE_UM980
     }
 }
@@ -162,6 +116,8 @@ void peripheralsOff()
 }
 
 // Assign pin numbers and initial pin states
+// Generally speaking, digitalWrites should be done in separate functions,
+// and this is the only function where pinModes are set
 void beginBoard()
 {
     if (productVariant == RTK_UNKNOWN)
@@ -170,6 +126,19 @@ void beginBoard()
     }
     else if (productVariant == RTK_TORCH)
     {
+        present.psram_2mb = true;
+        present.gnss_um980 = true;
+        present.radio_lora = true;
+        present.battery_bq40z50 = true;
+        present.encryption_atecc608a = true;
+        present.button_power = true;
+        present.beeper = true;
+        present.gnss_to_uart = true;
+
+#ifdef COMPILE_IM19_IMU
+        present.imu_im19 = true; // Allow tiltUpdate() to run
+#endif                           // COMPILE_IM19_IMU
+
         pin_GnssUart_RX = 26;
         pin_GnssUart_TX = 27;
         pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
@@ -224,13 +193,26 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
-        // v01
+        present.psram_4mb = true;
+        present.gnss_zedf9p = true;
+        present.lband_neo = true;
+        present.cellular_lara = true;
+        present.ethernet_ws5500 = true;
+        present.microSd = true;
+        present.microSdCardDetectLow = true;
+        present.display_128x64_i2c1 = true;
+        present.button_mode = true;
+        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
+        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.antennaShortOpen = true;
+        present.timePulseInterrupt = true;
+
         // Pin Allocations:
         // 35, D1  : Serial TX (CH340 RX)
         // 34, D3  : Serial RX (CH340 TX)
 
         // 25, D0  : Boot + Boot Button
-        pin_setupButton = 0;
+        pin_modeButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
         // 29, D5  : ESP5 test point
@@ -290,6 +272,15 @@ void beginBoard()
     }
     else if (productVariant == RTK_FACET_V2)
     {
+        present.psram_2mb = true;
+        present.gnss_zedf9p = true;
+        present.microSd = true;
+        present.display_64x48_i2c0 = true;
+        present.button_power = true;
+        present.battery_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+
         pin_muxA = 2;
         pin_muxB = 0;
 
@@ -609,9 +600,7 @@ void pinGnssUartTask(void *pvParameters)
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
-    {
         reportFatalError("Illegal UART pin assignment.");
-    }
 
     serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
                       pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be configured
@@ -695,7 +684,8 @@ void beginInterrupts()
         return;
     }
 
-    if (present.timePulseInterrupt == true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
+    if (present.timePulseInterrupt ==
+        true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
         DMW_if systemPrintf("pin_GNSS_TimePulse: %d\r\n", pin_GNSS_TimePulse);
         pinMode(pin_GNSS_TimePulse, INPUT);
