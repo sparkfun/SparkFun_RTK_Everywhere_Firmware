@@ -67,26 +67,20 @@ const char *const ringBufferConsumer[] = {
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
 
 // Define the index values into the parserTable
-#define RTK_NMEA_PARSER_INDEX           0
-#define RTK_UNICORE_HASH_PARSER_INDEX   1
-#define RTK_RTCM_PARSER_INDEX           2
-#define RTK_UBLOX_PARSER_INDEX          3
+#define RTK_NMEA_PARSER_INDEX 0
+#define RTK_UNICORE_HASH_PARSER_INDEX 1
+#define RTK_RTCM_PARSER_INDEX 2
+#define RTK_UBLOX_PARSER_INDEX 3
 #define RTK_UNICORE_BINARY_PARSER_INDEX 4
 
 // List the parsers to be included
-SEMP_PARSE_ROUTINE const parserTable[] =
-{
-    sempNmeaPreamble,
-    sempUnicoreHashPreamble,
-    sempRtcmPreamble,
-    sempUbloxPreamble,
-    sempUnicoreBinaryPreamble,
+SEMP_PARSE_ROUTINE const parserTable[] = {
+    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
-const char * const parserNames[] =
-{
+const char *const parserNames[] = {
     "NMEA",
     "Unicore Hash_(#)",
     "RTCM",
@@ -394,44 +388,29 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         switch (type)
         {
         case RTK_NMEA_PARSER_INDEX:
-            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n",
-                         parse->parserName,
-                         parserNames[type],
-                         sempNmeaGetSentenceName(parse),
-                         parse->length, parse->length);
+            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type],
+                         sempNmeaGetSentenceName(parse), parse->length, parse->length);
             break;
 
         case RTK_UNICORE_HASH_PARSER_INDEX:
-            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n",
-                         parse->parserName,
-                         parserNames[type],
-                         sempUnicoreHashGetSentenceName(parse),
-                         parse->length, parse->length);
+            systemPrintf("%s %s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type],
+                         sempUnicoreHashGetSentenceName(parse), parse->length, parse->length);
             break;
 
         case RTK_RTCM_PARSER_INDEX:
-            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n",
-                         parse->parserName,
-                         parserNames[type],
-                         sempRtcmGetMessageNumber(parse),
-                         parse->length, parse->length);
+            systemPrintf("%s %s %d, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type],
+                         sempRtcmGetMessageNumber(parse), parse->length, parse->length);
             break;
 
         case RTK_UBLOX_PARSER_INDEX:
             message = sempUbloxGetMessageNumber(parse);
-            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n",
-                         parse->parserName,
-                         parserNames[type],
-                         message >> 8,
-                         message & 0xff,
-                         parse->length, parse->length);
+            systemPrintf("%s %s %d.%d, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], message >> 8,
+                         message & 0xff, parse->length, parse->length);
             break;
 
         case RTK_UNICORE_BINARY_PARSER_INDEX:
-            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n",
-                         parse->parserName,
-                         parserNames[type],
-                         parse->length, parse->length);
+            systemPrintf("%s %s, 0x%04x (%d) bytes\r\n", parse->parserName, parserNames[type], parse->length,
+                         parse->length);
             break;
         }
     }
@@ -449,9 +428,8 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
 
     // Determine if this message should be processed by the Unicore library
-    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX)
-        || (type == RTK_UNICORE_HASH_PARSER_INDEX)
-        || (type == RTK_NMEA_PARSER_INDEX))
+    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) ||
+        (type == RTK_NMEA_PARSER_INDEX))
     {
         // Give this data to the library to update its internal variables
         um980UnicoreHandler(parse->buffer, parse->length);
@@ -1355,7 +1333,7 @@ void buttonCheckTask(void *e)
 void idleTask(void *e)
 {
     int cpu = xPortGetCoreID();
-    volatile bool * idleTaskRunning;
+    volatile bool *idleTaskRunning;
     uint32_t idleCount = 0;
     uint32_t lastDisplayIdleTime = 0;
     uint32_t lastStackPrintTime = 0;
@@ -1478,9 +1456,7 @@ void tasksStopGnssUart()
     // Eliminates CPU bus hang condition
     do
         delay(10);
-    while (online.gnssReadTaskRunning
-            || online.handleGnssDataTaskRunning
-            || online.btReadTaskRunning);
+    while (online.gnssReadTaskRunning || online.handleGnssDataTaskRunning || online.btReadTaskRunning);
 }
 
 // Checking the number of available clusters on the SD card can take multiple seconds
