@@ -316,7 +316,7 @@ void gnssReadTask(void *e)
 
     // Initialize the parser
     parse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
-                            0,                   // Scratch pad bytes
+                            0,                   // Scratchpad bytes
                             3000,                // Buffer length
                             processUart1Message, // eom Call Back
                             "Log");              // Parser Name
