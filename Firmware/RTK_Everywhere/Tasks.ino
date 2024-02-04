@@ -321,9 +321,11 @@ void gnssReadTask(void *e)
         systemPrintln("Task gnssReadTask started");
 
     // Initialize the parser
-    parse = sempBeginParser(parserTable, parserCount,
-                            parserNames, parserNameCount,
-                            0, 3000, processUart1Message, "Log");
+    parse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
+                            0,                   // Scratch pad bytes
+                            3000,                // Buffer length
+                            processUart1Message, // eom Call Back
+                            "Log");              // Parser Name
     if (!parse)
         reportFatalError("Failed to initialize the parser");
 
