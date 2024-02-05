@@ -278,7 +278,7 @@ void beginBoard()
         present.gnss_zedf9p = true;
         present.microSd = true;
         present.display_64x48_i2c0 = true;
-        present.button_power = true;
+        present.button_powerLow = true; // Button is pressed when low
         present.battery_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
@@ -572,8 +572,8 @@ void beginGnssUart()
                 "GnssUartStart", // Just for humans
                 2000,            // Stack Size
                 nullptr,         // Task input parameter
-                0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-                &taskHandle,     // Task handle
+                0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                &taskHandle, // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
         while (!online.gnssUartPinned) // Wait for task to run once
@@ -786,18 +786,32 @@ void beginFuelGauge()
 
 void beginButtons()
 {
-    if (present.button_power == false && present.button_mode == false)
+    if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false)
         return;
 
     TaskHandle_t taskHandle;
 
     // Currently only one button is supported but can be expanded in the future
-    if (present.button_power == true && present.button_mode == true)
+    int buttonCount = 0;
+    if (present.button_powerLow == true)
+        buttonCount++;
+    if (present.button_powerHigh == true)
+        buttonCount++;
+    if (present.button_mode == true)
+        buttonCount++;
+    if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
-    if (present.button_power == true)
+    //Facet main/power button
+    if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
         userBtn = new Button(pin_powerSenseAndControl);
 
+    //Torch main/power button
+    if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
+        userBtn = new Button(pin_powerButton, 25, true,
+                             false); // Turn off inversion. Needed for buttons that are high when pressed.
+
+    //EVK mode button
     if (present.button_mode == true)
         userBtn = new Button(pin_modeButton);
 
