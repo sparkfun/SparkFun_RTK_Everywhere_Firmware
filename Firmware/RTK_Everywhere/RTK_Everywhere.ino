@@ -80,18 +80,21 @@
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
-int pin_batteryStatusLED = PIN_UNDEFINED;
-int pin_baseStatusLED = PIN_UNDEFINED;
-int pin_bluetoothStatusLED = PIN_UNDEFINED;
+int pin_batteryStatusLED = PIN_UNDEFINED; //LED on Torch
+int pin_baseStatusLED = PIN_UNDEFINED; //LED on EVK
+int pin_bluetoothStatusLED = PIN_UNDEFINED; //LED on Torch
+int pin_gnssStatusLED = PIN_UNDEFINED; //LED on Torch
 
 int pin_muxA = PIN_UNDEFINED;
 int pin_muxB = PIN_UNDEFINED;
-int pin_powerSenseAndControl = PIN_UNDEFINED;
-int pin_modeButton = PIN_UNDEFINED;
-int pin_powerFastOff = PIN_UNDEFINED;
+int pin_powerSenseAndControl = PIN_UNDEFINED; //Power button and power down I/O on Facet
+int pin_modeButton = PIN_UNDEFINED; //Mode button on EVK
+int pin_powerButton = PIN_UNDEFINED; //Power and general purpose button on Torch
+int pin_powerFastOff = PIN_UNDEFINED; //Output on Facet
 int pin_dac26 = PIN_UNDEFINED;
 int pin_adc39 = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED;
+int pin_peripheralPowerControl = PIN_UNDEFINED; //EVK
+
 
 int pin_radio_rx = PIN_UNDEFINED;
 int pin_radio_tx = PIN_UNDEFINED;
@@ -115,6 +118,7 @@ int pin_microSD_CS = PIN_UNDEFINED;
 int pin_I2C0_SDA = PIN_UNDEFINED;
 int pin_I2C0_SCL = PIN_UNDEFINED;
 
+// On EVK, Display is on separate I2C bus
 int pin_I2C1_SDA = PIN_UNDEFINED;
 int pin_I2C1_SCL = PIN_UNDEFINED;
 
@@ -123,9 +127,7 @@ int pin_GnssUart_TX = PIN_UNDEFINED;
 
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
-
 int pin_GNSS_DR_Reset = PIN_UNDEFINED;
-int pin_gnssStatusLED = PIN_UNDEFINED;
 
 int pin_powerAdapterDetect = PIN_UNDEFINED;
 int pin_usbSelect = PIN_UNDEFINED;
