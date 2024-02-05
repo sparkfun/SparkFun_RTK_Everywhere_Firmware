@@ -1319,7 +1319,7 @@ void buttonCheckTask(void *e)
             } // End disableSetupButton check
         }
 
-        delay(1); // Poor man's way of feeding WDT. Required to prevent Priority 1 tasks from causing WDT reset
+        feedWdt();
         taskYIELD();
     }
 
