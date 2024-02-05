@@ -84,7 +84,7 @@ const char *const parserNames[] = {
     "NMEA",
     "Unicore Hash_(#)",
     "RTCM",
-    "U-Blox"
+    "u-Blox",
     "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
