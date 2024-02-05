@@ -907,11 +907,11 @@ void beginI2C()
     if (!online.i2cPinned)
         xTaskCreatePinnedToCore(
             pinI2CTask,
-            "I2CStart",        // Just for humans
-            2000,              // Stack Size
-            nullptr,           // Task input parameter
-            0,                 // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
-            &taskHandle,       // Task handle
+            "I2CStart",  // Just for humans
+            2000,        // Stack Size
+            nullptr,     // Task input parameter
+            0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+            &taskHandle, // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
     // Wait for task to run once
