@@ -1241,7 +1241,8 @@ struct struct_present
     bool antennaShortOpen = false;
 
     bool button_mode = false;
-    bool button_power = false;
+    bool button_powerHigh = false; // Button is pressed when high
+    bool button_powerLow = false; // Button is pressed when low
     bool fastPowerOff = false;
 
     float antennaReferencePoint_mm = 0.0;

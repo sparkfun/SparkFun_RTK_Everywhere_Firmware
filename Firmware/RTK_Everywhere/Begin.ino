@@ -129,9 +129,9 @@ void beginBoard()
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.radio_lora = true;
-        //present.battery_bq40z50 = true;
+        // present.battery_bq40z50 = true;
         present.encryption_atecc608a = true;
-        present.button_power = true;
+        present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
         present.antennaReferencePoint_mm = 102.0;
@@ -146,7 +146,7 @@ void beginBoard()
         pin_GnssUart_TX = 27;
         pin_GNSS_DR_Reset = 22; // Push low to reset GNSS/DR.
 
-        pin_powerSenseAndControl = 34;
+        pin_powerButton = 34;
 
         pin_IMU_RX = 14; // Pin 16 is not available on Torch due to PSRAM
         pin_IMU_TX = 17;
@@ -156,7 +156,6 @@ void beginBoard()
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
-        // Turn on Bluetooth and GNSS LEDs to indicate power on
         pin_batteryStatusLED = 0;
         pin_bluetoothStatusLED = 32;
         pin_gnssStatusLED = 13;
@@ -169,8 +168,8 @@ void beginBoard()
         DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
         pinMode(pin_gnssStatusLED, OUTPUT);
 
+        // Turn on Bluetooth and GNSS LEDs to indicate power on
         bluetoothLedOn();
-
         gnssStatusLedOn();
 
         DMW_if systemPrintf("pin_batteryStatusLED: %d\r\n", pin_batteryStatusLED);
@@ -179,7 +178,7 @@ void beginBoard()
 
         pinMode(pin_beeper, OUTPUT);
 
-        pinMode(pin_powerSenseAndControl, INPUT);
+        pinMode(pin_powerButton, INPUT);
 
         pinMode(pin_GNSS_TimePulse, INPUT);
 
