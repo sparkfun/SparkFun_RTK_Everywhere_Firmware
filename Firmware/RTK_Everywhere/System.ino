@@ -79,43 +79,38 @@ void checkBatteryLevels()
     if (online.battery == false)
         return;
 
-    battLevel = lipo.getSOC();
-    battVoltage = lipo.getVoltage();
-    battChangeRate = lipo.getChangeRate();
+    if (present.battery_max17048 == true)
+    {
+        battLevel = lipo.getSOC();
+        battVoltage = lipo.getVoltage();
+        battChangeRate = lipo.getChangeRate();
+    }
 
-    if (battChangeRate >= -0.01)
-        externalPowerConnected = true;
-    else
-        externalPowerConnected = false;
+    if (present.battery_bq40z50 == true)
+    {
+        battLevel = bq40z50Battery->getRelativeStateOfCharge();
+        battVoltage = (bq40z50Battery->getVoltageMv() / 1000.0);
+        battChangeRate =
+            (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
+    }
 
     if (settings.enablePrintBatteryMessages)
     {
         char tempStr[25];
-        if (externalPowerConnected)
+        if (isCharging())
             snprintf(tempStr, sizeof(tempStr), "C");
         else
             snprintf(tempStr, sizeof(tempStr), "Disc");
 
         systemPrintf("Batt (%d%%): Voltage: %0.02fV", battLevel, battVoltage);
 
-        systemPrintf(" %sharging: %0.02f%%/hr ", tempStr, battChangeRate);
-
-        if (battLevel < 10)
-            snprintf(tempStr, sizeof(tempStr), "Red");
-        else if (battLevel < 50)
-            snprintf(tempStr, sizeof(tempStr), "Yellow");
-        else if (battLevel <= 110)
-            snprintf(tempStr, sizeof(tempStr), "Green");
-        else
-            snprintf(tempStr, sizeof(tempStr), "No batt");
-
-        systemPrintf("%s\r\n", tempStr);
+        systemPrintf(" %sharging: %0.02f%%/hr\r\n", tempStr, battChangeRate);
     }
 
     // Check if we need to shutdown due to no charging
     if (settings.shutdownNoChargeTimeout_s > 0)
     {
-        if (externalPowerConnected == false)
+        if (isCharging() == false)
         {
             int secondsSinceLastCharger = (millis() - shutdownNoChargeTimer) / 1000;
             if (secondsSinceLastCharger > settings.shutdownNoChargeTimeout_s)
@@ -730,4 +725,24 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
 
     *epochSecs = t;
     *epochMicros = micro;
+}
+
+// Return true if a USB cable is detected
+bool isCharging()
+{
+    if (pin_powerAdapterDetect != PIN_UNDEFINED)
+    {
+        // Pin goes low when wall adapter is detected
+        if (digitalRead(pin_powerAdapterDetect) == HIGH)
+            return false;
+        return true;
+    }
+    else if (present.battery_max17048 == true && online.battery == true)
+    {
+        if (battChangeRate >= -0.01)
+            return true;
+        return false;
+    }
+
+    return false;
 }

@@ -129,7 +129,7 @@ void beginBoard()
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.radio_lora = true;
-        // present.battery_bq40z50 = true;
+        present.battery_bq40z50 = true;
         present.encryption_atecc608a = true;
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
@@ -185,7 +185,7 @@ void beginBoard()
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
         digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
 
-        pinMode(pin_powerAdapterDetect, INPUT);
+        pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 
         pinMode(pin_usbSelect, OUTPUT);
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
@@ -779,8 +779,41 @@ void beginFuelGauge()
     }
     else if (present.battery_bq40z50 == true)
     {
+        if (bq40z50Battery == nullptr)
+            bq40z50Battery = new BQ40Z50;
+
+        if (bq40z50Battery == nullptr)
+        {
+            systemPrintln("BQ40Z50 failed new");
+            return;
+        }
+
+        if (bq40z50Battery->begin() == false)
+        {
+            systemPrintln("BQ40Z50 not detected");
+            delete bq40z50Battery;
+            bq40z50Battery = nullptr;
+            return;
+        }
+
         online.battery = true;
-        // TODO
+
+        systemPrintln("Fuel gauge configuration complete");
+
+        checkBatteryLevels(); // Force check so you see battery level immediately at power on
+
+        // Check to see if we are dangerously low
+        if ((battLevel < 5) && (isCharging() == false)) // 5% and not charging
+        {
+            systemPrintln("Battery too low. Please charge. Shutting down...");
+
+            if (online.display == true)
+                displayMessage("Charge Battery", 0);
+
+            delay(2000);
+
+            powerDown(false); // Don't display 'Shutting Down'
+        }
     }
 }
 
@@ -802,16 +835,16 @@ void beginButtons()
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
-    //Facet main/power button
+    // Facet main/power button
     if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
         userBtn = new Button(pin_powerSenseAndControl);
 
-    //Torch main/power button
+    // Torch main/power button
     if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
         userBtn = new Button(pin_powerButton, 25, true,
                              false); // Turn off inversion. Needed for buttons that are high when pressed.
 
-    //EVK mode button
+    // EVK mode button
     if (present.button_mode == true)
         userBtn = new Button(pin_modeButton);
 

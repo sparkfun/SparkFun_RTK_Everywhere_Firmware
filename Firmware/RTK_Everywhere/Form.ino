@@ -893,7 +893,7 @@ void createSettingsString(char *newSettings)
 
         char batteryIconFileName[sizeof("src/Battery2_Charging.png__")]; // sizeof() includes 1 for \0 termination
 
-        if (externalPowerConnected)
+        if (isCharging())
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d_Charging.png", iconLevel);
         else
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
@@ -906,7 +906,7 @@ void createSettingsString(char *newSettings)
         if (tempLevel > 100)
             tempLevel = 100;
 
-        if (externalPowerConnected)
+        if (isCharging())
             snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", tempLevel);
         else
             snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", tempLevel);
@@ -1077,7 +1077,7 @@ void createDynamicDataString(char *settingsCSV)
 
         char batteryIconFileName[sizeof("src/Battery2_Charging.png__")]; // sizeof() includes 1 for \0 termination
 
-        if (externalPowerConnected)
+        if (isCharging())
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d_Charging.png", iconLevel);
         else
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
@@ -1086,7 +1086,7 @@ void createDynamicDataString(char *settingsCSV)
 
         // Determine battery percent
         char batteryPercent[sizeof("+100%__")];
-        if (externalPowerConnected)
+        if (isCharging())
             snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", battLevel);
         else
             snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", battLevel);

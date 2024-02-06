@@ -400,6 +400,9 @@ GnssPlatform gnssPlatform = PLATFORM_ZED;
 #include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library
 SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
+#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50
+BQ40Z50 *bq40z50Battery;
+
 // RTK LED PWM properties
 const int pwmFreq = 5000;
 const int ledRedChannel = 0;
@@ -697,8 +700,6 @@ uint16_t failedParserMessages_NMEA;
 unsigned long btLastByteReceived;  // Track when the last BT transmission was received.
 const long btMinEscapeTime = 2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
 uint8_t btEscapeCharsReceived;     // Used to enter command mode
-
-bool externalPowerConnected; // Goes true when a high voltage is seen on the power control pin
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.

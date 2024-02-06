@@ -38,9 +38,6 @@ void menuSystem()
         {
             systemPrint("Online - ");
 
-            battLevel = lipo.getSOC();
-            battVoltage = lipo.getVoltage();
-
             systemPrintf("Batt (%d%%) / Voltage: %0.02fV", battLevel, battVoltage);
             systemPrintln();
         }
