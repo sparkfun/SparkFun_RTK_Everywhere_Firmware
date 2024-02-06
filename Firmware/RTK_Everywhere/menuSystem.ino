@@ -27,32 +27,46 @@ void menuSystem()
         else
             systemPrintln("Offline");
 
-        systemPrint("Display: ");
-        if (online.display == true)
-            systemPrintln("Online");
-        else
-            systemPrintln("Offline");
-
-        systemPrint("Fuel Gauge: ");
-        if (online.battery == true)
+        if (present.display_128x64_i2c1 || present.display_64x48_i2c0)
         {
-            systemPrint("Online - ");
-
-            systemPrintf("Batt (%d%%) / Voltage: %0.02fV", battLevel, battVoltage);
-            systemPrintln();
+            systemPrint("Display: ");
+            if (online.display == true)
+                systemPrintln("Online");
+            else
+                systemPrintln("Offline");
         }
-        else
-            systemPrintln("Offline");
 
-        systemPrint("microSD: ");
-        if (online.microSD == true)
-            systemPrintln("Online");
-        else
-            systemPrintln("Offline");
-
-        if (online.lband == true)
+        if (present.battery_bq40z50 || present.battery_max17048)
         {
-            systemPrint("L-Band: Online - ");
+            systemPrint("Fuel Gauge: ");
+            if (online.battery == true)
+            {
+                systemPrint("Online - ");
+
+                systemPrintf("Batt (%d%%) / Voltage: %0.02fV", battLevel, battVoltage);
+                systemPrintln();
+            }
+            else
+                systemPrintln("Offline");
+        }
+
+        if (present.microSd)
+        {
+            systemPrint("microSD: ");
+            if (online.microSD == true)
+                systemPrintln("Online");
+            else
+                systemPrintln("Offline");
+        }
+
+        if (present.lband_neo == true)
+        {
+            systemPrint("NEO-D9S L-Band: ");
+
+            if (online.lband == true)
+                systemPrintln("Online - ");
+            else
+                systemPrintln("Offline - ");
 
             if (online.lbandCorrections == true)
                 systemPrint("Keys Good");
@@ -703,8 +717,7 @@ void menuDebugSoftware()
             systemPrintln("Enabled");
         else
             systemPrintln("Disabled");
-        systemPrintf("51) Print task start/stop: %s\r\n",
-                     settings.printTaskStartStop ? "Enabled" : "Disabled");
+        systemPrintf("51) Print task start/stop: %s\r\n", settings.printTaskStartStop ? "Enabled" : "Disabled");
 
         // Automatic Firmware Update
         systemPrintf("60) Print firmware update states: %s\r\n", settings.debugFirmwareUpdate ? "Enabled" : "Disabled");
