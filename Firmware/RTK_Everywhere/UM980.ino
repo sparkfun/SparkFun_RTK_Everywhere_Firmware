@@ -35,13 +35,14 @@ void um980Begin()
 
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
-        log_d("GNSS Failed to begin. Trying again.");
+        if (settings.enableGNSSdebug)
+            systemPrintln("GNSS Failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000);
         if (um980->begin(*serialGNSS) == false)
         {
-            log_d("GNSS offline");
+            systemPrintln("GNSS offline");
             displayGNSSFail(1000);
             return;
         }
@@ -57,6 +58,14 @@ void um980Begin()
 // Attempt 3 tries on UM980 config
 bool um980Configure()
 {
+    // Skip configuring the UM980 if no new changes are necessary
+    if (settings.updateGNSSSettings == false)
+    {
+        if (settings.enableGNSSdebug)
+            systemPrintln("Skipping GNSS configuration");
+        return (true);
+    }
+
     for (int x = 0; x < 3; x++)
     {
         if (um980ConfigureOnce() == true)
@@ -156,7 +165,7 @@ bool um980ConfigureRover()
     */
     if (online.gnss == false)
     {
-        log_d("GNSS not online");
+        systemPrintln("GNSS not online");
         return (false);
     }
 
@@ -199,7 +208,7 @@ bool um980ConfigureBase()
 
     if (online.gnss == false)
     {
-        log_d("GNSS not online");
+        systemPrintln("GNSS not online");
         return (false);
     }
 
@@ -281,8 +290,9 @@ bool um980EnableNMEA()
             if (um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
-                log_d("Enable NMEA failed at messageNumber %d %s.", messageNumber,
-                      umMessagesNMEA[messageNumber].msgTextName);
+                if (settings.enableGNSSdebug)
+                    systemPrintf("Enable NMEA failed at messageNumber %d %s.", messageNumber,
+                                  umMessagesNMEA[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -305,8 +315,9 @@ bool um980EnableRTCMRover()
             if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
             {
-                log_d("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                      umMessagesRTCM[messageNumber].msgTextName);
+                if (settings.enableGNSSdebug)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                                  umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -329,8 +340,9 @@ bool um980EnableRTCMBase()
             if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesRTCMBase[messageNumber]) == false)
             {
-                log_d("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                      umMessagesRTCM[messageNumber].msgTextName);
+                if (settings.enableGNSSdebug)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                                  umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -350,8 +362,9 @@ bool um980SetConstellations()
         {
             if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
-                log_d("Enable constellation failed at constellationNumber %d %s.", constellationNumber,
-                      um980ConstellationCommands[constellationNumber].textName);
+                if (settings.enableGNSSdebug)
+                    systemPrintf("Enable constellation failed at constellationNumber %d %s.", constellationNumber,
+                                  um980ConstellationCommands[constellationNumber].textName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
@@ -359,8 +372,9 @@ bool um980SetConstellations()
         {
             if (um980->disableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
-                log_d("Disable constellation failed at constellationNumber %d %s.", constellationNumber,
-                      um980ConstellationCommands[constellationNumber].textName);
+                if (settings.enableGNSSdebug)
+                    systemPrintf("Disable constellation failed at constellationNumber %d %s.", constellationNumber,
+                                  um980ConstellationCommands[constellationNumber].textName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
