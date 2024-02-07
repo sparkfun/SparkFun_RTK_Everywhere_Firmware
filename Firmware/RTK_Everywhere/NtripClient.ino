@@ -720,7 +720,7 @@ void ntripClientUpdate()
                             millis() - NTRIPCLIENT_MS_BETWEEN_GGA; // Force immediate transmission of GGA message
                     }
 
-                    // We don't use a task because we use I2C hardware (and don't have a semphore).
+                    // We don't use a task because we use I2C hardware (and don't have a semaphore).
                     online.ntripClient = true;
                     ntripClientStartTime = millis();
                     ntripClientSetState(NTRIP_CLIENT_CONNECTED);

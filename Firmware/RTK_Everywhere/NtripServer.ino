@@ -705,7 +705,7 @@ void ntripServerUpdate()
                 // Connection is now open, start the RTCM correction data timer
                 ntripServerTimer = millis();
 
-                // We don't use a task because we use I2C hardware (and don't have a semphore).
+                // We don't use a task because we use I2C hardware (and don't have a semaphore).
                 online.ntripServer = true;
                 ntripServerStartTime = millis();
                 ntripServerSetState(NTRIP_SERVER_CASTING);

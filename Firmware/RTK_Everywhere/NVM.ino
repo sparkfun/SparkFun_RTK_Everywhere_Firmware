@@ -79,7 +79,7 @@ void recordSystemSettings()
 }
 
 // Export the current settings to a config file on SD
-// We share the recording with LittleFS so this is all the semphore and SD specific handling
+// We share the recording with LittleFS so this is all the semaphore and SD specific handling
 void recordSystemSettingsToFileSD(char *fileName)
 {
     bool gotSemaphore = false;
@@ -143,7 +143,7 @@ void recordSystemSettingsToFileSD(char *fileName)
 }
 
 // Export the current settings to a config file on SD
-// We share the recording with LittleFS so this is all the semphore and SD specific handling
+// We share the recording with LittleFS so this is all the semaphore and SD specific handling
 void recordSystemSettingsToFileLFS(char *fileName)
 {
     if (online.fs == true)
