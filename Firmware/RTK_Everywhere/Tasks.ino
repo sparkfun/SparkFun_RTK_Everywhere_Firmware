@@ -323,6 +323,9 @@ void gnssReadTask(void *e)
     if (!parse)
         reportFatalError("Failed to initialize the parser");
 
+    if(settings.debugGnss)
+        sempEnableDebugOutput(parse);
+
     // Verify that the task is still running
     while (online.gnssReadTaskRunning)
     {
@@ -344,8 +347,10 @@ void gnssReadTask(void *e)
             int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
 
             for (int x = 0; x < bytesIncoming; x++)
+            {
                 // Update the parser state based on the incoming byte
-                parse->state(parse, incomingData[x]);
+                sempParseNextByte(parse, incomingData[x]);
+            }
         }
 
         feedWdt();
