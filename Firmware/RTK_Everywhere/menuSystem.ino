@@ -393,7 +393,7 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
 
         systemPrint("9) GNSS Debugging Output: ");
-        systemPrintf("%s\r\n", settings.enableGNSSdebug ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", settings.debugGnss ? "Enabled" : "Disabled");
 
         systemPrint("10) Corrections Debugging Output: ");
         systemPrintf("%s\r\n", settings.debugCorrections ? "Enabled" : "Disabled");
@@ -454,9 +454,9 @@ void menuDebugHardware()
             settings.enablePrintBadMessages ^= 1;
         else if (incoming == 9)
         {
-            settings.enableGNSSdebug ^= 1;
+            settings.debugGnss ^= 1;
 
-            if (settings.enableGNSSdebug)
+            if (settings.debugGnss)
                 gnssEnableDebugging();
             else
                 gnssDisableDebugging();

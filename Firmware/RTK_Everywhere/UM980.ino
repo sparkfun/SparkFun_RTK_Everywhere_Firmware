@@ -30,12 +30,12 @@ void um980Begin()
     um980 = new UM980();
 
     // Turn on/off debug messages
-    if (settings.enableGNSSdebug == true)
+    if (settings.debugGnss == true)
         um980EnableDebugging();
 
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
-        if (settings.enableGNSSdebug)
+        if (settings.debugGnss)
             systemPrintln("GNSS Failed to begin. Trying again.");
 
         // Try again with power on delay
@@ -61,7 +61,7 @@ bool um980Configure()
     // Skip configuring the UM980 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
     {
-        if (settings.enableGNSSdebug)
+        if (settings.debugGnss)
             systemPrintln("Skipping GNSS configuration");
         return (true);
     }
@@ -91,7 +91,7 @@ bool um980ConfigureOnce()
       Enable selected RTCM messages on COM3
 */
 
-    if (settings.enableGNSSdebug)
+    if (settings.debugGnss)
         um980->enableDebugging(); // Print all debug to Serial
 
     // Check if um980Constellations, um980MessageRatesNMEA, um980MessageRatesRTCMRover, um980MessageRatesRTCMBase need
@@ -290,7 +290,7 @@ bool um980EnableNMEA()
             if (um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
-                if (settings.enableGNSSdebug)
+                if (settings.debugGnss)
                     systemPrintf("Enable NMEA failed at messageNumber %d %s.", messageNumber,
                                   umMessagesNMEA[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
@@ -315,7 +315,7 @@ bool um980EnableRTCMRover()
             if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
             {
-                if (settings.enableGNSSdebug)
+                if (settings.debugGnss)
                     systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
                                   umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
@@ -340,7 +340,7 @@ bool um980EnableRTCMBase()
             if (um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
                                           settings.um980MessageRatesRTCMBase[messageNumber]) == false)
             {
-                if (settings.enableGNSSdebug)
+                if (settings.debugGnss)
                     systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
                                   umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
@@ -362,7 +362,7 @@ bool um980SetConstellations()
         {
             if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
-                if (settings.enableGNSSdebug)
+                if (settings.debugGnss)
                     systemPrintf("Enable constellation failed at constellationNumber %d %s.", constellationNumber,
                                   um980ConstellationCommands[constellationNumber].textName);
                 response &= false; // If any one of the commands fails, report failure overall
@@ -372,7 +372,7 @@ bool um980SetConstellations()
         {
             if (um980->disableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
-                if (settings.enableGNSSdebug)
+                if (settings.debugGnss)
                     systemPrintf("Disable constellation failed at constellationNumber %d %s.", constellationNumber,
                                   um980ConstellationCommands[constellationNumber].textName);
                 response &= false; // If any one of the commands fails, report failure overall
@@ -386,7 +386,7 @@ bool um980SetConstellations()
 // Turn off all NMEA and RTCM
 void um980DisableAllOutput()
 {
-    if (settings.enableGNSSdebug)
+    if (settings.debugGnss)
         systemPrintln("UM980 disable output");
 
     // Re-attempt as necessary

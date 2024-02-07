@@ -234,7 +234,7 @@ bool zedConfigure()
     bool response = true;
 
     // Turn on/off debug messages
-    if (settings.enableGNSSdebug)
+    if (settings.debugGnss)
         theGNSS->enableDebugging(Serial, true); // Enable only the critical debug messages over Serial
     else
         theGNSS->disableDebugging();

@@ -771,7 +771,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
         settings.printDebugMessages = true;                                                                            \
-        settings.enableGNSSdebug = true;                                                                               \
+        settings.debugGnss = true;                                                                               \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
         settings.enablePrintState = true;                                                                              \

@@ -205,7 +205,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%0.1f\r\n", "surveyInStartingAccuracy", settings.surveyInStartingAccuracy);
     settingsFile->printf("%s=%d\r\n", "measurementRate", settings.measurementRate);
     settingsFile->printf("%s=%d\r\n", "navigationRate", settings.navigationRate);
-    settingsFile->printf("%s=%d\r\n", "enableGNSSdebug", settings.enableGNSSdebug);
+    settingsFile->printf("%s=%d\r\n", "debugGnss", settings.debugGnss);
     settingsFile->printf("%s=%d\r\n", "enableHeapReport", settings.enableHeapReport);
     settingsFile->printf("%s=%d\r\n", "enableTaskReports", settings.enableTaskReports);
     settingsFile->printf("%s=%d\r\n", "dataPortChannel", (uint8_t)settings.dataPortChannel);
@@ -856,8 +856,8 @@ bool parseLine(char *str, Settings *settings)
             settings->updateGNSSSettings = true;
         }
     }
-    else if (strcmp(settingName, "enableGNSSdebug") == 0)
-        settings->enableGNSSdebug = d;
+    else if (strcmp(settingName, "debugGnss") == 0)
+        settings->debugGnss = d;
     else if (strcmp(settingName, "enableHeapReport") == 0)
         settings->enableHeapReport = d;
     else if (strcmp(settingName, "enableTaskReports") == 0)
