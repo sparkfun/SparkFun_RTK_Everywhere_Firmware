@@ -402,6 +402,9 @@ void um980DisableAllOutput()
     if (settings.debugGnss)
         systemPrintln("UM980 disable output");
 
+    // Turn off local noise before moving to other ports
+    um980->disableOutput();
+
     // Re-attempt as necessary
     for (int x = 0; x < 3; x++)
     {
