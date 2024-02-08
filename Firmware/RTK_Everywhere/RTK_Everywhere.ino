@@ -32,6 +32,7 @@
 #define COMPILE_L_BAND // Comment out to remove L-Band functionality
 #define COMPILE_UM980    // Comment out to remove UM980 functionality
 #define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
+#define COMPILE_POINTPERFECT_LIBRARY //Comment out to remove PPL support
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -585,7 +586,7 @@ unsigned long lastEthernetCheck; // Prevents cable checking from continually hap
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // IM19 Tilt Compensation
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_IM19_IMU
 #include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor;
@@ -597,7 +598,19 @@ unsigned long lastTiltCheck;   // Limits polling on IM19 to 5Hz
 #else
 #define TILT_SUPPORTED false
 #endif // COMPILE_IM19_IMU
-//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// PointPerfect Library (PPL)
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#ifdef COMPILE_POINTPERFECT_LIBRARY
+#include "PPL_PublicInterface.h" // The PPL
+#include "PPL_Version.h"
+#endif COMPILE_POINTPERFECT_LIBRARY
+
+bool pplNewRtcmNmea;
+bool pplNewSpartn;
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
 #include "NetworkUDP.h"    //Supports both WiFiUdp and EthernetUdp
@@ -726,7 +739,7 @@ unsigned long beepStopMs; // Time at which to turn off beeper
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 33
+#define MAX_BOOT_TIME_ENTRIES 34
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1006,6 +1019,9 @@ void setup()
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
 
+    DMW_b("beginPPL");
+    beginPPL(); // Initialize PointPerfect Library
+
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
 
@@ -1126,6 +1142,9 @@ void loop()
 
     DMW_c("updateRadio");
     updateRadio(); // Check if we need to finish sending any RTCM over link radio
+
+    DMW_c("updatePPL");
+    updatePPL(); // Check if we need to get any new RTCM from the PPL
 
     DMW_c("printPosition");
     printPosition(); // Periodically print GNSS coordinates if enabled

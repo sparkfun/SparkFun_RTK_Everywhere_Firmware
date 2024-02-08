@@ -49,6 +49,7 @@ void mqttClientValidateTables() {}
 void mqttClientPrintStatus() {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
+bool mqttClientIsConnected() {return false;}
 
 //----------------------------------------
 // NTRIP client
@@ -218,3 +219,14 @@ void     um980UnicoreHandler(uint8_t * buffer, int length) {}
 char*    um980GetId() {return ((char*)"No compiled");}
 
 #endif  // COMPILE_UM980
+
+//----------------------------------------
+// PointPerfect Library
+//----------------------------------------
+
+#ifndef  COMPILE_POINTPERFECT_LIBRARY
+
+void beginPointPerfectLibrary() {}
+bool sendToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+
+#endif  // COMPILE_POINTPERFECT_LIBRARY

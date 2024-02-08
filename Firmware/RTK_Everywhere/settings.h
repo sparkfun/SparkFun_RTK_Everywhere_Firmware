@@ -449,6 +449,7 @@ typedef enum
 {
     POINTPERFECT_CORRECTIONS_DISABLED = 0,
     POINTPERFECT_CORRECTIONS_IP,
+    POINTPERFECT_CORRECTIONS_LBAND,
     POINTPERFECT_CORRECTIONS_LBAND_IP,
 } PointPerfect_Corrections_Source;
 
@@ -1245,6 +1246,8 @@ struct struct_present
     bool button_powerLow = false; // Button is pressed when low
     bool fastPowerOff = false;
 
+    bool needsExternalPpl = false;
+
     float antennaReferencePoint_mm = 0.0;
 } present;
 
@@ -1284,6 +1287,7 @@ struct struct_online
     volatile bool idleTask0Running = false;
     volatile bool idleTask1Running = false;
     volatile bool sdSizeCheckTaskRunning = false;
+    bool ppl = false;
 } online;
 
 #ifdef COMPILE_WIFI

@@ -1308,6 +1308,8 @@ void menuPointPerfect()
                 if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
                     settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
                 else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND;
+                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
                     settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND_IP;
                 else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
                     settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;

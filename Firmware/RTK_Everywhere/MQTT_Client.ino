@@ -288,14 +288,11 @@ void mqttClientReceiveMessage(int messageSize)
         return;
     }
 
-    if (settings.debugMqttClientData)
-    {
-        systemPrint("Pushing data from ");
-        systemPrint(mqttClient->messageTopic());
-        systemPrint(" topic to ZED - ");
-    }
-
     int bytesPushed = 0;
+
+    // Make copy of message topic before it's lost
+    char topic[100];
+    strncpy(topic, mqttClient->messageTopic(), sizeof(topic) - 1);
 
     while (mqttClient->available())
     {
@@ -312,17 +309,37 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
-            // Push KEYS or SPARTN data to GNSS module over I2C
-            gnssPushRawData(mqttData, mqttCount);
             bytesPushed += mqttCount;
 
-            // Record the arrival of SPARTN data over MQTT
+            // Correction data from PP can go direct to ZED module
+            if (present.gnss_zedf9p == true)
+            {
+                // Push KEYS or SPARTN data to ZED
+                gnssPushRawData(mqttData, mqttCount);
+            }
+
+            // For the UM980, we have to pass the data through the PPL first
+            else if (present.gnss_um980 == true)
+            {
+                sendToPpl(mqttData, mqttCount);
+            }
+
+            // Record the arrival of data over MQTT
             mqttClientLastDataReceived = millis();
+
+            // Set flag for main loop updatePPL()
+            pplNewSpartn = true;
         }
     }
 
     if (settings.debugMqttClientData)
-        systemPrintf("Pushed %d bytes.\r\n", bytesPushed);
+    {
+        systemPrintf("Pushing %d bytes from %s topic to ", bytesPushed, topic);
+        if (present.gnss_zedf9p == true)
+            systemPrintln("ZED");
+        else if (present.gnss_um980 == true)
+            systemPrintln("PPL/UM980");
+    }
 }
 
 // Restart the MQTT client
@@ -370,14 +387,19 @@ void mqttClientStart()
     // Display the heap state
     reportHeapNow(settings.debugMqttClientState);
 
-    // Change ZED source of corrections
-    if(settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-        theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Set source to IP
-    else if(settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
-        theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // Set source to L-Band
-    else if(settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+    if (present.gnss_zedf9p == true && online.gnss == true)
     {
-        //TODO
+        // Change ZED source of corrections
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Default to 0 if disabled
+        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Set source to IP
+        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
+            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // Set source to L-Band
+        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+        {
+            // TODO
+        }
     }
 
     // Start the MQTT client
@@ -701,6 +723,13 @@ void mqttClientValidateTables()
 {
     if (mqttClientStateNameEntries != MQTT_CLIENT_STATE_MAX)
         reportFatalError("Fix mqttClientStateNameEntries to match MQTTClientState");
+}
+
+bool mqttClientIsConnected()
+{
+    if (mqttClientState == MQTT_CLIENT_SERVICES_CONNECTED)
+        return true;
+    return false;
 }
 
 #endif // COMPILE_NETWORK

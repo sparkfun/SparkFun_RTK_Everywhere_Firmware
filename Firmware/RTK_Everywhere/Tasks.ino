@@ -81,11 +81,7 @@ const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
 const char *const parserNames[] = {
-    "NMEA",
-    "Unicore Hash_(#)",
-    "RTCM",
-    "u-Blox",
-    "Unicore Binary",
+    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -323,7 +319,7 @@ void gnssReadTask(void *e)
     if (!parse)
         reportFatalError("Failed to initialize the parser");
 
-    if(settings.debugGnss)
+    if (settings.debugGnss)
         sempEnableDebugOutput(parse);
 
     // Verify that the task is still running
@@ -438,6 +434,42 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Give this data to the library to update its internal variables
         um980UnicoreHandler(parse->buffer, parse->length);
+    }
+
+    // Determine if we are using the PPL
+    if (present.gnss_um980)
+    {
+        //Determine if we want to use corrections, and are connected to the broker
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP && mqttClientIsConnected() == true && online.ppl == true)
+        {
+            bool passToPpl = false;
+
+            // Only messages GPGGA/ZDA, and RTCM1019/1020/1042/1046 need to be passed to PPL
+            if (type == RTK_NMEA_PARSER_INDEX)
+            {
+                if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                    passToPpl = true;
+                else if (strstr(sempNmeaGetSentenceName(parse), "ZDA") != nullptr)
+                    passToPpl = true;
+            }
+            else if (type == RTK_RTCM_PARSER_INDEX)
+            {
+                if (sempRtcmGetMessageNumber(parse) == 1019)
+                    passToPpl = true;
+                else if (sempRtcmGetMessageNumber(parse) == 1020)
+                    passToPpl = true;
+                else if (sempRtcmGetMessageNumber(parse) == 1042)
+                    passToPpl = true;
+                else if (sempRtcmGetMessageNumber(parse) == 1046)
+                    passToPpl = true;
+            }
+
+            if(passToPpl == true)
+            {
+                pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
+                sendToPpl(parse->buffer, parse->length);
+            }
+        }
     }
 
     // Determine if this message will fit into the ring buffer
