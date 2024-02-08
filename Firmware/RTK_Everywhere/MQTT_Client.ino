@@ -290,9 +290,9 @@ void mqttClientReceiveMessage(int messageSize)
 
     int bytesPushed = 0;
 
-    // Make copy of message topic before it's lost
+    // Make copy of message topic before it's overwritten
     char topic[100];
-    strncpy(topic, mqttClient->messageTopic(), sizeof(topic) - 1);
+    mqttClient->messageTopic().toCharArray(topic, sizeof(topic));
 
     while (mqttClient->available())
     {
