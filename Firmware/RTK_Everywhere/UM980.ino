@@ -49,6 +49,10 @@ void um980Begin()
     }
     systemPrintln("GNSS UM980 online");
 
+    // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
+    if (ENABLE_DEVELOPER == false)
+        delay(2000); // 1s fails, 2s ok
+
     // Check firmware version and print info
     um980PrintInfo();
 
