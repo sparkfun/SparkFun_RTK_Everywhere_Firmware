@@ -226,6 +226,8 @@ char*    um980GetId() {return ((char*)"No compiled");}
 
 #ifndef  COMPILE_POINTPERFECT_LIBRARY
 
+void beginPPL() {}
+void updatePPL() {}
 void beginPointPerfectLibrary() {}
 bool sendToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 
