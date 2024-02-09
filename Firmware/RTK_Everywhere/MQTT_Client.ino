@@ -332,13 +332,16 @@ void mqttClientReceiveMessage(int messageSize)
         }
     }
 
-    if (settings.debugMqttClientData)
+    if (settings.debugMqttClientData == true)
     {
-        systemPrintf("Pushing %d bytes from %s topic to ", bytesPushed, topic);
+        systemPrintf("Pushed %d bytes from %s topic to ", bytesPushed, topic);
         if (present.gnss_zedf9p == true)
             systemPrintln("ZED");
         else if (present.gnss_um980 == true)
             systemPrintln("PPL/UM980");
+
+        if (online.ppl == false)
+            systemPrintln("Warning: PPL is offline");
     }
 }
 
