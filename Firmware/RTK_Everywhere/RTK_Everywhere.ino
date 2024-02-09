@@ -444,7 +444,7 @@ uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
-const int gnssReadTaskStackSize = 3000;
+const int gnssReadTaskStackSize = 5000;
 
 const int handleGnssDataTaskStackSize = 3000;
 
