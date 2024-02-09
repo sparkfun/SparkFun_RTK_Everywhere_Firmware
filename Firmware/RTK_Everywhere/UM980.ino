@@ -155,14 +155,15 @@ bool um980ConfigureOnce()
 
     // If we are using IP based corrections, we need to send local data to the PPL
     // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-    // if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-    // {
+    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    {
+        Serial.println("Config RTCM");
         response &= um980->setNMEAPortMessage("GPZDA", "COM3", 1);
         response &= um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
         response &= um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
         response &= um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
         response &= um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
-    // }
+    }
 
     response &= um980->saveConfiguration(); // Save the current configuration into non-volatile memory (NVM)
 
@@ -703,6 +704,15 @@ void um980UnicoreHandler(uint8_t *buffer, int length)
 char *um980GetId()
 {
     return (um980->getID());
+}
+
+void um980Boot()
+{
+    digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+}
+void um980Reset()
+{
+    digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
 }
 
 #endif // COMPILE_UM980
