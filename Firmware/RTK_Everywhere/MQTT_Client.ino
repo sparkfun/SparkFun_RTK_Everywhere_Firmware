@@ -519,7 +519,7 @@ void mqttClientUpdate()
     case MQTT_CLIENT_NETWORK_STARTED: {
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            // Failed to connect to to the network, attempt to restart the network
+            // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
 
         // Determine if the network is connected to the media
@@ -534,7 +534,7 @@ void mqttClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
-            // Failed to connect to to the network, attempt to restart the network
+            // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
             break;
         }
@@ -641,7 +641,7 @@ void mqttClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
-            // Failed to connect to to the network, attempt to restart the network
+            // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
             break;
         }
@@ -668,7 +668,7 @@ void mqttClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
-            // Failed to connect to to the network, attempt to restart the network
+            // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
             break;
         }
@@ -695,7 +695,7 @@ void mqttClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
-            // Failed to connect to to the network, attempt to restart the network
+            // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
             break;
         }
