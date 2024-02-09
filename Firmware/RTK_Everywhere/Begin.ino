@@ -184,7 +184,7 @@ void beginBoard()
         pinMode(pin_GNSS_TimePulse, INPUT);
 
         pinMode(pin_GNSS_DR_Reset, OUTPUT);
-        digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell UM980 and DR to boot
+        um980Boot(); // Tell UM980 and DR to boot
 
         pinMode(pin_powerAdapterDetect, INPUT); // Has 10k pullup
 

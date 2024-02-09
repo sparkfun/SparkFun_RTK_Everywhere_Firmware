@@ -74,6 +74,15 @@ bool um980Configure()
     {
         if (um980ConfigureOnce() == true)
             return (true);
+
+        // If we fail, reset UM980
+        if (settings.debugGnss)
+            systemPrintln("Resetting UM980");
+
+        um980Reset();
+        delay(500);
+        um980Boot();
+        delay(500);
     }
 
     return (false);

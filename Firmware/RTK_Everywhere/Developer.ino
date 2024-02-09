@@ -217,6 +217,8 @@ bool     um980SetModeRoverSurvey() {return false;}
 bool     um980SetRate(double secondsBetweenSolutions) {return false;}
 void     um980UnicoreHandler(uint8_t * buffer, int length) {}
 char*    um980GetId() {return ((char*)"No compiled");}
+void     um980Boot() {}
+void     um980Reset() {}
 
 #endif  // COMPILE_UM980
 
@@ -226,9 +228,8 @@ char*    um980GetId() {return ((char*)"No compiled");}
 
 #ifndef  COMPILE_POINTPERFECT_LIBRARY
 
-void beginPPL() {}
+void beginPPL() {systemPrintln("**PPL Not Compiled**");}
 void updatePPL() {}
-void beginPointPerfectLibrary() {}
 bool sendToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
