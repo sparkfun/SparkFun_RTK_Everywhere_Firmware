@@ -9,11 +9,10 @@ void psramBegin()
         }
         else
         {
+            systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
             if (ESP.getPsramSize() > 0)
             {
                 online.psram = true;
-
-                systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
 
                 heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
             }
