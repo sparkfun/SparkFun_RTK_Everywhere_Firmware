@@ -6,6 +6,12 @@ void beginPPL()
     if(present.needsExternalPpl == false)
         return;
 
+    if(online.psram == false)
+    {
+        systemPrintln("PointPerfect Library requires PSRAM to run");
+        return;
+    }
+
     reportHeapNow(false);
 
     bool successfulInit = true;
