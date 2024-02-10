@@ -114,8 +114,6 @@ const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us";   // North American SPARTN corr
 
 static MqttClient *mqttClient;
 
-static bool mqttClientBluetoothOnline;
-
 static char *mqttClientCertificateBuffer; // Buffer for client certificate
 
 // Throttle the time between connection attempts
@@ -444,13 +442,6 @@ void mqttClientStop(bool shutdown)
     if (mqttClientCertificateBuffer)
         free(mqttClientCertificateBuffer);
 
-    // Start bluetooth if necessary
-    if (mqttClientBluetoothOnline)
-    {
-        if (settings.debugMqttClientState)
-            systemPrintln("MQTT Client starting Bluetooth");
-        bluetoothStart();
-    }
     reportHeapNow(settings.debugMqttClientState);
 
     // Increase timeouts if we started the network
@@ -540,16 +531,6 @@ void mqttClientUpdate()
             // Failed to connect to the network, attempt to restart the network
             mqttClientRestart();
             break;
-        }
-
-        // Release available heap to allow room for TLS
-        mqttClientBluetoothOnline = online.bluetooth;
-        if (mqttClientBluetoothOnline)
-        {
-            if (settings.debugMqttClientState)
-                systemPrintln("MQTT Client stopping Bluetooth");
-            bluetoothStop();
-            reportHeapNow(settings.debugMqttClientState);
         }
 
         // Allocate the mqttSecureClient structure

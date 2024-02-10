@@ -98,8 +98,6 @@ void menuFirmware()
             }
             else
             {
-                bluetoothStop(); // Stop Bluetooth to allow for SSL on the heap
-
                 // Attempt to connect to local WiFi
                 if (wifiConnect(10000) == true)
                 {
@@ -132,11 +130,6 @@ void menuFirmware()
                 {
                     bool previouslyConnected = wifiIsConnected();
 
-                    // Stop Bluetooth to allow for SSL on the heap
-                    bool bluetoothOriginallyOnline = online.bluetooth;
-                    if (bluetoothOriginallyOnline)
-                        bluetoothStop();
-
                     // Attempt to connect to local WiFi
                     if (wifiConnect(10000) == true)
                     {
@@ -167,9 +160,6 @@ void menuFirmware()
 
                     if (previouslyConnected == false)
                         WIFI_STOP();
-
-                    if (bluetoothOriginallyOnline == true)
-                        bluetoothStart(); // Restart BT according to settings
                 }
             } // End wifiNetworkCount() check
         }
@@ -963,15 +953,6 @@ void otaAutoUpdate()
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update connected to WiFi");
-
-                // Stop Bluetooth
-                otaBluetoothOnline = online.bluetooth;
-                if (otaBluetoothOnline)
-                {
-                    if (settings.debugFirmwareUpdate)
-                        systemPrintln("Firmware update stopping Bluetooth");
-                    bluetoothStop();
-                }
 
                 // Get the latest firmware version
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
