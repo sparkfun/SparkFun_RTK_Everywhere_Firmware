@@ -438,8 +438,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Determine if we are using the PPL
     if (present.gnss_um980)
     {
-        //Determine if we want to use corrections, and are connected to the broker
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP && mqttClientIsConnected() == true && online.ppl == true)
+        // Determine if we want to use corrections, and are connected to the broker
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP && mqttClientIsConnected() == true &&
+            online.ppl == true)
         {
             bool passToPpl = false;
 
@@ -463,10 +464,10 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
                     passToPpl = true;
             }
 
-            if(passToPpl == true)
+            if (passToPpl == true)
             {
                 pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
-                sendToPpl(parse->buffer, parse->length);
+                sendGnssToPpl(parse->buffer, parse->length);
             }
         }
     }

@@ -32,8 +32,6 @@ void beginPPL()
         systemPrintf("PointPerfect Library Corrections: %s\r\n", PPL_SDK_VERSION);
 
     ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_DEFAULT_CFG); // IP and L-Band support
-    // ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_ENABLE_IP_CHANNEL); //IP channel support
-    // ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_ENABLE_LBAND_CHANNEL); //L-Band channel support
 
     if (result != ePPL_Success)
         successfulInit &= false;
@@ -64,11 +62,10 @@ void updatePPL()
             if (pplNewSpartn)
                 pplNewSpartn = false;
 
-            // Check if the PPL has generated any RTCM. If it has, push it to the GNSS
-            static uint8_t rtcmBuffer[PPL_MAX_RTCM_BUFFER];
             uint32_t rtcmLength;
 
-            ePPL_ReturnStatus result = PPL_GetRTCMOutput(rtcmBuffer, PPL_MAX_RTCM_BUFFER, &rtcmLength);
+            // Check if the PPL has generated any RTCM. If it has, push it to the GNSS.
+            ePPL_ReturnStatus result = PPL_GetRTCMOutput(pplRtcmBuffer, PPL_MAX_RTCM_BUFFER, &rtcmLength);
             if (result == ePPL_Success)
             {
                 if (rtcmLength > 0)
@@ -76,7 +73,7 @@ void updatePPL()
                     if (settings.debugCorrections == true)
                         systemPrint("Received RTCM from PPL. Pushing to the GNSS...");
 
-                    //gnssPushRawData(rtcmBuffer, rtcmLength);
+                    gnssPushRawData(pplRtcmBuffer, rtcmLength);
                 }
             }
             else
@@ -89,13 +86,26 @@ void updatePPL()
 }
 
 // Send GGA/ZDA/RTCM to the PPL
-bool sendToPpl(uint8_t *buffer, int numDataBytes)
+bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
 {
     ePPL_ReturnStatus result = PPL_SendRcvrData(buffer, numDataBytes);
     if (result != ePPL_Success)
     {
         if (settings.debugCorrections == true)
             systemPrintf("PPL_SendRcvrData Result: %s\r\n", PPLReturnStatusToStr(result));
+        return false;
+    }
+    return true;
+}
+
+// Send Spartn packets from PointPerfect (either IP or L-Band) to PPL
+bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
+{
+    ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
+    if (result != ePPL_Success)
+    {
+        if (settings.debugCorrections == true)
+            systemPrintf("ERROR processRXMPMP PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
         return false;
     }
     return true;
@@ -143,4 +153,5 @@ const char *PPLReturnStatusToStr(ePPL_ReturnStatus status)
         return ("unknown state");
     }
 }
+
 #endif // COMPILE_POINTPERFECT_LIBRARY

@@ -230,6 +230,7 @@ void     um980Reset() {}
 
 void beginPPL() {systemPrintln("**PPL Not Compiled**");}
 void updatePPL() {}
-bool sendToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY

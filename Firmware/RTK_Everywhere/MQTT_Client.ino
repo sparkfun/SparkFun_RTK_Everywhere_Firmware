@@ -321,7 +321,7 @@ void mqttClientReceiveMessage(int messageSize)
             // For the UM980, we have to pass the data through the PPL first
             else if (present.gnss_um980 == true)
             {
-                sendToPpl(mqttData, mqttCount);
+                sendSpartnToPpl(mqttData, mqttCount);
             }
 
             // Record the arrival of data over MQTT
