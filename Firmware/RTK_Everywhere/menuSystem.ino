@@ -1284,7 +1284,7 @@ void printCurrentConditions()
 
         float hpa = gnssGetHorizontalAccuracy();
         char temp[20];
-        const char *units = getHpa(hpa, temp, sizeof(temp), 3);
+        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");

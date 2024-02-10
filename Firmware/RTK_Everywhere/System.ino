@@ -622,7 +622,8 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
-const char *getHpa(double hpa, char *buffer, int length, int decimals)
+//Returns string of the HPA units
+const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
 {
     const char *units;
 
