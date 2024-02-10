@@ -1220,6 +1220,8 @@ struct struct_present
     bool microSdCardDetectLow = false; // Card detect low = SD in place
     bool microSdCardDetectHigh = false; // Card detect high = SD in place
 
+    bool i2c0BusSpeed_400 = false;
+    bool i2c1BusSpeed_400 = false;
     bool display_64x48_i2c0 = false;
     bool display_128x64_i2c1 = false;
 

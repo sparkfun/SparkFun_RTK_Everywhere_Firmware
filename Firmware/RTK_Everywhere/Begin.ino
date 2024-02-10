@@ -133,7 +133,8 @@ void beginBoard()
         present.beeper = true;
         present.gnss_to_uart = true;
         present.antennaReferencePoint_mm = 102.0;
-        present.needsExternalPpl = true; //Used the PointPerfect Library
+        present.needsExternalPpl = true; // Used the PointPerfect Library
+        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -201,12 +202,14 @@ void beginBoard()
         present.ethernet_ws5500 = true;
         present.microSd = true;
         present.microSdCardDetectLow = true;
-        present.display_128x64_i2c1 = true;
         present.button_mode = true;
         present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
         present.laraPowerControl = true;       // Tertiary power controls the LARA
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
+        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
+        present.display_128x64_i2c1 = true;
+        present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
 
         // Pin Allocations:
         // 35, D1  : Serial TX (CH340 RX)
@@ -902,7 +905,7 @@ void beginSystemState()
 
         systemState = STATE_ROVER_NOT_STARTED;
 
-        if(settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+        if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
     }
     else
@@ -977,17 +980,25 @@ void pinI2CTask(void *pvParameters)
     if (pin_I2C0_SDA == -1 || pin_I2C0_SCL == -1)
         reportFatalError("Illegal I2C0 pin assignment.");
 
+    int bus0speed = 100;
+    if (present.i2c0BusSpeed_400 == true)
+        bus0speed = 400;
+
     // Initialize I2C bus 0
-    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, 100))
+    if (i2cBusInitialization(i2c_0, pin_I2C0_SDA, pin_I2C0_SCL, bus0speed))
         // Update the I2C status
         online.i2c = true;
 
     // Initialize I2C bus 1
     if (i2c_1)
     {
+        int bus1speed = 100;
+        if (present.i2c1BusSpeed_400 == true)
+            bus1speed = 400;
+
         if (pin_I2C1_SDA == -1 || pin_I2C1_SCL == -1)
             reportFatalError("Illegal I2C1 pin assignment.");
-        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, 400);
+        i2cBusInitialization(i2c_1, pin_I2C1_SDA, pin_I2C1_SCL, bus1speed);
     }
 
     // Stop notification
