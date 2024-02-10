@@ -167,7 +167,9 @@ bool um980ConfigureOnce()
 
     response &= um980->saveConfiguration(); // Save the current configuration into non-volatile memory (NVM)
 
-    if (response == false)
+    if (response == true)
+        online.gnss = true; // If we failed before, mark as online now
+    else
     {
         systemPrintln("UM980 failed to configure");
         online.gnss = false; // Take it offline
