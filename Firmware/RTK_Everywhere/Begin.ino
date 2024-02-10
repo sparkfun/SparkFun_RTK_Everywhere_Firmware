@@ -134,7 +134,6 @@ void beginBoard()
         present.gnss_to_uart = true;
         present.antennaReferencePoint_mm = 102.0;
         present.needsExternalPpl = true; // Used the PointPerfect Library
-        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
