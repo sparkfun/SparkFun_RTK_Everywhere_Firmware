@@ -14,7 +14,8 @@ void beginPsram()
             {
                 online.psram = true;
 
-                heap_caps_malloc_extmem_enable(settings.psramMallocLevel); // Use PSRAM for memory requests larger than 1,000 bytes
+                heap_caps_malloc_extmem_enable(
+                    settings.psramMallocLevel); // Use PSRAM for memory requests larger than 1,000 bytes
             }
         }
     }
@@ -678,7 +679,16 @@ void updateAccuracyLEDs()
                 {
                     char temp[20];
                     const char *units = getHpa(hpa, temp, sizeof(temp), 3);
-                    systemPrintf("Rover Accuracy (%s): %s, SIV: %d\r\n", units, temp, gnssGetSatellitesInView());
+                    systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", units, temp, gnssGetSatellitesInView());
+
+                    if (gnssIsRTKFix() == true)
+                        systemPrint("RTK Fix");
+                    else if (gnssIsRTKFloat() == true)
+                        systemPrint("RTK Float");
+                    else if (gnssIsFixed() == true)
+                        systemPrint("3D Fix");
+                    
+                    systemPrintln();
                 }
             }
             else if (settings.enablePrintRoverAccuracy)
