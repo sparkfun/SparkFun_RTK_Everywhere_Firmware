@@ -1191,7 +1191,7 @@ typedef struct
     uint8_t measurementScale = MEASUREMENTS_IN_METERS;
 
     bool debugWiFiConfig = false;
-    bool enablePsram = false; // Controls if PSRAM is disabled, if it is available
+    bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
 
     // Add new settings above <------------------------------------------------------------>
