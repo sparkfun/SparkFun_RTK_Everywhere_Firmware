@@ -319,7 +319,7 @@ void printReports()
             if (hpa > 0)
             {
                 char temp[20];
-                const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3); //Returns string of the HPA units
+                const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3); // Returns string of the HPA units
                 systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", units, temp, gnssGetSatellitesInView());
 
                 if (gnssIsRTKFix() == true)
@@ -657,7 +657,7 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
-//Returns string of the HPA units
+// Returns string of the HPA units
 const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
 {
     const char *units;
