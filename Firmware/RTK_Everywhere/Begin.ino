@@ -1032,6 +1032,11 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
+            case 0x08: {
+                systemPrintf("  0x%02X - HUSB238 Power Delivery Sink Controller\r\n", addr);
+                break;
+            }
+
             case 0x0B: {
                 systemPrintf("  0x%02X - BQ40Z50 Battery Pack Manager / Fuel gauge\r\n", addr);
                 break;
