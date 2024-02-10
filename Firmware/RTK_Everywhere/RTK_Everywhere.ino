@@ -948,6 +948,9 @@ void setup()
     DMW_b("loadSettingsPartial");
     loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
 
+    DMW_b("beginPsram");
+    beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
@@ -966,9 +969,6 @@ void setup()
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
-
-    DMW_b("beginPsram");
-    beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
