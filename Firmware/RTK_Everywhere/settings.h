@@ -80,7 +80,7 @@ typedef enum
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
-ProductVariant productVariant = RTK_EVK;
+ProductVariant productVariant = RTK_UNKNOWN;
 
 const char * const productDisplayNames[] =
 {
