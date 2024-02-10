@@ -12,6 +12,12 @@ void beginPPL()
         return;
     }
 
+    if(strlen(settings.pointPerfectCurrentKey) == 0)
+    {
+        systemPrintln("PointPerfect Library: No keys available");
+        return;
+    }
+
     reportHeapNow(false);
 
     // PPL_MAX_RTCM_BUFFER is 3345 bytes so we create it on the heap
@@ -28,9 +34,6 @@ void beginPPL()
 
     bool successfulInit = true;
 
-    if (settings.debugCorrections == true)
-        systemPrintf("PointPerfect Library Corrections: %s\r\n", PPL_SDK_VERSION);
-
     ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_DEFAULT_CFG); // IP and L-Band support
 
     if (result != ePPL_Success)
@@ -44,9 +47,17 @@ void beginPPL()
         systemPrintf("PPL_SendDynamicKey: %s\r\n", PPLReturnStatusToStr(result));
 
     if (result != ePPL_Success)
+    {
+        systemPrintln("PointPerfect Library Key Invalid");
         successfulInit &= false;
+    }
 
     online.ppl = successfulInit;
+
+    if (online.ppl)
+        systemPrintf("PointPerfect Library Online: %s\r\n", PPL_SDK_VERSION);
+    else
+        systemPrintln("PointPerfect Library failed to start");
 
     reportHeapNow(false);
 }
@@ -71,7 +82,7 @@ void updatePPL()
                 if (rtcmLength > 0)
                 {
                     if (settings.debugCorrections == true)
-                        systemPrint("Received RTCM from PPL. Pushing to the GNSS...");
+                        systemPrintln("Received RTCM from PPL. Pushing to the GNSS.");
 
                     gnssPushRawData(pplRtcmBuffer, rtcmLength);
                 }
