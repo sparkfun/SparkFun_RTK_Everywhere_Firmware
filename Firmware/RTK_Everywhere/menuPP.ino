@@ -343,7 +343,7 @@ bool pointperfectProvisionDevice()
 
                 displayAccountExpired(5000);
             }
-            // If a device is not whitelisted, reponse will be: "HTTP response error 403: Device hardware code not
+            // If a device is not whitelisted, response will be: "HTTP response error 403: Device hardware code not
             // whitelisted"
             else if (response.indexOf("not whitelisted") >= 0)
             {
