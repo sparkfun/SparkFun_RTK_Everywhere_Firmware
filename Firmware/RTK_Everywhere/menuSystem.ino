@@ -740,7 +740,7 @@ void menuDebugSoftware()
             settings.enableHeapReport ^= 1;
         else if (incoming == 2)
         {
-            getNewSetting("Enter level to use PSRAM in bytes", 1, 65535, (int *)&settings.psramMallocLevel);
+            getNewSetting("Enter level to use PSRAM in bytes", 0, 65535, (int *)&settings.psramMallocLevel);
         }
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
