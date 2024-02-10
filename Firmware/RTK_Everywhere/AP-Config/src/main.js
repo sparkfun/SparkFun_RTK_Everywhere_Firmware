@@ -575,15 +575,6 @@ function validateFields() {
         }
     }
 
-    //Sensor Config
-    if (platformPrefix == "Express Plus") {
-        if (ge("autoIMUmountAlignment").checked == false) {
-            checkElementValue("imuYaw", 0, 360, "Must be between 0.0 to 360.0", "collapseSensorConfig");
-            checkElementValue("imuPitch", -90, 90, "Must be between -90.0 to 90.0", "collapseSensorConfig");
-            checkElementValue("imuRoll", -180, 180, "Must be between -180.0 to 180.0", "collapseSensorConfig");
-        }
-    }
-
     //WiFi Config
     checkElementString("wifiNetwork0SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork0Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
@@ -1117,24 +1108,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("dynamicModel").addEventListener("change", function () {
-        if (ge("dynamicModel").value != 4 && ge("enableSensorFusion").checked) {
-            ge("dynamicModelSensorFusionError").innerHTML = "<br>Warning: Dynamic Model not set to Automotive. Sensor Fusion is best used with the Automotive Dynamic Model.";
-        }
-        else {
-            ge("dynamicModelSensorFusionError").innerHTML = "";
-        }
-    });
-
-    ge("enableSensorFusion").addEventListener("change", function () {
-        if (ge("dynamicModel").value != 4 && ge("enableSensorFusion").checked) {
-            ge("dynamicModelSensorFusionError").innerHTML = "<br>Warning: Dynamic Model not set to Automotive. Sensor Fusion is best used with the Automotive Dynamic Model.";
-        }
-        else {
-            ge("dynamicModelSensorFusionError").innerHTML = "";
-        }
-    });
-
     ge("pointPerfectCorrectionsSource").addEventListener("change", function () {
         if (ge("pointPerfectCorrectionsSource").checked) {
             show("ppSettingsConfig");
@@ -1203,19 +1176,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     ge("fixedHAE_APC").addEventListener("change", function () {
         adjustHAE();
-    });
-
-    ge("autoIMUmountAlignment").addEventListener("change", function () {
-        if (ge("autoIMUmountAlignment").checked) {
-            ge("imuYaw").disabled = true;
-            ge("imuPitch").disabled = true;
-            ge("imuRoll").disabled = true;
-        }
-        else {
-            ge("imuYaw").disabled = false;
-            ge("imuPitch").disabled = false;
-            ge("imuRoll").disabled = false;
-        }
     });
 
 })

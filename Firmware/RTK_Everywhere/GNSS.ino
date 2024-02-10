@@ -317,22 +317,6 @@ void gnssSetBaudrate(uint32_t baudRate)
     }
 }
 
-uint16_t gnssGetFusionMode()
-{
-    if (online.gnss == true)
-    {
-        if (gnssPlatform == PLATFORM_ZED)
-        {
-            return (theGNSS->packetUBXESFSTATUS->data.fusionMode);
-        }
-        else if (gnssPlatform == PLATFORM_UM980)
-        {
-            // Not supported on the UM980
-        }
-    }
-    return (0);
-}
-
 int gnssPushRawData(uint8_t *dataToSend, int dataLength)
 {
     if (online.gnss == true)

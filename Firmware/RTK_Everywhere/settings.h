@@ -940,8 +940,6 @@ typedef struct
     uint16_t sppTxQueueSize = 32;
     uint8_t dynamicModel = DYN_MODEL_PORTABLE;
     SystemState lastState = STATE_NOT_SET; // Start unit in last known state
-    bool enableSensorFusion = false; // If IMU is available, avoid using it unless user specifically selects automotive
-    bool autoIMUmountAlignment = true; // Allows unit to automatically establish device orientation in vehicle
     bool enableResetDisplay = false;
     uint8_t resetCount = 0;
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
@@ -1038,14 +1036,7 @@ typedef struct
     uint8_t ubxMessageRatesBase[MAX_UBX_MSG_RTCM] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to u-blox recommended rates.
-    uint32_t imuYaw = 0;  // User defined IMU mount yaw angle (0 to 36,000) CFG-SFIMU-IMU_MNTALG_YAW
-    int16_t imuPitch = 0; // User defined IMU mount pitch angle (-9000 to 9000) CFG-SFIMU-IMU_MNTALG_PITCH
-    int16_t imuRoll = 0;  // User defined IMU mount roll angle (-18000 to 18000) CFG-SFIMU-IMU_MNTALG_ROLL
-    bool sfDisableWheelDirection = false; // CFG-SFODO-DIS_AUTODIRPINPOL
-    bool sfCombineWheelTicks = false;     // CFG-SFODO-COMBINE_TICKS
-    uint8_t rateNavPrio = 0;              // Output rate of priority nav mode message - CFG-RATE-NAV_PRIO
-    // CFG-SFIMU-AUTO_MNTALG_ENA 0 = autoIMUmountAlignment
-    bool sfUseSpeed = false; // CFG-SFODO-USE_SPEED
+
 
     CoordinateInputType coordinateInputType = COORDINATE_INPUT_TYPE_DD; // Default DD.ddddddddd
     uint16_t lbandFixTimeout_seconds = 180; // Number of seconds of no L-Band fix before resetting ZED

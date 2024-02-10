@@ -703,10 +703,6 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "ntripClient_MountPointPW", settings.ntripClient_MountPointPW);
     stringRecord(newSettings, "ntripClient_TransmitGGA", settings.ntripClient_TransmitGGA);
 
-    // Sensor Fusion Config
-    stringRecord(newSettings, "enableSensorFusion", settings.enableSensorFusion);
-    stringRecord(newSettings, "autoIMUmountAlignment", settings.autoIMUmountAlignment);
-
     // System Config
     stringRecord(newSettings, "enableUART2UBXIn", settings.enableUART2UBXIn);
     stringRecord(newSettings, "enableLogging", settings.enableLogging);
@@ -914,13 +910,6 @@ void createSettingsString(char *newSettings)
     }
 
     stringRecord(newSettings, "minElev", settings.minElev);
-    stringRecord(newSettings, "imuYaw", settings.imuYaw);
-    stringRecord(newSettings, "imuPitch", settings.imuPitch);
-    stringRecord(newSettings, "imuRoll", settings.imuRoll);
-    stringRecord(newSettings, "sfDisableWheelDirection", settings.sfDisableWheelDirection);
-    stringRecord(newSettings, "sfCombineWheelTicks", settings.sfCombineWheelTicks);
-    stringRecord(newSettings, "rateNavPrio", settings.rateNavPrio);
-    stringRecord(newSettings, "sfUseSpeed", settings.sfUseSpeed);
     stringRecord(newSettings, "coordinateInputType", settings.coordinateInputType);
     // stringRecord(newSettings, "lbandFixTimeout_seconds", settings.lbandFixTimeout_seconds);
 
@@ -1175,10 +1164,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.ARPLoggingInterval_s = settingValue;
     else if (strcmp(settingName, "dataPortChannel") == 0)
         settings.dataPortChannel = (muxConnectionType_e)settingValue;
-    else if (strcmp(settingName, "autoIMUmountAlignment") == 0)
-        settings.autoIMUmountAlignment = settingValueBool;
-    else if (strcmp(settingName, "enableSensorFusion") == 0)
-        settings.enableSensorFusion = settingValueBool;
     else if (strcmp(settingName, "enableResetDisplay") == 0)
         settings.enableResetDisplay = settingValueBool;
 
@@ -1295,18 +1280,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         enableRCFirmware = settingValueBool;
     else if (strcmp(settingName, "minElev") == 0)
         settings.minElev = settingValue;
-    else if (strcmp(settingName, "imuYaw") == 0)
-        settings.imuYaw = settingValue * 100; // Comes in as 0 to 360.0 but stored as 0 to 36,000
-    else if (strcmp(settingName, "imuPitch") == 0)
-        settings.imuPitch = settingValue * 100; // Comes in as -90 to 90.0 but stored as -9000 to 9000
-    else if (strcmp(settingName, "imuRoll") == 0)
-        settings.imuRoll = settingValue * 100; // Comes in as -180 to 180.0 but stored as -18000 to 18000
-    else if (strcmp(settingName, "sfDisableWheelDirection") == 0)
-        settings.sfDisableWheelDirection = settingValueBool;
-    else if (strcmp(settingName, "sfCombineWheelTicks") == 0)
-        settings.sfCombineWheelTicks = settingValueBool;
-    else if (strcmp(settingName, "rateNavPrio") == 0)
-        settings.rateNavPrio = settingValue;
     else if (strcmp(settingName, "minCNO") == 0)
         settings.minCNO_F9P = settingValue;
 

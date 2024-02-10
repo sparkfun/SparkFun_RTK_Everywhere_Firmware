@@ -214,8 +214,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "sppTxQueueSize", settings.sppTxQueueSize);
     settingsFile->printf("%s=%d\r\n", "dynamicModel", settings.dynamicModel);
     settingsFile->printf("%s=%d\r\n", "lastState", settings.lastState);
-    settingsFile->printf("%s=%d\r\n", "enableSensorFusion", settings.enableSensorFusion);
-    settingsFile->printf("%s=%d\r\n", "autoIMUmountAlignment", settings.autoIMUmountAlignment);
     settingsFile->printf("%s=%d\r\n", "enableResetDisplay", settings.enableResetDisplay);
     settingsFile->printf("%s=%d\r\n", "enableExternalPulse", settings.enableExternalPulse);
     settingsFile->printf("%s=%llu\r\n", "externalPulseTimeBetweenPulse_us", settings.externalPulseTimeBetweenPulse_us);
@@ -340,14 +338,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "pvtServerPort", settings.pvtServerPort);
     settingsFile->printf("%s=%d\r\n", "pvtUdpServerPort", settings.pvtUdpServerPort);
     settingsFile->printf("%s=%d\r\n", "minElev", settings.minElev);
-
-    settingsFile->printf("%s=%d\r\n", "imuYaw", settings.imuYaw);
-    settingsFile->printf("%s=%d\r\n", "imuPitch", settings.imuPitch);
-    settingsFile->printf("%s=%d\r\n", "imuRoll", settings.imuRoll);
-    settingsFile->printf("%s=%d\r\n", "sfDisableWheelDirection", settings.sfDisableWheelDirection);
-    settingsFile->printf("%s=%d\r\n", "sfCombineWheelTicks", settings.sfCombineWheelTicks);
-    settingsFile->printf("%s=%d\r\n", "rateNavPrio", settings.rateNavPrio);
-    settingsFile->printf("%s=%d\r\n", "sfUseSpeed", settings.sfUseSpeed);
     settingsFile->printf("%s=%d\r\n", "coordinateInputType", settings.coordinateInputType);
     settingsFile->printf("%s=%d\r\n", "lbandFixTimeout_seconds", settings.lbandFixTimeout_seconds);
     settingsFile->printf("%s=%d\r\n", "minCNO_F9P", settings.minCNO_F9P);
@@ -897,22 +887,6 @@ bool parseLine(char *str, Settings *settings)
             settings->updateGNSSSettings = true;
         }
     }
-    else if (strcmp(settingName, "enableSensorFusion") == 0)
-    {
-        if (settings->enableSensorFusion != d)
-        {
-            settings->enableSensorFusion = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "autoIMUmountAlignment") == 0)
-    {
-        if (settings->autoIMUmountAlignment != d)
-        {
-            settings->autoIMUmountAlignment = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
     else if (strcmp(settingName, "enableResetDisplay") == 0)
         settings->enableResetDisplay = d;
     else if (strcmp(settingName, "enableExternalPulse") == 0)
@@ -1133,62 +1107,7 @@ bool parseLine(char *str, Settings *settings)
             settings->updateGNSSSettings = true;
         }
     }
-    else if (strcmp(settingName, "imuYaw") == 0)
-    {
-        if (settings->imuYaw != d)
-        {
-            settings->imuYaw = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "imuPitch") == 0)
-    {
-        if (settings->imuPitch != d)
-        {
-            settings->imuPitch = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "imuRoll") == 0)
-    {
-        if (settings->imuRoll != d)
-        {
-            settings->imuRoll = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "sfDisableWheelDirection") == 0)
-    {
-        if (settings->sfDisableWheelDirection != d)
-        {
-            settings->sfDisableWheelDirection = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "sfCombineWheelTicks") == 0)
-    {
-        if (settings->sfCombineWheelTicks != d)
-        {
-            settings->sfCombineWheelTicks = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "rateNavPrio") == 0)
-    {
-        if (settings->rateNavPrio != d)
-        {
-            settings->rateNavPrio = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
-    else if (strcmp(settingName, "sfUseSpeed") == 0)
-    {
-        if (settings->sfUseSpeed != d)
-        {
-            settings->sfUseSpeed = d;
-            settings->updateGNSSSettings = true;
-        }
-    }
+
     // Ethernet
     else if (strcmp(settingName, "ethernetIP") == 0)
     {

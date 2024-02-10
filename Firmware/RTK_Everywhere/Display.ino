@@ -35,15 +35,13 @@
 #define ICON_WIFI_SYMBOL_3_RIGHT (1 << 20) // center, 0
 #define ICON_BASE_TEMPORARY (1 << 21)      // center,  0
 #define ICON_BASE_FIXED (1 << 22)          // center,  0
-#define ICON_ROVER_FUSION (1 << 23)        // center,  2
-#define ICON_ROVER_FUSION_EMPTY (1 << 24)  // center,  2
-#define ICON_DYNAMIC_MODEL (1 << 25)       // 27,  0
-#define ICON_DOWN_ARROW_RIGHT (1 << 26)    // center,  0
-#define ICON_UP_ARROW_RIGHT (1 << 27)      // center,  0
-#define ICON_BLANK_RIGHT (1 << 28)         // center,  0
+#define ICON_DYNAMIC_MODEL (1 << 24)       // 27,  0
+#define ICON_DOWN_ARROW_RIGHT (1 << 25)    // center,  0
+#define ICON_UP_ARROW_RIGHT (1 << 26)      // center,  0
+#define ICON_BLANK_RIGHT (1 << 27)         // center,  0
 
 // Left + Center Radio spot
-#define ICON_IP_ADDRESS (1 << 29)
+#define ICON_IP_ADDRESS (1 << 28)
 
 // Right top
 #define ICON_BATTERY (1 << 0) // 45,  0
