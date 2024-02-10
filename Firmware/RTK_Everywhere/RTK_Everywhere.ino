@@ -635,7 +635,7 @@ uint32_t lastDisplayUpdate;
 bool forceDisplayUpdate; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;
 bool forceSystemStateUpdate; // Set true to avoid update wait
-uint32_t lastAccuracyLEDUpdate;
+uint32_t lastPrintRoverAccuracy;
 uint32_t lastBaseLEDupdate; // Controls the blinking of the Base LED
 
 uint32_t lastFileReport;      // When logging, print file record stats every few seconds
@@ -1148,8 +1148,8 @@ void loop()
     DMW_c("updatePPL");
     updatePPL(); // Check if we need to get any new RTCM from the PPL
 
-    DMW_c("printPosition");
-    printPosition(); // Periodically print GNSS coordinates if enabled
+    DMW_c("printReports");
+    printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();

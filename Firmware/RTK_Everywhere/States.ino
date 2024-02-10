@@ -139,8 +139,6 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_FIX): {
-            updateAccuracyLEDs();
-
             if (gnssIsRTKFloat())
             {
                 // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
@@ -153,8 +151,6 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_RTK_FLOAT): {
-            updateAccuracyLEDs();
-
             if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
             if (gnssIsRTKFix() == true)
@@ -163,8 +159,6 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_RTK_FIX): {
-            updateAccuracyLEDs();
-
             if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
             if (gnssIsRTKFloat())

@@ -298,14 +298,49 @@ bool commandSupported(const uint32_t key)
     return (commandSupported);
 }
 
-// Periodically print position if enabled
-void printPosition()
+// Periodically print information if enabled
+void printReports()
 {
     // Periodically print the position
     if (settings.enablePrintPosition && ((millis() - lastPrintPosition) > 15000))
     {
         printCurrentConditions();
         lastPrintPosition = millis();
+    }
+
+    if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
+    {
+        lastPrintRoverAccuracy = millis();
+
+        if (online.gnss == true)
+        {
+            float hpa = gnssGetHorizontalAccuracy();
+
+            if (hpa > 0)
+            {
+                char temp[20];
+                const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3); //Returns string of the HPA units
+                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", units, temp, gnssGetSatellitesInView());
+
+                if (gnssIsRTKFix() == true)
+                    systemPrint("RTK Fix");
+                else if (gnssIsRTKFloat() == true)
+                    systemPrint("RTK Float");
+                else if (gnssIsFixed() == true)
+                    systemPrint("3D Fix");
+
+                systemPrintln();
+            }
+            else
+            {
+                systemPrint("Rover Accuracy: ");
+                systemPrint(hpa);
+                systemPrint(" ");
+                systemPrint("No lock. SIV: ");
+                systemPrint(gnssGetSatellitesInView());
+                systemPrintln();
+            }
+        }
     }
 }
 
@@ -660,49 +695,6 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
         }
     }
     return units;
-}
-
-// Turn on the three accuracy LEDs depending on our current HPA (horizontal positional accuracy)
-void updateAccuracyLEDs()
-{
-    // Update the horizontal accuracy LEDs only every second or so
-    if (millis() - lastAccuracyLEDUpdate > 2000)
-    {
-        lastAccuracyLEDUpdate = millis();
-
-        if (online.gnss == true)
-        {
-            float hpa = gnssGetHorizontalAccuracy();
-
-            if (hpa > 0)
-            {
-                if (settings.enablePrintRoverAccuracy)
-                {
-                    char temp[20];
-                    const char *units = getHpa(hpa, temp, sizeof(temp), 3);
-                    systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", units, temp, gnssGetSatellitesInView());
-
-                    if (gnssIsRTKFix() == true)
-                        systemPrint("RTK Fix");
-                    else if (gnssIsRTKFloat() == true)
-                        systemPrint("RTK Float");
-                    else if (gnssIsFixed() == true)
-                        systemPrint("3D Fix");
-                    
-                    systemPrintln();
-                }
-            }
-            else if (settings.enablePrintRoverAccuracy)
-            {
-                systemPrint("Rover Accuracy: ");
-                systemPrint(hpa);
-                systemPrint(" ");
-                systemPrint("No lock. SIV: ");
-                systemPrint(gnssGetSatellitesInView());
-                systemPrintln();
-            }
-        } // End GNSS online checking
-    }     // Check every 2000ms
 }
 
 // Helper method to convert GNSS time and date into Unix Epoch
