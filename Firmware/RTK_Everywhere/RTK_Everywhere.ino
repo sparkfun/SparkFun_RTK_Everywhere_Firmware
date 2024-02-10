@@ -740,7 +740,7 @@ unsigned long beepStopMs; // Time at which to turn off beeper
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 34
+#define MAX_BOOT_TIME_ENTRIES 35
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -965,7 +965,8 @@ void setup()
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
-    psramBegin(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+    DMW_b("beginPsram");
+    beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before

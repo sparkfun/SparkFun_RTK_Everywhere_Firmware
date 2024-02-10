@@ -1193,6 +1193,7 @@ typedef struct
     bool debugWiFiConfig = false;
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
+    uint16_t psramMallocLevel = 1000; // Use PSRAM for memory requests larger than 1,000 bytes
 
     // Add new settings above <------------------------------------------------------------>
 

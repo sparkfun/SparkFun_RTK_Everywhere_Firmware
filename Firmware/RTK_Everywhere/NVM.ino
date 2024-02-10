@@ -455,6 +455,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enablePsram", settings.enablePsram);
 
     settingsFile->printf("%s=%d\r\n", "printTaskStartStop", settings.printTaskStartStop);
+    settingsFile->printf("%s=%d\r\n", "psramMallocLevel", settings.psramMallocLevel);
 
     // Add new settings above <--------------------------------------------------->
 }
@@ -1352,6 +1353,8 @@ bool parseLine(char *str, Settings *settings)
 
     else if (strcmp(settingName, "printTaskStartStop") == 0)
         settings->printTaskStartStop = d;
+    else if (strcmp(settingName, "psramMallocLevel") == 0)
+        settings->psramMallocLevel = d;
 
     // Add new settings above <--------------------------------------------------->
 

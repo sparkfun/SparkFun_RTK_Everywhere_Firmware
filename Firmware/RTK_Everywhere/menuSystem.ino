@@ -665,6 +665,8 @@ void menuDebugSoftware()
         systemPrint("1) Heap Reporting: ");
         systemPrintf("%s\r\n", settings.enableHeapReport ? "Enabled" : "Disabled");
 
+        systemPrintf("2) Set level to use PSRAM (bytes): %d\r\n", settings.psramMallocLevel);
+
         // Ring buffer - ZED Tx
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
@@ -736,6 +738,10 @@ void menuDebugSoftware()
 
         if (incoming == 1)
             settings.enableHeapReport ^= 1;
+        else if (incoming == 2)
+        {
+            getNewSetting("Enter level to use PSRAM in bytes", 1, 65535, (int *)&settings.psramMallocLevel);
+        }
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
         else if (incoming == 11)

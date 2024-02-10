@@ -1,5 +1,5 @@
 // Initialize PSRAM if available
-void psramBegin()
+void beginPsram()
 {
     if (settings.enablePsram == true)
     {
@@ -14,7 +14,7 @@ void psramBegin()
             {
                 online.psram = true;
 
-                heap_caps_malloc_extmem_enable(1000); // Use PSRAM for memory requests larger than 1,000 bytes
+                heap_caps_malloc_extmem_enable(settings.psramMallocLevel); // Use PSRAM for memory requests larger than 1,000 bytes
             }
         }
     }
