@@ -88,10 +88,8 @@ void identifyBoard()
         bool bq40z50Present = i2cIsDevicePresent(i2c_0, 0x0B);
         i2c_0->end();
 
-#ifdef COMPILE_UM980
         if (bq40z50Present)
             productVariant = RTK_TORCH;
-#endif // COMPILE_UM980
     }
 }
 
