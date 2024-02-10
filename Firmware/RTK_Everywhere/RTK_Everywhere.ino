@@ -609,6 +609,7 @@ unsigned long lastTiltCheck;   // Limits polling on IM19 to 5Hz
 
 bool pplNewRtcmNmea;
 bool pplNewSpartn;
+uint8_t *pplRtcmBuffer;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 

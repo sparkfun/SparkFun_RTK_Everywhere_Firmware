@@ -3,16 +3,28 @@
 // Begin the PointPerfect Library and give it the current key
 void beginPPL()
 {
-    if(present.needsExternalPpl == false)
+    if (present.needsExternalPpl == false)
         return;
 
-    if(online.psram == false)
+    if (online.psram == false)
     {
         systemPrintln("PointPerfect Library requires PSRAM to run");
         return;
     }
 
     reportHeapNow(false);
+
+    // PPL_MAX_RTCM_BUFFER is 3345 bytes so we create it on the heap
+    if (online.psram == true)
+        pplRtcmBuffer = (uint8_t *)ps_malloc(PPL_MAX_RTCM_BUFFER);
+    else
+        pplRtcmBuffer = (uint8_t *)malloc(PPL_MAX_RTCM_BUFFER);
+
+    if (!pplRtcmBuffer)
+    {
+        systemPrintln("ERROR: Failed to allocate rtcmBuffer");
+        return;
+    }
 
     bool successfulInit = true;
 
