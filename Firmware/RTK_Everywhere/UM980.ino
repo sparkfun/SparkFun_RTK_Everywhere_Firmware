@@ -85,6 +85,7 @@ bool um980Configure()
         delay(500);
     }
 
+    systemPrintln("UM980 failed to configure");
     return (false);
 }
 
@@ -169,10 +170,7 @@ bool um980ConfigureOnce()
     if (response == true)
         online.gnss = true; // If we failed before, mark as online now
     else
-    {
-        systemPrintln("UM980 failed to configure");
         online.gnss = false; // Take it offline
-    }
 
     return (response);
 }
