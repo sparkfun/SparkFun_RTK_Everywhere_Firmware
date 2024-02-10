@@ -578,10 +578,15 @@ void mqttClientUpdate()
             if (mqttClientCertificateBuffer)
             {
                 free(mqttClientCertificateBuffer);
-                systemPrintln("Failed to allocate key buffers!");
+                systemPrintln("Failed to allocate key buffer!");
             }
-            else
-                systemPrintln("Failed to allocate certificate buffers!");
+
+            if (mqttClientPrivateKeyBuffer)
+            {
+                free(mqttClientPrivateKeyBuffer);
+                systemPrintln("Failed to allocate certificate buffer!");
+            }
+
             mqttClientShutdown();
             break;
         }
