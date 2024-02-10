@@ -157,7 +157,6 @@ bool um980ConfigureOnce()
     // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
     if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
     {
-        Serial.println("Config RTCM");
         response &= um980->setNMEAPortMessage("GPZDA", "COM3", 1);
         response &= um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
         response &= um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
