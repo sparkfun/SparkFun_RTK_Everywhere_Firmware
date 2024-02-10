@@ -516,7 +516,6 @@ void stateUpdate()
         }
         break;
 
-#ifdef COMPILE_L_BAND
         case (STATE_KEYS_STARTED): {
             if (rtcWaitTime == 0)
                 rtcWaitTime = millis();
@@ -780,7 +779,6 @@ void stateUpdate()
             wifiShutdown(); // Turn off WiFi
         }
         break;
-#endif // COMPILE_L_BAND
 
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW

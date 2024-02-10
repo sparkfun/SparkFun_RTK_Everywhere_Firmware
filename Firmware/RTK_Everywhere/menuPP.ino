@@ -1150,6 +1150,9 @@ void beginLBand()
     }
 
 #ifdef COMPILE_L_BAND
+    if(present.lband_neo == false)
+        return;
+
     if (i2cLBand.begin(Wire, 0x43) ==
         false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
     {

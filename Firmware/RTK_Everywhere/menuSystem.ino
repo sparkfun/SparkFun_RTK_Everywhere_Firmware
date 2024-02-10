@@ -1291,7 +1291,6 @@ void printCurrentConditions()
         systemPrint(gnssGetLatitude(), haeNumberOfDecimals);
         systemPrint(", Lon: ");
         systemPrint(gnssGetLongitude(), haeNumberOfDecimals);
-
         systemPrint(", Altitude (m): ");
         systemPrint(gnssGetAltitude(), 1);
 

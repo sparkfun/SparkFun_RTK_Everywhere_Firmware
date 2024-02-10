@@ -902,7 +902,10 @@ void beginSystemState()
         // Do not allow user to enter test screen during first rover start because there is no screen
         firstRoverStart = false;
 
-        systemState = STATE_ROVER_NOT_STARTED; // Torch always starts in rover mode.
+        systemState = STATE_ROVER_NOT_STARTED;
+
+        if(settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+            systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
     }
     else
     {
