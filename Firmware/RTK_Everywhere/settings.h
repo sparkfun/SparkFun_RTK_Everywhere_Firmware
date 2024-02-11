@@ -1266,8 +1266,8 @@ struct struct_online
     bool pvtUdpServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
-    bool imu = false;
-    bool tilt = false;
+    bool imu = false; // Online when the imu/tilt sensor is configured
+    bool tilt = false; // Online when the tilt sensor is actively compensating position
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;
