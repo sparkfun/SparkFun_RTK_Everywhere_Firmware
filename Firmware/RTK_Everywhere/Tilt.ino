@@ -1,14 +1,14 @@
 /*
-  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor 
-  generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the 
-  GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The 
-  Data Collector does not know anything is being tilt-compensated. To do this we must intercept 
-  NMEA from the UM980 and splice in the values from the tilt sensor. See tiltApplyCompensationGGA() 
+  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor
+  generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
+  GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
+  Data Collector does not know anything is being tilt-compensated. To do this we must intercept
+  NMEA from the UM980 and splice in the values from the tilt sensor. See tiltApplyCompensationGGA()
   as an example.
 
   The tilt sensor reports + and - numbers for Latitude/Longitude. Whereas NMEA expects positive
-  numbers with letters N/S and E/W. Since we are splicing into NMEA, the correct N/S and E/W letters 
-  are already set. We just need to be sure the tilt-compensated values are positive using abs(). 
+  numbers with letters N/S and E/W. Since we are splicing into NMEA, the correct N/S and E/W letters
+  are already set. We just need to be sure the tilt-compensated values are positive using abs().
   This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
   we don't consider those edges cases here.
 */
@@ -88,8 +88,11 @@ void tiltUpdate()
                 uint32_t naviStatus = tiltSensor->getNaviStatus();
                 if ((naviStatus & (1 << 19)) && tiltSensor->getNaviLatitude() > 0) // SyncReady 0x80000
                 {
+                    beepDuration(2000); // Audibly indicate the start of tilt
+                    
+                    lastTiltBeepMs = millis();
+
                     online.tilt = true;
-                    systemPrintln("Tilt Online");
                 }
                 else
                     online.tilt = false;
@@ -157,7 +160,7 @@ void tiltUpdate()
                         systemPrintln("Status: Unknown status bits: 0x04X"); // Unknown bits are set
 
                     /*Datasheet initialization steps:
-                        Step one: Rotate the receiver in hand, or shake it. 
+                        Step one: Rotate the receiver in hand, or shake it.
 
                         Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
                         means step two has been entered. Wait for RTK to output the fixed solution.
@@ -166,7 +169,14 @@ void tiltUpdate()
                         forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
                         degrees and continue to rock until the init is complete. The status word becomes ready.
                     */
-                }
+                } //End Debug IMU
+            } // End Check IMU state at 1Hz
+
+            //If tilt is active, play short beep every 10 seconds
+            if((online.tilt == true) && (millis() - lastTiltBeepMs > 10000))
+            {
+                lastTiltBeepMs = millis();
+                beepDuration(250);
             }
         }
         else if (settings.enableTiltCompensation == false && online.imu == true)
@@ -198,8 +208,8 @@ void beginTilt()
 
     if (settings.enableTiltCompensation == false)
         return;
-    
-    if(online.imu == true)
+
+    if (online.imu == true)
         return;
 
     tiltSensor = new IM19();
