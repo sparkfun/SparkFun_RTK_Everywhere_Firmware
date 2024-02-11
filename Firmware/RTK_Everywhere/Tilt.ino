@@ -85,20 +85,24 @@ void tiltUpdate()
                 }
 
                 // Check to see if tilt compensation is active
-                uint32_t naviStatus = tiltSensor->getNaviStatus();
-                if ((naviStatus & (1 << 19)) && tiltSensor->getNaviLatitude() > 0) // SyncReady 0x80000
+                if (tiltSensor->isCorrecting())
                 {
-                    beepDuration(2000); // Audibly indicate the start of tilt
-                    
-                    lastTiltBeepMs = millis();
+                    // Trigger beeper only once
+                    if (online.tilt == false)
+                    {
+                        beepDuration(2000); // Audibly indicate the start of tilt
 
-                    online.tilt = true;
+                        lastTiltBeepMs = millis();
+
+                        online.tilt = true;
+                    }
                 }
                 else
                     online.tilt = false;
 
                 if (settings.enableImuDebug == true)
                 {
+                    uint32_t naviStatus = tiltSensor->getNaviStatus();
                     systemPrintf("NAVI timestamp: %0.0f lat: %0.4f lon: %0.4f alt: %0.2f\r\n",
                                  tiltSensor->getNaviTimestamp(), tiltSensor->getNaviLatitude(),
                                  tiltSensor->getNaviLongitude(), tiltSensor->getNaviAltitude());
@@ -156,8 +160,12 @@ void tiltUpdate()
                     // if (naviStatus & (1 << 20)) //0x100000
                     //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
                     //     0x100000
-                    if (naviStatus > 0x100000)
-                        systemPrintln("Status: Unknown status bits: 0x04X"); // Unknown bits are set
+                    if (naviStatus > 0x1FFFFF)
+                    {
+                        // Clear all lower/known bits
+                        uint32_t bitsToShow = 0 ^ 0x1FFFFF;
+                        systemPrintf("Status: Unknown status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
+                    }
 
                     /*Datasheet initialization steps:
                         Step one: Rotate the receiver in hand, or shake it.
@@ -169,11 +177,11 @@ void tiltUpdate()
                         forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
                         degrees and continue to rock until the init is complete. The status word becomes ready.
                     */
-                } //End Debug IMU
-            } // End Check IMU state at 1Hz
+                } // End Debug IMU
+            }     // End Check IMU state at 1Hz
 
-            //If tilt is active, play short beep every 10 seconds
-            if((online.tilt == true) && (millis() - lastTiltBeepMs > 10000))
+            // If tilt is active, play short beep every 10 seconds
+            if ((online.tilt == true) && (millis() - lastTiltBeepMs > 10000))
             {
                 lastTiltBeepMs = millis();
                 beepDuration(250);
@@ -209,7 +217,7 @@ void beginTilt()
     if (settings.enableTiltCompensation == false)
         return;
 
-    if (online.imu == true)
+    if (online.imu == true) // Don't restart if already online
         return;
 
     tiltSensor = new IM19();
@@ -311,6 +319,7 @@ void tiltStop()
     SerialForTilt = nullptr;
 
     online.imu = false;
+    online.tilt = false;
 }
 
 // Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
