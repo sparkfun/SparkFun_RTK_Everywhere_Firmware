@@ -388,6 +388,8 @@ unsigned long rtcmLastPacketReceived;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
+#else
+#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 #endif                                             // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -610,6 +612,10 @@ unsigned long lastTiltCheck;   // Limits polling on IM19 to 5Hz
 bool pplNewRtcmNmea;
 bool pplNewSpartn;
 uint8_t *pplRtcmBuffer;
+
+bool pplAttemptedStart;
+bool pplGnssOutput;
+bool pplMqttCorrections;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
@@ -946,6 +952,9 @@ void setup()
     DMW_b("loadSettingsPartial");
     loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
 
+    DMW_b("beginPsram");
+    beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/474
@@ -964,9 +973,6 @@ void setup()
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
-
-    DMW_b("beginPsram");
-    beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
@@ -1020,9 +1026,6 @@ void setup()
 
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
-
-    DMW_b("beginPPL");
-    beginPPL(); // Initialize PointPerfect Library
 
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.

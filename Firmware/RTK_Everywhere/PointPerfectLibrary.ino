@@ -12,7 +12,7 @@ void beginPPL()
         return;
     }
 
-    if(strlen(settings.pointPerfectCurrentKey) == 0)
+    if (strlen(settings.pointPerfectCurrentKey) == 0)
     {
         systemPrintln("PointPerfect Library: No keys available");
         return;
@@ -64,7 +64,21 @@ void beginPPL()
 
 void updatePPL()
 {
-    if (online.ppl == true)
+    if (online.ppl == false)
+    {
+        // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
+        // connected. Don't restart the PPL if we've already tried
+        if (pplAttemptedStart == false)
+        {
+            if ((pplGnssOutput == true) && (strlen(settings.pointPerfectCurrentKey) > 0) && (pplMqttCorrections == true))
+            {
+                pplAttemptedStart == true;
+
+                beginPPL(); // Initialize PointPerfect Library
+            }
+        }
+    }
+    else // PPL is online
     {
         if (pplNewRtcmNmea || pplNewSpartn) // Decide when to call PPL_GetRTCMOutput
         {
@@ -99,27 +113,46 @@ void updatePPL()
 // Send GGA/ZDA/RTCM to the PPL
 bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
 {
-    ePPL_ReturnStatus result = PPL_SendRcvrData(buffer, numDataBytes);
-    if (result != ePPL_Success)
+    if (online.ppl == true)
     {
-        if (settings.debugCorrections == true)
-            systemPrintf("PPL_SendRcvrData Result: %s\r\n", PPLReturnStatusToStr(result));
-        return false;
+        ePPL_ReturnStatus result = PPL_SendRcvrData(buffer, numDataBytes);
+        if (result != ePPL_Success)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintf("PPL_SendRcvrData Result: %s\r\n", PPLReturnStatusToStr(result));
+            return false;
+        }
+        return true;
     }
-    return true;
+    else
+    {
+        pplGnssOutput = true; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
+    }
+
+    return false;
 }
 
 // Send Spartn packets from PointPerfect (either IP or L-Band) to PPL
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
 {
-    ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
-    if (result != ePPL_Success)
+    if (online.ppl == true)
     {
-        if (settings.debugCorrections == true)
-            systemPrintf("ERROR processRXMPMP PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
-        return false;
+
+        ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
+        if (result != ePPL_Success)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintf("ERROR processRXMPMP PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+            return false;
+        }
+        return true;
     }
-    return true;
+    else
+    {
+        pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
+    }
+
+    return false;
 }
 
 // Print human-readable PPL status

@@ -22,7 +22,6 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 // Locals
 //----------------------------------------
 
-static bool otaBluetoothOnline;
 static uint32_t otaLastUpdateCheck;
 static OtaState otaState;
 
@@ -884,14 +883,6 @@ void otaAutoUpdateStop()
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);
         otaLastUpdateCheck = millis();
-
-        // Restart bluetooth if necessary
-        if (otaBluetoothOnline)
-        {
-            if (settings.debugFirmwareUpdate)
-                systemPrintln("Firmware update restarting Bluetooth");
-            bluetoothStart(); // Restart BT according to settings
-        }
     }
 };
 
