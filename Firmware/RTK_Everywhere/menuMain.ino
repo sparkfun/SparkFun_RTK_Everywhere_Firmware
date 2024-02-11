@@ -377,12 +377,8 @@ void factoryReset(bool alreadyHasSemaphore)
         }
     }
 
-#ifdef COMPILE_IM19_IMU
-    if (online.imu)
-    {
+    if (online.imu == true)
         tiltSensorFactoryReset();
-    }
-#endif // COMPILE_IM19_IMU
 
     systemPrintln("Formatting internal file system...");
     LittleFS.format();
