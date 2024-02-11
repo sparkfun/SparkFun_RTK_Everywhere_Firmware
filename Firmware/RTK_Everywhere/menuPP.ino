@@ -836,6 +836,18 @@ bool getDate(uint8_t &dd, uint8_t &mm, uint16_t &yy)
 // Given an epoch in ms, return the number of days from given and Epoch now
 int daysFromEpoch(long long endEpoch)
 {
+    long delta = secondsFromEpoch(endEpoch); // number of s between dates
+    if(delta == -1)
+        return (-1);
+
+    delta /= (60 * 60);                 // hours
+    delta /= 24;                        // days
+    return ((int)delta);
+}
+
+// Given an epoch in ms, return the number of seconds from given and Epoch now
+int secondsFromEpoch(long long endEpoch)
+{
     endEpoch /= 1000; // Convert PointPerfect ms Epoch to s
 
     if (online.rtc == false)
@@ -843,14 +855,12 @@ int daysFromEpoch(long long endEpoch)
         // If we don't have RTC we can't calculate days to expire
         if (settings.debugCorrections == true)
             systemPrintln("No RTC available");
-        return (0);
+        return (-1);
     }
 
     long localEpoch = rtc.getEpoch();
 
     long delta = endEpoch - localEpoch; // number of s between dates
-    delta /= (60 * 60);                 // hours
-    delta /= 24;                        // days
     return ((int)delta);
 }
 
@@ -889,7 +899,7 @@ void epochToWeekToW(long long epoch, uint16_t *GPSWeek, uint32_t *GPSToW)
     *GPSToW = (uint32_t)(epoch % (7 * 24 * 60 * 60));
 }
 
-// Given an epoch, set the GPSWeek and GPSToW
+// Given a GPSWeek and GPSToW, set the epoch
 void WeekToWToUnixEpoch(uint64_t *unixEpoch, uint16_t GPSWeek, uint32_t GPSToW)
 {
     *unixEpoch = GPSWeek * (7 * 24 * 60 * 60); // 2192
@@ -966,7 +976,6 @@ void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t
    - Valid for Gregorian dates from 17-Nov-1858.
    - Adapted from sci.astro FAQ.
 */
-
 long dateToMjd(long Year, long Month, long Day)
 {
     return 367 * Year - 7 * (Year + (Month + 9) / 12) / 4 - 3 * ((Year + (Month - 9) / 7) / 100 + 1) / 4 +
@@ -978,7 +987,6 @@ long dateToMjd(long Year, long Month, long Day)
    - Assumes Gregorian calendar.
    - Adapted from Fliegel/van Flandern ACM 11/#10 p 657 Oct 1968.
 */
-
 void mjdToDate(long Mjd, long *Year, long *Month, long *Day)
 {
     long J, C, Y, M;
@@ -999,7 +1007,6 @@ void mjdToDate(long Mjd, long *Year, long *Month, long *Day)
    Convert GPS Week and Seconds to Modified Julian Day.
    - Ignores UTC leap seconds.
 */
-
 long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
 {
     long GpsDays = ((GpsCycle * 1024) + GpsWeek) * 7 + (GpsSeconds / 86400);

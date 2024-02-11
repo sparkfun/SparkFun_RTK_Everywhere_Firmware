@@ -612,6 +612,8 @@ uint8_t *pplRtcmBuffer;
 bool pplAttemptedStart;
 bool pplGnssOutput;
 bool pplMqttCorrections;
+long pplKeyExpirationMs; //Milliseconds until the current PPL key expires
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 

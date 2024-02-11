@@ -12,9 +12,12 @@ void beginPPL()
         return;
     }
 
-    if (strlen(settings.pointPerfectCurrentKey) == 0)
+    // Get a key from NVM
+    char pointPerfectKey[33]; // 32 hexadecimal digits = 128 bits = 16 Bytes
+    if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
     {
-        systemPrintln("PointPerfect Library: No keys available");
+        if (settings.debugCorrections == true)
+            systemPrintln("Unable to get usable key");
         return;
     }
 
@@ -42,7 +45,7 @@ void beginPPL()
     if (settings.debugCorrections == true)
         systemPrintf("PPL_Initialize: %s\r\n", PPLReturnStatusToStr(result));
 
-    result = PPL_SendDynamicKey(settings.pointPerfectCurrentKey, strlen(settings.pointPerfectCurrentKey));
+    result = PPL_SendDynamicKey(pointPerfectKey, strlen(pointPerfectKey));
     if (settings.debugCorrections == true)
         systemPrintf("PPL_SendDynamicKey: %s\r\n", PPLReturnStatusToStr(result));
 
@@ -70,7 +73,8 @@ void updatePPL()
         // connected. Don't restart the PPL if we've already tried
         if (pplAttemptedStart == false)
         {
-            if ((pplGnssOutput == true) && (strlen(settings.pointPerfectCurrentKey) > 0) && (pplMqttCorrections == true))
+            if ((pplGnssOutput == true) && (strlen(settings.pointPerfectCurrentKey) > 0) &&
+                (pplMqttCorrections == true))
             {
                 pplAttemptedStart == true;
 
@@ -107,7 +111,100 @@ void updatePPL()
                     systemPrintf("PPL_GetRTCMOutput Result: %s\r\n", PPLReturnStatusToStr(result));
             }
         }
+
+        // Check to see if our key has expired
+        if (millis() > pplKeyExpirationMs)
+        {
+            // Get a key from NVM
+            char pointPerfectKey[33]; // 32 hexadecimal digits = 128 bits = 16 Bytes
+            if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("Unable to get usable key");
+
+                online.ppl = false;        // Take PPL offline
+                pplAttemptedStart = false; // Allow PPL to attempt restart
+                return;
+            }
+
+            ePPL_ReturnStatus result = PPL_SendDynamicKey(pointPerfectKey, strlen(pointPerfectKey));
+            if (settings.debugCorrections == true)
+                systemPrintf("PPL_SendDynamicKey: %s\r\n", PPLReturnStatusToStr(result));
+
+            if (result != ePPL_Success)
+            {
+                systemPrintln("PointPerfect Library Key Invalid");
+                online.ppl = false;        // Take PPL offline
+                pplAttemptedStart = false; // Allow PPL to attempt restart
+                return;
+            }
+        }
     }
+}
+
+// Checks the current and next keys for expiration
+// Returns true if a key is available; key will be loaded into the given buffer
+bool getUsablePplKey(char *keyBuffer, int keyBufferSize)
+{
+    if (strlen(settings.pointPerfectCurrentKey) == 0)
+    {
+        systemPrintln("PointPerfect Library: No keys available");
+        return false;
+    }
+
+    if (online.rtc == false)
+    {
+        // If we don't have RTC we can't calculate days to expire
+        // Assume current key
+        strncpy(keyBuffer, settings.pointPerfectCurrentKey, keyBufferSize);
+
+        if (settings.debugCorrections == true)
+            systemPrintln("No RTC for key expiration calculation");
+        return true;
+    }
+
+    int daysRemainingCurrent =
+        daysFromEpoch(settings.pointPerfectCurrentKeyStart + settings.pointPerfectCurrentKeyDuration + 1);
+
+    int daysRemainingNext = -1;
+    if (strlen(settings.pointPerfectNextKey) > 0)
+        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+    if (settings.debugCorrections == true)
+    {
+        systemPrintf("Days remaining until current key expires: %d\r\n", daysRemainingCurrent);
+        systemPrintf("Days remaining until next key expires: %d\r\n", daysRemainingNext);
+    }
+
+    if (daysRemainingCurrent >= 0) // Use the current key
+    {
+        pplKeyExpirationMs =
+            secondsFromEpoch(settings.pointPerfectCurrentKeyStart + settings.pointPerfectCurrentKeyDuration) * 1000;
+
+        if (settings.debugCorrections == true)
+            systemPrintf("Seconds remaining until key expires: %d\r\n", pplKeyExpirationMs / 1000);
+
+        strncpy(keyBuffer, settings.pointPerfectCurrentKey, keyBufferSize);
+        return (true);
+    }
+    else if (daysRemainingNext >= 0) // Use next key
+    {
+        pplKeyExpirationMs =
+            secondsFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration) * 1000;
+
+        if (settings.debugCorrections == true)
+            systemPrintf("Seconds remaining until key expires: %d\r\n", pplKeyExpirationMs / 1000);
+
+        strncpy(keyBuffer, settings.pointPerfectNextKey, keyBufferSize);
+        return (true);
+    }
+    else
+    {
+        // Both keys are expired
+        return (false);
+    }
+
+    return (false);
 }
 
 // Send GGA/ZDA/RTCM to the PPL
