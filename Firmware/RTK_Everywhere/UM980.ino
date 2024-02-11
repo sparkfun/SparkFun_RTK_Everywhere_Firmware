@@ -63,12 +63,12 @@ void um980Begin()
 bool um980Configure()
 {
     // Skip configuring the UM980 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        if (settings.debugGnss)
-            systemPrintln("Skipping GNSS configuration");
-        return (true);
-    }
+    // if (settings.updateGNSSSettings == false)
+    // {
+    //     if (settings.debugGnss)
+    //         systemPrintln("Skipping GNSS configuration");
+    //     return (true);
+    // }
 
     for (int x = 0; x < 3; x++)
     {
@@ -716,7 +716,7 @@ void um980Reset()
 // Query GNSS for current leap seconds
 uint8_t um980GetLeapSeconds()
 {
-    //TODO Need to find leap seconds in UM980
+    // TODO Need to find leap seconds in UM980
     return (18); // Default to 18
 }
 

@@ -613,6 +613,9 @@ bool pplNewRtcmNmea;
 bool pplNewSpartn;
 uint8_t *pplRtcmBuffer;
 
+bool pplAttemptedStart;
+bool pplGnssOutput;
+bool pplMqttCorrections;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
@@ -1023,9 +1026,6 @@ void setup()
 
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
-
-    DMW_b("beginPPL");
-    beginPPL(); // Initialize PointPerfect Library
 
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
