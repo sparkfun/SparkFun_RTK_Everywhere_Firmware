@@ -593,12 +593,8 @@ unsigned long lastEthernetCheck; // Prevents cable checking from continually hap
 #include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor;
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
-bool tiltSupported;            // Variant specific. Set at beginBoard().
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 5Hz
-
-#define TILT_SUPPORTED tiltSupported
-#else
-#define TILT_SUPPORTED false
+bool tiltFailedBegin; // Goes true if IMU fails beginTilt()
 #endif // COMPILE_IM19_IMU
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

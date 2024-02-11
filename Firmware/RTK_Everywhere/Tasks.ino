@@ -416,7 +416,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
-    if (TILT_SUPPORTED)
+    if (present.imu_im19 == true)
     {
         if (settings.enableTiltCompensation == true && online.tilt == true)
         {

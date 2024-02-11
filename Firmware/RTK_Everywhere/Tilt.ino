@@ -49,7 +49,7 @@ void menuTilt()
         }
         else if ((settings.enableTiltCompensation == true) && (incoming == 2))
         {
-            getNewSetting("Enter length of the pole in meters", 0.01, 4.0, &settings.tiltPoleLength);
+            getNewSetting("Enter length of the pole in meters", 0.0, 4.0, &settings.tiltPoleLength);
         }
 
         else if (incoming == 'x')
@@ -67,7 +67,7 @@ void menuTilt()
 
 void tiltUpdate()
 {
-    if (tiltSupported == true)
+    if (present.imu_im19 == true)
     {
         if (settings.enableTiltCompensation == true && online.imu == true)
         {
@@ -153,19 +153,19 @@ void tiltUpdate()
                     // if (naviStatus & (1 << 20)) //0x100000
                     //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
                     //     0x100000
+                    if (naviStatus > 0x100000)
+                        systemPrintln("Status: Unknown status bits: 0x04X"); // Unknown bits are set
 
-                    /*Steps:
-                        Step one: Rotate the receiver in hand, or shake it. I think it's looking for the heading angle
-                        to change >360 degrees
+                    /*Datasheet initialization steps:
+                        Step one: Rotate the receiver in hand, or shake it. 
 
                         Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
-                        means step two has been entered Wait for RTK to output the fixed solution
+                        means step two has been entered. Wait for RTK to output the fixed solution.
 
                         Step three: Some rocking is required to make accuracy meet the requirements. Rock rod back and
                         forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
                         degrees and continue to rock until the init is complete. The status word becomes ready.
-
-                      */
+                    */
                 }
             }
         }
@@ -173,30 +173,33 @@ void tiltUpdate()
         {
             tiltStop(); // If the user has disabled the device, shut it down
         }
-        else if (settings.enableTiltCompensation == true && online.imu == false)
+        else if (settings.enableTiltCompensation == true && online.imu == false && tiltFailedBegin == false)
         {
             // Try multiple times to configure IM19
             for (int x = 0; x < 3; x++)
             {
-                tiltBegin(); // Start IMU
+                beginTilt(); // Start IMU
                 if (online.imu == true)
                     break;
                 log_d("Tilt sensor failed to configure. Trying again.");
             }
 
             if (online.imu == false) // If we failed to begin, disable future attempts
-                tiltSupported = false;
+                tiltFailedBegin = true;
         }
     }
 }
 
 // Start communication with the IM19 IMU
-void tiltBegin()
+void beginTilt()
 {
-    if (tiltSupported == false)
+    if (present.imu_im19 == false)
         return;
 
     if (settings.enableTiltCompensation == false)
+        return;
+    
+    if(online.imu == true)
         return;
 
     tiltSensor = new IM19();
