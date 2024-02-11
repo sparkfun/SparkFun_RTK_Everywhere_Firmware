@@ -1414,3 +1414,11 @@ bool zedDisableLBandCommunication()
 
     return (response);
 }
+
+// Query GNSS for current leap seconds
+uint8_t zedGetLeapSeconds()
+{
+    sfe_ublox_ls_src_e leapSecSource;
+    leapSeconds = theGNSS->getCurrentLeapSeconds(leapSecSource);
+    return (leapSeconds);
+}

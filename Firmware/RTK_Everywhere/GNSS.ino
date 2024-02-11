@@ -1080,3 +1080,25 @@ char *gnssGetId()
 
     return ((char *)"\0");
 }
+
+// Query GNSS for current leap seconds
+uint8_t gnssGetLeapSeconds()
+{
+    if (online.gnss == true)
+    {
+        if (leapSeconds == 0) // Check to see if we've already set it
+        {
+            if (gnssPlatform == PLATFORM_ZED)
+            {
+                return (zedGetLeapSeconds());
+            }
+            else if (gnssPlatform == PLATFORM_UM980)
+            {
+                return (um980GetLeapSeconds());
+            }
+        }
+    }
+
+    return (18); // Default to 18 if GNSS is offline
+
+}

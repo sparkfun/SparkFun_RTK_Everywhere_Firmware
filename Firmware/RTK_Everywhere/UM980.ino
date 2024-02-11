@@ -713,4 +713,11 @@ void um980Reset()
     digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell UM980 and DR to reset
 }
 
+// Query GNSS for current leap seconds
+uint8_t um980GetLeapSeconds()
+{
+    //TODO Need to find leap seconds in UM980
+    return (18); // Default to 18
+}
+
 #endif // COMPILE_UM980

@@ -754,8 +754,8 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
         WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
         WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
 
-        settings.pointPerfectCurrentKeyStart -= getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
-        settings.pointPerfectNextKeyStart -= getLeapSeconds();
+        settings.pointPerfectCurrentKeyStart -= gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+        settings.pointPerfectNextKeyStart -= gnssGetLeapSeconds();
 
         settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
         settings.pointPerfectNextKeyStart *= 1000;
@@ -865,23 +865,8 @@ long long thingstreamEpochToGPSEpoch(long long startEpoch)
     epoch /= 1000; // Convert PointPerfect ms Epoch to s
 
     // Convert Unix Epoch time from PointPerfect to GPS Time Of Week needed for UBX message
-    long long gpsEpoch = epoch - 315964800 + getLeapSeconds(); // Shift to GPS Epoch.
+    long long gpsEpoch = epoch - 315964800 + gnssGetLeapSeconds(); // Shift to GPS Epoch.
     return (gpsEpoch);
-}
-
-// Query GNSS for current leap seconds
-uint8_t getLeapSeconds()
-{
-    if (online.gnss == true)
-    {
-        if (leapSeconds == 0) // Check to see if we've already set it
-        {
-            sfe_ublox_ls_src_e leapSecSource;
-            leapSeconds = theGNSS->getCurrentLeapSeconds(leapSecSource);
-            return (leapSeconds);
-        }
-    }
-    return (18); // Default to 18 if GNSS is offline
 }
 
 // Covert a given key's expiration date to a GPS Epoch, so that we can calculate GPS Week and ToW
@@ -951,7 +936,7 @@ void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t
     long long startUnixEpoch = expireUnixEpoch - (27 * 24 * 60 * 60); // Move back 27 days
 
     // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
-    startUnixEpoch -= getLeapSeconds(); // Modify our Epoch to match Point Perfect
+    startUnixEpoch -= gnssGetLeapSeconds(); // Modify our Epoch to match Point Perfect
 
     // PointPerfect uses/reports unix epochs in milliseconds
     *settingsKeyStart = startUnixEpoch * 1000L; // Convert to ms
