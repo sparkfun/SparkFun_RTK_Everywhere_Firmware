@@ -439,8 +439,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     if (present.gnss_um980)
     {
         // Determine if we want to use corrections, and are connected to the broker
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP && mqttClientIsConnected() == true &&
-            online.ppl == true)
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP && mqttClientIsConnected() == true)
         {
             bool passToPpl = false;
 
