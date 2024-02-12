@@ -412,6 +412,7 @@ const int ledRedChannel = 0;
 const int ledGreenChannel = 1;
 const int ledBtChannel = 2;
 const int ledGnssChannel = 3;
+const int ledBatteryChannel = 4;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;
@@ -490,6 +491,9 @@ float bluetoothLedTaskPace33Hz = 0.03;
 
 Ticker gnssLedTask;
 const int gnssTaskUpdatesHz = 20; // Update GNSS LED 20 times a second
+
+Ticker batteryLedTask;
+const int batteryTaskUpdatesHz = 20; // Update Battery LED 20 times a second. Shortest duration = 50ms.
 
 Ticker beepTask;
 const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest duration = 50ms.
@@ -1114,8 +1118,8 @@ void loop()
     DMW_c("stateUpdate");
     stateUpdate();
 
-    DMW_c("batteryUpdate");
-    batteryUpdate();
+    DMW_c("updateBattery");
+    updateBattery();
 
     DMW_c("displayUpdate");
     displayUpdate();
