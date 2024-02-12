@@ -1114,42 +1114,46 @@ void tickerGnssLedUpdate()
         {
             ledcWrite(ledGnssChannel, 255);
         }
+        else
+        {
+            ledcWrite(ledGnssChannel, 0);
+        }
 
         // Fade on/off during RTK Fix
-        else if (gnssIsRTKFix() == true)
-        {
-            // Fade in/out the GNSS LED during RTK Fix
-            gnssFadeLevel += gnssPwmFadeAmount;
-            if (gnssFadeLevel <= 0 || gnssFadeLevel >= 255)
-                gnssPwmFadeAmount *= -1;
+        // else if (gnssIsRTKFix() == true)
+        // {
+        //     // Fade in/out the GNSS LED during RTK Fix
+        //     gnssFadeLevel += gnssPwmFadeAmount;
+        //     if (gnssFadeLevel <= 0 || gnssFadeLevel >= 255)
+        //         gnssPwmFadeAmount *= -1;
 
-            if (gnssFadeLevel > 255)
-                gnssFadeLevel = 255;
-            if (gnssFadeLevel < 0)
-                gnssFadeLevel = 0;
+        //     if (gnssFadeLevel > 255)
+        //         gnssFadeLevel = 255;
+        //     if (gnssFadeLevel < 0)
+        //         gnssFadeLevel = 0;
 
-            ledcWrite(ledGnssChannel, gnssFadeLevel);
-        }
+        //     ledcWrite(ledGnssChannel, gnssFadeLevel);
+        // }
 
-        // Blink 2Hz 50% during RTK float
-        else if (gnssIsRTKFloat() == true)
-        {
-            if (ledCallCounter <= (gnssTaskUpdatesHz / 2))
-                ledcWrite(ledGnssChannel, 255);
-            else
-                ledcWrite(ledGnssChannel, 0);
-        }
+        // // Blink 2Hz 50% during RTK float
+        // else if (gnssIsRTKFloat() == true)
+        // {
+        //     if (ledCallCounter <= (gnssTaskUpdatesHz / 2))
+        //         ledcWrite(ledGnssChannel, 255);
+        //     else
+        //         ledcWrite(ledGnssChannel, 0);
+        // }
 
-        // Blink a short PPS when GNSS 3D fixed
-        else if (gnssIsFixed() == true)
-        {
-            if (ledCallCounter == (gnssTaskUpdatesHz / 10))
-            {
-                ledcWrite(ledGnssChannel, 255);
-            }
-            else
-                ledcWrite(ledGnssChannel, 0);
-        }
+        // // Blink a short PPS when GNSS 3D fixed
+        // else if (gnssIsFixed() == true)
+        // {
+        //     if (ledCallCounter == (gnssTaskUpdatesHz / 10))
+        //     {
+        //         ledcWrite(ledGnssChannel, 255);
+        //     }
+        //     else
+        //         ledcWrite(ledGnssChannel, 0);
+        // }
     }
 }
 
