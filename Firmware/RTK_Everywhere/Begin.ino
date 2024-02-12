@@ -771,7 +771,7 @@ void beginFuelGauge()
         checkBatteryLevels(); // Force check so you see battery level immediately at power on
 
         // Check to see if we are dangerously low
-        if (battLevel < 5 && battChangeRate < 0.5) // 5% and not charging
+        if (batteryLevelPercent < 5 && batteryChargingPercentPerHour < 0.5) // 5% and not charging
         {
             systemPrintln("Battery too low. Please charge. Shutting down...");
 
@@ -809,7 +809,7 @@ void beginFuelGauge()
         checkBatteryLevels(); // Force check so you see battery level immediately at power on
 
         // Check to see if we are dangerously low
-        if ((battLevel < 5) && (isCharging() == false)) // 5% and not charging
+        if ((batteryLevelPercent < 5) && (isCharging() == false)) // 5% and not charging
         {
             systemPrintln("Battery too low. Please charge. Shutting down...");
 

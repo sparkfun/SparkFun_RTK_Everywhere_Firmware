@@ -418,9 +418,9 @@ const int pwmResolution = 8;
 int pwmFadeAmount = 10;
 int btFadeLevel;
 
-int battLevel; // SOC measured from fuel gauge, in %. Used in multiple places (display, serial debug, log)
-float battVoltage;
-float battChangeRate;
+int batteryLevelPercent; // SOC measured from fuel gauge, in %. Used in multiple places (display, serial debug, log)
+float batteryVoltage;
+float batteryChargingPercentPerHour;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Hardware serial and BT buffers

@@ -43,7 +43,7 @@ void menuSystem()
             {
                 systemPrint("Online - ");
 
-                systemPrintf("Batt (%d%%) / Voltage: %0.02fV", battLevel, battVoltage);
+                systemPrintf("Batt (%d%%) / Voltage: %0.02fV", batteryLevelPercent, batteryVoltage);
                 systemPrintln();
             }
             else
@@ -1308,7 +1308,7 @@ void printCurrentConditionsNMEA()
                  gnssGetSecond(), gnssGetMillisecond(), gnssGetDay(), gnssGetMonth(),
                  gnssGetYear() % 2000, // Limit to 2 digits
                  gnssGetHorizontalAccuracy(), gnssGetSatellitesInView(), gnssGetLatitude(), gnssGetLongitude(),
-                 gnssGetAltitude(), gnssGetFixType(), gnssGetCarrierSolution(), battLevel);
+                 gnssGetAltitude(), gnssGetFixType(), gnssGetCarrierSolution(), batteryLevelPercent);
 
         char nmeaMessage[100]; // Max NMEA sentence length is 82
         createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),

@@ -878,11 +878,11 @@ void createSettingsString(char *newSettings)
     {
         // Determine battery icon
         int iconLevel = 0;
-        if (battLevel < 25)
+        if (batteryLevelPercent < 25)
             iconLevel = 0;
-        else if (battLevel < 50)
+        else if (batteryLevelPercent < 50)
             iconLevel = 1;
-        else if (battLevel < 75)
+        else if (batteryLevelPercent < 75)
             iconLevel = 2;
         else // batt level > 75
             iconLevel = 3;
@@ -898,7 +898,7 @@ void createSettingsString(char *newSettings)
 
         // Determine battery percent
         char batteryPercent[sizeof("+100%__")];
-        int tempLevel = battLevel;
+        int tempLevel = batteryLevelPercent;
         if (tempLevel > 100)
             tempLevel = 100;
 
@@ -1055,11 +1055,11 @@ void createDynamicDataString(char *settingsCSV)
     {
         // Determine battery icon
         int iconLevel = 0;
-        if (battLevel < 25)
+        if (batteryLevelPercent < 25)
             iconLevel = 0;
-        else if (battLevel < 50)
+        else if (batteryLevelPercent < 50)
             iconLevel = 1;
-        else if (battLevel < 75)
+        else if (batteryLevelPercent < 75)
             iconLevel = 2;
         else // batt level > 75
             iconLevel = 3;
@@ -1076,9 +1076,9 @@ void createDynamicDataString(char *settingsCSV)
         // Determine battery percent
         char batteryPercent[sizeof("+100%__")];
         if (isCharging())
-            snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", battLevel);
+            snprintf(batteryPercent, sizeof(batteryPercent), "+%d%%", batteryLevelPercent);
         else
-            snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", battLevel);
+            snprintf(batteryPercent, sizeof(batteryPercent), "%d%%", batteryLevelPercent);
         stringRecord(settingsCSV, "batteryPercent", batteryPercent);
     }
 

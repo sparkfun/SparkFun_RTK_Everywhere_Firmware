@@ -69,7 +69,7 @@ void updateBattery()
             if(present.battery_bq40z50 == true)
             {
                 //Turn on green battery LED if battery is above 50%
-                if(battLevel > 50)
+                if(batteryLevelPercent > 50)
                     batteryStatusLedOn();
                 
             }
@@ -89,16 +89,16 @@ void checkBatteryLevels()
 
     if (present.battery_max17048 == true)
     {
-        battLevel = lipo.getSOC();
-        battVoltage = lipo.getVoltage();
-        battChangeRate = lipo.getChangeRate();
+        batteryLevelPercent = lipo.getSOC();
+        batteryVoltage = lipo.getVoltage();
+        batteryChargingPercentPerHour = lipo.getChangeRate();
     }
 
     if (present.battery_bq40z50 == true)
     {
-        battLevel = bq40z50Battery->getRelativeStateOfCharge();
-        battVoltage = (bq40z50Battery->getVoltageMv() / 1000.0);
-        battChangeRate =
+        batteryLevelPercent = bq40z50Battery->getRelativeStateOfCharge();
+        batteryVoltage = (bq40z50Battery->getVoltageMv() / 1000.0);
+        batteryChargingPercentPerHour =
             (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
     }
 
@@ -110,9 +110,9 @@ void checkBatteryLevels()
         else
             snprintf(tempStr, sizeof(tempStr), "Disc");
 
-        systemPrintf("Batt (%d%%): Voltage: %0.02fV", battLevel, battVoltage);
+        systemPrintf("Batt (%d%%): Voltage: %0.02fV", batteryLevelPercent, batteryVoltage);
 
-        systemPrintf(" %sharging: %0.02f%%/hr\r\n", tempStr, battChangeRate);
+        systemPrintf(" %sharging: %0.02f%%/hr\r\n", tempStr, batteryChargingPercentPerHour);
     }
 
     // Check if we need to shutdown due to no charging
@@ -749,7 +749,7 @@ bool isCharging()
     }
     else if (present.battery_max17048 == true && online.battery == true)
     {
-        if (battChangeRate >= -0.01)
+        if (batteryChargingPercentPerHour >= -0.01)
             return true;
         return false;
     }

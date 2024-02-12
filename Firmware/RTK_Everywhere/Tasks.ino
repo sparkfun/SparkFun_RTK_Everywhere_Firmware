@@ -1166,7 +1166,7 @@ void tickerBatteryLedUpdate()
         // Update the Battery LED according to the battery level
 
         // Solid LED when fuel level is above 50%
-        if (battLevel > 50)
+        if (batteryLevelPercent > 50)
         {
             ledcWrite(ledBatteryChannel, 255);
         }
