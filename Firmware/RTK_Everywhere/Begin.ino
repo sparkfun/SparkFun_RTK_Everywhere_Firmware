@@ -713,9 +713,7 @@ void tickerBegin()
     {
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
-        ledcWrite(ledBtChannel, 255); // On at startup
-
-        ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED
+        ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED at startup
         bluetoothLedTask.detach();                                                  // Turn off any previous task
         bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
     }
@@ -724,11 +722,18 @@ void tickerBegin()
     {
         ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
-        ledcWrite(ledGnssChannel, 255); // On at startup
-
-        ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED
+        ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED at startup
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
+    }
+
+    if (pin_batteryStatusLED != PIN_UNDEFINED)
+    {
+        ledcSetup(ledBatteryChannel, pwmFreq, pwmResolution);
+        ledcAttachPin(pin_batteryStatusLED, ledBatteryChannel);
+        ledcWrite(ledBatteryChannel, 0);                                        // Turn off battery LED at startup
+        batteryLedTask.detach();                                                // Turn off any previous task
+        batteryLedTask.attach(1.0 / batteryTaskUpdatesHz, tickerBatteryLedUpdate); // Rate in seconds, callback
     }
 
     if (pin_beeper != PIN_UNDEFINED)

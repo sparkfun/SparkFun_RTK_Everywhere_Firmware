@@ -1153,6 +1153,34 @@ void tickerGnssLedUpdate()
     }
 }
 
+// Control Battery LED on variants
+void tickerBatteryLedUpdate()
+{
+    static uint8_t batteryCallCounter = 0; // Used to calculate a 50% or 10% on rate for blinking
+
+    batteryCallCounter++;
+    batteryCallCounter %= batteryTaskUpdatesHz; // Wrap to X calls per 1 second
+
+    if (productVariant == RTK_TORCH)
+    {
+        // Update the Battery LED according to the battery level
+
+        // Solid LED when fuel level is above 50%
+        if (battLevel > 50)
+        {
+            ledcWrite(ledBatteryChannel, 255);
+        }
+        // Blink a short blink to indicate battery is depleting
+        else
+        {
+            if (batteryCallCounter == (batteryTaskUpdatesHz / 10)) // On for 1/10th of a second
+                ledcWrite(ledBatteryChannel, 255);
+            else
+                ledcWrite(ledBatteryChannel, 0);
+        }
+    }
+}
+
 // Control the length of time the beeper makes noise
 void tickerBeepUpdate()
 {
@@ -1203,7 +1231,7 @@ void buttonCheckTask(void *e)
                 tiltStop();
             }
         }
-        else //RTK EVK, RTK Facet v2, RTK Facet mosaic 
+        else // RTK EVK, RTK Facet v2, RTK Facet mosaic
         {
             if (systemState == STATE_SHUTDOWN)
             {

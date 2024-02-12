@@ -56,7 +56,7 @@ void beepOff()
 }
 
 // Update Battery level LEDs every 5s
-void batteryUpdate()
+void updateBattery()
 {
     if (online.battery == true)
     {
@@ -65,6 +65,14 @@ void batteryUpdate()
             lastBattUpdate = millis();
 
             checkBatteryLevels();
+
+            if(present.battery_bq40z50 == true)
+            {
+                //Turn on green battery LED if battery is above 50%
+                if(battLevel > 50)
+                    batteryStatusLedOn();
+                
+            }
         }
     }
 }
