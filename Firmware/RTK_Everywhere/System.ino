@@ -73,12 +73,10 @@ void batteryUpdate()
 // And outputs a serial message to USB
 void checkBatteryLevels()
 {
-    if (present.battery_max17048 == false && present.battery_bq40z50 == false)
-        return;
-
     if (online.battery == false)
         return;
 
+    // Get the battery voltage, level and charge rate
     if (present.battery_max17048 == true)
     {
         battLevel = lipo.getSOC();
@@ -86,14 +84,17 @@ void checkBatteryLevels()
         battChangeRate = lipo.getChangeRate();
     }
 
-    if (present.battery_bq40z50 == true)
+#ifdef COMPILE_BQ40Z50
+    else if (present.battery_bq40z50 == true)
     {
         battLevel = bq40z50Battery->getRelativeStateOfCharge();
         battVoltage = (bq40z50Battery->getVoltageMv() / 1000.0);
         battChangeRate =
             (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
     }
+#endif  // COMPILE_BQ40Z50
 
+    // Display the battery data
     if (settings.enablePrintBatteryMessages)
     {
         char tempStr[25];

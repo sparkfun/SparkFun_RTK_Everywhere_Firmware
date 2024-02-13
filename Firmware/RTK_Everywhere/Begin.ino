@@ -741,9 +741,6 @@ void tickerBegin()
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if (present.battery_max17048 == false && present.battery_bq40z50 == false)
-        return;
-
     if (present.battery_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
@@ -778,6 +775,7 @@ void beginFuelGauge()
             powerDown(false); // Don't display 'Shutting Down'
         }
     }
+#ifdef COMPILE_BQ40Z50
     else if (present.battery_bq40z50 == true)
     {
         if (bq40z50Battery == nullptr)
@@ -816,6 +814,7 @@ void beginFuelGauge()
             powerDown(false); // Don't display 'Shutting Down'
         }
     }
+#endif // COMPILE_BQ40Z50
 }
 
 void beginButtons()
