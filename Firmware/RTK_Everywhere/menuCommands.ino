@@ -166,7 +166,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.sppTxQueueSize = settingValue;
     else if (strcmp(settingName, "dynamicModel") == 0)
         settings.dynamicModel = settingValue;
-    else if (strcmp(settingName, "baseRoverSetup") == 0)
+    else if (strcmp(settingName, "lastState") == 0)
     {
         // 0 = Rover, 1 = Base, 2 = NTP
         settings.lastState = STATE_ROVER_NOT_STARTED; // Default
@@ -960,7 +960,7 @@ void createSettingsString(char *newSettings)
         if (settings.lastState >= STATE_BASE_NOT_STARTED && settings.lastState <= STATE_BASE_FIXED_TRANSMITTING)
             lastState = 1;
     }
-    stringRecord(newSettings, "baseRoverSetup", lastState);
+    stringRecord(newSettings, "lastState", lastState);
     stringRecord(newSettings, "enableResetDisplay", settings.enableResetDisplay);
     stringRecord(newSettings, "resetCount", settings.resetCount);
     stringRecord(newSettings, "enableExternalPulse", settings.enableExternalPulse);
