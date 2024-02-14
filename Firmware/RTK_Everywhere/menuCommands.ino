@@ -33,18 +33,13 @@ void menuCommands()
             auto field = tokens[1];
             auto value = tokens[2];
 
-            char settingsName[100] = "Test";
-            char valueStr[100] = "Test";
-
-            updateSettingWithValue(settingsName, valueStr);
-
-            //            updateSettingWithValue(field, value);
+            updateSettingWithValue(field, value);
             commandProcessed = true;
         }
         else if (strcmp(tokens[0], "GET") == 0)
         {
             auto field = tokens[1];
-            //            getSettingValue(field, valueBuffer);
+            getSettingValue(field, valueBuffer);
             systemPrintln(valueBuffer);
             commandProcessed = true;
         }
@@ -72,6 +67,7 @@ void menuCommands()
 }
 
 // Given a settingName, and string value, update a given setting
+// The order of variables matches the order found in settings.h
 void updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
     char *ptr;
@@ -865,6 +861,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 }
 
 // Create a csv string with current settings
+// The order of variables matches the order found in settings.h
 void createSettingsString(char *newSettings)
 {
     char tagText[32];

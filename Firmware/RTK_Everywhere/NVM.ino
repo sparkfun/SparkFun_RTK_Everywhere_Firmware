@@ -6,6 +6,7 @@
   parseLine();
   createSettingsString();
   updateSettingWithValue();
+  getSettingValue();
 
   form.h also needs to be updated to include a space for user input. This is best
   edited in the index.html and main.js files.
@@ -25,7 +26,7 @@ void loadSettings()
     int resetCount = settings.resetCount;
 
     bool readFromSD = false;
-    if(loadSystemSettingsFromFileSD(settingsFileName, &settings) == true)
+    if (loadSystemSettingsFromFileSD(settingsFileName, &settings) == true)
         readFromSD = true;
 
     settings.resetCount = resetCount;
@@ -35,7 +36,7 @@ void loadSettings()
         snprintf(settings.profileName, sizeof(settings.profileName), "Profile%d", profileNumber + 1);
 
     // Only re-record settings if SD was accessed
-    if(readFromSD == true)
+    if (readFromSD == true)
     {
         // Record these settings to LittleFS and SD file to be sure they are the same
         recordSystemSettings();
@@ -169,6 +170,7 @@ void recordSystemSettingsToFileLFS(char *fileName)
 }
 
 // Write the settings struct to a clear text file
+// The order of variables matches the order found in settings.h
 void recordSystemSettingsToFile(File *settingsFile)
 {
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
@@ -282,7 +284,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enablePrintStates", settings.enablePrintStates);
     settingsFile->printf("%s=%d\r\n", "enablePrintDuplicateStates", settings.enablePrintDuplicateStates);
     settingsFile->printf("%s=%d\r\n", "enablePrintRtcSync", settings.enablePrintRtcSync);
-    settingsFile->printf("%s=%d\r\n", "debugNtp", settings.debugNtp);
     settingsFile->printf("%s=%d\r\n", "enablePrintEthernetDiag", settings.enablePrintEthernetDiag);
     settingsFile->printf("%s=%d\r\n", "radioType", settings.radioType);
 
@@ -608,6 +609,7 @@ bool loadSystemSettingsFromFileLFS(char *fileName, Settings *settings)
 
 // Convert a given line from file into a settingName and value
 // Sets the setting if the name is known
+// The order of variables matches the order found in settings.h
 bool parseLine(char *str, Settings *settings)
 {
     char *ptr;
@@ -689,7 +691,6 @@ bool parseLine(char *str, Settings *settings)
 
     // log_d("settingName: %s - value: %s - d: %0.9f", settingName, settingString, d);
 
-    // Get setting name
     if (strcmp(settingName, "sizeOfSettings") == 0)
     {
         // We may want to cause a factory reset from the settings file rather than the menu
@@ -863,10 +864,7 @@ bool parseLine(char *str, Settings *settings)
         settings->enableARPLogging = d;
     else if (strcmp(settingName, "ARPLoggingInterval_s") == 0)
         settings->ARPLoggingInterval_s = d;
-    else if (strcmp(settingName, "enableNTPFile") == 0)
-        settings->enableNTPFile = d;
-    else if (strcmp(settingName, "enableUART2UBXIn") == 0)
-        settings->enableUART2UBXIn = d;
+
     else if (strcmp(settingName, "sppRxQueueSize") == 0)
         settings->sppRxQueueSize = d;
     else if (strcmp(settingName, "sppTxQueueSize") == 0)
@@ -889,6 +887,8 @@ bool parseLine(char *str, Settings *settings)
     }
     else if (strcmp(settingName, "enableResetDisplay") == 0)
         settings->enableResetDisplay = d;
+    else if (strcmp(settingName, "resetCount") == 0)
+        settings->resetCount = d;
     else if (strcmp(settingName, "enableExternalPulse") == 0)
     {
         if (settings->enableExternalPulse != d)
@@ -929,40 +929,14 @@ bool parseLine(char *str, Settings *settings)
             settings->updateGNSSSettings = true;
         }
     }
+    else if (strcmp(settingName, "enableUART2UBXIn") == 0)
+        settings->enableUART2UBXIn = d;
+
+    // ubxMessageRates handled in bulk below
+    // ubxConstellations handled in bulk below
+
     else if (strcmp(settingName, "profileName") == 0)
         strcpy(settings->profileName, settingString);
-    else if (strcmp(settingName, "enableNtripServer") == 0)
-        settings->enableNtripServer = d;
-    else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
-        settings->ntripServer_StartAtSurveyIn = d;
-    else if (strcmp(settingName, "ntripServer_CasterHost") == 0)
-        strcpy(settings->ntripServer_CasterHost, settingString);
-    else if (strcmp(settingName, "ntripServer_CasterPort") == 0)
-        settings->ntripServer_CasterPort = d;
-    else if (strcmp(settingName, "ntripServer_CasterUser") == 0)
-        strcpy(settings->ntripServer_CasterUser, settingString);
-    else if (strcmp(settingName, "ntripServer_CasterUserPW") == 0)
-        strcpy(settings->ntripServer_CasterUserPW, settingString);
-    else if (strcmp(settingName, "ntripServer_MountPoint") == 0)
-        strcpy(settings->ntripServer_MountPoint, settingString);
-    else if (strcmp(settingName, "ntripServer_MountPointPW") == 0)
-        strcpy(settings->ntripServer_MountPointPW, settingString);
-    else if (strcmp(settingName, "enableNtripClient") == 0)
-        settings->enableNtripClient = d;
-    else if (strcmp(settingName, "ntripClient_CasterHost") == 0)
-        strcpy(settings->ntripClient_CasterHost, settingString);
-    else if (strcmp(settingName, "ntripClient_CasterPort") == 0)
-        settings->ntripClient_CasterPort = d;
-    else if (strcmp(settingName, "ntripClient_CasterUser") == 0)
-        strcpy(settings->ntripClient_CasterUser, settingString);
-    else if (strcmp(settingName, "ntripClient_CasterUserPW") == 0)
-        strcpy(settings->ntripClient_CasterUserPW, settingString);
-    else if (strcmp(settingName, "ntripClient_MountPoint") == 0)
-        strcpy(settings->ntripClient_MountPoint, settingString);
-    else if (strcmp(settingName, "ntripClient_MountPointPW") == 0)
-        strcpy(settings->ntripClient_MountPointPW, settingString);
-    else if (strcmp(settingName, "ntripClient_TransmitGGA") == 0)
-        settings->ntripClient_TransmitGGA = d;
     else if (strcmp(settingName, "serialTimeoutGNSS") == 0)
         settings->serialTimeoutGNSS = d;
 
@@ -996,13 +970,13 @@ bool parseLine(char *str, Settings *settings)
 
     else if (strcmp(settingName, "lastKeyAttempt") == 0)
         settings->lastKeyAttempt = d;
-    else if (strcmp(settingName, "debugPpCertificate") == 0)
-        settings->debugPpCertificate = d;
-
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         settings->updateGNSSSettings = d;
     else if (strcmp(settingName, "LBandFreq") == 0)
         settings->LBandFreq = d;
+    else if (strcmp(settingName, "debugPpCertificate") == 0)
+        settings->debugPpCertificate = d;
+
     else if (strcmp(settingName, "timeZoneHours") == 0)
         settings->timeZoneHours = d;
     else if (strcmp(settingName, "timeZoneMinutes") == 0)
@@ -1011,12 +985,6 @@ bool parseLine(char *str, Settings *settings)
         settings->timeZoneSeconds = d;
     else if (strcmp(settingName, "enablePrintState") == 0)
         settings->enablePrintState = d;
-    else if (strcmp(settingName, "debugWifiState") == 0)
-        settings->debugWifiState = d;
-    else if (strcmp(settingName, "debugNtripClientState") == 0)
-        settings->debugNtripClientState = d;
-    else if (strcmp(settingName, "debugNtripServerState") == 0)
-        settings->debugNtripServerState = d;
     else if (strcmp(settingName, "enablePrintPosition") == 0)
         settings->enablePrintPosition = d;
     else if (strcmp(settingName, "enablePrintIdleTime") == 0)
@@ -1033,42 +1001,26 @@ bool parseLine(char *str, Settings *settings)
         settings->enablePrintLogFileStatus = d;
     else if (strcmp(settingName, "enablePrintRingBufferOffsets") == 0)
         settings->enablePrintRingBufferOffsets = d;
-    else if (strcmp(settingName, "debugNtripServerRtcm") == 0)
-        settings->debugNtripServerRtcm = d;
-    else if (strcmp(settingName, "debugNtripClientRtcm") == 0)
-        settings->debugNtripClientRtcm = d;
     else if (strcmp(settingName, "enablePrintStates") == 0)
         settings->enablePrintStates = d;
     else if (strcmp(settingName, "enablePrintDuplicateStates") == 0)
         settings->enablePrintDuplicateStates = d;
     else if (strcmp(settingName, "enablePrintRtcSync") == 0)
         settings->enablePrintRtcSync = d;
-    else if (strcmp(settingName, "debugNtp") == 0)
-        settings->debugNtp = d;
-    else if (strcmp(settingName, "enablePrintEthernetDiag") == 0)
-        settings->enablePrintEthernetDiag = d;
     else if (strcmp(settingName, "radioType") == 0)
         settings->radioType = (RadioType_e)d;
+
+    // espnowPeers handled in bulk below
+
     else if (strcmp(settingName, "espnowPeerCount") == 0)
         settings->espnowPeerCount = d;
     else if (strcmp(settingName, "enableRtcmMessageChecking") == 0)
         settings->enableRtcmMessageChecking = d;
-    else if (strcmp(settingName, "radioType") == 0)
-        settings->radioType = (RadioType_e)d;
     else if (strcmp(settingName, "bluetoothRadioType") == 0)
         settings->bluetoothRadioType = (BluetoothRadioType_e)d;
-    else if (strcmp(settingName, "enablePvtClient") == 0)
-        settings->enablePvtClient = d;
-    else if (strcmp(settingName, "enablePvtServer") == 0)
-        settings->enablePvtServer = d;
-    else if (strcmp(settingName, "enablePvtUdpServer") == 0)
-        settings->enablePvtUdpServer = d;
-    else if (strcmp(settingName, "debugPvtClient") == 0)
-        settings->debugPvtClient = d;
-    else if (strcmp(settingName, "debugPvtServer") == 0)
-        settings->debugPvtServer = d;
-    else if (strcmp(settingName, "debugPvtUdpServer") == 0)
-        settings->debugPvtUdpServer = d;
+
+    // runLogTest not stored in NVM
+
     else if (strcmp(settingName, "espnowBroadcast") == 0)
         settings->espnowBroadcast = d;
     else if (strcmp(settingName, "antennaHeight") == 0)
@@ -1093,12 +1045,6 @@ bool parseLine(char *str, Settings *settings)
         settings->rebootSeconds = d;
     else if (strcmp(settingName, "forceResetOnSDFail") == 0)
         settings->forceResetOnSDFail = d;
-    else if (strcmp(settingName, "wifiConfigOverAP") == 0)
-        settings->wifiConfigOverAP = d;
-    else if (strcmp(settingName, "pvtServerPort") == 0)
-        settings->pvtServerPort = d;
-    else if (strcmp(settingName, "pvtUdpServerPort") == 0)
-        settings->pvtUdpServerPort = d;
     else if (strcmp(settingName, "minElev") == 0)
     {
         if (settings->minElev != d)
@@ -1106,53 +1052,6 @@ bool parseLine(char *str, Settings *settings)
             settings->minElev = d;
             settings->updateGNSSSettings = true;
         }
-    }
-
-    // Ethernet
-    else if (strcmp(settingName, "ethernetIP") == 0)
-    {
-        String addr = String(settingString);
-        settings->ethernetIP.fromString(addr);
-    }
-    else if (strcmp(settingName, "ethernetDNS") == 0)
-    {
-        String addr = String(settingString);
-        settings->ethernetDNS.fromString(addr);
-    }
-    else if (strcmp(settingName, "ethernetGateway") == 0)
-    {
-        String addr = String(settingString);
-        settings->ethernetGateway.fromString(addr);
-    }
-    else if (strcmp(settingName, "ethernetSubnet") == 0)
-    {
-        String addr = String(settingString);
-        settings->ethernetSubnet.fromString(addr);
-    }
-    else if (strcmp(settingName, "httpPort") == 0)
-        settings->httpPort = d;
-    else if (strcmp(settingName, "ethernetNtpPort") == 0)
-        settings->ethernetNtpPort = d;
-    else if (strcmp(settingName, "ethernetDHCP") == 0)
-        settings->ethernetDHCP = d;
-    else if (strcmp(settingName, "pvtClientPort") == 0)
-        settings->pvtClientPort = d;
-    else if (strcmp(settingName, "pvtClientHost") == 0)
-        strcpy(settings->pvtClientHost, settingString);
-    // NTP
-    else if (strcmp(settingName, "ntpPollExponent") == 0)
-        settings->ntpPollExponent = d;
-    else if (strcmp(settingName, "ntpPrecision") == 0)
-        settings->ntpPrecision = d;
-    else if (strcmp(settingName, "ntpRootDelay") == 0)
-        settings->ntpRootDelay = d;
-    else if (strcmp(settingName, "ntpRootDispersion") == 0)
-        settings->ntpRootDispersion = d;
-    else if (strcmp(settingName, "ntpReferenceId") == 0)
-    {
-        strcpy(settings->ntpReferenceId, settingString);
-        for (int i = strlen(settingString); i < 5; i++)
-            settings->ntpReferenceId[i] = 0;
     }
     else if (strcmp(settingName, "coordinateInputType") == 0)
         settings->coordinateInputType = (CoordinateInputType)d;
@@ -1166,8 +1065,6 @@ bool parseLine(char *str, Settings *settings)
             settings->updateGNSSSettings = true;
         }
     }
-    else if (strcmp(settingName, "mdnsEnable") == 0)
-        settings->mdnsEnable = d;
     else if (strcmp(settingName, "serialGNSSRxFullThreshold") == 0)
         settings->serialGNSSRxFullThreshold = d;
     else if (strcmp(settingName, "btReadTaskPriority") == 0)
@@ -1196,8 +1093,39 @@ bool parseLine(char *str, Settings *settings)
         settings->useI2cForLbandCorrections = d;
     else if (strcmp(settingName, "useI2cForLbandCorrectionsConfigured") == 0)
         settings->useI2cForLbandCorrectionsConfigured = d;
+    else if (strcmp(settingName, "enablePrintEthernetDiag") == 0)
+        settings->enablePrintEthernetDiag = d;
+    else if (strcmp(settingName, "ethernetDHCP") == 0)
+        settings->ethernetDHCP = d;
+    else if (strcmp(settingName, "ethernetIP") == 0)
+    {
+        String addr = String(settingString);
+        settings->ethernetIP.fromString(addr);
+    }
+    else if (strcmp(settingName, "ethernetDNS") == 0)
+    {
+        String addr = String(settingString);
+        settings->ethernetDNS.fromString(addr);
+    }
+    else if (strcmp(settingName, "ethernetGateway") == 0)
+    {
+        String addr = String(settingString);
+        settings->ethernetGateway.fromString(addr);
+    }
+    else if (strcmp(settingName, "ethernetSubnet") == 0)
+    {
+        String addr = String(settingString);
+        settings->ethernetSubnet.fromString(addr);
+    }
+    else if (strcmp(settingName, "httpPort") == 0)
+        settings->httpPort = d;
+    else if (strcmp(settingName, "debugWifiState") == 0)
+        settings->debugWifiState = d;
+    else if (strcmp(settingName, "wifiConfigOverAP") == 0)
+        settings->wifiConfigOverAP = d;
 
-    // Network layer
+    // wifiNetworks handled in bulk below
+
     else if (strcmp(settingName, "defaultNetworkType") == 0)
         settings->defaultNetworkType = d;
     else if (strcmp(settingName, "debugNetworkLayer") == 0)
@@ -1206,30 +1134,139 @@ bool parseLine(char *str, Settings *settings)
         settings->enableNetworkFailover = d;
     else if (strcmp(settingName, "printNetworkStatus") == 0)
         settings->printNetworkStatus = d;
-    else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
-        settings->rtcmTimeoutBeforeUsingLBand_s = d;
 
+    // Multicast DNS Server
+    else if (strcmp(settingName, "mdnsEnable") == 0)
+        settings->mdnsEnable = d;
+
+    // MQTT Client (Point Perfect)
+    else if (strcmp(settingName, "debugMqttClientData") == 0)
+        settings->debugMqttClientData = d;
+    else if (strcmp(settingName, "debugMqttClientState") == 0)
+        settings->debugMqttClientState = d;
+    else if (strcmp(settingName, "useEuropeCorrections") == 0)
+        settings->useEuropeCorrections = d;
+
+    // NTP
+    else if (strcmp(settingName, "debugNtp") == 0)
+        settings->debugNtp = d;
+    else if (strcmp(settingName, "ethernetNtpPort") == 0)
+        settings->ethernetNtpPort = d;
+    else if (strcmp(settingName, "enableNTPFile") == 0)
+        settings->enableNTPFile = d;
+    else if (strcmp(settingName, "ntpPollExponent") == 0)
+        settings->ntpPollExponent = d;
+    else if (strcmp(settingName, "ntpPrecision") == 0)
+        settings->ntpPrecision = d;
+    else if (strcmp(settingName, "ntpRootDelay") == 0)
+        settings->ntpRootDelay = d;
+    else if (strcmp(settingName, "ntpRootDispersion") == 0)
+        settings->ntpRootDispersion = d;
+    else if (strcmp(settingName, "ntpReferenceId") == 0)
+    {
+        strcpy(settings->ntpReferenceId, settingString);
+        for (int i = strlen(settingString); i < 5; i++)
+            settings->ntpReferenceId[i] = 0;
+    }
+
+    // NTRIP Client
+    else if (strcmp(settingName, "debugNtripClientRtcm") == 0)
+        settings->debugNtripClientRtcm = d;
+    else if (strcmp(settingName, "debugNtripClientState") == 0)
+        settings->debugNtripClientState = d;
+    else if (strcmp(settingName, "enableNtripClient") == 0)
+        settings->enableNtripClient = d;
+    else if (strcmp(settingName, "ntripClient_CasterHost") == 0)
+        strcpy(settings->ntripClient_CasterHost, settingString);
+    else if (strcmp(settingName, "ntripClient_CasterPort") == 0)
+        settings->ntripClient_CasterPort = d;
+    else if (strcmp(settingName, "ntripClient_CasterUser") == 0)
+        strcpy(settings->ntripClient_CasterUser, settingString);
+    else if (strcmp(settingName, "ntripClient_CasterUserPW") == 0)
+        strcpy(settings->ntripClient_CasterUserPW, settingString);
+    else if (strcmp(settingName, "ntripClient_MountPoint") == 0)
+        strcpy(settings->ntripClient_MountPoint, settingString);
+    else if (strcmp(settingName, "ntripClient_MountPointPW") == 0)
+        strcpy(settings->ntripClient_MountPointPW, settingString);
+    else if (strcmp(settingName, "ntripClient_TransmitGGA") == 0)
+        settings->ntripClient_TransmitGGA = d;
+
+    // NTRIP Server
+    else if (strcmp(settingName, "debugNtripServerRtcm") == 0)
+        settings->debugNtripServerRtcm = d;
+    else if (strcmp(settingName, "debugNtripServerState") == 0)
+        settings->debugNtripServerState = d;
+    else if (strcmp(settingName, "enableNtripServer") == 0)
+        settings->enableNtripServer = d;
+    else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
+        settings->ntripServer_StartAtSurveyIn = d;
+    else if (strcmp(settingName, "ntripServer_CasterHost") == 0)
+        strcpy(settings->ntripServer_CasterHost, settingString);
+    else if (strcmp(settingName, "ntripServer_CasterPort") == 0)
+        settings->ntripServer_CasterPort = d;
+    else if (strcmp(settingName, "ntripServer_CasterUser") == 0)
+        strcpy(settings->ntripServer_CasterUser, settingString);
+    else if (strcmp(settingName, "ntripServer_CasterUserPW") == 0)
+        strcpy(settings->ntripServer_CasterUserPW, settingString);
+    else if (strcmp(settingName, "ntripServer_MountPoint") == 0)
+        strcpy(settings->ntripServer_MountPoint, settingString);
+    else if (strcmp(settingName, "ntripServer_MountPointPW") == 0)
+        strcpy(settings->ntripServer_MountPointPW, settingString);
+
+    // TCP Client
+    else if (strcmp(settingName, "debugPvtClient") == 0)
+        settings->debugPvtClient = d;
+    else if (strcmp(settingName, "enablePvtClient") == 0)
+        settings->enablePvtClient = d;
+    else if (strcmp(settingName, "pvtClientPort") == 0)
+        settings->pvtClientPort = d;
+    else if (strcmp(settingName, "pvtClientHost") == 0)
+        strcpy(settings->pvtClientHost, settingString);
+
+    // TCP Server
+    else if (strcmp(settingName, "debugPvtServer") == 0)
+        settings->debugPvtServer = d;
+    else if (strcmp(settingName, "enablePvtServer") == 0)
+        settings->enablePvtServer = d;
+    else if (strcmp(settingName, "pvtServerPort") == 0)
+        settings->pvtServerPort = d;
+
+    // UDP Server
+    else if (strcmp(settingName, "debugPvtUdpServer") == 0)
+        settings->debugPvtUdpServer = d;
+    else if (strcmp(settingName, "enablePvtUdpServer") == 0)
+        settings->enablePvtUdpServer = d;
+    else if (strcmp(settingName, "pvtUdpServerPort") == 0)
+        settings->pvtUdpServerPort = d;
+
+    // um980MessageRatesNMEA not handled here
+    // um980MessageRatesRTCMRover not handled here
+    // um980MessageRatesRTCMBase not handled here
+    // um980Constellations not handled here
+
+    else if (strcmp(settingName, "minCNO_um980") == 0)
+        settings->minCNO_um980 = d;
     else if (strcmp(settingName, "enableTiltCompensation") == 0)
         settings->enableTiltCompensation = d;
     else if (strcmp(settingName, "tiltPoleLength") == 0)
         settings->tiltPoleLength = d;
+    else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
+        settings->rtcmTimeoutBeforeUsingLBand_s = d;
     else if (strcmp(settingName, "enableImuDebug") == 0)
         settings->enableImuDebug = d;
 
     // Automatic Firmware Update
-    else if (strcmp(settingName, "autoFirmwareCheckMinutes") == 0)
-        settings->autoFirmwareCheckMinutes = d;
     else if (strcmp(settingName, "debugFirmwareUpdate") == 0)
         settings->debugFirmwareUpdate = d;
     else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
         settings->enableAutoFirmwareUpdate = d;
+    else if (strcmp(settingName, "autoFirmwareCheckMinutes") == 0)
+        settings->autoFirmwareCheckMinutes = d;
 
     else if (strcmp(settingName, "debugCorrections") == 0)
         settings->debugCorrections = d;
     else if (strcmp(settingName, "enableCaptivePortal") == 0)
         settings->enableCaptivePortal = d;
-    else if (strcmp(settingName, "minCNO_um980") == 0)
-        settings->minCNO_um980 = d;
 
     // Boot times
     else if (strcmp(settingName, "printBootTimes") == 0)
@@ -1239,31 +1276,9 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "printPartitionTable") == 0)
         settings->printPartitionTable = d;
 
-    // Firmware URLs
-    else if (strcmp(settingName, "otaRcFirmwareJsonUrl") == 0)
-    {
-        String url = String(settingString);
-        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
-        strcpy(otaRcFirmwareJsonUrl, url.c_str());
-    }
-    else if (strcmp(settingName, "otaFirmwareJsonUrl") == 0)
-    {
-        String url = String(settingString);
-        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
-        strcpy(otaFirmwareJsonUrl, url.c_str());
-    }
-
     // Measurement scale
     else if (strcmp(settingName, "measurementScale") == 0)
         settings->measurementScale = d;
-
-    // MQTT Client (Point Perfect)
-    else if (strcmp(settingName, "debugMqttClientData") == 0)
-        settings->debugMqttClientData = d;
-    else if (strcmp(settingName, "debugMqttClientState") == 0)
-        settings->debugMqttClientState = d;
-    else if (strcmp(settingName, "useEuropeCorrections") == 0)
-        settings->useEuropeCorrections = d;
 
     else if (strcmp(settingName, "debugWiFiConfig") == 0)
         settings->debugWiFiConfig = d;
@@ -1276,6 +1291,20 @@ bool parseLine(char *str, Settings *settings)
         settings->psramMallocLevel = d;
 
     // Add new settings above <--------------------------------------------------->
+
+    // Settings not part of settings.h/Settings struct
+    else if (strcmp(settingName, "otaRcFirmwareJsonUrl") == 0)
+    {
+        String url = String(settingString);
+        memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
+        strcpy(otaRcFirmwareJsonUrl, url.c_str());
+    }
+    else if (strcmp(settingName, "otaFirmwareJsonUrl") == 0)
+    {
+        String url = String(settingString);
+        memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
+        strcpy(otaFirmwareJsonUrl, url.c_str());
+    }
 
     // Check for bulk settings (WiFi credentials, constellations, message rates, ESPNOW Peers)
     // Must be last on else list
@@ -1459,7 +1488,7 @@ void loadProfileNumber()
     {
         log_d("profileNumber.txt not found");
         settings.updateGNSSSettings = true; // Force module update
-        recordProfileNumber(0); // Record profile
+        recordProfileNumber(0);             // Record profile
     }
     else
     {

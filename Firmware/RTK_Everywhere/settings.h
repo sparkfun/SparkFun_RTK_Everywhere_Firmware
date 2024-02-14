@@ -903,7 +903,7 @@ enum OtaState
 #endif  // COMPILE_OTA_AUTO
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
-// Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update
+// Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 typedef struct
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
@@ -1089,7 +1089,7 @@ typedef struct
     // Multicast DNS Server
     bool mdnsEnable = true; // Allows locating of device from browser address 'rtk.local'
 
-    // MQTT Client (Point Perfect)
+    // MQTT Client (PointPerfect)
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
     bool debugMqttClientState = false; // Debug the MQTT state machine
     bool useEuropeCorrections = false; // Use US corrections by default
@@ -1164,7 +1164,6 @@ typedef struct
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
-
 
     // Automatic Firmware Update
     bool debugFirmwareUpdate = false;
