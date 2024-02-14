@@ -1201,7 +1201,7 @@ void tickerBeepUpdate()
     }
 }
 
-// For RTK Express and RTK Facet, monitor momentary buttons
+// Monitor momentary buttons
 void buttonCheckTask(void *e)
 {
     uint8_t index;

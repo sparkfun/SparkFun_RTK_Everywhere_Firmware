@@ -232,8 +232,8 @@ void menuBase()
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            getNewSetting("Enter the antenna reference point (a.k.a. ARP) in millimeters. Common antennas Facet=71.8mm "
-                          "Facet L-Band=69.0mm TOP106=52.9",
+            getNewSetting("Enter the antenna reference point (a.k.a. ARP) in millimeters. Common antennas "
+                          "Facet L-Band=69.0mm Torch=102.0mm",
                           -200.0, 200.0, &settings.antennaReferencePoint);
         }
 

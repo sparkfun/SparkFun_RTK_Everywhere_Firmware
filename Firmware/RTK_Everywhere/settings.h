@@ -163,7 +163,7 @@ typedef enum
 } ButtonState;
 ButtonState buttonPreviousState = BUTTON_ROVER;
 
-// Data port mux (RTK Express) can enter one of four different connections
+// Data port mux (RTK Facet) can enter one of four different connections
 typedef enum
 {
     MUX_UBLOX_NMEA = 0,
