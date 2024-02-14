@@ -970,13 +970,11 @@ typedef struct
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
 
-
-
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
     PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
-    char pointPerfectClientID[50] = "";
+    char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
     char pointPerfectLBandTopic[20] = ""; // /pp/key/Lb
 
