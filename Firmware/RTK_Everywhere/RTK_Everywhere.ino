@@ -522,14 +522,13 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 AsyncWebServer *webserver;
 AsyncWebSocket *websocket;
 
-char *settingsCSV; // Push large array onto heap
-
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 5000
+char *settingsCSV; // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;

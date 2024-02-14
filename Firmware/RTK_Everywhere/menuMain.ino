@@ -107,6 +107,8 @@ void menuMain()
         if (btPrintEcho)
             systemPrintln("b) Exit Bluetooth Echo mode");
 
+        systemPrintln("+) Enter Command line mode");
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -149,6 +151,11 @@ void menuMain()
             systemPrintln("BT device has exited echo mode");
             btPrintEcho = false;
             break; // Exit config menu
+        }
+        else if (incoming == '+')
+        {
+            menuCommands();
+            break;
         }
         else if (incoming == 'x')
             break;

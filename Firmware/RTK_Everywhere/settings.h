@@ -902,7 +902,8 @@ enum OtaState
 
 #endif  // COMPILE_OTA_AUTO
 
-// This is all the settings that can be set on RTK Surveyor. It's recorded to NVM and the config file.
+// This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
+// Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update
 typedef struct
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
@@ -911,6 +912,7 @@ typedef struct
     bool enableSD = true;
     bool enableDisplay = true;
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
+    int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int observationSeconds = 60;             // Default survey in time of 60 seconds
     float observationPositionAccuracy = 5.0; // Default survey in pos accy of 5m
     bool fixedBase = false;                  // Use survey-in by default
@@ -963,16 +965,16 @@ typedef struct
         {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, true, "GLONASS"},
     };
 
-    int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     char profileName[50] = "";
 
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
                                    // hardware serial reports data available.
 
+
+
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
     PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
-
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = "";
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
