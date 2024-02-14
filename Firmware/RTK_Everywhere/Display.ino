@@ -629,7 +629,7 @@ void displaySplash()
 {
     if (online.display == true)
     {
-        //Shorten logo display if locally compiled
+        // Shorten logo display if locally compiled
         if (ENABLE_DEVELOPER == false)
         {
             // Finish displaying the SparkFun LOGO
