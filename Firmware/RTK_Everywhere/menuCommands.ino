@@ -1159,7 +1159,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enablePvtClient", settings.enablePvtClient);
     stringRecord(newSettings, "pvtClientPort", settings.pvtClientPort);
     stringRecord(newSettings, "pvtClientHost", settings.pvtClientHost);
-    
+
     // TCP Server
     stringRecord(newSettings, "debugPvtServer", settings.debugPvtServer);
     stringRecord(newSettings, "enablePvtServer", settings.enablePvtServer);
@@ -1170,10 +1170,10 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enablePvtUdpServer", settings.enablePvtUdpServer);
     stringRecord(newSettings, "pvtUdpServerPort", settings.pvtUdpServerPort);
 
-//um980MessageRatesNMEA not yet handled
-//um980MessageRatesRTCMRover
-//um980MessageRatesRTCMBase
-//um980Constellations
+    // um980MessageRatesNMEA not yet handled
+    // um980MessageRatesRTCMRover
+    // um980MessageRatesRTCMBase
+    // um980Constellations
 
     stringRecord(newSettings, "minCNO_um980", settings.minCNO_um980);
     stringRecord(newSettings, "enableTiltCompensation", settings.enableTiltCompensation);
@@ -1202,16 +1202,16 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enablePsram", settings.enablePsram);
     stringRecord(newSettings, "printTaskStartStop", settings.printTaskStartStop);
     stringRecord(newSettings, "psramMallocLevel", settings.psramMallocLevel);
-    
-    //stringRecord(newSettings, "", settings.);
+
+    // stringRecord(newSettings, "", settings.);
 
     // Add new settings above <------------------------------------------------------------>
 
-    //Single variables needed on Config page
+    // Single variables needed on Config page
     stringRecord(newSettings, "minCNO", gnssGetMinCno());
     stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
 
-    //Add SD Characteristics
+    // Add SD Characteristics
     char sdCardSizeChar[20];
     String cardSize;
     stringHumanReadableSize(cardSize, sdCardSize);
@@ -1227,8 +1227,8 @@ void createSettingsString(char *newSettings)
 
     // Add Device ID used for corrections
     char hardwareID[13];
-    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0], lbandMACAddress[1],
-             lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4], lbandMACAddress[5]);
+    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
     stringRecord(newSettings, "hardwareID", hardwareID);
 
     // Add Days Remaining for corrections
@@ -1276,7 +1276,7 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "logFileName", logFileName);
 
-    //Add battery level and icon file name
+    // Add battery level and icon file name
     if (online.battery == false) // Product has no battery
     {
         stringRecord(newSettings, "batteryIconFileName", (char *)"src/BatteryBlank.png");
@@ -1457,7 +1457,6 @@ void stringRecord(char *settingsCSV, const char *id, uint64_t settingValue)
     snprintf(record, sizeof(record), "%s,%lld,", id, settingValue);
     strcat(settingsCSV, record);
 }
-
 
 void writeToString(char *settingValueStr, bool value)
 {
@@ -1914,7 +1913,7 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.psramMallocLevel);
 
     // Add new settings above <------------------------------------------------------------>
-    
+
     // Check global setting
     else if (strcmp(settingName, "enableRCFirmware") == 0)
         writeToString(settingValueStr, enableRCFirmware);

@@ -228,9 +228,9 @@ bool pointperfectProvisionDevice()
         client.setCACert(AWS_PUBLIC_CERT);
 
         char hardwareID[13];
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0], lbandMACAddress[1],
-                 lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4],
-                 lbandMACAddress[5]); // Get ready for JSON
+        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                 btMACAddress[2], btMACAddress[3], btMACAddress[4],
+                 btMACAddress[5]); // Get ready for JSON
 
 #ifdef WHITELISTED_ID
         // Override ID with testing ID
@@ -327,9 +327,9 @@ bool pointperfectProvisionDevice()
             if (response.indexOf("No plan for device") >= 0)
             {
                 char hardwareID[13];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0],
-                         lbandMACAddress[1], lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4],
-                         lbandMACAddress[5]);
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0],
+                         btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4],
+                         btMACAddress[5]);
 
                 systemPrintf("This device has been deactivated. Please contact "
                              "support@sparkfun.com to renew the L-Band "
@@ -343,9 +343,9 @@ bool pointperfectProvisionDevice()
             else if (response.indexOf("not whitelisted") >= 0)
             {
                 char hardwareID[13];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0],
-                         lbandMACAddress[1], lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4],
-                         lbandMACAddress[5]);
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0],
+                         btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4],
+                         btMACAddress[5]);
 
                 systemPrintf(
                     "This device is not white-listed. Please contact "
@@ -1359,8 +1359,8 @@ void menuPointPerfect()
         else if (incoming == 4)
         {
             char hardwareID[13];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", lbandMACAddress[0], lbandMACAddress[1],
-                     lbandMACAddress[2], lbandMACAddress[3], lbandMACAddress[4], lbandMACAddress[5]);
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
             systemPrintf("Device ID: %s\r\n", hardwareID);
         }
         else if (incoming == 'c')
