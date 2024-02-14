@@ -235,7 +235,7 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 
 #ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
