@@ -41,7 +41,9 @@ void menuMain()
 
 #ifdef COMPILE_BT
 
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
             systemPrint("** Bluetooth SPP broadcasting as: ");
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrint("** Bluetooth Low-Energy broadcasting as: ");

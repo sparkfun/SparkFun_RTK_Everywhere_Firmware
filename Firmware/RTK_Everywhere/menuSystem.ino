@@ -170,7 +170,9 @@ void menuSystem()
         systemPrintln("-----  Settings  -----");
 
         systemPrint("b) Set Bluetooth Mode: ");
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            systemPrintln("Dual");
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
             systemPrintln("Classic");
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrintln("BLE");
@@ -224,12 +226,14 @@ void menuSystem()
         {
             // Restart Bluetooth
             bluetoothStop();
-            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_BLE;
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_OFF;
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;
+                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
             bluetoothStart();
         }
         else if (incoming == 'c')
