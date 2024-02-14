@@ -234,7 +234,7 @@ void bluetoothStart()
         esp_bt_gap_set_pin(pin_type, 4, pin_code);
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-        bluetoothSerial->register_callback(bluetoothCallback); // Controls BT Status LED on Surveyor
+        bluetoothSerial->register_callback(bluetoothCallback); // Controls BT state and LED
         bluetoothSerial->setTimeout(250);
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)

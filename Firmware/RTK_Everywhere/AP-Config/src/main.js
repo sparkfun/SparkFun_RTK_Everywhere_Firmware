@@ -20,7 +20,7 @@ function ge(e) {
 
 var fixedLat = 0;
 var fixedLong = 0;
-var platformPrefix = "Surveyor";
+var platformPrefix = "";
 var geodeticLat = 40.01;
 var geodeticLon = -105.19;
 var geodeticAlt = 1500.1;
@@ -92,52 +92,12 @@ function parseIncoming(msg) {
             document.title = "RTK " + platformPrefix + " Setup";
             fullPageUpdate = true;
 
-            if (platformPrefix == "Surveyor") {
-                show("baseConfig");
-                hide("sensorConfig");
-                hide("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-
-                hide("dataPortChannelDropdown");
-            }
-            else if (platformPrefix == "Express" || platformPrefix == "Facet") {
-                show("baseConfig");
-                hide("sensorConfig");
-                hide("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-            }
-            else if (platformPrefix == "Express Plus") {
-                hide("baseConfig");
-                show("sensorConfig");
-                hide("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-
-                ge("muxChannel2").innerHTML = "Wheel/Dir Encoder";
-            }
-            else if (platformPrefix == "Facet L-Band" || platformPrefix == "Facet L-Band Direct") {
+            if (platformPrefix == "Facet L-Band") {
                 show("baseConfig");
                 hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-            }
-            else if (platformPrefix == "Reference Station") {
-                show("baseConfig");
-                hide("sensorConfig");
-                hide("ppConfig");
-                show("ethernetConfig");
-                show("ntpConfig");
                 //hide("allowWiFiOverEthernetClient"); //For future expansion
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
@@ -643,16 +603,9 @@ function validateFields() {
     }
 
     //Port Config
-    if (platformPrefix != "Surveyor") {
-        if (ge("enableExternalPulse").checked) {
-            checkElementValue("externalPulseTimeBetweenPulse_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-            checkElementValue("externalPulseLength_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-        }
-        else {
-            clearElement("externalPulseTimeBetweenPulse_us", 100000);
-            clearElement("externalPulseLength_us", 1000000);
-            ge("externalPulsePolarity").value = 0;
-        }
+    if (ge("enableExternalPulse").checked) {
+        checkElementValue("externalPulseTimeBetweenPulse_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+        checkElementValue("externalPulseLength_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
     }
 }
 

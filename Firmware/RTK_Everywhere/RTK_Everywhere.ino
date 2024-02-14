@@ -56,7 +56,7 @@
 #endif // POINTPERFECT_TOKEN
 
 // Define the RTK board identifier:
-//  This is an int which is unique to this variant of the RTK Surveyor hardware which allows us
+//  This is an int which is unique to this variant of the RTK hardware which allows us
 //  to make sure that the settings stored in flash (LittleFS) are correct for this version of the RTK
 //  (sizeOfSettings is not necessarily unique and we want to avoid problems when swapping from one variant to another)
 //  It is the sum of:
@@ -478,7 +478,7 @@ int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
 const char *forceFirmwareFileName =
-    "RTK_Surveyor_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
+    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
 int binBytesLastUpdate;                // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -629,7 +629,7 @@ long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
-char deviceName[70];           // The serial string that is broadcast. Ex: 'Surveyor Base-BC61'
+char deviceName[70];           // The serial string that is broadcast. Ex: 'EVK Base-BC61'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
@@ -1233,7 +1233,7 @@ void logUpdate()
                 // While a retry does occur during the next loop, it is possible to lose
                 // trigger events if they occur too rapidly or if the log file is closed
                 // before the trigger event is written!
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Surveyor.ino line %d", semaphoreHolder,
+                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
                       __LINE__);
             }
         }
@@ -1275,7 +1275,7 @@ void logUpdate()
             {
                 char semaphoreHolder[50];
                 getSemaphoreFunction(semaphoreHolder);
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Surveyor.ino line %d", semaphoreHolder,
+                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
                       __LINE__);
             }
         }

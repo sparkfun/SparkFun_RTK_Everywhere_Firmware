@@ -18,8 +18,8 @@
 
 //To create uint8_t array from png/css/js etc. (will work on _any_ file, not just png's):
 //  cd Firmware\Tools
-//  python png_zipper.py ..\RTK_Surveyor\AP-Config\src\rtk-setup-wifi.png
-//  The hex is saved in ..\RTK_Surveyor\AP-Config\src\rtk-setup-wifi.png.gzip_hex
+//  python png_zipper.py ..\RTK_Everywhere\AP-Config\src\rtk-setup-wifi.png
+//  The hex is saved in ..\RTK_Everywhere\AP-Config\src\rtk-setup-wifi.png.gzip_hex
 
 //To convert AP-Config\src\main.js to main_js[], run the Python main_js_zipper.py script in the Tools folder:
 //  cd Firmware\Tools
