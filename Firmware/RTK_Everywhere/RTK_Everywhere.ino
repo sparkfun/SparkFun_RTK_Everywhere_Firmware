@@ -1,24 +1,26 @@
 /*
-  September 1st, 2020
+  October 2nd, 2023
   SparkFun Electronics
   Nathan Seidle
 
-  This firmware runs the core of the SparkFun RTK products. It runs on an ESP32
-  and communicates with the ZED-F9P.
+  This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
+  and communicates with various GNSS receivers.
 
-  Compiled with Arduino v1.8.15 with ESP32 core v2.0.2.
+  Compiled using Arduino CLI and ESP32 core v2.0.11.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
   Special thanks to Avinab Malla for guidance on getting xTasks implemented.
 
-  The RTK Surveyor implements classic Bluetooth SPP to transfer data from the
-  ZED-F9P to the phone and receive any RTCM from the phone and feed it back
-  to the ZED-F9P to achieve RTK: btReadTask(), gnssReadTask().
+  The RTK firmware implements classic Bluetooth SPP to transfer data from the
+  GNSS receiver to the phone and receive any RTCM from the phone and feed it back
+  to the GNSS receiver to achieve RTK Fix.
 
-  Settings are loaded from microSD if available otherwise settings are pulled from ESP32's file system LittleFS.
+  Settings are loaded from microSD if available, otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
+// To reduce compile times, various parts of the firmware can be disabled/removed if they are not
+// needed during development
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
@@ -28,11 +30,11 @@
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-#define COMPILE_BT     // Comment out to remove Bluetooth functionality
-#define COMPILE_L_BAND // Comment out to remove L-Band functionality
-#define COMPILE_UM980    // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
-#define COMPILE_POINTPERFECT_LIBRARY //Comment out to remove PPL support
+#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
+#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
+#define COMPILE_UM980                // Comment out to remove UM980 functionality
+#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -81,21 +83,20 @@
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
-int pin_batteryStatusLED = PIN_UNDEFINED; //LED on Torch
-int pin_baseStatusLED = PIN_UNDEFINED; //LED on EVK
-int pin_bluetoothStatusLED = PIN_UNDEFINED; //LED on Torch
-int pin_gnssStatusLED = PIN_UNDEFINED; //LED on Torch
+int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
+int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
+int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
+int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
 
 int pin_muxA = PIN_UNDEFINED;
 int pin_muxB = PIN_UNDEFINED;
-int pin_powerSenseAndControl = PIN_UNDEFINED; //Power button and power down I/O on Facet
-int pin_modeButton = PIN_UNDEFINED; //Mode button on EVK
-int pin_powerButton = PIN_UNDEFINED; //Power and general purpose button on Torch
-int pin_powerFastOff = PIN_UNDEFINED; //Output on Facet
+int pin_powerSenseAndControl = PIN_UNDEFINED; // Power button and power down I/O on Facet
+int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK
+int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch
+int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_dac26 = PIN_UNDEFINED;
 int pin_adc39 = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; //EVK
-
+int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
 
 int pin_radio_rx = PIN_UNDEFINED;
 int pin_radio_tx = PIN_UNDEFINED;
@@ -294,7 +295,7 @@ char zedFirmwareVersion[20];   // The string looks like 'HPG 1.12'. Output to sy
 char neoFirmwareVersion[20];   // Output to system status menu.
 uint8_t zedFirmwareVersionInt; // Controls which features (constellations) can be configured (v1.12 doesn't support
                                // SBAS). Note: will fail above 2.55!
-char zedUniqueId[11];                     // Output to system status menu and log file.
+char zedUniqueId[11];          // Output to system status menu and log file.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called.
@@ -390,7 +391,7 @@ unsigned long rtcmLastPacketReceived;
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
 #else
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
-#endif                                             // COMPILE_UM980
+#endif                                          // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
@@ -452,7 +453,7 @@ const int gnssReadTaskStackSize = 5000;
 const int handleGnssDataTaskStackSize = 3000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
-volatile bool bluetoothPinned; // This variable is touched by core 0 but checked by core 1. Must be volatile.
+volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static long fileSize;              // Updated with each write
@@ -597,9 +598,9 @@ unsigned long lastEthernetCheck; // Prevents cable checking from continually hap
 IM19 *tiltSensor;
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
-bool tiltFailedBegin; // Goes true if IMU fails beginTilt()
-unsigned long lastTiltBeepMs; // Emit a beep every 10s if tilt is active
-#endif // COMPILE_IM19_IMU
+bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
+unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
+#endif                         // COMPILE_IM19_IMU
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Library (PPL)
@@ -616,10 +617,9 @@ uint8_t *pplRtcmBuffer;
 bool pplAttemptedStart;
 bool pplGnssOutput;
 bool pplMqttCorrections;
-long pplKeyExpirationMs; //Milliseconds until the current PPL key expires
+long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
 #include "NetworkUDP.h"    //Supports both WiFiUdp and EthernetUdp
@@ -793,7 +793,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
         settings.printDebugMessages = true;                                                                            \
-        settings.debugGnss = true;                                                                               \
+        settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
         settings.enablePrintState = true;                                                                              \
