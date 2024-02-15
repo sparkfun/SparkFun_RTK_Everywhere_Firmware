@@ -245,10 +245,16 @@ void clearBuffer()
 // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
 InputResponse getUserInputString(char *userString, uint8_t stringSize)
 {
+    return getUserInputString(userString, stringSize, true); // Allow local echo if setting enabled
+}
+
+InputResponse getUserInputString(char *userString, uint8_t stringSize, bool localEcho)
+{
     clearBuffer();
 
     long startTime = millis();
     uint8_t spot = 0;
+    bool echo = localEcho && settings.echoUserInput;
 
     while ((millis() - startTime) / 1000 <= menuTimeout)
     {
@@ -277,7 +283,7 @@ InputResponse getUserInputString(char *userString, uint8_t stringSize)
 
             if ((incoming == '\r') || (incoming == '\n'))
             {
-                if (settings.echoUserInput)
+                if (echo)
                     systemPrintln();     // Echo if needed
                 userString[spot] = '\0'; // Null terminate
 
@@ -289,7 +295,7 @@ InputResponse getUserInputString(char *userString, uint8_t stringSize)
             // Handle backspace
             else if (incoming == '\b')
             {
-                if (settings.echoUserInput == true && spot > 0)
+                if (echo == true && spot > 0)
                 {
                     systemWrite('\b'); // Move back one space
                     systemWrite(' ');  // Put a blank there to erase the letter from the terminal
@@ -299,7 +305,7 @@ InputResponse getUserInputString(char *userString, uint8_t stringSize)
             }
             else
             {
-                if (settings.echoUserInput)
+                if (echo)
                     systemWrite(incoming); // Echo if needed
 
                 userString[spot++] = incoming;

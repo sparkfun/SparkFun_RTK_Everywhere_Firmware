@@ -1,4 +1,4 @@
-const uint8_t bufferLen = 255;
+const uint8_t bufferLen = 1024;
 char cmdBuffer[bufferLen];
 char valueBuffer[bufferLen];
 const int MAX_TOKENS = 10;
@@ -6,10 +6,9 @@ const int MAX_TOKENS = 10;
 void menuCommands()
 {
     systemPrintln("COMMAND MODE");
-    systemPrint("CMD>");
     while (1)
     {
-        InputResponse response = getUserInputString(cmdBuffer, bufferLen);
+        InputResponse response = getUserInputString(cmdBuffer, bufferLen, false); // Turn off echo
 
         if (response != INPUT_RESPONSE_VALID)
             continue;
@@ -27,43 +26,56 @@ void menuCommands()
         if (tokenCount == 0)
             continue;
 
-        bool commandProcessed = false;
         if (strcmp(tokens[0], "SET") == 0)
         {
             auto field = tokens[1];
-            auto value = tokens[2];
-
-            updateSettingWithValue(field, value);
-            commandProcessed = true;
+            if (tokens[2] == nullptr)
+            {
+                updateSettingWithValue(field, "");
+            }
+            else
+            {
+                auto value = tokens[2];
+                
+                //TODO remove
+                Serial.printf("SET %s:%s\r\n", field, value);
+                
+                updateSettingWithValue(field, value);
+            }
+            systemPrintln("OK");
         }
         else if (strcmp(tokens[0], "GET") == 0)
         {
             auto field = tokens[1];
             getSettingValue(field, valueBuffer);
+            systemPrint(">");
             systemPrintln(valueBuffer);
-            commandProcessed = true;
+        }
+        else if (strcmp(tokens[0], "CMD") == 0)
+        {
+            systemPrintln("OK");
         }
         else if (strcmp(tokens[0], "EXIT") == 0)
         {
+            systemPrintln("OK");
+            printEndpoint = PRINT_ENDPOINT_SERIAL;
+            btPrintEcho = false;
             return;
         }
         else if (strcmp(tokens[0], "APPLY") == 0)
         {
-            systemPrintln("Apply Settings!");
+            systemPrintln("OK");
             recordSystemSettings();
             ESP.restart();
-
             return;
         }
         else
         {
-            systemPrintln("Invalid Command!");
-            commandProcessed = true;
+            systemPrintln("ERROR");
         }
-
-        if (commandProcessed)
-            systemPrint("CMD>");
     }
+
+    btPrintEcho = false;
 }
 
 // Given a settingName, and string value, update a given setting

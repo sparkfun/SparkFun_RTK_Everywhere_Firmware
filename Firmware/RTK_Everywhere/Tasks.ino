@@ -115,6 +115,13 @@ void btReadTask(void *e)
 {
     int rxBytes;
 
+    unsigned long btLastByteReceived; // Track when the last BT transmission was received.
+    const long btMinEscapeTime =
+        2000;                      // Bluetooth serial traffic must stop this amount before an escape char is recognized
+    uint8_t btEscapeCharsReceived; // Used to enter remote command mode
+
+    uint8_t btAppCommandCharsReceived; // Used to enter app command mode
+
     // Start notification
     online.btReadTaskRunning = true;
     if (settings.printTaskStartStop)
@@ -163,12 +170,31 @@ void btReadTask(void *e)
                         addToGnssBuffer(btEscapeCharacter);
                     }
                 }
+                else if (incoming == btAppCommandCharacter)
+                {
+                    btAppCommandCharsReceived++;
+                    if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
+                    {
+                        printEndpoint = PRINT_ENDPOINT_ALL;
+                        systemPrintln("App has entered config mode");
+                        btPrintEcho = true;
+                        runCommandMode = true;
+                        
+                        btAppCommandCharsReceived = 0;
+                        btLastByteReceived = millis();
+                    }
+                }
+
                 else // This is just a character in the stream, ignore
                 {
                     // Pass any escape characters that turned out to not be a complete escape sequence
                     while (btEscapeCharsReceived-- > 0)
                     {
                         addToGnssBuffer(btEscapeCharacter);
+                    }
+                    while (btAppCommandCharsReceived-- > 0)
+                    {
+                        addToGnssBuffer(btAppCommandCharacter);
                     }
 
                     // Pass byte to GNSS receiver or to system
@@ -181,6 +207,8 @@ void btReadTask(void *e)
 
                     btLastByteReceived = millis();
                     btEscapeCharsReceived = 0; // Update timeout check for escape char and partial frame
+
+                    btAppCommandCharsReceived = 0;
 
                     bluetoothIncomingRTCM = true;
 

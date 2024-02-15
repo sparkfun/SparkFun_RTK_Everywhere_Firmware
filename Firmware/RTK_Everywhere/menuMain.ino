@@ -32,6 +32,14 @@ void menuMain()
     inMainMenu = true;
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
+    // Check for remote app config entry into command mode
+    if (runCommandMode == true)
+    {
+        runCommandMode = false;
+        menuCommands();
+        return;
+    }
+
     while (1)
     {
         systemPrintln();
@@ -155,10 +163,7 @@ void menuMain()
             break; // Exit config menu
         }
         else if (incoming == '+')
-        {
             menuCommands();
-            break;
-        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)

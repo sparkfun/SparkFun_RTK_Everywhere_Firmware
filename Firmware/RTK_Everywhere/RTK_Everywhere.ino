@@ -438,7 +438,7 @@ HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 2000;
+const int btReadTaskStackSize = 4000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
@@ -448,7 +448,7 @@ uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
-const int gnssReadTaskStackSize = 5000;
+const int gnssReadTaskStackSize = 4000;
 
 const int handleGnssDataTaskStackSize = 3000;
 
@@ -461,7 +461,10 @@ int bufferOverruns;                         // Running count of possible data lo
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
-const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter command mode over B
+const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
+const uint8_t btAppCommandCharacter = '-';
+const uint8_t btMaxAppCommandCharacters = 10; // Number of characters needed to enter app command mode over Bluetooth
+bool runCommandMode; //Goes true when user or remote app enters ---------- command mode sequence
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -717,10 +720,6 @@ static RtcmTransportState rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAM
 uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
-
-unsigned long btLastByteReceived;  // Track when the last BT transmission was received.
-const long btMinEscapeTime = 2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
-uint8_t btEscapeCharsReceived;     // Used to enter command mode
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
