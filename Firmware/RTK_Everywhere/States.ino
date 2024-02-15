@@ -702,7 +702,7 @@ void stateUpdate()
             // Be sure we ignore any external RTCM sources
             gnssDisableRtcmOnGnss();
 
-            pointperfectApplyKeys(); // Send current keys, if available, to ZED-F9P
+            gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
             forceSystemStateUpdate = true;   // Imediately go to this new state
             changeState(settings.lastState); // Go to either rover or base

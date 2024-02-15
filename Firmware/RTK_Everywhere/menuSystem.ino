@@ -43,7 +43,7 @@ void menuSystem()
             {
                 systemPrint("Online - ");
 
-                systemPrintf("Batt (%d%%) / Voltage: %0.02fV", battLevel, battVoltage);
+                systemPrintf("Batt (%d%%) / Voltage: %0.02fV", batteryLevelPercent, batteryVoltage);
                 systemPrintln();
             }
             else
@@ -170,7 +170,9 @@ void menuSystem()
         systemPrintln("-----  Settings  -----");
 
         systemPrint("b) Set Bluetooth Mode: ");
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            systemPrintln("Dual");
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
             systemPrintln("Classic");
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrintln("BLE");
@@ -224,12 +226,14 @@ void menuSystem()
         {
             // Restart Bluetooth
             bluetoothStop();
-            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_BLE;
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_OFF;
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;
+                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
             bluetoothStart();
         }
         else if (incoming == 'c')
@@ -1308,7 +1312,7 @@ void printCurrentConditionsNMEA()
                  gnssGetSecond(), gnssGetMillisecond(), gnssGetDay(), gnssGetMonth(),
                  gnssGetYear() % 2000, // Limit to 2 digits
                  gnssGetHorizontalAccuracy(), gnssGetSatellitesInView(), gnssGetLatitude(), gnssGetLongitude(),
-                 gnssGetAltitude(), gnssGetFixType(), gnssGetCarrierSolution(), battLevel);
+                 gnssGetAltitude(), gnssGetFixType(), gnssGetCarrierSolution(), batteryLevelPercent);
 
         char nmeaMessage[100]; // Max NMEA sentence length is 82
         createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),

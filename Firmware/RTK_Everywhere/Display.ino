@@ -629,7 +629,7 @@ void displaySplash()
 {
     if (online.display == true)
     {
-        //Shorten logo display if locally compiled
+        // Shorten logo display if locally compiled
         if (ENABLE_DEVELOPER == false)
         {
             // Finish displaying the SparkFun LOGO
@@ -716,11 +716,11 @@ void paintBatteryLevel()
     if (online.display == true)
     {
         // Current battery charge level
-        if (battLevel < 25)
+        if (batteryLevelPercent < 25)
             displayBitmap(45, 0, Battery_0_Width, Battery_0_Height, Battery_0);
-        else if (battLevel < 50)
+        else if (batteryLevelPercent < 50)
             displayBitmap(45, 0, Battery_1_Width, Battery_1_Height, Battery_1);
-        else if (battLevel < 75)
+        else if (batteryLevelPercent < 75)
             displayBitmap(45, 0, Battery_2_Width, Battery_2_Height, Battery_2);
         else // batt level > 75
             displayBitmap(45, 0, Battery_3_Width, Battery_3_Height, Battery_3);

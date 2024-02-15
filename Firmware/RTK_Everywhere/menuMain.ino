@@ -32,6 +32,14 @@ void menuMain()
     inMainMenu = true;
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
+    // Check for remote app config entry into command mode
+    if (runCommandMode == true)
+    {
+        runCommandMode = false;
+        menuCommands();
+        return;
+    }
+
     while (1)
     {
         systemPrintln();
@@ -41,7 +49,9 @@ void menuMain()
 
 #ifdef COMPILE_BT
 
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
             systemPrint("** Bluetooth SPP broadcasting as: ");
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
             systemPrint("** Bluetooth Low-Energy broadcasting as: ");
@@ -107,6 +117,8 @@ void menuMain()
         if (btPrintEcho)
             systemPrintln("b) Exit Bluetooth Echo mode");
 
+        systemPrintln("+) Enter Command line mode");
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -150,6 +162,8 @@ void menuMain()
             btPrintEcho = false;
             break; // Exit config menu
         }
+        else if (incoming == '+')
+            menuCommands();
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -377,12 +391,8 @@ void factoryReset(bool alreadyHasSemaphore)
         }
     }
 
-#ifdef COMPILE_IM19_IMU
-    if (online.imu)
-    {
+    if (online.imu == true)
         tiltSensorFactoryReset();
-    }
-#endif // COMPILE_IM19_IMU
 
     systemPrintln("Formatting internal file system...");
     LittleFS.format();

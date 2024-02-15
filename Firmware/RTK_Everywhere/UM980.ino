@@ -63,12 +63,12 @@ void um980Begin()
 bool um980Configure()
 {
     // Skip configuring the UM980 if no new changes are necessary
-    // if (settings.updateGNSSSettings == false)
-    // {
-    //     if (settings.debugGnss)
-    //         systemPrintln("Skipping GNSS configuration");
-    //     return (true);
-    // }
+    if (settings.updateGNSSSettings == false)
+    {
+        if (settings.debugGnss)
+            systemPrintln("Skipping GNSS configuration");
+        return (true);
+    }
 
     for (int x = 0; x < 3; x++)
     {
@@ -164,12 +164,14 @@ bool um980ConfigureOnce()
         response &= um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
     }
 
-    response &= um980->saveConfiguration(); // Save the current configuration into non-volatile memory (NVM)
-
     if (response == true)
         online.gnss = true; // If we failed before, mark as online now
     else
         online.gnss = false; // Take it offline
+
+    // Save the current configuration into non-volatile memory (NVM)
+    // We don't need to re-configure the UM980 at next boot
+    settings.updateGNSSSettings = um980->saveConfiguration();
 
     return (response);
 }

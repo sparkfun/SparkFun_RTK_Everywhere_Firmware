@@ -20,7 +20,7 @@ function ge(e) {
 
 var fixedLat = 0;
 var fixedLong = 0;
-var platformPrefix = "Surveyor";
+var platformPrefix = "";
 var geodeticLat = 40.01;
 var geodeticLon = -105.19;
 var geodeticAlt = 1500.1;
@@ -92,52 +92,12 @@ function parseIncoming(msg) {
             document.title = "RTK " + platformPrefix + " Setup";
             fullPageUpdate = true;
 
-            if (platformPrefix == "Surveyor") {
-                show("baseConfig");
-                hide("sensorConfig");
-                hide("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-
-                hide("dataPortChannelDropdown");
-            }
-            else if (platformPrefix == "Express" || platformPrefix == "Facet") {
-                show("baseConfig");
-                hide("sensorConfig");
-                hide("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-            }
-            else if (platformPrefix == "Express Plus") {
-                hide("baseConfig");
-                show("sensorConfig");
-                hide("ppConfig");
-                hide("ethernetConfig");
-                hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-
-                ge("muxChannel2").innerHTML = "Wheel/Dir Encoder";
-            }
-            else if (platformPrefix == "Facet L-Band" || platformPrefix == "Facet L-Band Direct") {
+            if (platformPrefix == "Facet L-Band") {
                 show("baseConfig");
                 hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
-            }
-            else if (platformPrefix == "Reference Station") {
-                show("baseConfig");
-                hide("sensorConfig");
-                hide("ppConfig");
-                show("ethernetConfig");
-                show("ntpConfig");
                 //hide("allowWiFiOverEthernetClient"); //For future expansion
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
@@ -504,66 +464,65 @@ function validateFields() {
     }
 
     //Base Config
-    if (platformPrefix != "Express Plus") {
-        if (ge("baseTypeSurveyIn").checked) {
-            checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
-            checkElementValue("observationPositionAccuracy", 1, 5.1, "Must be between 1.0 to 5.0", "collapseBaseConfig");
+    if (ge("baseTypeSurveyIn").checked) {
+        checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
+        checkElementValue("observationPositionAccuracy", 1, 5.1, "Must be between 1.0 to 5.0", "collapseBaseConfig");
 
-            clearElement("fixedEcefX", -1280206.568);
-            clearElement("fixedEcefY", -4716804.403);
-            clearElement("fixedEcefZ", 4086665.484);
+        clearElement("fixedEcefX", -1280206.568);
+        clearElement("fixedEcefY", -4716804.403);
+        clearElement("fixedEcefZ", 4086665.484);
+        clearElement("fixedLatText", 40.09029479);
+        clearElement("fixedLongText", -105.18505761);
+        clearElement("fixedAltitude", 1560.089);
+        clearElement("antennaHeight", 0);
+        clearElement("antennaReferencePoint", 0);
+    }
+    else {
+        clearElement("observationSeconds", 60);
+        clearElement("observationPositionAccuracy", 5.0);
+
+        if (ge("fixedBaseCoordinateTypeECEF").checked) {
             clearElement("fixedLatText", 40.09029479);
             clearElement("fixedLongText", -105.18505761);
             clearElement("fixedAltitude", 1560.089);
             clearElement("antennaHeight", 0);
             clearElement("antennaReferencePoint", 0);
+
+            checkElementValue("fixedEcefX", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
+            checkElementValue("fixedEcefY", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
+            checkElementValue("fixedEcefZ", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
         }
         else {
-            clearElement("observationSeconds", 60);
-            clearElement("observationPositionAccuracy", 5.0);
+            clearElement("fixedEcefX", -1280206.568);
+            clearElement("fixedEcefY", -4716804.403);
+            clearElement("fixedEcefZ", 4086665.484);
 
-            if (ge("fixedBaseCoordinateTypeECEF").checked) {
-                clearElement("fixedLatText", 40.09029479);
-                clearElement("fixedLongText", -105.18505761);
-                clearElement("fixedAltitude", 1560.089);
-                clearElement("antennaHeight", 0);
-                clearElement("antennaReferencePoint", 0);
+            checkLatLong(); //Verify Lat/Long input type
+            checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
 
-                checkElementValue("fixedEcefX", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
-                checkElementValue("fixedEcefY", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
-                checkElementValue("fixedEcefZ", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
-            }
-            else {
-                clearElement("fixedEcefX", -1280206.568);
-                clearElement("fixedEcefY", -4716804.403);
-                clearElement("fixedEcefZ", 4086665.484);
-
-                checkLatLong(); //Verify Lat/Long input type
-                checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
-
-                checkElementValue("antennaHeight", -15000, 15000, "Must be -15000 to 15000", "collapseBaseConfig");
-                checkElementValue("antennaReferencePoint", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
-            }
-        }
-
-        if (ge("enableNtripServer").checked == true) {
-            checkElementString("ntripServer_CasterHost", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-            checkElementValue("ntripServer_CasterPort", 1, 99999, "Must be 1 to 99999", "collapseBaseConfig");
-            checkElementString("ntripServer_MountPoint", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-            checkElementString("ntripServer_MountPointPW", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-        }
-        else {
-            clearElement("ntripServer_CasterHost", "rtk2go.com");
-            clearElement("ntripServer_CasterPort", 2101);
-            clearElement("ntripServer_CasterUser", "");
-            clearElement("ntripServer_CasterUserPW", "");
-            clearElement("ntripServer_MountPoint", "bldr_dwntwn2");
-            clearElement("ntripServer_MountPointPW", "WR5wRo4H");
+            checkElementValue("antennaHeight", -15000, 15000, "Must be -15000 to 15000", "collapseBaseConfig");
+            checkElementValue("antennaReferencePoint", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
         }
     }
 
+    if (ge("enableNtripServer").checked == true) {
+        checkElementString("ntripServer_CasterHost", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+        checkElementValue("ntripServer_CasterPort", 1, 99999, "Must be 1 to 99999", "collapseBaseConfig");
+        checkElementString("ntripServer_MountPoint", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+        checkElementString("ntripServer_MountPointPW", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+    }
+    else {
+        clearElement("ntripServer_CasterHost", "rtk2go.com");
+        clearElement("ntripServer_CasterPort", 2101);
+        clearElement("ntripServer_CasterUser", "");
+        clearElement("ntripServer_CasterUserPW", "");
+        clearElement("ntripServer_MountPoint", "bldr_dwntwn2");
+        clearElement("ntripServer_MountPointPW", "WR5wRo4H");
+    }
+
+
     //PointPerfect Config
-    if (platformPrefix == "Facet L-Band" || platformPrefix == "Facet L-Band Direct") {
+    if (platformPrefix == "Facet L-Band") {
         if (ge("pointPerfectCorrectionsSource").checked == true) {
             value = ge("pointPerfectDeviceProfileToken").value;
             if (value.length > 0)
@@ -643,16 +602,9 @@ function validateFields() {
     }
 
     //Port Config
-    if (platformPrefix != "Surveyor") {
-        if (ge("enableExternalPulse").checked) {
-            checkElementValue("externalPulseTimeBetweenPulse_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-            checkElementValue("externalPulseLength_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-        }
-        else {
-            clearElement("externalPulseTimeBetweenPulse_us", 100000);
-            clearElement("externalPulseLength_us", 1000000);
-            ge("externalPulsePolarity").value = 0;
-        }
+    if (ge("enableExternalPulse").checked) {
+        checkElementValue("externalPulseTimeBetweenPulse_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+        checkElementValue("externalPulseLength_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
     }
 }
 
@@ -1057,8 +1009,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             if (platformPrefix == "Facet") {
                 ge("antennaReferencePoint").value = 61.4;
             }
-            else if (platformPrefix == "Facet L-Band" || platformPrefix == "Facet L-Band Direct") {
-                ge("antennaReferencePoint").value = 69.0;
+            else if (platformPrefix == "Torch") {
+                ge("antennaReferencePoint").value = 102.0;
             }
             else {
                 ge("antennaReferencePoint").value = 0.0;

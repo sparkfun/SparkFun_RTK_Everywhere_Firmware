@@ -163,7 +163,7 @@ typedef enum
 } ButtonState;
 ButtonState buttonPreviousState = BUTTON_ROVER;
 
-// Data port mux (RTK Express) can enter one of four different connections
+// Data port mux (RTK Facet) can enter one of four different connections
 typedef enum
 {
     MUX_UBLOX_NMEA = 0,
@@ -314,6 +314,7 @@ typedef enum
 {
     BLUETOOTH_RADIO_SPP = 0,
     BLUETOOTH_RADIO_BLE,
+    BLUETOOTH_RADIO_SPP_AND_BLE,
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
@@ -902,7 +903,8 @@ enum OtaState
 
 #endif  // COMPILE_OTA_AUTO
 
-// This is all the settings that can be set on RTK Surveyor. It's recorded to NVM and the config file.
+// This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
+// Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 typedef struct
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
@@ -911,6 +913,7 @@ typedef struct
     bool enableSD = true;
     bool enableDisplay = true;
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
+    int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int observationSeconds = 60;             // Default survey in time of 60 seconds
     float observationPositionAccuracy = 5.0; // Default survey in pos accy of 5m
     bool fixedBase = false;                  // Use survey-in by default
@@ -963,7 +966,6 @@ typedef struct
         {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, true, "GLONASS"},
     };
 
-    int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     char profileName[50] = "";
 
     int16_t serialTimeoutGNSS = 1; // In ms - used during serialGNSS->begin. Number of ms to pass of no data before
@@ -972,9 +974,8 @@ typedef struct
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
     PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
-
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
-    char pointPerfectClientID[50] = "";
+    char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
     char pointPerfectLBandTopic[20] = ""; // /pp/key/Lb
 
@@ -1014,6 +1015,7 @@ typedef struct
     uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
+    // BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP;
     bool runLogTest = false;           // When set to true, device will create a series of test logs
     bool espnowBroadcast = true;       // When true, overrides peers and sends all data via broadcast
@@ -1087,7 +1089,7 @@ typedef struct
     // Multicast DNS Server
     bool mdnsEnable = true; // Allows locating of device from browser address 'rtk.local'
 
-    // MQTT Client (Point Perfect)
+    // MQTT Client (PointPerfect)
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
     bool debugMqttClientState = false; // Debug the MQTT state machine
     bool useEuropeCorrections = false; // Use US corrections by default
@@ -1162,7 +1164,6 @@ typedef struct
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
-
 
     // Automatic Firmware Update
     bool debugFirmwareUpdate = false;
@@ -1266,8 +1267,8 @@ struct struct_online
     bool pvtUdpServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
-    bool imu = false;
-    bool tilt = false;
+    bool imu = false; // Online when the imu/tilt sensor is configured
+    bool tilt = false; // Online when the tilt sensor is actively compensating position
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;

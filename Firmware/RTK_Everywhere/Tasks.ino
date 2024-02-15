@@ -115,6 +115,13 @@ void btReadTask(void *e)
 {
     int rxBytes;
 
+    unsigned long btLastByteReceived; // Track when the last BT transmission was received.
+    const long btMinEscapeTime =
+        2000;                      // Bluetooth serial traffic must stop this amount before an escape char is recognized
+    uint8_t btEscapeCharsReceived; // Used to enter remote command mode
+
+    uint8_t btAppCommandCharsReceived; // Used to enter app command mode
+
     // Start notification
     online.btReadTaskRunning = true;
     if (settings.printTaskStartStop)
@@ -163,12 +170,31 @@ void btReadTask(void *e)
                         addToGnssBuffer(btEscapeCharacter);
                     }
                 }
+                else if (incoming == btAppCommandCharacter)
+                {
+                    btAppCommandCharsReceived++;
+                    if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
+                    {
+                        printEndpoint = PRINT_ENDPOINT_ALL;
+                        systemPrintln("App has entered config mode");
+                        btPrintEcho = true;
+                        runCommandMode = true;
+                        
+                        btAppCommandCharsReceived = 0;
+                        btLastByteReceived = millis();
+                    }
+                }
+
                 else // This is just a character in the stream, ignore
                 {
                     // Pass any escape characters that turned out to not be a complete escape sequence
                     while (btEscapeCharsReceived-- > 0)
                     {
                         addToGnssBuffer(btEscapeCharacter);
+                    }
+                    while (btAppCommandCharsReceived-- > 0)
+                    {
+                        addToGnssBuffer(btAppCommandCharacter);
                     }
 
                     // Pass byte to GNSS receiver or to system
@@ -181,6 +207,8 @@ void btReadTask(void *e)
 
                     btLastByteReceived = millis();
                     btEscapeCharsReceived = 0; // Update timeout check for escape char and partial frame
+
+                    btAppCommandCharsReceived = 0;
 
                     bluetoothIncomingRTCM = true;
 
@@ -416,7 +444,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
-    if (TILT_SUPPORTED)
+    if (present.imu_im19 == true)
     {
         if (settings.enableTiltCompensation == true && online.tilt == true)
         {
@@ -1114,41 +1142,73 @@ void tickerGnssLedUpdate()
         {
             ledcWrite(ledGnssChannel, 255);
         }
+        else
+        {
+            ledcWrite(ledGnssChannel, 0);
+        }
 
         // Fade on/off during RTK Fix
-        else if (gnssIsRTKFix() == true)
+        // else if (gnssIsRTKFix() == true)
+        // {
+        //     // Fade in/out the GNSS LED during RTK Fix
+        //     gnssFadeLevel += gnssPwmFadeAmount;
+        //     if (gnssFadeLevel <= 0 || gnssFadeLevel >= 255)
+        //         gnssPwmFadeAmount *= -1;
+
+        //     if (gnssFadeLevel > 255)
+        //         gnssFadeLevel = 255;
+        //     if (gnssFadeLevel < 0)
+        //         gnssFadeLevel = 0;
+
+        //     ledcWrite(ledGnssChannel, gnssFadeLevel);
+        // }
+
+        // // Blink 2Hz 50% during RTK float
+        // else if (gnssIsRTKFloat() == true)
+        // {
+        //     if (ledCallCounter <= (gnssTaskUpdatesHz / 2))
+        //         ledcWrite(ledGnssChannel, 255);
+        //     else
+        //         ledcWrite(ledGnssChannel, 0);
+        // }
+
+        // // Blink a short PPS when GNSS 3D fixed
+        // else if (gnssIsFixed() == true)
+        // {
+        //     if (ledCallCounter == (gnssTaskUpdatesHz / 10))
+        //     {
+        //         ledcWrite(ledGnssChannel, 255);
+        //     }
+        //     else
+        //         ledcWrite(ledGnssChannel, 0);
+        // }
+    }
+}
+
+// Control Battery LED on variants
+void tickerBatteryLedUpdate()
+{
+    static uint8_t batteryCallCounter = 0; // Used to calculate a 50% or 10% on rate for blinking
+
+    batteryCallCounter++;
+    batteryCallCounter %= batteryTaskUpdatesHz; // Wrap to X calls per 1 second
+
+    if (productVariant == RTK_TORCH)
+    {
+        // Update the Battery LED according to the battery level
+
+        // Solid LED when fuel level is above 50%
+        if (batteryLevelPercent > 50)
         {
-            // Fade in/out the GNSS LED during RTK Fix
-            gnssFadeLevel += gnssPwmFadeAmount;
-            if (gnssFadeLevel <= 0 || gnssFadeLevel >= 255)
-                gnssPwmFadeAmount *= -1;
-
-            if (gnssFadeLevel > 255)
-                gnssFadeLevel = 255;
-            if (gnssFadeLevel < 0)
-                gnssFadeLevel = 0;
-
-            ledcWrite(ledGnssChannel, gnssFadeLevel);
+            ledcWrite(ledBatteryChannel, 255);
         }
-
-        // Blink 2Hz 50% during RTK float
-        else if (gnssIsRTKFloat() == true)
+        // Blink a short blink to indicate battery is depleting
+        else
         {
-            if (ledCallCounter <= (gnssTaskUpdatesHz / 2))
-                ledcWrite(ledGnssChannel, 255);
+            if (batteryCallCounter == (batteryTaskUpdatesHz / 10)) // On for 1/10th of a second
+                ledcWrite(ledBatteryChannel, 255);
             else
-                ledcWrite(ledGnssChannel, 0);
-        }
-
-        // Blink a short PPS when GNSS 3D fixed
-        else if (gnssIsFixed() == true)
-        {
-            if (ledCallCounter == (gnssTaskUpdatesHz / 10))
-            {
-                ledcWrite(ledGnssChannel, 255);
-            }
-            else
-                ledcWrite(ledGnssChannel, 0);
+                ledcWrite(ledBatteryChannel, 0);
         }
     }
 }
@@ -1169,7 +1229,7 @@ void tickerBeepUpdate()
     }
 }
 
-// For RTK Express and RTK Facet, monitor momentary buttons
+// Monitor momentary buttons
 void buttonCheckTask(void *e)
 {
     uint8_t index;
@@ -1189,171 +1249,153 @@ void buttonCheckTask(void *e)
             systemPrintln("ButtonCheckTask running");
         }
 
-        /* RTK Surveyor
-
-                                      .----------------------------.
-                                      |                            |
-                                      V                            |
-                            .------------------.                   |
-                            |     Power On     |                   |
-                            '------------------'                   |
-                                      |                            |
-                                      | Setup button = 0           |
-                                      V                            |
-                            .------------------.                   |
-                    .------>|    Rover Mode    |                   |
-                    |       '------------------'                   |
-                    |                 |                            |
-                    |                 | Setup button = 1           |
-                    |                 V                            |
-                    |       .------------------.                   |
-                    '-------|    Base Mode     |                   |
-           Setup button = 0 '------------------'                   |
-           after long time    |             |                      |
-                              |             | Setup button = 0     |
-             Setup button = 0 |             | after short time     |
-             after short time |             | (< 500 mSec)         |
-                 (< 500 mSec) |             |                      |
-          STATE_ROVER_NOT_STARTED |             |                      |
-                              V             V                      |
-              .------------------.   .------------------.          |
-              |    Test Mode     |   | WiFi Config Mode |----------'
-              '------------------'   '------------------'
-
-        */
-
         userBtn->read();
 
-        if (systemState == STATE_SHUTDOWN)
+        if (present.imu_im19 && present.display_64x48_i2c0 == false && present.display_128x64_i2c1 == false)
         {
-            // Ignore button presses while shutting down
-        }
-        else if (userBtn->pressedFor(shutDownButtonTime))
-        {
-            forceSystemStateUpdate = true;
-            requestChangeState(STATE_SHUTDOWN);
+            // Platform has no display and tile, ie RTK Torch
 
-            if (inMainMenu)
-                powerDown(true); // State machine is not updated while in menu system so go straight to power down
-                                 // as needed
-        }
-        else if (systemState == STATE_BASE_NOT_STARTED && firstRoverStart == true && userBtn->pressedFor(500))
-        {
-            forceSystemStateUpdate = true;
-            requestChangeState(STATE_TEST);
-            lastTestMenuChange = millis(); // Avoid exiting test menu for 1s
-        }
-        else if (userBtn->wasReleased() && firstRoverStart == false)
-        {
-            if (settings.disableSetupButton == false) // Allow check of the setup button if not overridden by settings
+            // The user button only exits tilt mode
+            if (userBtn->wasReleased() && (online.tilt == true))
             {
+                beepDuration(1000);
 
-                switch (systemState)
+                tiltStop();
+            }
+        }
+        else // RTK EVK, RTK Facet v2, RTK Facet mosaic
+        {
+            if (systemState == STATE_SHUTDOWN)
+            {
+                // Ignore button presses while shutting down
+            }
+            else if (userBtn->pressedFor(shutDownButtonTime))
+            {
+                forceSystemStateUpdate = true;
+                requestChangeState(STATE_SHUTDOWN);
+
+                if (inMainMenu)
+                    powerDown(true); // State machine is not updated while in menu system so go straight to power down
+                                     // as needed
+            }
+            else if (systemState == STATE_BASE_NOT_STARTED && firstRoverStart == true && userBtn->pressedFor(500))
+            {
+                forceSystemStateUpdate = true;
+                requestChangeState(STATE_TEST);
+                lastTestMenuChange = millis(); // Avoid exiting test menu for 1s
+            }
+            else if (userBtn->wasReleased() && firstRoverStart == false)
+            {
+                if (settings.disableSetupButton ==
+                    false) // Allow check of the setup button if not overridden by settings
                 {
-                // If we are in any running state, change to STATE_DISPLAY_SETUP
-                case STATE_BASE_NOT_STARTED:
-                case STATE_BASE_TEMP_SETTLE:
-                case STATE_BASE_TEMP_SURVEY_STARTED:
-                case STATE_BASE_TEMP_TRANSMITTING:
-                case STATE_BASE_FIXED_NOT_STARTED:
-                case STATE_BASE_FIXED_TRANSMITTING:
-                case STATE_ROVER_NOT_STARTED:
-                case STATE_ROVER_NO_FIX:
-                case STATE_ROVER_FIX:
-                case STATE_ROVER_RTK_FLOAT:
-                case STATE_ROVER_RTK_FIX:
-                case STATE_NTPSERVER_NOT_STARTED:
-                case STATE_NTPSERVER_NO_SYNC:
-                case STATE_NTPSERVER_SYNC:
-                case STATE_WIFI_CONFIG_NOT_STARTED:
-                case STATE_WIFI_CONFIG:
-                case STATE_CONFIG_VIA_ETH_NOT_STARTED:
-                case STATE_ESPNOW_PAIRING_NOT_STARTED:
-                case STATE_ESPNOW_PAIRING:
-                    lastSystemState = systemState; // Remember this state to return after ESP-Now pair
-                    requestChangeState(STATE_DISPLAY_SETUP);
-                    setupState = STATE_BASE_NOT_STARTED;
-                    lastSetupMenuChange = millis();
-                    break;
-
-                case STATE_CONFIG_VIA_ETH_STARTED:
-                case STATE_CONFIG_VIA_ETH:
-                    // If the user presses the button during configure-via-ethernet, then do a complete restart into
-                    // Base mode
-                    requestChangeState(STATE_CONFIG_VIA_ETH_RESTART_BASE);
-                    break;
-
-                case STATE_PROFILE:
-                    // If the user presses the setup button during a profile change, do nothing
-                    // Allow system to return to lastSystemState
-                    break;
-
-                case STATE_TEST:
-                    // Do nothing. User is releasing the setup button.
-                    break;
-
-                case STATE_TESTING:
-                    // If we are in testing, return to Base Not Started
-                    requestChangeState(STATE_BASE_NOT_STARTED);
-                    break;
-
-                case STATE_DISPLAY_SETUP:
-                    // If we are displaying the setup menu, cycle through possible system states
-                    // Exit display setup and enter new system state after ~1500ms in updateSystemState()
-                    lastSetupMenuChange = millis();
-
-                    forceDisplayUpdate = true; // User is interacting so repaint display quickly
-
-                    switch (setupState)
+                    switch (systemState)
                     {
+                    // If we are in any running state, change to STATE_DISPLAY_SETUP
                     case STATE_BASE_NOT_STARTED:
-                        setupState = STATE_ROVER_NOT_STARTED;
-                        break;
+                    case STATE_BASE_TEMP_SETTLE:
+                    case STATE_BASE_TEMP_SURVEY_STARTED:
+                    case STATE_BASE_TEMP_TRANSMITTING:
+                    case STATE_BASE_FIXED_NOT_STARTED:
+                    case STATE_BASE_FIXED_TRANSMITTING:
                     case STATE_ROVER_NOT_STARTED:
-                        setupState = STATE_NTPSERVER_NOT_STARTED;
-                        break;
+                    case STATE_ROVER_NO_FIX:
+                    case STATE_ROVER_FIX:
+                    case STATE_ROVER_RTK_FLOAT:
+                    case STATE_ROVER_RTK_FIX:
                     case STATE_NTPSERVER_NOT_STARTED:
-                        setupState = STATE_CONFIG_VIA_ETH_NOT_STARTED;
-                        break;
-                    case STATE_CONFIG_VIA_ETH_NOT_STARTED:
-                        setupState = STATE_WIFI_CONFIG_NOT_STARTED;
-                        break;
+                    case STATE_NTPSERVER_NO_SYNC:
+                    case STATE_NTPSERVER_SYNC:
                     case STATE_WIFI_CONFIG_NOT_STARTED:
-                        setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
-                        break;
-
-                    case STATE_KEYS_NEEDED:
-                        lBandForceGetKeys = false; // User has scrolled past the GetKeys option
-                        setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
-                        break;
-
+                    case STATE_WIFI_CONFIG:
+                    case STATE_CONFIG_VIA_ETH_NOT_STARTED:
                     case STATE_ESPNOW_PAIRING_NOT_STARTED:
-                        // If only one active profile do not show any profiles
-                        index = getProfileNumberFromUnit(0);
-                        displayProfile = getProfileNumberFromUnit(1);
-                        setupState = (index >= displayProfile) ? STATE_BASE_NOT_STARTED : STATE_PROFILE;
-                        displayProfile = 0;
-                        break;
-                    case STATE_PROFILE:
-                        // Done when no more active profiles
-                        displayProfile++;
-                        if (!getProfileNumberFromUnit(displayProfile))
-                            setupState = STATE_BASE_NOT_STARTED;
-                        break;
-                    default:
-                        systemPrintf("ButtonCheckTask unknown setup state: %d\r\n", setupState);
+                    case STATE_ESPNOW_PAIRING:
+                        lastSystemState = systemState; // Remember this state to return after ESP-Now pair
+                        requestChangeState(STATE_DISPLAY_SETUP);
                         setupState = STATE_BASE_NOT_STARTED;
+                        lastSetupMenuChange = millis();
+                        break;
+
+                    case STATE_CONFIG_VIA_ETH_STARTED:
+                    case STATE_CONFIG_VIA_ETH:
+                        // If the user presses the button during configure-via-ethernet, then do a complete restart into
+                        // Base mode
+                        requestChangeState(STATE_CONFIG_VIA_ETH_RESTART_BASE);
+                        break;
+
+                    case STATE_PROFILE:
+                        // If the user presses the setup button during a profile change, do nothing
+                        // Allow system to return to lastSystemState
+                        break;
+
+                    case STATE_TEST:
+                        // Do nothing. User is releasing the setup button.
+                        break;
+
+                    case STATE_TESTING:
+                        // If we are in testing, return to Base Not Started
+                        requestChangeState(STATE_BASE_NOT_STARTED);
+                        break;
+
+                    case STATE_DISPLAY_SETUP:
+                        // If we are displaying the setup menu, cycle through possible system states
+                        // Exit display setup and enter new system state after ~1500ms in updateSystemState()
+                        lastSetupMenuChange = millis();
+
+                        forceDisplayUpdate = true; // User is interacting so repaint display quickly
+
+                        switch (setupState)
+                        {
+                        case STATE_BASE_NOT_STARTED:
+                            setupState = STATE_ROVER_NOT_STARTED;
+                            break;
+                        case STATE_ROVER_NOT_STARTED:
+                            setupState = STATE_NTPSERVER_NOT_STARTED;
+                            break;
+                        case STATE_NTPSERVER_NOT_STARTED:
+                            setupState = STATE_CONFIG_VIA_ETH_NOT_STARTED;
+                            break;
+                        case STATE_CONFIG_VIA_ETH_NOT_STARTED:
+                            setupState = STATE_WIFI_CONFIG_NOT_STARTED;
+                            break;
+                        case STATE_WIFI_CONFIG_NOT_STARTED:
+                            setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
+                            break;
+
+                        case STATE_KEYS_NEEDED:
+                            lBandForceGetKeys = false; // User has scrolled past the GetKeys option
+                            setupState = STATE_ESPNOW_PAIRING_NOT_STARTED;
+                            break;
+
+                        case STATE_ESPNOW_PAIRING_NOT_STARTED:
+                            // If only one active profile do not show any profiles
+                            index = getProfileNumberFromUnit(0);
+                            displayProfile = getProfileNumberFromUnit(1);
+                            setupState = (index >= displayProfile) ? STATE_BASE_NOT_STARTED : STATE_PROFILE;
+                            displayProfile = 0;
+                            break;
+                        case STATE_PROFILE:
+                            // Done when no more active profiles
+                            displayProfile++;
+                            if (!getProfileNumberFromUnit(displayProfile))
+                                setupState = STATE_BASE_NOT_STARTED;
+                            break;
+                        default:
+                            systemPrintf("ButtonCheckTask unknown setup state: %d\r\n", setupState);
+                            setupState = STATE_BASE_NOT_STARTED;
+                            break;
+                        }
+                        break;
+
+                    default:
+                        systemPrintf("ButtonCheckTask unknown system state: %d\r\n", systemState);
+                        requestChangeState(STATE_BASE_NOT_STARTED);
                         break;
                     }
-                    break;
-
-                default:
-                    systemPrintf("ButtonCheckTask unknown system state: %d\r\n", systemState);
-                    requestChangeState(STATE_BASE_NOT_STARTED);
-                    break;
-                }
-            } // End disableSetupButton check
-        }
+                } // End disableSetupButton check
+            }     // End button wasReleased
+        }         // End productVariant != Torch
 
         feedWdt();
         taskYIELD();

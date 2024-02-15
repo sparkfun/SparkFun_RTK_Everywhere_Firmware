@@ -1,14 +1,14 @@
 /*
-  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor 
-  generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the 
-  GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The 
-  Data Collector does not know anything is being tilt-compensated. To do this we must intercept 
-  NMEA from the UM980 and splice in the values from the tilt sensor. See tiltApplyCompensationGGA() 
+  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor
+  generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
+  GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
+  Data Collector does not know anything is being tilt-compensated. To do this we must intercept
+  NMEA from the UM980 and splice in the values from the tilt sensor. See tiltApplyCompensationGGA()
   as an example.
 
   The tilt sensor reports + and - numbers for Latitude/Longitude. Whereas NMEA expects positive
-  numbers with letters N/S and E/W. Since we are splicing into NMEA, the correct N/S and E/W letters 
-  are already set. We just need to be sure the tilt-compensated values are positive using abs(). 
+  numbers with letters N/S and E/W. Since we are splicing into NMEA, the correct N/S and E/W letters
+  are already set. We just need to be sure the tilt-compensated values are positive using abs().
   This could lead to problems if the unit is within ~1m of the Equator and Prime Meridian but
   we don't consider those edges cases here.
 */
@@ -49,7 +49,7 @@ void menuTilt()
         }
         else if ((settings.enableTiltCompensation == true) && (incoming == 2))
         {
-            getNewSetting("Enter length of the pole in meters", 0.01, 4.0, &settings.tiltPoleLength);
+            getNewSetting("Enter length of the pole in meters", 0.0, 4.0, &settings.tiltPoleLength);
         }
 
         else if (incoming == 'x')
@@ -67,7 +67,7 @@ void menuTilt()
 
 void tiltUpdate()
 {
-    if (tiltSupported == true)
+    if (present.imu_im19 == true)
     {
         if (settings.enableTiltCompensation == true && online.imu == true)
         {
@@ -85,17 +85,24 @@ void tiltUpdate()
                 }
 
                 // Check to see if tilt compensation is active
-                uint32_t naviStatus = tiltSensor->getNaviStatus();
-                if ((naviStatus & (1 << 19)) && tiltSensor->getNaviLatitude() > 0) // SyncReady 0x80000
+                if (tiltSensor->isCorrecting())
                 {
-                    online.tilt = true;
-                    systemPrintln("Tilt Online");
+                    // Trigger beeper only once
+                    if (online.tilt == false)
+                    {
+                        beepDuration(2000); // Audibly indicate the start of tilt
+
+                        lastTiltBeepMs = millis();
+
+                        online.tilt = true;
+                    }
                 }
                 else
                     online.tilt = false;
 
                 if (settings.enableImuDebug == true)
                 {
+                    uint32_t naviStatus = tiltSensor->getNaviStatus();
                     systemPrintf("NAVI timestamp: %0.0f lat: %0.4f lon: %0.4f alt: %0.2f\r\n",
                                  tiltSensor->getNaviTimestamp(), tiltSensor->getNaviLatitude(),
                                  tiltSensor->getNaviLongitude(), tiltSensor->getNaviAltitude());
@@ -153,50 +160,64 @@ void tiltUpdate()
                     // if (naviStatus & (1 << 20)) //0x100000
                     //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
                     //     0x100000
+                    if (naviStatus > 0x1FFFFF)
+                    {
+                        // Clear all lower/known bits
+                        uint32_t bitsToShow = 0 ^ 0x1FFFFF;
+                        systemPrintf("Status: Unknown status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
+                    }
 
-                    /*Steps:
-                        Step one: Rotate the receiver in hand, or shake it. I think it's looking for the heading angle
-                        to change >360 degrees
+                    /*Datasheet initialization steps:
+                        Step one: Rotate the receiver in hand, or shake it.
 
                         Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
-                        means step two has been entered Wait for RTK to output the fixed solution
+                        means step two has been entered. Wait for RTK to output the fixed solution.
 
                         Step three: Some rocking is required to make accuracy meet the requirements. Rock rod back and
                         forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
                         degrees and continue to rock until the init is complete. The status word becomes ready.
+                    */
+                } // End Debug IMU
+            }     // End Check IMU state at 1Hz
 
-                      */
-                }
+            // If tilt is active, play short beep every 10 seconds
+            if ((online.tilt == true) && (millis() - lastTiltBeepMs > 10000))
+            {
+                lastTiltBeepMs = millis();
+                beepDuration(250);
             }
         }
         else if (settings.enableTiltCompensation == false && online.imu == true)
         {
             tiltStop(); // If the user has disabled the device, shut it down
         }
-        else if (settings.enableTiltCompensation == true && online.imu == false)
+        else if (settings.enableTiltCompensation == true && online.imu == false && tiltFailedBegin == false)
         {
             // Try multiple times to configure IM19
             for (int x = 0; x < 3; x++)
             {
-                tiltBegin(); // Start IMU
+                beginTilt(); // Start IMU
                 if (online.imu == true)
                     break;
                 log_d("Tilt sensor failed to configure. Trying again.");
             }
 
             if (online.imu == false) // If we failed to begin, disable future attempts
-                tiltSupported = false;
+                tiltFailedBegin = true;
         }
     }
 }
 
 // Start communication with the IM19 IMU
-void tiltBegin()
+void beginTilt()
 {
-    if (tiltSupported == false)
+    if (present.imu_im19 == false)
         return;
 
     if (settings.enableTiltCompensation == false)
+        return;
+
+    if (online.imu == true) // Don't restart if already online
         return;
 
     tiltSensor = new IM19();
@@ -298,6 +319,7 @@ void tiltStop()
     SerialForTilt = nullptr;
 
     online.imu = false;
+    online.tilt = false;
 }
 
 // Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt

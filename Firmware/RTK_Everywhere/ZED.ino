@@ -600,21 +600,12 @@ bool zedConfigureBase()
         // automatically the dynamic platform model (CFG-NAVSPG-DYNMODEL) to Stationary.
         // response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); //Not needed
 
-        // RTCM is only available on ZED-F9P modules
-        //
         // For most RTK products, the GNSS is interfaced via both I2C and UART1. Configuration and PVT/HPPOS messages
         // are configured over I2C. Any messages that need to be logged are output on UART1, and received by this code
         // using serialGNSS-> In base mode the RTK device should output RTCM over all ports: (Primary) UART2 in case the
-        // Surveyor is connected via radio to rover (Optional) I2C in case user wants base to connect to WiFi and NTRIP
-        // Caster (Seconday) USB in case the Surveyor is used as an NTRIP caster connected to SBC or other (Tertiary)
-        // UART1 in case Surveyor is sending RTCM to phone that is then NTRIP Caster
-        //
-        // But, on the Reference Station, the GNSS is interfaced via SPI. It has no access to I2C and UART1.
-        // We use the GNSS library's built-in logging buffer to mimic UART1. The code in Tasks.ino reads
-        // data from the logging buffer as if it had come from UART1.
-        // So for that product - in Base mode - we can only output RTCM on SPI, USB and UART2.
-        // If we want to log the RTCM messages, we need to add them to the logging buffer inside the GNSS library.
-        // If we want to pass them along to (e.g.) radio, we do that using processRTCM (defined below).
+        // RTK device is connected via radio to rover (Optional) I2C in case user wants base to connect to WiFi and NTRIP
+        // Caster (Seconday) USB in case the RTK device is used as an NTRIP caster connected to SBC or other (Tertiary)
+        // UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
 
         // Find first RTCM record in ubxMessage array
         int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
@@ -1421,4 +1412,68 @@ uint8_t zedGetLeapSeconds()
     sfe_ublox_ls_src_e leapSecSource;
     leapSeconds = theGNSS->getCurrentLeapSeconds(leapSecSource);
     return (leapSeconds);
+}
+
+// If we have decryption keys, and L-Band is online, configure module
+void zedApplyPointPerfectKeys()
+{
+    if (online.lband == true)
+    {
+        if (online.gnss == false)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintln("ZED-F9P not available");
+            return;
+        }
+
+        // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
+        if (zedFirmwareVersionInt < 130)
+        {
+            systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
+                          "Please upgrade your ZED firmware: "
+                          "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
+            return;
+        }
+
+        if (strlen(settings.pointPerfectNextKey) > 0)
+        {
+            const uint8_t currentKeyLengthBytes = 16;
+            const uint8_t nextKeyLengthBytes = 16;
+
+            uint16_t currentKeyGPSWeek;
+            uint32_t currentKeyGPSToW;
+            long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
+            epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
+
+            uint16_t nextKeyGPSWeek;
+            uint32_t nextKeyGPSToW;
+            epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
+            epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
+
+            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // use LBAND PMP message
+
+            theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
+
+            theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
+                             3); // Set the differential mode - ambiguities are fixed whenever possible
+
+            bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
+                                                          settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                          nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+
+            if (response == false)
+                systemPrintln("setDynamicSPARTNKeys failed");
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("PointPerfect keys applied");
+                online.lbandCorrections = true;
+            }
+        }
+        else
+        {
+            if (settings.debugCorrections == true)
+                systemPrintln("No PointPerfect keys available");
+        }
+    }
 }

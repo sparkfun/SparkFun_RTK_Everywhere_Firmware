@@ -422,7 +422,7 @@ void setGNSSMessageRates(uint8_t *localMessageRate, uint8_t msgRate)
 }
 
 // Creates a log if logging is enabled, and SD is detected
-// Based on GPS data/time, create a log file in the format SFE_Surveyor_YYMMDD_HHMMSS.ubx
+// Based on GPS data/time, create a log file in the format SFE_Everywhere_YYMMDD_HHMMSS.ubx
 void beginLogging()
 {
     beginLogging(nullptr);

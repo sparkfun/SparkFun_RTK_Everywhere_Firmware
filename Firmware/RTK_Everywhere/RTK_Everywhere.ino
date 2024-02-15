@@ -1,24 +1,26 @@
 /*
-  September 1st, 2020
+  October 2nd, 2023
   SparkFun Electronics
   Nathan Seidle
 
-  This firmware runs the core of the SparkFun RTK products. It runs on an ESP32
-  and communicates with the ZED-F9P.
+  This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
+  and communicates with various GNSS receivers.
 
-  Compiled with Arduino v1.8.15 with ESP32 core v2.0.2.
+  Compiled using Arduino CLI and ESP32 core v2.0.11.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
   Special thanks to Avinab Malla for guidance on getting xTasks implemented.
 
-  The RTK Surveyor implements classic Bluetooth SPP to transfer data from the
-  ZED-F9P to the phone and receive any RTCM from the phone and feed it back
-  to the ZED-F9P to achieve RTK: btReadTask(), gnssReadTask().
+  The RTK firmware implements classic Bluetooth SPP to transfer data from the
+  GNSS receiver to the phone and receive any RTCM from the phone and feed it back
+  to the GNSS receiver to achieve RTK Fix.
 
-  Settings are loaded from microSD if available otherwise settings are pulled from ESP32's file system LittleFS.
+  Settings are loaded from microSD if available, otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
+// To reduce compile times, various parts of the firmware can be disabled/removed if they are not
+// needed during development
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
@@ -28,11 +30,11 @@
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-#define COMPILE_BT     // Comment out to remove Bluetooth functionality
-#define COMPILE_L_BAND // Comment out to remove L-Band functionality
-#define COMPILE_UM980    // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
-#define COMPILE_POINTPERFECT_LIBRARY //Comment out to remove PPL support
+#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
+#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
+#define COMPILE_UM980                // Comment out to remove UM980 functionality
+#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50 // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
@@ -55,7 +57,7 @@
 #endif // POINTPERFECT_TOKEN
 
 // Define the RTK board identifier:
-//  This is an int which is unique to this variant of the RTK Surveyor hardware which allows us
+//  This is an int which is unique to this variant of the RTK hardware which allows us
 //  to make sure that the settings stored in flash (LittleFS) are correct for this version of the RTK
 //  (sizeOfSettings is not necessarily unique and we want to avoid problems when swapping from one variant to another)
 //  It is the sum of:
@@ -82,21 +84,20 @@
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // These pins are set in beginBoard()
 #define PIN_UNDEFINED -1
-int pin_batteryStatusLED = PIN_UNDEFINED; //LED on Torch
-int pin_baseStatusLED = PIN_UNDEFINED; //LED on EVK
-int pin_bluetoothStatusLED = PIN_UNDEFINED; //LED on Torch
-int pin_gnssStatusLED = PIN_UNDEFINED; //LED on Torch
+int pin_batteryStatusLED = PIN_UNDEFINED;   // LED on Torch
+int pin_baseStatusLED = PIN_UNDEFINED;      // LED on EVK
+int pin_bluetoothStatusLED = PIN_UNDEFINED; // LED on Torch
+int pin_gnssStatusLED = PIN_UNDEFINED;      // LED on Torch
 
 int pin_muxA = PIN_UNDEFINED;
 int pin_muxB = PIN_UNDEFINED;
-int pin_powerSenseAndControl = PIN_UNDEFINED; //Power button and power down I/O on Facet
-int pin_modeButton = PIN_UNDEFINED; //Mode button on EVK
-int pin_powerButton = PIN_UNDEFINED; //Power and general purpose button on Torch
-int pin_powerFastOff = PIN_UNDEFINED; //Output on Facet
+int pin_powerSenseAndControl = PIN_UNDEFINED; // Power button and power down I/O on Facet
+int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK
+int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch
+int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_dac26 = PIN_UNDEFINED;
 int pin_adc39 = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; //EVK
-
+int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
 
 int pin_radio_rx = PIN_UNDEFINED;
 int pin_radio_tx = PIN_UNDEFINED;
@@ -236,7 +237,7 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 
 #ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
@@ -295,7 +296,7 @@ char zedFirmwareVersion[20];   // The string looks like 'HPG 1.12'. Output to sy
 char neoFirmwareVersion[20];   // Output to system status menu.
 uint8_t zedFirmwareVersionInt; // Controls which features (constellations) can be configured (v1.12 doesn't support
                                // SBAS). Note: will fail above 2.55!
-char zedUniqueId[11];                     // Output to system status menu and log file.
+char zedUniqueId[11];          // Output to system status menu and log file.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called.
@@ -391,7 +392,7 @@ unsigned long rtcmLastPacketReceived;
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
 #else
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
-#endif                                             // COMPILE_UM980
+#endif                                          // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
@@ -415,14 +416,15 @@ const int ledRedChannel = 0;
 const int ledGreenChannel = 1;
 const int ledBtChannel = 2;
 const int ledGnssChannel = 3;
+const int ledBatteryChannel = 4;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;
 int btFadeLevel;
 
-int battLevel; // SOC measured from fuel gauge, in %. Used in multiple places (display, serial debug, log)
-float battVoltage;
-float battChangeRate;
+int batteryLevelPercent; // SOC measured from fuel gauge, in %. Used in multiple places (display, serial debug, log)
+float batteryVoltage;
+float batteryChargingPercentPerHour;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Hardware serial and BT buffers
@@ -439,7 +441,7 @@ HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 2000;
+const int btReadTaskStackSize = 4000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
@@ -449,12 +451,12 @@ uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
-const int gnssReadTaskStackSize = 5000;
+const int gnssReadTaskStackSize = 4000;
 
 const int handleGnssDataTaskStackSize = 3000;
 
 TaskHandle_t pinBluetoothTaskHandle; // Dummy task to start hardware on an assigned core
-volatile bool bluetoothPinned; // This variable is touched by core 0 but checked by core 1. Must be volatile.
+volatile bool bluetoothPinned;       // This variable is touched by core 0 but checked by core 1. Must be volatile.
 
 volatile static int combinedSpaceRemaining; // Overrun indicator
 volatile static long fileSize;              // Updated with each write
@@ -462,7 +464,10 @@ int bufferOverruns;                         // Running count of possible data lo
 
 bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED over UART
 const uint8_t btEscapeCharacter = '+';
-const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter command mode over B
+const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
+const uint8_t btAppCommandCharacter = '-';
+const uint8_t btMaxAppCommandCharacters = 10; // Number of characters needed to enter app command mode over Bluetooth
+bool runCommandMode; // Goes true when user or remote app enters ---------- command mode sequence
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -479,8 +484,8 @@ int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
 const char *forceFirmwareFileName =
-    "RTK_Surveyor_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
-int binBytesLastUpdate;                // Allows websocket notification to be sent every 100k bytes
+    "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
+int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Low frequency tasks
@@ -493,6 +498,9 @@ float bluetoothLedTaskPace33Hz = 0.03;
 
 Ticker gnssLedTask;
 const int gnssTaskUpdatesHz = 20; // Update GNSS LED 20 times a second
+
+Ticker batteryLedTask;
+const int batteryTaskUpdatesHz = 20; // Update Battery LED 20 times a second. Shortest duration = 50ms.
 
 Ticker beepTask;
 const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest duration = 50ms.
@@ -521,14 +529,13 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 AsyncWebServer *webserver;
 AsyncWebSocket *websocket;
 
-char *settingsCSV; // Push large array onto heap
-
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 5000
+char *settingsCSV; // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
@@ -596,13 +603,10 @@ unsigned long lastEthernetCheck; // Prevents cable checking from continually hap
 #include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor;
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
-bool tiltSupported;            // Variant specific. Set at beginBoard().
-unsigned long lastTiltCheck;   // Limits polling on IM19 to 5Hz
-
-#define TILT_SUPPORTED tiltSupported
-#else
-#define TILT_SUPPORTED false
-#endif // COMPILE_IM19_IMU
+unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
+bool tiltFailedBegin;          // Goes true if IMU fails beginTilt()
+unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
+#endif                         // COMPILE_IM19_IMU
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Library (PPL)
@@ -619,19 +623,19 @@ uint8_t *pplRtcmBuffer;
 bool pplAttemptedStart;
 bool pplGnssOutput;
 bool pplMqttCorrections;
-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
 
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 #include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
 #include "NetworkUDP.h"    //Supports both WiFiUdp and EthernetUdp
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define lbandMACAddress btMACAddress
 uint8_t wifiMACAddress[6];     // Display this address in the system menu
 uint8_t btMACAddress[6];       // Display this address when Bluetooth is enabled, otherwise display wifiMACAddress
 uint8_t ethernetMACAddress[6]; // Display this address when Ethernet is enabled, otherwise display wifiMACAddress
-char deviceName[70];           // The serial string that is broadcast. Ex: 'Surveyor Base-BC61'
+char deviceName[70];           // The serial string that is broadcast. Ex: 'EVK Base-BC61'
 const uint16_t menuTimeout = 60 * 10; // Menus will exit/timeout after this number of seconds
 int systemTime_minutes;               // Used to test if logging is less than max minutes
 uint32_t powerPressedStartTime;       // Times how long the user has been holding the power button, used for power down
@@ -720,10 +724,6 @@ uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
-unsigned long btLastByteReceived;  // Track when the last BT transmission was received.
-const long btMinEscapeTime = 2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
-uint8_t btEscapeCharsReceived;     // Used to enter command mode
-
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
 //  Causes setup and loop to skip any code which would cause SPI or interrupts to be initialized.
@@ -794,7 +794,7 @@ volatile bool deadManWalking;
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
         settings.printDebugMessages = true;                                                                            \
-        settings.debugGnss = true;                                                                               \
+        settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
         settings.enablePrintState = true;                                                                              \
@@ -1118,8 +1118,8 @@ void loop()
     DMW_c("stateUpdate");
     stateUpdate();
 
-    DMW_c("batteryUpdate");
-    batteryUpdate();
+    DMW_c("updateBattery");
+    updateBattery();
 
     DMW_c("displayUpdate");
     displayUpdate();
@@ -1235,7 +1235,7 @@ void logUpdate()
                 // While a retry does occur during the next loop, it is possible to lose
                 // trigger events if they occur too rapidly or if the log file is closed
                 // before the trigger event is written!
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Surveyor.ino line %d", semaphoreHolder,
+                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
                       __LINE__);
             }
         }
@@ -1277,7 +1277,7 @@ void logUpdate()
             {
                 char semaphoreHolder[50];
                 getSemaphoreFunction(semaphoreHolder);
-                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Surveyor.ino line %d", semaphoreHolder,
+                log_w("sdCardSemaphore failed to yield, held by %s, RTK_Everywhere.ino line %d", semaphoreHolder,
                       __LINE__);
             }
         }

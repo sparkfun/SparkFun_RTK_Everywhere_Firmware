@@ -268,7 +268,7 @@ void scanForFirmware()
     SdFile tempFile;
     SdFile dir;
     const char *BIN_EXT = "bin";
-    const char *BIN_HEADER = "RTK_Surveyor_Firmware";
+    const char *BIN_HEADER = "RTK_Everywhere_Firmware";
 
     char fname[50]; // Handle long file names
 
@@ -292,7 +292,7 @@ void scanForFirmware()
             // Check 'bin' extension
             if (strcmp(BIN_EXT, &fname[strlen(fname) - strlen(BIN_EXT)]) == 0)
             {
-                // Check for 'RTK_Surveyor_Firmware' start of file name
+                // Check for 'RTK_Everywhere_Firmware' start of file name
                 if (strncmp(fname, BIN_HEADER, strlen(BIN_HEADER)) == 0)
                 {
                     strncpy(binFileNames[binCount++], fname, sizeof(binFileNames[0]) - 1); // Add this to the array

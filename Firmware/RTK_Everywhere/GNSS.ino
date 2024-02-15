@@ -1098,7 +1098,17 @@ uint8_t gnssGetLeapSeconds()
             }
         }
     }
-
     return (18); // Default to 18 if GNSS is offline
+}
 
+void gnssApplyPointPerfectKeys()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        zedApplyPointPerfectKeys();
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        //Taken care of in beginPPL()
+    }
 }
