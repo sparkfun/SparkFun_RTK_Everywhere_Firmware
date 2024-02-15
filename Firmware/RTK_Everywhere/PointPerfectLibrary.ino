@@ -172,6 +172,7 @@ bool getUsablePplKey(char *keyBuffer, int keyBufferSize)
 
     if (settings.debugCorrections == true)
     {
+        pointperfectPrintKeyInformation();
         systemPrintf("Days remaining until current key expires: %d\r\n", daysRemainingCurrent);
         systemPrintf("Days remaining until next key expires: %d\r\n", daysRemainingNext);
     }
@@ -293,6 +294,21 @@ const char *PPLReturnStatusToStr(ePPL_ReturnStatus status)
     default:
         return ("unknown state");
     }
+}
+
+void pointperfectPrintKeyInformation()
+{
+    systemPrintf("  pointPerfectCurrentKey: %s\r\n", settings.pointPerfectCurrentKey);
+    systemPrintf(
+        "  pointPerfectCurrentKeyStart: %lld - %s\r\n", settings.pointPerfectCurrentKeyStart,
+        printDateFromUnixEpoch(settings.pointPerfectCurrentKeyStart / 1000)); // printDateFromUnixEpoch expects seconds
+    systemPrintf("  pointPerfectCurrentKeyDuration: %lld - %s\r\n", settings.pointPerfectCurrentKeyDuration,
+                 printDaysFromDuration(settings.pointPerfectCurrentKeyDuration));
+    systemPrintf("  pointPerfectNextKey: %s\r\n", settings.pointPerfectNextKey);
+    systemPrintf("  pointPerfectNextKeyStart: %lld - %s\r\n", settings.pointPerfectNextKeyStart,
+                 printDateFromUnixEpoch(settings.pointPerfectNextKeyStart / 1000));
+    systemPrintf("  pointPerfectNextKeyDuration: %lld - %s\r\n", settings.pointPerfectNextKeyDuration,
+                 printDaysFromDuration(settings.pointPerfectNextKeyDuration));
 }
 
 #endif // COMPILE_POINTPERFECT_LIBRARY
