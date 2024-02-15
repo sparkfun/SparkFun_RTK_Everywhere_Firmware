@@ -5,14 +5,14 @@
 //----------------------------------------
 
 // The PointPerfect token is provided at compile time via build flags
-#define DEVELOPMENT_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
-#ifndef POINTPERFECT_TOKEN
+#define DEVELOPMENT_LBAND_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
+#ifndef POINTPERFECT_LBAND_TOKEN
 #warning Using the DEVELOPMENT_TOKEN for point perfect!
-#define POINTPERFECT_TOKEN DEVELOPMENT_TOKEN
-#endif // POINTPERFECT_TOKEN
+#define POINTPERFECT_LBAND_TOKEN DEVELOPMENT_LBAND_TOKEN
+#endif // POINTPERFECT_LBAND_TOKEN
 
-static const uint8_t developmentTokenArray[16] = {DEVELOPMENT_TOKEN};   // Token in HEX form
-static const uint8_t pointPerfectTokenArray[16] = {POINTPERFECT_TOKEN}; // Token in HEX form
+static const uint8_t developmentLbandTokenArray[16] = {DEVELOPMENT_LBAND_TOKEN};   // Token in HEX form
+static const uint8_t pointPerfectLbandTokenArray[16] = {POINTPERFECT_LBAND_TOKEN}; // Token in HEX form
 
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
 
@@ -257,12 +257,12 @@ bool pointperfectProvisionDevice()
         {
             // Convert uint8_t array into string with dashes in spots
             // We must assume u-blox will not change the position of their dashes or length of their token
-            if (!memcmp(pointPerfectTokenArray, developmentTokenArray, sizeof(developmentTokenArray)))
+            if (!memcmp(pointPerfectLBandTokenArray, developmentLbandTokenArray, sizeof(developmentLbandTokenArray)))
                 systemPrintln("Warning: Using the development token!");
-            for (int x = 0; x < sizeof(pointPerfectTokenArray); x++)
+            for (int x = 0; x < sizeof(pointPerfectLbandTokenArray); x++)
             {
                 char temp[3];
-                snprintf(temp, sizeof(temp), "%02x", pointPerfectTokenArray[x]);
+                snprintf(temp, sizeof(temp), "%02x", pointPerfectLBandTokenArray[x]);
                 strcat(tokenString, temp);
                 if (x == 3 || x == 5 || x == 7 || x == 9)
                     strcat(tokenString, "-");
