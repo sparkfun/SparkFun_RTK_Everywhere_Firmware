@@ -57,7 +57,7 @@ void menuPointPerfectKeys()
             systemPrintf("%s\r\n", printDateFromGPSEpoch(gpsEpoch));
 
             if (settings.debugCorrections == true)
-                systemPrintf("settings.pointPerfectCurrentKeyDuration: %lld (%d)\r\n",
+                systemPrintf("settings.pointPerfectCurrentKeyDuration: %lld (%s)\r\n",
                              settings.pointPerfectCurrentKeyDuration,
                              printDaysFromDuration(settings.pointPerfectCurrentKeyDuration));
         }
