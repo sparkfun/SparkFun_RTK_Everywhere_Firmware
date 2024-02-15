@@ -167,13 +167,13 @@ void beginBoard()
         DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
         pinMode(pin_gnssStatusLED, OUTPUT);
 
-        // Turn on Bluetooth and GNSS LEDs to indicate power on
-        bluetoothLedOn();
-        gnssStatusLedOn();
-
         DMW_if systemPrintf("pin_batteryStatusLED: %d\r\n", pin_batteryStatusLED);
         pinMode(pin_batteryStatusLED, OUTPUT);
-        batteryStatusLedOff();
+
+        // Turn on Bluetooth, GNSS, and Battery LEDs to indicate power on
+        bluetoothLedOn();
+        gnssStatusLedOn();
+        batteryStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
 
@@ -731,8 +731,8 @@ void tickerBegin()
     {
         ledcSetup(ledBatteryChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_batteryStatusLED, ledBatteryChannel);
-        ledcWrite(ledBatteryChannel, 0);                                        // Turn off battery LED at startup
-        batteryLedTask.detach();                                                // Turn off any previous task
+        ledcWrite(ledBatteryChannel, 0);                                           // Turn off battery LED at startup
+        batteryLedTask.detach();                                                   // Turn off any previous task
         batteryLedTask.attach(1.0 / batteryTaskUpdatesHz, tickerBatteryLedUpdate); // Rate in seconds, callback
     }
 

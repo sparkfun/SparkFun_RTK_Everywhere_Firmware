@@ -464,7 +464,7 @@ const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
 const uint8_t btAppCommandCharacter = '-';
 const uint8_t btMaxAppCommandCharacters = 10; // Number of characters needed to enter app command mode over Bluetooth
-bool runCommandMode; //Goes true when user or remote app enters ---------- command mode sequence
+bool runCommandMode; // Goes true when user or remote app enters ---------- command mode sequence
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -482,7 +482,7 @@ const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
 const char *forceFirmwareFileName =
     "RTK_Everywhere_Firmware_Force.bin"; // File that will be loaded at startup regardless of user input
-int binBytesLastUpdate;                // Allows websocket notification to be sent every 100k bytes
+int binBytesLastUpdate;                  // Allows websocket notification to be sent every 100k bytes
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Low frequency tasks
