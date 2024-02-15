@@ -112,6 +112,7 @@ void updatePPL()
             }
         }
 
+
         // Check to see if our key has expired
         if (millis() > pplKeyExpirationMs)
         {
@@ -168,7 +169,7 @@ bool getUsablePplKey(char *keyBuffer, int keyBufferSize)
 
     int daysRemainingNext = -1;
     if (strlen(settings.pointPerfectNextKey) > 0)
-        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+        daysRemainingNext = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
 
     if (settings.debugCorrections == true)
     {
