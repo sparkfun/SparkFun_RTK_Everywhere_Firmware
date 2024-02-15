@@ -35,6 +35,7 @@
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+#define COMPILE_BQ40Z50 // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -404,8 +405,10 @@ GnssPlatform gnssPlatform = PLATFORM_ZED;
 #include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library
 SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
+#ifdef COMPILE_BQ40Z50
 #include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50
 BQ40Z50 *bq40z50Battery;
+#endif // COMPILE_BQ40Z50
 
 // RTK LED PWM properties
 const int pwmFreq = 5000;
