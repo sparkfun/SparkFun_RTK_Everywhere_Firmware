@@ -104,7 +104,7 @@ bool um980ConfigureOnce()
 */
 
     if (settings.debugGnss)
-        um980->enableDebugging(); // Print all debug to Serial
+        um980EnableDebugging(); // Print all debug to Serial
 
     um980DisableAllOutput(); // Disable COM1/2/3
 
@@ -295,7 +295,7 @@ bool um980EnableNMEA()
                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
                 if (settings.debugGnss)
-                    systemPrintf("Enable NMEA failed at messageNumber %d %s.", messageNumber,
+                    systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
                                  umMessagesNMEA[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
