@@ -279,7 +279,7 @@ void menuNetwork()
         // Get the PVT client port number
         else if ((incoming == 3) && settings.enablePvtClient)
         {
-            getNewSetting("Enter the PVT client port number to use", 0, 65535, (int *)&settings.pvtClientPort);
+            getNewSetting("Enter the PVT client port number to use", 0, 65535, &settings.pvtClientPort);
         }
 
         //------------------------------
@@ -292,7 +292,7 @@ void menuNetwork()
 
         else if (incoming == 5)
         {
-            getNewSetting("Enter the TCP port to use", 0, 65535, (int *)&settings.pvtServerPort);
+            getNewSetting("Enter the TCP port to use", 0, 65535, &settings.pvtServerPort);
         }
 
         //------------------------------
@@ -305,7 +305,7 @@ void menuNetwork()
 
         else if (incoming == 7 && settings.enablePvtUdpServer)
         {
-            getNewSetting("Enter the UDP port to use", 0, 65535, (int *)&settings.pvtUdpServerPort);
+            getNewSetting("Enter the UDP port to use", 0, 65535, &settings.pvtUdpServerPort);
         }
 
         //------------------------------

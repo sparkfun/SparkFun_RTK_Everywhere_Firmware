@@ -121,7 +121,7 @@ void menuLog()
         {
             // Arbitrary 10 minute limit
             getNewSetting("Enter the ARP logging interval in seconds", 0, 60 * 10,
-                          (int *)&settings.ARPLoggingInterval_s);
+                          &settings.ARPLoggingInterval_s);
         }
         else if (incoming == 7)
         {

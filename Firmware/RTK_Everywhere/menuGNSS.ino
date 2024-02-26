@@ -230,7 +230,7 @@ void menuGNSS()
         else if ((incoming == 7) && settings.enableNtripClient == true)
         {
             // Arbitrary 99k max port #
-            if (getNewSetting("Enter new Caster Port", 1, 99999, (int *)&settings.ntripClient_CasterPort) ==
+            if (getNewSetting("Enter new Caster Port", 1, 99999, &settings.ntripClient_CasterPort) ==
                 INPUT_RESPONSE_VALID)
             {
                 restartRover = true;
@@ -269,7 +269,7 @@ void menuGNSS()
                  (incoming == 6 && settings.enableNtripClient == false))
         {
             // Arbitrary 90 degree max
-            if (getNewSetting("Enter minimum elevation in degrees", 0, 90, (int *)&settings.minElev) ==
+            if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) ==
                 INPUT_RESPONSE_VALID)
             {
                 gnssSetElevation(settings.minElev);
