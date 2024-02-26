@@ -1093,7 +1093,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
             }
 
             case 0x60: {
-                systemPrintf("  0x%02X - ATECC608A Crypto Coprocessor\r\n", addr);
+                systemPrintf("  0x%02X - ATECC608A Cryptographic Coprocessor\r\n", addr);
                 break;
             }
             }

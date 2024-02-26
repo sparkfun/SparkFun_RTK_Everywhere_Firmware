@@ -51,10 +51,10 @@
 #endif   // ENABLE_DEVELOPER
 
 // This is passed in from compiler extra flags
-#ifndef POINTPERFECT_LBAND_TOKEN
+#ifndef POINTPERFECT_LBAND_PAID_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
-#endif // POINTPERFECT_LBAND_TOKEN
+#endif // POINTPERFECT_LBAND_PAID_TOKEN
 
 // Define the RTK board identifier:
 //  This is an int which is unique to this variant of the RTK hardware which allows us

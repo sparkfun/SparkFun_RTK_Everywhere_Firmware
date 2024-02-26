@@ -50,7 +50,7 @@ DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
 FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
-POINTPERFECT_LBAND_TOKEN=
+POINTPERFECT_LBAND_PAID_TOKEN=
 PORT_NAME=/dev/ttyUSB0
 TEST_SKETCH=PSRAM_HeapCapsTest
 
@@ -212,7 +212,7 @@ partition:	../app3M_fat9M_16MB.csv
 	python main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
 
 ../RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.bin:	../RTK_Everywhere/*.ino  ../RTK_Everywhere/*.h
-	~/Arduino/arduino-cli  compile  --fqbn  "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL)  ../RTK_Everywhere/RTK_Everywhere.ino  --build-property build.partitions=app3M_fat9M_16MB  --build-property upload.maximum_size=3145728  --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_TOKEN=$(POINTPERFECT_LBAND_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\""  --export-binaries
+	~/Arduino/arduino-cli  compile  --fqbn  "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL)  ../RTK_Everywhere/RTK_Everywhere.ino  --build-property build.partitions=app3M_fat9M_16MB  --build-property upload.maximum_size=3145728  --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_PAID_TOKEN=$(POINTPERFECT_LBAND_PAID_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\""  --export-binaries
 
 RTK:	../RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.elf
 	ls -al ../RTK_Everywhere/build/esp32.esp32.esp32/RTK_Everywhere.ino.bin

@@ -17,7 +17,7 @@
     ~/Arduino/arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$DEBUG_LEVEL \
     ./Firmware/RTK_Surveyor/RTK_Surveyor.ino  --build-property \
     build.partitions=app3M_fat9M_16MB  --build-property upload.maximum_size=3145728 \
-    --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_TOKEN=$POINTPERFECT_LBAND_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=$ENABLE_DEVELOPER\"" \
+    --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_PAID_TOKEN=$POINTPERFECT_LBAND_PAID_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=$ENABLE_DEVELOPER\"" \
     --export-binaries
 
   2.  Load the firmware into the RTK, an example:
