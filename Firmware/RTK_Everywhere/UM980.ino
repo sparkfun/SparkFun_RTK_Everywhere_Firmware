@@ -107,10 +107,6 @@ bool um980ConfigureOnce()
     if (settings.debugGnss)
         um980->enableDebugging(); // Print all debug to Serial
 
-    // Check if um980Constellations, um980MessageRatesNMEA, um980MessageRatesRTCMRover, um980MessageRatesRTCMBase need
-    // to be defaulted
-    checkArrayDefaults();
-
     um980DisableAllOutput(); // Disable COM1/2/3
 
     bool response = true;

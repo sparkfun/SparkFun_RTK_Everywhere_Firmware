@@ -17,6 +17,9 @@ bool gnssConfigure()
     if (online.gnss == false)
         return (false);
 
+    // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
+    checkArrayDefaults();
+
     if (gnssPlatform == PLATFORM_ZED)
     {
         // Configuration can take >1s so configure during splash
@@ -1109,6 +1112,6 @@ void gnssApplyPointPerfectKeys()
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
-        //Taken care of in beginPPL()
+        // Taken care of in beginPPL()
     }
 }
