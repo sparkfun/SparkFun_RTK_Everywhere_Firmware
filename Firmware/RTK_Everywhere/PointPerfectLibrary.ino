@@ -76,10 +76,10 @@ void updatePPL()
         // connected. Don't restart the PPL if we've already tried
         if (pplAttemptedStart == false)
         {
-            if ((pplGnssOutput == true) && (strlen(settings.pointPerfectCurrentKey) > 0) &&
+            if ((strlen(settings.pointPerfectCurrentKey) > 0) && (pplGnssOutput == true) &&
                 (pplMqttCorrections == true))
             {
-                pplAttemptedStart == true;
+                pplAttemptedStart = true;
 
                 beginPPL(); // Initialize PointPerfect Library
             }
