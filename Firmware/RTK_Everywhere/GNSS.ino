@@ -32,11 +32,6 @@ bool gnssConfigure()
             return (false);
     }
 
-    if (settings.updateGNSSSettings == true)
-        systemPrintln("GNSS configuration updated");
-    else
-        systemPrintln("GNSS configuration maintained");
-
     return (true);
 }
 

@@ -259,7 +259,7 @@ bool zedConfigure()
     // the settings file or internal settings.
     if (settings.updateGNSSSettings == false)
     {
-        log_d("Skipping GNSS configuration");
+        systemPrintln("ZED-F9x configuration maintained");
         return (true);
     }
 
@@ -448,6 +448,9 @@ bool zedConfigure()
         }
     }
 
+    if (response == true)
+        systemPrintln("ZED-F9x configuration update");
+
     return (response);
 }
 
@@ -603,9 +606,9 @@ bool zedConfigureBase()
         // For most RTK products, the GNSS is interfaced via both I2C and UART1. Configuration and PVT/HPPOS messages
         // are configured over I2C. Any messages that need to be logged are output on UART1, and received by this code
         // using serialGNSS-> In base mode the RTK device should output RTCM over all ports: (Primary) UART2 in case the
-        // RTK device is connected via radio to rover (Optional) I2C in case user wants base to connect to WiFi and NTRIP
-        // Caster (Seconday) USB in case the RTK device is used as an NTRIP caster connected to SBC or other (Tertiary)
-        // UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
+        // RTK device is connected via radio to rover (Optional) I2C in case user wants base to connect to WiFi and
+        // NTRIP Caster (Seconday) USB in case the RTK device is used as an NTRIP caster connected to SBC or other
+        // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
 
         // Find first RTCM record in ubxMessage array
         int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");

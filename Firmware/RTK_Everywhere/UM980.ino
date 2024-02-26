@@ -65,8 +65,7 @@ bool um980Configure()
     // Skip configuring the UM980 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
     {
-        if (settings.debugGnss)
-            systemPrintln("Skipping GNSS configuration");
+        systemPrintln("UM980 configuration maintained");
         return (true);
     }
 
@@ -127,15 +126,19 @@ bool um980ConfigureOnce()
     // SIGNALGROUP causes the UM980 to automatically save and reset
 
     if (response == true)
+    {
         online.gnss = true; // If we failed before, mark as online now
+
+        systemPrintln("UM980 configuration updated");
+
+        // Save the current configuration into non-volatile memory (NVM)
+        // We don't need to re-configure the UM980 at next boot
+        bool settingsWereSaved = um980->saveConfiguration();
+        if (settingsWereSaved)
+            settings.updateGNSSSettings = false;
+    }
     else
         online.gnss = false; // Take it offline
-
-    // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the UM980 at next boot
-    bool settingsWereSaved = um980->saveConfiguration();
-    if (settingsWereSaved)
-        settings.updateGNSSSettings = false;
 
     return (response);
 }
@@ -375,7 +378,6 @@ bool um980EnableRTCMRover()
         if (rtcm1046Enabled == false)
             response &= um980->setNMEAPortMessage("RTCM1046", "COM3", 1);
     }
-
 
     return (response);
 }
