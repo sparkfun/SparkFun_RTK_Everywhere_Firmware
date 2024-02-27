@@ -152,7 +152,7 @@ void menuMessages()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages");
 
-        systemPrintf("Active messages: %d\r\n", getActiveMessageCount());
+        systemPrintf("Active messages: %d\r\n", gnssGetActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set RTCM Messages");
@@ -760,16 +760,6 @@ void setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int 
         if (strstr(localMessage[endOfBlock].msgTextName, messageNamePiece) == nullptr)
             break;
     }
-}
-
-// Return the number of active/enabled messages
-uint8_t getActiveMessageCount()
-{
-    uint8_t count = 0;
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-        if (settings.ubxMessageRates[x] > 0)
-            count++;
-    return (count);
 }
 
 // Count the number of NAV2 messages with rates more than 0. Used for determining if we need the enable

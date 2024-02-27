@@ -1480,3 +1480,13 @@ void zedApplyPointPerfectKeys()
         }
     }
 }
+
+uint8_t zedGetActiveMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        if (settings.ubxMessageRates[x] > 0)
+            count++;
+    return (count);
+}

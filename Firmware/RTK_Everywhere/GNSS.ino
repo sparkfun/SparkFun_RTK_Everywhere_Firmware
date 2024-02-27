@@ -1110,3 +1110,17 @@ void gnssApplyPointPerfectKeys()
         // Taken care of in beginPPL()
     }
 }
+
+// Return the number of active/enabled messages
+uint8_t gnssGetActiveMessageCount()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        return (zedGetActiveMessageCount());
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        return (um980GetActiveMessageCount());
+    }
+    return (0);
+}

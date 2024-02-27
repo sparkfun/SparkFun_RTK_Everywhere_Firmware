@@ -764,4 +764,29 @@ uint8_t um980GetLeapSeconds()
     return (18); // Default to 18
 }
 
+uint8_t um980GetActiveMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        if (settings.um980MessageRatesNMEA[x] > 0)
+            count++;
+
+    // Determine which state we are in
+    if (settings.lastState == STATE_BASE_NOT_STARTED)
+    {
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            if (settings.um980MessageRatesRTCMBase[x] > 0)
+                count++;
+    }
+    else // Default to Rover messages
+    {
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            if (settings.um980MessageRatesRTCMRover[x] > 0)
+                count++;
+    }
+
+    return (count);
+}
+
 #endif // COMPILE_UM980
