@@ -33,6 +33,8 @@ void um980Begin()
     if (settings.debugGnss == true)
         um980EnableDebugging();
 
+    um980->disableBinaryBeforeFix(); // Block the start of BESTNAV and RECTIME until 3D fix is achieved
+
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
@@ -57,6 +59,11 @@ void um980Begin()
     um980PrintInfo();
 
     online.gnss = true;
+}
+
+bool um980IsBlocking()
+{
+    return um980->isBlocking();
 }
 
 // Attempt 3 tries on UM980 config
@@ -541,7 +548,8 @@ bool um980SetRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response == true)
     {
-        settings.measurementRate = 1.0 / secondsBetweenSolutions; // 1 / 0.2 = 5Hz
+        int msBetweenSolutions = secondsBetweenSolutions * 1000;
+        settings.measurementRate = msBetweenSolutions;
         settings.navigationRate = 1;
     }
     else
@@ -650,7 +658,7 @@ uint32_t um980GetTimeDeviation()
 // 16 = 3D Fix (Single)
 // 49 = RTK Float (Presumed) (Wide-lane fixed solution)
 // 50 = RTK Fixed (Narrow-lane fixed solution)
-// Othere position types, not yet seen
+// Other position types, not yet seen
 // 1 = FixedPos, 8 = DopplerVelocity,
 // 17 = Pseudorange differential solution, 18 = SBAS, 32 = L1 float, 33 = Ionosphere-free float solution
 // 34 = Narrow-land float solution, 48 = L1 fixed solution
@@ -717,7 +725,8 @@ bool um980SaveConfiguration()
 
 void um980EnableDebugging()
 {
-    um980->enableDebugging(); // Print all debug to Serial
+    um980->enableDebugging();       // Print all debug to Serial
+    um980->enablePrintRxMessages(); // Print incoming processed messages from SEMP
 }
 void um980DisableDebugging()
 {

@@ -223,6 +223,7 @@ char*    um980GetId() {return ((char*)"No compiled");}
 void     um980Boot() {}
 void     um980Reset() {}
 uint8_t  um980GetLeapSeconds() {return (0);}
+bool     um980IsBlocking() {return(false);}
 
 #endif  // COMPILE_UM980
 

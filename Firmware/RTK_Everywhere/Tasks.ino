@@ -179,7 +179,7 @@ void btReadTask(void *e)
                         systemPrintln("App has entered config mode");
                         btPrintEcho = true;
                         runCommandMode = true;
-                        
+
                         btAppCommandCharsReceived = 0;
                         btLastByteReceived = millis();
                     }
@@ -363,17 +363,24 @@ void gnssReadTask(void *e)
         if ((settings.enableTaskReports == true) && (!inMainMenu))
             systemPrintf("SerialReadTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
-        // Determine if serial data is available
-        while (serialGNSS->available())
+        // Two methods are accessing the hardware serial port (um980Config) at the
+        // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
+        // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
+        // If the Unicore library does not need lone access, then read from serial port
+        if (um980IsBlocking() == false)
         {
-            // Read the data from UART1
-            uint8_t incomingData[500];
-            int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
-
-            for (int x = 0; x < bytesIncoming; x++)
+            // Determine if serial data is available
+            while (serialGNSS->available())
             {
-                // Update the parser state based on the incoming byte
-                sempParseNextByte(parse, incomingData[x]);
+                // Read the data from UART1
+                uint8_t incomingData[500];
+                int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
+
+                for (int x = 0; x < bytesIncoming; x++)
+                {
+                    // Update the parser state based on the incoming byte
+                    sempParseNextByte(parse, incomingData[x]);
+                }
             }
         }
 
@@ -457,7 +464,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
 
     // Determine if this message should be processed by the Unicore library
-    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX))
+    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) || (type == RTK_NMEA_PARSER_INDEX))
     {
         // Give this data to the library to update its internal variables
         um980UnicoreHandler(parse->buffer, parse->length);
