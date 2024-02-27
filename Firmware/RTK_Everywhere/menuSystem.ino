@@ -239,7 +239,7 @@ void menuSystem()
         else if (incoming == 'c')
         {
             getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
-                          (int *)&settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
+                          &settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
         }
         else if (incoming == 'd')
             menuDebugSoftware();
@@ -744,7 +744,7 @@ void menuDebugSoftware()
             settings.enableHeapReport ^= 1;
         else if (incoming == 2)
         {
-            getNewSetting("Enter level to use PSRAM in bytes", 0, 65535, (int *)&settings.psramMallocLevel);
+            getNewSetting("Enter level to use PSRAM in bytes", 0, 65535, &settings.psramMallocLevel);
         }
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
@@ -933,13 +933,13 @@ void menuOperation()
         }
         else if (incoming == 2)
         {
-            getNewSetting("Enter GNSS Serial Timeout in milliseconds", 0, 1000, (int *)&settings.serialTimeoutGNSS);
+            getNewSetting("Enter GNSS Serial Timeout in milliseconds", 0, 1000, &settings.serialTimeoutGNSS);
         }
         else if (incoming == 3)
         {
             systemPrintln("Warning: changing the Handler Buffer Size will restart the device.");
             if (getNewSetting("Enter GNSS Handler Buffer Size in Bytes", 32, 65535,
-                              (int *)&settings.gnssHandlerBufferSize) == INPUT_RESPONSE_VALID)
+                              &settings.gnssHandlerBufferSize) == INPUT_RESPONSE_VALID)
             {
                 // Stop the GNSS UART tasks to prevent the system from crashing
                 tasksStopGnssUart();
@@ -952,31 +952,31 @@ void menuOperation()
         }
         else if (incoming == 4)
         {
-            getNewSetting("Enter Serial GNSS RX Full Threshold", 1, 127, (int *)&settings.serialGNSSRxFullThreshold);
+            getNewSetting("Enter Serial GNSS RX Full Threshold", 1, 127, &settings.serialGNSSRxFullThreshold);
         }
         else if (incoming == 5)
         {
             getNewSetting("Enter number of seconds in RTK float before hot-start", 0, 3600,
-                          (int *)&settings.lbandFixTimeout_seconds); // Arbitrary 60 minute limit
+                          &settings.lbandFixTimeout_seconds); // Arbitrary 60 minute limit
         }
         else if (incoming == 6)
         {
-            getNewSetting("Enter SPI frequency in MHz", 1, 16, (int *)&settings.spiFrequency);
+            getNewSetting("Enter SPI frequency in MHz", 1, 16, &settings.spiFrequency);
         }
         else if (incoming == 7)
         {
-            getNewSetting("Enter SPP RX Queue Size in Bytes", 32, 16384, (int *)&settings.sppRxQueueSize);
+            getNewSetting("Enter SPP RX Queue Size in Bytes", 32, 16384, &settings.sppRxQueueSize);
         }
         else if (incoming == 8)
         {
-            getNewSetting("Enter SPP TX Queue Size in Bytes", 32, 16384, (int *)&settings.sppTxQueueSize);
+            getNewSetting("Enter SPP TX Queue Size in Bytes", 32, 16384, &settings.sppTxQueueSize);
         }
         else if (incoming == 9)
         {
             systemPrintln("Warning: changing the Receive Buffer Size will restart the device.");
 
             if (getNewSetting("Enter UART Receive Buffer Size in Bytes", 32, 16384,
-                              (int *)&settings.uartReceiveBufferSize) == INPUT_RESPONSE_VALID)
+                              &settings.uartReceiveBufferSize) == INPUT_RESPONSE_VALID)
             {
                 recordSystemSettings();
                 ESP.restart();
@@ -1000,7 +1000,7 @@ void menuOperation()
         else if (incoming == 12)
         {
             getNewSetting("Enter the number of seconds before L-Band is used once RTCM is absent", 1, 255,
-                          (int *)&settings.rtcmTimeoutBeforeUsingLBand_s);
+                          &settings.rtcmTimeoutBeforeUsingLBand_s);
         }
         else if (incoming == 13)
         {
@@ -1012,39 +1012,39 @@ void menuOperation()
         else if (incoming == 30)
         {
             getNewSetting("Not yet implemented! - Enter Core used for Bluetooth Interrupts", 0, 1,
-                          (int *)&settings.bluetoothInterruptsCore);
+                          &settings.bluetoothInterruptsCore);
         }
         else if (incoming == 31)
         {
-            getNewSetting("Enter Core used for GNSS UART Interrupts", 0, 1, (int *)&settings.gnssUartInterruptsCore);
+            getNewSetting("Enter Core used for GNSS UART Interrupts", 0, 1, &settings.gnssUartInterruptsCore);
         }
         else if (incoming == 32)
         {
-            getNewSetting("Enter Core used for I2C Interrupts", 0, 1, (int *)&settings.i2cInterruptsCore);
+            getNewSetting("Enter Core used for I2C Interrupts", 0, 1, &settings.i2cInterruptsCore);
         }
         else if (incoming == 50)
         {
-            getNewSetting("Enter BT Read Task Core", 0, 1, (int *)&settings.btReadTaskCore);
+            getNewSetting("Enter BT Read Task Core", 0, 1, &settings.btReadTaskCore);
         }
         else if (incoming == 51)
         {
-            getNewSetting("Enter BT Read Task Priority", 0, 3, (int *)&settings.btReadTaskPriority);
+            getNewSetting("Enter BT Read Task Priority", 0, 3, &settings.btReadTaskPriority);
         }
         else if (incoming == 52)
         {
-            getNewSetting("Enter GNSS Data Handler Task Core", 0, 1, (int *)&settings.handleGnssDataTaskCore);
+            getNewSetting("Enter GNSS Data Handler Task Core", 0, 1, &settings.handleGnssDataTaskCore);
         }
         else if (incoming == 53)
         {
-            getNewSetting("Enter GNSS Data Handle Task Priority", 0, 3, (int *)&settings.handleGnssDataTaskPriority);
+            getNewSetting("Enter GNSS Data Handle Task Priority", 0, 3, &settings.handleGnssDataTaskPriority);
         }
         else if (incoming == 54)
         {
-            getNewSetting("Enter GNSS Read Task Core", 0, 1, (int *)&settings.gnssReadTaskCore);
+            getNewSetting("Enter GNSS Read Task Core", 0, 1, &settings.gnssReadTaskCore);
         }
         else if (incoming == 55)
         {
-            getNewSetting("Enter GNSS Read Task Priority", 0, 3, (int *)&settings.gnssReadTaskPriority);
+            getNewSetting("Enter GNSS Read Task Priority", 0, 3, &settings.gnssReadTaskPriority);
         }
 
         // Menu exit control

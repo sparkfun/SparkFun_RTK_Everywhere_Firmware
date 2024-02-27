@@ -337,6 +337,8 @@ void printReports()
                     systemPrint("RTK Float");
                 else if (gnssIsFixed() == true)
                     systemPrint("3D Fix");
+                else
+                    systemPrint("No Fix");
 
                 systemPrintln();
             }

@@ -817,7 +817,123 @@ InputResponse getNewSetting(const char *settingPrompt, int min, int max, int *se
             int enteredValue = round(enteredValueDouble);
             if (enteredValue >= min && enteredValue <= max)
             {
-                *setting = (float)enteredValue; // Recorded to NVM and file at main menu exit
+                *setting = enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
+        }
+        else // INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+            return (response);
+    }
+    return (INPUT_RESPONSE_INVALID);
+}
+
+InputResponse getNewSetting(const char *settingPrompt, int min, int max, int16_t *setting)
+{
+    while (1)
+    {
+        systemPrintf("%s [min: %d max: %d] (or x to exit): ", settingPrompt, min, max);
+
+        double enteredValueDouble;
+        // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+        InputResponse response = getUserInputDouble(&enteredValueDouble);
+
+        if (response == INPUT_RESPONSE_VALID)
+        {
+            int enteredValue = round(enteredValueDouble);
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
+        }
+        else // INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+            return (response);
+    }
+    return (INPUT_RESPONSE_INVALID);
+}
+
+InputResponse getNewSetting(const char *settingPrompt, int min, int max, uint8_t *setting)
+{
+    while (1)
+    {
+        systemPrintf("%s [min: %d max: %d] (or x to exit): ", settingPrompt, min, max);
+
+        double enteredValueDouble;
+        // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+        InputResponse response = getUserInputDouble(&enteredValueDouble);
+
+        if (response == INPUT_RESPONSE_VALID)
+        {
+            int enteredValue = round(enteredValueDouble);
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
+        }
+        else // INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+            return (response);
+    }
+    return (INPUT_RESPONSE_INVALID);
+}
+
+InputResponse getNewSetting(const char *settingPrompt, int min, int max, uint16_t *setting)
+{
+    while (1)
+    {
+        systemPrintf("%s [min: %d max: %d] (or x to exit): ", settingPrompt, min, max);
+
+        double enteredValueDouble;
+        // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+        InputResponse response = getUserInputDouble(&enteredValueDouble);
+
+        if (response == INPUT_RESPONSE_VALID)
+        {
+            int enteredValue = round(enteredValueDouble);
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = enteredValue; // Recorded to NVM and file at main menu exit
+                return (INPUT_RESPONSE_VALID);
+            }
+            else
+            {
+                systemPrintln("Error: Number out of range");
+            }
+        }
+        else // INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+            return (response);
+    }
+    return (INPUT_RESPONSE_INVALID);
+}
+
+InputResponse getNewSetting(const char *settingPrompt, int min, int max, uint32_t *setting)
+{
+    while (1)
+    {
+        systemPrintf("%s [min: %d max: %d] (or x to exit): ", settingPrompt, min, max);
+
+        double enteredValueDouble;
+        // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
+        InputResponse response = getUserInputDouble(&enteredValueDouble);
+
+        if (response == INPUT_RESPONSE_VALID)
+        {
+            int enteredValue = round(enteredValueDouble);
+            if (enteredValue >= min && enteredValue <= max)
+            {
+                *setting = enteredValue; // Recorded to NVM and file at main menu exit
                 return (INPUT_RESPONSE_VALID);
             }
             else

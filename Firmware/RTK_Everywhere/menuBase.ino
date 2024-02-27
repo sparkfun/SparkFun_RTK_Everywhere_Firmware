@@ -228,7 +228,7 @@ void menuBase()
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 5)
         {
             getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
-                          (int *)&settings.antennaHeight);
+                          &settings.antennaHeight);
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
@@ -272,7 +272,7 @@ void menuBase()
         else if ((incoming == 9) && settings.enableNtripServer == true)
         {
             // Arbitrary 99k max port #
-            if (getNewSetting("Enter new Caster Port", 1, 99999, (int *)&settings.ntripServer_CasterPort) ==
+            if (getNewSetting("Enter new Caster Port", 1, 99999, &settings.ntripServer_CasterPort) ==
                 INPUT_RESPONSE_VALID)
                 restartBase = true;
         }

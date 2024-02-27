@@ -399,6 +399,15 @@ PrintEndpoint printEndpoint = PRINT_ENDPOINT_SERIAL; // Controls where the confi
 
 typedef enum
 {
+    ZTP_SUCCESS = 1,
+    ZTP_DEACTIVATED,
+    ZTP_NOT_WHITELISTED,
+    ZTP_ALREADY_REGISTERED,
+    ZTP_UNKNOWN_ERROR,
+} ZtpResponse;
+
+typedef enum
+{
     FUNCTION_NOT_SET = 0,
     FUNCTION_SYNC,
     FUNCTION_WRITESD,

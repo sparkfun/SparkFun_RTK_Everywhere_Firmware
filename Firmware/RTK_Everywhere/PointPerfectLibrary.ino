@@ -40,7 +40,10 @@ void beginPPL()
     ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_DEFAULT_CFG); // IP and L-Band support
 
     if (result != ePPL_Success)
+    {
+        systemPrintln("PointPerfect Library Failed to Initialize");
         successfulInit &= false;
+    }
 
     if (settings.debugCorrections == true)
         systemPrintf("PPL_Initialize: %s\r\n", PPLReturnStatusToStr(result));
@@ -73,10 +76,10 @@ void updatePPL()
         // connected. Don't restart the PPL if we've already tried
         if (pplAttemptedStart == false)
         {
-            if ((pplGnssOutput == true) && (strlen(settings.pointPerfectCurrentKey) > 0) &&
+            if ((strlen(settings.pointPerfectCurrentKey) > 0) && (pplGnssOutput == true) &&
                 (pplMqttCorrections == true))
             {
-                pplAttemptedStart == true;
+                pplAttemptedStart = true;
 
                 beginPPL(); // Initialize PointPerfect Library
             }
@@ -116,6 +119,9 @@ void updatePPL()
         // Check to see if our key has expired
         if (millis() > pplKeyExpirationMs)
         {
+            if (settings.debugCorrections == true)
+                systemPrintln("Key has expired. Going to new key.");
+
             // Get a key from NVM
             char pointPerfectKey[33]; // 32 hexadecimal digits = 128 bits = 16 Bytes
             if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)

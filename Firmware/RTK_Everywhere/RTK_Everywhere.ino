@@ -21,16 +21,16 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
+// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+// #define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
+// #define COMPILE_BT                   // Comment out to remove Bluetooth functionality
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
@@ -51,10 +51,10 @@
 #endif   // ENABLE_DEVELOPER
 
 // This is passed in from compiler extra flags
-#ifndef POINTPERFECT_TOKEN
+#ifndef POINTPERFECT_LBAND_PAID_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
-#endif // POINTPERFECT_TOKEN
+#endif // POINTPERFECT_LBAND_PAID_TOKEN
 
 // Define the RTK board identifier:
 //  This is an int which is unique to this variant of the RTK hardware which allows us

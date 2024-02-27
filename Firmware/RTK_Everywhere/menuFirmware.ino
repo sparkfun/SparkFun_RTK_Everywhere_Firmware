@@ -179,7 +179,7 @@ void menuFirmware()
         {
 
             getNewSetting("Enter minutes before next firmware check", 1, 999999,
-                          (int *)&settings.autoFirmwareCheckMinutes);
+                          &settings.autoFirmwareCheckMinutes);
         }
 
         else if (incoming == 'r')

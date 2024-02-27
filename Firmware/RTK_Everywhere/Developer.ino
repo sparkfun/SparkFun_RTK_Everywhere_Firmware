@@ -168,6 +168,8 @@ void wifiShutdown() {}
 void menuTilt() {}
 void tiltApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltUpdate() {}
+void tiltStop() {}
+void tiltSensorFactoryReset() {}
 
 #endif  // COMPILE_IM19_IMU
 
@@ -221,6 +223,7 @@ char*    um980GetId() {return ((char*)"No compiled");}
 void     um980Boot() {}
 void     um980Reset() {}
 uint8_t  um980GetLeapSeconds() {return (0);}
+bool     um980IsBlocking() {return(false);}
 
 #endif  // COMPILE_UM980
 
@@ -234,5 +237,6 @@ void beginPPL() {systemPrintln("**PPL Not Compiled**");}
 void updatePPL() {}
 bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY

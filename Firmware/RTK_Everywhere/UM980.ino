@@ -33,6 +33,8 @@ void um980Begin()
     if (settings.debugGnss == true)
         um980EnableDebugging();
 
+    um980->disableBinaryBeforeFix(); // Block the start of BESTNAV and RECTIME until 3D fix is achieved
+
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
@@ -59,14 +61,18 @@ void um980Begin()
     online.gnss = true;
 }
 
+bool um980IsBlocking()
+{
+    return um980->isBlocking();
+}
+
 // Attempt 3 tries on UM980 config
 bool um980Configure()
 {
     // Skip configuring the UM980 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
     {
-        if (settings.debugGnss)
-            systemPrintln("Skipping GNSS configuration");
+        systemPrintln("UM980 configuration maintained");
         return (true);
     }
 
@@ -105,11 +111,7 @@ bool um980ConfigureOnce()
 */
 
     if (settings.debugGnss)
-        um980->enableDebugging(); // Print all debug to Serial
-
-    // Check if um980Constellations, um980MessageRatesNMEA, um980MessageRatesRTCMRover, um980MessageRatesRTCMBase need
-    // to be defaulted
-    checkArrayDefaults();
+        um980EnableDebugging(); // Print all debug to Serial
 
     um980DisableAllOutput(); // Disable COM1/2/3
 
@@ -130,48 +132,20 @@ bool um980ConfigureOnce()
     // response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
     // SIGNALGROUP causes the UM980 to automatically save and reset
 
-    // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
-    response &= um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
-    response &= um980->sendCommand("PSRVELB COM2 0.2");
-
-    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
-    response &= um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
-
-    // Enable the NMEA sentences on COM3 last. This limits the traffic on the config
-    // interface port during config.
-
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
-    // response &= um980EnableNMEA();
-
-    // Temp force config. Use um980EnableNMEA instead.
-    float outputRate3 = 1; // 1 = 1 report per second.
-    response &= um980->setNMEAPortMessage("GPGGA", "COM3", outputRate3);
-    response &= um980->setNMEAPortMessage("GPGSA", "COM3", outputRate3);
-    response &= um980->setNMEAPortMessage("GPGST", "COM3", outputRate3);
-
-    // Reduce the GSV report to once per second to reduce lots of redundant data serial
-    response &= um980->setNMEAPortMessage("GPGSV", "COM3", 1);
-    response &= um980->setNMEAPortMessage("GPRMC", "COM3", outputRate3);
-
-    // If we are using IP based corrections, we need to send local data to the PPL
-    // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-    {
-        response &= um980->setNMEAPortMessage("GPZDA", "COM3", 1);
-        response &= um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
-        response &= um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
-        response &= um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
-        response &= um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
-    }
-
     if (response == true)
+    {
         online.gnss = true; // If we failed before, mark as online now
+
+        systemPrintln("UM980 configuration updated");
+
+        // Save the current configuration into non-volatile memory (NVM)
+        // We don't need to re-configure the UM980 at next boot
+        bool settingsWereSaved = um980->saveConfiguration();
+        if (settingsWereSaved)
+            settings.updateGNSSSettings = false;
+    }
     else
         online.gnss = false; // Take it offline
-
-    // Save the current configuration into non-volatile memory (NVM)
-    // We don't need to re-configure the UM980 at next boot
-    settings.updateGNSSSettings = um980->saveConfiguration();
 
     return (response);
 }
@@ -192,24 +166,36 @@ bool um980ConfigureRover()
         return (false);
     }
 
-    //    um980DisableAllOutput();
+    um980DisableAllOutput();
 
     bool response = true;
 
-    // response &= um980SetModel(settings.dynamicModel); // This will cancel any base averaging mode
+    response &= um980SetModel(settings.dynamicModel); // This will cancel any base averaging mode
 
-    // response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
+    response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
-    // response &= um980EnableNMEA(); // Only turn on messages, do not turn off messages. We assume the caller has UNLOG
-    // or
-    //                                // similar.
+    // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
+    response &= um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
+    response &= um980->sendCommand("PSRVELB COM2 0.2");
 
-    // // TODO consider reducing the GSV setence to 1/4 of the GPGGA setting
+    // Configure UM980 to output NMEA reports out COM2, connected to IM19 COM3
+    response &= um980->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
 
-    // response &= um980EnableRTCMRover(); // Only turn on messages, do not turn off messages. We assume the caller has
-    // UNLOG or similar.
+    // Enable the NMEA sentences and RTCM on COM3 last. This limits the traffic on the config
+    // interface port during config.
 
-    // response &= um980SaveConfiguration();
+    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
+    response &= um980EnableRTCMRover();
+    // TODO consider reducing the GSV sentence to 1/4 of the GPGGA setting
+
+    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
+    response &= um980EnableNMEA();
+
+    // Save the current configuration into non-volatile memory (NVM)
+    // We don't need to re-configure the UM980 at next boot
+    bool settingsWereSaved = um980->saveConfiguration();
+    if (settingsWereSaved)
+        settings.updateGNSSSettings = false;
 
     if (response == false)
     {
@@ -303,6 +289,8 @@ bool um980FixedBaseStart()
 bool um980EnableNMEA()
 {
     bool response = true;
+    bool gpggaEnabled = false;
+    bool gpzdaEnabled = false;
 
     for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
     {
@@ -314,11 +302,31 @@ bool um980EnableNMEA()
                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
                 if (settings.debugGnss)
-                    systemPrintf("Enable NMEA failed at messageNumber %d %s.", messageNumber,
+                    systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
                                  umMessagesNMEA[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            {
+                // Mark PPL requied messages as enabled if rate > 0
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
+                    gpggaEnabled = true;
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
+                    gpzdaEnabled = true;
+            }
         }
+    }
+
+    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    {
+        // Force on any messages that are needed for PPL
+        if (gpggaEnabled == false)
+            response &= um980->setNMEAPortMessage("GPGGA", "COM3", 1);
+        if (gpzdaEnabled == false)
+            response &= um980->setNMEAPortMessage("GPZDA", "COM3", 1);
     }
 
     return (response);
@@ -328,6 +336,10 @@ bool um980EnableNMEA()
 bool um980EnableRTCMRover()
 {
     bool response = true;
+    bool rtcm1019Enabled = false;
+    bool rtcm1020Enabled = false;
+    bool rtcm1042Enabled = false;
+    bool rtcm1046Enabled = false;
 
     for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
     {
@@ -343,7 +355,35 @@ bool um980EnableRTCMRover()
                                  umMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
+
+            // If we are using IP based corrections, we need to send local data to the PPL
+            // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            {
+                // Mark PPL required messages as enabled if rate > 0
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
+                    rtcm1019Enabled = true;
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
+                    rtcm1020Enabled = true;
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
+                    rtcm1042Enabled = true;
+                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
+                    rtcm1046Enabled = true;
+            }
         }
+    }
+
+    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    {
+        // Force on any messages that are needed for PPL
+        if (rtcm1019Enabled == false)
+            response &= um980->setNMEAPortMessage("RTCM1019", "COM3", 1);
+        if (rtcm1020Enabled == false)
+            response &= um980->setNMEAPortMessage("RTCM1020", "COM3", 1);
+        if (rtcm1042Enabled == false)
+            response &= um980->setNMEAPortMessage("RTCM1042", "COM3", 1);
+        if (rtcm1046Enabled == false)
+            response &= um980->setNMEAPortMessage("RTCM1046", "COM3", 1);
     }
 
     return (response);
@@ -508,7 +548,8 @@ bool um980SetRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response == true)
     {
-        settings.measurementRate = 1.0 / secondsBetweenSolutions; // 1 / 0.2 = 5Hz
+        int msBetweenSolutions = secondsBetweenSolutions * 1000;
+        settings.measurementRate = msBetweenSolutions;
         settings.navigationRate = 1;
     }
     else
@@ -617,7 +658,7 @@ uint32_t um980GetTimeDeviation()
 // 16 = 3D Fix (Single)
 // 49 = RTK Float (Presumed) (Wide-lane fixed solution)
 // 50 = RTK Fixed (Narrow-lane fixed solution)
-// Othere position types, not yet seen
+// Other position types, not yet seen
 // 1 = FixedPos, 8 = DopplerVelocity,
 // 17 = Pseudorange differential solution, 18 = SBAS, 32 = L1 float, 33 = Ionosphere-free float solution
 // 34 = Narrow-land float solution, 48 = L1 fixed solution
@@ -684,7 +725,8 @@ bool um980SaveConfiguration()
 
 void um980EnableDebugging()
 {
-    um980->enableDebugging(); // Print all debug to Serial
+    um980->enableDebugging();       // Print all debug to Serial
+    um980->enablePrintRxMessages(); // Print incoming processed messages from SEMP
 }
 void um980DisableDebugging()
 {

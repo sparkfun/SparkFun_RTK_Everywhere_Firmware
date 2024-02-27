@@ -36,10 +36,6 @@ void menuCommands()
             else
             {
                 auto value = tokens[2];
-                
-                //TODO remove
-                Serial.printf("SET %s:%s\r\n", field, value);
-                
                 updateSettingWithValue(field, value);
             }
             systemPrintln("OK");
