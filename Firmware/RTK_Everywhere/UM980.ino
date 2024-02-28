@@ -70,11 +70,11 @@ bool um980IsBlocking()
 bool um980Configure()
 {
     // Skip configuring the UM980 if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("UM980 configuration maintained");
-        return (true);
-    }
+    // if (settings.updateGNSSSettings == false)
+    // {
+    //     systemPrintln("UM980 configuration maintained");
+    //     return (true);
+    // }
 
     for (int x = 0; x < 3; x++)
     {
@@ -423,10 +423,14 @@ bool um980SetConstellations()
 {
     bool response = true;
 
+    Serial.printf("Enable um980SetConstellations\r\n");
+
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
         if (settings.um980Constellations[constellationNumber] == true)
         {
+            Serial.printf("Enable %d\r\n", constellationNumber);
+
             if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
                 if (settings.debugGnss)
@@ -997,7 +1001,8 @@ void um980BaseRtcmLowDataRate()
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
         settings.um980MessageRatesRTCMBase[x] = 0;
 
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1005")] = 10; // 1005 0.1Hz - Exclude antenna height
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1005")] =
+        10; // 1005 0.1Hz - Exclude antenna height
     settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
     settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
     settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
@@ -1021,6 +1026,48 @@ uint8_t um980GetMessageNumberByName(const char *msgName)
 float um980GetSurveyInStartingAccuracy()
 {
     return (settings.um980SurveyInStartingAccuracy);
+}
+
+// Controls the constellations that are used to generate a fix and logged
+void um980MenuConstellations()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Constellations");
+
+        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+        {
+            systemPrintf("%d) Constellation %s: ", x + 1, um980ConstellationCommands[x].textName);
+            if (settings.um980Constellations[x] > 0)
+                systemPrint("Enabled");
+            else
+                systemPrint("Disabled");
+            systemPrintln();
+        }
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
+        {
+            incoming--; // Align choice to constellation array of 0 to 5
+
+            settings.um980Constellations[incoming] ^= 1;
+        }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    // Apply current settings to module
+    gnssSetConstellations();
+
+    clearBuffer(); // Empty buffer of any newline chars
 }
 
 #endif // COMPILE_UM980

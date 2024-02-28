@@ -1179,11 +1179,11 @@ char *gnssGetRtcmDefaultString()
 {
     if (gnssPlatform == PLATFORM_ZED)
     {
-        return(zedGetRtcmDefaultString());
+        return (zedGetRtcmDefaultString());
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
-        return(um980GetRtcmDefaultString());
+        return (um980GetRtcmDefaultString());
     }
     return ("Error");
 }
@@ -1192,11 +1192,11 @@ char *gnssGetRtcmLowDataRateString()
 {
     if (gnssPlatform == PLATFORM_ZED)
     {
-        return(zedGetRtcmLowDataRateString());
+        return (zedGetRtcmLowDataRateString());
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
-        return(um980GetRtcmLowDataRateString());
+        return (um980GetRtcmLowDataRateString());
     }
     return ("Error");
 }
@@ -1205,12 +1205,23 @@ float gnssGetSurveyInStartingAccuracy()
 {
     if (gnssPlatform == PLATFORM_ZED)
     {
-        return(zedGetSurveyInStartingAccuracy());
+        return (zedGetSurveyInStartingAccuracy());
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
-        return(um980GetSurveyInStartingAccuracy());
+        return (um980GetSurveyInStartingAccuracy());
     }
     return (0);
 }
 
+void gnssMenuConstellations()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        zedMenuConstellations();
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        um980MenuConstellations();
+    }
+}

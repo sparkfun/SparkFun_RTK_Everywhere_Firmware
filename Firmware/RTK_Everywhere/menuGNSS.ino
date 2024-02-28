@@ -228,7 +228,7 @@ void menuGNSS()
         }
         else if (incoming == 4)
         {
-            menuConstellations();
+            gnssMenuConstellations();
         }
         else if (incoming == 5)
         {
@@ -331,58 +331,6 @@ void menuGNSS()
             delay(2000);
         }
     }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
-
-// Controls the constellations that are used to generate a fix and logged
-void menuConstellations()
-{
-    while (1)
-    {
-        systemPrintln();
-        systemPrintln("Menu: Constellations");
-
-        for (int x = 0; x < MAX_CONSTELLATIONS; x++)
-        {
-            systemPrintf("%d) Constellation %s: ", x + 1, settings.ubxConstellations[x].textName);
-            if (settings.ubxConstellations[x].enabled == true)
-                systemPrint("Enabled");
-            else
-                systemPrint("Disabled");
-            systemPrintln();
-        }
-
-        systemPrintln("x) Exit");
-
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-        if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
-        {
-            incoming--; // Align choice to constallation array of 0 to 5
-
-            settings.ubxConstellations[incoming].enabled ^= 1;
-
-            // 3.10.6: To avoid cross-correlation issues, it is recommended that GPS and QZSS are always both enabled or
-            // both disabled.
-            if (incoming == SFE_UBLOX_GNSS_ID_GPS || incoming == 4) // QZSS ID is 5 but array location is 4
-            {
-                settings.ubxConstellations[SFE_UBLOX_GNSS_ID_GPS].enabled =
-                    settings.ubxConstellations[incoming].enabled; // GPS ID is 0 and array location is 0
-                settings.ubxConstellations[4].enabled =
-                    settings.ubxConstellations[incoming].enabled; // QZSS ID is 5 but array location is 4
-            }
-        }
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    // Apply current settings to module
-    gnssSetConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }
