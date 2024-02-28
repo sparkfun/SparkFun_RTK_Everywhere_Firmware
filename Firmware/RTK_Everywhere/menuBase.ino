@@ -88,13 +88,15 @@ void menuBase()
             systemPrint(settings.observationSeconds);
             systemPrintln(" seconds");
 
-            systemPrint("3) Set required Mean 3D Standard Deviation: ");
-            systemPrint(settings.observationPositionAccuracy, 2);
-            systemPrintln(" meters");
+            if (present.gnss_zedf9p == true) // UM980 does not support survey in minimum deviation
+            {
+                systemPrint("3) Set required Mean 3D Standard Deviation: ");
+                systemPrint(settings.observationPositionAccuracy, 2);
+                systemPrintln(" meters");
+            }
 
-            systemPrint("4) Set required initial positional accuracy before Survey-In: ");
-            systemPrint(settings.surveyInStartingAccuracy, 2);
-            systemPrintln(" meters");
+            systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
+                         gnssGetSurveyInStartingAccuracy());
         }
 
         systemPrint("7) Toggle NTRIP Server: ");
@@ -243,7 +245,8 @@ void menuBase()
             getNewSetting("Enter the number of seconds for survey-in obseration time", 60, 60 * 10,
                           &settings.observationSeconds);
         }
-        else if (settings.fixedBase == false && incoming == 3)
+        else if (settings.fixedBase == false && incoming == 3 &&
+                 present.gnss_zedf9p == true) // UM980 does not support survey in minimum deviation
         {
             // Arbitrary 1m minimum
             getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
@@ -252,8 +255,14 @@ void menuBase()
         else if (settings.fixedBase == false && incoming == 4)
         {
             // Arbitrary 0.1m minimum
-            getNewSetting("Enter the positional accuracy required before Survey-In begins", 1.0,
-                          (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
+            if (present.gnss_zedf9p == true)
+            {
+                getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
+                              (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
+            }
+            else if (present.gnss_um980 == true)
+                getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
+                              (double)maxSurveyInStartingAccuracy, &settings.um980SurveyInStartingAccuracy);
         }
 
         else if (incoming == 7)

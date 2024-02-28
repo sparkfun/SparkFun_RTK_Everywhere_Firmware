@@ -447,6 +447,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%d\r\n", "printTaskStartStop", settings.printTaskStartStop);
     settingsFile->printf("%s=%d\r\n", "psramMallocLevel", settings.psramMallocLevel);
+    settingsFile->printf("%s=%0.1f\r\n", "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy);
 
     // Add new settings above <--------------------------------------------------->
 }
@@ -1289,6 +1290,8 @@ bool parseLine(char *str, Settings *settings)
         settings->printTaskStartStop = d;
     else if (strcmp(settingName, "psramMallocLevel") == 0)
         settings->psramMallocLevel = d;
+    else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
+        settings->um980SurveyInStartingAccuracy = d;
 
     // Add new settings above <--------------------------------------------------->
 

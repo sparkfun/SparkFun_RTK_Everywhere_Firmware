@@ -1480,3 +1480,231 @@ void zedApplyPointPerfectKeys()
         }
     }
 }
+
+uint8_t zedGetActiveMessageCount()
+{
+    uint8_t count = 0;
+
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        if (settings.ubxMessageRates[x] > 0)
+            count++;
+    return (count);
+}
+
+// Control the messages that get broadcast over Bluetooth and logged (if enabled)
+void zedMenuMessages()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: GNSS Messages");
+
+        systemPrintf("Active messages: %d\r\n", gnssGetActiveMessageCount());
+
+        systemPrintln("1) Set NMEA Messages");
+        systemPrintln("2) Set RTCM Messages");
+        systemPrintln("3) Set RXM Messages");
+        systemPrintln("4) Set NAV Messages");
+        systemPrintln("5) Set NAV2 Messages");
+        systemPrintln("6) Set NMEA NAV2 Messages");
+        systemPrintln("7) Set MON Messages");
+        systemPrintln("8) Set TIM Messages");
+        systemPrintln("9) Set PUBX Messages");
+
+        systemPrintln("10) Reset to Surveying Defaults (NMEAx5)");
+        systemPrintln("11) Reset to PPP Logging Defaults (NMEAx5 + RXMx2)");
+        systemPrintln("12) Turn off all messages");
+        systemPrintln("13) Turn on all messages");
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+            menuMessagesSubtype(settings.ubxMessageRates, "NMEA_"); // The following _ avoids listing NMEANAV2 messages
+        else if (incoming == 2)
+            menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
+        else if (incoming == 3)
+            menuMessagesSubtype(settings.ubxMessageRates, "RXM");
+        else if (incoming == 4)
+            menuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
+        else if (incoming == 5)
+            menuMessagesSubtype(settings.ubxMessageRates, "NAV2");
+        else if (incoming == 6)
+            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
+        else if (incoming == 7)
+            menuMessagesSubtype(settings.ubxMessageRates, "MON");
+        else if (incoming == 8)
+            menuMessagesSubtype(settings.ubxMessageRates, "TIM");
+        else if (incoming == 9)
+            menuMessagesSubtype(settings.ubxMessageRates, "PUBX");
+        else if (incoming == 10)
+        {
+            setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
+            setMessageRateByName("UBX_NMEA_GGA", 1);
+            setMessageRateByName("UBX_NMEA_GSA", 1);
+            setMessageRateByName("UBX_NMEA_GST", 1);
+
+            // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
+            float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+            if (measurementFrequency < 1.0)
+                measurementFrequency = 1.0;
+            setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
+
+            setMessageRateByName("UBX_NMEA_RMC", 1);
+            systemPrintln("Reset to Surveying Defaults (NMEAx5)");
+        }
+        else if (incoming == 11)
+        {
+            setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
+            setMessageRateByName("UBX_NMEA_GGA", 1);
+            setMessageRateByName("UBX_NMEA_GSA", 1);
+            setMessageRateByName("UBX_NMEA_GST", 1);
+
+            // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
+            float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+            if (measurementFrequency < 1.0)
+                measurementFrequency = 1.0;
+            setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
+
+            setMessageRateByName("UBX_NMEA_RMC", 1);
+
+            setMessageRateByName("UBX_RXM_RAWX", 1);
+            setMessageRateByName("UBX_RXM_SFRBX", 1);
+            systemPrintln("Reset to PPP Logging Defaults (NMEAx5 + RXMx2)");
+        }
+        else if (incoming == 12)
+        {
+            setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
+            systemPrintln("All messages disabled");
+        }
+        else if (incoming == 13)
+        {
+            setGNSSMessageRates(settings.ubxMessageRates, 1); // Turn on all messages to report once per fix
+            systemPrintln("All messages enabled");
+        }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+
+    // Make sure the appropriate messages are enabled
+    bool response = gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    if (response == false)
+        systemPrintf("menuMessages: Failed to enable messages - after %d tries", MAX_SET_MESSAGES_RETRIES);
+    else
+        systemPrintln("menuMessages: Messages successfully enabled");
+
+    setLoggingType(); // Update Standard, PPP, or custom for icon selection
+}
+
+// Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
+void zedBaseRtcmDefault()
+{
+    int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1005") - firstRTCMRecord] = 1; // 1105
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1074") - firstRTCMRecord] = 1; // 1074
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1077") - firstRTCMRecord] = 0; // 1077
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1084") - firstRTCMRecord] = 1; // 1084
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1087") - firstRTCMRecord] = 0; // 1087
+
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1094") - firstRTCMRecord] = 1;  // 1094
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1097") - firstRTCMRecord] = 0;  // 1097
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1124") - firstRTCMRecord] = 1;  // 1124
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1127") - firstRTCMRecord] = 0;  // 1127
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1230") - firstRTCMRecord] = 10; // 1230
+
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
+}
+
+// Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
+void zedBaseRtcmLowDataRate()
+{
+    int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1005") - firstRTCMRecord] = 10; // 1105 0.1Hz
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1074") - firstRTCMRecord] = 2;  // 1074 0.5Hz
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1077") - firstRTCMRecord] = 0;  // 1077
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1084") - firstRTCMRecord] = 2;  // 1084 0.5Hz
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1087") - firstRTCMRecord] = 0;  // 1087
+
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1094") - firstRTCMRecord] = 2;  // 1094 0.5Hz
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1097") - firstRTCMRecord] = 0;  // 1097
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1124") - firstRTCMRecord] = 2;  // 1124 0.5Hz
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1127") - firstRTCMRecord] = 0;  // 1127
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1230") - firstRTCMRecord] = 10; // 1230 0.1Hz
+
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
+    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
+}
+
+char *zedGetRtcmDefaultString()
+{
+    return ("1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
+}
+char *zedGetRtcmLowDataRateString()
+{
+    return ("1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
+}
+
+float zedGetSurveyInStartingAccuracy()
+{
+    return (settings.surveyInStartingAccuracy);
+}
+
+// Controls the constellations that are used to generate a fix and logged
+void zedMenuConstellations()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Constellations");
+
+        for (int x = 0; x < MAX_CONSTELLATIONS; x++)
+        {
+            systemPrintf("%d) Constellation %s: ", x + 1, settings.ubxConstellations[x].textName);
+            if (settings.ubxConstellations[x].enabled == true)
+                systemPrint("Enabled");
+            else
+                systemPrint("Disabled");
+            systemPrintln();
+        }
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
+        {
+            incoming--; // Align choice to constellation array of 0 to 5
+
+            settings.ubxConstellations[incoming].enabled ^= 1;
+
+            // 3.10.6: To avoid cross-correlation issues, it is recommended that GPS and QZSS are always both enabled or
+            // both disabled.
+            if (incoming == SFE_UBLOX_GNSS_ID_GPS || incoming == 4) // QZSS ID is 5 but array location is 4
+            {
+                settings.ubxConstellations[SFE_UBLOX_GNSS_ID_GPS].enabled =
+                    settings.ubxConstellations[incoming].enabled; // GPS ID is 0 and array location is 0
+                settings.ubxConstellations[4].enabled =
+                    settings.ubxConstellations[incoming].enabled; // QZSS ID is 5 but array location is 4
+            }
+        }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    // Apply current settings to module
+    gnssSetConstellations();
+
+    clearBuffer(); // Empty buffer of any newline chars
+}

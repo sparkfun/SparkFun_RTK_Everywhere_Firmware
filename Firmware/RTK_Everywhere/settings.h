@@ -1195,6 +1195,7 @@ typedef struct
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
+    float um980SurveyInStartingAccuracy = 2.0; // Wait for 2m horizontal positional accuracy before starting survey in
 
     // Add new settings above <------------------------------------------------------------>
 

@@ -126,7 +126,7 @@ void menuMain()
         if (incoming == 1)
             menuGNSS();
         else if (incoming == 2)
-            menuMessages();
+            gnssMenuMessages();
         else if (incoming == 3)
             menuBase();
         else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
@@ -174,10 +174,6 @@ void menuMain()
             printUnknown(incoming);
     }
 
-    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
-
-    gnssSaveConfiguration();
-
     // Reboot as base only if currently operating as a base station
     if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING))
     {
@@ -190,6 +186,10 @@ void menuMain()
         restartRover = false;
         requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
     }
+
+    gnssSaveConfiguration();
+
+    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system

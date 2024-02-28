@@ -1858,38 +1858,12 @@ void displayBaseStart(uint16_t displayTime)
 
 void displayBaseSuccess(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 15; // Assume fontsize 1
-        uint8_t yPos = oled->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Base", yPos, QW_FONT_8X16, 1, false);                 // text, y, font type, kerning, inverted
-        printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
+    displayMessage("Base Started", displayTime);
 }
 
 void displayBaseFail(uint16_t displayTime)
 {
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 15; // Assume fontsize 1
-        uint8_t yPos = oled->getHeight() / 2 - fontHeight;
-
-        printTextCenter("Base", yPos, QW_FONT_8X16, 1, false);                // text, y, font type, kerning, inverted
-        printTextCenter("Failed", yPos + fontHeight, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
+    displayMessage("Base Failed", displayTime);
 }
 
 void displayGNSSFail(uint16_t displayTime)

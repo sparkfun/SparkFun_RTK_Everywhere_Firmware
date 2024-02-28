@@ -551,6 +551,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.printTaskStartStop = settingValue;
     else if (strcmp(settingName, "psramMallocLevel") == 0)
         settings.psramMallocLevel = settingValue;
+    else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
+        settings.um980SurveyInStartingAccuracy = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1210,6 +1212,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enablePsram", settings.enablePsram);
     stringRecord(newSettings, "printTaskStartStop", settings.printTaskStartStop);
     stringRecord(newSettings, "psramMallocLevel", settings.psramMallocLevel);
+    stringRecord(newSettings, "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy, 1);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1919,6 +1922,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.printTaskStartStop);
     else if (strcmp(settingName, "psramMallocLevel") == 0)
         writeToString(settingValueStr, settings.psramMallocLevel);
+    else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
+        writeToString(settingValueStr, settings.um980SurveyInStartingAccuracy);
 
     // Add new settings above <------------------------------------------------------------>
 
