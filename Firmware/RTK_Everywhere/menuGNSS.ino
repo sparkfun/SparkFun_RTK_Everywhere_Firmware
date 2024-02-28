@@ -150,8 +150,22 @@ void menuGNSS()
         else if (incoming == 2)
         {
             float rate = 0.0;
-            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", 0.0, 8255.0, &rate) ==
-                INPUT_RESPONSE_VALID) // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
+            float minRate = 1.0;
+            float maxRate = 1.0;
+
+            if (gnssPlatform == PLATFORM_ZED)
+            {
+                minRate = 0.05;   // 20Hz
+                maxRate = 8255.0; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
+            }
+            else if (gnssPlatform == PLATFORM_UM980)
+            {
+                minRate = 0.05; // 20Hz
+                maxRate = 65.0; // Found experimentally
+            }
+
+            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate) ==
+                INPUT_RESPONSE_VALID)
             {
                 gnssSetRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
             }
@@ -269,8 +283,7 @@ void menuGNSS()
                  (incoming == 6 && settings.enableNtripClient == false))
         {
             // Arbitrary 90 degree max
-            if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) ==
-                INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) == INPUT_RESPONSE_VALID)
             {
                 gnssSetElevation(settings.minElev);
             }

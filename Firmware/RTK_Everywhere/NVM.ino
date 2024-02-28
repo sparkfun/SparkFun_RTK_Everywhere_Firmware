@@ -447,7 +447,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%d\r\n", "printTaskStartStop", settings.printTaskStartStop);
     settingsFile->printf("%s=%d\r\n", "psramMallocLevel", settings.psramMallocLevel);
-    settingsFile->printf("%s=%d\r\n", "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy);
+    settingsFile->printf("%s=%0.1f\r\n", "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy);
 
     // Add new settings above <--------------------------------------------------->
 }

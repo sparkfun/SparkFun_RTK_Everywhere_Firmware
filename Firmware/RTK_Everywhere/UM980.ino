@@ -208,11 +208,10 @@ bool um980ConfigureRover()
 bool um980ConfigureBase()
 {
     /*
-        Set all message traffic to 1Hz
-        Set GSV NMEA setence to whatever rate the user has selected
-        Disable NMEA GGA message
-        Disable survey in mode
+        Disable all messages
+        Start base
         Enable RTCM Base messages
+        Enable NMEA messages
     */
 
     if (online.gnss == false)
@@ -225,12 +224,17 @@ bool um980ConfigureBase()
 
     bool response = true;
 
-    response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
-
     response &= um980EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
                                        // UNLOG or similar.
 
-    response &= um980SaveConfiguration();
+    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
+    response &= um980EnableNMEA();
+
+    // Save the current configuration into non-volatile memory (NVM)
+    // We don't need to re-configure the UM980 at next boot
+    bool settingsWereSaved = um980->saveConfiguration();
+    if (settingsWereSaved)
+        settings.updateGNSSSettings = false;
 
     if (response == false)
     {
@@ -773,20 +777,250 @@ uint8_t um980GetActiveMessageCount()
             count++;
 
     // Determine which state we are in
-    if (settings.lastState == STATE_BASE_NOT_STARTED)
-    {
-        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            if (settings.um980MessageRatesRTCMBase[x] > 0)
-                count++;
-    }
-    else // Default to Rover messages
+    if (um980InRoverMode() == true)
     {
         for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
             if (settings.um980MessageRatesRTCMRover[x] > 0)
                 count++;
     }
+    else
+    {
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+            if (settings.um980MessageRatesRTCMBase[x] > 0)
+                count++;
+    }
 
     return (count);
+}
+
+// Control the messages that get broadcast over Bluetooth and logged (if enabled)
+void um980MenuMessages()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: GNSS Messages");
+
+        systemPrintf("Active messages: %d\r\n", gnssGetActiveMessageCount());
+
+        systemPrintln("1) Set NMEA Messages");
+        systemPrintln("2) Set Rover RTCM Messages");
+        systemPrintln("3) Set Base RTCM Messages");
+
+        systemPrintln("10) Reset to Defaults");
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+            um980MenuMessagesSubtype(settings.um980MessageRatesNMEA, "NMEA");
+        else if (incoming == 2)
+            um980MenuMessagesSubtype(settings.um980MessageRatesRTCMRover, "RTCMRover");
+        else if (incoming == 3)
+            um980MenuMessagesSubtype(settings.um980MessageRatesRTCMBase, "RTCMBase");
+        else if (incoming == 10)
+        {
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMRover[x] = 0;
+
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+
+            systemPrintln("Reset to Defaults");
+        }
+
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+
+    // Apply these changes at menu exit
+    if (um980InRoverMode() == true)
+        restartRover = true;
+    else
+        restartBase = true;
+}
+
+// Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
+// Controls the messages that get broadcast over Bluetooth and logged (if enabled)
+void um980MenuMessagesSubtype(float *localMessageRate, const char *messageType)
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintf("Menu: Message %s\r\n", messageType);
+
+        int endOfBlock = 0;
+
+        if (strcmp(messageType, "NMEA") == 0)
+        {
+            endOfBlock = MAX_UM980_NMEA_MSG;
+
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                systemPrintf("%d) Message %s: %g\r\n", x + 1, umMessagesNMEA[x].msgTextName,
+                             settings.um980MessageRatesNMEA[x]);
+        }
+        else if (strcmp(messageType, "RTCMRover") == 0)
+        {
+            endOfBlock = MAX_UM980_RTCM_MSG;
+
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                systemPrintf("%d) Message %s: %g\r\n", x + 1, umMessagesRTCM[x].msgTextName,
+                             settings.um980MessageRatesRTCMRover[x]);
+        }
+        else if (strcmp(messageType, "RTCMBase") == 0)
+        {
+            endOfBlock = MAX_UM980_RTCM_MSG;
+
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                systemPrintf("%d) Message %s: %g\r\n", x + 1, umMessagesRTCM[x].msgTextName,
+                             settings.um980MessageRatesRTCMBase[x]);
+        }
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming >= 1 && incoming <= endOfBlock)
+        {
+            // Adjust incoming to match array start of 0
+            incoming--;
+
+            // Create user prompt
+            char messageString[100] = "";
+            if (strcmp(messageType, "NMEA") == 0)
+            {
+                sprintf(messageString, "Enter number of seconds between %s messages (0 to disable)",
+                        umMessagesNMEA[incoming].msgTextName);
+            }
+            else if ((strcmp(messageType, "RTCMRover") == 0) || (strcmp(messageType, "RTCMBase") == 0))
+            {
+                sprintf(messageString, "Enter number of seconds between %s messages (0 to disable)",
+                        umMessagesRTCM[incoming].msgTextName);
+            }
+
+            float newSetting = 0.0;
+
+            // Message rates are 0.05s to 65s
+            if (getNewSetting(messageString, 0, 65.0, &newSetting) == INPUT_RESPONSE_VALID)
+            {
+                // Allowed values:
+                // 1, 0.5, 0.2, 0.1, 0.05 corresponds to 1Hz, 2Hz, 5Hz, 10Hz, 20Hz respectively.
+                // 1, 2, 5 corresponds to 1Hz, 0.5Hz, 0.2Hz respectively.
+                if (newSetting == 0.0)
+                {
+                    // Allow it
+                }
+                else if (newSetting < 1.0)
+                {
+                    // Deal with 0.0001 to 1.0
+                    if (newSetting <= 0.05)
+                        newSetting = 0.05; // 20Hz
+                    else if (newSetting <= 0.1)
+                        newSetting = 0.1; // 10Hz
+                    else if (newSetting <= 0.2)
+                        newSetting = 0.2; // 5Hz
+                    else if (newSetting <= 0.5)
+                        newSetting = 0.5; // 2Hz
+                    else
+                        newSetting = 1.0; // 1Hz
+                }
+                // 2.7 is not allowed. Change to 2.0.
+                else if (newSetting >= 1.0)
+                    newSetting = floor(newSetting);
+
+                if (strcmp(messageType, "NMEA") == 0)
+                    settings.um980MessageRatesNMEA[incoming] = newSetting;
+                if (strcmp(messageType, "RTCMRover") == 0)
+                    settings.um980MessageRatesRTCMRover[incoming] = newSetting;
+                if (strcmp(messageType, "RTCMBase") == 0)
+                    settings.um980MessageRatesRTCMBase[incoming] = newSetting;
+            }
+        }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Returns true if the device is in Rover mode
+// Currently the only two modes are Rover or Base
+bool um980InRoverMode()
+{
+    // Determine which state we are in
+    if (settings.lastState == STATE_BASE_NOT_STARTED)
+        return (false);
+
+    return (true); // Default to Rover
+}
+
+char *um980GetRtcmDefaultString()
+{
+    return ("1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz");
+}
+char *um980GetRtcmLowDataRateString()
+{
+    return ("1074/1084/1094/1124 1Hz & 1005/1033 0.1Hz");
+}
+
+// Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz)
+void um980BaseRtcmDefault()
+{
+    // Reset RTCM rates to defaults
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+}
+
+// Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz)
+void um980BaseRtcmLowDataRate()
+{
+    // Zero out everything
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        settings.um980MessageRatesRTCMBase[x] = 0;
+
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1005")] = 10; // 1005 0.1Hz - Exclude antenna height
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1124")] = 2;  // 1124 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1033")] = 10; // 1033 0.1Hz
+}
+
+// Given the name of a message, return the array number
+uint8_t um980GetMessageNumberByName(const char *msgName)
+{
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+    {
+        if (strcmp(umMessagesRTCM[x].msgTextName, msgName) == 0)
+            return (x);
+    }
+
+    systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
+    return (0);
+}
+
+float um980GetSurveyInStartingAccuracy()
+{
+    return (settings.um980SurveyInStartingAccuracy);
 }
 
 #endif // COMPILE_UM980

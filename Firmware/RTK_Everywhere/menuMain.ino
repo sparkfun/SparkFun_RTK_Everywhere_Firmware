@@ -126,7 +126,7 @@ void menuMain()
         if (incoming == 1)
             menuGNSS();
         else if (incoming == 2)
-            menuMessages();
+            gnssMenuMessages();
         else if (incoming == 3)
             menuBase();
         else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports

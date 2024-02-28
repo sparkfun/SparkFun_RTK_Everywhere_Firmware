@@ -1124,3 +1124,93 @@ uint8_t gnssGetActiveMessageCount()
     }
     return (0);
 }
+
+void gnssMenuMessages()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        zedMenuMessages();
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        um980MenuMessages();
+    }
+}
+
+void gnssMenuMessageBaseRtcm()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        menuMessagesSubtype(settings.ubxMessageRatesBase, "RTCM-Base");
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        um980MenuMessagesSubtype(settings.um980MessageRatesRTCMBase, "RTCMBase");
+    }
+}
+
+// Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
+void gnssBaseRtcmDefault()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        zedBaseRtcmDefault();
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        um980BaseRtcmDefault();
+    }
+}
+
+// Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
+void gnssBaseRtcmLowDataRate()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        zedBaseRtcmLowDataRate();
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        um980BaseRtcmLowDataRate();
+    }
+}
+
+char *gnssGetRtcmDefaultString()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        return(zedGetRtcmDefaultString());
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        return(um980GetRtcmDefaultString());
+    }
+    return ("Error");
+}
+
+char *gnssGetRtcmLowDataRateString()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        return(zedGetRtcmLowDataRateString());
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        return(um980GetRtcmLowDataRateString());
+    }
+    return ("Error");
+}
+
+float gnssGetSurveyInStartingAccuracy()
+{
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        return(zedGetSurveyInStartingAccuracy());
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        return(um980GetSurveyInStartingAccuracy());
+    }
+    return (0);
+}
+
