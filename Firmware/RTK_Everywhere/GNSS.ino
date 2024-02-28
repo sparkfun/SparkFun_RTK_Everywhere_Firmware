@@ -348,19 +348,21 @@ bool gnssSetRate(double secondsBetweenSolutions)
     return (false);
 }
 
-void gnssSaveConfiguration()
+bool gnssSaveConfiguration()
 {
     if (online.gnss == true)
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
             zedSaveConfiguration();
+            return (true);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            um980SaveConfiguration();
+            return(um980SaveConfiguration());
         }
     }
+    return (false);
 }
 
 void gnssFactoryReset()

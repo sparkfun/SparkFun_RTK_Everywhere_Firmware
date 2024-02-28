@@ -429,8 +429,6 @@ bool um980SetConstellations()
     {
         if (settings.um980Constellations[constellationNumber] == true)
         {
-            Serial.printf("Enable %d\r\n", constellationNumber);
-
             if (um980->enableConstellation(um980ConstellationCommands[constellationNumber].textCommand) == false)
             {
                 if (settings.debugGnss)
