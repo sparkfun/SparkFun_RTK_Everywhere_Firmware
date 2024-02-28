@@ -70,11 +70,11 @@ bool um980IsBlocking()
 bool um980Configure()
 {
     // Skip configuring the UM980 if no new changes are necessary
-    // if (settings.updateGNSSSettings == false)
-    // {
-    //     systemPrintln("UM980 configuration maintained");
-    //     return (true);
-    // }
+    if (settings.updateGNSSSettings == false)
+    {
+        systemPrintln("UM980 configuration maintained");
+        return (true);
+    }
 
     for (int x = 0; x < 3; x++)
     {
