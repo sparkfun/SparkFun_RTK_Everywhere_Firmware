@@ -33,15 +33,15 @@ const um980ConstellationCommand um980ConstellationCommands[] = {
 typedef struct
 {
     const char msgTextName[9];
-    const uint8_t msgDefaultRate;
+    const float msgDefaultRate;
 } um980Msg;
 
 // Static array containing all the compatible messages
 const um980Msg umMessagesNMEA[] = {
     // NMEA
-    {"GPDTM", 0}, {"GPGBS", 0}, {"GPGGA", 1}, {"GPGLL", 0}, {"GPGNS", 0},
+    {"GPDTM", 0}, {"GPGBS", 0}, {"GPGGA", 0.2}, {"GPGLL", 0}, {"GPGNS", 0},
 
-    {"GPGRS", 0}, {"GPGSA", 1}, {"GPGST", 1}, {"GPGSV", 4}, {"GPRMC", 1},
+    {"GPGRS", 0}, {"GPGSA", 0.2}, {"GPGST", 0.2}, {"GPGSV", 1}, {"GPRMC", 0.2},
 
     {"GPROT", 0}, {"GPTHS", 0}, {"GPVTG", 0}, {"GPZDA", 0},
 };
