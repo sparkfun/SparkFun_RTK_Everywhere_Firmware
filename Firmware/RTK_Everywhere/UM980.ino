@@ -564,6 +564,12 @@ bool um980SetRate(double secondsBetweenSolutions)
     return (true);
 }
 
+// Returns the seconds between measurements
+double um980GetRateS()
+{
+    return (settings.um980MeasurementRateMs / 1000.0);
+}
+
 // Send data directly from ESP GNSS UART1 to UM980 UART3
 int um980PushRawData(uint8_t *dataToSend, int dataLength)
 {

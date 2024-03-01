@@ -1043,6 +1043,16 @@ bool zedSetRate(double secondsBetweenSolutions)
     return (true);
 }
 
+// Returns the seconds between measurements
+double zedGetRateS()
+{
+    // Because we may be in base mode, do not get freq from module, use settings instead
+    float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+    double measurementRateS = 1.0 / measurementFrequency; //1 / 4Hz = 0.25s
+
+    return (measurementRateS);
+}
+
 void zedSetElevation(uint8_t elevationDegrees)
 {
     theGNSS->setVal8(UBLOX_CFG_NAVSPG_INFIL_MINELEV, elevationDegrees); // Set minimum elevation

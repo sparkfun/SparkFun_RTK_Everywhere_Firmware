@@ -9,14 +9,11 @@ void menuGNSS()
         systemPrintln();
         systemPrintln("Menu: GNSS Receiver");
 
-        // Because we may be in base mode, do not get freq from module, use settings instead
-        float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
-
         systemPrint("1) Set measurement rate in Hz: ");
-        systemPrintln(measurementFrequency, 5);
+        systemPrintln(1.0 / gnssGetRateS(), 5);
 
         systemPrint("2) Set measurement rate in seconds between measurements: ");
-        systemPrintln(1 / measurementFrequency, 5);
+        systemPrintln(gnssGetRateS(), 5);
 
         systemPrintln("\tNote: The measurement rate is overridden to 1Hz when in Base mode.");
 

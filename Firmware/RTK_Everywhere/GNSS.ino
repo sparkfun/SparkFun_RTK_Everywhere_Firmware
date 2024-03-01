@@ -348,6 +348,23 @@ bool gnssSetRate(double secondsBetweenSolutions)
     return (false);
 }
 
+// Returns the seconds between solutions
+double gnssGetRateS(void)
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (zedGetRateS());
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980GetRateS());
+        }
+    }
+    return (0.0);
+}
+
 bool gnssSaveConfiguration()
 {
     if (online.gnss == true)
