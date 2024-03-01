@@ -527,15 +527,16 @@ enum PeriodDisplayValues
     PD_TASK_GNSS_READ,          // 24
     PD_TASK_HANDLE_GNSS_DATA,   // 25
     PD_TASK_SD_SIZE_CHECK,      // 26
+    PD_TASK_UPDATE_PPL,         // 27
 
-    PD_WIFI_IP_ADDRESS,         // 27
-    PD_WIFI_STATE,              // 28
+    PD_WIFI_IP_ADDRESS,         // 28
+    PD_WIFI_STATE,              // 29
 
-    PD_ZED_DATA_RX,             // 29
-    PD_ZED_DATA_TX,             // 30
+    PD_ZED_DATA_RX,             // 30
+    PD_ZED_DATA_TX,             // 31
 
-    PD_MQTT_CLIENT_DATA,        // 31
-    PD_MQTT_CLIENT_STATE,       // 32
+    PD_MQTT_CLIENT_DATA,        // 32
+    PD_MQTT_CLIENT_STATE,       // 33
     // Add new values before this line
 };
 
@@ -1292,6 +1293,7 @@ struct struct_online
     volatile bool idleTask0Running = false;
     volatile bool idleTask1Running = false;
     volatile bool sdSizeCheckTaskRunning = false;
+    volatile bool updatePplTaskRunning = false;
     bool ppl = false;
 } online;
 

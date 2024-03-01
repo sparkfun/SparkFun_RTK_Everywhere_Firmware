@@ -210,7 +210,7 @@ LoggingType loggingType;
 SdFile *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
 bool managerFileOpen;
 
-TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can kill the task once the size is found
+TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 const int sdSizeCheckStackSize = 3000;
 bool sdSizeCheckTaskComplete;
@@ -614,6 +614,11 @@ unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 #ifdef COMPILE_POINTPERFECT_LIBRARY
 #include "PPL_PublicInterface.h" // The PPL
 #include "PPL_Version.h"
+
+TaskHandle_t updatePplTaskHandle;        // Store handles so that we can delete the task once the size is found
+const uint8_t updatePplTaskPriority = 0; // 3 being the highest, and 0 being the lowest
+const int updatePplTaskStackSize = 3000;
+
 #endif COMPILE_POINTPERFECT_LIBRARY
 
 bool pplNewRtcmNmea;

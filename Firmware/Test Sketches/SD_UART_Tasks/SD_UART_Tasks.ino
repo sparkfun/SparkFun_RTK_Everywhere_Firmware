@@ -69,7 +69,7 @@ unsigned long lastFileReport = 0;
 
 unsigned long lastUBXLogSyncTime = 0;
 
-TaskHandle_t F9PSerialReadTaskHandle = NULL; //Store handles so that we can kill them if user goes into WiFi NTRIP Server mode
+TaskHandle_t F9PSerialReadTaskHandle = NULL; //Store handles so that we can delete them if user goes into WiFi NTRIP Server mode
 const uint8_t F9PSerialReadTaskPriority = 1; //3 being the highest, and 0 being the lowest
 const int readTaskStackSize = 2000;
 

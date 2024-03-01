@@ -1,5 +1,94 @@
 #ifdef COMPILE_POINTPERFECT_LIBRARY
 
+// Feed the PointPerfect Library with NMEA+RTCM
+void updatePplTask(void *e)
+{
+    // Start notification
+    online.updatePplTaskRunning = true;
+    if (settings.printTaskStartStop)
+        systemPrintln("updatePplTask started");
+
+    // Verify that the task is still running
+    while (online.updatePplTaskRunning)
+    {
+        // Display an alive message
+        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_PPL))
+        {
+            PERIODIC_CLEAR(PD_TASK_UPDATE_PPL);
+            systemPrintln("UpdatePplTask running");
+        }
+
+        if (pplNewRtcmNmea || pplNewSpartn) // Decide when to call PPL_GetRTCMOutput
+        {
+            if (pplNewRtcmNmea)
+                pplNewRtcmNmea = false;
+            if (pplNewSpartn)
+                pplNewSpartn = false;
+
+            uint32_t rtcmLength;
+
+            // Check if the PPL has generated any RTCM. If it has, push it to the GNSS.
+            ePPL_ReturnStatus result = PPL_GetRTCMOutput(pplRtcmBuffer, PPL_MAX_RTCM_BUFFER, &rtcmLength);
+            if (result == ePPL_Success)
+            {
+                if (rtcmLength > 0)
+                {
+                    if (settings.debugCorrections == true)
+                        systemPrintln("Received RTCM from PPL. Pushing to the GNSS.");
+
+                    gnssPushRawData(pplRtcmBuffer, rtcmLength);
+                }
+            }
+            else
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintf("PPL_GetRTCMOutput Result: %s\r\n", PPLReturnStatusToStr(result));
+            }
+        }
+
+        // Check to see if our key has expired
+        if (millis() > pplKeyExpirationMs)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintln("Key has expired. Going to new key.");
+
+            // Get a key from NVM
+            char pointPerfectKey[33]; // 32 hexadecimal digits = 128 bits = 16 Bytes
+            if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("Unable to get usable key");
+
+                online.ppl = false; // Take PPL offline
+            }
+            else
+            {
+                // Key obtained from NVM
+                ePPL_ReturnStatus result = PPL_SendDynamicKey(pointPerfectKey, strlen(pointPerfectKey));
+                if (settings.debugCorrections == true)
+                    systemPrintf("PPL_SendDynamicKey: %s\r\n", PPLReturnStatusToStr(result));
+
+                if (result != ePPL_Success)
+                {
+                    systemPrintln("PointPerfect Library Key Invalid");
+                    online.ppl = false; // Take PPL offline
+                }
+            }
+
+            online.updatePplTaskRunning = false; // Stop task either because new key failed or we need to apply new key
+        }
+
+        feedWdt();
+        taskYIELD();
+    }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task updatePplTask stopped");
+    online.updatePplTaskRunning = false;
+    vTaskDelete(NULL);
+}
+
 // Begin the PointPerfect Library and give it the current key
 void beginPPL()
 {
@@ -61,16 +150,34 @@ void beginPPL()
     online.ppl = successfulInit;
 
     if (online.ppl)
+    {
         systemPrintf("PointPerfect Library Online: %s\r\n", PPL_SDK_VERSION);
+
+        TaskHandle_t taskHandle;
+
+        // Starts task for feeding NMEA+RTCM to PPL
+        if (online.updatePplTaskRunning == false)
+            xTaskCreate(updatePplTask,
+                        "UpdatePpl",         // Just for humans
+                        updatePplTaskStackSize, // Stack Size
+                        nullptr,             // Task input parameter
+                        updatePplTaskPriority,
+                        &taskHandle); // Task handle
+    }
     else
         systemPrintln("PointPerfect Library failed to start");
 
     reportHeapNow(false);
 }
 
+
+// Start the PPL if needed
+// Because the key for the PPL expires every ~28 days, we use updatePPL to first apply keys, and 
+// restart the PPL when new keys need to be applied
 void updatePPL()
 {
-    if (online.ppl == false)
+    if (online.ppl == false && 
+    (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP) || (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected. Don't restart the PPL if we've already tried
@@ -85,68 +192,8 @@ void updatePPL()
             }
         }
     }
-    else // PPL is online
-    {
-        if (pplNewRtcmNmea || pplNewSpartn) // Decide when to call PPL_GetRTCMOutput
-        {
-            if (pplNewRtcmNmea)
-                pplNewRtcmNmea = false;
-            if (pplNewSpartn)
-                pplNewSpartn = false;
 
-            uint32_t rtcmLength;
-
-            // Check if the PPL has generated any RTCM. If it has, push it to the GNSS.
-            ePPL_ReturnStatus result = PPL_GetRTCMOutput(pplRtcmBuffer, PPL_MAX_RTCM_BUFFER, &rtcmLength);
-            if (result == ePPL_Success)
-            {
-                if (rtcmLength > 0)
-                {
-                    if (settings.debugCorrections == true)
-                        systemPrintln("Received RTCM from PPL. Pushing to the GNSS.");
-
-                    gnssPushRawData(pplRtcmBuffer, rtcmLength);
-                }
-            }
-            else
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintf("PPL_GetRTCMOutput Result: %s\r\n", PPLReturnStatusToStr(result));
-            }
-        }
-
-
-        // Check to see if our key has expired
-        if (millis() > pplKeyExpirationMs)
-        {
-            if (settings.debugCorrections == true)
-                systemPrintln("Key has expired. Going to new key.");
-
-            // Get a key from NVM
-            char pointPerfectKey[33]; // 32 hexadecimal digits = 128 bits = 16 Bytes
-            if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Unable to get usable key");
-
-                online.ppl = false;        // Take PPL offline
-                pplAttemptedStart = false; // Allow PPL to attempt restart
-                return;
-            }
-
-            ePPL_ReturnStatus result = PPL_SendDynamicKey(pointPerfectKey, strlen(pointPerfectKey));
-            if (settings.debugCorrections == true)
-                systemPrintf("PPL_SendDynamicKey: %s\r\n", PPLReturnStatusToStr(result));
-
-            if (result != ePPL_Success)
-            {
-                systemPrintln("PointPerfect Library Key Invalid");
-                online.ppl = false;        // Take PPL offline
-                pplAttemptedStart = false; // Allow PPL to attempt restart
-                return;
-            }
-        }
-    }
+    // The PPL is fed during updatePplTask()
 }
 
 // Checks the current and next keys for expiration
