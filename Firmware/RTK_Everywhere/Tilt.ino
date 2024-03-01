@@ -90,7 +90,7 @@ void tiltUpdate()
                     // Trigger beeper only once
                     if (online.tilt == false)
                     {
-                        beepDuration(2000); // Audibly indicate the start of tilt
+                        beepDurationMs(2000); // Audibly indicate the start of tilt
 
                         lastTiltBeepMs = millis();
 
@@ -184,7 +184,7 @@ void tiltUpdate()
             if ((online.tilt == true) && (millis() - lastTiltBeepMs > 10000))
             {
                 lastTiltBeepMs = millis();
-                beepDuration(250);
+                beepDurationMs(250);
             }
         }
         else if (settings.enableTiltCompensation == false && online.imu == true)

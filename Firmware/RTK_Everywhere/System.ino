@@ -37,7 +37,7 @@ void finishDisplay()
 }
 
 // Start the beeper and limit its beep length using the tickerBeepUpdate task
-void beepDuration(uint16_t lengthMs)
+void beepDurationMs(uint16_t lengthMs)
 {
     beepStopMs = millis() + lengthMs;
     beepOn();
