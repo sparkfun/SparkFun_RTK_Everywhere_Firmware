@@ -555,8 +555,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     if (response == true)
     {
         int msBetweenSolutions = secondsBetweenSolutions * 1000;
-        settings.measurementRate = msBetweenSolutions;
-        settings.navigationRate = 1;
+        settings.um980MeasurementRateMs = msBetweenSolutions;
     }
     else
     {
@@ -913,7 +912,7 @@ void um980MenuMessagesSubtype(float *localMessageRate, const char *messageType)
                         umMessagesRTCM[incoming].msgTextName);
             }
 
-            float newSetting = 0.0;
+            double newSetting = 0.0;
 
             // Message rates are 0.05s to 65s
             if (getNewSetting(messageString, 0, 65.0, &newSetting) == INPUT_RESPONSE_VALID)
@@ -944,11 +943,11 @@ void um980MenuMessagesSubtype(float *localMessageRate, const char *messageType)
                     newSetting = floor(newSetting);
 
                 if (strcmp(messageType, "NMEA") == 0)
-                    settings.um980MessageRatesNMEA[incoming] = newSetting;
+                    settings.um980MessageRatesNMEA[incoming] = (float)newSetting;
                 if (strcmp(messageType, "RTCMRover") == 0)
-                    settings.um980MessageRatesRTCMRover[incoming] = newSetting;
+                    settings.um980MessageRatesRTCMRover[incoming] = (float)newSetting;
                 if (strcmp(messageType, "RTCMBase") == 0)
-                    settings.um980MessageRatesRTCMBase[incoming] = newSetting;
+                    settings.um980MessageRatesRTCMBase[incoming] = (float)newSetting;
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
