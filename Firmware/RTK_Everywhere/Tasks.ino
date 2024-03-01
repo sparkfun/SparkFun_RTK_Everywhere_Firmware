@@ -1144,8 +1144,8 @@ void tickerGnssLedUpdate()
     {
         // Update the GNSS LED according to our state
 
-        // Solid during tilt corrected RTK fix
-        if (online.tilt == true)
+        // Solid once RTK Fix is achieved
+        if (gnssIsRTKFix() == true)
         {
             ledcWrite(ledGnssChannel, 255);
         }
@@ -1153,6 +1153,16 @@ void tickerGnssLedUpdate()
         {
             ledcWrite(ledGnssChannel, 0);
         }
+
+        // // Solid during tilt corrected RTK fix
+        // if (online.tilt == true)
+        // {
+        //     ledcWrite(ledGnssChannel, 255);
+        // }
+        // else
+        // {
+        //     ledcWrite(ledGnssChannel, 0);
+        // }
 
         // Fade on/off during RTK Fix
         // else if (gnssIsRTKFix() == true)
@@ -1265,7 +1275,7 @@ void buttonCheckTask(void *e)
             // The user button only exits tilt mode
             if (userBtn->wasReleased() && (online.tilt == true))
             {
-                beepDuration(1000);
+                beepDurationMs(1000);
 
                 tiltStop();
             }
