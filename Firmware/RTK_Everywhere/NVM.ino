@@ -427,10 +427,41 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enablePvtUdpServer", settings.enablePvtUdpServer);
     settingsFile->printf("%s=%d\r\n", "pvtUdpServerPort", settings.pvtUdpServerPort);
 
-    // um980MessageRatesNMEA
-    // um980MessageRatesRTCMRover
-    // um980MessageRatesRTCMBase
-    // um980Constellations
+    // Record UM980 NMEA rates
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+    {
+        char tempString[50]; // um980MessageRatesNMEA.GPDTM=0.05
+        snprintf(tempString, sizeof(tempString), "um980MessageRatesNMEA.%s=%0.2f", umMessagesNMEA[x].msgTextName,
+                 settings.um980MessageRatesNMEA[x]);
+        settingsFile->println(tempString);
+    }
+
+    // Record UM980 Rover RTCM rates
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+    {
+        char tempString[50]; // um980MessageRatesRTCMRover.RTCM1001=0.2
+        snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMRover.%s=%0.2f", umMessagesRTCM[x].msgTextName,
+                 settings.um980MessageRatesRTCMRover[x]);
+        settingsFile->println(tempString);
+    }
+
+    // Record UM980 Base RTCM rates
+    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+    {
+        char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
+        snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMBase.%s=%0.2f", umMessagesRTCM[x].msgTextName,
+                 settings.um980MessageRatesRTCMBase[x]);
+        settingsFile->println(tempString);
+    }
+
+    // Record UM980 Constellations
+    for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+    {
+        char tempString[50]; // um980Constellations.GLONASS=1
+        snprintf(tempString, sizeof(tempString), "um980Constellations.%s=%0d", um980ConstellationCommands[x].textName,
+                 settings.um980Constellations[x]);
+        settingsFile->println(tempString);
+    }
 
     settingsFile->printf("%s=%d\r\n", "minCNO_um980", settings.minCNO_um980);
     settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
@@ -466,8 +497,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%0.1f\r\n", "enableImuCompensationDebug", settings.enableImuCompensationDebug);
 
     // Add new settings above <--------------------------------------------------->
-    
-    //Below are things not part of settings.h
+
+    // Below are things not part of settings.h
 
     char firmwareVersion[30]; // v1.3 December 31 2021
     getFirmwareVersion(firmwareVersion, sizeof(firmwareVersion), true);
@@ -630,9 +661,9 @@ bool loadSystemSettingsFromFileLFS(char *fileName, Settings *settings)
         }
 
         lineNumber++;
-        if (lineNumber > 400) // Arbitrary limit. Catch corrupt files.
+        if (lineNumber > 800) // Arbitrary limit. Catch corrupt files.
         {
-            log_d("Giving up reading file: %s", fileName);
+            systemPrintf("Max line number exceeded. Giving up reading file: %s\r\n", fileName);
             break;
         }
     }
@@ -1273,10 +1304,10 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "pvtUdpServerPort") == 0)
         settings->pvtUdpServerPort = d;
 
-    // um980MessageRatesNMEA not handled here
-    // um980MessageRatesRTCMRover not handled here
-    // um980MessageRatesRTCMBase not handled here
-    // um980Constellations not handled here
+    // um980MessageRatesNMEA handled in bulk below
+    // um980MessageRatesRTCMRover handled in bulk below
+    // um980MessageRatesRTCMBase handled in bulk below
+    // um980Constellations handled in bulk below
 
     else if (strcmp(settingName, "minCNO_um980") == 0)
         settings->minCNO_um980 = d;
@@ -1476,14 +1507,13 @@ bool parseLine(char *str, Settings *settings)
             }
         }
 
-        // Scan for UM980 NMEA message settings
+        // Scan for UM980 NMEA message rates
         if (knownSetting == false)
         {
             for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
             {
-                char tempString[50]; // message.nmea_dtm.msgRate=5
-                snprintf(tempString, sizeof(tempString), "message.%s.um980MessageRatesNMEA",
-                         umMessagesNMEA[x].msgTextName);
+                char tempString[50]; // um980MessageRatesNMEA.GPDTM=0.05
+                snprintf(tempString, sizeof(tempString), "um980MessageRatesNMEA.%s", umMessagesNMEA[x].msgTextName);
 
                 if (strcmp(settingName, tempString) == 0)
                 {
@@ -1499,13 +1529,13 @@ bool parseLine(char *str, Settings *settings)
             }
         }
 
-        // Scan for UM980 Rover RTCM message settings
+        // Scan for UM980 Rover RTCM rates
         if (knownSetting == false)
         {
             for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
             {
-                char tempString[50]; // message.nmea_dtm.msgRate=5
-                snprintf(tempString, sizeof(tempString), "message.%s.um980MessageRatesRTCMRover",
+                char tempString[50]; // um980MessageRatesRTCMRover.RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMRover.%s",
                          umMessagesRTCM[x].msgTextName);
 
                 if (strcmp(settingName, tempString) == 0)
@@ -1522,20 +1552,42 @@ bool parseLine(char *str, Settings *settings)
             }
         }
 
-        // Scan for UM980 Base RTCM message settings
+        // Scan for UM980 Base RTCM rates
         if (knownSetting == false)
         {
             for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
             {
-                char tempString[50]; // settings.um980MessageRatesRTCMBase=5
-                snprintf(tempString, sizeof(tempString), "settings.um980MessageRatesRTCMBase",
-                         umMessagesRTCM[x].msgTextName);
+                char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMBase.%s", umMessagesRTCM[x].msgTextName);
 
                 if (strcmp(settingName, tempString) == 0)
                 {
                     if (settings->um980MessageRatesRTCMBase[x] != d)
                     {
                         settings->um980MessageRatesRTCMBase[x] = d;
+                        settings->updateGNSSSettings = true;
+                    }
+
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for UM980 Constellation settings
+        if (knownSetting == false)
+        {
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+            {
+                char tempString[50]; // um980Constellations.GLONASS=1
+                snprintf(tempString, sizeof(tempString), "um980Constellations.%s",
+                         um980ConstellationCommands[x].textName);
+
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    if (settings->um980Constellations[x] != d)
+                    {
+                        settings->um980Constellations[x] = d;
                         settings->updateGNSSSettings = true;
                     }
 

@@ -423,8 +423,6 @@ bool um980SetConstellations()
 {
     bool response = true;
 
-    Serial.printf("Enable um980SetConstellations\r\n");
-
     for (int constellationNumber = 0; constellationNumber < MAX_UM980_CONSTELLATIONS; constellationNumber++)
     {
         if (settings.um980Constellations[constellationNumber] == true)
