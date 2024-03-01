@@ -45,13 +45,13 @@ void beepDurationMs(uint16_t lengthMs)
 
 void beepOn()
 {
-    if (pin_beeper != PIN_UNDEFINED)
+    if (pin_beeper != PIN_UNDEFINED && (settings.enableBeeper == true))
         digitalWrite(pin_beeper, HIGH);
 }
 
 void beepOff()
 {
-    if (pin_beeper != PIN_UNDEFINED)
+    if (pin_beeper != PIN_UNDEFINED && (settings.enableBeeper == true))
         digitalWrite(pin_beeper, LOW);
 }
 

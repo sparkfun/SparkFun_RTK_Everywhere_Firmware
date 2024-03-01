@@ -553,6 +553,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.psramMallocLevel = settingValue;
     else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
         settings.um980SurveyInStartingAccuracy = settingValue;
+    else if (strcmp(settingName, "enableBeeper") == 0)
+        settings.enableBeeper = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1213,6 +1215,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "printTaskStartStop", settings.printTaskStartStop);
     stringRecord(newSettings, "psramMallocLevel", settings.psramMallocLevel);
     stringRecord(newSettings, "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy, 1);
+    stringRecord(newSettings, "enableBeeper", settings.enableBeeper);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1924,6 +1927,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.psramMallocLevel);
     else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
         writeToString(settingValueStr, settings.um980SurveyInStartingAccuracy);
+    else if (strcmp(settingName, "enableBeeper") == 0)
+        writeToString(settingValueStr, settings.enableBeeper);
 
     // Add new settings above <------------------------------------------------------------>
 

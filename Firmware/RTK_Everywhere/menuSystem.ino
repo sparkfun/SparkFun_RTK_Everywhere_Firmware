@@ -169,6 +169,12 @@ void menuSystem()
 
         systemPrintln("-----  Settings  -----");
 
+        if(present.beeper == true)
+        {
+            systemPrint("a) Audible Prompts: ");
+            systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
+        }
+
         systemPrint("b) Set Bluetooth Mode: ");
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
             systemPrintln("Dual");
@@ -222,9 +228,13 @@ void menuSystem()
 
         byte incoming = getUserInputCharacterNumber();
 
-        if (incoming == 'b')
+        if (incoming == 'a' && present.beeper == true)
         {
-            // Restart Bluetooth
+            settings.enableBeeper ^= 1;
+        }
+        else if (incoming == 'b')
+        {
+            // Change Bluetooth protocol
             bluetoothStop();
             if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;

@@ -448,6 +448,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "printTaskStartStop", settings.printTaskStartStop);
     settingsFile->printf("%s=%d\r\n", "psramMallocLevel", settings.psramMallocLevel);
     settingsFile->printf("%s=%0.1f\r\n", "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy);
+    settingsFile->printf("%s=%0.1f\r\n", "enableBeeper", settings.enableBeeper);
 
     // Add new settings above <--------------------------------------------------->
 }
@@ -1292,6 +1293,8 @@ bool parseLine(char *str, Settings *settings)
         settings->psramMallocLevel = d;
     else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
         settings->um980SurveyInStartingAccuracy = d;
+    else if (strcmp(settingName, "enableBeeper") == 0)
+        settings->enableBeeper = d;
 
     // Add new settings above <--------------------------------------------------->
 
