@@ -415,10 +415,13 @@ void menuDebugHardware()
         systemPrint("11) IMU Debugging Output: ");
         systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
 
-        if (present.gnss_um980 == true)
-            systemPrintln("12) UM980 Direct connect");
+        systemPrint("12) IMU Compensation Debugging Output: ");
+        systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
-        systemPrint("13) PSRAM (");
+        if (present.gnss_um980 == true)
+            systemPrintln("13) UM980 Direct connect");
+
+        systemPrint("14) PSRAM (");
         if (ESP.getPsramSize() == 0)
         {
             systemPrint("None");
@@ -483,7 +486,11 @@ void menuDebugHardware()
         {
             settings.enableImuDebug ^= 1;
         }
-        else if (incoming == 12 && present.gnss_um980 == true)
+        else if (incoming == 12)
+        {
+            settings.enableImuCompensationDebug ^= 1;
+        }
+        else if (incoming == 13 && present.gnss_um980 == true)
         {
             systemPrintln("Press ! to exit");
 
@@ -506,7 +513,7 @@ void menuDebugHardware()
             }
         }
 
-        else if (incoming == 13)
+        else if (incoming == 14)
         {
             settings.enablePsram ^= 1;
         }

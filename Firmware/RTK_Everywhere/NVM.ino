@@ -449,6 +449,8 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "psramMallocLevel", settings.psramMallocLevel);
     settingsFile->printf("%s=%0.1f\r\n", "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy);
     settingsFile->printf("%s=%0.1f\r\n", "enableBeeper", settings.enableBeeper);
+    settingsFile->printf("%s=%0.1f\r\n", "um980MeasurementRateMs", settings.um980MeasurementRateMs);
+    settingsFile->printf("%s=%0.1f\r\n", "enableImuCompensationDebug", settings.enableImuCompensationDebug);
 
     // Add new settings above <--------------------------------------------------->
 }
@@ -1295,6 +1297,10 @@ bool parseLine(char *str, Settings *settings)
         settings->um980SurveyInStartingAccuracy = d;
     else if (strcmp(settingName, "enableBeeper") == 0)
         settings->enableBeeper = d;
+    else if (strcmp(settingName, "um980MeasurementRateMs") == 0)
+        settings->um980MeasurementRateMs = d;
+    else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
+        settings->enableImuCompensationDebug = d;
 
     // Add new settings above <--------------------------------------------------->
 

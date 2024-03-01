@@ -22,7 +22,7 @@
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 // #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_WIFI // Comment out to remove WiFi functionality
+//#define COMPILE_WIFI // Comment out to remove WiFi functionality
 // #define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
 
 #ifdef COMPILE_WIFI
@@ -30,12 +30,12 @@
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
-#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
+// #define COMPILE_BT                   // Comment out to remove Bluetooth functionality
+// #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
-#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
-#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+// #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+// #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+// #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true

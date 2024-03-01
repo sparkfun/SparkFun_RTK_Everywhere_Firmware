@@ -555,6 +555,10 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.um980SurveyInStartingAccuracy = settingValue;
     else if (strcmp(settingName, "enableBeeper") == 0)
         settings.enableBeeper = settingValue;
+    else if (strcmp(settingName, "um980MeasurementRateMs") == 0)
+        settings.um980MeasurementRateMs = settingValue;
+    else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
+        settings.enableImuCompensationDebug = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1216,6 +1220,8 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "psramMallocLevel", settings.psramMallocLevel);
     stringRecord(newSettings, "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy, 1);
     stringRecord(newSettings, "enableBeeper", settings.enableBeeper);
+    stringRecord(newSettings, "um980MeasurementRateMs", settings.um980MeasurementRateMs);
+    stringRecord(newSettings, "enableImuCompensationDebug", settings.enableImuCompensationDebug);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1929,6 +1935,10 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.um980SurveyInStartingAccuracy);
     else if (strcmp(settingName, "enableBeeper") == 0)
         writeToString(settingValueStr, settings.enableBeeper);
+    else if (strcmp(settingName, "um980MeasurementRateMs") == 0)
+        writeToString(settingValueStr, settings.um980MeasurementRateMs);
+    else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
+        writeToString(settingValueStr, settings.enableImuCompensationDebug);
 
     // Add new settings above <------------------------------------------------------------>
 

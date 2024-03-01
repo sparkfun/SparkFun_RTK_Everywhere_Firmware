@@ -668,6 +668,9 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     uint8_t altitudeStop = 0;
     uint8_t checksumStart = 0;
 
+    if (settings.enableImuCompensationDebug == true)
+        systemPrintf("Original GNGGA: %s\r\n", nmeaSentence);
+
     int commaCount = 0;
     for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
     {
@@ -757,6 +760,10 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
 
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, sizeof(newSentence));
+
+    if (settings.enableImuCompensationDebug == true)
+        systemPrintf("Compensated GNGGA: %s\r\n", nmeaSentence);
+
 }
 
 // Restore the tilt sensor to factory settings
