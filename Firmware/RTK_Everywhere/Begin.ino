@@ -176,6 +176,7 @@ void beginBoard()
         batteryStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
+        beepOff();
 
         pinMode(pin_powerButton, INPUT);
 
