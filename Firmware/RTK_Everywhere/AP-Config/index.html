@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title>SparkFun RTK Setup</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, shrink-to-fit=yes" />
+    <link rel="stylesheet" href="src/bootstrap.min.css">
+    <link rel="stylesheet" href="src/style.css">
+    <script src="src/jquery-3.6.0.min.js"></script>
+    <script src="src/bootstrap.min.js"></script>
+    <script src="src/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).on('click', '.toggle-btn', function (e) {
+            $(e.currentTarget.children[0]).toggleClass('icon-caret-down icon-caret-up');
+        })
+    </script>
+
+    <style>
+        .static-group {
+            height: 0;
+            overflow: hidden;
+            transition: height 0.4s ease;
+            border-bottom: solid 1px #c0c0c0;
+        }
+
+        .list-group {
+            height: 0;
+            overflow: hidden;
+            transition: height 0.4s ease;
+            border-bottom: solid 1px #c0c0c0;
+            padding-right: 50px;
+        }
+
+        .borderless td,
+        .borderless th {
+            border: none;
+            margin-left: 0px;
+        }
+
+        button:focus {
+            outline: 0;
+        }
+
+        .inlineError {
+            display: inline;
+            color: red;
+            font-size: smaller;
+        }
+
+        .inlineSuccess {
+            display: inline;
+            color: green;
+            font-size: smaller;
+            font-weight: bold;
+        }
+
+        .box-small {
+            margin-left: 0px;
+            width: 30%;
+        }
+
+        .box-margin20 {
+            margin-left: 20px;
+        }
+
+        .box-margin40 {
+            margin-left: 40px;
+        }
+
+        .battery {
+            position: absolute;
+            z-index: 1000;
+            right: 10px;
+            max-width: 600px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="batteryIcon">
+        <div align="right" class="battery">
+            <img id="batteryIconFileName" src="src/Battery2_Charging.png" alt="Battery level"> <span id="batteryPercent"
+                class="small" style="display:inline;">+67</span>
+        </div>
+    </div>
+
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="resetInProcess">
+        <b>Resetting</b><br><br>RTK device is rebooting. Please wait...
+    </div>
+
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="resetComplete">
+        <b>Reset Done</b><br><br>RTK device has now reset.
+    </div>
+
+    <div class="container" style="display:none; margin-top:20px;max-width:600px;" id="firmwareUploadComplete">
+        <b>Done</b><br><br>Firmware update complete. RTK device is now rebooting.
+    </div>
+
+    <div class="container">
+
+        <div align="center" class="col-sm-12"><img src="src/rtk-setup.png" alt="SparkFun RTK WiFi Setup"></div>
+
+    </div>
+
+    <div class="container" style="margin-top:10px;max-width:600px;" id="mainPage">
+
+        <div align="center" class="row" style="display:block;">
+
+            <div align="center" class="small left">
+                RTK Firmware: <span id="rtkFirmwareVersion" style="display:inline;">v0.0</span><br>
+                <span id="zedFirmwareVersion" style="display:inline;">ZED-F9P Firmware: v0.0</span> <br>
+                <span id="deviceBTID" style="display:inline;">Device Bluetooth ID: 0000</span> <br>
+                <span id="coordinatesLLH" style="display:inline;">LLh:
+                    <span id="geodeticLat" style="display:inline;">40.09029479</span>,
+                    <span id="geodeticLon" style="display:inline;">-105.18505761</span>,
+                    <span id="geodeticAlt" style="display:inline;">1560.089</span> (APC)
+                </span><br>
+                <span id="coordinatesECEF" style="display:inline;">ECEF:
+                    <span id="ecefX" style="display:inline;">-1280206.568</span>,
+                    <span id="ecefY" style="display:inline;">-4716804.403</span>,
+                    <span id="ecefZ" style="display:inline;">4086665.484</span>
+                </span><br>
+            </div>
+
+        </div>
+
+        <hr class="mt-0">
+        <div style="margin-top:20px;">
+
+            <!-- --------- Profile Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary toggle-btn" id="profileConfig" type="button" data-toggle="collapse"
+                    data-target="#collapseProfileConfig" aria-expanded="false" aria-controls="collapseProfileConfig">
+                    Profile Configuration <i id="profileCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse mb-2" id="collapseProfileConfig">
+                <div class="card card-body">
+
+                    <div class="form-group mt-2">
+                        Profile:
+                        <span class="tt" data-bs-placement="right"
+                            title="Select a profile and then assign settings to that profile. At reset, RTK device will use selected profile. Profile changes are saved when a different profile is selected or when 'Save Configuration' is pressed.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="0">
+                            <label id="profile0Name">Profile1</label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="1">
+                            <label id="profile1Name">12345678901234567890</label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="2">
+                            <label id="profile2Name"></label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="3">
+                            <label id="profile3Name"></label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="4">
+                            <label id="profile4Name"></label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="5">
+                            <label id="profile5Name"></label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="6">
+                            <label id="profile6Name"></label>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <span style="display:inline; margin-left:20px;">
+                            <input type="radio" name="profileRadio" value="7">
+                            <label id="profile7Name"></label>
+                        </span>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="profileName" class="box-margin20 col-sm-3 col-4 col-form-label">Profile
+                            Name:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="profileName">
+                            <p id="profileNameError" class="inlineError"></p>
+                        </div>
+                        <p id="profileChangeMessage" class="inlineSuccess"></p>
+                    </div>
+
+                    <div class="form-group row">
+                        <div style="margin-bottom:5px;">
+                            <button type="button" id="btnResetProfile" class="btn btn-primary box-margin20 col-sm-3"
+                                onClick="btnResetProfile()">Reset Profile</button>
+                            <span class="tt" data-bs-placement="right"
+                                title="Reset selected profile to factory defaults.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                        <p id="resetProfileMsg" class="inlineSuccess"></p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- --------- GNSS Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapseGNSSConfig" aria-expanded="false" aria-controls="collapseGNSSConfig">
+                    GNSS Configuration <i id="gnssCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseGNSSConfig">
+                <div class="card card-body pt-1">
+
+                    <div id="measurementRateInput">
+                        Measurement Rate:
+                        <div class="row">
+                            <div class="col-sm-2 col-12 ms-3 form-group">
+                                <label for="measurementRateHz" class="col-form-label">In
+                                    Hz:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The number of solutions or location ‘fixes’ per second. Anything above 4Hz may cause Bluetooth congestion and/or logging discrepancies. Note: The measurement rate is overridden to 1Hz when in Base mode. Default: 4Hz. Limit: 0.000122 to 10Hz.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="col-sm-4 col-5 ms-3 form-group">
+                                <input type="number" class="form-control mb-2" id="measurementRateHz">
+                                <p id="measurementRateHzError" class="inlineError"></p>
+                            </div>
+
+                            <p class="small ms-3 mt-0 mb-0"><em>or</em></p>
+
+                            <div class="col-sm-2 col-12 ms-3 form-group">
+                                <label for="measurementRateSec">Seconds between measurements:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The number of seconds between measurements. This input is the inverse of the measurement rate and is useful when taking a measurement every few seconds across a long survey (24+ hours). Note: The measurement rate is overridden to 1Hz when in Base mode.Limit: 0.1 to 8196 seconds."><span
+                                            class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="col-sm-4 col-5 ms-3 form-group">
+                                <input type="number" class="form-control mb-2" id="measurementRateSec">
+                                <p id="measurementRateSecError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="dynamicModelDropdown">
+                        <label for="dynamicModel">Dynamic Model:</label>
+                        <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
+                            <option value="0">Portable</option>
+                            <option value="2">Stationary</option>
+                            <option value="3">Pedestrian</option>
+                            <option value="4">Automotive</option>
+                            <option value="5">Sea</option>
+                            <option value="6">Airborne 1g</option>
+                            <option value="7">Airborne 2g</option>
+                            <option value="8">Airborne 4g</option>
+                            <option value="9">Wrist</option>
+                            <option value="10">Bike</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy. Default: Portable">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                        <br>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="minElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation:
+                            <span class="tt" data-bs-placement="right"
+                                title="Minimum elevation in degrees for a GNSS satellite to be used in a fix.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-4 col-6">
+                            <input type="number" class="form-control" id="minElev">
+                            <p id="minElevError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="minCNO" class="col-sm-4 col-6 col-form-label">Min C/N0:
+                            <span class="tt" data-bs-placement="right"
+                                title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 20dBHz for ZED-F9R.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-4 col-6">
+                            <input type="number" class="form-control" id="minCNO">
+                            <p id="minCNOError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div id="constellationCheckBoxes">
+                        <label for="constellations">Constellations:</label>
+                        <span class="tt" data-bs-placement="right"
+                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: GPS, SBAS, GLONASS, BeiDou, and Galileo.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="form-check box-margin20">
+                        <label class="form-check-label" for="ubxConstellationsGPS">GPS/QZSS</label>
+                        <input class="form-check-input" type="checkbox" value="" id="ubxConstellationsGPS">
+                    </div>
+                    <div class="form-check box-margin20">
+                        <label class="form-check-label" for="ubxConstellationsSBAS">SBAS</label>
+                        <input class="form-check-input" type="checkbox" value="" id="ubxConstellationsSBAS">
+                    </div>
+                    <div class="form-check box-margin20">
+                        <label class="form-check-label" for="ubxConstellationsGalileo">Galileo</label>
+                        <input class="form-check-input" type="checkbox" value="" id="ubxConstellationsGalileo">
+                    </div>
+                    <div class="form-check box-margin20">
+                        <label class="form-check-label" for="ubxConstellationsBeiDou">BeiDou</label>
+                        <input class="form-check-input" type="checkbox" value="" id="ubxConstellationsBeiDou">
+                    </div>
+                    <div class="form-check box-margin20">
+                        <label class="form-check-label" for="ubxConstellationsGLONASS">GLONASS</label>
+                        <input class="form-check-input" type="checkbox" value="" id="ubxConstellationsGLONASS">
+                    </div>
+                    <p id="ubxConstellationsError" class="inlineError"></p>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableNtripClient">
+                        <span class="tt" data-bs-placement="right"
+                            title="Use this NTRIP client to download correction data from a casting service. Your device must be within WiFi range at all times. Default: Disabled.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="ntripClientConfig" class="collapse mb-2">
+                        <div class="form-group row">
+                            <label for="ntripClient_CasterHost"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                Host:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripClient_CasterHost">
+                                <p id="ntripClient_CasterHostError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripClient_CasterPort"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                Port:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="number" class="form-control" id="ntripClient_CasterPort">
+                                <p id="ntripClient_CasterPortError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripClient_CasterUser"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                User:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripClient_CasterUser">
+                                <p id="ntripClient_CasterUserError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripClient_CasterUserPW"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                User PW:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripClient_CasterUserPW">
+                                <p id="ntripClient_CasterUserPWError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripClient_MountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                                Point:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripClient_MountPoint">
+                                <p id="ntripClient_MountPointError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripClient_MountPointPW"
+                                class="box-margin20 col-sm-4 col-6 col-form-label">Mount
+                                Point
+                                PW:</label>
+                            <div class="col-sm-7 col-5">
+                                <input type="text" class="form-control" id="ntripClient_MountPointPW">
+                                <p id="ntripClient_MountPointPWError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-check mt-1 box-margin20">
+                            <label class="form-check-label" for="ntripClient_TransmitGGA">Transmit GGA to Caster</label>
+                            <input class="form-check-input" type="checkbox" value="" id="ntripClient_TransmitGGA"
+                                unchecked>
+                            <span class="tt" data-bs-placement="right"
+                                title="Some casters require a regular position update from the rover (GGA message) so that the caster can automatically select the nearest available correction data. Default: Disabled">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <!-- For future expansion
+                        <div id="allowWiFiOverEthernetClient">
+                            <div class="form-check mt-1 box-margin20">
+                                <label class="form-check-label" for="ntripClientUseWiFiNotEthernet">Use WiFi for NTRIP Client - not Ethernet</label>
+                                <input class="form-check-input" type="checkbox" value="" id="ntripClientUseWiFiNotEthernet">
+                                <span class="tt" data-bs-placement="right"
+                                    title="On RTK products which have Ethernet connectivity, you can use WiFi instead of Ethernet for NTRIP Client by enabling this option. Default: Disabled">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div> -->
+                    </div>
+
+                    <div id="messageRateButton">
+                        <button onClick="getMessageList()" class="btn btn-md btn-outline-primary mt-3 toggle-btn"
+                            type="button" data-toggle="collapse" data-target="#collapseGNSSConfigMsg"
+                            aria-expanded="false" aria-controls="collapseGNSSConfigMsg">
+                            Message Rates <i id="gnssMsgCaret" class="caret-icon bi icon-caret-down"></i>
+                        </button>
+                        <span class="tt" data-bs-placement="right"
+                            title="NMEA and RAWX are the two most commonly reported types of message but the receiver supports more than 70 different messages. Each message rate input controls which messages are disabled (0) and how often the message is reported (1 = one message reported per 1 fix, 5 = one report every 5 fixes). Default: NMEA GGA, GSA, GST, GSV, and RMC. Limits: 0 to 20.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="collapse" id="collapseGNSSConfigMsg">
+                        <div class="card card-body" style="margin-top:5px;">
+
+                            <div style="margin-bottom:5px;">
+                                <button type="button" id="nmeaDefaults" class="btn btn-primary"
+                                    onClick="resetToNmeaDefaults()">Reset to Surveying
+                                    Defaults (NMEAx5)</button>
+                            </div>
+                            <div style="margin-bottom:5px;">
+                                <button type="button" id="loggingDefaults" class="btn btn-primary"
+                                    onClick="resetToLoggingDefaults()">Reset to Logging
+                                    Defaults (NMEAx5 + RXMx2)</button>
+                            </div>
+
+
+                            <div id="messageList">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- --------- Base Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" id="baseConfig" type="button" data-toggle="collapse"
+                    data-target="#collapseBaseConfig" aria-expanded="false" aria-controls="collapseBaseConfig">
+                    <!-- style="display:none"> -->
+                    Base Configuration <i id="baseCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseBaseConfig">
+                <div class="card card-body">
+
+                    <div id="surveyInRadio">
+                        <input type="radio" id="baseTypeSurveyIn" name="baseType" class="form-radio" checked>
+                        <label for="baseTypeSurveyIn">Survey-In</label>
+                        <span class="tt" data-bs-placement="right"
+                            title="If the precise location of a base station is not known it may be obtained by ‘surveying’ the location. The base is fixed in one place and takes approximately 60 seconds worth of readings to obtain a best fit location based on the measurements. This method achieves ~30cm accurate position but can vary. Increasing the Minimum Observation Time and/or Required Mean Deviation will increase accuracy but only to a point. Better accuracy is achieved with long-term logging and post processing. Default: 60s and 5.0m. Limits: 60 to 900s, 1.0 to 5.0m.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="surveyInConfig" class="collapse mb-2">
+                        <div class="form-group row">
+                            <label for="observationSeconds" class="box-margin20 col-sm-12 col-form-label">Minimum
+                                observation time (s):</label>
+                            <div class="col-sm-4 col-5 ms-3 mb-2">
+                                <input type="number" class="form-control" id="observationSeconds">
+                                <p id="observationSecondsError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="observationPositionAccuracy"
+                                class="box-margin20 col-sm-12 col-form-label">Required
+                                Mean 3D Standard Deviation
+                                (m):</label>
+                            <div class="col-sm-4 ms-3 col-5 mb-3">
+                                <input type="number" class="form-control" id="observationPositionAccuracy">
+                                <p id="observationPositionAccuracyError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="fixedRadio">
+                        <input type="radio" id="baseTypeFixed" name="baseType" value="1" class="form-radio">
+                        <label for="baseTypeFixed">Fixed<span class="small"> (Choose ECEF or
+                                Geodetic)</span></label>
+                        <span class="tt" data-bs-placement="right"
+                            title="If the location of the base is known it can be entered in either ECEF or Geodetic coordinates. In this mode the receiver will immediately begin outputting RTCM correction data. A fixed position is best obtained with PPP (please see our tutorial) or with post processing against a reference station. Default: SparkFun's location in Boulder, Colorado.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="fixedConfig" class="collapse mb-2">
+                        <div class="mt-3">
+                            <input type="radio" id="fixedBaseCoordinateTypeECEF" name="positionType" value="0"
+                                class="form-radio box-margin20">
+                            <label for="fixedBaseCoordinateTypeECEF">ECEF Coordinates</label><br>
+                        </div>
+
+                        <div id="ecefConfig" class="collapse mb-2">
+
+                            <div class="form-group row">
+                                <div class="box-margin40 col-sm-8 col-8 col-form-label">
+                                    <button type="button" id="useECEFCoordinates" class="btn btn-primary box-margin20"
+                                        onClick="useECEFCoordinates()">Load ECEF From ZED</button>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Puts the current ECEF coordinates into the fixed X/Y/Z boxes.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-sm-2 col-3">
+                                    <label for="fixedEcefX" class="box-margin40 col-form-label">X:</label>
+                                </div>
+                                <div class="col-sm-4 col-8">
+                                    <input type="number" class="form-control" id="fixedEcefX">
+                                    <p id="fixedEcefXError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-sm-2 col-3">
+                                    <label for="fixedEcefY" class="box-margin40 col-form-label">Y:</label>
+                                </div>
+                                <div class="col-sm-4 col-8">
+                                    <input type="number" class="form-control" id="fixedEcefY">
+                                    <p id="fixedEcefYError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-sm-2 col-3">
+                                    <label for="fixedEcefZ" class="box-margin40 col-form-label">Z:</label>
+                                </div>
+                                <div class="col-sm-4 col-8">
+                                    <input type="number" class="form-control" id="fixedEcefZ">
+                                    <p id="fixedEcefZError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-sm-2 col-3">
+                                    <label for="nicknameECEF" class="box-margin40 col-form-label">Name:</label>
+                                </div>
+                                <div class="col-sm-4 col-8">
+                                    <input type="text" class="form-control" id="nicknameECEF">
+                                    <p id="nicknameECEFError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label>Commonly Used Coordinates
+                                    <span class="tt" data-bs-placement="right"
+                                        title="This list of coordinates can be used to quickly copy/paste known coordinates into X/Y/Z boxes.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="form-group row">
+                                <div>
+                                    <span id="nicknameECEFText" style="display:inline;">Nickname: X/Y/Z</span> <br>
+                                    <select name="StationCoordinatesECEF" id="StationCoordinatesECEF" size="5"
+                                        style="max-width:350px;">
+                                        <option value="1">LocationA -1280206.568 -4716804.403 4086665.484</option>
+                                        <option value="2">LocationB -1280206.568 -4716804.403 4086665.484</option>
+                                        <option value="3">LocC -1280206.568 -4716804.403 4086665.484</option>
+                                        <option value="4">ANameThatIsTooLongToBeDisplayed -1280206.568 -4716804.403
+                                            4086665.484</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="box-margin20 col-form-label">
+                                    <button type="button" id="addECEF" class="btn btn-primary box-margin20"
+                                        onClick="addECEF()">Add</button>
+                                    <button type="button" id="loadECEF" class="btn btn-primary box-margin20"
+                                        onClick="loadECEF()">Load</button>
+                                    <button type="button" id="deleteECEF" class="btn btn-primary box-margin20"
+                                        onClick="deleteECEF()">Delete</button>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Add to, or load from, the selected record into X/Y/Z, or delete it.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <input type="radio" id="fixedBaseCoordinateTypeGeo" name="positionType" value="1"
+                                class="form-radio box-margin20">
+                            <label for="fixedBaseCoordinateTypeGeo">Geodetic</label><br>
+                        </div>
+
+                        <div id="geodeticConfig" class="collapse mb-2">
+                            <div class="form-group row">
+                                <div class="box-margin40 col-sm-8 col-8 col-form-label">
+                                    <button type="button" id="useGeodeticCoordinates"
+                                        class="btn btn-primary box-margin20" onClick="useGeodeticCoordinates()">Load LLh
+                                        From ZED</button>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Puts the current LLh into the fixed LLh boxes.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="fixedLatText"
+                                    class="box-margin40 col-sm-3 col-4 col-form-label">Latitude:</label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="text" class="form-control" id="fixedLatText">
+                                    <p id="fixedLatTextError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="fixedLongText"
+                                    class="box-margin40 col-sm-3 col-4 col-form-label">Longitude:</label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="text" class="form-control" id="fixedLongText">
+                                    <p id="fixedLongTextError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div id="detectedFormat" class="box-margin40">
+                                    <label class="form-check-label">Detected Format:</label>
+                                    <span id="detectedFormatText" style="display:inline;"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="form-group row">
+                                    <label for="fixedAltitude" class="box-margin40 col-sm-3 col-6 col-form-label">HAE
+                                        Mark/Alt(m):
+                                        <span class="tt" data-bs-placement="right"
+                                            title="Height Above Ellipsoid of the mark. This is the coordinate or altitude of the mark or monument on the ground.">
+                                            <span class="icon-info-circle text-primary ms-2"></span>
+                                        </span>
+                                    </label>
+                                    <div class="col-sm-4 col-4">
+                                        <input type="number" class="form-control" id="fixedAltitude">
+                                    </div>
+                                </div>
+                                <p id="fixedAltitudeError" class="inlineError"></p>
+                            </div>
+
+                            <div class="form-group row">
+                                <span style="display:inline; margin-left:40px;">
+                                    <input type="radio" name="markRadio" value="1" onClick="adjustHAE()">
+                                    <label id="calcHAEMark">Calculate HAE Mark</label>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="If enabled, HAE Mark is calculated by *subtracting* the entered Antenna Height and ARP from the altitude reported by the GNSS receiver. This is handy when measuring a mark with a known pole height and ARP, but unknown mark elevation. Note: The HAE Mark value is always recorded to the Commonly Used Coordinates table.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="form-group row">
+                                <span style="display:inline; margin-left:40px;">
+                                    <input type="radio" name="markRadio" value="2" onClick="adjustHAE()" checked>
+                                    <label id="callHAEAPC">Calculate HAE APC</label>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="If enabled, HAE APC is calculated by *adding* the entered Antenna Height and ARP to the altitude reported by the GNSS receiver. Note: The HAE Mark value is always recorded to the Commonly Used Coordinates table.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </span>
+                            </div>
+
+
+                            <div class="form-group row">
+                                <label for="antennaHeight" class="box-margin40 col-sm-3 col-5 col-form-label">Antenna
+                                    Height(mm):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Distance from the base of the antenna to the mark on the ground. This is usually the total length of the prism pole and any extensions. Amount is added to HAE before starting fixed base.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+
+                                <div class="col-sm-4 col-5">
+                                    <input type="number" class="form-control" id="antennaHeight">
+                                    <p id="antennaHeightError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="antennaReferencePoint" class="box-margin40 col-5 col-form-label">Antenna
+                                    Reference Point(mm):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="ARP is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common ARPs: Facet L-Band (69mm) Torch(102mm)">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-5">
+                                    <input type="number" class="form-control" id="antennaReferencePoint">
+                                    <p id="antennaReferencePointError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="fixedHAE_APC" class="box-margin40 col-sm-3 col-5 col-form-label">HAE APC(m):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Height Above Ellipsoid of the Antenna Phase Center. This is the sum of the antenna height, phase center, and mark height. Not user editable, shown for information only.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-5">
+                                    <input type="number" class="form-control" id="fixedHAE_APC" disabled>
+                                    <p id="fixedHAE_APCError" class="inlineError"></p>
+                                </div>
+                            </div><br>
+
+                            <div class="form-group row">
+                                <label for="nicknameGeodetic" class="box-margin40 col-sm-3 col-4 col-form-label">Name:
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Give this point a nickname before adding it to the commonly used coordinates list.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="text" class="form-control" id="nicknameGeodetic">
+                                    <p id="nicknameGeodeticError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label>Commonly Used Coordinates
+                                    <span class="tt" data-bs-placement="right"
+                                        title="This list of coordinates can be used to quickly copy/paste known coordinates into Lat/Long/Alt boxes.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="form-group row">
+                                <div>
+                                    <span id="nicknameGeodeticText" style="display:inline;">Nickname:
+                                        Lat/Long/Alt</span> <br>
+                                    <select name="StationCoordinatesGeodetic" id="StationCoordinatesGeodetic" size="5"
+                                        style="max-width:350px;">
+                                        <option value="1">LocationA 40.09029479 -105.18505761 1560.089</option>
+                                        <option value="2">LocationB 40.09029479 -105.18505761 1560.089</option>
+                                        <option value="3">LocC 40.09029479 -105.18505761 1560.089</option>
+                                        <option value="4">ANameThatIsTooLongToBeDisplayed 40.09029479 -105.18505761
+                                            1560.089</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="box-margin20 col-form-label">
+                                    <button type="button" id="addGeodetic" class="btn btn-primary box-margin20"
+                                        onClick="addGeodetic()">Add</button>
+                                    <button type="button" id="loadGeodetic" class="btn btn-primary box-margin20"
+                                        onClick="loadGeodetic()">Load</button>
+                                    <button type="button" id="deleteGeodetic" class="btn btn-primary box-margin20"
+                                        onClick="deleteGeodetic()">Delete</button>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Add to, or load from, the selected record into Lat/Long/Alt, or delete it.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableNtripServer">Enable NTRIP Server</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableNtripServer">
+                        <span class="tt" data-bs-placement="right"
+                            title="Use this NTRIP server to upload the base's correction data to a casting service. Other devices can then access the correction data using an NTRIP client. Default: Disabled.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="ntripServerConfig" class="collapse mb-2">
+                        <div class="form-group row">
+                            <label for="ntripServer_CasterHost"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                Host:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripServer_CasterHost">
+                                <p id="ntripServer_CasterHostError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripServer_CasterPort"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                Port:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="number" class="form-control" id="ntripServer_CasterPort">
+                                <p id="ntripServer_CasterPortError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripServer_CasterUser"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                User:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripServer_CasterUser">
+                                <p id="ntripServer_CasterUserError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripServer_CasterUserPW"
+                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                User PW:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripServer_CasterUserPW">
+                                <p id="ntripServer_CasterUserPWError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripServer_MountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                                Point:</label>
+                            <div class="col-sm-8 col-6">
+                                <input type="text" class="form-control" id="ntripServer_MountPoint">
+                                <p id="ntripServer_MountPointError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="ntripServer_MountPointPW"
+                                class="box-margin20 col-sm-4 col-6 col-form-label">Mount
+                                Point
+                                PW:</label>
+                            <div class="col-sm-7 col-5">
+                                <input type="text" class="form-control" id="ntripServer_MountPointPW">
+                                <p id="ntripServer_MountPointPWError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <!-- For future expansion 
+                        <div id="allowWiFiOverEthernetServer">
+                            <div class="form-check mt-1 box-margin20">
+                                <label class="form-check-label" for="ntripUseWiFiNotEthernet">Use WiFi for NTRIP Server - not Ethernet</label>
+                                <input class="form-check-input" type="checkbox" value="" id="ntripServerUseWiFiNotEthernet">
+                                <span class="tt" data-bs-placement="right"
+                                    title="On RTK products which have Ethernet connectivity, you can use WiFi instead of Ethernet for NTRIP Server by enabling this option. Default: Disabled">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div> -->
+                    </div>
+
+                    <div>
+                        <button onClick="getMessageListBase()" class="btn btn-md btn-outline-primary mt-3 toggle-btn"
+                            type="button" data-toggle="collapse" data-target="#collapseGNSSConfigMsgBase"
+                            aria-expanded="false" aria-controls="collapseGNSSConfigMsgBase">
+                            RTCM Rates <i class="caret-icon bi icon-caret-down"></i>
+                        </button>
+                        <span class="tt" data-bs-placement="right"
+                            title="RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1230. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="collapse" id="collapseGNSSConfigMsgBase">
+                        <div class="card card-body" style="margin-top:5px;">
+
+                            <div style="margin-bottom:5px;">
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to
+                                    Defaults</button>
+                            </div>
+                            <div style="margin-bottom:5px;">
+                                <button type="button" class="btn btn-primary" onClick="resetToLowBandwidthRTCM()">Reset
+                                    to Low Bandwidth Link</button>
+                            </div>
+
+                            <div id="messageListBase">
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- --------- Point Perfect Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" id="ppConfig" type="button" data-toggle="collapse"
+                    data-target="#collapsePPConfig" aria-expanded="false" aria-controls="collapsePPConfig"
+                    style="display:none">
+                    PointPerfect Configuration <i id="pointPerfectCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapsePPConfig">
+                <div class="card card-body">
+
+                    <div>
+                        Device ID: <p id="hardwareID" style="display:inline;">N/A</p><br>
+                        Days until keys expire: <p id="daysRemaining" style="display:inline;">No Keys</p>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="pointPerfectCorrectionsSource">Enable PointPerfect L-Band
+                            Corrections</label>
+                        <input class="form-check-input" type="checkbox" value="" id="pointPerfectCorrectionsSource">
+                        <span class="tt" data-bs-placement="right"
+                            title="Use L-Band PointPerfect corrections when available. Default: Enabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="ppSettingsConfig">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="autoKeyRenewal">Auto Key Renewal </label>
+                            <input class="form-check-input" type="checkbox" value="" id="autoKeyRenewal">
+                            <span class="tt" data-bs-placement="right"
+                                title="When keys drop below 28 days to expiry, automatically attempt to connect to 'Home' WiFi, once a day, to renew keys. Default: Enabled">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="pointPerfectDeviceProfileToken"
+                                class="box-margin20 col-sm-3 col-4 col-form-label">Device Profile Token:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If your organization has a corporate ThingStream and PointPerfect account, this is where you put your custom device profile token. Default: Empty - Use the SparkFun Token">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-8 col-7">
+                                <input type="text" class="form-control" id="pointPerfectDeviceProfileToken">
+                                <p id="pointPerfectDeviceProfileTokenError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- --------- Ports Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapsePortsConfig" aria-expanded="false" aria-controls="collapsePortsConfig">
+                    Ports Configuration <i id="portsCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapsePortsConfig">
+                <div class="card card-body">
+
+                    <div id="radioPortChannelDropdown" class="mb-2">
+                        <label for="radioPortBaud">Radio Port Baud Rate: </label>
+                        <select name="radioPortBaud" id="radioPortBaud" class="form-dropdown">
+                            <option value="4800">4800</option>
+                            <option value="9600">9600</option>
+                            <option value="19200">19200</option>
+                            <option value="38400">38400</option>
+                            <option value="57600">57600</option>
+                            <option value="115200">115200</option>
+                            <option value="230400">230400</option>
+                            <option value="460800">460800</option>
+                            <option value="921600">921600</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                        <br>
+                    </div>
+
+                    <div id="dataPortChannelDropdown" class="mb-2">
+                        <label for="dataPortChannel">Mux Channel: </label>
+                        <select name="dataPortChannel" id="dataPortChannel" class="form-dropdown">
+                            <option value="0">NMEA</option>
+                            <option value="1">PPS/Event Trigger</option>
+                            <option value="2" id="muxChannel2">I2C</option>
+                            <option value="3">ADC/DAC</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="The DATA port can be configured for different applications. NMEA is used for serial TX/RX of location information. PPS/Trigger is used for pulse per second output and 5ns accurate trigger inputs. I2C is used as an additional SDA/SCL data channel. Wheel/Dir Tick is used for automotive interfacing. ADC/DAC is used for custom firmware applications. Default: NMEA">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="dataPortBaudDropdown" class="mb-2">
+                        <label for="dataPortBaud">Data Port Baud Rate: </label>
+                        <select name="dataPortBaud" id="dataPortBaud" class="form-dropdown">
+                            <option value="4800">4800</option>
+                            <option value="9600">9600</option>
+                            <option value="19200">19200</option>
+                            <option value="38400">38400</option>
+                            <option value="57600">57600</option>
+                            <option value="115200">115200</option>
+                            <option value="230400">230400</option>
+                            <option value="460800">460800</option>
+                            <option value="921600">921600</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="In NMEA mode, the baud rate for the DATA port can be changed to match a user's application. Default: 460800bps">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="externalPulseConfig" class="collapse mb-2">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableExternalPulse">Enable External Pulse</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableExternalPulse">
+                            <span class="tt" data-bs-placement="right"
+                                title="Generate a Pulse Per Second or a time base much faster, with extreme accuracy. Requires GNSS reception. Default: Enabled with 100,000us pulse length and 900,000us time between pulses.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="externalPulseConfigDetails" class="collapse mb-2">
+                            <div class="form-group row">
+                                <label for="externalPulseTimeBetweenPulse_us"
+                                    class="box-margin20 col-sm-3 col-4 col-form-label">Time between pulses (µs):
+                                </label>
+                                <div class="col-sm-8 col-7">
+                                    <input type="number" class="form-control" id="externalPulseTimeBetweenPulse_us">
+                                    <p id="externalPulseTimeBetweenPulse_usError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="externalPulseLength_us"
+                                    class="box-margin20 col-sm-3 col-4 col-form-label">Pulse length (µs):</label>
+                                <div class="col-sm-8 col-7">
+                                    <input type="number" class="form-control" id="externalPulseLength_us">
+                                    <p id="externalPulseLength_usError" class="inlineError"></p>
+                                </div>
+                            </div>
+
+                            <div id="pulseEdgeDropdown" class="mb-2">
+                                <label for="externalPulsePolarity"
+                                    class="box-margin20 col-sm-3 col-4 col-form-label">Pulse Polarity: </label>
+                                <select name="externalPulsePolarity" id="externalPulsePolarity" class="form-dropdown">
+                                    <option value="0">Rising Edge</option>
+                                    <option value="1">Falling Edge</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="The pulse signal will be high when active (rising edge) or low when active (falling edge). Default: Rising Edge">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableExternalHardwareEventLogging">Enable External
+                                Event Logging</label>
+                            <input class="form-check-input" type="checkbox" value=""
+                                id="enableExternalHardwareEventLogging">
+                            <span class="tt" data-bs-placement="right"
+                                title="Log external pulses (events) with 30ns accuracy RMS. Useful for things like audio triangulation. See the Timemark section of the ZED-F9P Integration Manual for more information. Requires GNSS reception. Default: Disabled">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
+                            GNSS UART2</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
+                        <span class="tt" data-bs-placement="right"
+                            title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- --------- WiFi Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapseWiFiConfig" aria-expanded="false" aria-controls="collapseWiFiConfig">
+                    WiFi Configuration <i id="wifiCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseWiFiConfig">
+                <div class="card card-body">
+
+                    <div class="form-group mt-2">
+                        Networks:
+                        <span class="tt" data-bs-placement="right"
+                            title="Enter credentials for up to 4 WiFi networks. All networks will be tried and the best network available will be used.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork0SSID" class="col-3 col-form-label">SSID 1:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork0SSID" value="test">
+                            <p id="wifiNetwork0SSIDError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork0Password" class="col-3 col-form-label">PW
+                            1:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork0Password">
+                            <p id="wifiNetwork0PasswordError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork1SSID" class="col-3 col-form-label">SSID 2:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork1SSID">
+                            <p id="wifiNetwork1SSIDError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork1Password" class="col-3 col-form-label">PW
+                            2:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork1Password">
+                            <p id="wifiNetwork1PasswordError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork2SSID" class="col-3 col-form-label">SSID 3:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork2SSID">
+                            <p id="wifiNetwork2SSIDError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork2Password" class="col-3 col-form-label">PW
+                            3:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork2Password">
+                            <p id="wifiNetwork2PasswordError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork3SSID" class="col-3 col-form-label">SSID 4:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork3SSID">
+                            <p id="wifiNetwork3SSIDError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label for="wifiNetwork3Password" class="col-3 col-form-label">PW
+                            4:</label>
+                        <div class="col-sm-8 col-7">
+                            <input type="text" class="form-control" id="wifiNetwork3Password">
+                            <p id="wifiNetwork3PasswordError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enablePvtClient">TCP Client</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enablePvtClient"
+                            onClick="tcpBoxes()">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will connect to WiFi and push NMEA over the given TCP port.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <p id="enablePvtClientError" class="inlineError"></p>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enablePvtServer">TCP Server</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enablePvtServer"
+                            onClick="tcpBoxes()">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will allow inbound TCP connections and push NMEA when a client is connected.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <p id="enablePvtServerError" class="inlineError"></p>
+                    </div>
+
+                    <div id="tcpSettingsConfig">
+                        <div class="form-group row">
+                            <label for="pvtServerPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
+                                <span class="tt" data-bs-placement="right" title="TCP port to use. Default: 2947">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-8 col-7">
+                                <input type="text" class="form-control" id="pvtServerPort">
+                                <p id="pvtServerPortError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enablePvtUdpServer">UDP Server</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enablePvtUdpServer"
+                            onClick="udpBoxes()">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will broadcast NMEA sentences over UPD">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <p id="enablePvtUdpServerError" class="inlineError"></p>
+                    </div>
+
+                    <div id="udpSettingsConfig">
+                        <div class="form-group row">
+                            <label for="pvtUdpServerPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
+                                <span class="tt" data-bs-placement="right" title="UDP port to use. Default: 10110">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-8 col-7">
+                                <input type="text" class="form-control" id="pvtUdpServerPort">
+                                <p id="pvtUdpServerPortError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="wifiConfigTypeDropdown" class="mt-3">
+                        <label for="wifiConfigType">Configure Mode: </label>
+                        <select name="wifiConfigType" id="wifiConfigOverAP" class="form-dropdown">
+                            <option value="1">AP</option>
+                            <option value="0">WiFi</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="In AP mode, the device will broadcast as an access point called RTK-Config. In WiFi mode, the device will connect to local WiFi and be configurable on the displayed IP address.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- --------- Radio Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapseRadioConfig" aria-expanded="false" aria-controls="collapseRadioConfig">
+                    Radio Configuration <i id="radioCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseRadioConfig">
+                <div class="card card-body">
+
+                    <div id="radioTypeDropdown" class="mb-2">
+                        <label for="radioType">Radio: </label>
+                        <select name="radioType" id="radioType" class="form-dropdown">
+                            <option value="0">Off</option>
+                            <option value="1">ESP-Now</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. However, Bluetooth SPP cannot be used at the same time; use Bluetooth BLE. Default: Radio Off">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="radioDetails" class="collapse mb-2">
+                        <div class="form-check">
+                            Radio MAC: <p id="radioMAC" style="display:inline;">AA:BB:CC:DD:EE:FF</p>
+                        </div>
+                        <div class="form-check">
+                            Paired Radios:
+                            <div class="form-check">
+                                <p id="peerMACs" style="display:inline;">None</p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div style="margin-bottom:5px;">
+                                <button type="button" id="btnPairRadios" class="btn btn-primary box-margin20 col-sm-3"
+                                    onClick="pairRadios()" disabled="true">Pair Radios</button>
+                                <span class="tt" data-bs-placement="right"
+                                    title="To connect two devices, exit AP Config mode, and press setup button until 'Pair' is seen. Units will swap MAC addresses and begin communicating at next power on.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="form-check">
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableForgetRadios">Enable Forget All
+                                    Radios</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableForgetRadios"
+                                    unchecked>
+                                <span class="tt" data-bs-placement="right"
+                                    title="To prevent accidental deletion of paired radios the checkbox must first be checked before the button is pressed.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                            <div class="form-check">
+                                <button type="button" id="btnForgetRadios" class="btn btn-primary"
+                                    onClick="forgetPairedRadios()" disabled>Forget All Radios</button>
+                                <p id="btnForgetRadiosMsg" class="inlineSuccess"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-check">
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="espnowBroadcast">Broadcast Override</label>
+                                <input class="form-check-input" type="checkbox" value="" id="espnowBroadcast" unchecked>
+                                <span class="tt" data-bs-placement="right"
+                                    title="When true, overrides peers and sends all data via broadcast to all ESP32s in range that have ESP-Now enabled. Default: Disabled">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- --------- System Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapseSystemConfig" aria-expanded="false" aria-controls="collapseSystemConfig">
+                    System Configuration <i id="systemCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseSystemConfig">
+                <div class="card card-body">
+
+                    <div id="uploadNewFirmwareDiv" class="mb-2">
+                        <label class="form-check-label" for="uploadNewFirmware">System Firmware:</label>
+                        <span id="rtkFirmwareVersionUpgrade" style="display:inline;">v0.0</span>
+                    </div>
+
+                    <div>
+                        <div align="center">
+                            <button type="button" id="btnCheckNewFirmware" class="btn btn-primary box-margin20"
+                                onClick="checkNewFirmware()">Check for New Firmware</button>
+
+                            <span class="tt" data-bs-placement="right"
+                                title="Check SparkFun to see if new firmware is available for this device.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                            <p id="firmwareCheckNewMsg"></p>
+
+                            <div>
+                                <label class="form-check-label" for="enableRCFirmware">Allow Beta Firmware</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableRCFirmware">
+                                <span class="tt" data-bs-placement="right"
+                                    title="Beta firmware contains the newest features but may not be stable. Not recommended for field work.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <br>
+
+                        <div align="center" id="divGetNewFirmware" style="display:none">
+                            <button type="button" id="btnGetNewFirmware" class="btn btn-primary box-margin20"
+                                onClick="getNewFirmware()">Update to v3.14.15</button>
+
+                            <center><progress id="firmwareUpdateProgressBar" value="12" max="100"
+                                    style="width:300px;"></progress>
+                                <p id="firmwareUpdateProgressMsg" class="inlineSuccess">37%</p>
+                            </center>
+                        </div>
+                    </div>
+
+                    <div align="center">
+                        <label class="btn btn-primary">
+                            <input type="file" name="binfile" id="submitFirmwareFile" onchange="firmwareUploadWait()" />
+                            Upload BIN
+                        </label>
+                        <span class="tt" data-bs-placement="right"
+                            title="Update the unit's firmware by uploading a binary file from the connected phone or PC.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span><br>
+                        <p id="firmwareUploadMsg" class="inlineSuccess"></p>
+                    </div>
+                    <br>
+
+                    <div id="lastStateDropdown" class="mb-2">
+                        <label for="lastState">System Initial State: </label>
+                        <select name="lastState" id="lastState" class="form-dropdown">
+                            <option value="0">Rover</option>
+                            <option value="1">Base</option>
+                            <option value="2">NTP</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="Put the system into rover, base or NTP mode at next Power On or Reset.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableLogging">Log to SD Card</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableLogging">
+                        <span class="tt" data-bs-placement="right"
+                            title="If a microSD card is detected, all messages will be logged. Default: Enabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="enableLoggingDetails" class="collapse mb-2">
+
+                        <div class="form-group row">
+                            <label for="maxLogTime_minutes" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
+                                Time (min):
+                                <span class="tt" data-bs-placement="right"
+                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <input type="number" class="form-control box-small" id="maxLogTime_minutes">
+                            <p id="maxLogTime_minutesError" class="inlineError"></p>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="maxLogLength_minutes" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
+                                Length (min):<span class="tt" data-bs-placement="right"
+                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+
+                            <input type="number" class="form-control box-small" id="maxLogLength_minutes">
+                            <p id="maxLogLength_minutesError" class="inlineError"></p>
+                        </div>
+
+                        <div id="logFile" class="row">
+                            <div class="mb-2">
+                                <label for="logFile" class="form-group box-margin20">Log file name: <span
+                                        id="logFileName" style="display:inline;">SFE_Log.ubx</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div style="margin-bottom:5px;">
+                                <button type="button" id="startNewLog" class="btn btn-primary box-margin20"
+                                    onClick="startNewLog()">Start New Log</button>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Closes the current log and starts a new one.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="form-check mt-1 box-margin20">
+                            <label class="form-check-label" for="enableARPLogging">Enable ARP Logging</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableARPLogging" unchecked>
+                            <span class="tt" data-bs-placement="right"
+                                title="If enabled, the Antenna Reference Position from RTCM 1005/1006 will be added to the log.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="enableARPLoggingDetails" class="collapse mb-2">
+                            <div class="form-group row">
+                                <label for="ARPLoggingInterval" class="box-margin40 col-sm-3 col-7 col-form-label">ARP
+                                    Logging Interval (s):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <input type="number" class="form-control box-small" id="ARPLoggingInterval">
+                                <p id="ARPLoggingIntervalError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bluetoothRadioTypeDropdown" class="mb-2 mt-3">
+                        <label for="bluetoothRadioType">Bluetooth Protocol: </label>
+                        <select name="bluetoothRadioType" id="bluetoothRadioType" class="form-dropdown">
+                            <option value="0">SPP</option>
+                            <option value="1">BLE</option>
+                            <option value="2">Off</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="Communicate using Classic Bluetooth Serial Port Profile (SPP), Bluetooth Low-Energy (BLE), or turn Bluetooth off. Default: SPP as nearly all GIS applications use SPP.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableFactoryDefaults">Enable Factory Defaults</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableFactoryDefaults" unchecked>
+                        <span class="tt" data-bs-placement="right"
+                            title="Factory Defaults will erase any user settings and reset the internal receiver to stock settings. Any logs on SD are maintained. To prevent accidental reset the checkbox must first be checked before the button is pressed.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="form-check">
+                        <button type="button" id="factoryDefaults" class="btn btn-primary"
+                            onClick="resetToFactoryDefaults()" disabled>Reset to Factory
+                            Defaults</button>
+                        <p id="factoryDefaultsMsg" class="inlineSuccess"></p>
+                    </div>
+
+                    <label class="mt-2" for="debugZone">Debug Zone:</label>
+                    <div class="form-check mt-1 box-margin20">
+                        <label class="form-check-label" for="enableResetDisplay">Display Reset Counter</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableResetDisplay" unchecked>
+                        <span class="tt" data-bs-placement="right"
+                            title="A small number will be added to the display indicating the number of non-power-on-reset cycles. Used for debugging. Default: Disabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- --------- Ethernet Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" id="ethernetConfig" type="button" data-toggle="collapse"
+                    data-target="#collapseEthernetConfig" aria-expanded="false" aria-controls="collapseEthernetConfig"
+                    style="display:none">
+                    Ethernet Configuration <i id="ethernetCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseEthernetConfig">
+                <div class="card card-body">
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="ethernetDHCP">Ethernet uses DHCP</label>
+                        <input class="form-check-input" type="checkbox" value="" id="ethernetDHCP"
+                            onClick="dhcpEthernet()" checked>
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, Ethernet will use DHCP. Disable to use a fixed IP Address, DNS, Gateway and Subnet Mask. Default: Enabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <br>
+
+                    <div id="fixedIPSettingsConfigEthernet">
+                        <div class="form-group row">
+                            <label for="ethernetIP" class="col-5 col-form-label">Fixed IP Address:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If DHCP is disabled, Ethernet will use this fixed IP Address">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-5">
+                                <input type="text" class="form-control" id="ethernetIP">
+                                <p id="ethernetIPError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="ethernetDNS" class="col-5 col-form-label">DNS:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If DHCP is disabled, Ethernet will use this DNS">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-5">
+                                <input type="text" class="form-control" id="ethernetDNS">
+                                <p id="ethernetDNSError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="ethernetGateway" class="col-5 col-form-label">Gateway:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If DHCP is disabled, Ethernet will use this Gateway">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-5">
+                                <input type="text" class="form-control" id="ethernetGateway">
+                                <p id="ethernetGatewayError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="ethernetSubnet" class="col-5 col-form-label">Subnet Mask:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If DHCP is disabled, Ethernet will use this subnet mask">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-5">
+                                <input type="text" class="form-control" id="ethernetSubnet">
+                                <p id="ethernetSubnetError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <div class="form-group row">
+                        <label for="ethernetHttpPort" class="col-5 col-form-label">Ethernet HTTP Port:
+                            <span class="tt" data-bs-placement="right" title="Ethernet HTTP Port. Default is 80">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="number" class="form-control" id="ethernetHttpPort">
+                            <p id="ethernetHttpPortError" class="inlineError"></p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="ethernetNtpPort" class="col-5 col-form-label">Ethernet NTP Port:
+                            <span class="tt" data-bs-placement="right" title="Ethernet NTP Port. Default is 123">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="number" class="form-control" id="ethernetNtpPort">
+                            <p id="ethernetNtpPortError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableTcpClientEthernet">TCP Client</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableTcpClientEthernet"
+                            onClick="tcpBoxesEthernet()">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will connect to Ethernet and push NMEA over the given TCP port.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="tcpSettingsConfigEthernet">
+                        <div class="form-group row">
+                            <label for="ethernetTcpPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
+                                <span class="tt" data-bs-placement="right" title="TCP port to use. Default: 2947">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-5">
+                                <input type="number" class="form-control" id="ethernetTcpPort">
+                                <p id="ethernetTcpPortError" class="inlineError"></p>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <label for="hostForTCPClient" class="box-margin20 col-sm-3 col-4 col-form-label">Host for
+                                TCP Client:
+                                <span class="tt" data-bs-placement="right"
+                                    title="The name or address of the host which the TCP client data will be pushed to.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-5">
+                                <input type="text" class="form-control" id="hostForTCPClient" value="test">
+                                <p id="hostForTCPClientError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- --------- NTP Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" id="ntpConfig" type="button" data-toggle="collapse"
+                    data-target="#collapseNTPConfig" aria-expanded="false" aria-controls="collapseNTPConfig"
+                    style="display:none">
+                    NTP Configuration <i id="ntpCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseNTPConfig">
+                <div class="card card-body">
+
+                    <div class="form-group row">
+                        <label for="ntpPollExponent" class="col-5 col-form-label">Poll Exponent:
+                            <span class="tt" data-bs-placement="right"
+                                title="This indicates the maximum interval between successive messages. E.g. the default value of 6 sets the interval to 2^6 = 64s">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="number" class="form-control" id="ntpPollExponent">
+                            <p id="ntpPollExponentError" class="inlineError"></p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="ntpPrecision" class="col-5 col-form-label">Precision:
+                            <span class="tt" data-bs-placement="right"
+                                title="This indicates the precision of the system clock. E.g. the default value of -20 sets the precision to 2^-20 = ~1us">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="number" class="form-control" id="ntpPrecision">
+                            <p id="ntpPrecisionError" class="inlineError"></p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="ntpRootDelay" class="col-5 col-form-label">Root Delay:
+                            <span class="tt" data-bs-placement="right"
+                                title="This indicates the total round-trip delay to the reference clock in us. Default: 0">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="number" class="form-control" id="ntpRootDelay">
+                            <p id="ntpRootDelayError" class="inlineError"></p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="ntpRootDispersion" class="col-5 col-form-label">Root Dispersion:
+                            <span class="tt" data-bs-placement="right"
+                                title="This indicates the maximum error relative to the reference clock in us. Default: 1000">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="number" class="form-control" id="ntpRootDispersion">
+                            <p id="ntpRootDispersionError" class="inlineError"></p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="ntpReferenceId" class="col-5 col-form-label">Reference ID:
+                            <span class="tt" data-bs-placement="right"
+                                title="This code identifies the reference clock. Default: GPS. Limit: 1-4 characters">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-5">
+                            <input type="text" class="form-control" id="ntpReferenceId">
+                            <p id="ntpReferenceIdError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- --------- File Manager --------- -->
+            <div class="d-grid gap-2">
+                <button onclick="getFileList()" id="fileManager" class="btn btn-primary mt-3 toggle-btn" type="button"
+                    data-toggle="collapse" data-target="#collapseFileManager" aria-expanded="false"
+                    aria-controls="collapseFileManager" style="display:none">
+                    File Manager <i id="fileManagerCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseFileManager">
+                <div class="card card-body">
+
+                    <div align="center">
+                        SD Size: <p id="sdSize" style="display:inline;">0 MB</p> / Free: <p id="sdFreeSpace"
+                            style="display:inline;">0 MB</p>
+                    </div>
+
+                    <table id="fileManagerTable">
+                        <tr align='left'>
+                            <th>Name</th>
+                            <th>Size</th>
+                            <td><input type="checkbox" id="fileSelectAll" class="form-check-input"
+                                    onClick="fileManagerToggle()"></td>
+                        </tr>
+                        <tr align='left'>
+                            <td>SFE_Express_Settings_0.txt</td>
+                            <td>5 MB</td>
+                            <td><input type="checkbox" name="fileID" id="SFE_Express_Settings_0.txt"
+                                    class="form-check-input fileManagerCheck">
+                            </td>
+                        </tr>
+                        <tr align='left'>
+                            <td>SFE_Express_221031_020106.ubx</td>
+                            <td>221 KB</td>
+                            <td><input type="checkbox" name="fileID" id="SFE_Express_221031_020106.ubx"
+                                    class="form-check-input fileManagerCheck">
+                            </td>
+                        </tr>
+                        <tr align='left'>
+                            <td>SFE_Express_221031_020209.ubx</td>
+                            <td>408 KB</td>
+                            <td><input type="checkbox" name="fileID" id="SFE_Express_221031_020209.ubx"
+                                    class="form-check-input fileManagerCheck">
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr align='center'>
+                            <td><button class="btn btn-primary" onclick="fileManagerDelete()">Delete</button>
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td><button class="btn btn-primary" onclick="fileManagerDownload()">Download</button>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <br>
+                    <label class="btn btn-primary">
+                        <input type="file" name="file1" id="file1" onchange="uploadFile()" />
+                        Upload
+                    </label>
+                    <center><progress id="progressBar" value="0" max="100" style="width:300px;"></progress></center>
+                    <p id="uploadStatus"></p>
+
+                </div>
+            </div>
+
+            <!-- --------- End --------- -->
+
+            <hr>
+            <div class="row">
+                <div align="center" class="col-sm-5 offset-sm-1 col-12 offset-0 mb-2">
+                    <button type="button" id="saveBtn" class="btn btn-secondary" onclick="saveConfig()">Save
+                        Configuration <span class="icon-save ms-1"></span></button>
+                    <p id="saveBtnError" class="inlineError"></p>
+                    <p id="saveBtnSuccess" class="inlineSuccess"></p>
+                </div>
+                <div align="center" class="col-sm-5 col-12">
+                    <button type="button" id="exitBtn" class="btn btn-outline-secondary" onclick="exitConfig()">Exit and
+                        Reset<span class="icon-remove text-secondary ms-1"></span></button>
+                    <p id="exitBtnError" class="inlineSuccess"></p>
+                    <p>&nbsp;</p>
+                </div>
+            </div>
+        </div>
+        <script src="src/main.js"></script>
+    </div>
+    <script>
+        const tooltips = document.querySelectorAll('.tt')
+        tooltips.forEach(t => {
+            new bootstrap.Tooltip(t)
+        })
+    </script>
+</body>
+
+</html>

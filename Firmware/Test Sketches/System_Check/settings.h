@@ -51,6 +51,19 @@ SystemState lastSystemState = STATE_ROVER_NOT_STARTED;
 SystemState requestedSystemState = STATE_ROVER_NOT_STARTED;
 bool newSystemStateRequested = false;
 
+const char *const platformPrefixTable[] = {
+    "Surveyor",
+    "Express",
+    "Facet",
+    "Express Plus",
+    "Facet L-Band",
+    "Reference Station",
+    "Facet L-Band Direct",
+    // Add new values just above this line
+    "Unknown",
+};
+const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(platformPrefixTable[0]);
+
 //The setup display can show a limited set of states
 //When user pauses for X amount of time, system will enter that state
 SystemState setupState = STATE_MARK_EVENT;
@@ -62,6 +75,10 @@ typedef enum
   RTK_FACET,
   RTK_EXPRESS_PLUS,
   RTK_FACET_LBAND,
+  REFERENCE_STATION,
+  RTK_FACET_LBAND_DIRECT,
+  // Add new values just above this line
+  RTK_UNKNOWN,
 } ProductVariant;
 ProductVariant productVariant = RTK_SURVEYOR;
 
@@ -373,7 +390,7 @@ typedef struct {
   int16_t serialTimeoutGNSS = 1; //In ms - used during SerialGNSS.begin. Number of ms to pass of no data before hardware serial reports data available.
 
   char pointPerfectDeviceProfileToken[40] = "";
-  bool enablePointPerfectCorrections = true;
+  PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
   char home_wifiSSID[50] = ""; //WiFi network to use when attempting to obtain PointPerfect keys and ThingStream provisioning
   char home_wifiPW[50] = "";
   bool autoKeyRenewal = true; //Attempt to get keys if we get under 28 days from the expiration date
@@ -390,7 +407,7 @@ typedef struct {
   uint64_t pointPerfectNextKeyStart = 0;
 
   uint64_t lastKeyAttempt = 0; //Epoch time of last attempt at obtaining keys
-  bool updateZEDSettings = true; //When in doubt, update the ZED with current settings
+  bool updateGNSSSettings = true; //When in doubt, update the GNSS with current settings
   uint32_t LBandFreq = 1556290000; //Default to US band
 } Settings;
 Settings settings;

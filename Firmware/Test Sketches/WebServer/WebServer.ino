@@ -13,12 +13,20 @@
 #define ASCII_LF        0x0a
 #define ASCII_CR        0x0d
 
+const int pin_microSD_CS = 4;
+const int pin_SCK = 18;
+const int pin_MISO = 19;
+const int pin_MOSI = 23;
+const int pin_peripheralPowerControl = 32;
+const int pin_microSD_CardDetect = 36;
+
 int keyIndex = 0;
 char password[1024];          // WiFi network password
 char ssid[1024];              // WiFi network name
 
 typedef struct struct_online {
   bool microSD = false;
+  bool psram = false;
 } Online;
 
 Online online;
@@ -54,6 +62,28 @@ void setup() {
     while (!Serial);  // Wait for native USB serial port to connect
     Serial.println("\n");
 
+    reportHeapNow();
+    if (psramInit())
+    {
+        Serial.printf("%d MB of PSRAM detected\r\n", (ESP.getFreePsram() + (512 * 1024)) / (1024 * 1024));
+        online.psram = true;
+        reportHeapNow();
+    }
+    else
+        Serial.println("PSRAM is not available!");
+
+    Serial.printf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+    pinMode(pin_peripheralPowerControl, OUTPUT);
+    digitalWrite(pin_peripheralPowerControl, HIGH);
+
+    // Disable the microSD card
+    Serial.printf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
+    pinMode(pin_microSD_CardDetect, INPUT); // Internal pullups not supported on input only pins
+
+    Serial.printf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+    pinMode(pin_microSD_CS, OUTPUT);
+    digitalWrite(pin_microSD_CS, HIGH);
+
     // Read the WiFi network name (SSID)
     length = 0;
     do {
@@ -69,6 +99,8 @@ void setup() {
     } while (!length);
     Serial.printf("SSID: %s\n", ssid);
     Serial.println();
+    if (online.psram)
+        reportHeapNow();
 
     // Read the WiFi network password
     length = 0;
@@ -85,12 +117,16 @@ void setup() {
     } while (!length);
     Serial.printf("Password: %s\n", password);
     Serial.println();
+    if (online.psram)
+        reportHeapNow();
 
     // The SD card needs to be mounted
     sdCardMounted = 0;
     online.microSD = 0;
     if (mountSdCard())
         Serial.println();
+    if (online.psram)
+        reportHeapNow();
 
     // Wait for WiFi connection
     wifiBeginCalled = false;
@@ -122,21 +158,31 @@ void loop() {
         if (!wifiConnected) {
             wifiConnected = true;
             Serial.println("WiFi Connected");
+            if (online.psram)
+                reportHeapNow();
 
             // Display the WiFi info
             printWiFiNetwork();
             printWiFiIpAddress();
             printWiFiSubnetMask();
             printWiFiGatewayIp();
+            if (online.psram)
+                reportHeapNow();
 
             // index.html
-            sdCardServer.sdCardWebSite(&server);
+            sdCardServer.sdCardWebSite(&server, false);
+            if (online.psram)
+                reportHeapNow();
 
             //  All other pages
             sdCardServer.onNotFound(&server);
+            if (online.psram)
+                reportHeapNow();
 
             // Start server
             server.begin();
+            if (online.psram)
+                reportHeapNow();
         }
         break;
 
@@ -158,5 +204,16 @@ void loop() {
         wifiBeginCalled = true;
         WiFi.begin(ssid, password);
         Serial.println("Waiting for WiFi connection...");
+        if (online.psram)
+            reportHeapNow();
     }
+}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+void reportHeapNow()
+{
+    Serial.printf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
+                 xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+    if (online.psram)
+        Serial.printf("Free PSRAM: %d\r\n", ESP.getFreePsram());
 }

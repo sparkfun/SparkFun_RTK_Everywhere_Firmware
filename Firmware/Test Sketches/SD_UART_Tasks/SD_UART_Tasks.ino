@@ -54,10 +54,12 @@ const int gnssHandlerBufferSize = (1024 * 4); //This buffer is filled from the U
 
 uint8_t * rBuffer;
 
-int pin_SCK = 18;
-int pin_MISO = 19;
-int pin_MOSI = 23;
-int pin_microSD_CS = 25;
+const int pin_microSD_CS = 4;
+const int pin_SCK = 18;
+const int pin_MISO = 19;
+const int pin_MOSI = 23;
+const int pin_peripheralPowerControl = 32;
+const int pin_microSD_CardDetect = 36;
 
 File ubxFile;
 
@@ -67,7 +69,7 @@ unsigned long lastFileReport = 0;
 
 unsigned long lastUBXLogSyncTime = 0;
 
-TaskHandle_t F9PSerialReadTaskHandle = NULL; //Store handles so that we can kill them if user goes into WiFi NTRIP Server mode
+TaskHandle_t F9PSerialReadTaskHandle = NULL; //Store handles so that we can delete them if user goes into WiFi NTRIP Server mode
 const uint8_t F9PSerialReadTaskPriority = 1; //3 being the highest, and 0 being the lowest
 const int readTaskStackSize = 2000;
 
@@ -75,10 +77,38 @@ TaskHandle_t SDWriteTaskHandle = NULL;
 const uint8_t SDWriteTaskPriority = 1; //3 being the highest, and 0 being the lowest
 const int SDWriteTaskStackSize = 2000;
 
+volatile uint16_t dataHead = 0; //Head advances as data comes in from GNSS's UART
+volatile uint16_t sdTail = 0; //SD Tail advances as it is recorded to SD
+
 void setup()
 {
   Serial.begin(115200);
   delay(250);
+
+  Serial.println();
+  Serial.println();
+
+  reportHeapNow();
+  if (psramInit())
+  {
+    Serial.printf("%d MB of PSRAM detected\r\n", (ESP.getFreePsram() + (512 * 1024)) / (1024 * 1024));
+    online.psram = true;
+    reportHeapNow();
+  }
+  else
+    Serial.println("PSRAM is not available!");
+
+  Serial.printf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+  pinMode(pin_peripheralPowerControl, OUTPUT);
+  digitalWrite(pin_peripheralPowerControl, HIGH);
+
+  // Disable the microSD card
+  Serial.printf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
+  pinMode(pin_microSD_CardDetect, INPUT); // Internal pullups not supported on input only pins
+
+  Serial.printf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+  pinMode(pin_microSD_CS, OUTPUT);
+  digitalWrite(pin_microSD_CS, HIGH);
 
   Serial.println("Start basic UART test");
   Serial.println("b) Begin logging");
@@ -98,14 +128,21 @@ void loop()
     }
     else if (incoming == 'c')
     {
-      Serial.println("Closing file...");
+      Serial.println("Stopping logging...");
+      serialGNSS.end();
       online.logging = false;
-      stopTasks();
+      while (sdTail != dataHead)
+      {
+        Serial.printf("%d bytes to log\r\n", dataHead - sdTail);
+        delay(100);
+      }
+      delay(100);
 
-      delay(1000);
-
+      Serial.println("Closing file...");
       ubxFile.close();
       Serial.println("File closed");
+      if (online.psram)
+        reportHeapNow();
     }
     else if (incoming == 'b')
     {
@@ -132,6 +169,7 @@ void loop()
       if (SD.exists(fileName))
         SD.remove(fileName);
 
+      Serial.printf("Opening file: %s\r\n", fileName);
 #ifdef USE_SDFAT
       ubxFile.open(fileName, O_CREAT | O_APPEND | O_WRITE);
 #else
@@ -144,6 +182,11 @@ void loop()
       serialGNSS.setRxBufferSize(uartReceiveBufferSize); //Relatively small but is serviced by high priority task
       serialGNSS.setTimeout(0); //Zero disables timeout, thus, onReceive callback will only be called when RX FIFO reaches 120 bytes: https://github.com/espressif/arduino-esp32/blob/dca1a1e6b3d766aae8d0a6b8305b8273ccf5077c/cores/esp32/HardwareSerial.cpp#L233
       serialGNSS.begin(115200 * 2); //UART2 on pins 16/17 for SPP. The ZED-F9P will be configured to output NMEA over its UART1 at the same rate.
+
+      dataHead = 0;
+      sdTail = dataHead;
+
+      Serial.println("Recording to log...");
 
       //Start task for harvesting bytes from UART2
       if (F9PSerialReadTaskHandle == NULL)
@@ -165,7 +208,11 @@ void loop()
           SDWriteTaskPriority, //Priority
           &SDWriteTaskHandle); //Task handle
 
-      Serial.println("Recording to log...");
+      if (online.psram)
+      {
+        delay(10);
+        reportHeapNow();
+      }
     }
   }
 
@@ -174,7 +221,17 @@ void loop()
   {
     lastFileReport = millis();
     Serial.printf("UBX file size: %ld\n\r", fileSize);
+    if (online.psram)
+      reportHeapNow();
   }
 
   delay(1); //Yield to other tasks
+}
+
+void reportHeapNow()
+{
+    Serial.printf("FreeHeap: %d / HeapLowestPoint: %d / LargestBlock: %d\r\n", ESP.getFreeHeap(),
+                 xPortGetMinimumEverFreeHeapSize(), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+    if (online.psram)
+        Serial.printf("Free PSRAM: %d\r\n", ESP.getFreePsram());
 }

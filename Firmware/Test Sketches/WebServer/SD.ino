@@ -47,7 +47,7 @@ bool sdPresent(void)
   pinMode(pin_microSD_CS, OUTPUT);
 
   //Sending clocks while card power stabilizes...
-  deselectCard();             // always make sure
+  deselectSdCard();             // always make sure
   for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
     xchg(0xff);
 
@@ -90,9 +90,9 @@ byte sdSendCommand(byte command, unsigned long arg)
     if (response > 1) return (response);
   }
 
-  deselectCard();
+  deselectSdCard();
   xchg(0xFF);
-  selectCard(); // enable CS
+  selectSdCard(); // enable CS
   xchg(0xFF);
 
   xchg(command | 0x40);       // command always has bit 6 set!
@@ -114,7 +114,7 @@ byte sdSendCommand(byte command, unsigned long arg)
 
   /*
       We have issued the command but the SD card is still selected.  We
-      only deselectCard the card if the command we just sent is NOT a command
+      only deselectSdCard the card if the command we just sent is NOT a command
       that requires additional data exchange, such as reading or writing
       a block.
   */
@@ -123,7 +123,7 @@ byte sdSendCommand(byte command, unsigned long arg)
       (command != SD_SEND_IF_COND) &&
       (command != SD_LOCK_UNLOCK))
   {
-    deselectCard();             // all done
+    deselectSdCard();             // all done
     xchg(0xFF);             // close with eight more clocks
   }
 
@@ -131,13 +131,13 @@ byte sdSendCommand(byte command, unsigned long arg)
 }
 
 //Select (enable) the SD card
-void selectCard(void)
+void selectSdCard(void)
 {
   digitalWrite(pin_microSD_CS, LOW);
 }
 
 //Deselect (disable) the SD card
-void deselectCard(void)
+void deselectSdCard(void)
 {
   digitalWrite(pin_microSD_CS, HIGH);
 }

@@ -151,9 +151,9 @@ void beginDisplay()
 //Avoid code repetition
 void displayBatteryVsEthernet()
 {
-  if (HAS_BATTERY)
+    if (fuelGaugeType != FUEL_GAUGE_TYPE_NONE) // Product has a battery
     icons |= ICON_BATTERY; //Top right
-  else //if (HAS_ETHERNET)
+  else //if (present.ethernet_ws5500 == true)
   {
     if (online.ethernetStatus == ETH_NOT_STARTED)
       blinking_icons &= ~ICON_ETHERNET; //If Ethernet has not stated because not needed, don't display the icon
@@ -894,9 +894,8 @@ void paintDynamicModel()
       break;
     case (DYN_MODEL_AUTOMOTIVE):
       //Normal rover for ZED-F9P, fusion rover for ZED-F9R
-      if (zedModuleType == PLATFORM_F9P)
-      {
         displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_4_Automotive);
+
       }
       else if (zedModuleType == PLATFORM_F9R)
       {
@@ -989,10 +988,10 @@ uint32_t paintSIV()
 
   if (online.gnss)
   {
-    if (fixType == 0) //0 = No Fix
+    if (gnssIsFixed() == false)
       oled.print("0");
     else
-      oled.print(numSV);
+      oled.print(gnssGetSatellitesInView());
 
     //paintResets();
 
@@ -1004,7 +1003,7 @@ uint32_t paintSIV()
       blinking = ICON_SIV_ANTENNA;
 
     //Determine if there is a fix
-    if (fixType == 3 || fixType == 4 || fixType == 5) //3D, 3D+DR, or Time
+    if (gnssIsFixed() == true)
     {
       //Fix, turn on icon
       icons = blinking;
@@ -1703,7 +1702,7 @@ void paintProfile(uint8_t profileUnit)
   //if (getProfileNameFromUnit(profileUnit, profileName, sizeof(profileName)) == true) //Load the profile name, limited to 8 chars
   snprintf(profileName, sizeof(profileName), "Profile1");
   {
-    //settings.updateZEDSettings = true; //When this profile is loaded next, force system to update ZED settings.
+    //settings.updateGNSSSettings = true; //When this profile is loaded next, force system to update ZED settings.
     //recordSystemSettings(); //Before switching, we need to record the current settings to LittleFS and SD
 
     //Lookup profileNumber based on unit
