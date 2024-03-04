@@ -125,7 +125,7 @@ void tiltUpdate()
                     else if (tiltSensor->getGnssSolutionState() == 0)
                         systemPrint("No Fix");
 
-                    if(tiltSensor->isCorrecting())
+                    if (tiltSensor->isCorrecting())
                         systemPrint(" Compensating");
 
                     systemPrintln();
@@ -330,6 +330,10 @@ void tiltStop()
     SerialForTilt = nullptr;
 
     online.imu = false;
+
+    if (online.tilt == true)
+        beepDurationMs(1000); // Indicate we are going offline
+
     online.tilt = false;
 }
 
