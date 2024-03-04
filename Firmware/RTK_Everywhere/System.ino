@@ -335,6 +335,8 @@ void printReports()
                     systemPrint("RTK Fix");
                 else if (gnssIsRTKFloat() == true)
                     systemPrint("RTK Float");
+                else if (gnssIsDgpsFixed() == true)
+                    systemPrint("DGPS Fix");
                 else if (gnssIsFixed() == true)
                     systemPrint("3D Fix");
                 else
