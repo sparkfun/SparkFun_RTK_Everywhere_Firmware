@@ -30,7 +30,7 @@
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
- #define COMPILE_BT                   // Comment out to remove Bluetooth functionality
+ //#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
  #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
  #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
@@ -737,7 +737,7 @@ bool configureViaEthernet;
 
 unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
 int lbandRestarts;
-unsigned long lbandTimeToFix;
+unsigned long rtkTimeToFixMs;
 unsigned long lbandLastReport;
 
 volatile PeriodicDisplay_t periodicDisplay;

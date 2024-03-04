@@ -1270,7 +1270,7 @@ void menuPointPerfect()
         systemPrintln("Menu: PointPerfect Corrections");
 
         if (settings.debugCorrections == true)
-            systemPrintf("Time to first L-Band fix: %ds Restarts: %d\r\n", lbandTimeToFix / 1000, lbandRestarts);
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, lbandRestarts);
 
         if (settings.debugCorrections == true)
             systemPrintf("settings.pointPerfectLBandTopic: %s\r\n", settings.pointPerfectLBandTopic);
@@ -1490,11 +1490,11 @@ void updateLBand()
                 }
             }
         }
-        else if (gnssIsRTKFix() && lbandTimeToFix == 0)
+        else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
         {
-            lbandTimeToFix = millis();
+            rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
-                systemPrintf("Time to first L-Band fix: %ds\r\n", lbandTimeToFix / 1000);
+                systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
         }
 
         if ((millis() - rtcmLastPacketReceived) / 1000 > settings.rtcmTimeoutBeforeUsingLBand_s)
