@@ -140,7 +140,7 @@ int pin_beeper = PIN_UNDEFINED;
 
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <Wire.h>
+#include <Wire.h> //Built-in
 TwoWire *i2c_0 = &Wire;
 TwoWire *i2c_1;
 TwoWire *i2cDisplay;
@@ -148,7 +148,7 @@ TwoWire *i2cDisplay;
 
 // LittleFS for storing settings for different user profiles
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <LittleFS.h>
+#include <LittleFS.h> //Built-in
 
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
@@ -172,7 +172,7 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 
 // microSD Interface
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <SPI.h>
+#include <SPI.h> //Built-in
 
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
 SdFat *sd;
@@ -270,7 +270,7 @@ unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OT
 #include <DNSServer.h>  //Built-in.
 #include <ESPmDNS.h>    //Built-in.
 #include <HTTPClient.h> //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient
+#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
 #include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
@@ -390,9 +390,9 @@ unsigned long rtcmLastPacketReceived;
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.2
 #else
-#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
+#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
 #endif                                          // COMPILE_UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -403,11 +403,11 @@ GnssPlatform gnssPlatform = PLATFORM_ZED;
 
 // Battery fuel gauge and PWM LEDs
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library
+#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library v1.0.4
 SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
 #ifdef COMPILE_BQ40Z50
-#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50
+#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50 v1.0.0
 BQ40Z50 *bq40z50Battery;
 #endif // COMPILE_BQ40Z50
 
@@ -474,13 +474,13 @@ bool runCommandMode; // Goes true when user or remote app enters ---------- comm
 
 // External Display
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
+#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED v1.0.10
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Firmware binaries loaded from SD
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <Update.h>
+#include <Update.h> //Built-in
 int binCount;
 const int maxBinFiles = 10;
 char binFileNames[maxBinFiles][50];
@@ -491,7 +491,7 @@ int binBytesLastUpdate;                  // Allows websocket notification to be 
 
 // Low frequency tasks
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <Ticker.h>
+#include <Ticker.h> //Built-in
 
 Ticker bluetoothLedTask;
 float bluetoothLedTaskPace2Hz = 0.5;
@@ -556,7 +556,7 @@ float lBandEBNO; // Used on system status menu
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #ifdef COMPILE_ESPNOW
 
-#include <esp_now.h>
+#include <esp_now.h> //Built-in
 
 uint8_t espnowOutgoing[250]; // ESP NOW has max of 250 characters
 unsigned long espnowLastAdd; // Tracks how long since the last byte was added to the outgoing buffer
@@ -575,7 +575,7 @@ const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_ETHERNET
-#include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet
+#include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
 IPAddress ethernetIPAddress;
 IPAddress ethernetDNS;
 IPAddress ethernetGateway;
@@ -601,7 +601,7 @@ unsigned long lastEthernetCheck; // Prevents cable checking from continually hap
 // IM19 Tilt Compensation
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_IM19_IMU
-#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU v1.0.0
 IM19 *tiltSensor;
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
@@ -613,7 +613,7 @@ unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 // PointPerfect Library (PPL)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_POINTPERFECT_LIBRARY
-#include "PPL_PublicInterface.h" // The PPL
+#include "PPL_PublicInterface.h" // Private repo v1.11.4
 #include "PPL_Version.h"
 
 TaskHandle_t updatePplTaskHandle;        // Store handles so that we can delete the task once the size is found
@@ -633,8 +633,8 @@ long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-#include "NetworkClient.h" //Supports both WiFiClient and EthernetClient
-#include "NetworkUDP.h"    //Supports both WiFiUdp and EthernetUdp
+#include "NetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
+#include "NetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
