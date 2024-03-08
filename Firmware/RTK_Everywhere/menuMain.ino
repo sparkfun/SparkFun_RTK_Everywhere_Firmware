@@ -31,6 +31,12 @@ void menuMain()
     inMainMenu = true;
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
+    if (settings.debugGnss == true)
+    {
+        // Turn off GNSS debug while in config menus
+        gnssDisableDebugging();
+    }
+
     // Check for remote app config entry into command mode
     if (runCommandMode == true)
     {
@@ -189,6 +195,12 @@ void menuMain()
     gnssSaveConfiguration();
 
     recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
+
+    if (settings.debugGnss == true)
+    {
+        // Re-enable GNSS debug once we exit config menus
+        gnssEnableDebugging();
+    }
 
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system

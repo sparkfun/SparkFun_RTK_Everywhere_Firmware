@@ -376,7 +376,7 @@ bool gnssSaveConfiguration()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            return(um980SaveConfiguration());
+            return (um980SaveConfiguration());
         }
     }
     return (false);
@@ -659,8 +659,26 @@ bool gnssIsFixed()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            if (um980GetPositionType() >= 1) // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS +
-                                             // dead reckoning combined, 5 = time only fix
+            if (um980GetPositionType() >= 16) // 16 = 3D Fix (Single)
+                return (true);
+        }
+    }
+    return (false);
+}
+
+// Return true if GNSS receiver has a higher quality DGPS fix than 3D
+bool gnssIsDgpsFixed()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            // Not supported
+            return (false);
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            if (um980GetPositionType() == 17) // 17 = Pseudorange differential solution
                 return (true);
         }
     }
@@ -718,7 +736,8 @@ bool gnssIsRTKFloat()
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {
-            if (um980GetPositionType() == 49) // 49 = RTK Float (Presumed) (Wide-lane fixed solution)
+            if (um980GetPositionType() == 49 ||
+                um980GetPositionType() == 34) // 49 = Wide-lane fixed solution, 34 = Narrow-land float solution
                 return (true);
         }
     }

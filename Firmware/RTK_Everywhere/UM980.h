@@ -39,9 +39,9 @@ typedef struct
 // Static array containing all the compatible messages
 const um980Msg umMessagesNMEA[] = {
     // NMEA
-    {"GPDTM", 0}, {"GPGBS", 0}, {"GPGGA", 0.2}, {"GPGLL", 0}, {"GPGNS", 0},
+    {"GPDTM", 0}, {"GPGBS", 0}, {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
 
-    {"GPGRS", 0}, {"GPGSA", 0.2}, {"GPGST", 0.2}, {"GPGSV", 1}, {"GPRMC", 0.2},
+    {"GPGRS", 0}, {"GPGSA", 0.5}, {"GPGST", 0.5}, {"GPGSV", 1}, {"GPRMC", 0.5},
 
     {"GPROT", 0}, {"GPTHS", 0}, {"GPVTG", 0}, {"GPZDA", 0},
 };

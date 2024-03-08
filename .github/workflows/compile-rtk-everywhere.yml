@@ -5,8 +5,8 @@ on:
 
 env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
-  FIRMWARE_VERSION_MAJOR: 1
-  FIRMWARE_VERSION_MINOR: 0
+  FIRMWARE_VERSION_MAJOR: 0
+  FIRMWARE_VERSION_MINOR: 9
   POINTPERFECT_LBAND_PAID_TOKEN: ${{ secrets.POINTPERFECT_LBAND_PAID_TOKEN }}
   POINTPERFECT_LBAND_FREE_TOKEN: ${{ secrets.POINTPERFECT_LBAND_FREE_TOKEN }}
   POINTPERFECT_IP_FREE_TOKEN: ${{ secrets.POINTPERFECT_IP_FREE_TOKEN }}
@@ -41,14 +41,14 @@ jobs:
               echo "FILE_ENDING_UNDERSCORE=_v${{ env.FIRMWARE_VERSION_MAJOR }}_${{ env.FIRMWARE_VERSION_MINOR }}" >> "$GITHUB_ENV"
               echo "FILE_ENDING_NOUNDERSCORE=_v${{ env.FIRMWARE_VERSION_MAJOR }}.${{ env.FIRMWARE_VERSION_MINOR }}" >> "$GITHUB_ENV"
               echo "JSON_ENDING=" >> "$GITHUB_ENV"
-              echo "JSON_FILE_NAME=RTK-Firmware.json" >> "$GITHUB_ENV"
+              echo "JSON_FILE_NAME=RTK-Everywhere-Firmware.json" >> "$GITHUB_ENV"
               echo "ENABLE_DEVELOPER=false" >> "$GITHUB_ENV"
               echo "DEBUG_LEVEL=none" >> "$GITHUB_ENV"
           else
               echo "FILE_ENDING_UNDERSCORE=_RC-${{ steps.date.outputs.date }}" >> "$GITHUB_ENV"
               echo "FILE_ENDING_NOUNDERSCORE=_RC-${{ steps.dateNoScores.outputs.dateNoScores }}" >> "$GITHUB_ENV"
               echo "JSON_ENDING=-${{ steps.dateNoScores.outputs.dateNoScores }}" >> "$GITHUB_ENV"
-              echo "JSON_FILE_NAME=RTK-RC-Firmware.json" >> "$GITHUB_ENV"
+              echo "JSON_FILE_NAME=RTK-Everywhere-RC-Firmware.json" >> "$GITHUB_ENV"
               echo "ENABLE_DEVELOPER=true" >> "$GITHUB_ENV"
               echo "DEBUG_LEVEL=debug" >> "$GITHUB_ENV"
           fi
@@ -59,8 +59,11 @@ jobs:
       - name: Start config file
         run: arduino-cli config init --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 
-      - name: Update index
+      - name: Update core index
         run: arduino-cli core update-index
+
+      - name: Update library index
+        run: arduino-cli lib update-index
 
       - name: Install platform
         run: arduino-cli core install esp32:esp32@2.0.11
@@ -81,13 +84,19 @@ jobs:
           SparkFun_WebServer_ESP32_W5500@1.5.5
           "SparkFun Qwiic OLED Arduino Library"@1.0.9
           SSLClientESP32@2.0.0
+          SSLClientESP32@2.0.0
+          "SparkFun Extensible Message Parser"@1.0.0
+          "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
 
       - name: Enable external libs
         run: arduino-cli config set library.enable_unsafe_install true
 
       - name: Get Libraries
         run: arduino-cli lib install --git-url
-          https://github.com/me-no-dev/ESPAsyncWebServer.git 
+          https://${{ secrets.GET_PRIVATE_PPL_LIBRARY }}@github.com/sparkfun/SparkFun_u-blox_PointPerfect_Library.git
+          https://${{ secrets.GET_PRIVATE_IM19_LIBRARY }}@github.com/sparkfun/SparkFun_IM19_IMU_Arduino_Library.git
+          https://github.com/sparkfun/SparkFun_Unicore_GNSS_Arduino_Library.git
+          https://github.com/me-no-dev/ESPAsyncWebServer.git
           https://github.com/me-no-dev/AsyncTCP.git
           
       #Incorporate ESP-Now patch into core: https://github.com/espressif/arduino-esp32/pull/7044/files
@@ -95,13 +104,6 @@ jobs:
       #  run: |
       #    cd Firmware/RTK_Everywhere/Patch/
       #    cp WiFiGeneric.cpp /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.2/libraries/WiFi/src/WiFiGeneric.cpp
-
-      #Patch Server.h to avoid https://github.com/arduino-libraries/Ethernet/issues/88#issuecomment-455498941
-      #Note: this patch can be removed if/when we upgrade to ESP32 core >= v2.0.6 
-      - name: Patch ESP32 Server.h for Ethernet
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp Server.h /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.2/cores/esp32/Server.h
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -133,7 +135,7 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
-          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.2/tools/partitions/RTKEverywhere.csv
+          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.11/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch
         run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }} ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
@@ -158,10 +160,10 @@ jobs:
         # uses: dmnemec/copy_file_to_another_repo_action #Workaround for Issue: https://github.com/orgs/community/discussions/55820#discussioncomment-5946136
         uses: Jason2866/copy_file_to_another_repo_action@http408_fix
         env:
-          API_TOKEN_GITHUB: ${{ secrets.API_GITHUB_RTK_FILE_TOKEN }}
+          API_TOKEN_GITHUB: ${{ secrets.PUSH_BINARIES_REPO }}
         with:
           source_file: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
-          destination_repo: 'sparkfun/SparkFun_RTK_Firmware_Binaries'
+          destination_repo: 'sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries'
           destination_folder: ''
           user_email: 'nathan@sparkfun.com'
           user_name: 'nseidle'
@@ -173,16 +175,16 @@ jobs:
           path: ${{ env.JSON_FILE_NAME }}
           write-mode: overwrite
           contents: |
-            {"Configurations": [{"Version":"${{ env.FIRMWARE_VERSION_MAJOR }}.${{ env.FIRMWARE_VERSION_MINOR }}${{ env.JSON_ENDING }}", "URL":"https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Firmware_Binaries/main/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin"}]}
+            {"Configurations": [{"Version":"${{ env.FIRMWARE_VERSION_MAJOR }}.${{ env.FIRMWARE_VERSION_MINOR }}${{ env.JSON_ENDING }}", "URL":"https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin"}]}
 
       - name: Push JSON to Binaries Repo
         # uses: dmnemec/copy_file_to_another_repo_action #Workaround for Issue: https://github.com/orgs/community/discussions/55820#discussioncomment-5946136
         uses: Jason2866/copy_file_to_another_repo_action@http408_fix
         env:
-          API_TOKEN_GITHUB: ${{ secrets.API_GITHUB_RTK_FILE_TOKEN }}
+          API_TOKEN_GITHUB: ${{ secrets.PUSH_BINARIES_REPO }}
         with:
           source_file: ${{ env.JSON_FILE_NAME }}
-          destination_repo: 'sparkfun/SparkFun_RTK_Firmware_Binaries'
+          destination_repo: 'sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries'
           destination_folder: ''
           user_email: 'nathan@sparkfun.com'
           user_name: 'nseidle'

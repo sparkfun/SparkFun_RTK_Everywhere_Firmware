@@ -98,7 +98,15 @@ void tiltUpdate()
                     }
                 }
                 else
-                    online.tilt = false;
+                {
+                    if (online.tilt == true)
+                    {
+                        // Beep to indicating tilt went offline
+                        beepDurationMs(1000);
+
+                        online.tilt = false;
+                    }
+                }
 
                 if (settings.enableImuDebug == true)
                 {
@@ -116,6 +124,9 @@ void tiltUpdate()
                         systemPrint("3D Fix");
                     else if (tiltSensor->getGnssSolutionState() == 0)
                         systemPrint("No Fix");
+
+                    if (tiltSensor->isCorrecting())
+                        systemPrint(" Compensating");
 
                     systemPrintln();
 
@@ -319,6 +330,10 @@ void tiltStop()
     SerialForTilt = nullptr;
 
     online.imu = false;
+
+    if (online.tilt == true)
+        beepDurationMs(1000); // Indicate we are going offline
+
     online.tilt = false;
 }
 
@@ -763,7 +778,6 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
 
     if (settings.enableImuCompensationDebug == true)
         systemPrintf("Compensated GNGGA: %s\r\n", nmeaSentence);
-
 }
 
 // Restore the tilt sensor to factory settings

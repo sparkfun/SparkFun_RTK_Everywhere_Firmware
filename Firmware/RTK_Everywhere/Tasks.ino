@@ -421,6 +421,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
         else
             systemPrint("GNSS RX: ");
+
         switch (type)
         {
         case RTK_NMEA_PARSER_INDEX:
@@ -451,6 +452,15 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
+    // Determine if this message should be processed by the Unicore library
+    // Pass NMEA to um980 before applying compensation
+    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) ||
+        (type == RTK_NMEA_PARSER_INDEX))
+    {
+        // Give this data to the library to update its internal variables
+        um980UnicoreHandler(parse->buffer, parse->length);
+    }
+
     if (present.imu_im19 == true)
     {
         if (settings.enableTiltCompensation == true && online.tilt == true)
@@ -458,16 +468,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             if (type == RTK_NMEA_PARSER_INDEX)
             {
                 parse->buffer[parse->length++] = '\0'; // Null terminate string
-                tiltApplyCompensation((char *)&parse->buffer, parse->length);
+                tiltApplyCompensation((char *)parse->buffer, parse->length);
             }
         }
-    }
-
-    // Determine if this message should be processed by the Unicore library
-    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) || (type == RTK_NMEA_PARSER_INDEX))
-    {
-        // Give this data to the library to update its internal variables
-        um980UnicoreHandler(parse->buffer, parse->length);
     }
 
     // Determine if we are using the PPL

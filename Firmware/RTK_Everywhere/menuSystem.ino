@@ -406,16 +406,16 @@ void menuDebugHardware()
         systemPrint("8) Print messages with bad checksums or CRCs: ");
         systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
 
-        systemPrint("9) GNSS Debugging Output: ");
+        systemPrint("9) Print GNSS Debugging: ");
         systemPrintf("%s\r\n", settings.debugGnss ? "Enabled" : "Disabled");
 
-        systemPrint("10) Corrections Debugging Output: ");
+        systemPrint("10) Print Correction Debugging: ");
         systemPrintf("%s\r\n", settings.debugCorrections ? "Enabled" : "Disabled");
 
-        systemPrint("11) IMU Debugging Output: ");
+        systemPrint("11) Print Tilt/IMU Debugging: ");
         systemPrintf("%s\r\n", settings.enableImuDebug ? "Enabled" : "Disabled");
 
-        systemPrint("12) IMU Compensation Debugging Output: ");
+        systemPrint("12) Print Tilt/IMU Compensation Debugging: ");
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
         if (present.gnss_um980 == true)
@@ -695,7 +695,7 @@ void menuDebugSoftware()
         systemPrint("11) Print ring buffer overruns: ");
         systemPrintf("%s\r\n", settings.enablePrintBufferOverrun ? "Enabled" : "Disabled");
 
-        systemPrint("12) RTCM message checking: ");
+        systemPrint("12) Validate incoming RTCM before sending the NTRIP Server: ");
         systemPrintf("%s\r\n", settings.enableRtcmMessageChecking ? "Enabled" : "Disabled");
 
         // Rover

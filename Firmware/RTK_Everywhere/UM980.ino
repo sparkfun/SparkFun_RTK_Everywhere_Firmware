@@ -123,6 +123,9 @@ bool um980ConfigureOnce()
     // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
     response &= um980SetBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
 
+    // Enable PPS signal with a width of 200ms, and a period of 1 second
+    //response &= um980->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
+
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
     response &= um980SetMinCNO(settings.minCNO_um980);
