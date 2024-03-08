@@ -87,6 +87,7 @@ jobs:
           SSLClientESP32@2.0.0
           "SparkFun Extensible Message Parser"@1.0.0
           "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
+          "ArduinoMqttClient"@v0.1.8
 
       - name: Enable external libs
         run: arduino-cli config set library.enable_unsafe_install true

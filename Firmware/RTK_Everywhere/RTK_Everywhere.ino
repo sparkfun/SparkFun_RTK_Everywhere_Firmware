@@ -50,7 +50,8 @@
          // flags.
 #endif   // ENABLE_DEVELOPER
 
-// This is passed in from compiler extra flags
+// If no token is available at compile time, mark this firmware as version 'd99.99'
+// TOKENS are passed in from compiler extra flags
 #ifndef POINTPERFECT_LBAND_PAID_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
