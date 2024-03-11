@@ -170,6 +170,7 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltUpdate() {}
 void tiltStop() {}
 void tiltSensorFactoryReset() {}
+bool tiltIsCorrecting() {return(false);}
 
 #endif  // COMPILE_IM19_IMU
 

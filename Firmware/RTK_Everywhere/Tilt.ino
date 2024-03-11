@@ -65,172 +65,248 @@ void menuTilt()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
+typedef enum
+{
+    TILT_DISABLED = 0,
+    TILT_OFFLINE,
+    TILT_STARTED,
+    TILT_INITIALIZED,
+    TILT_CORRECTING,
+
+} TiltState;
+TiltState tiltState = TILT_DISABLED;
+
+// Tilt compensation sensor state machine
 void tiltUpdate()
 {
-    if (present.imu_im19 == true)
+    if (present.imu_im19 == false)
+        return;
+
+    if (settings.enableTiltCompensation == false && tiltState != TILT_DISABLED)
     {
-        if (settings.enableTiltCompensation == true && online.imu == true)
+        tiltStop(); // If the user has disabled the device, shut it down
+        tiltState = TILT_DISABLED;
+    }
+
+    switch (tiltState)
+    {
+    default:
+        systemPrintf("Unknown tiltState: %d\r\n", tiltState);
+        break;
+
+    case TILT_DISABLED:
+        if (settings.enableTiltCompensation == true && tiltFailedBegin == false)
+            tiltState = TILT_OFFLINE;
+        break;
+
+    case TILT_OFFLINE:
+        // Try multiple times to configure IM19
+        for (int x = 0; x < 3; x++)
         {
-            tiltSensor->update(); // Check for the most recent incoming binary data
+            beginTilt(); // Start IMU
+            if (tiltState == TILT_STARTED)
+                break;
+            log_d("Tilt sensor failed to configure. Trying again.");
+        }
 
-            // Check IMU state at 1Hz
-            if (millis() - lastTiltCheck > 1000)
+        if (tiltState != TILT_STARTED) // If we failed to begin, disable future attempts
+            tiltFailedBegin = true;
+        break;
+
+    case TILT_STARTED:
+        // Waiting for user to shake unit (RTK Fix required for isInitialized)
+        tiltSensor->update(); // Check for the most recent incoming binary data
+
+        // Check IMU state at 1Hz
+        if (millis() - lastTiltCheck > 1000)
+        {
+            lastTiltCheck = millis();
+
+            if (settings.tiltPoleLength < 0.5)
+                systemPrintf("Warning: Short pole length detected: %0.2f\r\n", settings.tiltPoleLength);
+
+            if (settings.enableImuDebug == true)
+                printTiltDebug();
+
+            // Check to see if tilt sensor has been shaken
+            if (tiltSensor->isInitialized())
             {
-                lastTiltCheck = millis();
+                beepDurationMs(1000); // Audibly indicate the init of tilt
 
-                // Error check
-                if (settings.tiltPoleLength < 0.5)
-                {
-                    systemPrintf("Warning: Short pole length detected: %0.2f\r\n", settings.tiltPoleLength);
-                }
-
-                // Check to see if tilt compensation is active
-                if (tiltSensor->isCorrecting())
-                {
-                    // Trigger beeper only once
-                    if (online.tilt == false)
-                    {
-                        beepDurationMs(2000); // Audibly indicate the start of tilt
-
-                        lastTiltBeepMs = millis();
-
-                        online.tilt = true;
-                    }
-                }
-                else
-                {
-                    if (online.tilt == true)
-                    {
-                        // Beep to indicating tilt went offline
-                        beepDurationMs(1000);
-
-                        online.tilt = false;
-                    }
-                }
-
-                if (settings.enableImuDebug == true)
-                {
-                    uint32_t naviStatus = tiltSensor->getNaviStatus();
-                    systemPrintf("NAVI timestamp: %0.0f lat: %0.4f lon: %0.4f alt: %0.2f\r\n",
-                                 tiltSensor->getNaviTimestamp(), tiltSensor->getNaviLatitude(),
-                                 tiltSensor->getNaviLongitude(), tiltSensor->getNaviAltitude());
-
-                    systemPrintf("Tilt Status: 0x%04X - ", naviStatus);
-
-                    // 0 = No fix, 1 = 3D, 4 = RTK Fix
-                    if (tiltSensor->getGnssSolutionState() == 4)
-                        systemPrint("RTK Fix");
-                    else if (tiltSensor->getGnssSolutionState() == 1)
-                        systemPrint("3D Fix");
-                    else if (tiltSensor->getGnssSolutionState() == 0)
-                        systemPrint("No Fix");
-
-                    if (tiltSensor->isCorrecting())
-                        systemPrint(" Compensating");
-
-                    systemPrintln();
-
-                    // if (naviStatus & (1 << 0))
-                    //     systemPrintln("Status: Filter uninitialized"); // Finit 0x1
-                    if (naviStatus & (1 << 1))
-                        systemPrintln("Status: Filter convergence complete"); // Ready 0x2
-                    if (naviStatus & (1 << 2))
-                        systemPrintln("Status: In filter convergence"); // Inaccurate 0x4
-                    if (naviStatus & (1 << 3))
-                        systemPrintln("Status: Excessive tilt angle"); // TiltReject 0x8
-
-                    if (naviStatus & (1 << 4))
-                        systemPrintln("Status: GNSS Positioning data difference"); // GnssReject 0x10
-                    if (naviStatus & (1 << 5))
-                        systemPrintln("Status: Filter Reset"); // FReset 0x20
-                    if (naviStatus & (1 << 6))
-                        systemPrintln("Status: Tilt estimation Phase 1"); // FixRlsStage1 0x40
-                    if (naviStatus & (1 << 7))
-                        systemPrintln("Status: Tilt estimation Phase 2"); // FixRlsStage2 0x80
-
-                    if (naviStatus & (1 << 8))
-                        systemPrintln("Status: Tilt estimation Phase 3"); // FixRlsStage3 0x100
-                    if (naviStatus & (1 << 9))
-                        systemPrintln("Status: Tilt estimation Phase 4"); // FixRlsStage4 0x200
-                    if (naviStatus & (1 << 10))
-                        systemPrintln("Status: Tilt estimation Complete"); // FixRlsOK 0x400
-
-                    if (naviStatus & (1 << 13))
-                        systemPrintln("Status: Initialize shaking direction 1"); // Direction1 0x2000
-                    if (naviStatus & (1 << 14))
-                        systemPrintln("Status: Initialize shaking direction 2"); // Direction2 0x4000
-
-                    if (naviStatus & (1 << 16))
-                        systemPrintln("Status: Filter determines GNSS data is invalid"); // GnssLost 0x10000
-                    if (naviStatus & (1 << 17))
-                        systemPrintln("Status: Initialization complete"); // FInitOk 0x20000
-                    // if (naviStatus & (1 << 18))
-                    //     systemPrintln("Status: PPS signal received"); // PPSReady 0x40000
-                    // if (naviStatus & (1 << 19))
-                    //     systemPrintln("Status: Module time synchronization successful"); // SyncReady 0x80000
-                    // if (naviStatus & (1 << 20)) //0x100000
-                    //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
-                    //     0x100000
-                    if (naviStatus > 0x1FFFFF)
-                    {
-                        // Clear all lower/known bits
-                        uint32_t bitsToShow = 0 ^ 0x1FFFFF;
-                        systemPrintf("Status: Unknown status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
-                    }
-
-                    /*Datasheet initialization steps:
-                        Step one: Rotate the receiver in hand, or shake it.
-
-                        Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
-                        means step two has been entered. Wait for RTK to output the fixed solution.
-
-                        Step three: Some rocking is required to make accuracy meet the requirements. Rock rod back and
-                        forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
-                        degrees and continue to rock until the init is complete. The status word becomes ready.
-                    */
-                } // End Debug IMU
-            }     // End Check IMU state at 1Hz
-
-            // If tilt is active, play short beep every 10 seconds
-            if ((online.tilt == true) && (millis() - lastTiltBeepMs > 10000))
-            {
                 lastTiltBeepMs = millis();
-                beepDurationMs(250);
-            }
-        }
-        else if (settings.enableTiltCompensation == false && online.imu == true)
-        {
-            tiltStop(); // If the user has disabled the device, shut it down
-        }
-        else if (settings.enableTiltCompensation == true && online.imu == false && tiltFailedBegin == false)
-        {
-            // Try multiple times to configure IM19
-            for (int x = 0; x < 3; x++)
-            {
-                beginTilt(); // Start IMU
-                if (online.imu == true)
-                    break;
-                log_d("Tilt sensor failed to configure. Trying again.");
+
+                tiltState = TILT_INITIALIZED;
             }
 
-            if (online.imu == false) // If we failed to begin, disable future attempts
-                tiltFailedBegin = true;
+            // Check to see if tilt compensation is active
+            if (tiltSensor->isCorrecting())
+            {
+                beepDurationMs(2000); // Audibly indicate the start of tilt
+
+                lastTiltBeepMs = millis();
+
+                tiltState = TILT_CORRECTING;
+            }
+
         }
+        break;
+
+    case TILT_INITIALIZED:
+        // Waiting for user to rock unit back and forth
+        tiltSensor->update(); // Check for the most recent incoming binary data
+
+        // Check IMU state at 1Hz
+        if (millis() - lastTiltCheck > 1000)
+        {
+            lastTiltCheck = millis();
+
+            if (settings.tiltPoleLength < 0.5)
+                systemPrintf("Warning: Short pole length detected: %0.2f\r\n", settings.tiltPoleLength);
+
+            if (settings.enableImuDebug == true)
+                printTiltDebug();
+
+            // Check to see if tilt compensation is active
+            if (tiltSensor->isCorrecting())
+            {
+                beepDurationMs(2000); // Audibly indicate the start of tilt
+
+                lastTiltBeepMs = millis();
+
+                tiltState = TILT_CORRECTING;
+            }
+        }
+        break;
+
+    case TILT_CORRECTING:
+        // Check to see if we've stopped correcting
+        tiltSensor->update(); // Check for the most recent incoming binary data
+
+        // Check IMU state at 1Hz
+        if (millis() - lastTiltCheck > 1000)
+        {
+            lastTiltCheck = millis();
+
+            if (settings.enableImuDebug == true)
+                printTiltDebug();
+
+            // Check to see if tilt compensation is active
+            if (tiltSensor->isCorrecting() == false)
+            {
+                tiltState = TILT_STARTED;
+
+                // Beep to indicating tilt went offline
+                beepDurationMs(1000);
+            }
+        }
+
+        // If tilt compensation is active, play a short beep every 10 seconds
+        if (millis() - lastTiltBeepMs > 10000)
+        {
+            lastTiltBeepMs = millis();
+            beepDurationMs(250);
+        }
+
+        break;
+    }
+}
+
+/*Datasheet initialization steps:
+    Step one: Rotate the receiver in hand, or shake it.
+
+    Step two: If the heading angle becomes 0-180 degrees (or 0-(-180) degrees) it
+    means step two has been entered. Wait for RTK to output the fixed solution.
+
+    Step three: Some rocking is required to make accuracy meet the requirements. Rock rod back and
+    forth for 5-6 seconds. Maintain the same speed when shaking. 1-2m/s is enough. Rotate the rod 90
+    degrees and continue to rock until the init is complete. The status word becomes ready.
+*/
+void printTiltDebug()
+{
+    uint32_t naviStatus = tiltSensor->getNaviStatus();
+    // systemPrintf("NAVI timestamp: %0.0f lat: %0.4f lon: %0.4f alt: %0.2f\r\n", tiltSensor->getNaviTimestamp(),
+    //              tiltSensor->getNaviLatitude(), tiltSensor->getNaviLongitude(), tiltSensor->getNaviAltitude());
+
+    systemPrint("Tilt ");
+
+    if (tiltState == TILT_STARTED)
+        systemPrint("STARTED");
+    else if (tiltState == TILT_INITIALIZED)
+        systemPrint("INITIALIZED");
+    else if (tiltState == TILT_CORRECTING)
+        systemPrint("CORRECTING");
+
+    systemPrintf(" Status: 0x%04X - ", naviStatus);
+
+    // 0 = No fix, 1 = 3D, 4 = RTK Fix
+    int solutionState = tiltSensor->getGnssSolutionState();
+    if (solutionState == 4)
+        systemPrint("RTK Fix");
+    else if (solutionState == 3)
+        systemPrint("RTK Float");
+    else if (solutionState == 2)
+        systemPrint("DGPS Fix");
+    else if (solutionState == 1)
+        systemPrint("3D Fix");
+    else if (solutionState == 0)
+        systemPrint("No Fix");
+    else 
+        systemPrintf("solutionState %d", tiltSensor->getGnssSolutionState());
+
+    systemPrintln();
+
+    // if (naviStatus & (1 << 0))
+    //     systemPrintln("Status: Filter uninitialized"); // Finit 0x1
+    if (naviStatus & (1 << 1))
+        systemPrintln("Status: Filter convergence complete"); // Ready 0x2
+    if (naviStatus & (1 << 2))
+        systemPrintln("Status: In filter convergence"); // Inaccurate 0x4
+    if (naviStatus & (1 << 3))
+        systemPrintln("Status: Excessive tilt angle"); // TiltReject 0x8
+
+    if (naviStatus & (1 << 4))
+        systemPrintln("Status: GNSS Positioning data difference"); // GnssReject 0x10
+    if (naviStatus & (1 << 5))
+        systemPrintln("Status: Filter Reset"); // FReset 0x20
+    if (naviStatus & (1 << 6))
+        systemPrintln("Status: Tilt estimation Phase 1"); // FixRlsStage1 0x40
+    if (naviStatus & (1 << 7))
+        systemPrintln("Status: Tilt estimation Phase 2"); // FixRlsStage2 0x80
+
+    if (naviStatus & (1 << 8))
+        systemPrintln("Status: Tilt estimation Phase 3"); // FixRlsStage3 0x100
+    if (naviStatus & (1 << 9))
+        systemPrintln("Status: Tilt estimation Phase 4"); // FixRlsStage4 0x200
+    if (naviStatus & (1 << 10))
+        systemPrintln("Status: Tilt estimation Complete"); // FixRlsOK 0x400
+
+    if (naviStatus & (1 << 13))
+        systemPrintln("Status: Initialize shaking direction 1"); // Direction1 0x2000
+    if (naviStatus & (1 << 14))
+        systemPrintln("Status: Initialize shaking direction 2"); // Direction2 0x4000
+
+    if (naviStatus & (1 << 16))
+        systemPrintln("Status: Filter determines GNSS data is invalid"); // GnssLost 0x10000
+    if (naviStatus & (1 << 17))
+        systemPrintln("Status: Initialization complete"); // FInitOk 0x20000
+    // if (naviStatus & (1 << 18))
+    //     systemPrintln("Status: PPS signal received"); // PPSReady 0x40000
+    // if (naviStatus & (1 << 19))
+    //     systemPrintln("Status: Module time synchronization successful"); // SyncReady 0x80000
+    // if (naviStatus & (1 << 20)) //0x100000
+    //     systemPrintln("Status: GNSS Connected"); //Module parses to RTK data "); // GnssConnect
+    //     0x100000
+    if (naviStatus > 0x1FFFFF)
+    {
+        // Clear all lower/known bits
+        uint32_t bitsToShow = 0 ^ 0x1FFFFF;
+        systemPrintf("Status: Unknown status bits set: 0x%04X\r\n", naviStatus & bitsToShow);
     }
 }
 
 // Start communication with the IM19 IMU
 void beginTilt()
 {
-    if (present.imu_im19 == false)
-        return;
-
-    if (settings.enableTiltCompensation == false)
-        return;
-
-    if (online.imu == true) // Don't restart if already online
-        return;
-
     tiltSensor = new IM19();
 
     SerialForTilt = new HardwareSerial(1); // Use UART1 on the ESP32 to receive IMU corrections
@@ -246,17 +322,10 @@ void beginTilt()
     if (tiltSensor->begin(*SerialForTilt) == false) // Give the serial port over to the library
     {
         log_d("Tilt sensor failed to respond.");
+        tiltStop(); // Free memory
         return;
     }
     systemPrintln("Tilt sensor online.");
-
-    // tiltSensor->factoryReset();
-
-    // while (tiltSensor->isConnected() == false)
-    // {
-    //     systemPrintln("waiting for sensor to reset");
-    //     delay(1000);
-    // }
 
     bool result = true;
 
@@ -315,9 +384,12 @@ void beginTilt()
         if (tiltSensor->saveConfiguration() == true)
         {
             log_d("IM19 configuration saved");
-            online.imu = true;
+            tiltState = TILT_STARTED;
+            return; // Success
         }
     }
+
+    tiltStop(); // Free memory
 }
 
 void tiltStop()
@@ -329,12 +401,25 @@ void tiltStop()
     delete SerialForTilt;
     SerialForTilt = nullptr;
 
-    online.imu = false;
-
-    if (online.tilt == true)
+    if (tiltState == TILT_CORRECTING)
         beepDurationMs(1000); // Indicate we are going offline
 
-    online.tilt = false;
+    tiltState = TILT_OFFLINE;
+}
+
+bool tiltIsCorrecting()
+{
+    if (tiltState == TILT_CORRECTING)
+        return (true);
+
+    return (false);
+}
+
+// Restore the tilt sensor to factory settings
+void tiltSensorFactoryReset()
+{
+    if(tiltState >= TILT_STARTED)
+        tiltSensor->factoryReset();
 }
 
 // Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
@@ -778,12 +863,6 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
 
     if (settings.enableImuCompensationDebug == true)
         systemPrintf("Compensated GNGGA: %s\r\n", nmeaSentence);
-}
-
-// Restore the tilt sensor to factory settings
-void tiltSensorFactoryReset()
-{
-    tiltSensor->factoryReset();
 }
 
 #endif // COMPILE_IM19_IMU

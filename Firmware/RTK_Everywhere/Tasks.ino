@@ -461,15 +461,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         um980UnicoreHandler(parse->buffer, parse->length);
     }
 
-    if (present.imu_im19 == true)
+    if (tiltIsCorrecting() == true)
     {
-        if (settings.enableTiltCompensation == true && online.tilt == true)
+        if (type == RTK_NMEA_PARSER_INDEX)
         {
-            if (type == RTK_NMEA_PARSER_INDEX)
-            {
-                parse->buffer[parse->length++] = '\0'; // Null terminate string
-                tiltApplyCompensation((char *)parse->buffer, parse->length);
-            }
+            parse->buffer[parse->length++] = '\0'; // Null terminate string
+            tiltApplyCompensation((char *)parse->buffer, parse->length);
         }
     }
 
@@ -1158,7 +1155,7 @@ void tickerGnssLedUpdate()
         }
 
         // // Solid during tilt corrected RTK fix
-        // if (online.tilt == true)
+        // if (tiltIsCorrecting() == true)
         // {
         //     ledcWrite(ledGnssChannel, 255);
         // }
@@ -1276,10 +1273,8 @@ void buttonCheckTask(void *e)
             // Platform has no display and tile, ie RTK Torch
 
             // The user button only exits tilt mode
-            if (userBtn->wasReleased() && (online.tilt == true))
+            if (userBtn->wasReleased() && (tiltIsCorrecting() == true))
             {
-                beepDurationMs(1000);
-
                 tiltStop();
             }
         }

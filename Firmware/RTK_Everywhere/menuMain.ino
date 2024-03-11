@@ -402,8 +402,7 @@ void factoryReset(bool alreadyHasSemaphore)
         }
     }
 
-    if (online.imu == true)
-        tiltSensorFactoryReset();
+    tiltSensorFactoryReset();
 
     systemPrintln("Formatting internal file system...");
     LittleFS.format();
