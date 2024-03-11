@@ -100,12 +100,6 @@ jobs:
           https://github.com/me-no-dev/ESPAsyncWebServer.git
           https://github.com/me-no-dev/AsyncTCP.git
           
-      #Incorporate ESP-Now patch into core: https://github.com/espressif/arduino-esp32/pull/7044/files
-      #- name: Patch ESP32 Core
-      #  run: |
-      #    cd Firmware/RTK_Everywhere/Patch/
-      #    cp WiFiGeneric.cpp /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.2/libraries/WiFi/src/WiFiGeneric.cpp
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
