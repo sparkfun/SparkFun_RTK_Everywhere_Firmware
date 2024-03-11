@@ -1400,7 +1400,6 @@ void menuPointPerfect()
                 else
                 {
                     systemPrintln("Error: No WiFi available to get keys");
-                    break;
                 }
             }
 
