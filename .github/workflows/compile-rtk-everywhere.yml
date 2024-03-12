@@ -133,7 +133,7 @@ jobs:
           cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.11/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch
-        run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }} ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
+        run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
           --build-property build.partitions=RTKEverywhere
           --build-property upload.maximum_size=3145728 
           --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_PAID_TOKEN=$POINTPERFECT_LBAND_PAID_TOKEN\" \"-DPOINTPERFECT_LBAND_FREE_TOKEN=$POINTPERFECT_LBAND_FREE_TOKEN\" \"-DPOINTPERFECT_IP_PAID_TOKEN=$POINTPERFECT_IP_PAID_TOKEN\" \"-DPOINTPERFECT_IP_FREE_TOKEN=$POINTPERFECT_IP_FREE_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
