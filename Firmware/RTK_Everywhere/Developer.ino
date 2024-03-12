@@ -211,7 +211,6 @@ bool     um980IsValidTime() {return false;}
 void     um980PrintInfo() {}
 int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
 bool     um980SaveConfiguration() {}
-void     tiltSensorFactoryReset() {}
 void     um980SetBaudRateCOM3(uint32_t baudRate) {}
 bool     um980SetConstellations() {return false;}
 void     um980SetMinCNO(uint8_t cnoValue) {}
@@ -225,6 +224,16 @@ void     um980Boot() {}
 void     um980Reset() {}
 uint8_t  um980GetLeapSeconds() {return (0);}
 bool     um980IsBlocking() {return(false);}
+uint8_t  um980GetActiveMessageCount() {return(0);}
+void     um980MenuMessages(){}
+void     um980BaseRtcmDefault(){}
+void     um980BaseRtcmLowDataRate(){}
+char *   um980GetRtcmDefaultString() {return ("Not compiled");}
+char *   um980GetRtcmLowDataRateString() {return ("Not compiled");}
+float    um980GetSurveyInStartingAccuracy() {return(0.0);}
+void     um980MenuConstellations(){}
+double   um980GetRateS() {return(0.0);}
+void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}
 
 #endif  // COMPILE_UM980
 
