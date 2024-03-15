@@ -73,6 +73,10 @@ void identifyBoard()
     else if (idWithAdc(idValue, 10, 100))
         productVariant = RTK_EVK;
 
+    // Facet mosaic: 1/4.7  -->  2674mV < 2721mV < 2766mV
+    else if (idWithAdc(idValue, 1, 4.7))
+        productVariant = RTK_FACET_MOSAIC;
+
     // ID resistors do not exist for the following:
     //      Torch
     else
@@ -80,6 +84,8 @@ void identifyBoard()
         log_d("Out of band or nonexistent resistor IDs");
 
         // Check if a bq40Z50 battery manager is on the I2C bus
+        if (i2c_0 == nullptr)
+            i2c_0 = new TwoWire(0);
         int pin_SDA = 15;
         int pin_SCL = 4;
 
@@ -276,9 +282,10 @@ void beginBoard()
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
     }
+
     else if (productVariant == RTK_FACET_V2)
     {
-        present.psram_2mb = true;
+        present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.microSd = true;
         present.display_i2c0 = true;
@@ -296,6 +303,47 @@ void beginBoard()
 
         pinMode(pin_powerFastOff, OUTPUT);
         digitalWrite(pin_powerFastOff, HIGH); // Stay on
+    }
+
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+        present.psram_4mb = true;
+        present.gnss_mosaic = true;
+        present.display_i2c0 = true;
+        present.display_64x48 = true;
+        present.i2c0BusSpeed_400 = true;
+        present.peripheralPowerControl = true;
+        present.button_powerLow = true; // Button is pressed when low
+        present.battery_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+
+        pin_batteryStatusLED = 34;
+        pin_muxA = 18;
+        pin_muxB = 19;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_muxDAC = 26;
+        pin_muxADC = 39;
+        pin_peripheralPowerControl = 27;
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        pin_GnssUart_RX = 13;
+        pin_GnssUart_TX = 14;
+        pin_GnssLBandUart_RX = 4;
+        pin_GnssLBandUart_TX = 25;
+
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
+
+        //pinMode(pin_powerFastOff, OUTPUT);
+        //digitalWrite(pin_powerFastOff, HIGH); // Stay on
+        pinMode(pin_powerFastOff, INPUT);
+
+        // Turn on power to the mosaic and OLED
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
     }
 }
 
@@ -947,9 +995,13 @@ void beginI2C()
 {
     TaskHandle_t taskHandle;
 
+    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
+        i2c_0 = new TwoWire(0);
+
     if (present.i2c1 == true)
     {
-        i2c_1 = new TwoWire(1);
+        if (i2c_1 == nullptr)
+            i2c_1 = new TwoWire(1);
     }
 
     if ((present.display_i2c0 == true) && (present.display_i2c1 == true))

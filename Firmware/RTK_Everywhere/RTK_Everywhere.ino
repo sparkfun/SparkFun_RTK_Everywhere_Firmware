@@ -129,6 +129,9 @@ int pin_I2C1_SCL = PIN_UNDEFINED;
 int pin_GnssUart_RX = PIN_UNDEFINED;
 int pin_GnssUart_TX = PIN_UNDEFINED;
 
+int pin_GnssLBandUart_RX = PIN_UNDEFINED;
+int pin_GnssLBandUart_TX = PIN_UNDEFINED;
+
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
 int pin_GNSS_DR_Reset = PIN_UNDEFINED;
@@ -141,7 +144,7 @@ int pin_beeper = PIN_UNDEFINED;
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h> //Built-in
-TwoWire *i2c_0 = &Wire;
+TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
