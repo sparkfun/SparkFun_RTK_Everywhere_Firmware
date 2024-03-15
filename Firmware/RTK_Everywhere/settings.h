@@ -1237,8 +1237,11 @@ struct struct_present
 
     bool i2c0BusSpeed_400 = false;
     bool i2c1BusSpeed_400 = false;
-    bool display_64x48_i2c0 = false;
-    bool display_128x64_i2c1 = false;
+    bool i2c1 = false;
+    bool display_i2c0 = false;
+    bool display_i2c1 = false;
+    bool display_64x48 = false;
+    bool display_128x64 = false;
 
     bool battery_max17048 = false;
     bool battery_bq40z50 = false;

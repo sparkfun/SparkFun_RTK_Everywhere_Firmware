@@ -100,8 +100,11 @@ bool ssidDisplayFirstHalf = false;
 
 void beginDisplay(TwoWire *i2cBus)
 {
-    if (present.display_64x48_i2c0 == false && present.display_128x64_i2c1 == false)
+    if (present.display_64x48 == false && present.display_128x64 == false)
         return;
+
+    if (i2cBus == nullptr)
+        reportFatalError("Illegal display i2cBus");
 
     uint8_t i2cAddress;
     uint16_t x;
@@ -109,7 +112,7 @@ void beginDisplay(TwoWire *i2cBus)
 
     // Setup the appropriate display
 
-    if (present.display_64x48_i2c0 == true)
+    if (present.display_64x48 == true)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
         oled = new QwiicCustomOLED;
@@ -129,7 +132,7 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setVcomDeselect(kOLEDMicroVCOM);
     }
 
-    if (present.display_128x64_i2c1 == true)
+    if (present.display_128x64 == true)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
 

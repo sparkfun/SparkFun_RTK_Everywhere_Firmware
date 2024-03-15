@@ -142,8 +142,8 @@ int pin_beeper = PIN_UNDEFINED;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h> //Built-in
 TwoWire *i2c_0 = &Wire;
-TwoWire *i2c_1;
-TwoWire *i2cDisplay;
+TwoWire *i2c_1 = nullptr;
+TwoWire *i2cDisplay = nullptr;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // LittleFS for storing settings for different user profiles
