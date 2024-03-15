@@ -1,4 +1,4 @@
-name: Build RTK Everywhere (Non-Release)
+name: Non-Release Build
 on: 
   workflow_dispatch:
     branches: 
@@ -145,13 +145,21 @@ jobs:
           --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_PAID_TOKEN=$POINTPERFECT_LBAND_PAID_TOKEN\" \"-DPOINTPERFECT_LBAND_FREE_TOKEN=$POINTPERFECT_LBAND_FREE_TOKEN\" \"-DPOINTPERFECT_IP_PAID_TOKEN=$POINTPERFECT_IP_PAID_TOKEN\" \"-DPOINTPERFECT_IP_FREE_TOKEN=$POINTPERFECT_IP_FREE_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
           --export-binaries
 
-      - name: Rename binary
+      - name: Create artifact name
+        run: |
+          echo "ARTIFACT=${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}" >> $GITHUB_ENV
+
+      - name: Create artifact directory
         run: |
           cd Firmware/RTK_Everywhere/build/esp32.esp32.esp32/
-          mv RTK_Everywhere.ino.bin ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
+          mkdir ${{ env.ARTIFACT }}
+          mv RTK_Everywhere.ino.bin ${{ env.ARTIFACT }}
+          mv RTK_Everywhere.ino.bootloader.bin ${{ env.ARTIFACT }}
+          mv RTK_Everywhere.ino.partitions.bin ${{ env.ARTIFACT }}
 
-      - name: Upload binary to action
+      - name: Upload artifact directory to action - avoid double-zip
         uses: actions/upload-artifact@v3
         with: 
-          name: ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}
-          path: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
+          name: ${{ env.ARTIFACT }}
+          path: Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.ARTIFACT }}
+          retention-days: 7
