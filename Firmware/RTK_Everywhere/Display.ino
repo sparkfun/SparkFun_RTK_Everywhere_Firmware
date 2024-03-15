@@ -2350,14 +2350,14 @@ void paintSystemTest()
                 // Set mux to channel 3 and toggle pin and verify with loop back jumper wire inserted by test technician
 
                 setMuxport(MUX_ADC_DAC); // Set mux to DAC so we can toggle back/forth
-                pinMode(pin_dac26, OUTPUT);
-                pinMode(pin_adc39, INPUT_PULLUP);
+                pinMode(pin_muxDAC, OUTPUT);
+                pinMode(pin_muxADC, INPUT_PULLUP);
 
-                digitalWrite(pin_dac26, HIGH);
-                if (digitalRead(pin_adc39) == HIGH)
+                digitalWrite(pin_muxDAC, HIGH);
+                if (digitalRead(pin_muxADC) == HIGH)
                 {
-                    digitalWrite(pin_dac26, LOW);
-                    if (digitalRead(pin_adc39) == LOW)
+                    digitalWrite(pin_muxDAC, LOW);
+                    if (digitalRead(pin_muxADC) == LOW)
                         oled->print("OK");
                     else
                         oled->print("FAIL");

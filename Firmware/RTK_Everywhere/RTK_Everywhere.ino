@@ -96,8 +96,8 @@ int pin_powerSenseAndControl = PIN_UNDEFINED; // Power button and power down I/O
 int pin_modeButton = PIN_UNDEFINED;           // Mode button on EVK
 int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose button on Torch
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
-int pin_dac26 = PIN_UNDEFINED;
-int pin_adc39 = PIN_UNDEFINED;
+int pin_muxDAC = PIN_UNDEFINED;
+int pin_muxADC = PIN_UNDEFINED;
 int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
 
 int pin_radio_rx = PIN_UNDEFINED;
