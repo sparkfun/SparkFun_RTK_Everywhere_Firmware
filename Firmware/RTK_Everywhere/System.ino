@@ -66,12 +66,11 @@ void updateBattery()
 
             checkBatteryLevels();
 
-            if(present.battery_bq40z50 == true)
+            if (present.battery_bq40z50 == true)
             {
-                //Turn on green battery LED if battery is above 50%
-                if(batteryLevelPercent > 50)
+                // Turn on green battery LED if battery is above 50%
+                if (batteryLevelPercent > 50)
                     batteryStatusLedOn();
-                
             }
         }
     }
@@ -100,7 +99,7 @@ void checkBatteryLevels()
         batteryChargingPercentPerHour =
             (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
     }
-#endif  // COMPILE_BQ40Z50
+#endif // COMPILE_BQ40Z50
 
     // Display the battery data
     if (settings.enablePrintBatteryMessages)
@@ -323,13 +322,15 @@ void printReports()
 
         if (online.gnss == true)
         {
-            float hpa = gnssGetHorizontalAccuracy();
-
-            if (hpa > 0)
+            // If we are in rover mode, display HPA and SIV
+            if (inRoverMode() == true)
             {
-                char temp[20];
-                const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3); // Returns string of the HPA units
-                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", units, temp, gnssGetSatellitesInView());
+                float hpa = gnssGetHorizontalAccuracy();
+
+                char modifiedHpa[20];
+                const char *hpaUnits = getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
+                
+                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa, gnssGetSatellitesInView());
 
                 if (gnssIsRTKFix() == true)
                     systemPrint("RTK Fix");
@@ -344,14 +345,11 @@ void printReports()
 
                 systemPrintln();
             }
-            else
+
+            // If we are in base mode, display SIV only
+            else if (inBaseMode() == true)
             {
-                systemPrint("Rover Accuracy: ");
-                systemPrint(hpa);
-                systemPrint(" ");
-                systemPrint("No lock. SIV: ");
-                systemPrint(gnssGetSatellitesInView());
-                systemPrintln();
+                systemPrintf("Base Mode - SIV: %d\r\n", gnssGetSatellitesInView());
             }
         }
     }
