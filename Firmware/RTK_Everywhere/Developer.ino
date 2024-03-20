@@ -146,7 +146,6 @@ bool wifiConnect(unsigned long timeout) {return false;}
 IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
 int wifiGetRssi() {return -999;}
-bool wifiInConfigMode() {return false;}
 bool wifiIsConnected() {return false;}
 bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}

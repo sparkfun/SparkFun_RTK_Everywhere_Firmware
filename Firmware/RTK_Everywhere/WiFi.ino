@@ -656,15 +656,6 @@ void wifiPrintNetworkInfo()
     systemPrintln();
 }
 
-// Returns true if unit is in config mode
-// Used to disallow services (NTRIP, TCP, etc) from updating
-bool wifiInConfigMode()
-{
-    if (systemState >= STATE_WIFI_CONFIG_NOT_STARTED && systemState <= STATE_WIFI_CONFIG)
-        return true;
-    return false;
-}
-
 IPAddress wifiGetGatewayIpAddress()
 {
     return WiFi.gatewayIP();
