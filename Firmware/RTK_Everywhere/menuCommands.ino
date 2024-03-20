@@ -65,6 +65,13 @@ void menuCommands()
             ESP.restart();
             return;
         }
+        else if (strcmp(tokens[0], "LIST") == 0)
+        {
+            systemPrintln("OK");
+            printAvailableSettings();
+            return;
+        }
+
         else
         {
             systemPrintln("ERROR");
@@ -2246,4 +2253,91 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         }
 
     } // End last strcpy catch
+}
+
+// List available settings and their type in CSV
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
+void printAvailableSettings()
+{
+    systemPrint("printDebugMessages,bool,");
+    systemPrint("enableSD,bool,");
+    systemPrint("enableDisplay,bool,");
+    systemPrint("maxLogTime_minutes,int,");
+    systemPrint("maxLogLength_minutes,int,");
+    systemPrint("observationSeconds,int,");
+    systemPrint("observationPositionAccuracy,float,");
+    systemPrint("fixedBase,bool,");
+    systemPrint("fixedBaseCoordinateType,bool,");
+    systemPrint("fixedEcefX,double,");
+    systemPrint("fixedEcefY,double,");
+    systemPrint("fixedEcefZ,double,");
+    systemPrint("fixedLat,double,");
+    systemPrint("fixedLong,double,");
+    systemPrint("fixedAltitude,double,");
+    systemPrint("dataPortBaud,uint32_t,");
+    systemPrint("radioPortBaud,uint32_t,");
+    systemPrint("surveyInStartingAccuracy,float,");
+    systemPrint("measurementRate,uint16_t,");
+    systemPrint("navigationRate,uint16_t,");
+    systemPrint("debugGnss,bool,");
+    systemPrint("enableHeapReport,bool,");
+    systemPrint("enableTaskReports,bool,");
+    systemPrint("dataPortChannel,muxConnectionType_e,");
+    systemPrint("spiFrequency,uint16_t,");
+    systemPrint("enableLogging,bool,");
+    systemPrint("enableARPLogging,bool,");
+    systemPrint("ARPLoggingInterval_s,uint16_t,");
+    systemPrint("sppRxQueueSize,uint16_t,");
+    systemPrint("sppTxQueueSize,uint16_t,");
+    systemPrint("dynamicModel,uint8_t,");
+    systemPrint("lastState,SystemState,");
+    systemPrint("enableResetDisplay,bool,");
+    systemPrint("resetCount,uint8_t,");
+    systemPrint("enableExternalPulse,bool,");
+    systemPrint("externalPulseTimeBetweenPulse_us,uint64_t,");
+    systemPrint("externalPulseLength_us,uint64_t,");
+    systemPrint("externalPulsePolarity,pulseEdgeType_e,");
+    systemPrint("enableExternalHardwareEventLogging,bool,");
+    systemPrint("enableUART2UBXIn,bool,");
+
+    systemPrint("ubxMessageRates,uint8_t,");
+    systemPrintf("ubxConstellations,ubxConstellation[%d],", sizeof(settings.ubxConstellations) / sizeof(ubxConstellation));
+
+    systemPrintf("profileName,char[%d],", sizeof(settings.profileName) / sizeof(char));
+
+    systemPrint("serialTimeoutGNSS,int16_t,");
+
+    // Point Perfect
+    systemPrintf("pointPerfectDeviceProfileToken,char[%d],", sizeof(settings.pointPerfectDeviceProfileToken) / sizeof(char));
+    systemPrint("pointPerfectCorrectionsSource,PointPerfect_Corrections_Source,");
+    systemPrint("autoKeyRenewal,bool,");
+    systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
+    systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));
+    systemPrintf("pointPerfectLBandTopic,char[%d],", sizeof(settings.pointPerfectLBandTopic) / sizeof(char));
+    systemPrintf("pointPerfectCurrentKey,char[%d],", sizeof(settings.pointPerfectCurrentKey) / sizeof(char));
+    systemPrint("pointPerfectCurrentKeyDuration,uint64_t,");
+    systemPrint("pointPerfectCurrentKeyStart,uint64_t,");
+
+    systemPrintf("pointPerfectNextKey,char[%d],", sizeof(settings.pointPerfectNextKey) / sizeof(char));
+    systemPrint("pointPerfectNextKeyDuration,uint64_t,");
+    systemPrint("pointPerfectNextKeyStart,uint64_t,");
+
+    systemPrint("lastKeyAttempt,uint64_t,");
+    systemPrint("updateGNSSSettings,bool,");
+    systemPrint("LBandFreq,uint32_t,");
+
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+    systemPrint(",,");
+
+
+    systemPrint(",,");
+    systemPrintln();
 }
