@@ -271,12 +271,12 @@ void stateUpdate()
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2);
-            const char *accUnits = getHpaUnits(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2);
+            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
-            if (hpa > 0.0 && hpa < settings.surveyInStartingAccuracy)
+            if (hpa > 0.0 && hpa < gnssGetSurveyInStartingAccuracy())
             {
                 displaySurveyStart(0); // Show 'Survey'
 
