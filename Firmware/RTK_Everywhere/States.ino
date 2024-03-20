@@ -1189,3 +1189,13 @@ bool inBaseMode()
         return (true);
     return (false);
 }
+
+bool inNtpMode()
+{
+    if(systemState >= STATE_NTPSERVER_NOT_STARTED && systemState <= STATE_NTPSERVER_SYNC)
+        return (true);
+    return (false);
+}
+
+
+

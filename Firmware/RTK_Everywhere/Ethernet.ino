@@ -238,7 +238,7 @@ IPAddress ethernetGetIpAddress()
 bool ethernetIsNeeded()
 {
     // Does NTP need Ethernet?
-    if (systemState >= STATE_NTPSERVER_NOT_STARTED && systemState <= STATE_NTPSERVER_SYNC)
+    if (inNtpMode() == true)
         return true;
 
     // Does Base mode NTRIP Server need Ethernet?
