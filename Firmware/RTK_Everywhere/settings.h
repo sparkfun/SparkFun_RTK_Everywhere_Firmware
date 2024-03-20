@@ -937,7 +937,7 @@ typedef struct
     uint32_t dataPortBaud =
         (115200 * 2); // Default to 230400bps. This limits GNSS fixes at 4Hz but allows SD buffer to be reduced to 6k.
     uint32_t radioPortBaud = 57600;       // Default to 57600bps to support connection to SiK1000 type telemetry radios
-    float surveyInStartingAccuracy = 1.0; // Wait for 1m horizontal positional accuracy before starting survey in
+    float zedSurveyInStartingAccuracy = 1.0; // Wait for this horizontal positional accuracy in meters before starting survey in
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
@@ -1196,7 +1196,7 @@ typedef struct
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
-    float um980SurveyInStartingAccuracy = 2.0; // Wait for 2m horizontal positional accuracy before starting survey in
+    float um980SurveyInStartingAccuracy = 2.0; // Wait for this horizontal positional accuracy in meters before starting survey in
     bool enableBeeper = true; // Some platforms have an audible notification
     uint16_t um980MeasurementRateMs = 500; // Elapsed ms between GNSS measurements. 50ms to 65535ms. Default 2Hz.
     bool enableImuCompensationDebug = false;

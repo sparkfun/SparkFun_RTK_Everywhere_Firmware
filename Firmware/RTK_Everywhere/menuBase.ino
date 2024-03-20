@@ -258,7 +258,7 @@ void menuBase()
             if (present.gnss_zedf9p == true)
             {
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
+                              (double)maxSurveyInStartingAccuracy, &settings.zedSurveyInStartingAccuracy);
             }
             else if (present.gnss_um980 == true)
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,

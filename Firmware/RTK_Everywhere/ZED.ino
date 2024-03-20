@@ -1664,7 +1664,7 @@ char *zedGetRtcmLowDataRateString()
 
 float zedGetSurveyInStartingAccuracy()
 {
-    return (settings.surveyInStartingAccuracy);
+    return (settings.zedSurveyInStartingAccuracy);
 }
 
 // Controls the constellations that are used to generate a fix and logged

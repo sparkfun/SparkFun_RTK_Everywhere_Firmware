@@ -192,7 +192,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%0.4f\r\n", "fixedAltitude", settings.fixedAltitude);
     settingsFile->printf("%s=%d\r\n", "dataPortBaud", settings.dataPortBaud);
     settingsFile->printf("%s=%d\r\n", "radioPortBaud", settings.radioPortBaud);
-    settingsFile->printf("%s=%0.1f\r\n", "surveyInStartingAccuracy", settings.surveyInStartingAccuracy);
+    settingsFile->printf("%s=%0.1f\r\n", "zedSurveyInStartingAccuracy", settings.zedSurveyInStartingAccuracy);
     settingsFile->printf("%s=%d\r\n", "measurementRate", settings.measurementRate);
     settingsFile->printf("%s=%d\r\n", "navigationRate", settings.navigationRate);
     settingsFile->printf("%s=%d\r\n", "debugGnss", settings.debugGnss);
@@ -895,8 +895,8 @@ bool parseLine(char *str, Settings *settings)
             settings->updateGNSSSettings = true;
         }
     }
-    else if (strcmp(settingName, "surveyInStartingAccuracy") == 0)
-        settings->surveyInStartingAccuracy = d;
+    else if (strcmp(settingName, "zedSurveyInStartingAccuracy") == 0)
+        settings->zedSurveyInStartingAccuracy = d;
     else if (strcmp(settingName, "measurementRate") == 0)
     {
         if (settings->measurementRate != d)

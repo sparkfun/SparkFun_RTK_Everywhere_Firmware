@@ -137,8 +137,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.dataPortBaud = settingValue;
     else if (strcmp(settingName, "radioPortBaud") == 0)
         settings.radioPortBaud = settingValue;
-    else if (strcmp(settingName, "surveyInStartingAccuracy") == 0)
-        settings.surveyInStartingAccuracy = settingValue;
+    else if (strcmp(settingName, "zedSurveyInStartingAccuracy") == 0)
+        settings.zedSurveyInStartingAccuracy = settingValue;
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
         settings.measurementRate = (int)(1000.0 / settingValue);
@@ -1018,7 +1018,7 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "dataPortBaud", settings.dataPortBaud);
     stringRecord(newSettings, "radioPortBaud", settings.radioPortBaud);
-    stringRecord(newSettings, "surveyInStartingAccuracy", settings.surveyInStartingAccuracy, 1);
+    stringRecord(newSettings, "zedSurveyInStartingAccuracy", settings.zedSurveyInStartingAccuracy, 1);
     stringRecord(newSettings, "measurementRateHz", 1000.0 / settings.measurementRate, 2); // 2 = decimals to print
     stringRecord(newSettings, "debugGnss", settings.debugGnss);
     stringRecord(newSettings, "enableHeapReport", settings.enableHeapReport);
@@ -1647,8 +1647,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.dataPortBaud);
     else if (strcmp(settingName, "radioPortBaud") == 0)
         writeToString(settingValueStr, settings.radioPortBaud);
-    else if (strcmp(settingName, "surveyInStartingAccuracy") == 0)
-        writeToString(settingValueStr, settings.surveyInStartingAccuracy);
+    else if (strcmp(settingName, "zedSurveyInStartingAccuracy") == 0)
+        writeToString(settingValueStr, settings.zedSurveyInStartingAccuracy);
     else if (strcmp(settingName, "measurementRate") == 0)
         writeToString(settingValueStr, settings.measurementRate);
     else if (strcmp(settingName, "navigationRate") == 0)
