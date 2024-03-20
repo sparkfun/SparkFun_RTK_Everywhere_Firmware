@@ -1,4 +1,4 @@
-name: Build RTK Everywhere
+name: Non-Release Build
 on: 
   workflow_dispatch:
     branches: 
@@ -100,6 +100,12 @@ jobs:
           https://github.com/me-no-dev/ESPAsyncWebServer.git
           https://github.com/me-no-dev/AsyncTCP.git
           
+      #Incorporate ESP-Now patch into core: https://github.com/espressif/arduino-esp32/pull/7044/files
+      #- name: Patch ESP32 Core
+      #  run: |
+      #    cd Firmware/RTK_Everywhere/Patch/
+      #    cp WiFiGeneric.cpp /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.2/libraries/WiFi/src/WiFiGeneric.cpp
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -139,48 +145,19 @@ jobs:
           --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_LBAND_PAID_TOKEN=$POINTPERFECT_LBAND_PAID_TOKEN\" \"-DPOINTPERFECT_LBAND_FREE_TOKEN=$POINTPERFECT_LBAND_FREE_TOKEN\" \"-DPOINTPERFECT_IP_PAID_TOKEN=$POINTPERFECT_IP_PAID_TOKEN\" \"-DPOINTPERFECT_IP_FREE_TOKEN=$POINTPERFECT_IP_FREE_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
           --export-binaries
 
-      - name: Rename binary
+      - name: Create artifact name
+        run: |
+          echo "ARTIFACT=${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}" >> $GITHUB_ENV
+
+      - name: Create artifact directory
         run: |
           cd Firmware/RTK_Everywhere/build/esp32.esp32.esp32/
-          mv RTK_Everywhere.ino.bin ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
+          mkdir ${{ env.ARTIFACT }}
+          mv RTK_Everywhere.ino.bin ${{ env.ARTIFACT }}
 
-      - name: Upload binary to action
+      - name: Upload artifact directory to action - avoid double-zip
         uses: actions/upload-artifact@v3
         with: 
-          name: ${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}
-          path: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
-
-      
-      - name: Push binary to Binaries Repo
-        # uses: dmnemec/copy_file_to_another_repo_action #Workaround for Issue: https://github.com/orgs/community/discussions/55820#discussioncomment-5946136
-        uses: Jason2866/copy_file_to_another_repo_action@http408_fix
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.PUSH_BINARIES_REPO }}
-        with:
-          source_file: ./Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin
-          destination_repo: 'sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries'
-          destination_folder: ''
-          user_email: 'nathan@sparkfun.com'
-          user_name: 'nseidle'
-          commit_message: 'Github Action - Updating Binary ${{ steps.dateNoScores.outputs.dateNoScores }}'
-
-      - name: Update JSON File
-        uses: "DamianReeves/write-file-action@master"
-        with:
-          path: ${{ env.JSON_FILE_NAME }}
-          write-mode: overwrite
-          contents: |
-            {"Configurations": [{"Version":"${{ env.FIRMWARE_VERSION_MAJOR }}.${{ env.FIRMWARE_VERSION_MINOR }}${{ env.JSON_ENDING }}", "URL":"https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}.bin"}]}
-
-      - name: Push JSON to Binaries Repo
-        # uses: dmnemec/copy_file_to_another_repo_action #Workaround for Issue: https://github.com/orgs/community/discussions/55820#discussioncomment-5946136
-        uses: Jason2866/copy_file_to_another_repo_action@http408_fix
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.PUSH_BINARIES_REPO }}
-        with:
-          source_file: ${{ env.JSON_FILE_NAME }}
-          destination_repo: 'sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries'
-          destination_folder: ''
-          user_email: 'nathan@sparkfun.com'
-          user_name: 'nseidle'
-          commit_message: 'Github Action - Updating JSON ${{ steps.dateNoScores.outputs.dateNoScores }}'
+          name: ${{ env.ARTIFACT }}
+          path: Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.ARTIFACT }}
+          retention-days: 7

@@ -27,7 +27,7 @@ void menuSystem()
         else
             systemPrintln("Offline");
 
-        if (present.display_128x64_i2c1 || present.display_64x48_i2c0)
+        if (present.display_128x64 || present.display_64x48)
         {
             systemPrint("Display: ");
             if (online.display == true)

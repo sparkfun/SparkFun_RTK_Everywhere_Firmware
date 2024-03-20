@@ -1,3 +1,5 @@
+# Individual files - e.g. compiled binaries or local batch files - can be added to .git/info/exclude
+
 partitions.csv
 
 tokens.h

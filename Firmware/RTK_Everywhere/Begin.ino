@@ -73,6 +73,10 @@ void identifyBoard()
     else if (idWithAdc(idValue, 10, 100))
         productVariant = RTK_EVK;
 
+    // Facet mosaic: 1/4.7  -->  2674mV < 2721mV < 2766mV
+    else if (idWithAdc(idValue, 1, 4.7))
+        productVariant = RTK_FACET_MOSAIC;
+
     // ID resistors do not exist for the following:
     //      Torch
     else
@@ -80,6 +84,8 @@ void identifyBoard()
         log_d("Out of band or nonexistent resistor IDs");
 
         // Check if a bq40Z50 battery manager is on the I2C bus
+        if (i2c_0 == nullptr)
+            i2c_0 = new TwoWire(0);
         int pin_SDA = 15;
         int pin_SCL = 4;
 
@@ -208,7 +214,9 @@ void beginBoard()
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
         present.i2c0BusSpeed_400 = true; // Run bus at higher speed
-        present.display_128x64_i2c1 = true;
+        present.i2c1 = true;
+        present.display_i2c1 = true;
+        present.display_128x64 = true;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
 
         // Pin Allocations:
@@ -274,12 +282,14 @@ void beginBoard()
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
     }
+
     else if (productVariant == RTK_FACET_V2)
     {
-        present.psram_2mb = true;
+        present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.microSd = true;
-        present.display_64x48_i2c0 = true;
+        present.display_i2c0 = true;
+        present.display_64x48 = true;
         present.button_powerLow = true; // Button is pressed when low
         present.battery_max17048 = true;
         present.portDataMux = true;
@@ -293,6 +303,47 @@ void beginBoard()
 
         pinMode(pin_powerFastOff, OUTPUT);
         digitalWrite(pin_powerFastOff, HIGH); // Stay on
+    }
+
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+        present.psram_4mb = true;
+        present.gnss_mosaic = true;
+        present.display_i2c0 = true;
+        present.display_64x48 = true;
+        present.i2c0BusSpeed_400 = true;
+        present.peripheralPowerControl = true;
+        present.button_powerLow = true; // Button is pressed when low
+        present.battery_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+
+        pin_batteryStatusLED = 34;
+        pin_muxA = 18;
+        pin_muxB = 19;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_muxDAC = 26;
+        pin_muxADC = 39;
+        pin_peripheralPowerControl = 27;
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        pin_GnssUart_RX = 13;
+        pin_GnssUart_TX = 14;
+        pin_GnssLBandUart_RX = 4;
+        pin_GnssLBandUart_TX = 25;
+
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
+
+        //pinMode(pin_powerFastOff, OUTPUT);
+        //digitalWrite(pin_powerFastOff, HIGH); // Stay on
+        pinMode(pin_powerFastOff, INPUT);
+
+        // Turn on power to the mosaic and OLED
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
     }
 }
 
@@ -944,10 +995,30 @@ void beginI2C()
 {
     TaskHandle_t taskHandle;
 
-    if (present.display_128x64_i2c1 == true)
+    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
+        i2c_0 = new TwoWire(0);
+
+    if (present.i2c1 == true)
     {
+        if (i2c_1 == nullptr)
+            i2c_1 = new TwoWire(1);
+    }
+
+    if ((present.display_i2c0 == true) && (present.display_i2c1 == true))
+        reportFatalError("Displays on both i2c_0 and i2c_1");
+
+    if (present.display_i2c0 == true)
+    {
+        // Display is on standard Wire bus
+        i2cDisplay = i2c_0;
+    }
+
+    if (present.display_i2c1 == true)
+    {
+        if (present.i2c1 == false)
+            reportFatalError("No i2c1 for display_i2c1");
+
         // Display is on I2C bus 1
-        i2c_1 = new TwoWire(1);
         i2cDisplay = i2c_1;
 
         // Display splash screen for at least 1 second
@@ -994,7 +1065,7 @@ void pinI2CTask(void *pvParameters)
         online.i2c = true;
 
     // Initialize I2C bus 1
-    if (i2c_1)
+    if (present.i2c1)
     {
         int bus1speed = 100;
         if (present.i2c1BusSpeed_400 == true)

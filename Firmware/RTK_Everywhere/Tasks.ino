@@ -1268,7 +1268,7 @@ void buttonCheckTask(void *e)
 
         userBtn->read();
 
-        if (present.imu_im19 && present.display_64x48_i2c0 == false && present.display_128x64_i2c1 == false)
+        if (present.imu_im19 && present.display_64x48 == false && present.display_128x64 == false)
         {
             // Platform has no display and tile, ie RTK Torch
 

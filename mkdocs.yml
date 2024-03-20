@@ -1,10 +1,10 @@
 
-site_name: SparkFun RTK Product Manual
-site_description: A guide to the SparkFun RTK hardware, firmware, and features.
-site_url: https://docs.sparkfun.com/SparkFun_RTK_Firmware/
+site_name: SparkFun RTK Everywhere Product Manual
+site_description: A guide to the SparkFun RTK Everywhere hardware, firmware, and features.
+site_url: https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/
 
-repo_name: sparkfun/SparkFun_RTK_Firmware
-repo_url: https://github.com/sparkfun/SparkFun_RTK_Firmware
+repo_name: sparkfun/SparkFun_RTK_Everywhere_Firmware
+repo_url: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware
 edit_uri: edit/main/docs/
 
 theme:
@@ -72,8 +72,8 @@ plugins:
   - with-pdf:
       copyright: SparkFun Electronics - 2023
       cover_subtitle: Simple and Cost Effective High-Precision Navigation
-      output_path: pdf/SparkFun_RTK_User_Manual.pdf
-      author: This PDF is automatically generated. See https://docs.sparkfun.com/SparkFun_RTK_Firmware/ for the latest version.
+      output_path: pdf/SparkFun_RTK_Everywhere_User_Manual.pdf
+      author: This PDF is automatically generated. See https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/ for the latest version.
       toc_title: Table Of Contents
       #cover_title: TITLE TEXT
       #heading_shift: false

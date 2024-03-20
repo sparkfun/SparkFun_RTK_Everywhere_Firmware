@@ -100,8 +100,11 @@ bool ssidDisplayFirstHalf = false;
 
 void beginDisplay(TwoWire *i2cBus)
 {
-    if (present.display_64x48_i2c0 == false && present.display_128x64_i2c1 == false)
+    if (present.display_64x48 == false && present.display_128x64 == false)
         return;
+
+    if (i2cBus == nullptr)
+        reportFatalError("Illegal display i2cBus");
 
     uint8_t i2cAddress;
     uint16_t x;
@@ -109,7 +112,7 @@ void beginDisplay(TwoWire *i2cBus)
 
     // Setup the appropriate display
 
-    if (present.display_64x48_i2c0 == true)
+    if (present.display_64x48 == true)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
         oled = new QwiicCustomOLED;
@@ -129,7 +132,7 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setVcomDeselect(kOLEDMicroVCOM);
     }
 
-    if (present.display_128x64_i2c1 == true)
+    if (present.display_128x64 == true)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
 
@@ -2347,14 +2350,14 @@ void paintSystemTest()
                 // Set mux to channel 3 and toggle pin and verify with loop back jumper wire inserted by test technician
 
                 setMuxport(MUX_ADC_DAC); // Set mux to DAC so we can toggle back/forth
-                pinMode(pin_dac26, OUTPUT);
-                pinMode(pin_adc39, INPUT_PULLUP);
+                pinMode(pin_muxDAC, OUTPUT);
+                pinMode(pin_muxADC, INPUT_PULLUP);
 
-                digitalWrite(pin_dac26, HIGH);
-                if (digitalRead(pin_adc39) == HIGH)
+                digitalWrite(pin_muxDAC, HIGH);
+                if (digitalRead(pin_muxADC) == HIGH)
                 {
-                    digitalWrite(pin_dac26, LOW);
-                    if (digitalRead(pin_adc39) == LOW)
+                    digitalWrite(pin_muxDAC, LOW);
+                    if (digitalRead(pin_muxADC) == LOW)
                         oled->print("OK");
                     else
                         oled->print("FAIL");
