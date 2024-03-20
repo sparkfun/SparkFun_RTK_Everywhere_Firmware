@@ -1,14 +1,10 @@
 # Base Menu
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Not Supported](img/Icons/RedDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
-In addition to providing accurate local location fixes, the SparkFun RTK devices can also serve as a correction source, also called a *Base*. The Base doesn't move and 'knows' where it is so it can calculate the discrepancies between the signals it is receiving and what it should be receiving. Said differently, the 'Base' is told where it is, and that it's not moving. If the GPS signals say otherwise, the Base knows there was a disturbance in the ~~Force~~ ionosphere. These differences are the correction values passed to the Rover so that the Rover can have millimeter-level accuracy.
+In addition to providing accurate local location fixes, SparkFun RTK Everywhere can also serve as a correction source, also called a *Base*. The Base doesn't move and 'knows' where it is so it can calculate the discrepancies between the signals it is receiving and what it should be receiving. Said differently, the 'Base' is told where it is, and that it's not moving. If the GPS signals say otherwise, the Base knows there was a disturbance in the ~~Force~~ ionosphere. These differences are the correction values passed to the Rover so that the Rover can have millimeter-level accuracy.
 
 There are two types of bases: *Surveyed* and *Fixed*. A surveyed base is often a temporary base set up in the field. Called a 'Survey-In', this is less accurate but requires only 60 seconds to complete. The 'Fixed' base is much more accurate but the precise location at which the antenna is located must be known. A fixed base is often a structure with an antenna bolted to the side. Raw satellite signals are gathered for a few hours and then processed using Precision Point Position. We have a variety of tutorials that go into depth on these subjects but all you need to know is that the RTK Facet supports both Survey-In and Fixed Base techniques.
-
-**Note:** The RTK Express Plus does not support Base mode. The Express Press contains an internal IMU and additional algorithms to support high-precision location fixes using dead reckoning.
-
-**Note:** The RTK Facet L-Band is designed to use corrections provided via u-blox's PointPerfect system therefore, a Base/Rover setup is not needed. However, if the service is not available the RTK Facet L-Band can still be used in a traditional Base/Rover setup. Here we’ll describe how to assemble a Rover and Base.
 
 Please see the following tutorials for more information:
 
@@ -27,42 +23,27 @@ Please see the following tutorials for more information:
   </tr>
 </table>
 
-
 The Base Menu allows the user to select between Survey-In or Fixed Base setups.
 
-![Base type and location configuration](img/WiFi Config/SparkFun%20RTK%20Base%20Survey%20In.png)
-
-*Controlling the type of Base from WiFi AP Config*
-
-![CMD window showing Base menu options](img/Terminal/SparkFun_RTK_Express_-_Base_Menu.jpg)
+![Serial menu showing Base options](<SparkFun RTK Everywhere - Base Menu Survey-In.png>)
 
 *Base Menu Options*
 
 ## Mode
 
-In **Survey-In** mode, the minimum observation time and Mean 3D Standard Deviation can be set. The defaults are 60 seconds and 5 meters as directed by u-blox. The device will wait for the position accuracy to be better than 1 meter before a Survey-In is started. Don't be fooled; setting the observation time to 4 hours or an initial positional accuracy of 0.3m is not going to significantly improve the accuracy of the survey - use [PPP](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station#gather-raw-gnss-data) instead.
+In **Survey-In** mode, the minimum observation time can be set. The default is 60 seconds. The device will wait for the position accuracy to be better than 1 meter before a Survey-In is started. Don't be fooled; setting the observation time to 4 hours is not going to significantly improve the accuracy of the survey - use [PPP](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station#gather-raw-gnss-data) instead.
 
-![Fixed Base Coordinate input](img/WiFi Config/SparkFun%20RTK%20Base%20Configure%20-%20Commonly%20Used%20Points%20Menu.png)
+![Fixed Base Coordinate input](<SparkFun RTK Everywhere - Base Menu Fixed ECEF.png>)
 
 *Fixed base coordinate input*
 
-In **Fixed** mode, the coordinates of the antenna need to be set. These can be entered in ECEF or Geographic coordinates. Whenever a user enters Base mode by pressing the SETUP button the GNSS receiver will immediately go into Base mode with these coordinates and immediately begin outputting RTCM correction data.
+In **Fixed** mode, the coordinates of the antenna need to be set. These can be entered in ECEF or Geographic coordinates. 
 
-**Note:** The 'Paste Current XYZ' button will copy the current base coordinates and paste them into the X/Y/Z boxes. This shortcut allows the user to skip writing down coordinates just to re-enter them. However, taking a snap-shot of the unit's position in time is a very inaccurate way to assign the unit's base position.
+Once the device has been configured, a user enters Base mode by changing the mode in the [System Menu](menu_system.md).
 
-![RTK Facet in Survey-In Mode](img/Displays/SparkFun_RTK_Express_-_Display_-_Survey-In.jpg)
+If the device is configured for *Survey-In* base mode, the survey will begin. The mean standard deviation will be printed as well as the time elapsed. For most Survey-In setups, the survey will complete in around 60 seconds.
 
-*RTK Facet in Survey-In Mode*
-
-Once the device has been configured, pressing the Setup button will change the device to Base mode. If the device is configured for *Survey-In* base mode, a flag icon will be shown and the survey will begin. The mean standard deviation will be shown as well as the time elapsed. For most Survey-In setups, the survey will complete when both 60 seconds have elapsed *and* a mean of 5m or less is obtained.
-
-![RTK Facet in Fixed Transmit Mode](img/Displays/SparkFun_RTK_Express_-_Display_-_FixedBase-Xmitting.jpg)
-
-*RTK Facet in Fixed Transmit Mode*
-
-Once the *survey-in* is complete the device enters RTCM Transmit mode. The number of RTCM transmissions is displayed. By default, this is one per second. During this phase, the ZED-F9P is outputting the RTCM corrections out of the **RADIO** port. Attaching an external serial radio to this port will allow the Base to send corrections to any Rover.
-
-The *Fixed Base* mode is similar but uses a structure icon (shown above) to indicate a fixed base.
+In *Fixed Base* mode the GNSS receiver will go into Base mode with the defined coordinates and immediately begin outputting RTCM correction data.
 
 ## NTRIP Server
 
@@ -70,11 +51,7 @@ The *Fixed Base* mode is similar but uses a structure icon (shown above) to indi
 
 Enabling NTRIP will present a handful of new options seen below:
 
-![NTRIP Server Settings](img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg)
-
-*Configuring NTRIP Server settings via WiFi Config AP*
-
-![SparkFun RTK Facet NTRIP Settings](img/Terminal/SparkFun_RTK_Express_-_Base_Menu_-_Fixed_NTRIP.jpg)
+![NTRIP Server Settings](<SparkFun RTK Everywhere - Base Menu Fixed Geodetic NTRIP Server.png>)
 
 *Settings for the NTRIP Server*
 
@@ -84,25 +61,9 @@ Once the NTRIP server is enabled you will need a handful of credentials:
 
 * Local WiFi SSID and password
 * A casting service such as [RTK2Go](http://www.rtk2go.com) or [Emlid](http://caster.emlid.com) (the port is almost always 2101)
-* A mount point and password
+* A mount point (required) and password (required)
 
-![RTK Facet in Transmit Mode with NTRIP](img/Displays/SparkFun_RTK_Express_-_Display_-_FixedBase-Casting.jpg)
-
-*RTK Facet in Transmit Mode with NTRIP Enabled*
-
-![NTRIP Server Connected](img/Terminal/RTK_Surveyor_-_Device_Configuration_-_NTRIP_Server_Broadcasting_v11.jpg)
-
-*NTRIP Server Connected!*
-
-If the NTRIP server is enabled the device will first attempt to connect over WiFi. The WiFi icon will blink until a WiFi connection is obtained. If the WiFi icon continually blinks be sure to check your SSID and PW for the local WiFi.
-
-Once WiFi connects the device will attempt to connect to the NTRIP mount point. Once successful the display will show 'Casting' along with a solid WiFi icon. The number of successful RTCM transmissions will increase every second.
-
-![Transmitting to mount point](img/Terminal/RTK_Surveyor_-_Device_Configuration_-_NTRIP_Server_Broadcasting_Bytes_v11.jpg)
-
-Every second a few hundred bytes, up to ~2k, will be transmitted to your mount point.
-
-Note: During NTRIP transmission WiFi is turned on and Bluetooth is turned off. You should not need to know the location information of the base so Bluetooth should not be needed. If necessary, USB can be connected to view detailed location information using the [System Report](configure_with_serial.md#system-report) command.
+If the NTRIP server is enabled the device will first attempt to connect to  WiFi. Once WiFi connects the device will attempt to connect to the NTRIP mount point. Once connected, every second a few hundred bytes, up to ~2k, will be transmitted to your mount point.
 
 ## Commonly Use Coordinates
 
