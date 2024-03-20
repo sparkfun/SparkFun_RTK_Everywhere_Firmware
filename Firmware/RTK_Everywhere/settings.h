@@ -937,7 +937,7 @@ typedef struct
     uint32_t dataPortBaud =
         (115200 * 2); // Default to 230400bps. This limits GNSS fixes at 4Hz but allows SD buffer to be reduced to 6k.
     uint32_t radioPortBaud = 57600;       // Default to 57600bps to support connection to SiK1000 type telemetry radios
-    float surveyInStartingAccuracy = 1.0; // Wait for 1m horizontal positional accuracy before starting survey in
+    float surveyInStartingAccuracy = 2.0; // Wait for this horizontal positional accuracy in meters before starting survey in
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
