@@ -380,8 +380,7 @@ void ntripClientPrintStatus()
     byte seconds;
 
     // Display NTRIP Client status and uptime
-    if (settings.enableNtripClient &&
-        ((systemState >= STATE_ROVER_NOT_STARTED) && (systemState <= STATE_ROVER_RTK_FIX)))
+    if (settings.enableNtripClient && inRoverMode() == true)
     {
         systemPrint("NTRIP Client ");
         ntripClientPrintStateSummary();

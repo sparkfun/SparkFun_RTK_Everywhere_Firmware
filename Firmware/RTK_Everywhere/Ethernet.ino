@@ -246,8 +246,7 @@ bool ethernetIsNeeded()
         return true;
 
     // Does Rover mode NTRIP Client need Ethernet?
-    if (settings.enableNtripClient == true &&
-        (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX))
+    if (settings.enableNtripClient == true && inRoverMode() == true)
         return true;
 
     // Does PVT client or server need Ethernet?

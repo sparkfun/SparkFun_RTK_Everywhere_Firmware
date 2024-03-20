@@ -180,7 +180,7 @@ void menuMain()
     }
 
     // Reboot as base only if currently operating as a base station
-    if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING))
+    if (restartBase && inBaseMode() == true)
     {
         restartBase = false;
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect

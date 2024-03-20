@@ -222,7 +222,7 @@ void bluetoothStart()
     {
         bluetoothState = BT_OFF;
         char stateName[11] = {0};
-        if (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX)
+        if (inRoverMode() == true)
             strncpy(stateName, "Rover-", sizeof(stateName) - 1);
         else if (inBaseMode() == true)
             strncpy(stateName, "Base-", sizeof(stateName) - 1);

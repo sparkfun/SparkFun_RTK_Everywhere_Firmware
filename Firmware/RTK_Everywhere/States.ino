@@ -1176,6 +1176,13 @@ const char *stateToRtkMode(SystemState state)
     return "Unknown Mode";
 }
 
+bool inRoverMode()
+{
+    if(systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX)
+        return (true);
+    return (false);
+}
+
 bool inBaseMode()
 {
     if(systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
