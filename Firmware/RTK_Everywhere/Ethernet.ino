@@ -242,8 +242,7 @@ bool ethernetIsNeeded()
         return true;
 
     // Does Base mode NTRIP Server need Ethernet?
-    if (settings.enableNtripServer == true &&
-        (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING))
+    if (settings.enableNtripServer == true && inBaseMode() == true)
         return true;
 
     // Does Rover mode NTRIP Client need Ethernet?

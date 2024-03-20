@@ -567,8 +567,7 @@ bool wifiIsNeeded()
     if (systemState <= STATE_ROVER_RTK_FIX && settings.enableNtripClient == true)
         return true;
 
-    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING &&
-        settings.enableNtripServer == true)
+    if (inBaseMode() == true && settings.enableNtripServer == true)
         return true;
 
     // If the user has enabled NTRIP Client for an Assisted Survey-In, and Survey-In is running, keep WiFi on.

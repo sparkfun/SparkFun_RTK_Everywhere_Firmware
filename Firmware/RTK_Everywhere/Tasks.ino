@@ -844,7 +844,7 @@ void handleGnssDataTask(void *e)
                 if (bytesToSend > 0)
                 {
                     // If we are in base mode, assume part of the outgoing data is RTCM
-                    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+                    if (inBaseMode() == true)
                         bluetoothOutgoingRTCM = true;
 
                     // Account for the sent or dropped data

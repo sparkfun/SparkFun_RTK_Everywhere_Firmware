@@ -1175,3 +1175,10 @@ const char *stateToRtkMode(SystemState state)
     // Unknown mode
     return "Unknown Mode";
 }
+
+bool inBaseMode()
+{
+    if(systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+        return (true);
+    return (false);
+}

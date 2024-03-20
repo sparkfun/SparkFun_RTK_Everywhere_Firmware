@@ -337,8 +337,7 @@ void ntripServerPrintStatus()
     byte minutes;
     byte seconds;
 
-    if (settings.enableNtripServer == true &&
-        (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING))
+    if (settings.enableNtripServer == true && inBaseMode())
     {
         systemPrint("NTRIP Server ");
         ntripServerPrintStateSummary();
