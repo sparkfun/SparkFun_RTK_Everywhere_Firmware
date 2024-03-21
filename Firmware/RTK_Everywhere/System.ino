@@ -45,13 +45,15 @@ void beepDurationMs(uint16_t lengthMs)
 
 void beepOn()
 {
-    if (pin_beeper != PIN_UNDEFINED && (settings.enableBeeper == true))
+    // Disallow beeper when doing local compilation (developer mode), or if setting is turned off
+    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true) && (ENABLE_DEVELOPER == false))
         digitalWrite(pin_beeper, HIGH);
 }
 
 void beepOff()
 {
-    if (pin_beeper != PIN_UNDEFINED && (settings.enableBeeper == true))
+    // Disallow beeper when doing local compilation (developer mode), or if setting is turned off
+    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true) && (ENABLE_DEVELOPER == false))
         digitalWrite(pin_beeper, LOW);
 }
 
@@ -328,9 +330,11 @@ void printReports()
                 float hpa = gnssGetHorizontalAccuracy();
 
                 char modifiedHpa[20];
-                const char *hpaUnits = getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
-                
-                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa, gnssGetSatellitesInView());
+                const char *hpaUnits =
+                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
+
+                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
+                             gnssGetSatellitesInView());
 
                 if (gnssIsRTKFix() == true)
                     systemPrint("RTK Fix");

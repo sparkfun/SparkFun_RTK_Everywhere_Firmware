@@ -1270,12 +1270,19 @@ void buttonCheckTask(void *e)
 
         if (present.imu_im19 && present.display_64x48 == false && present.display_128x64 == false)
         {
-            // Platform has no display and tile, ie RTK Torch
+            // Platform has no display and tilt corrections, ie RTK Torch
 
             // The user button only exits tilt mode
             if (userBtn->wasReleased() && (tiltIsCorrecting() == true))
             {
                 tiltStop();
+            }
+
+            // The RTK Torch uses a shutdown IC configured to turn off ~3s
+            // Beep shortly before the shutdown IC takes over
+            else if (userBtn->pressedFor(2500))
+            {
+                beepDurationMs(500); // Announce powering down
             }
         }
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic

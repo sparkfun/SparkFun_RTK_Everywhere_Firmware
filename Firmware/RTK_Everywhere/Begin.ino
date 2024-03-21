@@ -182,6 +182,10 @@ void beginBoard()
         batteryStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
+        
+        // Announce power on start
+        beepOn();
+        delay(250); 
         beepOff();
 
         pinMode(pin_powerButton, INPUT);
@@ -336,8 +340,8 @@ void beginBoard()
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
 
-        //pinMode(pin_powerFastOff, OUTPUT);
-        //digitalWrite(pin_powerFastOff, HIGH); // Stay on
+        // pinMode(pin_powerFastOff, OUTPUT);
+        // digitalWrite(pin_powerFastOff, HIGH); // Stay on
         pinMode(pin_powerFastOff, INPUT);
 
         // Turn on power to the mosaic and OLED
