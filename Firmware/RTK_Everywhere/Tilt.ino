@@ -147,7 +147,6 @@ void tiltUpdate()
 
                 tiltState = TILT_CORRECTING;
             }
-
         }
         break;
 
@@ -250,7 +249,7 @@ void printTiltDebug()
         systemPrint("3D Fix");
     else if (solutionState == 0)
         systemPrint("No Fix");
-    else 
+    else
         systemPrintf("solutionState %d", tiltSensor->getGnssSolutionState());
 
     systemPrintln();
@@ -325,7 +324,6 @@ void beginTilt()
         tiltStop(); // Free memory
         return;
     }
-    systemPrintln("Tilt sensor online.");
 
     bool result = true;
 
@@ -383,7 +381,7 @@ void beginTilt()
     {
         if (tiltSensor->saveConfiguration() == true)
         {
-            log_d("IM19 configuration saved");
+            systemPrintln("Tilt sensor configuration complete");
             tiltState = TILT_STARTED;
             return; // Success
         }
@@ -418,7 +416,7 @@ bool tiltIsCorrecting()
 // Restore the tilt sensor to factory settings
 void tiltSensorFactoryReset()
 {
-    if(tiltState >= TILT_STARTED)
+    if (tiltState >= TILT_STARTED)
         tiltSensor->factoryReset();
 }
 
