@@ -328,19 +328,17 @@ void beginTilt()
     bool result = true;
 
     // The filter has a set of default parameters, which can be loaded when setting an error.
-    result &= tiltSensor->sendCommand("LOAD_DEFAULT"); // v2 hardware
+    result &= tiltSensor->sendCommand("LOAD_DEFAULT");
 
     // Use serial port 2 as the serial port for communication with GNSS
-    // result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART3"); //v1 hardware
-    result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART2"); // v2 hardware
+    result &= tiltSensor->sendCommand("GNSS_PORT=PHYSICAL_UART2");
 
     // Use serial port 1 as the main output with combined navigation data output
     result &= tiltSensor->sendCommand("NAVI_OUTPUT=UART1,ON");
 
     // Set the distance of the IMU from the center line - x:6.78mm y:10.73mm z:19.25mm
     if (present.imu_im19 == true)
-        // result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.01925"); //v1 hardware
-        result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // v2 hardware from stock firmware
+        result &= tiltSensor->sendCommand("LEVER_ARM=-0.00678,-0.01073,-0.0314"); // From stock firmware
 
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
@@ -354,28 +352,20 @@ void beginTilt()
     result &= tiltSensor->sendCommand("GNSS_CARD=UNICORE");
 
     // Configure as tilt measurement mode
-    // result &= tiltSensor->sendCommand("WORK_MODE=152");
-    result &= tiltSensor->sendCommand("WORK_MODE=408"); // From v2 stock firmware
+    result &= tiltSensor->sendCommand("WORK_MODE=408"); // From stock firmware
 
     // AT+HIGH_RATE=[ENABLE | DISABLE] - try to slow down NAVI
     result &= tiltSensor->sendCommand("HIGH_RATE=DISABLE");
 
     // Turn off MEMS output.
-    // result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,ON"); //v2 stock firmware enables MEMS
+    // result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,ON"); //Stock firmware enables MEMS
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
     // Unknown new command for v2
-    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // v2 stock firmware
+    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From tock firmware
 
     // Trigger IMU on PPS from UM980
-    result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING"); // v1 hardware
-    // result &= tiltSensor->sendCommand("SET_PPS_EDGE=FALLING"); //v2 hardware
-
-    // Complete installation angle estimation in tilt measurement applications
-    // result &= tiltSensor->sendCommand("AUTO_FIX=ENABLE"); //v1 hardware
-
-    // AT+MAG_AUTO_SAVE=ENABLE
-    // result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE");
+    result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING");
 
     if (result == true)
     {
