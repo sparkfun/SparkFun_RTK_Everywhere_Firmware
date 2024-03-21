@@ -844,7 +844,7 @@ void beginFuelGauge()
             return;
         }
 
-        if (bq40z50Battery->begin() == false)
+        if (bq40z50Battery->begin(*i2c_0) == false)
         {
             systemPrintln("BQ40Z50 not detected");
             delete bq40z50Battery;
