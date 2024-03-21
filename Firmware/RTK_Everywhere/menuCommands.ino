@@ -1521,7 +1521,12 @@ void createSettingsString(char *newSettings)
 
     strcat(newSettings, "\0");
     systemPrintf("newSettings len: %d\r\n", strlen(newSettings));
-    systemPrintf("newSettings: %s\r\n", newSettings);
+
+    // systemPrintf("newSettings: %s\r\n", newSettings); // newSettings is >10k. Sending to systemPrint causes stack overflow
+    for (int x = 0; x < strlen(newSettings); x++) // Print manually
+        systemWrite(newSettings[x]);
+
+    systemPrintln();
 }
 
 // Add record with int
@@ -2174,8 +2179,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
         }
-
-
 
         // Scan for UM980 NMEA message rates
         if (knownSetting == false)
