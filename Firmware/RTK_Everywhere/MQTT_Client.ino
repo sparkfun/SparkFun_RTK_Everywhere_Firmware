@@ -437,10 +437,17 @@ void mqttClientStop(bool shutdown)
     }
 
     // Release the buffers
-    if (mqttClientPrivateKeyBuffer)
+    if (mqttClientPrivateKeyBuffer != nullptr)
+    {
         free(mqttClientPrivateKeyBuffer);
-    if (mqttClientCertificateBuffer)
+        mqttClientPrivateKeyBuffer = nullptr;
+    }
+
+    if (mqttClientCertificateBuffer != nullptr)
+    {
         free(mqttClientCertificateBuffer);
+        mqttClientCertificateBuffer = nullptr;
+    }
 
     reportHeapNow(settings.debugMqttClientState);
 
@@ -559,12 +566,14 @@ void mqttClientUpdate()
             if (mqttClientCertificateBuffer)
             {
                 free(mqttClientCertificateBuffer);
+                mqttClientCertificateBuffer = nullptr;
                 systemPrintln("Failed to allocate key buffer!");
             }
 
             if (mqttClientPrivateKeyBuffer)
             {
                 free(mqttClientPrivateKeyBuffer);
+                mqttClientPrivateKeyBuffer = nullptr;
                 systemPrintln("Failed to allocate certificate buffer!");
             }
 
