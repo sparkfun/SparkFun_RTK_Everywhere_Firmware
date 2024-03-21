@@ -183,9 +183,12 @@ void beginBoard()
 
         pinMode(pin_beeper, OUTPUT);
         
-        // Announce power on start
-        beepOn();
-        delay(250); 
+        // Beep at power on if we are not locally compiled or a release candidate
+        if (ENABLE_DEVELOPER == false)
+        {
+            beepOn();
+            delay(250); 
+        }
         beepOff();
 
         pinMode(pin_powerButton, INPUT);

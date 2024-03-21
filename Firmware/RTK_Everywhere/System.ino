@@ -45,15 +45,15 @@ void beepDurationMs(uint16_t lengthMs)
 
 void beepOn()
 {
-    // Disallow beeper when doing local compilation (developer mode), or if setting is turned off
-    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true) && (ENABLE_DEVELOPER == false))
+    // Disallow beeper if setting is turned off
+    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
         digitalWrite(pin_beeper, HIGH);
 }
 
 void beepOff()
 {
-    // Disallow beeper when doing local compilation (developer mode), or if setting is turned off
-    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true) && (ENABLE_DEVELOPER == false))
+    // Disallow beeper if setting is turned off
+    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
         digitalWrite(pin_beeper, LOW);
 }
 

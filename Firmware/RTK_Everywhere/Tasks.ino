@@ -1282,7 +1282,9 @@ void buttonCheckTask(void *e)
             // Beep shortly before the shutdown IC takes over
             else if (userBtn->pressedFor(2500))
             {
-                beepDurationMs(500); // Announce powering down
+                // Beep if we are not locally compiled or a release candidate
+                if (ENABLE_DEVELOPER == false)
+                    beepDurationMs(500); // Announce powering down
             }
         }
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic
