@@ -216,7 +216,7 @@ void beginBoard()
         present.i2c0BusSpeed_400 = true; // Run bus at higher speed
         present.i2c1 = true;
         present.display_i2c1 = true;
-        present.display_128x64 = true;
+        present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
 
         // Pin Allocations:
@@ -289,7 +289,7 @@ void beginBoard()
         present.gnss_zedf9p = true;
         present.microSd = true;
         present.display_i2c0 = true;
-        present.display_64x48 = true;
+        present.display_type = DISPLAY_64x48;
         present.button_powerLow = true; // Button is pressed when low
         present.battery_max17048 = true;
         present.portDataMux = true;
@@ -310,7 +310,7 @@ void beginBoard()
         present.psram_4mb = true;
         present.gnss_mosaic = true;
         present.display_i2c0 = true;
-        present.display_64x48 = true;
+        present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low

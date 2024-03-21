@@ -78,7 +78,7 @@
 // Locals
 //----------------------------------------
 
-static QwiicCustomOLED *oled;
+static QwiicCustomOLED *oled = nullptr;
 static uint32_t blinking_icons;
 static uint32_t icons;
 static uint32_t iconsRadio;
@@ -94,13 +94,17 @@ bool ssidDisplayFirstHalf = false;
 // Icons
 #include "icons.h"
 
+std::vector<iconProperty> iconPropertyList; // List of icons to be displayed
+
+void paintLogging(std::vector<iconProperty> *iconList, bool pulse = true, bool NTP = false); // Header
+
 //----------------------------------------
 // Routines
 //----------------------------------------
 
 void beginDisplay(TwoWire *i2cBus)
 {
-    if (present.display_64x48 == false && present.display_128x64 == false)
+    if (present.display_type == DISPLAY_MAX_NONE)
         return;
 
     if (i2cBus == nullptr)
@@ -112,10 +116,11 @@ void beginDisplay(TwoWire *i2cBus)
 
     // Setup the appropriate display
 
-    if (present.display_64x48 == true)
+    if (present.display_type == DISPLAY_64x48)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
-        oled = new QwiicCustomOLED;
+        if (oled == nullptr)
+            oled = new QwiicCustomOLED;
         if (!oled)
         {
             systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
@@ -132,12 +137,11 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setVcomDeselect(kOLEDMicroVCOM);
     }
 
-    if (present.display_128x64 == true)
+    if (present.display_type == DISPLAY_128x64)
     {
         i2cAddress = kOLEDMicroDefaultAddress;
-
-        oled = new QwiicCustomOLED;
-
+        if (oled == nullptr)
+            oled = new QwiicCustomOLED;
         if (!oled)
         {
             systemPrintln("ERROR: Failed to allocate oled data structure!\r\n");
@@ -182,44 +186,53 @@ void beginDisplay(TwoWire *i2cBus)
 }
 
 // Avoid code repetition
-void displayBatteryVsEthernet()
+void displayBatteryVsEthernet(std::vector<iconProperty> *iconList)
 {
     if (online.battery)        // Product has a battery
-        icons |= ICON_BATTERY; // Top right
+        paintBatteryLevel(iconList);
     else                       // if (present.ethernet_ws5500 == true)
     {
         if (online.ethernetStatus == ETH_NOT_STARTED)
-            blinking_icons &= ~ICON_ETHERNET; // If Ethernet has not stated because not needed, don't display the icon
+            ; // If Ethernet has not stated because not needed, don't display the icon
         else if (online.ethernetStatus == ETH_CONNECTED)
-            blinking_icons |= ICON_ETHERNET; // Don't blink if link is up
+            iconList->push_back(EthernetIconProperties.iconDisplay[present.display_type]);
         else
-            blinking_icons ^= ICON_ETHERNET;
-        icons |= (blinking_icons & ICON_ETHERNET); // Top Right
+            iconList->push_back(EthernetIconProperties.iconDisplay[present.display_type]); // TODO: make this blink
     }
 }
-void displaySivVsOpenShort()
+
+void displaySivVsOpenShort(std::vector<iconProperty> *iconList)
 {
     if (present.antennaShortOpen == false)
-        icons |= paintSIV();
+    {
+        displayCoords textCoords = paintSIVIcon(iconList, nullptr, false);
+        paintSIVText(textCoords);
+    }
     else
     {
+        displayCoords textCoords;
+        
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
-            blinking_icons ^= ICON_ANTENNA_SHORT;
-            icons |= (blinking_icons & ICON_ANTENNA_SHORT);
+            textCoords = paintSIVIcon(iconList, &ShortIconProperties, true);
         }
         else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
         {
-            blinking_icons ^= ICON_ANTENNA_OPEN;
-            icons |= (blinking_icons & ICON_ANTENNA_OPEN);
+            textCoords = paintSIVIcon(iconList, &OpenIconProperties, true);
         }
         else
         {
-            blinking_icons &= ~ICON_ANTENNA_SHORT;
-            blinking_icons &= ~ICON_ANTENNA_OPEN;
-            icons |= paintSIV();
+            textCoords = paintSIVIcon(iconList, nullptr, false);
         }
+
+        paintSIVText(textCoords);
     }
+}
+
+void displayHorizontalAccuracy(std::vector<iconProperty> *iconList, const iconProperties *icon)
+{
+    // TODO: add the horizontal accuracy text depending on the icon position
+    iconList->push_back(icon->iconDisplay[present.display_type]);
 }
 
 // Given the system state, display the appropriate information
@@ -238,8 +251,11 @@ void displayUpdate()
 
             oled->erase();
 
+            iconPropertyList.clear();
+
             icons = 0;
             iconsRadio = 0;
+
             switch (systemState)
             {
 
@@ -298,27 +314,26 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                icons = ICON_CROSS_HAIR            // Center left
-                        | ICON_HORIZONTAL_ACCURACY // Center right
-                        | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort();           // Bottom left
-                displayBatteryVsEthernet();        // Top right
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties);
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
                 iconsRadio = setRadioIcons();      // Top left
                 break;
             case (STATE_ROVER_NO_FIX):
                 icons = ICON_CROSS_HAIR            // Center left
                         | ICON_HORIZONTAL_ACCURACY // Center right
                         | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort();           // Bottom left
-                displayBatteryVsEthernet();        // Top right
+                displaySivVsOpenShort(&iconPropertyList);           // Bottom left
+                displayBatteryVsEthernet(&iconPropertyList);        // Top right
                 iconsRadio = setRadioIcons();      // Top left
                 break;
             case (STATE_ROVER_FIX):
                 icons = ICON_CROSS_HAIR            // Center left
                         | ICON_HORIZONTAL_ACCURACY // Center right
                         | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort();           // Bottom left
-                displayBatteryVsEthernet();        // Top right
+                displaySivVsOpenShort(&iconPropertyList);           // Bottom left
+                displayBatteryVsEthernet(&iconPropertyList);        // Top right
                 iconsRadio = setRadioIcons();      // Top left
                 break;
             case (STATE_ROVER_RTK_FLOAT):
@@ -326,16 +341,16 @@ void displayUpdate()
                 icons = (blinking_icons & ICON_CROSS_HAIR_DUAL) // Center left
                         | ICON_HORIZONTAL_ACCURACY              // Center right
                         | ICON_LOGGING;                         // Bottom right
-                displaySivVsOpenShort();                        // Bottom left
-                displayBatteryVsEthernet();                     // Top right
+                displaySivVsOpenShort(&iconPropertyList);                        // Bottom left
+                displayBatteryVsEthernet(&iconPropertyList);                     // Top right
                 iconsRadio = setRadioIcons();                   // Top left
                 break;
             case (STATE_ROVER_RTK_FIX):
                 icons = ICON_CROSS_HAIR_DUAL       // Center left
                         | ICON_HORIZONTAL_ACCURACY // Center right
                         | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort();           // Bottom left
-                displayBatteryVsEthernet();        // Top right
+                displaySivVsOpenShort(&iconPropertyList);           // Bottom left
+                displayBatteryVsEthernet(&iconPropertyList);        // Top right
                 iconsRadio = setRadioIcons();      // Top left
                 break;
 
@@ -351,30 +366,30 @@ void displayUpdate()
                 icons = (blinking_icons & ICON_CROSS_HAIR) // Center left
                         | ICON_HORIZONTAL_ACCURACY         // Center right
                         | ICON_LOGGING;                    // Bottom right
-                displaySivVsOpenShort();                   // Bottom left
-                displayBatteryVsEthernet();                // Top right
+                displaySivVsOpenShort(&iconPropertyList);                   // Bottom left
+                displayBatteryVsEthernet(&iconPropertyList);                // Top right
                 iconsRadio = setRadioIcons();              // Top left
                 break;
             case (STATE_BASE_TEMP_SURVEY_STARTED):
                 icons = ICON_LOGGING;         // Bottom right
-                displayBatteryVsEthernet();   // Top right
+                displayBatteryVsEthernet(&iconPropertyList);   // Top right
                 iconsRadio = setRadioIcons(); // Top left
                 paintBaseTempSurveyStarted();
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 icons = ICON_LOGGING;         // Bottom right
-                displayBatteryVsEthernet();   // Top right
+                displayBatteryVsEthernet(&iconPropertyList);   // Top right
                 iconsRadio = setRadioIcons(); // Top left
                 paintRTCM();
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 icons = 0;                    // Top right
-                displayBatteryVsEthernet();   // Top right
+                displayBatteryVsEthernet(&iconPropertyList);   // Top right
                 iconsRadio = setRadioIcons(); // Top left
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 icons = ICON_LOGGING;         // Bottom right
-                displayBatteryVsEthernet();   // Top right
+                displayBatteryVsEthernet(&iconPropertyList);   // Top right
                 iconsRadio = setRadioIcons(); // Top left
                 paintRTCM();
                 break;
@@ -384,7 +399,7 @@ void displayUpdate()
                 blinking_icons ^= ICON_CLOCK;
                 icons = (blinking_icons & ICON_CLOCK) // Center left
                         | ICON_CLOCK_ACCURACY;        // Center right
-                displaySivVsOpenShort();              // Bottom left
+                displaySivVsOpenShort(&iconPropertyList);              // Bottom left
                 if (online.ethernetStatus == ETH_CONNECTED)
                     blinking_icons |= ICON_ETHERNET; // Don't blink if link is up
                 else
@@ -397,7 +412,7 @@ void displayUpdate()
                 icons = ICON_CLOCK            // Center left
                         | ICON_CLOCK_ACCURACY // Center right
                         | ICON_LOGGING_NTP;   // Bottom right
-                displaySivVsOpenShort();      // Bottom left
+                displaySivVsOpenShort(&iconPropertyList);      // Bottom left
                 if (online.ethernetStatus == ETH_CONNECTED)
                     blinking_icons |= ICON_ETHERNET; // Don't blink if link is up
                 else
@@ -587,12 +602,6 @@ void displayUpdate()
             if (iconsRadio & ICON_IP_ADDRESS)
                 paintIPAddress();
 
-            // Top right corner
-            if (icons & ICON_BATTERY)
-                paintBatteryLevel();
-            else if (icons & ICON_ETHERNET)
-                displayBitmap(45, 0, Ethernet_Icon_Width, Ethernet_Icon_Height, Ethernet_Icon);
-
             // Center left
             if (icons & ICON_CROSS_HAIR)
                 displayBitmap(0, 18, CrossHair_Width, CrossHair_Height, CrossHair);
@@ -618,10 +627,8 @@ void displayUpdate()
                 displayBitmap(2, 35, Antenna_Open_Width, Antenna_Open_Height, Antenna_Open);
 
             // Bottom right corner
-            if (icons & ICON_LOGGING)
-                paintLogging();
-            else if (icons & ICON_LOGGING_NTP)
-                paintLoggingNTP(true); // NTP, no pulse
+            if (icons & ICON_LOGGING_NTP)
+                paintLogging(&iconPropertyList, false, true); // no pulse, NTP
 
             oled->display(); // Push internal buffer to display
         }
@@ -714,19 +721,15 @@ void displayError(const char *errorMessage)
 */
 
 // Print the classic battery icon with levels
-void paintBatteryLevel()
+void paintBatteryLevel(std::vector<iconProperty> *iconList)
 {
     if (online.display == true)
     {
         // Current battery charge level
-        if (batteryLevelPercent < 25)
-            displayBitmap(45, 0, Battery_0_Width, Battery_0_Height, Battery_0);
-        else if (batteryLevelPercent < 50)
-            displayBitmap(45, 0, Battery_1_Width, Battery_1_Height, Battery_1);
-        else if (batteryLevelPercent < 75)
-            displayBitmap(45, 0, Battery_2_Width, Battery_2_Height, Battery_2);
-        else // batt level > 75
-            displayBitmap(45, 0, Battery_3_Width, Battery_3_Height, Battery_3);
+        int batteryFraction = batteryLevelPercent / 25;
+        if (batteryFraction >= BATTERY_CHARGE_STATES)
+            batteryFraction = BATTERY_CHARGE_STATES - 1;
+        iconList->push_back(BatteryProperties.iconDisplay[batteryFraction][present.display_type]);
     }
 }
 
@@ -1498,13 +1501,47 @@ void paintDynamicModel()
 
 // Select satellite icon and draw sats in view
 // Blink icon if no fix
-uint32_t paintSIV()
+displayCoords paintSIVIcon(std::vector<iconProperty> *iconList, const iconProperties *icon, bool blink)
 {
-    uint32_t blinking;
-    uint32_t icons;
+    if (icon == nullptr) // Not short or open, so decide which icon to use
+    {
+        if (online.gnss)
+        {
+            // Determine which icon to display
+            if (lbandCorrectionsReceived)
+                icon = &LBandIconProperties;
+            else
+                icon = &SIVIconProperties;
 
+            // Determine if there is a fix
+            if (gnssIsFixed() == false)
+            {
+                blink = false;
+            }
+            else
+            {
+                // Blink satellite dish icon if we don't have a fix
+                blink = true;
+            }
+        } // End gnss online
+        else
+        {
+            icon = &SIVIconProperties;
+        }
+    }
+
+    displayCoords textCoords;
+    textCoords.x = icon->iconDisplay[present.display_type].xPos + icon->iconDisplay[present.display_type].width + 2;
+    textCoords.y = icon->iconDisplay[present.display_type].yPos + 1;
+
+    iconList->push_back(icon->iconDisplay[present.display_type]); // TODO: make this blink
+
+    return textCoords;
+}
+void paintSIVText(displayCoords textCoords)
+{
     oled->setFont(QW_FONT_8X16); // Set font to type 1: 8x16
-    oled->setCursor(16, 36);     // x, y
+    oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
     if (online.gnss)
@@ -1515,35 +1552,11 @@ uint32_t paintSIV()
             oled->print(gnssGetSatellitesInView());
 
         paintResets();
-
-        // Determine which icon to display
-        icons = 0;
-        if (lbandCorrectionsReceived)
-            blinking = ICON_SIV_ANTENNA_LBAND;
-        else
-            blinking = ICON_SIV_ANTENNA;
-
-        // Determine if there is a fix
-        if (gnssIsFixed() == false)
-        {
-            // Fix, turn on icon
-            icons = blinking;
-        }
-        else
-        {
-            // Blink satellite dish icon if we don't have a fix
-            blinking_icons ^= blinking;
-            if (blinking_icons & blinking)
-                icons = blinking;
-        }
     } // End gnss online
     else
     {
         oled->print("X");
-
-        icons = ICON_SIV_ANTENNA;
     }
-    return icons;
 }
 
 /*
@@ -1567,115 +1580,39 @@ uint32_t paintSIV()
 
 // Draw log icon
 // Turn off icon if log file fails to get bigger
-void paintLogging()
+void paintLogging(std::vector<iconProperty> *iconList, bool pulse, bool NTP)
 {
     // Animate icon to show system running
+    static uint8_t loggingIconDisplayed = LOGGING_ICON_STATES - 1;
     loggingIconDisplayed++;    // Goto next icon
-    loggingIconDisplayed %= 4; // Wrap
+    loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
+
 #ifdef COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
 #else  // COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing))
 #endif // COMPILE_ETHERNET
     {
-        if (loggingType == LOGGING_STANDARD)
+        if (NTP)
         {
-            if (loggingIconDisplayed == 0)
-                displayBitmap(64 - Logging_0_Width, 48 - Logging_0_Height, Logging_0_Width, Logging_0_Height,
-                              Logging_0);
-            else if (loggingIconDisplayed == 1)
-                displayBitmap(64 - Logging_1_Width, 48 - Logging_1_Height, Logging_1_Width, Logging_1_Height,
-                              Logging_1);
-            else if (loggingIconDisplayed == 2)
-                displayBitmap(64 - Logging_2_Width, 48 - Logging_2_Height, Logging_2_Width, Logging_2_Height,
-                              Logging_2);
-            else if (loggingIconDisplayed == 3)
-                displayBitmap(64 - Logging_3_Width, 48 - Logging_3_Height, Logging_3_Width, Logging_3_Height,
-                              Logging_3);
+            iconList->push_back(LoggingNTPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
+        }
+        else if (loggingType == LOGGING_STANDARD)
+        {
+            iconList->push_back(LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
         }
         else if (loggingType == LOGGING_PPP)
         {
-            if (loggingIconDisplayed == 0)
-                displayBitmap(64 - Logging_0_Width, 48 - Logging_0_Height, Logging_0_Width, Logging_0_Height,
-                              Logging_0);
-            else if (loggingIconDisplayed == 1)
-                displayBitmap(64 - Logging_1_Width, 48 - Logging_1_Height, Logging_1_Width, Logging_1_Height,
-                              Logging_PPP_1);
-            else if (loggingIconDisplayed == 2)
-                displayBitmap(64 - Logging_2_Width, 48 - Logging_2_Height, Logging_2_Width, Logging_2_Height,
-                              Logging_PPP_2);
-            else if (loggingIconDisplayed == 3)
-                displayBitmap(64 - Logging_3_Width, 48 - Logging_3_Height, Logging_3_Width, Logging_3_Height,
-                              Logging_PPP_3);
+            iconList->push_back(LoggingPPPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
         }
         else if (loggingType == LOGGING_CUSTOM)
         {
-            if (loggingIconDisplayed == 0)
-                displayBitmap(64 - Logging_0_Width, 48 - Logging_0_Height, Logging_0_Width, Logging_0_Height,
-                              Logging_0);
-            else if (loggingIconDisplayed == 1)
-                displayBitmap(64 - Logging_1_Width, 48 - Logging_1_Height, Logging_1_Width, Logging_1_Height,
-                              Logging_Custom_1);
-            else if (loggingIconDisplayed == 2)
-                displayBitmap(64 - Logging_2_Width, 48 - Logging_2_Height, Logging_2_Width, Logging_2_Height,
-                              Logging_Custom_2);
-            else if (loggingIconDisplayed == 3)
-                displayBitmap(64 - Logging_3_Width, 48 - Logging_3_Height, Logging_3_Width, Logging_3_Height,
-                              Logging_Custom_3);
+            iconList->push_back(LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
         }
     }
-    else
+    else if (pulse)
     {
-        const int pulseX = 64 - 4;
-        const int pulseY = oled->getHeight();
-        int height;
-
-        // Paint pulse to show system activity
-        height = loggingIconDisplayed << 2;
-        if (height)
-        {
-            oled->line(pulseX, pulseY, pulseX, pulseY - height);
-            oled->line(pulseX - 1, pulseY, pulseX - 1, pulseY - height);
-        }
-    }
-}
-
-void paintLoggingNTP(bool noPulse)
-{
-    // Animate icon to show system running
-    loggingIconDisplayed++;    // Goto next icon
-    loggingIconDisplayed %= 4; // Wrap
-#ifdef COMPILE_ETHERNET        // Some redundancy here. paintLoggingNTP should only be called if Ethernet is present
-    if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
-#else  // COMPILE_ETHERNET
-    if ((online.logging == true) && (logIncreasing))
-#endif // COMPILE_ETHERNET
-    {
-        if (loggingIconDisplayed == 0)
-            displayBitmap(64 - Logging_0_Width, 48 - Logging_0_Height, Logging_0_Width, Logging_0_Height, Logging_0);
-        else if (loggingIconDisplayed == 1)
-            displayBitmap(64 - Logging_1_Width, 48 - Logging_1_Height, Logging_1_Width, Logging_1_Height,
-                          Logging_NTP_1);
-        else if (loggingIconDisplayed == 2)
-            displayBitmap(64 - Logging_2_Width, 48 - Logging_2_Height, Logging_2_Width, Logging_2_Height,
-                          Logging_NTP_2);
-        else if (loggingIconDisplayed == 3)
-            displayBitmap(64 - Logging_3_Width, 48 - Logging_3_Height, Logging_3_Width, Logging_3_Height,
-                          Logging_NTP_3);
-    }
-    else if (!noPulse)
-    {
-        const int pulseX = 64 - 4;
-        const int pulseY = oled->getHeight();
-        int height;
-
-        // Paint pulse to show system activity
-        height = loggingIconDisplayed << 2;
-        if (height)
-        {
-            oled->line(pulseX, pulseY, pulseX, pulseY - height);
-            oled->line(pulseX - 1, pulseY, pulseX - 1, pulseY - height);
-        }
+        iconList->push_back(PulseIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
     }
 }
 
@@ -2186,8 +2123,8 @@ void displaySDFail(uint16_t displayTime)
 void drawFrame()
 {
     // Init and draw box at edge to see screen alignment
-    int xMax = 63;
-    int yMax = 47;
+    int xMax = oled->getWidth() - 1;
+    int yMax = oled->getHeight() - 1;
     oled->line(0, 0, xMax, 0);       // Top
     oled->line(0, 0, 0, yMax);       // Left
     oled->line(0, yMax, xMax, yMax); // Bottom
@@ -2685,13 +2622,31 @@ void paintResets()
 {
     if (settings.enableResetDisplay == true)
     {
-        oled->setFont(QW_FONT_5X7);            // Small font
-        oled->setCursor(16 + (8 * 3) + 7, 38); // x, y
+        if (present.display_type == DISPLAY_64x48)
+        {
+            oled->setFont(QW_FONT_5X7);            // Small font
+            oled->setCursor(16 + (8 * 3) + 7, 38); // x, y
 
-        if (settings.enablePrintBufferOverrun == false)
-            oled->print(settings.resetCount);
-        else
-            oled->print(settings.resetCount + bufferOverruns);
+            if (settings.enablePrintBufferOverrun == false)
+                oled->print(settings.resetCount);
+            else
+                oled->print(settings.resetCount + bufferOverruns);
+        }
+        else // if (present.display_type == DISPLAY_128x64)
+        {
+            oled->setFont(QW_FONT_5X7);            // Small font
+            oled->setCursor(0, oled->getHeight() - 10); // x, y
+
+            const int bufSize = 20;
+            char buf[bufSize] = {0};
+
+            if (settings.enablePrintBufferOverrun == false)
+                snprintf(buf, bufSize, "R: %d", settings.resetCount);
+            else
+                snprintf(buf, bufSize, "R: %d  O: %d", settings.resetCount, bufferOverruns);
+
+            oled->print(buf);
+        }
     }
 }
 

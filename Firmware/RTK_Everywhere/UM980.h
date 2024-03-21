@@ -1,3 +1,6 @@
+#ifndef _RTK_EVERYWHERE_UM980_H
+#define _RTK_EVERYWHERE_UM980_H
+
 /*
   Unicore defaults:
   RTCM1006 10
@@ -86,3 +89,5 @@ enum um980_Models{
     UM980_DYN_MODEL_UAV,
     UM980_DYN_MODEL_AUTOMOTIVE,
 };
+
+#endif

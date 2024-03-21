@@ -1,3 +1,6 @@
+#ifndef _RTK_EVERYWHERE_ICONS_H
+#define _RTK_EVERYWHERE_ICONS_H
+
 // Create a bitmap then use http://en.radzio.dxp.pl/bitmap_converter/ to generate output
 // Make sure the bitmap is n*8 pixels tall (pad white pixels to lower area as needed)
 // Otherwise the bitmap bitmap_converter will compress some of the bytes together
@@ -890,6 +893,98 @@ const uint8_t Logging_NTP_1[] = {0xFF, 0x01, 0xF1, 0x01, 0x01, 0x01, 0x03, 0x06,
                                  0x0F, 0x08, 0x0B, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0F};
 
 /*
+    Pulse_0 [9, 12]
+
+             123456789
+            .---------.
+        0x01|    *    |
+        0x02|    *    |
+        0x04|    *    |
+        0x08|    *    |
+        0x10|    *    |
+        0x20|    *    |
+        0x40|    *    |
+        0x80|    *    |
+        0x01|    *    |
+        0x02|    *    |
+        0x04|    *    |
+        0x08|    *    |
+            '---------'
+*/
+
+const uint8_t Pulse_0[] = {0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00};
+
+/*
+    Pulse_1 [9, 12]
+
+             123456789
+            .---------.
+        0x01|  **     |
+        0x02|    *    |
+        0x04|     **  |
+        0x08|       **|
+        0x10|     **  |
+        0x20|    *    |
+        0x40|    *    |
+        0x80|    *    |
+        0x01|    *    |
+        0x02|    *    |
+        0x04|    *    |
+        0x08|    *    |
+            '---------'
+*/
+
+const uint8_t Pulse_1[] = {0x00, 0x00, 0x01, 0x01, 0xE2, 0x14, 0x14, 0x08, 0x08,
+                           0x00, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00};
+
+/*
+    Pulse_2 [9, 12]
+
+             123456789
+            .---------.
+        0x01|    *    |
+        0x02|    *    |
+        0x04|    *    |
+        0x08|  **     |
+        0x10|**       |
+        0x20|  **     |
+        0x40|    *    |
+        0x80|     **  |
+        0x01|       **|
+        0x02|     **  |
+        0x04|    *    |
+        0x08|    *    |
+            '---------'
+*/
+
+const uint8_t Pulse_2[] = {0x10, 0x10, 0x28, 0x28, 0x47, 0x80, 0x80, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x0A, 0x02, 0x02, 0x01, 0x01};
+
+/*
+    Pulse_3 [9, 12]
+
+             123456789
+            .---------.
+        0x01|    *    |
+        0x02|    *    |
+        0x04|    *    |
+        0x08|    *    |
+        0x10|    *    |
+        0x20|    *    |
+        0x40|    *    |
+        0x80|  **     |
+        0x01|**       |
+        0x02|  **     |
+        0x04|    *    |
+        0x08|     **  |
+            '---------'
+*/
+
+const uint8_t Pulse_3[] = {0x00, 0x00, 0x80, 0x80, 0x7F, 0x00, 0x00, 0x00, 0x00,
+                           0x01, 0x01, 0x02, 0x02, 0x04, 0x08, 0x08, 0x00, 0x00};
+
+/*
     DynamicModel_1_Portable [15, 12]
 
                       1
@@ -1448,3 +1543,86 @@ const uint8_t Micros_Icon[] = {0x3F, 0x04, 0x08, 0x88, 0x84, 0x8F, 0x80, 0x00,
 
 const uint8_t Nanos_Icon[] = {0x1F, 0x01, 0x01, 0x81, 0x9E, 0x80, 0x80, 0x00,
                               0x00, 0x00, 0x09, 0x0A, 0x0A, 0x0A, 0x04, 0x00};
+
+// Display.ino uses a vector (list) of iconProperty to define which icons are displayed where
+
+typedef struct {
+    uint8_t x;
+    uint8_t y;
+} displayCoords;
+
+typedef struct {
+    const void *bitmap;
+    uint8_t width;
+    uint8_t height;
+    uint8_t xPos;
+    uint8_t yPos;
+} iconProperty;
+
+typedef struct {
+    iconProperty iconDisplay[DISPLAY_MAX_NONE];
+} iconProperties;
+
+const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }, { &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }}};
+const iconProperties EthernetIconProperties = {{{ &Ethernet_Icon, Ethernet_Icon_Width, Ethernet_Icon_Height, 45, 0 }, { &Ethernet_Icon, Ethernet_Icon_Width, Ethernet_Icon_Height, 45, 0 }}};
+const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, 2, 35 }, { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, 2, 35 }}};
+const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, 2, 35 }, { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, 2, 35 }}};
+const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, 2, 35 }, { &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, 2, 35 }}};
+const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, 2, 35 }, { &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, 2, 35 }}};
+
+#define LOGGING_ICON_STATES 4
+typedef struct {
+    iconProperty iconDisplay[LOGGING_ICON_STATES][DISPLAY_MAX_NONE];
+} iconLoggingProperties;
+
+const iconLoggingProperties LoggingIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
+                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
+                                               {{ &Logging_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
+                                                { &Logging_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
+                                               {{ &Logging_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
+                                                { &Logging_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
+                                               {{ &Logging_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
+                                                { &Logging_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
+const iconLoggingProperties LoggingPPPIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
+                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
+                                               {{ &Logging_PPP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
+                                                { &Logging_PPP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
+                                               {{ &Logging_PPP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
+                                                { &Logging_PPP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
+                                               {{ &Logging_PPP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
+                                                { &Logging_PPP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
+const iconLoggingProperties LoggingCustomIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
+                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
+                                               {{ &Logging_Custom_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
+                                                { &Logging_Custom_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
+                                               {{ &Logging_Custom_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
+                                                { &Logging_Custom_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
+                                               {{ &Logging_Custom_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
+                                                { &Logging_Custom_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
+const iconLoggingProperties LoggingNTPIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
+                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
+                                               {{ &Logging_NTP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
+                                                { &Logging_NTP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
+                                               {{ &Logging_NTP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
+                                                { &Logging_NTP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
+                                               {{ &Logging_NTP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
+                                                { &Logging_NTP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
+const iconLoggingProperties PulseIconProperties = {{{{ &Pulse_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
+                                                { &Pulse_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
+                                               {{ &Pulse_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
+                                                { &Pulse_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
+                                               {{ &Pulse_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
+                                                { &Pulse_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
+                                               {{ &Pulse_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
+                                                { &Pulse_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
+
+#define BATTERY_CHARGE_STATES 4
+typedef struct {
+    iconProperty iconDisplay[BATTERY_CHARGE_STATES][DISPLAY_MAX_NONE];
+} iconBatteryProperties;
+
+const iconBatteryProperties BatteryProperties = {{{{ &Battery_0, Battery_0_Width, Battery_0_Height, 45, 0 }, { &Battery_0, Battery_0_Width, Battery_0_Height, 45, 0 }},
+                                                  {{ &Battery_1, Battery_1_Width, Battery_1_Height, 45, 0 }, { &Battery_1, Battery_1_Width, Battery_1_Height, 45, 0 }},
+                                                  {{ &Battery_2, Battery_2_Width, Battery_2_Height, 45, 0 }, { &Battery_2, Battery_2_Width, Battery_2_Height, 45, 0 }},
+                                                  {{ &Battery_3, Battery_3_Width, Battery_3_Height, 45, 0 }, { &Battery_3, Battery_3_Width, Battery_3_Height, 45, 0 }}}};                                                
+#endif

@@ -1,3 +1,6 @@
+#ifndef _RTK_EVERYWHERE_SETTINGS_H
+#define _RTK_EVERYWHERE_SETTINGS_H
+
 #include "UM980.h" //Structs of UM980 messages, needed for settings.h
 
 
@@ -136,6 +139,17 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED     // Unknown
 };
 const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
+
+typedef enum
+{
+    DISPLAY_64x48,
+    DISPLAY_128x64,
+    // <-- Insert any future displays here
+    DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
+} DisplayType;
+
+const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
+const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
 
 // Different GNSS modules require different libraries and configuration
 typedef enum
@@ -954,7 +968,7 @@ typedef struct
     uint8_t dynamicModel = DYN_MODEL_PORTABLE;
     SystemState lastState = STATE_NOT_SET; // Start unit in last known state
     bool enableResetDisplay = false;
-    uint8_t resetCount = 0;
+    int resetCount = 0;
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
     uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
@@ -1240,8 +1254,7 @@ struct struct_present
     bool i2c1 = false;
     bool display_i2c0 = false;
     bool display_i2c1 = false;
-    bool display_64x48 = false;
-    bool display_128x64 = false;
+    DisplayType display_type = DISPLAY_MAX_NONE;
 
     bool battery_max17048 = false;
     bool battery_bq40z50 = false;
@@ -1326,3 +1339,5 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
 #endif // COMPILE_WIFI
+
+#endif
