@@ -2326,18 +2326,171 @@ void printAvailableSettings()
     systemPrint("updateGNSSSettings,bool,");
     systemPrint("LBandFreq,uint32_t,");
 
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
-    systemPrint(",,");
+    systemPrint("debugPpCertificate,bool,");
+
+    // Time Zone - Default to UTC
+    systemPrint("timeZoneHours,int8_t,");
+    systemPrint("timeZoneMinutes,int8_t,");
+    systemPrint("timeZoneSeconds,int8_t,");
+
+    // Debug settings
+    systemPrint("enablePrintState,bool,");
+    systemPrint("enablePrintPosition,bool,");
+    systemPrint("enablePrintIdleTime,bool,");
+    systemPrint("enablePrintBatteryMessages,bool,");
+    systemPrint("enablePrintRoverAccuracy,bool,");
+    systemPrint("enablePrintBadMessages,bool,");
+    systemPrint("enablePrintLogFileMessages,bool,");
+    systemPrint("enablePrintLogFileStatus,bool,");
+    systemPrint("enablePrintRingBufferOffsets,bool,");
+    systemPrint("enablePrintStates,bool,");
+    systemPrint("enablePrintDuplicateStates,bool,");
+    systemPrint("enablePrintRtcSync,bool,");
+    systemPrint("radioType,RadioType_e,");
+    systemPrint("espnowPeers,uint8_t[5][6],");
+    systemPrint("espnowPeerCount,uint8_t,");
+    systemPrint("enableRtcmMessageChecking,bool,");
+    systemPrint("bluetoothRadioType,BluetoothRadioType_e,");
+    systemPrint("runLogTest,bool,");
+    systemPrint("espnowBroadcast,bool,");
+    systemPrint("antennaHeight,int16_t,");
+    systemPrint("antennaReferencePoint,float,");
+    systemPrint("echoUserInput,bool,");
+    systemPrint("uartReceiveBufferSize,int,");
+    systemPrint("gnssHandlerBufferSize,int,");
+
+    systemPrint("enablePrintBufferOverrun,bool,");
+    systemPrint("enablePrintSDBuffers,bool,");
+    systemPrint("periodicDisplay,PeriodicDisplay_t,");
+    systemPrint("periodicDisplayInterval,uint32_t,");
+
+    systemPrint("rebootSeconds,uint32_t,");
+    systemPrint("forceResetOnSDFail,bool,");
+
+    systemPrint("minElev,uint8_t,");
+    systemPrintf("ubxMessageRatesBase,uint8_t[%d],", MAX_UBX_MSG_RTCM);
+
+    systemPrint("coordinateInputType,CoordinateInputType,");
+    systemPrint("lbandFixTimeout_seconds,uint16_t,");
+    systemPrint("minCNO_F9P,int16_t,");
+    systemPrint("serialGNSSRxFullThreshold,uint16_t,");
+    systemPrint("btReadTaskPriority,uint8_t,");
+    systemPrint("gnssReadTaskPriority,uint8_t,");
+    systemPrint("handleGnssDataTaskPriority,uint8_t,");
+    systemPrint("btReadTaskCore,uint8_t,");
+    systemPrint("gnssReadTaskCore,uint8_t,");
+    systemPrint("handleGnssDataTaskCore,uint8_t,");
+    systemPrint("gnssUartInterruptsCore,uint8_t,");
+    systemPrint("bluetoothInterruptsCore,uint8_t,");
+    systemPrint("i2cInterruptsCore,uint8_t,");
+    systemPrint("shutdownNoChargeTimeout_s,uint32_t,");
+    systemPrint("disableSetupButton,bool,");
+    systemPrint("useI2cForLbandCorrections,bool,");
+    systemPrint("useI2cForLbandCorrectionsConfigured,bool,");
+
+    // Ethernet
+    systemPrint("enablePrintEthernetDiag,bool,");
+    systemPrint("ethernetDHCP,bool,");
+    systemPrint("ethernetIP,IPAddress,");
+    systemPrint("ethernetDNS,IPAddress,");
+    systemPrint("ethernetGateway,IPAddress,");
+    systemPrint("ethernetSubnet,IPAddress,");
+    systemPrint("httpPort,uint16_t,");
+
+    // WiFi
+    systemPrint("debugWifiState,bool,");
+    systemPrint("wifiConfigOverAP,bool,");
+    systemPrintf("wifiNetworks,WiFiNetwork[%d],", MAX_WIFI_NETWORKS);
+
+    // Network layer
+    systemPrint("defaultNetworkType,uint8_t,");
+    systemPrint("debugNetworkLayer,bool,");
+    systemPrint("enableNetworkFailover,bool,");
+    systemPrint("printNetworkStatus,bool,");
+
+    // Multicast DNS Server
+    systemPrint("mdnsEnable,bool,");
+
+    // MQTT Client (PointPerfect)
+    systemPrint("debugMqttClientData,bool,");
+    systemPrint("debugMqttClientState,bool,");
+    systemPrint("useEuropeCorrections,bool,");
+
+    // NTP
+    systemPrint("debugNtp,bool,");
+    systemPrint("ethernetNtpPort,uint16_t,");
+    systemPrint("enableNTPFile,bool,");
+    systemPrint("ntpPollExponent,uint8_t,");
+    systemPrint("ntpPrecision,int8_t,");
+    systemPrint("ntpRootDelay,uint32_t,");
+    systemPrint("ntpRootDispersion,uint32_t,");
+    systemPrintf("ntpReferenceId,char[%d],", sizeof(settings.ntpReferenceId) / sizeof(char));
 
 
-    systemPrint(",,");
+    // NTRIP Client
+    systemPrint("debugNtripClientRtcm,bool,");
+    systemPrint("debugNtripClientState,bool,");
+    systemPrint("enableNtripClient,bool,");
+    systemPrintf("ntripClient_CasterHost,char[%d],", sizeof(settings.ntripClient_CasterHost) / sizeof(char));
+    systemPrint("ntripClient_CasterPort,uint16_t,");
+    systemPrintf("ntripClient_CasterUser,char[%d],", sizeof(settings.ntripClient_CasterUser) / sizeof(char));
+    systemPrintf("ntripClient_MountPoint,char[%d],", sizeof(settings.ntripClient_MountPoint) / sizeof(char));
+    systemPrintf("ntripClient_MountPointPW,char[%d],", sizeof(settings.ntripClient_MountPointPW) / sizeof(char));
+    systemPrint("ntripClient_TransmitGGA,bool,");
+
+    // NTRIP Server
+    systemPrint("debugNtripServerRtcm,bool,");
+    systemPrint("debugNtripServerState,bool,");
+    systemPrint("enableNtripServer,bool,");
+    systemPrint("ntripServer_StartAtSurveyIn,bool,");
+    systemPrintf("ntripServer_CasterHost,char[%d],", sizeof(settings.ntripServer_CasterHost) / sizeof(char));
+    systemPrint("ntripServer_CasterPort,uint16_t,");
+    systemPrintf("ntripServer_CasterUser,char[%d],", sizeof(settings.ntripServer_CasterUser) / sizeof(char));
+    systemPrintf("ntripServer_CasterUserPW,char[%d],", sizeof(settings.ntripServer_CasterUserPW) / sizeof(char));
+    systemPrintf("ntripServer_MountPoint,char[%d],", sizeof(settings.ntripServer_MountPoint) / sizeof(char));
+    systemPrintf("ntripServer_MountPointPW,char[%d],", sizeof(settings.ntripServer_MountPointPW) / sizeof(char));
+
+    // TCP Server
+    systemPrint("debugPvtServer,bool,");
+    systemPrint("enablePvtServer,bool,");
+    systemPrint("pvtUdpServerPort,uint16_t,");
+
+
+    systemPrintf("um980MessageRatesNMEA,char[%d],", sizeof(settings.um980MessageRatesNMEA) / sizeof(float));
+    systemPrintf("um980MessageRatesRTCMRover,char[%d],", sizeof(settings.um980MessageRatesRTCMRover) / sizeof(float));
+    systemPrintf("um980MessageRatesRTCMBase,char[%d],", sizeof(settings.um980MessageRatesRTCMBase) / sizeof(float));
+    systemPrintf("um980Constellations,char[%d],", sizeof(settings.um980Constellations) / sizeof(uint8_t));
+    systemPrint("minCNO_um980,int16_t,");
+    systemPrint("enableTiltCompensation,bool,");
+    systemPrint("tiltPoleLength,float,");
+    systemPrint("rtcmTimeoutBeforeUsingLBand_s,uint8_t,");
+    systemPrint("enableImuDebug,bool,");
+
+    // Automatic Firmware Update
+    systemPrint("debugFirmwareUpdate,bool,");
+    systemPrint("enableAutoFirmwareUpdate,bool,");
+    systemPrint("autoFirmwareCheckMinutes,uint32_t,");
+
+    systemPrint("debugCorrections,bool,");
+    systemPrint("enableCaptivePortal,bool,");
+
+    // Boot times
+    systemPrint("printBootTimes,bool,");
+
+    // Partition table
+    systemPrint("printPartitionTable,bool,");
+
+    // Measurement scale
+    systemPrint("measurementScale,uint8_t,");
+
+    systemPrint("debugWiFiConfig,bool,");
+    systemPrint("enablePsram,bool,");
+    systemPrint("printTaskStartStop,bool,");
+    systemPrint("psramMallocLevel,uint16_t,");
+    systemPrint("um980SurveyInStartingAccuracy,float,");
+    systemPrint("enableBeeper,bool,");
+    systemPrint("um980MeasurementRateMs,uint16_t,");
+    systemPrint("enableImuCompensationDebug,bool,");
+
     systemPrintln();
 }
