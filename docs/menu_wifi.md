@@ -2,7 +2,7 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) 
 
-![WiFi Network Entry](<SparkFun RTK Everywhere - WiFi Menu.png>)
+![WiFi Network Entry](<img/Terminal/SparkFun RTK Everywhere - WiFi Menu.png>)
 
 *WiFi Menu containing one network*
 
