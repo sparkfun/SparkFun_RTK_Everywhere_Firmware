@@ -143,7 +143,7 @@ const uint8_t WiFi_Symbol_0[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0x80,
 
 const int Clock_Icon_Height = 15;
 const int Clock_Icon_Width = 15;
-const uint8_t Clock_Icon_1[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0xFB, 0x01, 0x01,
+const uint8_t Clock_Icon_0[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0xFB, 0x01, 0x01,
                                 0x06, 0x02, 0x14, 0x98, 0xE0, 0x03, 0x0C, 0x14, 0x20, 0x30,
                                 0x40, 0x40, 0x60, 0x41, 0x41, 0x32, 0x20, 0x14, 0x0C, 0x03};
 
@@ -171,7 +171,7 @@ const uint8_t Clock_Icon_1[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0xFB, 
             '---------------'
 */
 
-const uint8_t Clock_Icon_2[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0x83, 0x81, 0x81,
+const uint8_t Clock_Icon_1[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0x83, 0x81, 0x81,
                                 0x86, 0x82, 0x14, 0x98, 0xE0, 0x03, 0x0C, 0x14, 0x20, 0x30,
                                 0x40, 0x40, 0x60, 0x41, 0x41, 0x32, 0x20, 0x14, 0x0C, 0x03};
 
@@ -199,7 +199,7 @@ const uint8_t Clock_Icon_2[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0x83, 
             '---------------'
 */
 
-const uint8_t Clock_Icon_3[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0x83, 0x01, 0x01,
+const uint8_t Clock_Icon_2[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0x83, 0x01, 0x01,
                                 0x06, 0x02, 0x14, 0x98, 0xE0, 0x03, 0x0C, 0x14, 0x20, 0x30,
                                 0x40, 0x40, 0x6F, 0x43, 0x44, 0x30, 0x20, 0x14, 0x0C, 0x03};
 
@@ -227,7 +227,7 @@ const uint8_t Clock_Icon_3[] = {0xE0, 0x98, 0x14, 0x02, 0x06, 0x01, 0x01, 0x83, 
             '---------------'
 */
 
-const uint8_t Clock_Icon_4[] = {0xE0, 0x98, 0x14, 0x82, 0x86, 0x81, 0x81, 0x83, 0x01, 0x01,
+const uint8_t Clock_Icon_3[] = {0xE0, 0x98, 0x14, 0x82, 0x86, 0x81, 0x81, 0x83, 0x01, 0x01,
                                 0x06, 0x02, 0x14, 0x98, 0xE0, 0x03, 0x0C, 0x14, 0x20, 0x30,
                                 0x40, 0x40, 0x60, 0x43, 0x44, 0x30, 0x20, 0x14, 0x0C, 0x03};
 
@@ -1569,6 +1569,7 @@ typedef struct {
 } iconProperties;
 
 const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }, { &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }}};
+const iconProperties CrossHairDualProperties = {{{ &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, 0, 18 }, { &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, 0, 18 }}};
 const iconProperties EthernetIconProperties = {{{ &Ethernet_Icon, Ethernet_Icon_Width, Ethernet_Icon_Height, 45, 0 }, { &Ethernet_Icon, Ethernet_Icon_Width, Ethernet_Icon_Height, 45, 0 }}};
 const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, 2, 35 }, { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, 2, 35 }}};
 const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, 2, 35 }, { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, 2, 35 }}};
@@ -1630,4 +1631,13 @@ const iconBatteryProperties BatteryProperties = {{{{ &Battery_0, Battery_0_Width
                                                   {{ &Battery_1, Battery_1_Width, Battery_1_Height, 45, 0 }, { &Battery_1, Battery_1_Width, Battery_1_Height, 45, 0 }},
                                                   {{ &Battery_2, Battery_2_Width, Battery_2_Height, 45, 0 }, { &Battery_2, Battery_2_Width, Battery_2_Height, 45, 0 }},
                                                   {{ &Battery_3, Battery_3_Width, Battery_3_Height, 45, 0 }, { &Battery_3, Battery_3_Width, Battery_3_Height, 45, 0 }}}};                                                
+#define CLOCK_ICON_STATES 4
+typedef struct {
+    iconProperty iconDisplay[CLOCK_ICON_STATES][DISPLAY_MAX_NONE];
+} iconClockProperties;
+
+const iconClockProperties ClockIconProperties = {{{{ &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }},
+                                                  {{ &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }},
+                                                  {{ &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }},
+                                                  {{ &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }}}};                                                
 #endif

@@ -344,29 +344,38 @@ void displayUpdate()
 
             case (STATE_NTPSERVER_NOT_STARTED):
             case (STATE_NTPSERVER_NO_SYNC):
-                blinking_icons ^= ICON_CLOCK;
-                icons = (blinking_icons & ICON_CLOCK) // Center left
-                        | ICON_CLOCK_ACCURACY;        // Center right
-                displaySivVsOpenShort(&iconPropertyList);              // Bottom left
+                {
+                paintClock(&iconPropertyList, true); // Blink
+                displaySivVsOpenShort(&iconPropertyList);
+
+                iconPropertyBlinking prop;
+                prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
                 if (online.ethernetStatus == ETH_CONNECTED)
-                    blinking_icons |= ICON_ETHERNET; // Don't blink if link is up
+                    prop.blinking = false;
                 else
-                    blinking_icons ^= ICON_ETHERNET;
-                icons |= (blinking_icons & ICON_ETHERNET); // Top Right
+                    prop.blinking = true;
+                iconPropertyList.push_back(prop);
+
                 iconsRadio = ICON_IP_ADDRESS;              // Top left
+                }
                 break;
 
             case (STATE_NTPSERVER_SYNC):
-                icons = ICON_CLOCK            // Center left
-                        | ICON_CLOCK_ACCURACY // Center right
-                        | ICON_LOGGING_NTP;   // Bottom right
-                displaySivVsOpenShort(&iconPropertyList);      // Bottom left
+                {
+                paintClock(&iconPropertyList, false); // No blink
+                displaySivVsOpenShort(&iconPropertyList);
+                paintLogging(&iconPropertyList, false, true); // No pulse, NTP
+
+                iconPropertyBlinking prop;
+                prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
                 if (online.ethernetStatus == ETH_CONNECTED)
-                    blinking_icons |= ICON_ETHERNET; // Don't blink if link is up
+                    prop.blinking = false;
                 else
-                    blinking_icons ^= ICON_ETHERNET;
-                icons |= (blinking_icons & ICON_ETHERNET); // Top Right
+                    prop.blinking = true;
+                iconPropertyList.push_back(prop);
+
                 iconsRadio = ICON_IP_ADDRESS;              // Top left
+                }
                 break;
 
             case (STATE_CONFIG_VIA_ETH_NOT_STARTED):
@@ -555,26 +564,6 @@ void displayUpdate()
                 displayBitmap(0, 18, CrossHair_Width, CrossHair_Height, CrossHair);
             else if (icons & ICON_CROSS_HAIR_DUAL)
                 displayBitmap(0, 18, CrossHairDual_Width, CrossHairDual_Height, CrossHairDual);
-            else if (icons & ICON_CLOCK)
-                paintClock();
-
-            // Center right
-            if (icons & ICON_CLOCK_ACCURACY)
-                paintClockAccuracy();
-
-            // Bottom left corner
-            if (icons & ICON_SIV_ANTENNA)
-                displayBitmap(2, 35, SIV_Antenna_Width, SIV_Antenna_Height, SIV_Antenna);
-            else if (icons & ICON_SIV_ANTENNA_LBAND)
-                displayBitmap(2, 35, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand);
-            else if (icons & ICON_ANTENNA_SHORT)
-                displayBitmap(2, 35, Antenna_Short_Width, Antenna_Short_Height, Antenna_Short);
-            else if (icons & ICON_ANTENNA_OPEN)
-                displayBitmap(2, 35, Antenna_Open_Width, Antenna_Open_Height, Antenna_Open);
-
-            // Bottom right corner
-            if (icons & ICON_LOGGING_NTP)
-                paintLogging(&iconPropertyList, false, true); // no pulse, NTP
 
             oled->display(); // Push internal buffer to display
         }
@@ -1300,28 +1289,30 @@ void paintHorizontalAccuracy(displayCoords textCoords)
 }
 
 // Display clock with moving hands
-void paintClock()
+void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 {
     // Animate icon to show system running
-    static uint8_t clockIconDisplayed = 3;
+    static uint8_t clockIconDisplayed = CLOCK_ICON_STATES - 1;
     clockIconDisplayed++;    // Goto next icon
-    clockIconDisplayed %= 4; // Wrap
+    clockIconDisplayed %= CLOCK_ICON_STATES; // Wrap
 
-    if (clockIconDisplayed == 0)
-        displayBitmap(0, 18, Clock_Icon_Width, Clock_Icon_Height, Clock_Icon_1);
-    else if (clockIconDisplayed == 1)
-        displayBitmap(0, 18, Clock_Icon_Width, Clock_Icon_Height, Clock_Icon_2);
-    else if (clockIconDisplayed == 2)
-        displayBitmap(0, 18, Clock_Icon_Width, Clock_Icon_Height, Clock_Icon_3);
-    else
-        displayBitmap(0, 18, Clock_Icon_Width, Clock_Icon_Height, Clock_Icon_4);
+    iconPropertyBlinking prop;
+    prop.icon = ClockIconProperties.iconDisplay[clockIconDisplayed][present.display_type];
+    prop.blinking = blinking;
+    iconList->push_back(prop);
+
+    displayCoords textCoords;
+    textCoords.x = prop.icon.xPos + prop.icon.width + 1;
+    textCoords.y = prop.icon.yPos + 2;
+
+    paintClockAccuracy(textCoords);
 }
 
 // Display clock accuracy
-void paintClockAccuracy()
+void paintClockAccuracy(displayCoords textCoords)
 {
     oled->setFont(QW_FONT_8X16); // Set font to type 1: 8x16
-    oled->setCursor(16, 20);     // x, y
+    oled->setCursor(textCoords.x, textCoords.y);     // x, y
     oled->print(":");
 
     uint32_t timeAccuracy = gnssGetTimeAccuracy();
@@ -1333,36 +1324,36 @@ void paintClockAccuracy()
     else if (timeAccuracy < 10) // 9 or less : show as 9ns
     {
         oled->print(timeAccuracy);
-        displayBitmap(36, 20, Millis_Icon_Width, Millis_Icon_Height, Nanos_Icon);
+        displayBitmap(textCoords.x + 20, textCoords.y, Millis_Icon_Width, Millis_Icon_Height, Nanos_Icon);
     }
     else if (timeAccuracy < 100) // 99 or less : show as 99ns
     {
         oled->print(timeAccuracy);
-        displayBitmap(44, 20, Millis_Icon_Width, Millis_Icon_Height, Nanos_Icon);
+        displayBitmap(textCoords.x + 28, textCoords.y, Millis_Icon_Width, Millis_Icon_Height, Nanos_Icon);
     }
     else if (timeAccuracy < 10000) // 9999 or less : show as 9.9μs
     {
         oled->print(timeAccuracy / 1000);
         oled->print(".");
         oled->print((timeAccuracy / 100) % 10);
-        displayBitmap(52, 20, Millis_Icon_Width, Millis_Icon_Height, Micros_Icon);
+        displayBitmap(textCoords.x + 36, textCoords.y, Millis_Icon_Width, Millis_Icon_Height, Micros_Icon);
     }
     else if (timeAccuracy < 100000) // 99999 or less : show as 99μs
     {
         oled->print(timeAccuracy / 1000);
-        displayBitmap(44, 20, Millis_Icon_Width, Millis_Icon_Height, Micros_Icon);
+        displayBitmap(textCoords.x + 28, textCoords.y, Millis_Icon_Width, Millis_Icon_Height, Micros_Icon);
     }
     else if (timeAccuracy < 10000000) // 9999999 or less : show as 9.9ms
     {
         oled->print(timeAccuracy / 1000000);
         oled->print(".");
         oled->print((timeAccuracy / 100000) % 10);
-        displayBitmap(52, 20, Millis_Icon_Width, Millis_Icon_Height, Millis_Icon);
+        displayBitmap(textCoords.x + 36, textCoords.y, Millis_Icon_Width, Millis_Icon_Height, Millis_Icon);
     }
     else // if (timeAccuracy >= 100000)
     {
         oled->print(">10");
-        displayBitmap(52, 20, Millis_Icon_Width, Millis_Icon_Height, Millis_Icon);
+        displayBitmap(textCoords.x + 36, textCoords.y, Millis_Icon_Width, Millis_Icon_Height, Millis_Icon);
     }
 }
 
@@ -1445,7 +1436,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         if (online.ethernetStatus == ETH_CONNECTED)
             prop.blinking = false;
         else
-            prop.blinking = false;
+            prop.blinking = true;
 
         iconList->push_back(prop);
     }
