@@ -40,7 +40,7 @@ void menuFirmware()
     while (1)
     {
         systemPrintln();
-        systemPrintln("Menu: Update Firmware");
+        systemPrintln("Menu: Firmware Update");
 
         if (btPrintEcho == true)
             systemPrintln("Firmware update not available while configuration over Bluetooth is active");
@@ -66,8 +66,11 @@ void menuFirmware()
         if (settings.enableAutoFirmwareUpdate)
             systemPrintf("i) Automatic firmware check minutes: %d\r\n", settings.autoFirmwareCheckMinutes);
 
-        systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
-        systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
+        if (ENABLE_DEVELOPER)
+        {
+            systemPrintf("r) Change RC Firmware JSON URL: %s\r\n", otaRcFirmwareJsonUrl);
+            systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
+        }
 
         if (newOTAFirmwareAvailable)
             systemPrintf("u) Update to new firmware: v%s\r\n", reportedVersion);
@@ -178,17 +181,16 @@ void menuFirmware()
         else if ((incoming == 'i') && settings.enableAutoFirmwareUpdate)
         {
 
-            getNewSetting("Enter minutes before next firmware check", 1, 999999,
-                          &settings.autoFirmwareCheckMinutes);
+            getNewSetting("Enter minutes before next firmware check", 1, 999999, &settings.autoFirmwareCheckMinutes);
         }
 
-        else if (incoming == 'r')
+        else if ((incoming == 'r') && (ENABLE_DEVELOPER == true))
         {
             systemPrint("Enter RC Firmware JSON URL (empty to use default): ");
             memset(otaRcFirmwareJsonUrl, 0, sizeof(otaRcFirmwareJsonUrl));
             getUserInputString(otaRcFirmwareJsonUrl, sizeof(otaRcFirmwareJsonUrl) - 1);
         }
-        else if (incoming == 's')
+        else if ((incoming == 's') && (ENABLE_DEVELOPER == true))
         {
             systemPrint("Enter Firmware JSON URL (empty to use default): ");
             memset(otaFirmwareJsonUrl, 0, sizeof(otaFirmwareJsonUrl));
