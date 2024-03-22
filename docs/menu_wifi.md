@@ -28,7 +28,7 @@ Configuring over WiFi allows the device to be configured from any desktop comput
 
 ![RTK display showing local IP and SSID](img/Displays/SparkFun%20RTK%20WiFi%20Config%20IP.png)
 
-When the device enters WiFi config mode it will display the WiFi network it is connected to as well as its assigned IP address.
+On devices that have a display, when the device enters WiFi config mode it will display the WiFi network it is connected to as well as its assigned IP address.
 
 ## Captive Portal
 
@@ -36,6 +36,6 @@ If captive portal is enabled, when a user connects to the Access Point the user 
 
 ## MDNS
 
-![Access using rtk.local](img/WiFi Config/SparkFun%20RTK%20WiFi%20MDNS.png)
+![Access using rtk.local](<img/WiFi Config/SparkFun RTK WiFi MDNS.png>)
 
 Multicast DNS or MDNS allows the RTK device to be discovered over wireless networks without needing to know the IP. For example, when MDNS is enabled, simply type 'rtk.local' into a browser to connect to the RTK Config page. This feature works both for 'WiFi Access Point' or direct WiFi config. Note: When using WiFi config, you must be on the same subdomain (in other words, the same WiFi or Ethernet network) as the RTK device.
