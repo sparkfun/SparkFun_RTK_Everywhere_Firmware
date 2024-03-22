@@ -559,11 +559,22 @@ void displayUpdate()
             if (iconsRadio & ICON_IP_ADDRESS)
                 paintIPAddress();
 
-            // Center left
-            if (icons & ICON_CROSS_HAIR)
-                displayBitmap(0, 18, CrossHair_Width, CrossHair_Height, CrossHair);
-            else if (icons & ICON_CROSS_HAIR_DUAL)
-                displayBitmap(0, 18, CrossHairDual_Width, CrossHairDual_Height, CrossHairDual);
+
+            // Now add the icons
+            static bool blinkState = false;
+            blinkState = !blinkState;
+            for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
+            {
+                iconPropertyBlinking theIcon = *it;
+                if (theIcon.blinking && !blinkState)
+                {
+                    // Don't add the icon
+                }
+                else
+                {
+                    displayBitmap(theIcon.icon.xPos, theIcon.icon.yPos, theIcon.icon.width, theIcon.icon.height, (const uint8_t *)theIcon.icon.bitmap);
+                }
+            }
 
             oled->display(); // Push internal buffer to display
         }
