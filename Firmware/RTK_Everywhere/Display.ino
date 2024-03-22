@@ -79,9 +79,6 @@
 //----------------------------------------
 
 static QwiicCustomOLED *oled = nullptr;
-static uint32_t blinking_icons;
-static uint32_t icons;
-static uint32_t iconsRadio;
 
 unsigned long ssidDisplayTimer = 0;
 bool ssidDisplayFirstHalf = false;
@@ -158,8 +155,6 @@ void beginDisplay(TwoWire *i2cBus)
         oled->setContrast(0xCF);     // Set Contrast Control for BANK0 (81h)
     }
 
-    blinking_icons = 0;
-
     // Display may still be powering up
     // Try multiple times to communicate then display logo
     int maxTries = 3;
@@ -202,9 +197,6 @@ void displayUpdate()
             oled->erase();
 
             iconPropertyList.clear();
-
-            icons = 0;
-            iconsRadio = 0;
 
             switch (systemState)
             {
@@ -264,35 +256,35 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, false); // Single crosshair, no blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b11111111); // Single crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_NO_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, true); // Single crosshair, blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b01010101); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, false); // Single crosshair, no blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b11111111); // Single crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, true); // Dual crosshair, blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, 0b01010101); // Dual crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, no blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, 0b11111111); // Dual crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -307,7 +299,7 @@ void displayUpdate()
             // Screen is displayed while we are waiting for horz accuracy to drop to appropriate level
             // Blink crosshair icon until we have we have horz accuracy < user defined level
             case (STATE_BASE_TEMP_SETTLE):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, true); // Single crosshair, blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b01010101); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -339,36 +331,36 @@ void displayUpdate()
             case (STATE_NTPSERVER_NOT_STARTED):
             case (STATE_NTPSERVER_NO_SYNC):
                 {
-                paintClock(&iconPropertyList, true); // Blink
-                displaySivVsOpenShort(&iconPropertyList);
+                    paintClock(&iconPropertyList, true); // Blink
+                    displaySivVsOpenShort(&iconPropertyList);
 
-                iconPropertyBlinking prop;
-                prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                if (online.ethernetStatus == ETH_CONNECTED)
-                    prop.blinking = false;
-                else
-                    prop.blinking = true;
-                iconPropertyList.push_back(prop);
+                    iconPropertyBlinking prop;
+                    prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+                    if (online.ethernetStatus == ETH_CONNECTED)
+                        prop.duty = 0b11111111;
+                    else
+                        prop.duty = 0b01010101;
+                    iconPropertyList.push_back(prop);
 
-                iconsRadio = ICON_IP_ADDRESS;              // Top left
+                    paintIPAddress(); // Top left
                 }
                 break;
 
             case (STATE_NTPSERVER_SYNC):
                 {
-                paintClock(&iconPropertyList, false); // No blink
-                displaySivVsOpenShort(&iconPropertyList);
-                paintLogging(&iconPropertyList, false, true); // No pulse, NTP
+                    paintClock(&iconPropertyList, false); // No blink
+                    displaySivVsOpenShort(&iconPropertyList);
+                    paintLogging(&iconPropertyList, false, true); // No pulse, NTP
 
-                iconPropertyBlinking prop;
-                prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                if (online.ethernetStatus == ETH_CONNECTED)
-                    prop.blinking = false;
-                else
-                    prop.blinking = true;
-                iconPropertyList.push_back(prop);
+                    iconPropertyBlinking prop;
+                    prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+                    if (online.ethernetStatus == ETH_CONNECTED)
+                        prop.duty = 0b11111111;
+                    else
+                        prop.duty = 0b01010101;
+                    iconPropertyList.push_back(prop);
 
-                iconsRadio = ICON_IP_ADDRESS;              // Top left
+                    paintIPAddress(); // Top left
                 }
                 break;
 
@@ -392,8 +384,8 @@ void displayUpdate()
                 displayWiFiConfigNotStarted(); // Display 'WiFi Config'
                 break;
             case (STATE_WIFI_CONFIG):
-                iconsRadio = setWiFiIcon(); // Blink WiFi in center
-                displayWiFiConfig();        // Display SSID and IP
+                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+                displayWiFiConfig(); // Display SSID and IP
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -409,11 +401,11 @@ void displayUpdate()
                 // Do nothing. Quick, fall through state.
                 break;
             case (STATE_KEYS_WIFI_STARTED):
-                iconsRadio = setWiFiIcon(); // Blink WiFi in center
+                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;
             case (STATE_KEYS_WIFI_CONNECTED):
-                iconsRadio = setWiFiIcon(); // Blink WiFi in center
+                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;
             case (STATE_KEYS_WIFI_TIMEOUT):
@@ -432,11 +424,11 @@ void displayUpdate()
                 // Do nothing. Quick, fall through state.
                 break;
             case (STATE_KEYS_PROVISION_WIFI_STARTED):
-                iconsRadio = setWiFiIcon(); // Blink WiFi in center
+                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;
             case (STATE_KEYS_PROVISION_WIFI_CONNECTED):
-                iconsRadio = setWiFiIcon(); // Blink WiFi in center
+                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;
 
@@ -549,25 +541,17 @@ void displayUpdate()
                 ;
             }
 
-            // Left + center spot
-            if (iconsRadio & ICON_IP_ADDRESS)
-                paintIPAddress();
-
-
             // Now add the icons
-            static bool blinkState = false;
-            blinkState = !blinkState;
+            static uint8_t blinkState = 0b10000000;
+            blinkState <<= 1;
+            if (blinkState == 0)
+                blinkState = 0b00000001;
             for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
             {
                 iconPropertyBlinking theIcon = *it;
-                if (theIcon.blinking && !blinkState)
-                {
-                    // Don't add the icon
-                }
-                else
-                {
+
+                if ((theIcon.duty & blinkState) > 0)
                     displayBitmap(theIcon.icon.xPos, theIcon.icon.yPos, theIcon.icon.width, theIcon.icon.height, (const uint8_t *)theIcon.icon.bitmap);
-                }
             }
 
             oled->display(); // Push internal buffer to display
@@ -672,7 +656,7 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 
         iconPropertyBlinking prop;
         prop.icon = BatteryProperties.iconDisplay[batteryFraction][present.display_type];
-        prop.blinking = batteryFraction == 0;
+        prop.duty = (batteryFraction == 0) ? 0b01010101 : 0b11111111;
         iconList->push_back(prop);
     }
 }
@@ -738,106 +722,109 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 {
     if (online.display == true)
     {
-        // There are three spots for icons in the Wireless area, left/center/right
-        // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if
-        // enabled) Because of lack of space we will indicate the Base/Rover if only two radios or less are active
-
-        // Count the number of radios in use
-        uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-        if (wifiState > WIFI_OFF)
-            numberOfRadios++;
-        if (espnowState > ESPNOW_OFF)
-            numberOfRadios++;
-
-        // Bluetooth only
-        if (numberOfRadios == 1)
+        if (present.display_type == DISPLAY_64x48)
         {
-            icons |= setBluetoothIcon_OneRadio();
+            // There are three spots for icons in the Wireless area, left/center/right
+            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if
+            // enabled) Because of lack of space we will indicate the Base/Rover if only two radios or less are active
 
-            icons |= setModeIcon(); // Turn on Rover/Base type icons
-        }
-
-        else if (numberOfRadios == 2)
-        {
-            icons |= setBluetoothIcon_TwoRadios();
-
-            // Do we have WiFi or ESP
+            // Count the number of radios in use
+            uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
             if (wifiState > WIFI_OFF)
-                icons |= setWiFiIcon_TwoRadios();
-            else if (espnowState > ESPNOW_OFF)
-                icons |= setESPNowIcon_TwoRadios();
+                numberOfRadios++;
+            if (espnowState > ESPNOW_OFF)
+                numberOfRadios++;
 
-            icons |= setModeIcon(); // Turn on Rover/Base type icons
+            // Bluetooth only
+            if (numberOfRadios == 1)
+            {
+                setBluetoothIcon_OneRadio(iconList);
+                setModeIcon(iconList); // Turn on Rover/Base type icons
+            }
+
+            else if (numberOfRadios == 2)
+            {
+                setBluetoothIcon_TwoRadios(iconList);
+
+                // Do we have WiFi or ESP
+                if (wifiState > WIFI_OFF)
+                    setWiFiIcon_TwoRadios(iconList);
+                else if (espnowState > ESPNOW_OFF)
+                    setESPNowIcon_TwoRadios(iconList);
+
+                setModeIcon(iconList); // Turn on Rover/Base type icons
+            }
+
+            else if (numberOfRadios == 3)
+            {
+                // Bluetooth is center
+                setBluetoothIcon_TwoRadios(iconList);
+
+                // ESP Now is left
+                setESPNowIcon_TwoRadios(iconList);
+
+                // WiFi is right
+                setWiFiIcon_ThreeRadios(iconList);
+
+                // No Rover/Base icons
+            }
         }
-
-        else if (numberOfRadios == 3)
+        else if (present.display_type == DISPLAY_128x64)
         {
-            // Bluetooth is center
-            icons |= setBluetoothIcon_TwoRadios();
-
-            // ESP Now is left
-            icons |= setESPNowIcon_TwoRadios();
-
-            // WiFi is right
-            icons |= setWiFiIcon_ThreeRadios();
-
-            // No Rover/Base icons
+            // We have acres of space to play with
         }
     }
 }
 
 // Bluetooth is in left position
 // Set Bluetooth icons (MAC, Connected, arrows) in left position
-uint32_t setBluetoothIcon_OneRadio()
+// This is 64x48-specific
+void setBluetoothIcon_OneRadio(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     if (bluetoothGetState() != BT_CONNECTED)
-        icons |= ICON_MAC_ADDRESS;
+        paintMACAddress4digit(0,3);
     else if (bluetoothGetState() == BT_CONNECTED)
     {
-        // Limit how often we update this spot
-        if (millis() - firstRadioSpotTimer > 2000)
+        if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true) // Share the spot?
         {
-            firstRadioSpotTimer = millis();
+            iconPropertyBlinking prop;
+            prop.icon = BTSymbolLeft64x48;
+            prop.duty = 0b00001111;
+            iconList->push_back(prop);
 
-            if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true)
-                firstRadioSpotBlink ^= 1; // Share the spot
-            else
-                firstRadioSpotBlink = false;
-        }
-
-        if (firstRadioSpotBlink == false)
-            icons |= ICON_BT_SYMBOL_LEFT;
-        else
-        {
             // Share the spot. Determine if we need to indicate Up, or Down
             if (bluetoothIncomingRTCM == true)
             {
-                icons |= ICON_DOWN_ARROW_LEFT;
+                prop.icon = DownloadArrowLeft64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 bluetoothIncomingRTCM = false; // Reset, set during UART RX task.
             }
             else if (bluetoothOutgoingRTCM == true)
             {
-                icons |= ICON_UP_ARROW_LEFT;
+                prop.icon = UploadArrowLeft64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 bluetoothOutgoingRTCM = false; // Reset, set during UART BT send bytes task.
             }
-            else
-                icons |= ICON_BT_SYMBOL_LEFT;
+        }
+        else
+        {
+            iconPropertyBlinking prop;
+            prop.icon = BTSymbolLeft64x48;
+            prop.duty = 0b11111111;
+            iconList->push_back(prop);
         }
     }
-
-    return icons;
 }
 
 // Bluetooth is in center position
 // Set Bluetooth icons (MAC, Connected, arrows) in left position
-uint32_t setBluetoothIcon_TwoRadios()
+// This is 64x48-specific
+void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     if (bluetoothGetState() != BT_CONNECTED)
-        icons |= ICON_MAC_ADDRESS_2DIGIT;
+        paintMACAddress2digit(14,3);
     else if (bluetoothGetState() == BT_CONNECTED)
     {
         // Limit how often we update this spot
@@ -870,8 +857,6 @@ uint32_t setBluetoothIcon_TwoRadios()
                 icons |= ICON_BT_SYMBOL_CENTER;
         }
     }
-
-    return icons;
 }
 
 // Bluetooth is in center position
@@ -1134,33 +1119,24 @@ uint32_t setWiFiIcon_ThreeRadios()
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
 // Blink while no clients are connected
-uint32_t setWiFiIcon()
+void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     if (online.display == true)
     {
+        iconPropertyBlinking icon;
+        icon.icon.bitmap = &WiFi_Symbol_3;
+        icon.icon.width = WiFi_Symbol_Width;
+        icon.icon.height = WiFi_Symbol_Height;
+        icon.icon.xPos = (oled->getWidth() / 2) - (icon.icon.width / 2);
+        icon.icon.yPos = 0;
+
         if (wifiState == WIFI_CONNECTED)
-        {
-            icons |= ICON_WIFI_SYMBOL_3_RIGHT;
-        }
+            icon.duty = 0b11111111;
         else
-        {
-            // Limit how often we update this spot
-            if (millis() - thirdRadioSpotTimer > 1000)
-            {
-                thirdRadioSpotTimer = millis();
-                thirdRadioSpotBlink ^= 1; // Blink this icon
-            }
+            icon.duty = 0b01010101;
 
-            if (thirdRadioSpotBlink == false)
-                icons |= ICON_BLANK_RIGHT;
-            else
-                icons |= ICON_WIFI_SYMBOL_3_RIGHT;
-        }
+        iconList->push_back(icon);
     }
-
-    return (icons);
 }
 
 // Based on system state, turn on the various Rover, Base, Fixed Base icons
@@ -1298,7 +1274,7 @@ void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 
     iconPropertyBlinking prop;
     prop.icon = ClockIconProperties.iconDisplay[clockIconDisplayed][present.display_type];
-    prop.blinking = blinking;
+    prop.duty = 0b01010101;
     iconList->push_back(prop);
 
     displayCoords textCoords;
@@ -1434,9 +1410,9 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
 
         if (online.ethernetStatus == ETH_CONNECTED)
-            prop.blinking = false;
+            prop.duty = 0b11111111;
         else
-            prop.blinking = true;
+            prop.duty = 0b01010101;
 
         iconList->push_back(prop);
     }
@@ -1446,7 +1422,7 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
 {
     if (present.antennaShortOpen == false)
     {
-        displayCoords textCoords = paintSIVIcon(iconList, nullptr, false);
+        displayCoords textCoords = paintSIVIcon(iconList, nullptr, 0b11111111);
         paintSIVText(textCoords);
     }
     else
@@ -1455,26 +1431,26 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
         
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
-            textCoords = paintSIVIcon(iconList, &ShortIconProperties, true);
+            textCoords = paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
         else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
         {
-            textCoords = paintSIVIcon(iconList, &OpenIconProperties, true);
+            textCoords = paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
         else
         {
-            textCoords = paintSIVIcon(iconList, nullptr, false);
+            textCoords = paintSIVIcon(iconList, nullptr, 0b11111111);
         }
 
         paintSIVText(textCoords);
     }
 }
 
-void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool blinking)
+void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, uint8_t duty)
 {
     iconPropertyBlinking prop;
     prop.icon = icon->iconDisplay[present.display_type];
-    prop.blinking = blinking;
+    prop.duty = duty;
     iconList->push_back(prop);
 
     displayCoords textCoords;
@@ -1505,7 +1481,7 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
 
 // Select satellite icon and draw sats in view
 // Blink icon if no fix
-displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool blinking)
+displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, uint8_t duty)
 {
     if (icon == nullptr) // Not short or open, so decide which icon to use
     {
@@ -1520,8 +1496,8 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
             // Determine if there is a fix
             if (gnssIsFixed() == false)
             {
-                // override blinking - blink satellite dish icon if we don't have a fix
-                blinking = true;
+                // override duty - blink satellite dish icon if we don't have a fix
+                duty = 0b01010101;
             }
         } // End gnss online
         else
@@ -1536,7 +1512,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 
     iconPropertyBlinking prop;
     prop.icon = icon->iconDisplay[present.display_type];
-    prop.blinking = blinking;
+    prop.duty = duty;
     iconList->push_back(prop);
 
     return textCoords;
@@ -1591,7 +1567,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
 
     iconPropertyBlinking prop;
-    prop.blinking = false;
+    prop.duty = 0b11111111;
 
 #ifdef COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
@@ -1655,11 +1631,11 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
     {
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
-            paintSIVIcon(iconList, &ShortIconProperties, true);
+            paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
         else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
         {
-            paintSIVIcon(iconList, &OpenIconProperties, true);
+            paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
         else
         {
@@ -1714,11 +1690,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     {
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
-            paintSIVIcon(iconList, &ShortIconProperties, true);
+            paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
         }
         else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
         {
-            paintSIVIcon(iconList, &OpenIconProperties, true);
+            paintSIVIcon(iconList, &OpenIconProperties, 0b01010101);
         }
         else
         {
@@ -1783,6 +1759,29 @@ void paintIPAddress()
     ipAddressPosition++;                       // Increment the print position
     if (ipAddress[ipAddressPosition + 7] == 0) // Wrap
         ipAddressPosition = 0;
+}
+
+void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
+{
+    char macAddress[5];
+    const uint8_t *rtkMacAddress = getMacAddress();
+
+    // Print four characters of MAC
+    snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
+    oled->setFont(QW_FONT_5X7); // Set font to smallest
+    oled->setCursor(xPos, yPos);
+    oled->print(macAddress);
+}
+void paintMACAddress2digit(uint8_t xPos, uint8_t yPos)
+{
+    char macAddress[5];
+    const uint8_t *rtkMacAddress = getMacAddress();
+
+    // Print only last two digits of MAC
+    snprintf(macAddress, sizeof(macAddress), "%02X", rtkMacAddress[5]);
+    oled->setFont(QW_FONT_5X7); // Set font to smallest
+    oled->setCursor(xPos, yPos);
+    oled->print(macAddress);
 }
 
 void displayBaseStart(uint16_t displayTime)
@@ -1977,11 +1976,7 @@ void displayWiFiConfig()
     if (millis() - ssidDisplayTimer > 2000)
     {
         ssidDisplayTimer = millis();
-
-        if (ssidDisplayFirstHalf == false)
-            ssidDisplayFirstHalf = true;
-        else
-            ssidDisplayFirstHalf = false;
+        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
     }
 
     // Convert current SSID to string
@@ -2020,7 +2015,7 @@ void displayWiFiConfig()
     mySSIDFront[displayMaxCharacters] = '\0';
     mySSIDBack[displayMaxCharacters] = '\0';
 
-    if (ssidDisplayFirstHalf == true)
+    if (ssidDisplayFirstHalf)
         printTextCenter(mySSIDFront, yPos, QW_FONT_5X7, 1, false);
     else
         printTextCenter(mySSIDBack, yPos, QW_FONT_5X7, 1, false);

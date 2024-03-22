@@ -1532,7 +1532,8 @@ const uint8_t Micros_Icon[] = {0x3F, 0x04, 0x08, 0x88, 0x84, 0x8F, 0x80, 0x00,
 const uint8_t Nanos_Icon[] = {0x1F, 0x01, 0x01, 0x81, 0x9E, 0x80, 0x80, 0x00,
                               0x00, 0x00, 0x09, 0x0A, 0x0A, 0x0A, 0x04, 0x00};
 
-// Display.ino uses a vector (list) of iconProperty to define which icons are displayed where
+
+// Display.ino uses a vector (list) of iconPropertyBlinking to define which icons are displayed where.
 
 typedef struct {
     uint8_t x;
@@ -1549,12 +1550,17 @@ typedef struct {
 
 typedef struct {
     iconProperty icon;
-    bool blinking;
+    uint8_t duty;
 } iconPropertyBlinking;
 
 typedef struct {
     const iconProperty iconDisplay[DISPLAY_MAX_NONE];
 } iconProperties;
+
+// 64x48-specific
+const iconProperties BTSymbolLeft64x48 = {{ &BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 1, 0 }};
+const iconProperties DownloadArrowLeft64x48 = {{ &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 1, 0 }};
+const iconProperties UploadArrowLeft64x48 = {{ &UploadArrow, UploadArrow_Width, UploadArrow_Height, 1, 0 }};
 
 const uint8_t AccuracyIconXPos64x48 = 0;
 const uint8_t AccuracyIconYPos64x48 = 18;
