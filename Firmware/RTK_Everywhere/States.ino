@@ -1190,6 +1190,13 @@ bool inBaseMode()
     return (false);
 }
 
+bool inWiFiConfigMode()
+{
+    if(systemState >= STATE_WIFI_CONFIG_NOT_STARTED && systemState <= STATE_WIFI_CONFIG)
+        return (true);
+    return (false);
+}
+
 bool inNtpMode()
 {
     if(systemState >= STATE_NTPSERVER_NOT_STARTED && systemState <= STATE_NTPSERVER_SYNC)

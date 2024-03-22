@@ -117,7 +117,7 @@ void btReadTask(void *e)
 
     unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
-        2000;                      // Bluetooth serial traffic must stop this amount before an escape char is recognized
+        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
     uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
@@ -1250,6 +1250,7 @@ void tickerBeepUpdate()
 void buttonCheckTask(void *e)
 {
     uint8_t index;
+    unsigned long doubleTapReleaseTime = 0;
 
     // Start notification
     online.buttonCheckTaskRunning = true;
@@ -1276,6 +1277,57 @@ void buttonCheckTask(void *e)
             if (userBtn->wasReleased() && (tiltIsCorrecting() == true))
             {
                 tiltStop();
+            }
+
+            else if (userBtn->wasReleased())
+            {
+                // Check for double tap
+                if (millis() - doubleTapReleaseTime >= 1000) // Consider this the first tap
+                    doubleTapReleaseTime = millis();
+                else if (millis() - doubleTapReleaseTime < 1000)
+                {
+                    // If we are in Rover/Base mode, enter WiFi Config Mode
+                    if (inRoverMode() || inBaseMode())
+                    {
+                        // Beep if we are not locally compiled or a release candidate
+                        if (ENABLE_DEVELOPER == false)
+                        {
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                            delay(100);
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                        }
+
+                        forceSystemStateUpdate = true; // Immediately go to this new state
+                        changeState(STATE_WIFI_CONFIG_NOT_STARTED);
+                    }
+
+                    // If we are in WiFi Config Mode, exit to Rover
+                    else if (inWiFiConfigMode())
+                    {
+                        // Beep if we are not locally compiled or a release candidate
+                        if (ENABLE_DEVELOPER == false)
+                        {
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                            delay(100);
+                            beepOn();
+                            delay(300);
+                            beepOff();
+                        }
+
+                        forceSystemStateUpdate = true; // Immediately go to this new state
+                        changeState(STATE_ROVER_NOT_STARTED);
+                    }
+                }
+                else // This is just a random tap. Do nothing but reset our release time
+                {
+                    doubleTapReleaseTime = 0;
+                }
             }
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
