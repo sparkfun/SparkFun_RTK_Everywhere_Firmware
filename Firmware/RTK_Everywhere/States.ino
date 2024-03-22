@@ -431,8 +431,8 @@ void stateUpdate()
             bluetoothStop();
             espnowStop();
 
-            tasksStopGnssUart();   // Delete F9 serial tasks if running
-            if (!startWebServer()) // Start in AP mode and show config html page
+            tasksStopGnssUart();   // Delete serial tasks if running
+            if (!startWebServer()) // Start web server in WiFi mode and show config html page
                 changeState(STATE_ROVER_NOT_STARTED);
             else
             {
