@@ -559,9 +559,7 @@ void displayUpdate()
                 paintClock();
 
             // Center right
-            if (icons & ICON_HORIZONTAL_ACCURACY)
-                paintHorizontalAccuracy();
-            else if (icons & ICON_CLOCK_ACCURACY)
+            if (icons & ICON_CLOCK_ACCURACY)
                 paintClockAccuracy();
 
             // Bottom left corner
@@ -680,7 +678,7 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 
         iconPropertyBlinking prop;
         prop.icon = BatteryProperties.iconDisplay[batteryFraction][present.display_type];
-        prop.blinking = false;
+        prop.blinking = batteryFraction == 0;
         iconList->push_back(prop);
     }
 }
@@ -1270,10 +1268,10 @@ uint32_t blinkBaseIcon(uint32_t iconType)
 */
 
 // Display horizontal accuracy
-void paintHorizontalAccuracy()
+void paintHorizontalAccuracy(displayCoords textCoords)
 {
     oled->setFont(QW_FONT_8X16); // Set font to type 1: 8x16
-    oled->setCursor(16, 20);     // x, y
+    oled->setCursor(textCoords.x, textCoords.y);     // x, y
     oled->print(":");
 
     float hpa = gnssGetHorizontalAccuracy();
@@ -1483,11 +1481,16 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
 
 void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool blinking)
 {
-    // TODO: add the horizontal accuracy text depending on the icon position
     iconPropertyBlinking prop;
     prop.icon = icon->iconDisplay[present.display_type];
     prop.blinking = blinking;
     iconList->push_back(prop);
+
+    displayCoords textCoords;
+    textCoords.x = prop.icon.xPos + 16;
+    textCoords.y = prop.icon.yPos + 2;
+
+    paintHorizontalAccuracy(textCoords);
 }
 
 /*
