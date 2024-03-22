@@ -650,7 +650,7 @@ void networkRetry(NETWORK_DATA *network, uint8_t previousNetworkType)
 {
     uint8_t networkType;
     int seconds;
-    uint8_t users;
+    //uint8_t users;
 
     // Determine the delay multiplier
     network->connectionAttempt += 1;

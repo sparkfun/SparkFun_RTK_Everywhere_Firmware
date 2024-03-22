@@ -520,7 +520,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -530,7 +530,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add interstitial between end of lon and beginning of alt
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
@@ -539,7 +539,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
 
     // Add tilt-compensated Altitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
@@ -553,10 +553,10 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
 
     // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sizeof(newSentence));
+    strncpy(nmeaSentence, newSentence, arraySize);
 }
 
 // Modify a GLL sentence with tilt compensation
@@ -619,7 +619,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -629,7 +629,7 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
@@ -643,10 +643,10 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
 
     // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sizeof(newSentence));
+    strncpy(nmeaSentence, newSentence, arraySize);
 }
 
 // Modify a RMC sentence with tilt compensation
@@ -709,7 +709,7 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -719,7 +719,7 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + longitudeStop, checksumStart - longitudeStop);
@@ -733,10 +733,10 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
 
     // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sizeof(newSentence));
+    strncpy(nmeaSentence, newSentence, arraySize);
 }
 
 // Modify a GGA sentence with tilt compensation
@@ -811,7 +811,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add interstitial between end of lat and beginning of lon
     strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
@@ -821,7 +821,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
                            sizeof(coordinateStringDDMM));
 
     // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add interstitial between end of lon and beginning of alt
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
@@ -830,7 +830,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
 
     // Add tilt-compensated Altitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Add remainder of the sentence up to checksum
     strncat(newSentence, nmeaSentence + altitudeStop, checksumStart - altitudeStop);
@@ -844,10 +844,10 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "*%02X\r\n", CRC);
 
     // Add CRC
-    strncat(newSentence, coordinateStringDDMM, sizeof(coordinateStringDDMM));
+    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, sizeof(newSentence));
+    strncpy(nmeaSentence, newSentence, arraySize);
 
     if (settings.enableImuCompensationDebug == true)
         systemPrintf("Compensated GNGGA: %s\r\n", nmeaSentence);

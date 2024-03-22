@@ -1,4 +1,4 @@
-const uint8_t bufferLen = 1024;
+const uint16_t bufferLen = 1024;
 char cmdBuffer[bufferLen];
 char valueBuffer[bufferLen];
 const int MAX_TOKENS = 10;
@@ -608,7 +608,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settings.debugWiFiConfig == true)
             systemPrintln("Sending reset confirmation");
 
-        sendStringToWebsocket("confirmReset,1,");
+        sendStringToWebsocket((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
         if (configureViaEthernet)
@@ -705,7 +705,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settings.debugWiFiConfig == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
-        sendStringToWebsocket("checkingNewFirmware,1,"); // Tell the config page we received their request
+        sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
         char reportedVersion[20];
         char newVersionCSV[100];
@@ -744,13 +744,13 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settings.debugWiFiConfig == true)
             systemPrintln("Getting new OTA Pull firmware");
 
-        sendStringToWebsocket("gettingNewFirmware,1,");
+        sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
         apConfigFirmwareUpdateInProcess = true;
         otaUpdate();
 
         // We get here if WiFi failed to connect
-        sendStringToWebsocket("gettingNewFirmware,ERROR,");
+        sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
     }
 
     // Unused variables - read to avoid errors
@@ -1600,12 +1600,12 @@ void writeToString(char *settingValueStr, int value)
 }
 void writeToString(char *settingValueStr, uint64_t value)
 {
-    sprintf(settingValueStr, "%lu", value);
+    sprintf(settingValueStr, "%" PRIu64, value);
 }
 
 void writeToString(char *settingValueStr, uint32_t value)
 {
-    sprintf(settingValueStr, "%lu", value);
+    sprintf(settingValueStr, "%" PRIu32, value);
 }
 void writeToString(char *settingValueStr, double value)
 {

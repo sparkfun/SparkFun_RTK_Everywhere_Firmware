@@ -983,11 +983,11 @@ bool um980InRoverMode()
 
 char *um980GetRtcmDefaultString()
 {
-    return ("1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz");
+    return ((char *)"1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz");
 }
 char *um980GetRtcmLowDataRateString()
 {
-    return ("1074/1084/1094/1124 1Hz & 1005/1033 0.1Hz");
+    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1033 0.1Hz");
 }
 
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz)

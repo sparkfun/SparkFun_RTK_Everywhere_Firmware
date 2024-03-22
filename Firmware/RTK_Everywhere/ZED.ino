@@ -1655,11 +1655,11 @@ void zedBaseRtcmLowDataRate()
 
 char *zedGetRtcmDefaultString()
 {
-    return ("1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
+    return ((char *)"1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
 }
 char *zedGetRtcmLowDataRateString()
 {
-    return ("1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
+    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
 }
 
 float zedGetSurveyInStartingAccuracy()

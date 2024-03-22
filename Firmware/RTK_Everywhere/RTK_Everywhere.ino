@@ -623,7 +623,7 @@ TaskHandle_t updatePplTaskHandle;        // Store handles so that we can delete 
 const uint8_t updatePplTaskPriority = 0; // 3 being the highest, and 0 being the lowest
 const int updatePplTaskStackSize = 3000;
 
-#endif COMPILE_POINTPERFECT_LIBRARY
+#endif // COMPILE_POINTPERFECT_LIBRARY
 
 bool pplNewRtcmNmea;
 bool pplNewSpartn;

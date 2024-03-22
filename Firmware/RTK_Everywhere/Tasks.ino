@@ -115,12 +115,12 @@ void btReadTask(void *e)
 {
     int rxBytes;
 
-    unsigned long btLastByteReceived; // Track when the last BT transmission was received.
+    unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
         2000;                      // Bluetooth serial traffic must stop this amount before an escape char is recognized
-    uint8_t btEscapeCharsReceived; // Used to enter remote command mode
+    uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
-    uint8_t btAppCommandCharsReceived; // Used to enter app command mode
+    uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
 
     // Start notification
     online.btReadTaskRunning = true;
@@ -1133,9 +1133,9 @@ void tickerBluetoothLedUpdate()
 void tickerGnssLedUpdate()
 {
     static uint8_t ledCallCounter = 0; // Used to calculate a 50% or 10% on rate for blinking
-    static int gnssFadeLevel = 0;      // Used to fade LED when needed
-    static int gnssPwmFadeAmount =
-        255 / gnssTaskUpdatesHz; // Fade in/out with 20 steps, as limited by the ticker rate of 20Hz
+    // static int gnssFadeLevel = 0;      // Used to fade LED when needed
+    // static int gnssPwmFadeAmount = 255 / gnssTaskUpdatesHz; // Fade in/out with 20 steps, as limited by the ticker
+    // rate of 20Hz
 
     ledCallCounter++;
     ledCallCounter %= gnssTaskUpdatesHz; // Wrap to X calls per 1 second

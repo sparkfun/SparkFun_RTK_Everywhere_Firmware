@@ -243,12 +243,12 @@ void clearBuffer()
 // Used for raw mixed entry (SSID, pws, etc)
 // Used by other menu input methods that use sscanf
 // Returns INPUT_RESPONSE_VALID, INPUT_RESPONSE_TIMEOUT, INPUT_RESPONSE_OVERFLOW, or INPUT_RESPONSE_EMPTY
-InputResponse getUserInputString(char *userString, uint8_t stringSize)
+InputResponse getUserInputString(char *userString, uint16_t stringSize)
 {
     return getUserInputString(userString, stringSize, true); // Allow local echo if setting enabled
 }
 
-InputResponse getUserInputString(char *userString, uint8_t stringSize, bool localEcho)
+InputResponse getUserInputString(char *userString, uint16_t stringSize, bool localEcho)
 {
     clearBuffer();
 
@@ -1019,7 +1019,7 @@ void printPartitionTable(void)
             const esp_partition_t *p = esp_partition_get(pi);
             systemPrintf("|  %02x  | %02x  | 0x%06X | 0x%06X | %-16s |\r\n", p->type, p->subtype, p->address, p->size,
                          p->label);
-        } while (pi = (esp_partition_next(pi)));
+        } while ((pi = (esp_partition_next(pi))));
     }
 }
 
@@ -1033,7 +1033,7 @@ bool findSpiffsPartition(void)
             const esp_partition_t *p = esp_partition_get(pi);
             if (strcmp(p->label, "spiffs") == 0)
                 return true;
-        } while (pi = (esp_partition_next(pi)));
+        } while ((pi = (esp_partition_next(pi))));
     }
     return false;
 }

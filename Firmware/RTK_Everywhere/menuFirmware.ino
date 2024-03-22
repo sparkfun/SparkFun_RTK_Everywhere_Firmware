@@ -820,10 +820,10 @@ void otaSetState(OtaState newState)
 {
     char string1[40];
     char string2[40];
-    const char *arrow;
-    const char *asterisk;
-    const char *initialState;
-    const char *endingState;
+    const char *arrow = nullptr;
+    const char *asterisk = nullptr;
+    const char *initialState = nullptr;
+    const char *endingState = nullptr;
 
     // Display the state transition
     if (settings.debugFirmwareUpdate)

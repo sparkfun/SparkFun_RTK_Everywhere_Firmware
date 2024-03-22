@@ -93,9 +93,14 @@ int bluetoothRead(uint8_t *buffer, int length)
             return (bytesRead);
 
         bytesRead = bluetoothSerialSpp->readBytes(buffer, length);
+
+        return (bytesRead);
     }
     else
         return bluetoothSerial->readBytes(buffer, length);
+
+    return 0;
+
 #else  // COMPILE_BT
     return 0;
 #endif // COMPILE_BT
