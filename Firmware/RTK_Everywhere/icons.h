@@ -1560,7 +1560,12 @@ typedef struct {
 } iconProperty;
 
 typedef struct {
-    iconProperty iconDisplay[DISPLAY_MAX_NONE];
+    iconProperty icon;
+    bool blinking;
+} iconPropertyBlinking;
+
+typedef struct {
+    const iconProperty iconDisplay[DISPLAY_MAX_NONE];
 } iconProperties;
 
 const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }, { &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }}};
@@ -1572,7 +1577,7 @@ const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width,
 
 #define LOGGING_ICON_STATES 4
 typedef struct {
-    iconProperty iconDisplay[LOGGING_ICON_STATES][DISPLAY_MAX_NONE];
+    const iconProperty iconDisplay[LOGGING_ICON_STATES][DISPLAY_MAX_NONE];
 } iconLoggingProperties;
 
 const iconLoggingProperties LoggingIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },

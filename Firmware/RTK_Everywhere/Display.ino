@@ -94,9 +94,9 @@ bool ssidDisplayFirstHalf = false;
 // Icons
 #include "icons.h"
 
-std::vector<iconProperty> iconPropertyList; // List of icons to be displayed
+std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
 
-void paintLogging(std::vector<iconProperty> *iconList, bool pulse = true, bool NTP = false); // Header
+void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse = true, bool NTP = false); // Header
 
 //----------------------------------------
 // Routines
@@ -185,56 +185,6 @@ void beginDisplay(TwoWire *i2cBus)
     }
 }
 
-// Avoid code repetition
-void displayBatteryVsEthernet(std::vector<iconProperty> *iconList)
-{
-    if (online.battery)        // Product has a battery
-        paintBatteryLevel(iconList);
-    else                       // if (present.ethernet_ws5500 == true)
-    {
-        if (online.ethernetStatus == ETH_NOT_STARTED)
-            ; // If Ethernet has not stated because not needed, don't display the icon
-        else if (online.ethernetStatus == ETH_CONNECTED)
-            iconList->push_back(EthernetIconProperties.iconDisplay[present.display_type]);
-        else
-            iconList->push_back(EthernetIconProperties.iconDisplay[present.display_type]); // TODO: make this blink
-    }
-}
-
-void displaySivVsOpenShort(std::vector<iconProperty> *iconList)
-{
-    if (present.antennaShortOpen == false)
-    {
-        displayCoords textCoords = paintSIVIcon(iconList, nullptr, false);
-        paintSIVText(textCoords);
-    }
-    else
-    {
-        displayCoords textCoords;
-        
-        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
-        {
-            textCoords = paintSIVIcon(iconList, &ShortIconProperties, true);
-        }
-        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
-        {
-            textCoords = paintSIVIcon(iconList, &OpenIconProperties, true);
-        }
-        else
-        {
-            textCoords = paintSIVIcon(iconList, nullptr, false);
-        }
-
-        paintSIVText(textCoords);
-    }
-}
-
-void displayHorizontalAccuracy(std::vector<iconProperty> *iconList, const iconProperties *icon)
-{
-    // TODO: add the horizontal accuracy text depending on the icon position
-    iconList->push_back(icon->iconDisplay[present.display_type]);
-}
-
 // Given the system state, display the appropriate information
 void displayUpdate()
 {
@@ -314,26 +264,24 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties);
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, false); // Single crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 iconsRadio = setRadioIcons();      // Top left
                 break;
             case (STATE_ROVER_NO_FIX):
-                icons = ICON_CROSS_HAIR            // Center left
-                        | ICON_HORIZONTAL_ACCURACY // Center right
-                        | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort(&iconPropertyList);           // Bottom left
-                displayBatteryVsEthernet(&iconPropertyList);        // Top right
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, true); // Single crosshair, blink
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
                 iconsRadio = setRadioIcons();      // Top left
                 break;
             case (STATE_ROVER_FIX):
-                icons = ICON_CROSS_HAIR            // Center left
-                        | ICON_HORIZONTAL_ACCURACY // Center right
-                        | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort(&iconPropertyList);           // Bottom left
-                displayBatteryVsEthernet(&iconPropertyList);        // Top right
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, false); // Single crosshair, no blink
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
                 iconsRadio = setRadioIcons();      // Top left
                 break;
             case (STATE_ROVER_RTK_FLOAT):
@@ -721,7 +669,7 @@ void displayError(const char *errorMessage)
 */
 
 // Print the classic battery icon with levels
-void paintBatteryLevel(std::vector<iconProperty> *iconList)
+void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 {
     if (online.display == true)
     {
@@ -729,7 +677,11 @@ void paintBatteryLevel(std::vector<iconProperty> *iconList)
         int batteryFraction = batteryLevelPercent / 25;
         if (batteryFraction >= BATTERY_CHARGE_STATES)
             batteryFraction = BATTERY_CHARGE_STATES - 1;
-        iconList->push_back(BatteryProperties.iconDisplay[batteryFraction][present.display_type]);
+
+        iconPropertyBlinking prop;
+        prop.icon = BatteryProperties.iconDisplay[batteryFraction][present.display_type];
+        prop.blinking = false;
+        iconList->push_back(prop);
     }
 }
 
@@ -1480,6 +1432,64 @@ void paintDynamicModel()
     }
 }
 
+void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
+{
+    if (online.battery)        // Product has a battery
+        paintBatteryLevel(iconList);
+    else                       // if (present.ethernet_ws5500 == true)
+    {
+        if (online.ethernetStatus == ETH_NOT_STARTED)
+            return; // If Ethernet has not stated because not needed, don't display the icon
+
+        iconPropertyBlinking prop;
+        prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+
+        if (online.ethernetStatus == ETH_CONNECTED)
+            prop.blinking = false;
+        else
+            prop.blinking = false;
+
+        iconList->push_back(prop);
+    }
+}
+
+void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
+{
+    if (present.antennaShortOpen == false)
+    {
+        displayCoords textCoords = paintSIVIcon(iconList, nullptr, false);
+        paintSIVText(textCoords);
+    }
+    else
+    {
+        displayCoords textCoords;
+        
+        if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
+        {
+            textCoords = paintSIVIcon(iconList, &ShortIconProperties, true);
+        }
+        else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
+        {
+            textCoords = paintSIVIcon(iconList, &OpenIconProperties, true);
+        }
+        else
+        {
+            textCoords = paintSIVIcon(iconList, nullptr, false);
+        }
+
+        paintSIVText(textCoords);
+    }
+}
+
+void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool blinking)
+{
+    // TODO: add the horizontal accuracy text depending on the icon position
+    iconPropertyBlinking prop;
+    prop.icon = icon->iconDisplay[present.display_type];
+    prop.blinking = blinking;
+    iconList->push_back(prop);
+}
+
 /*
                111111111122222222223333333333444444444455555555556666
      0123456789012345678901234567890123456789012345678901234567890123
@@ -1501,7 +1511,7 @@ void paintDynamicModel()
 
 // Select satellite icon and draw sats in view
 // Blink icon if no fix
-displayCoords paintSIVIcon(std::vector<iconProperty> *iconList, const iconProperties *icon, bool blink)
+displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool blinking)
 {
     if (icon == nullptr) // Not short or open, so decide which icon to use
     {
@@ -1516,12 +1526,8 @@ displayCoords paintSIVIcon(std::vector<iconProperty> *iconList, const iconProper
             // Determine if there is a fix
             if (gnssIsFixed() == false)
             {
-                blink = false;
-            }
-            else
-            {
-                // Blink satellite dish icon if we don't have a fix
-                blink = true;
+                // override blinking - blink satellite dish icon if we don't have a fix
+                blinking = true;
             }
         } // End gnss online
         else
@@ -1534,7 +1540,10 @@ displayCoords paintSIVIcon(std::vector<iconProperty> *iconList, const iconProper
     textCoords.x = icon->iconDisplay[present.display_type].xPos + icon->iconDisplay[present.display_type].width + 2;
     textCoords.y = icon->iconDisplay[present.display_type].yPos + 1;
 
-    iconList->push_back(icon->iconDisplay[present.display_type]); // TODO: make this blink
+    iconPropertyBlinking prop;
+    prop.icon = icon->iconDisplay[present.display_type];
+    prop.blinking = blinking;
+    iconList->push_back(prop);
 
     return textCoords;
 }
@@ -1580,12 +1589,15 @@ void paintSIVText(displayCoords textCoords)
 
 // Draw log icon
 // Turn off icon if log file fails to get bigger
-void paintLogging(std::vector<iconProperty> *iconList, bool pulse, bool NTP)
+void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool NTP)
 {
     // Animate icon to show system running
     static uint8_t loggingIconDisplayed = LOGGING_ICON_STATES - 1;
     loggingIconDisplayed++;    // Goto next icon
     loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
+
+    iconPropertyBlinking prop;
+    prop.blinking = false;
 
 #ifdef COMPILE_ETHERNET
     if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
@@ -1595,24 +1607,27 @@ void paintLogging(std::vector<iconProperty> *iconList, bool pulse, bool NTP)
     {
         if (NTP)
         {
-            iconList->push_back(LoggingNTPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
+            prop.icon = LoggingNTPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
         else if (loggingType == LOGGING_STANDARD)
         {
-            iconList->push_back(LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
+            prop.icon = LoggingIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
         else if (loggingType == LOGGING_PPP)
         {
-            iconList->push_back(LoggingPPPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
+            prop.icon = LoggingPPPIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
         else if (loggingType == LOGGING_CUSTOM)
         {
-            iconList->push_back(LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
+            prop.icon = LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
+        
+        iconList->push_back(prop);
     }
     else if (pulse)
     {
-        iconList->push_back(PulseIconProperties.iconDisplay[loggingIconDisplayed][present.display_type]);
+        prop.icon = PulseIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
+        iconList->push_back(prop);
     }
 }
 
