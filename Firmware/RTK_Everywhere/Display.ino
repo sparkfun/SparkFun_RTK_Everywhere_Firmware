@@ -268,38 +268,35 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                iconsRadio = setRadioIcons();      // Top left
+                setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_NO_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, true); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                iconsRadio = setRadioIcons();      // Top left
+                setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_FIX):
                 displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, false); // Single crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
-                iconsRadio = setRadioIcons();      // Top left
+                setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
-                blinking_icons ^= ICON_CROSS_HAIR_DUAL;
-                icons = (blinking_icons & ICON_CROSS_HAIR_DUAL) // Center left
-                        | ICON_HORIZONTAL_ACCURACY              // Center right
-                        | ICON_LOGGING;                         // Bottom right
-                displaySivVsOpenShort(&iconPropertyList);                        // Bottom left
-                displayBatteryVsEthernet(&iconPropertyList);                     // Top right
-                iconsRadio = setRadioIcons();                   // Top left
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, true); // Dual crosshair, blink
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
+                setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
-                icons = ICON_CROSS_HAIR_DUAL       // Center left
-                        | ICON_HORIZONTAL_ACCURACY // Center right
-                        | ICON_LOGGING;            // Bottom right
-                displaySivVsOpenShort(&iconPropertyList);           // Bottom left
-                displayBatteryVsEthernet(&iconPropertyList);        // Top right
-                iconsRadio = setRadioIcons();      // Top left
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, no blink
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
+                setRadioIcons(&iconPropertyList);
                 break;
 
             case (STATE_BASE_NOT_STARTED):
@@ -310,35 +307,32 @@ void displayUpdate()
             // Screen is displayed while we are waiting for horz accuracy to drop to appropriate level
             // Blink crosshair icon until we have we have horz accuracy < user defined level
             case (STATE_BASE_TEMP_SETTLE):
-                blinking_icons ^= ICON_CROSS_HAIR;
-                icons = (blinking_icons & ICON_CROSS_HAIR) // Center left
-                        | ICON_HORIZONTAL_ACCURACY         // Center right
-                        | ICON_LOGGING;                    // Bottom right
-                displaySivVsOpenShort(&iconPropertyList);                   // Bottom left
-                displayBatteryVsEthernet(&iconPropertyList);                // Top right
-                iconsRadio = setRadioIcons();              // Top left
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, true); // Single crosshair, blink
+                paintLogging(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);
+                displayBatteryVsEthernet(&iconPropertyList);
+                setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_SURVEY_STARTED):
-                icons = ICON_LOGGING;         // Bottom right
+                paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
-                iconsRadio = setRadioIcons(); // Top left
-                paintBaseTempSurveyStarted();
+                setRadioIcons(&iconPropertyList);
+                paintBaseTempSurveyStarted(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
-                icons = ICON_LOGGING;         // Bottom right
+                paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
-                iconsRadio = setRadioIcons(); // Top left
+                setRadioIcons(&iconPropertyList);
                 paintRTCM();
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
-                icons = 0;                    // Top right
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
-                iconsRadio = setRadioIcons(); // Top left
+                setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
-                icons = ICON_LOGGING;         // Bottom right
+                paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
-                iconsRadio = setRadioIcons(); // Top left
+                setRadioIcons(&iconPropertyList);
                 paintRTCM();
                 break;
 
@@ -739,12 +733,9 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 // Set bits to turn on various icons in the Radio area
 // ie: Bluetooth, WiFi, ESP Now, Mode indicators, as well as sub states of each (MAC, Blinking, Arrows, etc), depending
 // on connection state This function has all the logic to determine how a shared icon spot should act. ie: if we need an
-// up arrow, blink the ESP Now icon, etc. This function merely sets the bits to what should be displayed. The main
-// updateDisplay() function pushes bits to screen.
-uint32_t setRadioIcons()
+// up arrow, blink the ESP Now icon, etc.
+void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     if (online.display == true)
     {
         // There are three spots for icons in the Wireless area, left/center/right
@@ -793,8 +784,6 @@ uint32_t setRadioIcons()
             // No Rover/Base icons
         }
     }
-
-    return icons;
 }
 
 // Bluetooth is in left position
@@ -1637,51 +1626,50 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
 }
 
 // Survey in is running. Show 3D Mean and elapsed time.
-void paintBaseTempSurveyStarted()
+void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 {
+    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
+    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
+
     oled->setFont(QW_FONT_5X7);
-    oled->setCursor(0, 23); // x, y
+    oled->setCursor(xPos, yPos + 5); // x, y
     oled->print("Mean:");
 
-    oled->setCursor(29, 20); // x, y
+    oled->setCursor(xPos + 29, yPos + 2); // x, y
     oled->setFont(QW_FONT_8X16);
     if (gnssGetSurveyInMeanAccuracy() < 10.0) // Error check
         oled->print(gnssGetSurveyInMeanAccuracy(), 2);
     else
         oled->print(">10");
 
+    xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
+    yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
+
     if (present.antennaShortOpen == false)
     {
-        oled->setCursor(0, 39); // x, y
+        oled->setCursor((uint8_t((int)xPos + SIVTextStartXPosOffset[present.display_type])), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
         oled->print("Time:");
     }
     else
     {
-        static uint32_t blinkers = 0;
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
-            blinkers ^= ICON_ANTENNA_SHORT;
-            if (blinkers & ICON_ANTENNA_SHORT)
-                displayBitmap(2, 35, Antenna_Short_Width, Antenna_Short_Height, Antenna_Short);
+            paintSIVIcon(iconList, &ShortIconProperties, true);
         }
         else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
         {
-            blinkers ^= ICON_ANTENNA_OPEN;
-            if (blinkers & ICON_ANTENNA_OPEN)
-                displayBitmap(2, 35, Antenna_Open_Width, Antenna_Open_Height, Antenna_Open);
+            paintSIVIcon(iconList, &OpenIconProperties, true);
         }
         else
         {
-            blinkers &= ~ICON_ANTENNA_SHORT;
-            blinkers &= ~ICON_ANTENNA_OPEN;
-            oled->setCursor(0, 39); // x, y
+            oled->setCursor((uint8_t((int)xPos + SIVTextStartXPosOffset[present.display_type])), yPos + 4); // x, y
             oled->setFont(QW_FONT_5X7);
             oled->print("Time:");
         }
     }
 
-    oled->setCursor(30, 36); // x, y
+    oled->setCursor((uint8_t((int)xPos + SIVTextStartXPosOffset[present.display_type])) + 30, yPos + 1); // x, y
     oled->setFont(QW_FONT_8X16);
     if (gnssGetSurveyInObservationTime() < 1000) // Error check
         oled->print(gnssGetSurveyInObservationTime());

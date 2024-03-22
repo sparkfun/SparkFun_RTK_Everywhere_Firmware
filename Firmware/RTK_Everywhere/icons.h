@@ -471,8 +471,8 @@ const uint8_t BaseFixed[] = {0x00, 0xFF, 0x01, 0x0F, 0x01, 0x8F, 0x88, 0x88, 0x8
             '-------------------'
 */
 
-const int Battery_3_Height = 12;
-const int Battery_3_Width = 19;
+const int Battery_Height = 12;
+const int Battery_Width = 19;
 const uint8_t Battery_3[] = {0xFF, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0xFD,
                              0xFD, 0xFD, 0x01, 0x0F, 0x08, 0xF8, 0x0F, 0x08, 0x0B, 0x0B, 0x0B, 0x08, 0x08,
                              0x0B, 0x0B, 0x0B, 0x08, 0x08, 0x0B, 0x0B, 0x0B, 0x08, 0x0F, 0x01, 0x01};
@@ -498,8 +498,6 @@ const uint8_t Battery_3[] = {0xFF, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0xFD, 0xF
             '-------------------'
 */
 
-const int Battery_2_Height = 12;
-const int Battery_2_Width = 19;
 const uint8_t Battery_2[] = {0xFF, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0x01,
                              0x01, 0x01, 0x01, 0x0F, 0x08, 0xF8, 0x0F, 0x08, 0x0B, 0x0B, 0x0B, 0x08, 0x08,
                              0x0B, 0x0B, 0x0B, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0F, 0x01, 0x01};
@@ -525,8 +523,6 @@ const uint8_t Battery_2[] = {0xFF, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0xFD, 0xF
             '-------------------'
 */
 
-const int Battery_1_Height = 12;
-const int Battery_1_Width = 19;
 const uint8_t Battery_1[] = {0xFF, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                              0x01, 0x01, 0x01, 0x0F, 0x08, 0xF8, 0x0F, 0x08, 0x0B, 0x0B, 0x0B, 0x08, 0x08,
                              0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0F, 0x01, 0x01};
@@ -552,8 +548,6 @@ const uint8_t Battery_1[] = {0xFF, 0x01, 0xFD, 0xFD, 0xFD, 0x01, 0x01, 0x01, 0x0
             '-------------------'
 */
 
-const int Battery_0_Height = 12;
-const int Battery_0_Width = 19;
 const uint8_t Battery_0[] = {0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                              0x01, 0x01, 0x01, 0x0F, 0x08, 0xF8, 0x0F, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
                              0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0F, 0x01, 0x01};
@@ -605,8 +599,8 @@ const uint8_t Ethernet_Icon[] = {0x00, 0x20, 0xA0, 0xA0, 0xE0, 0xA0, 0xA0, 0x2E,
             '---------'
 */
 
-const int Logging_3_Height = 12;
-const int Logging_3_Width = 9;
+const int Logging_Height = 12;
+const int Logging_Width = 9;
 const uint8_t Logging_3[] = {0xFF, 0x01, 0x51, 0x51, 0x51, 0x51, 0x53, 0x06, 0xFC,
                              0x0F, 0x08, 0x09, 0x09, 0x09, 0x09, 0x09, 0x08, 0x0F};
 
@@ -630,8 +624,6 @@ const uint8_t Logging_3[] = {0xFF, 0x01, 0x51, 0x51, 0x51, 0x51, 0x53, 0x06, 0xF
             '---------'
 */
 
-const int Logging_2_Height = 12;
-const int Logging_2_Width = 9;
 const uint8_t Logging_2[] = {0xFF, 0x01, 0x41, 0x41, 0x41, 0x41, 0x43, 0x06, 0xFC,
                              0x0F, 0x08, 0x09, 0x09, 0x09, 0x09, 0x09, 0x08, 0x0F};
 
@@ -655,8 +647,6 @@ const uint8_t Logging_2[] = {0xFF, 0x01, 0x41, 0x41, 0x41, 0x41, 0x43, 0x06, 0xF
             '---------'
 */
 
-const int Logging_1_Height = 12;
-const int Logging_1_Width = 9;
 const uint8_t Logging_1[] = {0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x03, 0x06, 0xFC,
                              0x0F, 0x08, 0x09, 0x09, 0x09, 0x09, 0x09, 0x08, 0x0F};
 
@@ -680,8 +670,6 @@ const uint8_t Logging_1[] = {0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x03, 0x06, 0xF
             '---------'
 */
 
-const int Logging_0_Height = 12;
-const int Logging_0_Width = 9;
 const uint8_t Logging_0[] = {0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x03, 0x06, 0xFC,
                              0x0F, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0F};
 
@@ -1568,76 +1556,117 @@ typedef struct {
     const iconProperty iconDisplay[DISPLAY_MAX_NONE];
 } iconProperties;
 
-const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }, { &CrossHair, CrossHair_Width, CrossHair_Height, 0, 18 }}};
-const iconProperties CrossHairDualProperties = {{{ &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, 0, 18 }, { &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, 0, 18 }}};
-const iconProperties EthernetIconProperties = {{{ &Ethernet_Icon, Ethernet_Icon_Width, Ethernet_Icon_Height, 45, 0 }, { &Ethernet_Icon, Ethernet_Icon_Width, Ethernet_Icon_Height, 45, 0 }}};
-const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, 2, 35 }, { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, 2, 35 }}};
-const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, 2, 35 }, { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, 2, 35 }}};
-const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, 2, 35 }, { &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, 2, 35 }}};
-const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, 2, 35 }, { &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, 2, 35 }}};
+const uint8_t AccuracyIconXPos64x48 = 0;
+const uint8_t AccuracyIconYPos64x48 = 18;
+const uint8_t AccuracyIconXPos128x64 = 0;
+const uint8_t AccuracyIconYPos128x64 = 18;
+
+const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                             { &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}};
+const iconProperties CrossHairDualProperties = {{{ &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                 { &CrossHairDual, CrossHairDual_Width, CrossHairDual_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}};
+
+#define CLOCK_ICON_STATES 4
+typedef struct {
+    iconProperty iconDisplay[CLOCK_ICON_STATES][DISPLAY_MAX_NONE];
+} iconClockProperties;
+
+const iconClockProperties ClockIconProperties = {{{{ &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                   { &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }},
+                                                  {{ &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                   { &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }},
+                                                  {{ &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                   { &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }},
+                                                  {{ &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
+                                                   { &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}}};
+
+const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the accuracy icon. But it causes challenges elsewhere
+const uint8_t SIVIconYPos64x48 = 35;
+const uint8_t SIVIconXPos128x64 = 2;
+const uint8_t SIVIconYPos128x64 = 35;
+
+const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = { -2, -2 }; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
+
+const iconProperties SIVIconProperties = {{{ &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
+                                           { &SIV_Antenna, SIV_Antenna_Width, SIV_Antenna_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+const iconProperties LBandIconProperties = {{{ &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
+                                             { &SIV_Antenna_LBand, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
+                                             { &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
+                                            { &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+
+const uint8_t LoggingIconXPos64x48 = DisplayWidth[0] - Logging_Width; // Put the logging icon in the bottom right corner
+const uint8_t LoggingIconYPos64x48 = DisplayHeight[0] - Logging_Height;
+const uint8_t LoggingIconXPos128x64 = DisplayWidth[1] - Logging_Width;
+const uint8_t LoggingIconYPos128x64 = DisplayHeight[1] - Logging_Height;
 
 #define LOGGING_ICON_STATES 4
 typedef struct {
     const iconProperty iconDisplay[LOGGING_ICON_STATES][DISPLAY_MAX_NONE];
 } iconLoggingProperties;
 
-const iconLoggingProperties LoggingIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
-                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
-                                               {{ &Logging_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
-                                                { &Logging_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
-                                               {{ &Logging_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
-                                                { &Logging_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
-                                               {{ &Logging_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
-                                                { &Logging_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
-const iconLoggingProperties LoggingPPPIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
-                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
-                                               {{ &Logging_PPP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
-                                                { &Logging_PPP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
-                                               {{ &Logging_PPP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
-                                                { &Logging_PPP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
-                                               {{ &Logging_PPP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
-                                                { &Logging_PPP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
-const iconLoggingProperties LoggingCustomIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
-                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
-                                               {{ &Logging_Custom_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
-                                                { &Logging_Custom_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
-                                               {{ &Logging_Custom_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
-                                                { &Logging_Custom_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
-                                               {{ &Logging_Custom_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
-                                                { &Logging_Custom_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
-const iconLoggingProperties LoggingNTPIconProperties = {{{{ &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
-                                                { &Logging_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
-                                               {{ &Logging_NTP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
-                                                { &Logging_NTP_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
-                                               {{ &Logging_NTP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
-                                                { &Logging_NTP_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
-                                               {{ &Logging_NTP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
-                                                { &Logging_NTP_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
-const iconLoggingProperties PulseIconProperties = {{{{ &Pulse_0, Logging_0_Width, Logging_0_Height, DisplayWidth[0] - Logging_0_Width, DisplayHeight[0] - Logging_0_Height },
-                                                { &Pulse_0, Logging_0_Width, Logging_0_Height, DisplayWidth[1] - Logging_0_Width, DisplayHeight[1] - Logging_0_Height }},
-                                               {{ &Pulse_1, Logging_1_Width, Logging_1_Height, DisplayWidth[0] - Logging_1_Width, DisplayHeight[0] - Logging_1_Height },
-                                                { &Pulse_1, Logging_1_Width, Logging_1_Height, DisplayWidth[1] - Logging_1_Width, DisplayHeight[1] - Logging_1_Height }},
-                                               {{ &Pulse_2, Logging_2_Width, Logging_2_Height, DisplayWidth[0] - Logging_2_Width, DisplayHeight[0] - Logging_2_Height },
-                                                { &Pulse_2, Logging_2_Width, Logging_2_Height, DisplayWidth[1] - Logging_2_Width, DisplayHeight[1] - Logging_2_Height }},
-                                               {{ &Pulse_3, Logging_3_Width, Logging_3_Height, DisplayWidth[0] - Logging_3_Width, DisplayHeight[0] - Logging_3_Height },
-                                                { &Pulse_3, Logging_3_Width, Logging_3_Height, DisplayWidth[1] - Logging_3_Width, DisplayHeight[1] - Logging_3_Height }}}};
+const iconLoggingProperties LoggingIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
+const iconLoggingProperties LoggingPPPIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_PPP_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_PPP_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_PPP_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_PPP_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_PPP_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_PPP_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
+const iconLoggingProperties LoggingCustomIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_Custom_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_Custom_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_Custom_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_Custom_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_Custom_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_Custom_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
+const iconLoggingProperties LoggingNTPIconProperties = {{{{ &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_NTP_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_NTP_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_NTP_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_NTP_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Logging_NTP_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Logging_NTP_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
+const iconLoggingProperties PulseIconProperties = {{{{ &Pulse_0, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Pulse_0, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Pulse_1, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Pulse_1, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Pulse_2, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Pulse_2, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }},
+                                               {{ &Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
+                                                { &Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
+
+const uint8_t BatteryIconXPos64x48 = DisplayWidth[0] - Battery_Width; // Put the logging icon in the top right corner
+const uint8_t BatteryIconYPos64x48 = 0;
+const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - Battery_Width;
+const uint8_t BatteryIconYPos128x64 = 0;
+
+const iconProperties EthernetIconProperties = {{{ &Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
+                                                { &Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 }}};
 
 #define BATTERY_CHARGE_STATES 4
 typedef struct {
     iconProperty iconDisplay[BATTERY_CHARGE_STATES][DISPLAY_MAX_NONE];
 } iconBatteryProperties;
 
-const iconBatteryProperties BatteryProperties = {{{{ &Battery_0, Battery_0_Width, Battery_0_Height, 45, 0 }, { &Battery_0, Battery_0_Width, Battery_0_Height, 45, 0 }},
-                                                  {{ &Battery_1, Battery_1_Width, Battery_1_Height, 45, 0 }, { &Battery_1, Battery_1_Width, Battery_1_Height, 45, 0 }},
-                                                  {{ &Battery_2, Battery_2_Width, Battery_2_Height, 45, 0 }, { &Battery_2, Battery_2_Width, Battery_2_Height, 45, 0 }},
-                                                  {{ &Battery_3, Battery_3_Width, Battery_3_Height, 45, 0 }, { &Battery_3, Battery_3_Width, Battery_3_Height, 45, 0 }}}};                                                
-#define CLOCK_ICON_STATES 4
-typedef struct {
-    iconProperty iconDisplay[CLOCK_ICON_STATES][DISPLAY_MAX_NONE];
-} iconClockProperties;
+const iconBatteryProperties BatteryProperties = {{{{ &Battery_0, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
+                                                   { &Battery_0, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }},
+                                                  {{ &Battery_1, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
+                                                   { &Battery_1, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }},
+                                                  {{ &Battery_2, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
+                                                   { &Battery_2, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }},
+                                                  {{ &Battery_3, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
+                                                   { &Battery_3, Battery_Width, Battery_Height, BatteryIconXPos128x64, BatteryIconYPos128x64 }}}};
 
-const iconClockProperties ClockIconProperties = {{{{ &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_0, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }},
-                                                  {{ &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_1, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }},
-                                                  {{ &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_2, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }},
-                                                  {{ &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }, { &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, 0, 18 }}}};                                                
 #endif
