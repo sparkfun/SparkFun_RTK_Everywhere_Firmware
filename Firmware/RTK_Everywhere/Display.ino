@@ -323,7 +323,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
                 setRadioIcons(&iconPropertyList);
-                paintRTCM();
+                paintRTCM(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
@@ -333,7 +333,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);   // Top right
                 setRadioIcons(&iconPropertyList);
-                paintRTCM();
+                paintRTCM(&iconPropertyList);
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -1647,7 +1647,7 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 
     if (present.antennaShortOpen == false)
     {
-        oled->setCursor((uint8_t((int)xPos + SIVTextStartXPosOffset[present.display_type])), yPos + 4); // x, y
+        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
         oled->print("Time:");
     }
@@ -1663,13 +1663,13 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-            oled->setCursor((uint8_t((int)xPos + SIVTextStartXPosOffset[present.display_type])), yPos + 4); // x, y
+            oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
             oled->setFont(QW_FONT_5X7);
             oled->print("Time:");
         }
     }
 
-    oled->setCursor((uint8_t((int)xPos + SIVTextStartXPosOffset[present.display_type])) + 30, yPos + 1); // x, y
+    oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30, yPos + 1); // x, y
     oled->setFont(QW_FONT_8X16);
     if (gnssGetSurveyInObservationTime() < 1000) // Error check
         oled->print(gnssGetSurveyInObservationTime());
@@ -1690,49 +1690,48 @@ void printTextwithKerning(const char *newText, uint8_t xPos, uint8_t yPos, uint8
 }
 
 // Show transmission of RTCM correction data packets to NTRIP caster
-void paintRTCM()
+void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
 {
-    int yPos = 17;
+    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
+    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
+
+    // Note: the "yPos - 1" is potentially brittle. TODO: find a better solution for this
     if (ntripServerIsCasting())
-        printTextCenter("Casting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Casting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
     else
-        printTextCenter("Xmitting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Xmitting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+
+    xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
+    yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
 
     if (present.antennaShortOpen == false)
     {
-        oled->setCursor(0, 39); // x, y
+        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
         oled->setFont(QW_FONT_5X7);
         oled->print("RTCM:");
     }
     else
     {
-        static uint32_t blinkers = 0;
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
-            blinkers ^= ICON_ANTENNA_SHORT;
-            if (blinkers & ICON_ANTENNA_SHORT)
-                displayBitmap(2, 35, Antenna_Short_Width, Antenna_Short_Height, Antenna_Short);
+            paintSIVIcon(iconList, &ShortIconProperties, true);
         }
         else if (aStatus == SFE_UBLOX_ANTENNA_STATUS_OPEN)
         {
-            blinkers ^= ICON_ANTENNA_OPEN;
-            if (blinkers & ICON_ANTENNA_OPEN)
-                displayBitmap(2, 35, Antenna_Open_Width, Antenna_Open_Height, Antenna_Open);
+            paintSIVIcon(iconList, &OpenIconProperties, true);
         }
         else
         {
-            blinkers &= ~ICON_ANTENNA_SHORT;
-            blinkers &= ~ICON_ANTENNA_OPEN;
-            oled->setCursor(0, 39); // x, y
+            oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]), yPos + 4); // x, y
             oled->setFont(QW_FONT_5X7);
             oled->print("RTCM:");
         }
     }
 
     if (rtcmPacketsSent < 100)
-        oled->setCursor(30, 36); // x, y - Give space for two digits
+        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30, yPos + 1); // x, y - Give space for two digits
     else
-        oled->setCursor(28, 36); // x, y - Push towards colon to make room for log icon
+        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 28, yPos + 1); // x, y - Push towards colon to make room for log icon
 
     oled->setFont(QW_FONT_8X16);  // Set font to type 1: 8x16
     oled->print(rtcmPacketsSent); // rtcmPacketsSent is controlled in processRTCM()
