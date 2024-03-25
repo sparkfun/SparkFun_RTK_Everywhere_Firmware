@@ -654,9 +654,7 @@ bool inMainMenu;                      // Set true when in the serial config menu
 bool btPrintEcho;                     // Set true when in the serial config menu system via Bluetooth.
 bool btPrintEchoExit;                 // When true, exit all config menus.
 
-uint32_t lastBattUpdate;
-uint32_t lastDisplayUpdate;
-bool forceDisplayUpdate; // Goes true when setup is pressed, causes the display to refresh in real-time
+bool forceDisplayUpdate = true; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;
 bool forceSystemStateUpdate; // Set true to avoid update wait
 uint32_t lastPrintRoverAccuracy;
@@ -713,13 +711,6 @@ unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to upda
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
-
-bool firstRadioSpotBlink; // Controls when the shared icon space is toggled
-unsigned long firstRadioSpotTimer;
-bool secondRadioSpotBlink; // Controls when the shared icon space is toggled
-unsigned long secondRadioSpotTimer;
-bool thirdRadioSpotBlink; // Controls when the shared icon space is toggled
-unsigned long thirdRadioSpotTimer;
 
 bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;

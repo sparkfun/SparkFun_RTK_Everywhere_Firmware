@@ -91,8 +91,6 @@ bool ssidDisplayFirstHalf = false;
 // Icons
 #include "icons.h"
 
-std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
-
 void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse = true, bool NTP = false); // Header
 
 //----------------------------------------
@@ -186,6 +184,7 @@ void displayUpdate()
     // Update the display if connected
     if (online.display == true)
     {
+        static unsigned long lastDisplayUpdate = 0;
         if (millis() - lastDisplayUpdate > 500 || forceDisplayUpdate == true) // Update display at 2Hz
         {
             lastDisplayUpdate = millis();
@@ -196,6 +195,7 @@ void displayUpdate()
 
             oled->erase();
 
+            std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
             iconPropertyList.clear();
 
             switch (systemState)
@@ -448,99 +448,6 @@ void displayUpdate()
                 break;
             }
 
-            // Top left corner - Radio icon indicators take three spots (left/center/right)
-            // Allowed icon combinations:
-            // Bluetooth + Rover/Base
-            // WiFi + Bluetooth + Rover/Base
-            // ESP-Now + Bluetooth + Rover/Base
-            // ESP-Now + Bluetooth + WiFi
-            // See setRadioIcons() for the icon selection logic
-
-            // Left spot
-            if (iconsRadio & ICON_MAC_ADDRESS)
-            {
-                char macAddress[5];
-                const uint8_t *rtkMacAddress = getMacAddress();
-
-                // Print four characters of MAC
-                snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
-                oled->setFont(QW_FONT_5X7); // Set font to smallest
-                oled->setCursor(0, 3);
-                oled->print(macAddress);
-            }
-            else if (iconsRadio & ICON_BT_SYMBOL_LEFT)
-                displayBitmap(1, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_0_LEFT)
-                displayBitmap(0, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_0);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_1_LEFT)
-                displayBitmap(0, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_1);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_2_LEFT)
-                displayBitmap(0, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_2);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_3_LEFT)
-                displayBitmap(0, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_3);
-            else if (iconsRadio & ICON_ESPNOW_SYMBOL_0_LEFT)
-                displayBitmap(0, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_0);
-            else if (iconsRadio & ICON_ESPNOW_SYMBOL_1_LEFT)
-                displayBitmap(0, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_1);
-            else if (iconsRadio & ICON_ESPNOW_SYMBOL_2_LEFT)
-                displayBitmap(0, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_2);
-            else if (iconsRadio & ICON_ESPNOW_SYMBOL_3_LEFT)
-                displayBitmap(0, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_3);
-            else if (iconsRadio & ICON_DOWN_ARROW_LEFT)
-                displayBitmap(1, 0, DownloadArrow_Width, DownloadArrow_Height, DownloadArrow);
-            else if (iconsRadio & ICON_UP_ARROW_LEFT)
-                displayBitmap(1, 0, UploadArrow_Width, UploadArrow_Height, UploadArrow);
-            else if (iconsRadio & ICON_BLANK_LEFT)
-            {
-                ;
-            }
-
-            // Center radio spots
-            if (iconsRadio & ICON_BT_SYMBOL_CENTER)
-            {
-                // Moved to center to give space for ESP NOW icon on far left
-                displayBitmap(16, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol);
-            }
-            else if (iconsRadio & ICON_MAC_ADDRESS_2DIGIT)
-            {
-                char macAddress[5];
-                const uint8_t *rtkMacAddress = getMacAddress();
-
-                // Print only last two digits of MAC
-                snprintf(macAddress, sizeof(macAddress), "%02X", rtkMacAddress[5]);
-                oled->setFont(QW_FONT_5X7); // Set font to smallest
-                oled->setCursor(14, 3);
-                oled->print(macAddress);
-            }
-            else if (iconsRadio & ICON_DOWN_ARROW_CENTER)
-                displayBitmap(16, 0, DownloadArrow_Width, DownloadArrow_Height, DownloadArrow);
-            else if (iconsRadio & ICON_UP_ARROW_CENTER)
-                displayBitmap(16, 0, UploadArrow_Width, UploadArrow_Height, UploadArrow);
-
-            // Radio third spot
-            if (iconsRadio & ICON_WIFI_SYMBOL_0_RIGHT)
-                displayBitmap(28, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_0);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_1_RIGHT)
-                displayBitmap(28, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_1);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_2_RIGHT)
-                displayBitmap(28, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_2);
-            else if (iconsRadio & ICON_WIFI_SYMBOL_3_RIGHT)
-                displayBitmap(28, 0, WiFi_Symbol_Width, WiFi_Symbol_Height, WiFi_Symbol_3);
-            else if ((iconsRadio & ICON_DYNAMIC_MODEL) && (online.gnss == true))
-                paintDynamicModel();
-            else if (iconsRadio & ICON_BASE_TEMPORARY)
-                displayBitmap(28, 0, BaseTemporary_Width, BaseTemporary_Height, BaseTemporary);
-            else if (iconsRadio & ICON_BASE_FIXED)
-                displayBitmap(28, 0, BaseFixed_Width, BaseFixed_Height, BaseFixed); // true - blend with other pixels
-            else if (iconsRadio & ICON_DOWN_ARROW_RIGHT)
-                displayBitmap(31, 0, DownloadArrow_Width, DownloadArrow_Height, DownloadArrow);
-            else if (iconsRadio & ICON_UP_ARROW_RIGHT)
-                displayBitmap(31, 0, UploadArrow_Width, UploadArrow_Height, UploadArrow);
-            else if (iconsRadio & ICON_BLANK_RIGHT)
-            {
-                ;
-            }
-
             // Now add the icons
             static uint8_t blinkState = 0b10000000;
             blinkState <<= 1;
@@ -714,7 +621,7 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
    8|      *            **
 */
 
-// Set bits to turn on various icons in the Radio area
+// Turn on various icons in the Radio area
 // ie: Bluetooth, WiFi, ESP Now, Mode indicators, as well as sub states of each (MAC, Blinking, Arrows, etc), depending
 // on connection state This function has all the logic to determine how a shared icon spot should act. ie: if we need an
 // up arrow, blink the ESP Now icon, etc.
@@ -725,8 +632,15 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         if (present.display_type == DISPLAY_64x48)
         {
             // There are three spots for icons in the Wireless area, left/center/right
-            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if
-            // enabled) Because of lack of space we will indicate the Base/Rover if only two radios or less are active
+            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if enabled)
+            // Because of lack of space we will indicate the Base/Rover if only two radios or less are active
+            //
+            // Top left corner - Radio icon indicators take three spots (left/center/right)
+            // Allowed icon combinations:
+            // Bluetooth + Rover/Base
+            // WiFi + Bluetooth + Rover/Base
+            // ESP-Now + Bluetooth + Rover/Base
+            // ESP-Now + Bluetooth + WiFi
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
@@ -783,7 +697,7 @@ void setBluetoothIcon_OneRadio(std::vector<iconPropertyBlinking> *iconList)
 {
     if (bluetoothGetState() != BT_CONNECTED)
         paintMACAddress4digit(0,3);
-    else if (bluetoothGetState() == BT_CONNECTED)
+    else // if (bluetoothGetState() == BT_CONNECTED)
     {
         if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true) // Share the spot?
         {
@@ -800,7 +714,7 @@ void setBluetoothIcon_OneRadio(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
                 bluetoothIncomingRTCM = false; // Reset, set during UART RX task.
             }
-            else if (bluetoothOutgoingRTCM == true)
+            else // if (bluetoothOutgoingRTCM == true)
             {
                 prop.icon = UploadArrowLeft64x48;
                 prop.duty = 0b11110000;
@@ -825,296 +739,261 @@ void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
     if (bluetoothGetState() != BT_CONNECTED)
         paintMACAddress2digit(14,3);
-    else if (bluetoothGetState() == BT_CONNECTED)
+    else // if (bluetoothGetState() == BT_CONNECTED)
     {
-        // Limit how often we update this spot
-        if (millis() - secondRadioSpotTimer > 2000)
+        if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true) // Share the spot?
         {
-            secondRadioSpotTimer = millis();
+            iconPropertyBlinking prop;
+            prop.icon = BTSymbolCenter64x48;
+            prop.duty = 0b00001111;
+            iconList->push_back(prop);
 
-            if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true)
-                secondRadioSpotBlink ^= 1; // Share the spot
-            else
-                secondRadioSpotBlink = false;
-        }
-
-        if (secondRadioSpotBlink == false)
-            icons |= ICON_BT_SYMBOL_CENTER;
-        else
-        {
             // Share the spot. Determine if we need to indicate Up, or Down
             if (bluetoothIncomingRTCM == true)
             {
-                icons |= ICON_DOWN_ARROW_CENTER;
+                prop.icon = DownloadArrowCenter64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 bluetoothIncomingRTCM = false; // Reset, set during UART RX task.
             }
-            else if (bluetoothOutgoingRTCM == true)
+            else // if (bluetoothOutgoingRTCM == true)
             {
-                icons |= ICON_UP_ARROW_CENTER;
+                prop.icon = UploadArrowCenter64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 bluetoothOutgoingRTCM = false; // Reset, set during UART BT send bytes task.
             }
-            else
-                icons |= ICON_BT_SYMBOL_CENTER;
+        }
+        else
+        {
+            iconPropertyBlinking prop;
+            prop.icon = BTSymbolCenter64x48;
+            prop.duty = 0b11111111;
+            iconList->push_back(prop);
         }
     }
 }
 
 // Bluetooth is in center position
 // Set ESP Now icon (Solid, arrows, blinking) in left position
-uint32_t setESPNowIcon_TwoRadios()
+void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     if (espnowState == ESPNOW_PAIRED)
     {
-        // Limit how often we update this spot
-        if (millis() - firstRadioSpotTimer > 2000)
+        if (espnowIncomingRTCM == true || espnowOutgoingRTCM == true)
         {
-            firstRadioSpotTimer = millis();
+            iconPropertyBlinking prop;
+            prop.duty = 0b00001111;
+            // Based on RSSI, select icon
+            if (espnowRSSI >= -40)
+                prop.icon = ESPNowSymbol3Left64x48;
+            else if (espnowRSSI >= -60)
+                prop.icon = ESPNowSymbol2Left64x48;
+            else if (espnowRSSI >= -80)
+                prop.icon = ESPNowSymbol1Left64x48;
+            else // if (espnowRSSI > -255)
+                prop.icon = ESPNowSymbol0Left64x48;
+            iconList->push_back(prop);
 
-            if (espnowIncomingRTCM == true || espnowOutgoingRTCM == true)
-                firstRadioSpotBlink ^= 1; // Share the spot
-            else
-                firstRadioSpotBlink = false;
+            // Share the spot. Determine if we need to indicate Up, or Down
+            if (espnowIncomingRTCM == true)
+            {
+                prop.icon = DownloadArrowLeft64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
+                espnowIncomingRTCM = false; // Reset, set during ESP Now data received call back
+            }
+            else // if (espnowOutgoingRTCM == true)
+            {
+                prop.icon = UploadArrowLeft64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
+                espnowOutgoingRTCM = false; // Reset, set during espnowProcessRTCM()
+            }
         }
-
-        if (firstRadioSpotBlink == false)
+        else
         {
+            iconPropertyBlinking prop;
+            prop.duty = 0b11111111;
+            // TODO: check this. Surely we want to indicate the correct signal level with no incoming RTCM?
             if (espnowIncomingRTCM == true)
             {
                 // Based on RSSI, select icon
                 if (espnowRSSI >= -40)
-                    icons |= ICON_ESPNOW_SYMBOL_3_LEFT;
+                    prop.icon = ESPNowSymbol3Left64x48;
                 else if (espnowRSSI >= -60)
-                    icons |= ICON_ESPNOW_SYMBOL_2_LEFT;
+                    prop.icon = ESPNowSymbol2Left64x48;
                 else if (espnowRSSI >= -80)
-                    icons |= ICON_ESPNOW_SYMBOL_1_LEFT;
-                else if (espnowRSSI > -255)
-                    icons |= ICON_ESPNOW_SYMBOL_0_LEFT;
+                    prop.icon = ESPNowSymbol1Left64x48;
+                else // if (espnowRSSI > -255)
+                    prop.icon = ESPNowSymbol0Left64x48;
             }
             else // ESP radio is active, but not receiving RTCM
             {
-                icons |= ICON_ESPNOW_SYMBOL_3_LEFT; // Full symbol
+                prop.icon = ESPNowSymbol3Left64x48; // Full symbol
             }
-        }
-        else
-        {
-            // Share the spot. Determine if we need to indicate Up, or Down
-            if (espnowIncomingRTCM == true)
-            {
-                icons |= ICON_DOWN_ARROW_LEFT;
-                espnowIncomingRTCM = false; // Reset, set during ESP Now data received call back
-            }
-            else if (espnowOutgoingRTCM == true)
-            {
-                icons |= ICON_UP_ARROW_LEFT;
-                espnowOutgoingRTCM = false; // Reset, set during espnowProcessRTCM()
-            }
-            else
-            {
-                icons |= ICON_ESPNOW_SYMBOL_3_LEFT; // Full symbol
-
-                // TODO catch RSSI here
-            }
+            iconList->push_back(prop);
         }
     }
-
     else // We are not paired, blink icon
     {
-        // Limit how often we update this spot
-        if (millis() - firstRadioSpotTimer > 2000)
-        {
-            firstRadioSpotTimer = millis();
-            firstRadioSpotBlink ^= 1; // Share the spot
-        }
-
-        if (firstRadioSpotBlink == false)
-            icons |= ICON_ESPNOW_SYMBOL_3_LEFT; // Full symbol
-        else
-            icons |= ICON_BLANK_LEFT;
+        iconPropertyBlinking prop;
+        prop.duty = 0b00001111;
+        prop.icon = ESPNowSymbol3Left64x48; // Full symbol
+        iconList->push_back(prop);
     }
-
-    return icons;
 }
 
 // Bluetooth is in center position
 // Set WiFi icon (Solid, arrows, blinking) in left position
-uint32_t setWiFiIcon_TwoRadios()
+void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     if (wifiState == WIFI_CONNECTED)
     {
-        // Limit how often we update this spot
-        if (millis() - firstRadioSpotTimer > 2000)
-        {
-            firstRadioSpotTimer = millis();
-
-            if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
-                firstRadioSpotBlink ^= 1; // Share the spot
-            else
-                firstRadioSpotBlink = false;
-        }
-
-        if (firstRadioSpotBlink == false)
+        if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
 #ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
 #else  // COMPILE_WIFI
             int wifiRSSI = -40; // Dummy
 #endif // COMPILE_WIFI
-       // Based on RSSI, select icon
+            iconPropertyBlinking prop;
+            prop.duty = 0b00001111;
+            // Based on RSSI, select icon
             if (wifiRSSI >= -40)
-                icons |= ICON_WIFI_SYMBOL_3_LEFT;
+                prop.icon = WiFiSymbol3Left64x48;
             else if (wifiRSSI >= -60)
-                icons |= ICON_WIFI_SYMBOL_2_LEFT;
+                prop.icon = WiFiSymbol2Left64x48;
             else if (wifiRSSI >= -80)
-                icons |= ICON_WIFI_SYMBOL_1_LEFT;
+                prop.icon = WiFiSymbol1Left64x48;
             else
-                icons |= ICON_WIFI_SYMBOL_0_LEFT;
-        }
-        else
-        {
+                prop.icon = WiFiSymbol0Left64x48;
+            iconList->push_back(prop);
+
             // Share the spot. Determine if we need to indicate Up, or Down
             if (netIncomingRTCM || mqttClientDataReceived)
             {
-                icons |= ICON_DOWN_ARROW_LEFT;
+                prop.icon = DownloadArrowLeft64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 if (netIncomingRTCM)
                     netIncomingRTCM = false; // Reset, set during NTRIP Client
                 if (mqttClientDataReceived)
                     mqttClientDataReceived = false; // Reset, set by MQTT client
             }
-            else if (netOutgoingRTCM == true)
+            else // if (netOutgoingRTCM == true)
             {
-                icons |= ICON_UP_ARROW_LEFT;
+                prop.icon = UploadArrowLeft64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 netOutgoingRTCM = false; // Reset, set during NTRIP Server
             }
-            else
-            {
-#ifdef COMPILE_WIFI
-                int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-                int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
-       // Based on RSSI, select icon
-                if (wifiRSSI >= -40)
-                    icons |= ICON_WIFI_SYMBOL_3_LEFT;
-                else if (wifiRSSI >= -60)
-                    icons |= ICON_WIFI_SYMBOL_2_LEFT;
-                else if (wifiRSSI >= -80)
-                    icons |= ICON_WIFI_SYMBOL_1_LEFT;
-                else
-                    icons |= ICON_WIFI_SYMBOL_0_LEFT;
-            }
-        }
-    }
 
-    else // We are not paired, blink icon
-    {
-        // Limit how often we update this spot
-        if (millis() - firstRadioSpotTimer > 2000)
-        {
-            firstRadioSpotTimer = millis();
-            firstRadioSpotBlink ^= 1; // Share the spot
         }
-
-        if (firstRadioSpotBlink == false)
-            icons |= ICON_WIFI_SYMBOL_3_LEFT; // Full symbol
         else
-            icons |= ICON_BLANK_LEFT;
-    }
-
-    return (icons);
-}
-
-// Bluetooth is in center position
-// Set WiFi icon (Solid, arrows, blinking) in right position
-uint32_t setWiFiIcon_ThreeRadios()
-{
-    uint32_t icons = 0;
-
-    if (wifiState == WIFI_CONNECTED)
-    {
-        // Limit how often we update this spot
-        if (millis() - thirdRadioSpotTimer > 2000)
-        {
-            thirdRadioSpotTimer = millis();
-
-            if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
-                thirdRadioSpotBlink ^= 1; // Share the spot
-            else
-                thirdRadioSpotBlink = false;
-        }
-
-        if (thirdRadioSpotBlink == false)
         {
 #ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
 #else  // COMPILE_WIFI
             int wifiRSSI = -40; // Dummy
 #endif // COMPILE_WIFI
-       // Based on RSSI, select icon
+            iconPropertyBlinking prop;
+            prop.duty = 0b11111111;
+            // Based on RSSI, select icon
             if (wifiRSSI >= -40)
-                icons |= ICON_WIFI_SYMBOL_3_RIGHT;
+                prop.icon = WiFiSymbol3Left64x48;
             else if (wifiRSSI >= -60)
-                icons |= ICON_WIFI_SYMBOL_2_RIGHT;
+                prop.icon = WiFiSymbol2Left64x48;
             else if (wifiRSSI >= -80)
-                icons |= ICON_WIFI_SYMBOL_1_RIGHT;
+                prop.icon = WiFiSymbol1Left64x48;
             else
-                icons |= ICON_WIFI_SYMBOL_0_RIGHT;
+                prop.icon = WiFiSymbol0Left64x48;
+            iconList->push_back(prop);
         }
-        else
+    }
+    else // We are not paired, blink icon
+    {
+        iconPropertyBlinking prop;
+        prop.duty = 0b00001111;
+        prop.icon = WiFiSymbol3Left64x48; // Full symbol
+        iconList->push_back(prop);
+    }
+}
+
+// Bluetooth is in center position
+// Set WiFi icon (Solid, arrows, blinking) in right position
+void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
+{
+    if (wifiState == WIFI_CONNECTED)
+    {
+        if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
+#ifdef COMPILE_WIFI
+            int wifiRSSI = WiFi.RSSI();
+#else  // COMPILE_WIFI
+            int wifiRSSI = -40; // Dummy
+#endif // COMPILE_WIFI
+            iconPropertyBlinking prop;
+            prop.duty = 0b00001111;
+            // Based on RSSI, select icon
+            if (wifiRSSI >= -40)
+                prop.icon = WiFiSymbol3Right64x48;
+            else if (wifiRSSI >= -60)
+                prop.icon = WiFiSymbol2Right64x48;
+            else if (wifiRSSI >= -80)
+                prop.icon = WiFiSymbol1Right64x48;
+            else
+                prop.icon = WiFiSymbol0Right64x48;
+            iconList->push_back(prop);
+
             // Share the spot. Determine if we need to indicate Up, or Down
             if (netIncomingRTCM || mqttClientDataReceived)
             {
-                icons |= ICON_DOWN_ARROW_RIGHT;
+                prop.icon = DownloadArrowRight64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 if (netIncomingRTCM)
                     netIncomingRTCM = false; // Reset, set during NTRIP Client
                 if (mqttClientDataReceived)
-                    mqttClientDataReceived = false; // Reset, set by MQTT Client
+                    mqttClientDataReceived = false; // Reset, set by MQTT client
             }
-            else if (netOutgoingRTCM == true)
+            else // if (netOutgoingRTCM == true)
             {
-                icons |= ICON_UP_ARROW_RIGHT;
+                prop.icon = UploadArrowRight64x48;
+                prop.duty = 0b11110000;
+                iconList->push_back(prop);
                 netOutgoingRTCM = false; // Reset, set during NTRIP Server
             }
-            else
-            {
+
+        }
+        else
+        {
 #ifdef COMPILE_WIFI
-                int wifiRSSI = WiFi.RSSI();
+            int wifiRSSI = WiFi.RSSI();
 #else  // COMPILE_WIFI
-                int wifiRSSI = -40; // Dummy
+            int wifiRSSI = -40; // Dummy
 #endif // COMPILE_WIFI
-       // Based on RSSI, select icon
-                if (wifiRSSI >= -40)
-                    icons |= ICON_WIFI_SYMBOL_3_RIGHT;
-                else if (wifiRSSI >= -60)
-                    icons |= ICON_WIFI_SYMBOL_2_RIGHT;
-                else if (wifiRSSI >= -80)
-                    icons |= ICON_WIFI_SYMBOL_1_RIGHT;
-                else
-                    icons |= ICON_WIFI_SYMBOL_0_RIGHT;
-            }
+            iconPropertyBlinking prop;
+            prop.duty = 0b11111111;
+            // Based on RSSI, select icon
+            if (wifiRSSI >= -40)
+                prop.icon = WiFiSymbol3Right64x48;
+            else if (wifiRSSI >= -60)
+                prop.icon = WiFiSymbol2Right64x48;
+            else if (wifiRSSI >= -80)
+                prop.icon = WiFiSymbol1Right64x48;
+            else
+                prop.icon = WiFiSymbol0Right64x48;
+            iconList->push_back(prop);
         }
     }
-
     else // We are not paired, blink icon
     {
-        // Limit how often we update this spot
-        if (millis() - thirdRadioSpotTimer > 2000)
-        {
-            thirdRadioSpotTimer = millis();
-            thirdRadioSpotBlink ^= 1; // Share the spot
-        }
-
-        if (thirdRadioSpotBlink == false)
-            icons |= ICON_WIFI_SYMBOL_3_RIGHT; // Full symbol
-        else
-            icons |= ICON_BLANK_RIGHT;
+        iconPropertyBlinking prop;
+        prop.duty = 0b00001111;
+        prop.icon = WiFiSymbol3Right64x48; // Full symbol
+        iconList->push_back(prop);
     }
-
-    return (icons);
 }
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
@@ -1140,44 +1019,62 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
 }
 
 // Based on system state, turn on the various Rover, Base, Fixed Base icons
-uint32_t setModeIcon()
+void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint32_t icons = 0;
-
     switch (systemState)
     {
     case (STATE_ROVER_NOT_STARTED):
         break;
     case (STATE_ROVER_NO_FIX):
-        icons |= ICON_DYNAMIC_MODEL;
+        paintDynamicModel(iconList);
         break;
     case (STATE_ROVER_FIX):
-        icons |= ICON_DYNAMIC_MODEL;
+        paintDynamicModel(iconList);
         break;
     case (STATE_ROVER_RTK_FLOAT):
-        icons |= ICON_DYNAMIC_MODEL;
+        paintDynamicModel(iconList);
         break;
     case (STATE_ROVER_RTK_FIX):
-        icons |= ICON_DYNAMIC_MODEL;
+        paintDynamicModel(iconList);
         break;
 
     case (STATE_BASE_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
     case (STATE_BASE_TEMP_SETTLE):
-        icons |= blinkBaseIcon(ICON_BASE_TEMPORARY);
+        {
+            iconPropertyBlinking prop;
+            prop.duty = 0b00001111;
+            prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+            iconList->push_back(prop);
+        }
         break;
     case (STATE_BASE_TEMP_SURVEY_STARTED):
-        icons |= blinkBaseIcon(ICON_BASE_TEMPORARY);
+        {
+            iconPropertyBlinking prop;
+            prop.duty = 0b00001111;
+            prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+            iconList->push_back(prop);
+        }
         break;
     case (STATE_BASE_TEMP_TRANSMITTING):
-        icons |= ICON_BASE_TEMPORARY;
+        {
+            iconPropertyBlinking prop;
+            prop.duty = 0b11111111;
+            prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+            iconList->push_back(prop);
+        }
         break;
     case (STATE_BASE_FIXED_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
     case (STATE_BASE_FIXED_TRANSMITTING):
-        icons |= ICON_BASE_FIXED;
+        {
+            iconPropertyBlinking prop;
+            prop.duty = 0b11111111;
+            prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
+            iconList->push_back(prop);
+        }
         break;
 
     case (STATE_NTPSERVER_NOT_STARTED):
@@ -1188,26 +1085,6 @@ uint32_t setModeIcon()
     default:
         break;
     }
-    return (icons);
-}
-
-uint32_t blinkBaseIcon(uint32_t iconType)
-{
-    uint32_t icons = 0;
-
-    // Limit how often we update this spot
-    if (millis() - thirdRadioSpotTimer > 1000)
-    {
-        thirdRadioSpotTimer = millis();
-        thirdRadioSpotBlink ^= 1; // Share the spot
-    }
-
-    if (thirdRadioSpotBlink == false)
-        icons |= iconType;
-    else
-        icons |= ICON_BLANK_RIGHT;
-
-    return icons;
 }
 
 /*
@@ -1353,47 +1230,55 @@ void paintClockAccuracy(displayCoords textCoords)
 */
 
 // Draw the rover icon depending on screen
-void paintDynamicModel()
+void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 {
-    // Display icon associated with current Dynamic Model
-    switch (settings.dynamicModel)
+    if (online.gnss == true)
     {
-    case (DYN_MODEL_PORTABLE):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_1_Portable);
-        break;
-    case (DYN_MODEL_STATIONARY):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_2_Stationary);
-        break;
-    case (DYN_MODEL_PEDESTRIAN):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_3_Pedestrian);
-        break;
-    case (DYN_MODEL_AUTOMOTIVE):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_4_Automotive);
-        break;
-    case (DYN_MODEL_SEA):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_5_Sea);
-        break;
-    case (DYN_MODEL_AIRBORNE1g):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_6_Airborne1g);
-        break;
-    case (DYN_MODEL_AIRBORNE2g):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_7_Airborne2g);
-        break;
-    case (DYN_MODEL_AIRBORNE4g):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_8_Airborne4g);
-        break;
-    case (DYN_MODEL_WRIST):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_9_Wrist);
-        break;
-    case (DYN_MODEL_BIKE):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_10_Bike);
-        break;
-    case (DYN_MODEL_MOWER):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_11_Mower);
-        break;
-    case (DYN_MODEL_ESCOOTER):
-        displayBitmap(28, 0, DynamicModel_Width, DynamicModel_Height, DynamicModel_12_EScooter);
-        break;
+        iconPropertyBlinking prop;
+        prop.duty = 0b11111111;
+
+        // Display icon associated with current Dynamic Model
+        switch (settings.dynamicModel)
+        {
+        case (DYN_MODEL_PORTABLE):
+            prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_STATIONARY):
+            prop.icon = DynamicModel_2_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_PEDESTRIAN):
+            prop.icon = DynamicModel_3_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_AUTOMOTIVE):
+            prop.icon = DynamicModel_4_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_SEA):
+            prop.icon = DynamicModel_5_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_AIRBORNE1g):
+            prop.icon = DynamicModel_6_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_AIRBORNE2g):
+            prop.icon = DynamicModel_7_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_AIRBORNE4g):
+            prop.icon = DynamicModel_8_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_WRIST):
+            prop.icon = DynamicModel_9_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_BIKE):
+            prop.icon = DynamicModel_10_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_MOWER):
+            prop.icon = DynamicModel_11_Properties.iconDisplay[present.display_type];
+            break;
+        case (DYN_MODEL_ESCOOTER):
+            prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
+            break;
+        }
+
+        iconList->push_back(prop);
     }
 }
 
