@@ -560,6 +560,8 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
         int batteryFraction = batteryLevelPercent / 25;
         if (batteryFraction >= BATTERY_CHARGE_STATES)
             batteryFraction = BATTERY_CHARGE_STATES - 1;
+        if (batteryFraction < 0)
+            batteryFraction = 0;
 
         iconPropertyBlinking prop;
         prop.icon = BatteryProperties.iconDisplay[batteryFraction][present.display_type];
