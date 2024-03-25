@@ -776,6 +776,7 @@ void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 
 // Bluetooth is in center position
 // Set ESP Now icon (Solid, arrows, blinking) in left position
+// This is 64x48-specific
 void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
     if (espnowState == ESPNOW_PAIRED)
@@ -846,6 +847,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 
 // Bluetooth is in center position
 // Set WiFi icon (Solid, arrows, blinking) in left position
+// This is 64x48-specific
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
     if (wifiState == WIFI_CONNECTED)
@@ -922,6 +924,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 
 // Bluetooth is in center position
 // Set WiFi icon (Solid, arrows, blinking) in right position
+// This is 64x48-specific
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
     if (wifiState == WIFI_CONNECTED)
@@ -998,6 +1001,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
 // Blink while no clients are connected
+// This is used on both 64x48 and 128x64 displays
 void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
 {
     if (online.display == true)
