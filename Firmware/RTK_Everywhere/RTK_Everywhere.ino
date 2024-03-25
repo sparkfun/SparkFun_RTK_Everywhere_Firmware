@@ -359,7 +359,7 @@ class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
     }
 };
 
-SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS; // Don't instantiate until we know what gnssPlatform we're on
+SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #ifdef COMPILE_L_BAND
 static SFE_UBLOX_GNSS_SUPER i2cLBand; // NEO-D9S
