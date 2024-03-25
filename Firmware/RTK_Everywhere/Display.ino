@@ -569,6 +569,9 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
 }
 
 /*
+
+  On 64x48:
+
                111111111122222222223333333333444444444455555555556666
      0123456789012345678901234567890123456789012345678901234567890123
     .----------------------------------------------------------------
@@ -619,6 +622,15 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
    6|      *          ******
    7|     ***          ****
    8|      *            **
+
+
+  On 128x64:
+
+               111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999AAAAAAAAAABBBBBBBBBBCCCCCCCC
+     01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
+    .--------------------------------------------------------------------------------------------------------------------------------
+     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--ESP-|  |-Down-|  |--Up--|  |-Dynamic/Base|               |--Battery / ETH--|
+
 */
 
 // Turn on various icons in the Radio area
@@ -685,7 +697,157 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         }
         else if (present.display_type == DISPLAY_128x64)
         {
-            // We have acres of space to play with
+            paintMACAddress4digit(0,3); // Columns 0 to 22
+
+            // Bluetooth always indicated : Columns 25 to 31 . TODO don't count if BT radio type is OFF.
+            {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                prop.icon = BTSymbol128x64;
+                iconList->push_back(prop);
+            }
+
+            if (wifiState > WIFI_OFF) // WiFi : Columns 34 - 46
+            {
+#ifdef COMPILE_WIFI
+                int wifiRSSI = WiFi.RSSI();
+#else  // COMPILE_WIFI
+               int wifiRSSI = -40; // Dummy
+#endif // COMPILE_WIFI
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                // Based on RSSI, select icon
+                if (wifiRSSI >= -40)
+                    prop.icon = WiFiSymbol3128x64;
+                else if (wifiRSSI >= -60)
+                    prop.icon = WiFiSymbol2128x64;
+                else if (wifiRSSI >= -80)
+                    prop.icon = WiFiSymbol1128x64;
+                else
+                    prop.icon = WiFiSymbol0128x64;
+                iconList->push_back(prop);
+            }
+            
+            if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 49 - 56
+            {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                // Based on RSSI, select icon
+                if (espnowRSSI >= -40)
+                    prop.icon = ESPNowSymbol3128x64;
+                else if (espnowRSSI >= -60)
+                    prop.icon = ESPNowSymbol2128x64;
+                else if (espnowRSSI >= -80)
+                    prop.icon = ESPNowSymbol1128x64;
+                else // if (espnowRSSI > -255)
+                    prop.icon = ESPNowSymbol0128x64;
+                iconList->push_back(prop);
+            }
+
+            if (bluetoothGetState() == BT_CONNECTED)
+            {
+                if (bluetoothIncomingRTCM == true) // Download : Columns 59 - 66
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = DownloadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    bluetoothIncomingRTCM = false;
+                }
+                if (bluetoothOutgoingRTCM == true) // Upload : Columns 69 - 76
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = UploadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    bluetoothOutgoingRTCM = false;
+                }
+            }
+
+            if (espnowState == ESPNOW_PAIRED)
+            {
+                if (espnowIncomingRTCM == true) // Download : Columns 59 - 66
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = DownloadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    espnowIncomingRTCM = false;
+                }
+                if (espnowOutgoingRTCM == true) // Upload : Columns 69 - 76
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = UploadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    espnowOutgoingRTCM = false;
+                }
+            }
+
+            if (wifiState == WIFI_CONNECTED)
+            {
+                if (netIncomingRTCM == true) // Download : Columns 59 - 66
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = DownloadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    netIncomingRTCM = false;
+                }
+                if (mqttClientDataReceived == true) // Download : Columns 59 - 66
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = DownloadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    mqttClientDataReceived = false;
+                }
+                if (netOutgoingRTCM == true) // Upload : Columns 69 - 76
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = UploadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    netOutgoingRTCM = false;
+                }
+            }
+
+            switch (systemState) // Dynamic Model / Base : Columns 79 - 93
+            {
+            case (STATE_ROVER_NO_FIX):
+            case (STATE_ROVER_FIX):
+            case (STATE_ROVER_RTK_FLOAT):
+            case (STATE_ROVER_RTK_FIX):
+                paintDynamicModel(iconList);
+                break;
+            case (STATE_BASE_TEMP_SETTLE):
+            case (STATE_BASE_TEMP_SURVEY_STARTED):
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b00001111;
+                    prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+                    iconList->push_back(prop);
+                }
+                break;
+            case (STATE_BASE_TEMP_TRANSMITTING):
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b11111111;
+                    prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+                    iconList->push_back(prop);
+                }
+                break;
+            case (STATE_BASE_FIXED_TRANSMITTING):
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b11111111;
+                    prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
+                    iconList->push_back(prop);
+                }
+        break;
+            default:
+                break;
+            }
         }
     }
 }

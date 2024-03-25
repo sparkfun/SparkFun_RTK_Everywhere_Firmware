@@ -1580,12 +1580,23 @@ const iconProperty DownloadArrowRight64x48 = { &DownloadArrow, DownloadArrow_Wid
 const iconProperty UploadArrowRight64x48 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 31, 0 };
 
 // 128x64-specific
+const iconProperty BTSymbol128x64 = { &BT_Symbol, BT_Symbol_Width, BT_Symbol_Height, 25, 0 };
+const iconProperty WiFiSymbol3128x64 = { &WiFi_Symbol_3, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
+const iconProperty WiFiSymbol2128x64 = { &WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
+const iconProperty WiFiSymbol1128x64 = { &WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
+const iconProperty WiFiSymbol0128x64 = { &WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
+const iconProperty ESPNowSymbol3128x64 = { &ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
+const iconProperty ESPNowSymbol2128x64 = { &ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
+const iconProperty ESPNowSymbol1128x64 = { &ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
+const iconProperty ESPNowSymbol0128x64 = { &ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
+const iconProperty DownloadArrow128x64 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 59, 2 };
+const iconProperty UploadArrow128x64 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 69, 2 };
 
 // Shared on 64x48 and 128x64
 
 const uint8_t DynamicModelIconXPos64x48 = 28;
 const uint8_t DynamicModelIconYPos64x48 = 0;
-const uint8_t DynamicModelIconXPos128x64 = 28;
+const uint8_t DynamicModelIconXPos128x64 = 79;
 const uint8_t DynamicModelIconYPos128x64 = 0;
 
 const iconProperties DynamicModel_1_Properties = {{{ &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
@@ -1615,7 +1626,7 @@ const iconProperties DynamicModel_12_Properties = {{{ &DynamicModel_12_EScooter,
 
 const uint8_t BaseIconXPos64x48 = 28;
 const uint8_t BaseIconYPos64x48 = 0;
-const uint8_t BaseIconXPos128x64 = 28;
+const uint8_t BaseIconXPos128x64 = 79;
 const uint8_t BaseIconYPos128x64 = 0;
 
 const iconProperties BaseTemporaryProperties = {{{ &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },
