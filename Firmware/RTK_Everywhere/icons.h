@@ -1728,9 +1728,11 @@ const iconLoggingProperties PulseIconProperties = {{{{ &Pulse_0, Logging_Width, 
                                                {{ &Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos64x48, LoggingIconYPos64x48 },
                                                 { &Pulse_3, Logging_Width, Logging_Height, LoggingIconXPos128x64, LoggingIconYPos128x64 }}}};
 
-const uint8_t BatteryIconXPos64x48 = DisplayWidth[0] - Battery_Width; // Put the battery / Ethernet icon in the top right corner
+// Put the battery / Ethernet icon in the top right corner
+// Note: the "Width + 1" shouldn't be necessary, but I see corruption on column 0 without it...
+const uint8_t BatteryIconXPos64x48 = DisplayWidth[0] - (Battery_Width + 1);
 const uint8_t BatteryIconYPos64x48 = 0;
-const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - Battery_Width;
+const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - (Battery_Width + 1);
 const uint8_t BatteryIconYPos128x64 = 0;
 
 const iconProperties EthernetIconProperties = {{{ &Ethernet_Icon, Battery_Width, Battery_Height, BatteryIconXPos64x48, BatteryIconYPos64x48 },
