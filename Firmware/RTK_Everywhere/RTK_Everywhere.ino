@@ -21,16 +21,16 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
+// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+// #define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
 #endif                 // COMPILE_WIFI
 
-#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
+// #define COMPILE_BT                   // Comment out to remove Bluetooth functionality
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
@@ -669,10 +669,6 @@ uint32_t lastRTCAttempt;      // Wait 1000ms between checking GNSS for current d
 uint32_t lastRTCSync;         // Time in millis when the RTC was last sync'd
 bool rtcSyncd;                // Set to true when the RTC has been sync'd via TP pulse
 uint32_t lastPrintPosition;   // For periodic display of the position
-
-uint32_t lastBaseIconUpdate;
-bool baseIconDisplayed;       // Toggles as lastBaseIconUpdate goes above 1000ms
-uint8_t espnowIconDisplayed;  // Increases every 500ms while transmitting
 
 uint64_t lastLogSize;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
