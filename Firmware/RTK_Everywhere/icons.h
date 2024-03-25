@@ -1623,10 +1623,11 @@ const iconProperties BaseTemporaryProperties = {{{ &BaseTemporary, BaseTemporary
 const iconProperties BaseFixedProperties = {{{ &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },
                                               { &BaseFixed, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos128x64, BaseIconXPos128x64 }}};
 
+
 const uint8_t AccuracyIconXPos64x48 = 0;
 const uint8_t AccuracyIconYPos64x48 = 18;
-const uint8_t AccuracyIconXPos128x64 = 0;
-const uint8_t AccuracyIconYPos128x64 = 18;
+const uint8_t AccuracyIconXPos128x64 = 0; 
+const uint8_t AccuracyIconYPos128x64 = 26; // Just because we can, move accuracy down by 8 pixels on 128x64
 
 const iconProperties CrossHairProperties = {{{ &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
                                              { &CrossHair, CrossHair_Width, CrossHair_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}};
@@ -1647,10 +1648,11 @@ const iconClockProperties ClockIconProperties = {{{{ &Clock_Icon_0, Clock_Icon_W
                                                   {{ &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos64x48, AccuracyIconYPos64x48 },
                                                    { &Clock_Icon_3, Clock_Icon_Width, Clock_Icon_Height, AccuracyIconXPos128x64, AccuracyIconYPos128x64 }}}};
 
-const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the accuracy icon. But it causes challenges elsewhere
+
+const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the accuracy icon. But it causes challenges elsewhere. See SIVTextStartXPosOffset
 const uint8_t SIVIconYPos64x48 = 35;
-const uint8_t SIVIconXPos128x64 = 2;
-const uint8_t SIVIconYPos128x64 = 35;
+const uint8_t SIVIconXPos128x64 = 66; // Just because we can, move SIV to the right on 128x64
+const uint8_t SIVIconYPos128x64 = 26;
 
 const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = { -2, -2 }; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
 
@@ -1662,6 +1664,7 @@ const iconProperties ShortIconProperties = {{{ &Antenna_Short, Antenna_Short_Wid
                                              { &Antenna_Short, Antenna_Short_Width, Antenna_Short_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
 const iconProperties OpenIconProperties = {{{ &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos64x48, SIVIconYPos64x48 },
                                             { &Antenna_Open, Antenna_Open_Width, Antenna_Open_Height, SIVIconXPos128x64, SIVIconYPos128x64 }}};
+
 
 const uint8_t LoggingIconXPos64x48 = DisplayWidth[0] - Logging_Width; // Put the logging icon in the bottom right corner
 const uint8_t LoggingIconYPos64x48 = DisplayHeight[0] - Logging_Height;
