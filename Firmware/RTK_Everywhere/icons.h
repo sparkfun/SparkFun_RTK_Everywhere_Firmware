@@ -1651,7 +1651,7 @@ const iconClockProperties ClockIconProperties = {{{{ &Clock_Icon_0, Clock_Icon_W
 
 const uint8_t SIVIconXPos64x48 = 2; // This aligns the SIV icon neatly under the accuracy icon. But it causes challenges elsewhere. See SIVTextStartXPosOffset
 const uint8_t SIVIconYPos64x48 = 35;
-const uint8_t SIVIconXPos128x64 = 66; // Just because we can, move SIV to the right on 128x64
+const uint8_t SIVIconXPos128x64 = 74; // Just because we can, move SIV to the right on 128x64
 const uint8_t SIVIconYPos128x64 = 26;
 
 const int SIVTextStartXPosOffset[DISPLAY_MAX_NONE] = { -2, -2 }; // This is a bodge to allow the paintBaseTempSurveyStarted text to be printed in the correct place
