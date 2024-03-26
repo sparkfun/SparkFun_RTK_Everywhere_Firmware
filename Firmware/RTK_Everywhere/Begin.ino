@@ -801,7 +801,7 @@ void beginFuelGauge()
     if (present.battery_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
-        if (lipo.begin() == false)
+        if (lipo.begin(*i2c_0) == false)
         {
             systemPrintln("Fuel gauge not detected");
             return;
@@ -844,7 +844,7 @@ void beginFuelGauge()
             return;
         }
 
-        if (bq40z50Battery->begin() == false)
+        if (bq40z50Battery->begin(*i2c_0) == false)
         {
             systemPrintln("BQ40Z50 not detected");
             delete bq40z50Battery;
