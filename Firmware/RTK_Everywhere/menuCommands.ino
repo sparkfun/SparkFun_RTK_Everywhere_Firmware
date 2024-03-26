@@ -2495,5 +2495,7 @@ void printAvailableSettings()
     systemPrint("um980MeasurementRateMs,uint16_t,");
     systemPrint("enableImuCompensationDebug,bool,");
 
+    systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
+
     systemPrintln();
 }

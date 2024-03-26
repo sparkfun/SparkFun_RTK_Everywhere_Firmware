@@ -752,6 +752,15 @@ void checkArrayDefaults()
             settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
     }
 
+    if (settings.correctionsSourcesPriority[0] == -1) // TODO: this should probably be somewhere else. But not sure where...?
+    {
+        defaultsApplied = true;
+
+        for (int s = 0; s < correctionsSource::CORR_NUM; s++)
+            settings.correctionsSourcesPriority[s] = s;
+    }
+
+
     if (defaultsApplied == true)
         recordSystemSettings();
 }
