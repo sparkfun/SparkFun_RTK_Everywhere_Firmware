@@ -960,6 +960,15 @@ void beginSystemState()
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+        // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
+
+        firstRoverStart = true; // Allow user to enter test screen during first rover start
+        if (systemState == STATE_BASE_NOT_STARTED)
+            firstRoverStart = false;
+    }
     else if (productVariant == RTK_TORCH)
     {
         // Do not allow user to enter test screen during first rover start because there is no screen

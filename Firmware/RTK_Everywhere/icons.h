@@ -1730,7 +1730,8 @@ const iconLoggingProperties PulseIconProperties = {{{{ &Pulse_0, Logging_Width, 
 
 // Put the battery / Ethernet icon in the top right corner
 // Note: the "Width + 1" shouldn't be necessary, but I see corruption on column 0 without it...
-const uint8_t BatteryIconXPos64x48 = DisplayWidth[0] - (Battery_Width + 1);
+// https://github.com/sparkfun/SparkFun_Qwiic_OLED_Arduino_Library/issues/21
+const uint8_t BatteryIconXPos64x48 = DisplayWidth[0] - Battery_Width;
 const uint8_t BatteryIconYPos64x48 = 0;
 const uint8_t BatteryIconXPos128x64 = DisplayWidth[1] - (Battery_Width + 1);
 const uint8_t BatteryIconYPos128x64 = 0;
