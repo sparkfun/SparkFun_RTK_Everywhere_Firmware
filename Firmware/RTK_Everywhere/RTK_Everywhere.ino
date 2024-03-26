@@ -143,6 +143,8 @@ int pin_beeper = PIN_UNDEFINED;
 
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include <vector> //Needed for icons etc.
+#include "icons.h"
 #include <Wire.h> //Built-in
 TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
@@ -357,7 +359,7 @@ class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
     }
 };
 
-SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS; // Don't instantiate until we know what gnssPlatform we're on
+SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #ifdef COMPILE_L_BAND
 static SFE_UBLOX_GNSS_SUPER i2cLBand; // NEO-D9S
@@ -652,9 +654,7 @@ bool inMainMenu;                      // Set true when in the serial config menu
 bool btPrintEcho;                     // Set true when in the serial config menu system via Bluetooth.
 bool btPrintEchoExit;                 // When true, exit all config menus.
 
-uint32_t lastBattUpdate;
-uint32_t lastDisplayUpdate;
-bool forceDisplayUpdate; // Goes true when setup is pressed, causes the display to refresh in real-time
+bool forceDisplayUpdate = true; // Goes true when setup is pressed, causes the display to refresh in real-time
 uint32_t lastSystemStateUpdate;
 bool forceSystemStateUpdate; // Set true to avoid update wait
 uint32_t lastPrintRoverAccuracy;
@@ -669,11 +669,6 @@ uint32_t lastRTCAttempt;      // Wait 1000ms between checking GNSS for current d
 uint32_t lastRTCSync;         // Time in millis when the RTC was last sync'd
 bool rtcSyncd;                // Set to true when the RTC has been sync'd via TP pulse
 uint32_t lastPrintPosition;   // For periodic display of the position
-
-uint32_t lastBaseIconUpdate;
-bool baseIconDisplayed;       // Toggles as lastBaseIconUpdate goes above 1000ms
-uint8_t loggingIconDisplayed; // Increases every 500ms while logging
-uint8_t espnowIconDisplayed;  // Increases every 500ms while transmitting
 
 uint64_t lastLogSize;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
@@ -712,13 +707,6 @@ unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to upda
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
-
-bool firstRadioSpotBlink; // Controls when the shared icon space is toggled
-unsigned long firstRadioSpotTimer;
-bool secondRadioSpotBlink; // Controls when the shared icon space is toggled
-unsigned long secondRadioSpotTimer;
-bool thirdRadioSpotBlink; // Controls when the shared icon space is toggled
-unsigned long thirdRadioSpotTimer;
 
 bool bluetoothIncomingRTCM;
 bool bluetoothOutgoingRTCM;

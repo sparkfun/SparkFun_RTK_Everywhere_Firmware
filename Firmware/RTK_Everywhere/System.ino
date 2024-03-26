@@ -62,6 +62,7 @@ void updateBattery()
 {
     if (online.battery == true)
     {
+        static unsigned long lastBattUpdate = 0;
         if (millis() - lastBattUpdate > 5000)
         {
             lastBattUpdate = millis();

@@ -121,7 +121,8 @@ void storeRTCM1006data(RTCM_1006_data_t *rtcmData1006)
 void zedBegin()
 {
     // Instantiate the library
-    theGNSS = new SFE_UBLOX_GNSS_SUPER_DERIVED();
+    if (theGNSS == nullptr)
+        theGNSS = new SFE_UBLOX_GNSS_SUPER_DERIVED();
 
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
@@ -130,13 +131,13 @@ void zedBegin()
         return;
     }
 
-    if (theGNSS->begin() == false)
+    if (theGNSS->begin(*i2c_0) == false)
     {
         log_d("GNSS Failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
-        if (theGNSS->begin() == false)
+        if (theGNSS->begin(*i2c_0) == false)
         {
             log_d("GNSS offline");
             displayGNSSFail(1000);
