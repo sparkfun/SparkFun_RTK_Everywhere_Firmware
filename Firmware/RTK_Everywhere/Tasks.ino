@@ -1268,7 +1268,7 @@ void buttonCheckTask(void *e)
 
         userBtn->read();
 
-        if (present.imu_im19 && (present.display_type < DISPLAY_MAX_NONE))
+        if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
         {
             // Platform has no display and tile, ie RTK Torch
 
