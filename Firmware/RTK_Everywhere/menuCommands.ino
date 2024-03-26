@@ -567,6 +567,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         settings.enableImuCompensationDebug = settingValue;
 
+    // correctionsPriority not handled here
+
     // Add new settings above <--------------------------------------------------->
 
     else if (strstr(settingName, "stationECEF") != nullptr)
@@ -940,6 +942,24 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
                 if (strcmp(settingName, tempString) == 0)
                 {
                     settings.um980Constellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for corrections priorities
+        if (knownSetting == false)
+        {
+            for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+            {
+                char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s",
+                         correctionsSourceNames[x]);
+
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    settings.correctionsSourcesPriority[x] = settingValue;
                     knownSetting = true;
                     break;
                 }
@@ -1328,6 +1348,14 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enableBeeper", settings.enableBeeper);
     stringRecord(newSettings, "um980MeasurementRateMs", settings.um980MeasurementRateMs);
     stringRecord(newSettings, "enableImuCompensationDebug", settings.enableImuCompensationDebug);
+
+    // Add corrections priorities
+    for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+    {
+        // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+        snprintf(tagText, sizeof(tagText), "correctionsPriority.%s", correctionsSourceNames[x]);
+        stringRecord(newSettings, tagText, settings.correctionsSourcesPriority[x]);
+    }
 
     // stringRecord(newSettings, "", settings.);
 
@@ -2051,6 +2079,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         writeToString(settingValueStr, settings.enableImuCompensationDebug);
 
+    // correctionsPriority handled below
+
     // Add new settings above <------------------------------------------------------------>
 
     // Check global setting
@@ -2244,6 +2274,24 @@ void getSettingValue(const char *settingName, char *settingValueStr)
                 if (strcmp(settingName, tempString) == 0)
                 {
                     writeToString(settingValueStr, settings.um980Constellations[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for corrections priorities
+        if (knownSetting == false)
+        {
+            for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+            {
+                char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s",
+                         correctionsSourceNames[x]);
+
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    writeToString(settingValueStr, settings.correctionsSourcesPriority[x]);
                     knownSetting = true;
                     break;
                 }
