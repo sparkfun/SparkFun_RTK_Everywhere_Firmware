@@ -2546,6 +2546,7 @@ void printAvailableSettings()
     systemPrint("um980MeasurementRateMs,uint16_t,");
     systemPrint("enableImuCompensationDebug,bool,");
 
+    // TODO: Would correctionsPriority.Bluetooth,int, correctionsPriority.ESP-Now,int, etc. be more useful?
     systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
 
     systemPrintln();
