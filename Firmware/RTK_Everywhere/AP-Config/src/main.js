@@ -33,6 +33,7 @@ var numberOfFilesSelected = 0;
 var selectedFiles = "";
 var showingFileList = false;
 var obtainedMessageList = false;
+var obtainedCorrectionsList = false;
 var obtainedMessageListBase = false;
 var showingMessageRTCMList = false;
 var fileTableText = "";
@@ -1365,6 +1366,23 @@ function getFileList() {
     }
     else {
         showingFileList = false;
+    }
+}
+
+function getCorrectionsPriorities() {
+    if (obtainedCorrectionsList == false) {
+        obtainedCorrectionsList = true;
+
+        ge("messageList").innerHTML = "";
+        messageText = "";
+
+        xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", "/listCorrections", false);
+        xmlhttp.send();
+
+        parseIncoming(xmlhttp.responseText); //Process CSV data into HTML
+
+        ge("correctionsPriorityList").innerHTML += messageText;
     }
 }
 
