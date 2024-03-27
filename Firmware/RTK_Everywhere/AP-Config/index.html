@@ -1348,43 +1348,34 @@
 
             <!-- --------- Corrections Priority Config --------- -->
             <div class="d-grid gap-2">
-                <button class="btn btn-primary toggle-btn" id="correctionsPriorityConfig" type="button" data-toggle="collapse"
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
                     data-target="#collapseCorrectionsPriorityConfig" aria-expanded="false" aria-controls="collapseCorrectionsPriorityConfig">
-                    Corrections Configuration <i id="profileCaret" class="caret-icon bi icon-caret-down"></i>
+                    Corrections Configuration <i id="correctionsCaret" class="caret-icon bi icon-caret-down"></i>
                 </button>
             </div>
 
-            <div class="collapse mb-2" id="collapseCorrectionsPriorityConfig">
-                <div class="card card-body"> style="margin-top:5px;">
+            <div class="collapse" id="collapseCorrectionsPriorityConfig">
+                <div class="card card-body">
 
-                    <div id="correctionsPriorityButton">
-                        <button onClick="getCorrectionsPriorities()" class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                            type="button" data-toggle="collapse" data-target="#collapseCorrectionsPriorities"
-                            aria-expanded="false" aria-controls="collapseCorrectionsPriorities">
-                            Corrections Priorities <i id="gnssMsgCaret" class="caret-icon bi icon-caret-down"></i>
-                        </button>
+                    <div class="form-group mt-2">
+                        Corrections Source:
                         <span class="tt" data-bs-placement="right"
                             title="Assign a priority to each corrections source. Priorities must be contiguous, starting at zero. Changes are saved when 'Save Configuration' is pressed.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
-
-                    <div class="collapse" id="collapseCorrectionsPriorities">
-                        <div class="card card-body" style="margin-top:5px;">
-
-                            <div style="margin-bottom:5px;">
-                                <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
-                                    onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
-                            </div>
-
-                            <div class="form-group mt-2">
-                                Corrections Source:
-                            </div>
-
-                            <div id="correctionsPriorityList">
-                            </div>
-                        </div>
+                    <div class="form-group row">
+                        <p id="collapseCorrectionsPriorityConfigError" class="inlineError"></p>
                     </div>
+
+                    <div id="correctionsPriorityList">
+                    </div>
+
+                    <div style="margin-bottom:5px;">
+                        <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
+                            onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
+                    </div>
+
                 </div>
             </div>
 

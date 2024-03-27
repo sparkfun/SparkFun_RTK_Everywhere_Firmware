@@ -33,10 +33,10 @@ var numberOfFilesSelected = 0;
 var selectedFiles = "";
 var showingFileList = false;
 var obtainedMessageList = false;
-var obtainedCorrectionsList = false;
 var obtainedMessageListBase = false;
 var showingMessageRTCMList = false;
 var fileTableText = "";
+var correctionText = "";
 var messageText = "";
 var lastMessageType = "";
 var lastMessageTypeBase = "";
@@ -93,12 +93,30 @@ function parseIncoming(msg) {
             document.title = "RTK " + platformPrefix + " Setup";
             fullPageUpdate = true;
 
-            if (platformPrefix == "Facet L-Band") {
+            if (platformPrefix == "Facet v2") {
                 show("baseConfig");
                 hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                //hide("allowWiFiOverEthernetClient"); //For future expansion
+                //hide("allowWiFiOverEthernetServer"); //For future expansion
+            }
+            else if (platformPrefix == "Facet mosaic") {
+                show("baseConfig");
+                hide("sensorConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                //hide("allowWiFiOverEthernetClient"); //For future expansion
+                //hide("allowWiFiOverEthernetServer"); //For future expansion
+            }
+            else if (platformPrefix == "EVK") {
+                show("baseConfig");
+                hide("sensorConfig");
+                show("ppConfig");
+                show("ethernetConfig");
+                show("ntpConfig");
                 //hide("allowWiFiOverEthernetClient"); //For future expansion
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
@@ -231,9 +249,21 @@ function parseIncoming(msg) {
             messageText += "<div class='form-group row' id='msg" + messageName + "'>";
             messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
             messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
-            messageText += "id='" + messageName + "' value='" + messageRate + "'>";
+            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+        }
+        else if (id.includes("correctionsPriority")) {
+            var correctionName = id;
+            var correctionPriority = val;
+            var correctionData = correctionName.split('.');
+            var correctionNameLabel = correctionData[1];
+
+            correctionText += "<div class='form-group row' id='cor" + correctionName + "'>";
+            correctionText += "<label for='" + correctionName + "' class='col-sm-4 col-6 col-form-label'>" + correctionNameLabel + ": </label>";
+            correctionText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
+            correctionText += " id='" + correctionName + "' value='" + correctionPriority + "'>";
+            correctionText += "</div></div>";
         }
         else if (id.includes("checkingNewFirmware")) {
             checkingNewFirmware();
@@ -318,8 +348,8 @@ function parseIncoming(msg) {
         tcpBoxesEthernet();
         dhcpEthernet();
         updateLatLong();
+        updateCorrectionsPriority();
     }
-
 }
 
 function hide(id) {
@@ -427,6 +457,7 @@ function validateFields() {
     collapseSection("collapseSystemConfig", "systemCaret");
     collapseSection("collapseEthernetConfig", "ethernetCaret");
     collapseSection("collapseNTPConfig", "ntpCaret");
+    collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
 
     errorCount = 0;
 
@@ -463,6 +494,9 @@ function validateFields() {
         var messageName = ubxMessages[x].id;
         checkMessageValue(messageName);
     }
+
+    //Check all corrections priorities
+    checkCorrectionsPriorities();
 
     //Base Config
     if (ge("baseTypeSurveyIn").checked) {
@@ -645,6 +679,7 @@ function changeProfile() {
         collapseSection("collapseSystemConfig", "systemCaret");
         collapseSection("collapseEthernetConfig", "ethernetCaret");
         collapseSection("collapseNTPConfig", "ntpCaret");
+        collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
     }
 }
 
@@ -751,6 +786,10 @@ function updateLatLong() {
     checkLatLong(); //Updates the detected format
 }
 
+function updateCorrectionsPriority() {
+    ge("correctionsPriorityList").innerHTML = correctionText;
+}
+
 function checkElementValue(id, min, max, errorText, collapseID) {
     value = ge(id).value;
     if (value < min || value > max || value == "") {
@@ -811,6 +850,36 @@ function checkCheckboxMutex(id1, id2, errorText, collapseID) {
     }
 }
 
+function checkCorrectionsPriorities() {
+    var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
+    if (correctionsSources.length > 0) {
+        var correctionSeen[correctionsSources.length];
+        for (let x = 0; x < correctionsSources.length; x++) {
+            correctionSeen[x] = 0;
+        }
+        for (let x = 0; x < correctionsSources.length; x++) {
+            for (let y = 0; y < correctionsSources.length; y++) {
+                if (correctionSources[y] == x) {
+                    correctionSeen[y] = correctionSeen[y] + 1;
+                }
+            }
+        }
+        var sourcesValid = 1;
+        for (let x = 0; x < correctionsSources.length; x++) {
+            if (correctionSeen[x] != 1) {
+                sourcesValid = 0;
+            }
+        }
+        if (sourcesValid == 0) {
+            ge("collapseCorrectionsPriorityConfig" + 'Error').innerHTML = 'Error: priorities must be contiguous, starting at 0';
+            ge("collapseCorrectionsPriorityConfig").classList.add('show');
+            errorCount++;
+        }
+        else
+            clearError("collapseCorrectionsPriorityConfig");
+    }
+}
+
 function clearElement(id, value) {
     ge(id).value = value;
     clearError(id);
@@ -825,8 +894,15 @@ function zeroElement(id) {
     ge(id).value = 0;
 }
 
-function zeroMessages() {
+function resetToCorrectionsPriorityDefaults() {
+    var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
+    for (let x = 0; x < correctionsSources.length; x++) {
+        var correctionName = correctionsSources[x].id;
+        ge(correctionName).value = x;
+    }
+}
 
+function zeroMessages() {
     var ubxMessages = document.querySelectorAll('input[id^=UBX_]'); //match all ids starting with UBX_
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
@@ -1366,23 +1442,6 @@ function getFileList() {
     }
     else {
         showingFileList = false;
-    }
-}
-
-function getCorrectionsPriorities() {
-    if (obtainedCorrectionsList == false) {
-        obtainedCorrectionsList = true;
-
-        ge("messageList").innerHTML = "";
-        messageText = "";
-
-        xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", "/listCorrections", false);
-        xmlhttp.send();
-
-        parseIncoming(xmlhttp.responseText); //Process CSV data into HTML
-
-        ge("correctionsPriorityList").innerHTML += messageText;
     }
 }
 

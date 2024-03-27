@@ -1356,9 +1356,6 @@ void createSettingsString(char *newSettings)
         snprintf(tagText, sizeof(tagText), "correctionsPriority.%s", correctionsSourceNames[x]);
         stringRecord(newSettings, tagText, settings.correctionsSourcesPriority[x]);
     }
-    // Pass the number of correction sources, so we can check the priorities are contiguous from 0 to CORR_NUM,
-    // with no duplications / missing entries.
-    stringRecord(newSettings, "correctionsPriorityLen", correctionsSource::CORR_NUM);
 
     // stringRecord(newSettings, "", settings.);
 

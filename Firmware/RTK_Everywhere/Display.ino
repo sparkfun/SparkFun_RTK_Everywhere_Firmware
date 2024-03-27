@@ -2017,8 +2017,8 @@ void displayWiFiConfig()
     int yPos = WiFi_Symbol_Height + 2;
     int fontHeight = 8;
 
-    const int displayMaxCharacters =
-        10; // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
+    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
+    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
 
     printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 

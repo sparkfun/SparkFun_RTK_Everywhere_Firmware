@@ -308,14 +308,16 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             request->send(200, "text/plain", files);
         });
 
+        /*
         // Handler for corrections priorities list
         webserver->on("/listCorrections", HTTP_GET, [](AsyncWebServerRequest *request) {
             String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
             systemPrintln(logmessage);
-            String messages;
-            createCorrectionsList(messages);
-            request->send(200, "text/plain", messages);
+            String corrections;
+            createCorrectionsList(corrections);
+            request->send(200, "text/plain", corrections);
         });
+        */
 
         // Handler for supported messages list
         webserver->on("/listMessages", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -799,6 +801,7 @@ void getFileList(String &returnText)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
+/*
 // When called, responds with the corrections sources and their priorities
 // Source name and priority are formatted in CSV, formatted to html by JS
 void createCorrectionsList(String &returnText)
@@ -807,13 +810,15 @@ void createCorrectionsList(String &returnText)
 
     for (int s = 0; s < correctionsSource::CORR_NUM; s++)
     {
-        returnText += String(correctionsSourceNames[s]) + "," +
+        returnText += String("correctionsPriority.") +
+                      String(correctionsSourceNames[s]) + "," +
                       String(settings.correctionsSourcesPriority[s]) + ",";
     }
 
     if (settings.debugWiFiConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
+*/
 
 // When called, responds with the messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS
