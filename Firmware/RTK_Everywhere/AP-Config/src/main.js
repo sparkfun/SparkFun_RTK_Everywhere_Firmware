@@ -92,10 +92,11 @@ function parseIncoming(msg) {
             platformPrefix = val;
             document.title = "RTK " + platformPrefix + " Setup";
             fullPageUpdate = true;
+            correctionText = "";
 
             if (platformPrefix == "Facet v2") {
                 show("baseConfig");
-                hide("sensorConfig");
+                //hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
@@ -104,7 +105,7 @@ function parseIncoming(msg) {
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
-                hide("sensorConfig");
+                //hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
@@ -113,7 +114,7 @@ function parseIncoming(msg) {
             }
             else if (platformPrefix == "EVK") {
                 show("baseConfig");
-                hide("sensorConfig");
+                //hide("sensorConfig");
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
@@ -321,7 +322,7 @@ function parseIncoming(msg) {
     ge("resetProfileMsg").innerHTML = '';
 
     //Don't update if all we received was coordinate info
-    if (fullPageUpdate) {
+    if (fullPageUpdate == true) {
         fullPageUpdate = false;
 
         //Force element updates
@@ -341,6 +342,8 @@ function parseIncoming(msg) {
         ge("autoIMUmountAlignment").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
 
+        ge("correctionsPriorityList").innerHTML = correctionText;
+        
         updateECEFList();
         updateGeodeticList();
         tcpBoxes();
@@ -348,7 +351,6 @@ function parseIncoming(msg) {
         tcpBoxesEthernet();
         dhcpEthernet();
         updateLatLong();
-        updateCorrectionsPriority();
     }
 }
 
@@ -450,7 +452,7 @@ function validateFields() {
     collapseSection("collapseGNSSConfig", "gnssCaret");
     collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
     collapseSection("collapseBaseConfig", "baseCaret");
-    collapseSection("collapseSensorConfig", "sensorCaret");
+    //collapseSection("collapseSensorConfig", "sensorCaret");
     collapseSection("collapsePPConfig", "pointPerfectCaret");
     collapseSection("collapsePortsConfig", "portsCaret");
     collapseSection("collapseRadioConfig", "radioCaret");
@@ -471,7 +473,7 @@ function validateFields() {
     checkElementValue("minElev", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
     checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
 
-    if (ge("enableNtripClient").checked) {
+    if (ge("enableNtripClient").checked == true) {
         checkElementString("ntripClient_CasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
         checkElementValue("ntripClient_CasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
         checkElementString("ntripClient_MountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
@@ -499,7 +501,7 @@ function validateFields() {
     checkCorrectionsPriorities();
 
     //Base Config
-    if (ge("baseTypeSurveyIn").checked) {
+    if (ge("baseTypeSurveyIn").checked == true) {
         checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
         checkElementValue("observationPositionAccuracy", 1, 5.1, "Must be between 1.0 to 5.0", "collapseBaseConfig");
 
@@ -516,7 +518,7 @@ function validateFields() {
         clearElement("observationSeconds", 60);
         clearElement("observationPositionAccuracy", 5.0);
 
-        if (ge("fixedBaseCoordinateTypeECEF").checked) {
+        if (ge("fixedBaseCoordinateTypeECEF").checked == true) {
             clearElement("fixedLatText", 40.09029479);
             clearElement("fixedLongText", -105.18505761);
             clearElement("fixedAltitude", 1560.089);
@@ -578,16 +580,16 @@ function validateFields() {
     checkElementString("wifiNetwork2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    if (ge("enablePvtClient").checked || ge("enablePvtServer").checked) {
+    if ((ge("enablePvtClient").checked  == true) || (ge("enablePvtServer").checked == true)) {
         checkElementString("pvtServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
-    if (ge("enablePvtUdpServer").checked) {
+    if (ge("enablePvtUdpServer").checked == true) {
         checkElementString("pvtUdpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
     checkCheckboxMutex("enablePvtClient", "enablePvtServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
 
     //System Config
-    if (ge("enableLogging").checked) {
+    if (ge("enableLogging").checked == true) {
         checkElementValue("maxLogTime_minutes", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
         checkElementValue("maxLogLength_minutes", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
     }
@@ -596,7 +598,7 @@ function validateFields() {
         clearElement("maxLogLength_minutes", 60 * 24);
     }
 
-    if (ge("enableARPLogging").checked) {
+    if (ge("enableARPLogging").checked == true) {
         checkElementValue("ARPLoggingInterval", 1, 600, "Must be 1 to 600", "collapseSystemConfig");
     }
     else {
@@ -604,7 +606,7 @@ function validateFields() {
     }
 
     //Ethernet
-    if (platformPrefix == "Reference Station") {
+    if (platformPrefix == "EVK") {
         //if (ge("ethernetDHCP").checked == false) {
         checkElementIPAddress("ethernetIP", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetDNS", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
@@ -612,7 +614,7 @@ function validateFields() {
         checkElementIPAddress("ethernetSubnet", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementValue("ethernetHttpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
         checkElementValue("ethernetNtpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
-        if (ge("enableTcpClientEthernet").checked) {
+        if (ge("enableTcpClientEthernet").checked == true) {
             checkElementString("ethernetTcpPort", 1, 65535, "Must be 1 to 65535", "collapseEthernetConfig");
             checkElementString("hostForTCPClient", 0, 50, "Must be 0 to 50 characters", "collapseEthernetConfig");
         }
@@ -628,7 +630,7 @@ function validateFields() {
     }
 
     //NTP
-    if (platformPrefix == "Reference Station") {
+    if (platformPrefix == "EVK") {
         checkElementValue("ntpPollExponent", 3, 17, "Must be 3 to 17", "collapseNTPConfig");
         checkElementValue("ntpPrecision", -30, 0, "Must be -30 to 0", "collapseNTPConfig");
         checkElementValue("ntpRootDelay", 0, 10000000, "Must be 0 to 10,000,000", "collapseNTPConfig");
@@ -637,7 +639,7 @@ function validateFields() {
     }
 
     //Port Config
-    if (ge("enableExternalPulse").checked) {
+    if (ge("enableExternalPulse").checked == true) {
         checkElementValue("externalPulseTimeBetweenPulse_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
         checkElementValue("externalPulseLength_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
     }
@@ -673,7 +675,7 @@ function changeProfile() {
         collapseSection("collapseGNSSConfig", "gnssCaret");
         collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
         collapseSection("collapseBaseConfig", "baseCaret");
-        collapseSection("collapseSensorConfig", "sensorCaret");
+        //collapseSection("collapseSensorConfig", "sensorCaret");
         collapseSection("collapsePPConfig", "pointPerfectCaret");
         collapseSection("collapsePortsConfig", "portsCaret");
         collapseSection("collapseSystemConfig", "systemCaret");
@@ -703,11 +705,10 @@ function saveConfig() {
 }
 
 function checkConstellations() {
-    if (ge("ubxConstellationsGPS").checked == false
-        && ge("ubxConstellationsGalileo").checked == false
-        && ge("ubxConstellationsBeiDou").checked == false
-        && ge("ubxConstellationsGLONASS").checked == false
-    ) {
+    if ((ge("ubxConstellationsGPS").checked == false)
+     && (ge("ubxConstellationsGalileo").checked == false)
+     && (ge("ubxConstellationsBeiDou").checked == false)
+     && (ge("ubxConstellationsGLONASS").checked == false)) {
         ge("collapseGNSSConfig").classList.add('show');
         showError('ubxConstellations', "Please choose one constellation");
         errorCount++;
@@ -742,7 +743,7 @@ function checkLatLong() {
         ge(collapseID).classList.add('show');
         errorCount++;
     }
-    else if (convertedCoordinate < -180 || convertedCoordinate > 180) {
+    else if ((convertedCoordinate < -180) || (convertedCoordinate > 180)) {
         var errorText = "Must be -180 to 180";
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -759,7 +760,7 @@ function checkLatLong() {
         ge(collapseID).classList.add('show');
         errorCount++;
     }
-    else if (convertedCoordinate < -180 || convertedCoordinate > 180) {
+    else if ((convertedCoordinate < -180) || (convertedCoordinate > 180)) {
         var errorText = "Must be -180 to 180";
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -786,16 +787,14 @@ function updateLatLong() {
     checkLatLong(); //Updates the detected format
 }
 
-function updateCorrectionsPriority() {
-    ge("correctionsPriorityList").innerHTML = correctionText;
-}
-
 function checkElementValue(id, min, max, errorText, collapseID) {
     value = ge(id).value;
-    if (value < min || value > max || value == "") {
+    if ((value < min) || (value > max) || (value == "")) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
-        if (collapseID == "collapseGNSSConfigMsg") ge("collapseGNSSConfig").classList.add('show');
+        if (collapseID == "collapseGNSSConfigMsg") {
+            ge("collapseGNSSConfig").classList.add('show');
+        }
         errorCount++;
     }
     else
@@ -804,7 +803,7 @@ function checkElementValue(id, min, max, errorText, collapseID) {
 
 function checkElementString(id, min, max, errorText, collapseID) {
     value = ge(id).value;
-    if (value.length < min || value.length > max) {
+    if ((value.length < min) || (value.length > max)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
         errorCount++;
@@ -838,7 +837,7 @@ function checkElementCasterUser(id, badUserName, errorText, collapseID) {
 }
 
 function checkCheckboxMutex(id1, id2, errorText, collapseID) {
-    if ((ge(id1).checked) && (ge(id2).checked)) {
+    if ((ge(id1).checked == true) && (ge(id2).checked == true)) {
         ge(id1 + 'Error').innerHTML = 'Error: ' + errorText;
         ge(id2 + 'Error').innerHTML = 'Error: ' + errorText;
         ge(collapseID).classList.add('show');
@@ -853,13 +852,14 @@ function checkCheckboxMutex(id1, id2, errorText, collapseID) {
 function checkCorrectionsPriorities() {
     var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
     if (correctionsSources.length > 0) {
-        var correctionSeen[correctionsSources.length];
+        var correctionSeen = [];
         for (let x = 0; x < correctionsSources.length; x++) {
-            correctionSeen[x] = 0;
+            correctionSeen.push(0);
         }
         for (let x = 0; x < correctionsSources.length; x++) {
             for (let y = 0; y < correctionsSources.length; y++) {
-                if (correctionSources[y] == x) {
+                var correctionName = correctionsSources[y].id;
+                if (ge(correctionName).value == x) {
                     correctionSeen[y] = correctionSeen[y] + 1;
                 }
             }
@@ -871,7 +871,7 @@ function checkCorrectionsPriorities() {
             }
         }
         if (sourcesValid == 0) {
-            ge("collapseCorrectionsPriorityConfig" + 'Error').innerHTML = 'Error: priorities must be contiguous, starting at 0';
+            ge("collapseCorrectionsPriorityConfigError").innerHTML = "Error: priorities must be contiguous, starting at 0";
             ge("collapseCorrectionsPriorityConfig").classList.add('show');
             errorCount++;
         }
@@ -1058,28 +1058,28 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("baseTypeSurveyIn").addEventListener("change", function () {
-        if (ge("baseTypeSurveyIn").checked) {
+        if (ge("baseTypeSurveyIn").checked == true) {
             show("surveyInConfig");
             hide("fixedConfig");
         }
     });
 
     ge("baseTypeFixed").addEventListener("change", function () {
-        if (ge("baseTypeFixed").checked) {
+        if (ge("baseTypeFixed").checked == true) {
             show("fixedConfig");
             hide("surveyInConfig");
         }
     });
 
     ge("fixedBaseCoordinateTypeECEF").addEventListener("change", function () {
-        if (ge("fixedBaseCoordinateTypeECEF").checked) {
+        if (ge("fixedBaseCoordinateTypeECEF").checked == true) {
             show("ecefConfig");
             hide("geodeticConfig");
         }
     });
 
     ge("fixedBaseCoordinateTypeGeo").addEventListener("change", function () {
-        if (ge("fixedBaseCoordinateTypeGeo").checked) {
+        if (ge("fixedBaseCoordinateTypeGeo").checked == true) {
             hide("ecefConfig");
             show("geodeticConfig");
 
@@ -1096,7 +1096,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableNtripServer").addEventListener("change", function () {
-        if (ge("enableNtripServer").checked) {
+        if (ge("enableNtripServer").checked == true) {
             show("ntripServerConfig");
         }
         else {
@@ -1105,7 +1105,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableNtripClient").addEventListener("change", function () {
-        if (ge("enableNtripClient").checked) {
+        if (ge("enableNtripClient").checked == true) {
             show("ntripClientConfig");
         }
         else {
@@ -1114,7 +1114,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableFactoryDefaults").addEventListener("change", function () {
-        if (ge("enableFactoryDefaults").checked) {
+        if (ge("enableFactoryDefaults").checked == true) {
             ge("factoryDefaults").disabled = false;
         }
         else {
@@ -1147,7 +1147,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableExternalPulse").addEventListener("change", function () {
-        if (ge("enableExternalPulse").checked) {
+        if (ge("enableExternalPulse").checked == true) {
             show("externalPulseConfigDetails");
         }
         else {
@@ -1183,7 +1183,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableARPLogging").addEventListener("change", function () {
-        if (ge("enableARPLogging").checked) {
+        if (ge("enableARPLogging").checked == true) {
             show("enableARPLoggingDetails");
         }
         else {
@@ -1560,7 +1560,7 @@ function abortHandler(event) {
 }
 
 function tcpBoxes() {
-    if (ge("enablePvtServer").checked || ge("enablePvtClient").checked) {
+    if ((ge("enablePvtServer").checked == true) || (ge("enablePvtClient").checked == true)) {
         show("tcpSettingsConfig");
     }
     else {
@@ -1570,7 +1570,7 @@ function tcpBoxes() {
 }
 
 function udpBoxes() {
-    if (ge("enablePvtUdpServer").checked) {
+    if (ge("enablePvtUdpServer").checked == true) {
         show("udpSettingsConfig");
     }
     else {
@@ -1580,7 +1580,7 @@ function udpBoxes() {
 }
 
 function tcpBoxesEthernet() {
-    if (ge("enableTcpClientEthernet").checked) {
+    if (ge("enableTcpClientEthernet").checked == true) {
         show("tcpSettingsConfigEthernet");
     }
     else {
@@ -1590,7 +1590,7 @@ function tcpBoxesEthernet() {
 }
 
 function dhcpEthernet() {
-    if (ge("ethernetDHCP").checked) {
+    if (ge("ethernetDHCP").checked == true) {
         hide("fixedIPSettingsConfigEthernet");
     }
     else {
@@ -1732,7 +1732,7 @@ function identifyInputType(userEntry) {
     //A valid entry has only numbers, -, ' ', and .
     for (var x = 0; x < userEntry.length; x++) {
 
-        if (isdigit(userEntry[x])) {
+        if (isdigit(userEntry[x]) == true) {
             if (decimalCount == 0) lengthOfLeadingNumber++
         }
         else if (userEntry[x] == '-') dashCount++; //All good
@@ -1762,7 +1762,7 @@ function identifyInputType(userEntry) {
         dashCount--; //Use dashCount as the internal dashes only, not the leading negative sign
     }
 
-    if (spaceCount == 0 && dashCount == 0 && (lengthOfLeadingNumber == 7 || lengthOfLeadingNumber == 6)) //DDMMSS.ssssss
+    if ((spaceCount == 0) && (dashCount == 0) && ((lengthOfLeadingNumber == 7) || (lengthOfLeadingNumber == 6))) //DDMMSS.ssssss
     {
         coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS;
 
@@ -1779,7 +1779,9 @@ function identifyInputType(userEntry) {
         seconds -= (decimal * 10000); //Remove DDD
         seconds -= (minutes * 100); //Remove MM
         convertedCoordinate = decimal + (minutes / 60.0) + (seconds / 3600.0);
-        if (convertedCoordinate) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
     else if (spaceCount == 0 && dashCount == 0 && (lengthOfLeadingNumber == 5 || lengthOfLeadingNumber == 4)) //DDMM.mmmmmmm
     {
@@ -1791,7 +1793,9 @@ function identifyInputType(userEntry) {
         var minutes = userEntry; //Get DDDMM.mmmmmmm
         minutes -= (decimal * 100); //Remove DDD
         convertedCoordinate = decimal + (minutes / 60.0);
-        if (negativeSign) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
 
     else if (dashCount == 1) //DD-MM.mmmmmmm
@@ -1802,7 +1806,9 @@ function identifyInputType(userEntry) {
         var decimal = Number(data[0]); //Get DD
         var minutes = Number(data[1]); //Get MM.mmmmmmm
         convertedCoordinate = decimal + (minutes / 60.0);
-        if (negativeSign) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
     else if (dashCount == 2) //DD-MM-SS.ssss
     {
@@ -1818,13 +1824,17 @@ function identifyInputType(userEntry) {
 
         var seconds = Number(data[2]); //Get SS.ssssss
         convertedCoordinate = decimal + (minutes / 60.0) + (seconds / 3600.0);
-        if (negativeSign) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
     else if (spaceCount == 0) //DD.ddddddddd
     {
         coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
         convertedCoordinate = userEntry;
-        if (negativeSign) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
     else if (spaceCount == 1) //DD MM.mmmmmmm
     {
@@ -1834,7 +1844,9 @@ function identifyInputType(userEntry) {
         var decimal = Number(data[0]); //Get DD
         var minutes = Number(data[1]); //Get MM.mmmmmmm
         convertedCoordinate = decimal + (minutes / 60.0);
-        if (negativeSign) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
     else if (spaceCount == 2) //DD MM SS.ssssss
     {
@@ -1850,7 +1862,9 @@ function identifyInputType(userEntry) {
 
         var seconds = Number(data[2]); //Get SS.ssssss
         convertedCoordinate = decimal + (minutes / 60.0) + (seconds / 3600.0);
-        if (negativeSign) convertedCoordinate *= -1;
+        if (negativeSign == true) {
+            convertedCoordinate *= -1;
+        }
     }
 
     //console.log("convertedCoordinate: " + convertedCoordinate.toFixed(9));
@@ -1888,14 +1902,13 @@ function convertInput(coordinate, coordinateInputType) {
         else
             coordinateString = longitudeDegrees + " " + coordinate;
     }
-    else if (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS
-        || coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS
-        || coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH
-        || coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_SYMBOL
-        || coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL
-        || coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_NO_DECIMAL
-        || coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL
-    ) {
+    else if ((coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS)
+        || (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS)
+        || (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH)
+        || (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_SYMBOL)
+        || (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL)
+        || (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_NO_DECIMAL)
+        || (coordinateInputType == CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL)) {
         var longitudeDegrees = Math.trunc(coordinate);
         coordinate -= longitudeDegrees;
         coordinate *= 60;
