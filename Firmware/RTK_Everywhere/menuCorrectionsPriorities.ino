@@ -131,5 +131,47 @@ void initializeCorrectionPriorities()
         settings.correctionsSourcesPriority[s] = s;
 }
 
+// Corrections Priorities Support
 
+// Corrections priority
+std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
 
+void clearRegisteredCorrectionsSources()
+{
+    registeredCorrectionsSources.clear();
+}
+
+void registerCorrectionsSource(correctionsSource newSource)
+{
+    registeredCorrectionsSources.push_back(newSource);
+}
+
+bool isAResisteredCorrectionsSource(correctionsSource theSource)
+{
+    for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
+    {
+        correctionsSource aSource = *it;
+
+        if (aSource == theSource)
+            return true;
+    }
+    return false;
+}
+
+bool isHighestRegisteredCorrectionsSource(correctionsSource theSource)
+{
+    correctionsSource highestSource = CORR_NUM;
+
+    for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
+    {
+        correctionsSource aSource = *it;
+
+        if (aSource < highestSource) // Higher
+            highestSource = aSource;
+    }
+
+    if (highestSource == CORR_NUM)
+        return false; // This is actually an error. No sources were found...
+
+    return (theSource <= highestSource); // Highest
+}

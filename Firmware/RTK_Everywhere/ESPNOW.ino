@@ -62,13 +62,32 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
     {
         espnowRSSI = packetRSSI; // Record this packets RSSI as an ESP NOW packet
 
-        // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
-        gnssPushRawData((uint8_t *)incomingData, len);
+        // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
+        // BUT we need to consider the Corrections Priorities.
+        // Step 1: check if CORR_ESPNOW is registered as a correction source. If not, register it.
+        // Step 2: check if CORR_ESPNOW is the highest - actually LOWEST - registered correction source.
+        //         If it is, push the data. If not, discard the data.
 
-        if (!inMainMenu)
-            log_d("ESPNOW received %d RTCM bytes, pushed to ZED, RSSI: %d", len, espnowRSSI);
+        // Step 1
+        if (!isAResisteredCorrectionsSource(CORR_ESPNOW))
+            registerCorrectionsSource(CORR_ESPNOW);
 
-        espnowIncomingRTCM = true;
+        // Step 2
+        if (isHighestRegisteredCorrectionsSource(CORR_ESPNOW))
+        {
+            // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
+            gnssPushRawData((uint8_t *)incomingData, len);
+
+            if (!inMainMenu)
+                log_d("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d", len, espnowRSSI);
+        }
+        else
+        {
+            if (!inMainMenu)
+                log_d("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d", len, espnowRSSI);
+        }
+
+        espnowIncomingRTCM = true; // This may be redundant in the world of Corrections Priorities? TODO: check!
         lastEspnowRssiUpdate = millis();
     }
 #endif // COMPILE_ESPNOW
