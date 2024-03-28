@@ -687,7 +687,7 @@ uint8_t getMessageNumberByName(const char *msgName)
 }
 
 // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
-void checkArrayDefaults()
+void checkGNSSArrayDefaults()
 {
     bool defaultsApplied = false;
 

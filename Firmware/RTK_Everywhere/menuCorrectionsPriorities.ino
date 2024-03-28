@@ -114,7 +114,7 @@ bool validateCorrectionPriorities()
         {
             if (settings.correctionsSourcesPriority[y] == x)
             {
-                foundSources[y]++;
+                foundSources[x]++;
                 break;
             }
         }

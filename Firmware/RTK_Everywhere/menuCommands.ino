@@ -979,7 +979,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 // The order of variables matches the order found in settings.h
 void createSettingsString(char *newSettings)
 {
-    char tagText[50];
+    char tagText[80];
     char nameText[64];
 
     newSettings[0] = '\0'; // Erase current settings string

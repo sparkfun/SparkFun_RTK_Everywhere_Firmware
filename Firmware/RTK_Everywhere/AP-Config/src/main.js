@@ -339,11 +339,10 @@ function parseIncoming(msg) {
         ge("pointPerfectCorrectionsSource").dispatchEvent(new CustomEvent('change'));
         ge("radioType").dispatchEvent(new CustomEvent('change'));
         ge("antennaReferencePoint").dispatchEvent(new CustomEvent('change'));
-        ge("autoIMUmountAlignment").dispatchEvent(new CustomEvent('change'));
+        // autoIMUmountAlignment is only used on Express Plus (ZED-F9R). It should not (currently) be here...
+        //ge("autoIMUmountAlignment").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
 
-        ge("correctionsPriorityList").innerHTML = correctionText;
-        
         updateECEFList();
         updateGeodeticList();
         tcpBoxes();
@@ -351,6 +350,8 @@ function parseIncoming(msg) {
         tcpBoxesEthernet();
         dhcpEthernet();
         updateLatLong();
+
+        ge("correctionsPriorityList").innerHTML = correctionText;        
     }
 }
 
@@ -860,7 +861,7 @@ function checkCorrectionsPriorities() {
             for (let y = 0; y < correctionsSources.length; y++) {
                 var correctionName = correctionsSources[y].id;
                 if (ge(correctionName).value == x) {
-                    correctionSeen[y] = correctionSeen[y] + 1;
+                    correctionSeen[x] = correctionSeen[x] + 1;
                 }
             }
         }
@@ -875,8 +876,9 @@ function checkCorrectionsPriorities() {
             ge("collapseCorrectionsPriorityConfig").classList.add('show');
             errorCount++;
         }
-        else
+        else {
             clearError("collapseCorrectionsPriorityConfig");
+        }
     }
 }
 

@@ -993,6 +993,9 @@ void setup()
     DMW_b("loadSettings");
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
+    DMW_b("checkArrayDefaults");
+    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
         printPartitionTable();
