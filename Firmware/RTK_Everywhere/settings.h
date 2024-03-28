@@ -1349,10 +1349,6 @@ struct struct_online
     bool ppl = false;
 } online;
 
-// Corrections priority
-std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
-void registerCorrectionsSource(correctionsSource newSource) { registeredCorrectionsSources.push_back(newSource); }
-
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API
 static const char *AWS_PUBLIC_CERT = R"=====(
