@@ -291,16 +291,18 @@ enum NetworkUsers
     NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
     NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
-    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
     NETWORK_USER_PVT_CLIENT,            // PVT client
     NETWORK_USER_PVT_SERVER,            // PVT server
     NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
+
+    // Add new users above this line
+    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     // Last network user
-    NETWORK_USER_MAX
+    NETWORK_USER_MAX = NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX
 };
 
-typedef uint8_t NETWORK_USER;
+typedef uint16_t NETWORK_USER;
 
 typedef struct _NETWORK_DATA
 {

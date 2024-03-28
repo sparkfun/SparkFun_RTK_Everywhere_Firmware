@@ -29,7 +29,8 @@ void DevUBLOXGNSS::processRTCM(uint8_t incoming)
         rtcmLastReceived = millis();
         rtcmBytesSent++;
 
-        ntripServerProcessRTCM(incoming);
+        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            ntripServerProcessRTCM(serverIndex, incoming);
 
         espnowProcessRTCM(incoming);
     }
