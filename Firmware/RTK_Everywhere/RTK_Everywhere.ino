@@ -23,11 +23,11 @@
 // needed during development
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
 
 #ifdef COMPILE_WIFI
-#define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
-#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
+#define COMPILE_AP       // Requires WiFi. Comment out to remove Access Point functionality
+#define COMPILE_ESPNOW   // Requires WiFi. Comment out to remove ESP-Now functionality.
+#define COMPILE_OTA_AUTO // Requires WiFi. Comment out to disable automatic over-the-air firmware update
 #endif                 // COMPILE_WIFI
 
 #define COMPILE_BT                   // Comment out to remove Bluetooth functionality
