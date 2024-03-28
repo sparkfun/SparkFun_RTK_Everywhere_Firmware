@@ -932,8 +932,8 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
-    DMW_b("housekeeping");
-    housekeeping(); // Do any housekeeping tasks, like initializing (clearing) vectors like registeredCorrectionsSources
+    DMW_b("housekeepingSetup");
+    housekeepingSetup(); // Do any housekeeping tasks, like initializing (clearing) vectors like registeredCorrectionsSources
 
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
@@ -1162,6 +1162,9 @@ void loop()
 
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();
+
+    DMW_c("housekeepingLoop");
+    housekeepingLoop(); // Do any housekeeping tasks, like deleting expired registeredCorrectionsSources
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }

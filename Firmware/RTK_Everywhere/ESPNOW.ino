@@ -69,8 +69,7 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
         //         If it is, push the data. If not, discard the data.
 
         // Step 1
-        if (!isAResisteredCorrectionsSource(CORR_ESPNOW))
-            registerCorrectionsSource(CORR_ESPNOW);
+        updateCorrectionsLastSeen(CORR_ESPNOW); // This will (re)register the correction source if needed
 
         // Step 2
         if (isHighestRegisteredCorrectionsSource(CORR_ESPNOW))

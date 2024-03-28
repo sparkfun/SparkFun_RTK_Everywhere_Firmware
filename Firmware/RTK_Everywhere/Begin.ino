@@ -1246,9 +1246,14 @@ void deleteSDSizeCheckTask()
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Housekeeping
-void housekeeping()
+void housekeepingSetup()
 {
     clearRegisteredCorrectionsSources(); // Clear (initialize) the vector of corrections sources. Probably redundant...?
+}
+
+void housekeepingLoop()
+{
+    checkRegisteredCorrectionsSources(); // Delete any expired corrections sources
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

@@ -133,8 +133,13 @@ void initializeCorrectionPriorities()
 
 // Corrections Priorities Support
 
+typedef struct {
+    correctionsSource source;
+    unsigned long lastSeen;
+} registeredCorrectionsSource;
+
 // Corrections priority
-std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
 
 void clearRegisteredCorrectionsSources()
 {
@@ -143,16 +148,19 @@ void clearRegisteredCorrectionsSources()
 
 void registerCorrectionsSource(correctionsSource newSource)
 {
-    registeredCorrectionsSources.push_back(newSource);
+    registeredCorrectionsSource it;
+    it.source = newSource;
+    it.lastSeen = millis();
+    registeredCorrectionsSources.push_back(it);
 }
 
 bool isAResisteredCorrectionsSource(correctionsSource theSource)
 {
     for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
     {
-        correctionsSource aSource = *it;
+        registeredCorrectionsSource aSource = *it;
 
-        if (aSource == theSource)
+        if (aSource.source == theSource)
             return true;
     }
     return false;
@@ -164,14 +172,39 @@ bool isHighestRegisteredCorrectionsSource(correctionsSource theSource)
 
     for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
     {
-        correctionsSource aSource = *it;
+        registeredCorrectionsSource aSource = *it;
 
-        if (aSource < highestSource) // Higher
-            highestSource = aSource;
+        if (settings.correctionsSourcesPriority[aSource.source] < highestSource) // Higher
+            highestSource = aSource.source;
     }
 
     if (highestSource == CORR_NUM)
         return false; // This is actually an error. No sources were found...
 
-    return (theSource <= highestSource); // Highest
+    return (settings.correctionsSourcesPriority[theSource] <= highestSource); // Highest
+}
+
+void updateCorrectionsLastSeen(correctionsSource theSource)
+{
+    if (!isAResisteredCorrectionsSource(theSource))
+    {
+        registerCorrectionsSource(theSource);
+        return; // registerCorrectionsSource updates lastSeen. We can return
+    }
+
+    for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
+    {
+        registeredCorrectionsSource aSource = *it;
+
+        if (aSource.source == theSource)
+        {
+            aSource.lastSeen = millis();
+            break;
+        }
+    }
+}
+
+void checkRegisteredCorrectionsSources()
+{
+    // TODO: check when each corrections source was lastSeen. Delete any that have expired
 }
