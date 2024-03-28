@@ -196,7 +196,7 @@ void displayUpdate()
             oled->erase();
 
             std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
-            iconPropertyList.clear();
+            iconPropertyList.clear(); // Redundant?
 
             switch (systemState)
             {

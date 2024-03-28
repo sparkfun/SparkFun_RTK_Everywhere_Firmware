@@ -932,6 +932,9 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
+    DMW_b("housekeeping");
+    housekeeping(); // Do any housekeeping tasks, like initializing (clearing) vectors like registeredCorrectionsSources
+
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
     {

@@ -1245,7 +1245,13 @@ void deleteSDSizeCheckTask()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Housekeeping
+void housekeeping()
+{
+    clearRegisteredCorrectionsSources(); // Clear (initialize) the vector of corrections sources. Probably redundant...?
+}
 
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
 // TODO: find a better home for this
 void checkArrayDefaults()
