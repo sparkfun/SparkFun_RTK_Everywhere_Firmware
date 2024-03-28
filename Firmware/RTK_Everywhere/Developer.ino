@@ -45,11 +45,8 @@ void menuNetwork() {systemPrint("**Network not compiled**");}
 void networkUpdate() {}
 void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
-void mqttClientValidateTables() {}
-void mqttClientPrintStatus() {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
-bool mqttClientIsConnected() {return false;}
 
 //----------------------------------------
 // NTRIP client
@@ -107,6 +104,20 @@ void otaAutoUpdateStop() {}
 void otaVerifyTables() {}
 
 #endif  // COMPILE_OTA_AUTO
+
+//----------------------------------------
+// MQTT Client
+//----------------------------------------
+
+#ifndef COMPILE_MQTT_CLIENT
+
+bool mqttClientIsConnected() {return false;}
+void mqttClientPrintStatus() {}
+void mqttClientRestart() {}
+void mqttClientUpdate() {}
+void mqttClientValidateTables() {}
+
+#endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
 // Web Server
