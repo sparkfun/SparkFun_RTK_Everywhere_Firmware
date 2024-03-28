@@ -241,7 +241,8 @@ bool zedConfigure()
         theGNSS->disableDebugging();
 
     // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
-    checkArrayDefaults();
+    // Redundant - also done by gnssConfigure
+    //checkGNSSArrayDefaults();
 
     theGNSS->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
     theGNSS->setAutoHPPOSLLHcallbackPtr(

@@ -798,6 +798,9 @@ void verifyTables()
     pvtClientValidateTables();
     pvtServerValidateTables();
     tasksValidateTables();
+
+    if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
+        reportFatalError("Too many correction sources");
 }
 
 // Display a prompt, then check the response against bounds.

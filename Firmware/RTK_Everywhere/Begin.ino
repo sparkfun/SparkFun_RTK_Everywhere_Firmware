@@ -1245,6 +1245,18 @@ void deleteSDSizeCheckTask()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+// TODO: find a better home for this
+void checkArrayDefaults()
+{
+    if (!validateCorrectionPriorities())
+        initializeCorrectionPriorities();
+    if (!validateCorrectionPriorities())
+        reportFatalError("initializeCorrectionPriorities failed.");
+}
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Time Pulse ISR
 // Triggered by the rising edge of the time pulse signal, indicates the top-of-second.
 // Set the ESP32 RTC to UTC

@@ -99,6 +99,8 @@ void menuMain()
 
         systemPrintln("f) Firmware upgrade");
 
+        systemPrintln("i) Configure corrections priorities");
+
 #ifdef COMPILE_ETHERNET
         if (present.ethernet_ws5500 == true)
             systemPrintln("n) Configure NTP");
@@ -146,6 +148,8 @@ void menuMain()
             menuEthernet();
         else if (incoming == 'f')
             menuFirmware();
+        else if (incoming == 'i')
+            menuCorrectionsPriorities();
         else if (incoming == 'n' && (present.ethernet_ws5500 == true))
             menuNTP();
         else if (incoming == 'p')

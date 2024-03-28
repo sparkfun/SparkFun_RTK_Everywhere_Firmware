@@ -18,7 +18,7 @@ bool gnssConfigure()
         return (false);
 
     // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
-    checkArrayDefaults();
+    checkGNSSArrayDefaults();
 
     if (gnssPlatform == PLATFORM_ZED)
     {

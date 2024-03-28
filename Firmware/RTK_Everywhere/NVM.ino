@@ -496,6 +496,15 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "um980MeasurementRateMs", settings.um980MeasurementRateMs);
     settingsFile->printf("%s=%d\r\n", "enableImuCompensationDebug", settings.enableImuCompensationDebug);
 
+    // Record corrections priorities
+    for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+    {
+        char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+        snprintf(tempString, sizeof(tempString), "correctionsPriority.%s=%0d", correctionsSourceNames[x],
+                 settings.correctionsSourcesPriority[x]);
+        settingsFile->println(tempString);
+    }
+
     // Add new settings above <--------------------------------------------------->
 
     // Below are things not part of settings.h
@@ -1590,6 +1599,25 @@ bool parseLine(char *str, Settings *settings)
                         settings->um980Constellations[x] = d;
                         settings->updateGNSSSettings = true;
                     }
+
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for corrections priorities
+        if (knownSetting == false)
+        {
+            for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+            {
+                char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s",
+                         correctionsSourceNames[x]);
+
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    settings->correctionsSourcesPriority[x] = d;
 
                     knownSetting = true;
                     break;

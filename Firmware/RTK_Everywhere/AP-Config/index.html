@@ -1255,7 +1255,7 @@
                     </div>
 
                     <div id="wifiConfigTypeDropdown" class="mt-3">
-                        <label for="wifiConfigType">Configure Mode: </label>
+                        <label for="wifiConfigOverAP">Configure Mode: </label>
                         <select name="wifiConfigType" id="wifiConfigOverAP" class="form-dropdown">
                             <option value="1">AP</option>
                             <option value="0">WiFi</option>
@@ -1343,6 +1343,39 @@
                         </div>
 
                     </div>
+                </div>
+            </div>
+
+            <!-- --------- Corrections Priority Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapseCorrectionsPriorityConfig" aria-expanded="false" aria-controls="collapseCorrectionsPriorityConfig">
+                    Corrections Configuration <i id="correctionsCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+
+            <div class="collapse" id="collapseCorrectionsPriorityConfig">
+                <div class="card card-body">
+
+                    <div class="form-group mt-2">
+                        Corrections Source:
+                        <span class="tt" data-bs-placement="right"
+                            title="Assign a priority to each corrections source. Priorities must be contiguous, starting at zero with no repeats. Zero is the highest priority. Changes are saved when 'Save Configuration' is pressed.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="form-group row">
+                        <p id="collapseCorrectionsPriorityConfigError" class="inlineError"></p>
+                    </div>
+
+                    <div id="correctionsPriorityList">
+                    </div>
+
+                    <div style="margin-bottom:5px;">
+                        <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
+                            onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
+                    </div>
+
                 </div>
             </div>
 

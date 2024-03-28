@@ -2,7 +2,7 @@
 #define _RTK_EVERYWHERE_SETTINGS_H
 
 #include "UM980.h" //Structs of UM980 messages, needed for settings.h
-
+#include <vector>
 
 // System can enter a variety of states
 // See statemachine diagram at:
@@ -128,6 +128,40 @@ const char * const platformProvisionTable[] =
     "Unknown"
 };
 const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
+
+// Corrections Priority
+typedef enum
+{
+    // Change the order of these to set the default priority. First (0) is highest
+    CORR_BLUETOOTH = 0,
+    CORR_WIFI_IP,
+    CORR_WIFI_TCP,
+    CORR_ETHERNET_IP,
+    CORR_ETHERNET_TCP,
+    CORR_LBAND,
+    CORR_CELLULAR,
+    CORR_RADIO_EXT,
+    CORR_RADIO_LORA,
+    CORR_ESPNOW,
+    // Add new correction sources just above this line
+    CORR_NUM
+} correctionsSource;
+const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
+{
+    // These must match correctionsSources above
+    "Bluetooth",
+    "WiFi_IP_(PointPerfect/MQTT)",
+    "WiFi_TCP_(NTRIP)",
+    "Ethernet_IP_(PointPerfect/MQTT)",
+    "Ethernet_TCP_(NTRIP_Client)",
+    "L-Band",
+    "Cellular",
+    "External_Radio",
+    "LoRa_Radio",
+    "ESP-Now",
+    // Add new correction sources just above this line
+};
+
 
 const SystemState platformPreviousStateTable[] =
 {
@@ -1214,6 +1248,8 @@ typedef struct
     uint16_t um980MeasurementRateMs = 500; // Elapsed ms between GNSS measurements. 50ms to 65535ms. Default 2Hz.
     bool enableImuCompensationDebug = false;
 
+    int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
+
     // Add new settings above <------------------------------------------------------------>
 
 } Settings;
@@ -1312,6 +1348,10 @@ struct struct_online
     volatile bool updatePplTaskRunning = false;
     bool ppl = false;
 } online;
+
+// Corrections priority
+std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+void registerCorrectionsSource(correctionsSource newSource) { registeredCorrectionsSources.push_back(newSource); }
 
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API
