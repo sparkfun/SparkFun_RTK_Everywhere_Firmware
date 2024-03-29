@@ -1249,6 +1249,7 @@ typedef struct
     bool enableImuCompensationDebug = false;
 
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
+    int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
 
     // Add new settings above <------------------------------------------------------------>
 

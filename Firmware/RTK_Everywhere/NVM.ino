@@ -504,6 +504,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                  settings.correctionsSourcesPriority[x]);
         settingsFile->println(tempString);
     }
+    settingsFile->printf("%s=%d\r\n", "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1371,6 +1372,8 @@ bool parseLine(char *str, Settings *settings)
         settings->um980MeasurementRateMs = d;
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         settings->enableImuCompensationDebug = d;
+    else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
+        settings->correctionsSourcesLifetime_s = d;
 
     // Add new settings above <--------------------------------------------------->
 

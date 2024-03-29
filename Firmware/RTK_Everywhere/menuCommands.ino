@@ -569,6 +569,9 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 
     // correctionsPriority not handled here
 
+    else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
+        settings.correctionsSourcesLifetime_s = settingValue;
+
     // Add new settings above <--------------------------------------------------->
 
     else if (strstr(settingName, "stationECEF") != nullptr)
@@ -1357,6 +1360,8 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, tagText, settings.correctionsSourcesPriority[x]);
     }
 
+    stringRecord(newSettings, "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
+
     // stringRecord(newSettings, "", settings.);
 
     // Add new settings above <------------------------------------------------------------>
@@ -2081,6 +2086,9 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
     // correctionsPriority handled below
 
+    else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
+        writeToString(settingValueStr, settings.correctionsSourcesLifetime_s);
+
     // Add new settings above <------------------------------------------------------------>
 
     // Check global setting
@@ -2543,8 +2551,8 @@ void printAvailableSettings()
     systemPrint("um980MeasurementRateMs,uint16_t,");
     systemPrint("enableImuCompensationDebug,bool,");
 
-    // TODO: Would correctionsPriority.Bluetooth,int, correctionsPriority.ESP-Now,int, etc. be more useful?
     systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
+    systemPrint("correctionsSourcesLifetime_s,int,");
 
     systemPrintln();
 }
