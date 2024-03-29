@@ -313,7 +313,7 @@ bool pointperfectProvisionDevice()
                          btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
 
                 systemPrintf("This device has been deactivated. Please contact "
-                             "support@sparkfun.com to renew the L-Band "
+                             "support@sparkfun.com to renew the PointPerfect "
                              "subscription. Please reference device ID: %s\r\n",
                              hardwareID);
 
@@ -326,7 +326,7 @@ bool pointperfectProvisionDevice()
                          btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
 
                 systemPrintf(
-                    "This device is not white-listed. Please contact "
+                    "This device is not whitelisted. Please contact "
                     "support@sparkfun.com to get your subscription activated. Please reference device ID: %s\r\n",
                     hardwareID);
 
