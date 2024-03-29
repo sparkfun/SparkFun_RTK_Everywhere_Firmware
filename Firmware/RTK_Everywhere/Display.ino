@@ -734,6 +734,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
+                prop.icon.bitmap = nullptr;
                 // Based on RSSI, select icon
                 if (espnowRSSI >= -40)
                     prop.icon = ESPNowSymbol3128x64;
@@ -741,9 +742,11 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon = ESPNowSymbol2128x64;
                 else if (espnowRSSI >= -80)
                     prop.icon = ESPNowSymbol1128x64;
-                else // if (espnowRSSI > -255)
+                else if (espnowRSSI > -255)
                     prop.icon = ESPNowSymbol0128x64;
-                iconList->push_back(prop);
+                // Don't display a symbol if RSSI == -255
+                if (prop.icon.bitmap != nullptr)
+                    iconList->push_back(prop);
             }
 
             if (bluetoothGetState() == BT_CONNECTED)
@@ -956,8 +959,8 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 prop.icon = ESPNowSymbol2Left64x48;
             else if (espnowRSSI >= -80)
                 prop.icon = ESPNowSymbol1Left64x48;
-            else // if (espnowRSSI > -255)
-                prop.icon = ESPNowSymbol0Left64x48;
+            else //if (espnowRSSI > -255)
+                prop.icon = ESPNowSymbol0Left64x48; // Always show the synbol because we've got incoming or outgoing data
             iconList->push_back(prop);
 
             // Share the spot. Determine if we need to indicate Up, or Down
@@ -980,6 +983,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         {
             iconPropertyBlinking prop;
             prop.duty = 0b11111111;
+            prop.icon.bitmap = nullptr;
             // TODO: check this. Surely we want to indicate the correct signal level with no incoming RTCM?
             if (espnowIncomingRTCM == true)
             {
@@ -990,14 +994,16 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon = ESPNowSymbol2Left64x48;
                 else if (espnowRSSI >= -80)
                     prop.icon = ESPNowSymbol1Left64x48;
-                else // if (espnowRSSI > -255)
+                else if (espnowRSSI > -255)
                     prop.icon = ESPNowSymbol0Left64x48;
+                // Don't display a symbol if RSSI == -255
             }
             else // ESP radio is active, but not receiving RTCM
             {
                 prop.icon = ESPNowSymbol3Left64x48; // Full symbol
             }
-            iconList->push_back(prop);
+            if (prop.icon.bitmap != nullptr)
+                iconList->push_back(prop);
         }
     }
     else // We are not paired, blink icon

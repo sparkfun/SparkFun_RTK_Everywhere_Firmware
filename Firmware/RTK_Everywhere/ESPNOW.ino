@@ -86,7 +86,7 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
                 log_d("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d", len, espnowRSSI);
         }
 
-        espnowIncomingRTCM = true; // This may be redundant in the world of Corrections Priorities? TODO: check!
+        espnowIncomingRTCM = true; // Display a download icon
         lastEspnowRssiUpdate = millis();
     }
 #endif // COMPILE_ESPNOW
