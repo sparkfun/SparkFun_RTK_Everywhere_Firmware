@@ -265,14 +265,12 @@ void sendGnssBuffer()
     updateCorrectionsLastSeen(CORR_BLUETOOTH);
     if (isHighestRegisteredCorrectionsSource(CORR_BLUETOOTH))
     {
-        bool response = gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead);
-
-        if (response == true)
+        if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
             if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
             {
                 PERIODIC_CLEAR(PD_ZED_DATA_TX);
-                systemPrintf("Sending %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
+                systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
             }
             // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
         }
@@ -282,7 +280,7 @@ void sendGnssBuffer()
         if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
         {
             PERIODIC_CLEAR(PD_ZED_DATA_TX);
-            systemPrintf("%d BT bytes NOT pushed due to priority\r\n", bluetoothOutgoingToGnssHead);
+            systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
         }
     }
 

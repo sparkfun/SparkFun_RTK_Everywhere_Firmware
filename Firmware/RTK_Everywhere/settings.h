@@ -129,39 +129,59 @@ const char * const platformProvisionTable[] =
 };
 const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
 
+// Different GNSS modules require different libraries and configuration
+typedef enum
+{
+    PLATFORM_ZED = 0b0001,
+    PLATFORM_UM980 = 0b0010,
+    PLATFORM_MOSAIC = 0b0011,
+} GnssPlatform;
+
+const GnssPlatform platformGnssTable[] =
+{
+    PLATFORM_ZED,   // EVK
+    PLATFORM_ZED,   // Facet v2
+    PLATFORM_MOSAIC,   // Facet mosaic
+    PLATFORM_UM980, // Torch
+    // Add new values just above this line
+    PLATFORM_ZED    // Unknown
+};
+const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
+
 // Corrections Priority
 typedef enum
 {
     // Change the order of these to set the default priority. First (0) is highest
-    CORR_BLUETOOTH = 0,
-    CORR_WIFI_IP,
-    CORR_WIFI_TCP,
-    CORR_ETHERNET_IP,
-    CORR_ETHERNET_TCP,
-    CORR_LBAND,
-    CORR_CELLULAR,
-    CORR_RADIO_EXT,
-    CORR_RADIO_LORA,
-    CORR_ESPNOW,
+    CORR_BLUETOOTH = 0, // Added - Tasks.ino (sendGnssBuffer)
+    CORR_WIFI_IP, // Added - MQTT_Client.ino - TODO: disentangle WiFi, Ethernet and Cellular
+    CORR_WIFI_TCP, // Added - NtripClient.ino - TODO: disentangle WiFi, Ethernet and Cellular
+    CORR_ETHERNET_IP, // TODO: see WiFi above
+    CORR_ETHERNET_TCP, // TODO: see WiFi above
+    CORR_CELLULAR_IP, // TODO: see WiFi above
+    CORR_CELLULAR_TCP, // TODO: see WiFi above
+    CORR_LBAND, // Added - menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_RADIO_EXT, // TODO: this needs a meeting. Data goes direct from RADIO connector to ZED - or X5. How to disable / enable it? Via port protocol?
+    CORR_RADIO_LORA, // TODO: this needs a meeting. UM980 only? Does data go direct from LoRa to UM980?
+    CORR_ESPNOW, // Added - ESPNOW.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
-    // These must match correctionsSources above
+    // These must match correctionsSource above
     "Bluetooth",
-    "WiFi_IP_(PointPerfect/MQTT)",
+    "WiFi_IP_(MQTT)",
     "WiFi_TCP_(NTRIP)",
-    "Ethernet_IP_(PointPerfect/MQTT)",
-    "Ethernet_TCP_(NTRIP_Client)",
+    "Ethernet_IP_(MQTT)",
+    "Ethernet_TCP_(NTRIP)",
+    "Cellular_IP_(MQTT)",
+    "Cellular_TCP_(NTRIP)",
     "L-Band",
-    "Cellular",
     "External_Radio",
     "LoRa_Radio",
     "ESP-Now",
     // Add new correction sources just above this line
 };
-
 
 const SystemState platformPreviousStateTable[] =
 {
@@ -184,25 +204,6 @@ typedef enum
 
 const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
 const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
-
-// Different GNSS modules require different libraries and configuration
-typedef enum
-{
-    PLATFORM_ZED = 0b0001,
-    PLATFORM_UM980 = 0b0010,
-    PLATFORM_MOSAIC = 0b0011,
-} GnssPlatform;
-
-const GnssPlatform platformGnssTable[] =
-{
-    PLATFORM_ZED,   // EVK
-    PLATFORM_ZED,   // Facet v2
-    PLATFORM_MOSAIC,   // Facet mosaic
-    PLATFORM_UM980, // Torch
-    // Add new values just above this line
-    PLATFORM_ZED    // Unknown
-};
-const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
 typedef enum
 {
