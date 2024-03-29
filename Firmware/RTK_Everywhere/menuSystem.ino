@@ -166,6 +166,8 @@ void menuSystem()
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
         systemPrintln("W) Switch to WiFi Config mode");
+        if(present.fastPowerOff == true)
+            systemPrintln("S) Shut down");
 
         systemPrintln("-----  Settings  -----");
 
@@ -221,8 +223,6 @@ void menuSystem()
             systemPrintln("Disabled");
         else
             systemPrintln("Enabled");
-
-        systemPrintln("S) Shut down");
 
         systemPrintln("x) Exit");
 
@@ -349,14 +349,14 @@ void menuSystem()
             forceSystemStateUpdate = true; // Immediately go to this new state
             changeState(STATE_WIFI_CONFIG_NOT_STARTED);
         }
-
-        // Menu exit control
-        else if (incoming == 'S')
+        else if (incoming == 'S' && present.fastPowerOff == true)
         {
             systemPrintln("Shutting down...");
             forceDisplayUpdate = true;
             powerDown(true);
         }
+
+        // Menu exit control
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
