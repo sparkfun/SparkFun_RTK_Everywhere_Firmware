@@ -67,7 +67,7 @@
 //    the minor firmware version
 #define RTK_IDENTIFIER (FIRMWARE_VERSION_MAJOR * 0x10 + FIRMWARE_VERSION_MINOR)
 
-#define NTRIP_SERVER_MAX            1
+#define NTRIP_SERVER_MAX            4
 
 #ifdef COMPILE_ETHERNET
 #include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
