@@ -307,19 +307,36 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
-            bytesPushed += mqttCount;
-
             // Correction data from PP can go direct to ZED module
             if (present.gnss_zedf9p == true)
             {
-                // Push KEYS or SPARTN data to ZED
-                gnssPushRawData(mqttData, mqttCount);
+                // Always push KEYS and MGA to the ZED. Only push SPARTN if the priority says we can
+                const char *spartnTopic = settings.useEuropeCorrections ? MQTT_TOPIC_SPARTN_EU : MQTT_TOPIC_SPARTN_US;
+                if (strstr(topic, spartnTopic) != nullptr)
+                {
+                    // SPARTN
+                    // I think that MQTT SPARTN data can only arrive via WiFi - not (yet) via Ethernet or cellular?
+                    // TODO: check this and update as necessary
+                    updateCorrectionsLastSeen(CORR_WIFI_IP);
+                    if (isHighestRegisteredCorrectionsSource(CORR_WIFI_IP))
+                    {
+                        gnssPushRawData(mqttData, mqttCount);
+                        bytesPushed += mqttCount;
+                    }
+                }
+                else
+                {
+                    // KEYS or MGA
+                    gnssPushRawData(mqttData, mqttCount);
+                    bytesPushed += mqttCount;
+                }
             }
 
             // For the UM980, we have to pass the data through the PPL first
             else if (present.gnss_um980 == true)
             {
                 sendSpartnToPpl(mqttData, mqttCount);
+                bytesPushed += mqttCount;
             }
 
             // Record the arrival of data over MQTT
@@ -330,7 +347,7 @@ void mqttClientReceiveMessage(int messageSize)
         }
     }
 
-    if (settings.debugMqttClientData == true)
+    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu && bytesPushed > 0)
     {
         systemPrintf("Pushed %d bytes from %s topic to ", bytesPushed, topic);
         if (present.gnss_zedf9p == true)

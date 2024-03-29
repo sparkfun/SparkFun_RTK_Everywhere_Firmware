@@ -1135,11 +1135,21 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 {
     uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
 
-    if (settings.debugCorrections == true && !inMainMenu)
-        systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
+    updateCorrectionsLastSeen(CORR_LBAND); // This will (re)register the correction source if needed
 
-    gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-    gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+    if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
+
+        gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
+        gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+    }
+    else
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("NOT pushing %d bytes of RXM-PMP data to GNSS due to priority\r\n", payloadLen);
+    }
 }
 
 // Check if the PMP data is being decrypted successfully

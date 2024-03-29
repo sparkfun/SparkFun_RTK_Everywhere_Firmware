@@ -77,13 +77,13 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
             // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
             gnssPushRawData((uint8_t *)incomingData, len);
 
-            if (!inMainMenu)
-                log_d("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d", len, espnowRSSI);
+            if (settings.debugCorrections == true && !inMainMenu)
+                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espnowRSSI);
         }
         else
         {
-            if (!inMainMenu)
-                log_d("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d", len, espnowRSSI);
+            if (settings.debugCorrections == true && !inMainMenu)
+                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len, espnowRSSI);
         }
 
         espnowIncomingRTCM = true; // Display a download icon
