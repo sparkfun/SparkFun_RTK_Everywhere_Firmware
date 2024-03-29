@@ -30,25 +30,21 @@ PointPerfect corrections are obtained by two methods:
 
 To gain access to the PointPerfect system, the device must be given WiFi. Once provided, the RTK device will automatically obtain **keys**. These keys allow the decryption of corrections.
 
+PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK device can operate normally without the need to update keys. However, when the keys are set to expire in 28 days or less, the RTK device will attempt to log in to WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 
+On RTK L-Band equipped devices, if the keys fully expire, the device will continue to receive the L-Band signal but will be unable to decrypt the signal. The RTK Facet L-Band will continue to have extraordinary accuracy (we've seen better than 0.15m HPA) but not the centimeter-level accuracy that comes with RTK.
 
-PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK device can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to WiFi at each power on. If WiFi is not available, it will continue normal operation. If the keys fully expire, the device will continue to receive the L-Band signal but will be unable to decrypt the signal, disabling high-precision GNSS. The RTK Facet L-Band will continue to have extraordinary accuracy (we've seen better than 0.15m HPA) but not the centimeter-level accuracy that comes with RTK.
-
-**Note:** The RTK Facet L-Band is capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio. But the real point of L-Band and PointPerfect is that you can be *anywhere*, without cellular or radio cover, and still enjoy millimeter accuracy.
+**Note:** All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio. 
 
 ![Display showing 14 days until Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
 
 *Display showing 14 days until keys expire*
 
-The unit will display various messages to aid the user in obtaining keys as needed.
+On devices that have a display, the unit will display various prompts to aid the user in obtaining keys as needed.
 
-![Three-pronged satellite dish indicating L-Band reception](img/Displays/SparkFun_RTK_LBand_Indicator.jpg)
+## PointPerfect Serial Menu
 
-*Three pronged satellite dish indicating L-Band reception*
-
-Upon successful reception and decryption of PointPerfect corrections, the satellite dish icon will increase to a three-pronged icon. As the unit's fix increases the cross-hair will indicate a basic 3D solution, a double blinking cross-hair will indicate a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution.
-
-![PointPerfect Menu](img/Terminal/SparkFun%20RTK%20PointPerfect%20Menu.png)
+![PointPerfect Menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png>)
 
 *PointPerfect Menu*
 
@@ -58,13 +54,31 @@ The *Days until keys expire* inform the user how many days the unit has until it
 
 * Option '2' disables the automatic attempts at WiFi connections when key expiry is less than 28 days.
 
-* Option '3' will trigger an immediate attempt to connect over WiFi and update the keys.
+* Option '3' will trigger an immediate attempt to connect over WiFi and provision the device (if no keys are available) or update the keys (if provisioning has already been completed).
 
-* Option '4' will display the Device ID. This is needed when a SparkFun RTK Facet L-Band product needs to be added to the PointPerfect system. This is normally taken care of when you purchase the L-Band unit with PointPerfect service added, but for customers who wish to extend their subscription beyond the initial year, or did not purchase the service and want to add it at a later date, this Device ID is what customer service needs.
+* Option '4' will display the Device ID. This is needed when a SparkFun RTK device needs to be added to the PointPerfect system. This is normally taken care of when you purchase a product that includes a PointPerfect subscription. But for customers who wish to extend their subscription beyond the initial year, or did not purchase the service and want to add it at a later date, this Device ID is what customer service needs.
+
+* Option 'c' will clear the current keys.
 
 * Option 'k' will bring up the Manual Key Entry menu.
 
-![Manual Key Entry menu](img/Terminal/SparkFun_RTK_LBand_ManualKeysA.jpg)
+## Obtaining the Device ID
+
+The device ID is unique to each RTK device and must be entered by SparkFun into the PointPerfect network (also known as whitelisting). 
+
+![Device ID within the serial menu](<SparkFun RTK Everywhere - PointPerfect Menu Device ID.png>)
+
+*Device ID within the serial menu*
+
+![Device ID within the WiFi Config page](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
+
+*Device ID within the WiFi Config page*
+
+This ID can be obtained by using option **4** from the *PointPerfect* menu or by opening the PointPerfect section within the [WiFi Config](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_wifi/) interface in the PointPerfect Configuration section.
+
+## Manual Key Entry
+
+![Manual Key Entry menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Manual Key Entry.png>)
 
 *Manual Key Entry Menu*
 
@@ -72,3 +86,36 @@ Because of the length and complexity of the keys, we do not recommend you manual
 
 Option '1' will allow a user to enter their Device Profile Token. This is the token that is used to provision a device on a PointPerfect account. By default, users may use the SparkFun token but must pay SparkFun for the annual service fee. If an organization would like to administer its own devices, the token can be changed here.
 
+## L-Band Decryption Icon
+
+![Three-pronged satellite dish indicating L-Band reception](img/Displays/SparkFun_RTK_LBand_Indicator.jpg)
+
+*Three-pronged satellite dish indicating L-Band reception*
+
+On devices that have a display, upon successful reception and decryption of PointPerfect corrections delivered over L-Band, the satellite dish icon will increase to a three-pronged icon. As the unit's fix increases the cross-hair will indicate a basic 3D solution, a double blinking cross-hair will indicate a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution.
+
+## Error Messages
+
+There are various messages that may be reported by the device. Here is a list of explanations and resolutions.
+
+### No SSIDs
+
+    Error: Please enter at least one SSID before getting keys
+
+This message is seen when no WiFi network credentials (SSID and password) have been entered. The device needs WiFi to obtain the keys to decrypt the packets provided by PointPerfect. Enter your home/office/cellular hotspot WiFi SSID and password and try again.
+
+### Not Whitelisted
+
+    This device is not whitelisted. Please contact support@sparkfun.com to get your subscription activated. Please reference device ID: [device ID]
+
+This message is seen whenever the PointPerfect service is not aware of the given device. Please contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
+
+### Device Deactivated
+
+    This device has been deactivated. Please contact support@sparkfun.com to renew the PointPerfect subscription. Please reference device ID: [device ID]
+
+This message is seen whenever the device's subscription has lapsed. Please contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
+
+### HTTP response error -11 - Read Timeout
+
+The connection to PointPerfect did not respond. Please try again or try a different WiFi network or access point (AP).

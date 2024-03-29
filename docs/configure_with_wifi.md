@@ -17,13 +17,13 @@ During WiFi configuration, the RTK device will present a webpage that is viewabl
 
 To get into WiFi configuration follow these steps:
 
-1. Power on the RTK Express, Express Plus, or Facet.
-2. Once the device has started press the Setup button repeatedly until the *Config* menu is highlighted.
-3. The display will blink a WiFi icon indicating it is waiting for incoming connections.
+1. Power on the RTK Torch
+2. Once the device has started press the Power Button twice within 1 second (double tap).
+3. The display will beep twice indicating it is waiting for incoming connections.
 4. Connect to WiFi network named ‘RTK Config’.
 5. Open a browser (Chrome is preferred) and type **192.168.4.1** into the address bar.
 
-![Display showing IP address](img/Displays/SparkFun_RTK_Facet_-_Display_WiFi_Config.jpg)
+![Display showing IP address]()
 
 *Device ready for cellphone configuration*
 
