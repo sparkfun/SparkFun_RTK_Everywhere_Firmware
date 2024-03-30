@@ -33,8 +33,8 @@ In order of appearance:
 * GNSS status including receiver type and firmware version
 * Unique ID assigned to the GNSS receiver
 * GNSS information including SIV, HPA, Lat/Lon/Alt
-* Battery information (if available)
-* Bluetooth MAC (ending) and status
+* Battery information (if supported)
+* Bluetooth MAC (ending) and radio status
 * WiFi MAC (full)
 * System Uptime
 * NTRIP Client/Server uptime (if enabled)
@@ -47,14 +47,14 @@ In order of appearance:
 
 *System Menu Options serial menu*
 
-The device can be in Rover, Base, or WiFi Config mode. The select mode will be entered once the user exits the menu system.
+The device can be in Rover, Base, or WiFi Config mode. The selected mode will be entered once the user exits the menu system.
 
 * **B, R, W, or S** - Change the mode the device is in.
 
     * **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
     * **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
     * **W**iFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
-    * **S**hut Down - If available, the device will immediately shut down.
+    * **S**hut Down - If supported, the device will immediately shut down.
 
 ## Settings
 
@@ -66,13 +66,13 @@ The device can be in Rover, Base, or WiFi Config mode. The select mode will be e
 
 * **b** - Change the Bluetooth protocol. By default, the RTK device begins dual broadcasting over Bluetooth Classic SPP (Serial Port Profile) **and** Bluetooth Low-Energy (BLE). The following options are available: *Dual*, *Classic*, *BLE*, or *Off*. Bluetooth v2.0 SPP (Serial Port Profile) is supported by nearly all data collectors and Android tablets. BLE is used for configuration and to be compatible with Apple iOS-based devices. Additionally, the Bluetooth radio can be turned off.
 
-* **c** - By default, a device will continue to operate until the battery (if available) is exhausted. If desired, a timeout can be entered: If no charging is detected, the device will power off once this amount of time has expired.
+* **c** - On devices that support it, a device will continue to operate until the battery is exhausted. If desired, a timeout can be entered: If no charging is detected, the device will power off once this amount of time has expired.
 
 * **d** - Enters the [Debug Software menu](menu_debug_software.md) that is for advanced users.
 
 * **e** - Controls the printing of local characters (also known as 'echoing').
 
-* **f** - If supported, show any files on the microSD card (if present).
+* **f** - On devices that support it, show any files on the microSD card (if present).
 
 * **h** - Enters the [Debug Hardware menu](menu_debug_hardware.md) that is for advanced users.
 
