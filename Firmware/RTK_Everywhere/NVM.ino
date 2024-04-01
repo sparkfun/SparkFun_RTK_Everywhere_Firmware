@@ -404,12 +404,15 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "debugNtripServerState", settings.debugNtripServerState);
     settingsFile->printf("%s=%d\r\n", "enableNtripServer", settings.enableNtripServer);
     settingsFile->printf("%s=%d\r\n", "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
-    settingsFile->printf("%s=%s\r\n", "ntripServer_CasterHost", settings.ntripServer_CasterHost);
-    settingsFile->printf("%s=%d\r\n", "ntripServer_CasterPort", settings.ntripServer_CasterPort);
-    settingsFile->printf("%s=%s\r\n", "ntripServer_CasterUser", settings.ntripServer_CasterUser);
-    settingsFile->printf("%s=%s\r\n", "ntripServer_CasterUserPW", settings.ntripServer_CasterUserPW);
-    settingsFile->printf("%s=%s\r\n", "ntripServer_MountPoint", settings.ntripServer_MountPoint);
-    settingsFile->printf("%s=%s\r\n", "ntripServer_MountPointPW", settings.ntripServer_MountPointPW);
+    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+    {
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterHost", serverIndex, &settings.ntripServer_CasterHost[serverIndex][0]);
+        settingsFile->printf("%s_%d=%d\r\n", "ntripServer_CasterPort", serverIndex, settings.ntripServer_CasterPort[serverIndex]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUser", serverIndex, &settings.ntripServer_CasterUser[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUserPW", serverIndex, &settings.ntripServer_CasterUserPW[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPoint", serverIndex, &settings.ntripServer_MountPoint[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPointPW", serverIndex, &settings.ntripServer_MountPointPW[serverIndex][0]);
+    }
 
     // TCP Client
     settingsFile->printf("%s=%d\r\n", "debugPvtClient", settings.debugPvtClient);
@@ -1274,18 +1277,6 @@ bool parseLine(char *str, Settings *settings)
         settings->enableNtripServer = d;
     else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
         settings->ntripServer_StartAtSurveyIn = d;
-    else if (strcmp(settingName, "ntripServer_CasterHost") == 0)
-        strcpy(settings->ntripServer_CasterHost, settingString);
-    else if (strcmp(settingName, "ntripServer_CasterPort") == 0)
-        settings->ntripServer_CasterPort = d;
-    else if (strcmp(settingName, "ntripServer_CasterUser") == 0)
-        strcpy(settings->ntripServer_CasterUser, settingString);
-    else if (strcmp(settingName, "ntripServer_CasterUserPW") == 0)
-        strcpy(settings->ntripServer_CasterUserPW, settingString);
-    else if (strcmp(settingName, "ntripServer_MountPoint") == 0)
-        strcpy(settings->ntripServer_MountPoint, settingString);
-    else if (strcmp(settingName, "ntripServer_MountPointPW") == 0)
-        strcpy(settings->ntripServer_MountPointPW, settingString);
 
     // TCP Client
     else if (strcmp(settingName, "debugPvtClient") == 0)
@@ -1619,6 +1610,102 @@ bool parseLine(char *str, Settings *settings)
                 {
                     settings->correctionsSourcesPriority[x] = d;
 
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterHost
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterHost_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->ntripServer_CasterHost[serverIndex][0], settingString);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterPort
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterPort_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    settings->ntripServer_CasterPort[serverIndex] = d;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterUser
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterUser_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->ntripServer_CasterUser[serverIndex][0], settingString);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterUserPW
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterUserPW_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->ntripServer_CasterUserPW[serverIndex][0], settingString);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_MountPoint
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_MountPoint_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->ntripServer_MountPoint[serverIndex][0], settingString);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_MountPointPW
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_MountPointPW_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->ntripServer_MountPointPW[serverIndex][0], settingString);
                     knownSetting = true;
                     break;
                 }

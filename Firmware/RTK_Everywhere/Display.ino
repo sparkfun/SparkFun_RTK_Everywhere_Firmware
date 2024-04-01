@@ -1724,8 +1724,13 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
     uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
 
+    // Determine if the NTRIP Server is casting
+    bool casting = false;
+    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+        casting |= online.ntripServer[serverIndex];
+
     // Note: the "yPos - 1" is potentially brittle. TODO: find a better solution for this
-    if (online.ntripServer)
+    if (casting)
         printTextCenter("Casting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
     else
         printTextCenter("Xmitting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
