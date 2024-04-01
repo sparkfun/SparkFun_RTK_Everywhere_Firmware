@@ -167,12 +167,12 @@ void menuSystem()
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
         systemPrintln("W) Switch to WiFi Config mode");
-        if(present.fastPowerOff == true)
+        if (present.fastPowerOff == true)
             systemPrintln("S) Shut down");
 
         systemPrintln("-----  Settings  -----");
 
-        if(present.beeper == true)
+        if (present.beeper == true)
         {
             systemPrint("a) Audible Prompts: ");
             systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
@@ -956,8 +956,8 @@ void menuOperation()
         else if (incoming == 3)
         {
             systemPrintln("Warning: changing the Handler Buffer Size will restart the device.");
-            if (getNewSetting("Enter GNSS Handler Buffer Size in Bytes", 32, 65535,
-                              &settings.gnssHandlerBufferSize) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter GNSS Handler Buffer Size in Bytes", 32, 65535, &settings.gnssHandlerBufferSize) ==
+                INPUT_RESPONSE_VALID)
             {
                 // Stop the GNSS UART tasks to prevent the system from crashing
                 tasksStopGnssUart();
@@ -993,8 +993,8 @@ void menuOperation()
         {
             systemPrintln("Warning: changing the Receive Buffer Size will restart the device.");
 
-            if (getNewSetting("Enter UART Receive Buffer Size in Bytes", 32, 16384,
-                              &settings.uartReceiveBufferSize) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter UART Receive Buffer Size in Bytes", 32, 16384, &settings.uartReceiveBufferSize) ==
+                INPUT_RESPONSE_VALID)
             {
                 recordSystemSettings();
                 ESP.restart();

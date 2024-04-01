@@ -242,7 +242,7 @@ bool zedConfigure()
 
     // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
     // Redundant - also done by gnssConfigure
-    //checkGNSSArrayDefaults();
+    // checkGNSSArrayDefaults();
 
     theGNSS->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
     theGNSS->setAutoHPPOSLLHcallbackPtr(
@@ -1050,7 +1050,7 @@ double zedGetRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
     float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
-    double measurementRateS = 1.0 / measurementFrequency; //1 / 4Hz = 0.25s
+    double measurementRateS = 1.0 / measurementFrequency; // 1 / 4Hz = 0.25s
 
     return (measurementRateS);
 }

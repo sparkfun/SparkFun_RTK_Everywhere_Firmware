@@ -771,11 +771,13 @@ bool isCharging()
 // https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
 void trim(char *str)
 {
-  char * p = str;
-  int l = strlen(p);
+    char *p = str;
+    int l = strlen(p);
 
-  while (isspace(p[l - 1])) p[--l] = 0;
-  while (* p && isspace(* p)) ++p, --l;
+    while (isspace(p[l - 1]))
+        p[--l] = 0;
+    while (*p && isspace(*p))
+        ++p, --l;
 
-  memmove(str, p, l + 1);
+    memmove(str, p, l + 1);
 }

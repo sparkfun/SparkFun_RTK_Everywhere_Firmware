@@ -406,12 +406,18 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterHost", serverIndex, &settings.ntripServer_CasterHost[serverIndex][0]);
-        settingsFile->printf("%s_%d=%d\r\n", "ntripServer_CasterPort", serverIndex, settings.ntripServer_CasterPort[serverIndex]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUser", serverIndex, &settings.ntripServer_CasterUser[serverIndex][0]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUserPW", serverIndex, &settings.ntripServer_CasterUserPW[serverIndex][0]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPoint", serverIndex, &settings.ntripServer_MountPoint[serverIndex][0]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPointPW", serverIndex, &settings.ntripServer_MountPointPW[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterHost", serverIndex,
+                             &settings.ntripServer_CasterHost[serverIndex][0]);
+        settingsFile->printf("%s_%d=%d\r\n", "ntripServer_CasterPort", serverIndex,
+                             settings.ntripServer_CasterPort[serverIndex]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUser", serverIndex,
+                             &settings.ntripServer_CasterUser[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUserPW", serverIndex,
+                             &settings.ntripServer_CasterUserPW[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPoint", serverIndex,
+                             &settings.ntripServer_MountPoint[serverIndex][0]);
+        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPointPW", serverIndex,
+                             &settings.ntripServer_MountPointPW[serverIndex][0]);
     }
 
     // TCP Client
@@ -1603,8 +1609,7 @@ bool parseLine(char *str, Settings *settings)
             for (int x = 0; x < correctionsSource::CORR_NUM; x++)
             {
                 char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s",
-                         correctionsSourceNames[x]);
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s", correctionsSourceNames[x]);
 
                 if (strcmp(settingName, tempString) == 0)
                 {

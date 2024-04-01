@@ -950,8 +950,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
             for (int x = 0; x < correctionsSource::CORR_NUM; x++)
             {
                 char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s",
-                         correctionsSourceNames[x]);
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s", correctionsSourceNames[x]);
 
                 if (strcmp(settingName, tempString) == 0)
                 {
@@ -1356,12 +1355,17 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
-        stringRecordN(newSettings, "ntripServer_CasterHost", serverIndex, &settings.ntripServer_CasterHost[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_CasterHost", serverIndex,
+                      &settings.ntripServer_CasterHost[serverIndex][0]);
         stringRecordN(newSettings, "ntripServer_CasterPort", serverIndex, settings.ntripServer_CasterPort[serverIndex]);
-        stringRecordN(newSettings, "ntripServer_CasterUser", serverIndex, &settings.ntripServer_CasterUser[serverIndex][0]);
-        stringRecordN(newSettings, "ntripServer_CasterUserPW", serverIndex, &settings.ntripServer_CasterUserPW[serverIndex][0]);
-        stringRecordN(newSettings, "ntripServer_MountPoint", serverIndex, &settings.ntripServer_MountPoint[serverIndex][0]);
-        stringRecordN(newSettings, "ntripServer_MountPointPW", serverIndex, &settings.ntripServer_MountPointPW[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_CasterUser", serverIndex,
+                      &settings.ntripServer_CasterUser[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_CasterUserPW", serverIndex,
+                      &settings.ntripServer_CasterUserPW[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_MountPoint", serverIndex,
+                      &settings.ntripServer_MountPoint[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_MountPointPW", serverIndex,
+                      &settings.ntripServer_MountPointPW[serverIndex][0]);
     }
 
     // TCP Client
@@ -1645,7 +1649,8 @@ void createSettingsString(char *newSettings)
     strcat(newSettings, "\0");
     systemPrintf("newSettings len: %d\r\n", strlen(newSettings));
 
-    // systemPrintf("newSettings: %s\r\n", newSettings); // newSettings is >10k. Sending to systemPrint causes stack overflow
+    // systemPrintf("newSettings: %s\r\n", newSettings); // newSettings is >10k. Sending to systemPrint causes stack
+    // overflow
     for (int x = 0; x < strlen(newSettings); x++) // Print manually
         systemWrite(newSettings[x]);
 
@@ -2393,8 +2398,7 @@ void getSettingValue(const char *settingName, char *settingValueStr)
             for (int x = 0; x < correctionsSource::CORR_NUM; x++)
             {
                 char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s",
-                         correctionsSourceNames[x]);
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s", correctionsSourceNames[x]);
 
                 if (strcmp(settingName, tempString) == 0)
                 {
@@ -2459,14 +2463,16 @@ void printAvailableSettings()
     systemPrint("enableUART2UBXIn,bool,");
 
     systemPrint("ubxMessageRates,uint8_t,");
-    systemPrintf("ubxConstellations,ubxConstellation[%d],", sizeof(settings.ubxConstellations) / sizeof(ubxConstellation));
+    systemPrintf("ubxConstellations,ubxConstellation[%d],",
+                 sizeof(settings.ubxConstellations) / sizeof(ubxConstellation));
 
     systemPrintf("profileName,char[%d],", sizeof(settings.profileName) / sizeof(char));
 
     systemPrint("serialTimeoutGNSS,int16_t,");
 
     // Point Perfect
-    systemPrintf("pointPerfectDeviceProfileToken,char[%d],", sizeof(settings.pointPerfectDeviceProfileToken) / sizeof(char));
+    systemPrintf("pointPerfectDeviceProfileToken,char[%d],",
+                 sizeof(settings.pointPerfectDeviceProfileToken) / sizeof(char));
     systemPrint("pointPerfectCorrectionsSource,PointPerfect_Corrections_Source,");
     systemPrint("autoKeyRenewal,bool,");
     systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
@@ -2584,7 +2590,6 @@ void printAvailableSettings()
     systemPrint("ntpRootDispersion,uint32_t,");
     systemPrintf("ntpReferenceId,char[%d],", sizeof(settings.ntpReferenceId) / sizeof(char));
 
-
     // NTRIP Client
     systemPrint("debugNtripClientRtcm,bool,");
     systemPrint("debugNtripClientState,bool,");
@@ -2606,16 +2611,17 @@ void printAvailableSettings()
         systemPrintf("ntripServer_CasterHost_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterHost[0]));
         systemPrintf("ntripServer_CasterPort_%d,uint16_t,", serverIndex);
         systemPrintf("ntripServer_CasterUser_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterUser[0]));
-        systemPrintf("ntripServer_CasterUserPW_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterUserPW[0]));
+        systemPrintf("ntripServer_CasterUserPW_%d,char[%d],", serverIndex,
+                     sizeof(settings.ntripServer_CasterUserPW[0]));
         systemPrintf("ntripServer_MountPoint_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_MountPoint[0]));
-        systemPrintf("ntripServer_MountPointPW_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_MountPointPW[0]));
+        systemPrintf("ntripServer_MountPointPW_%d,char[%d],", serverIndex,
+                     sizeof(settings.ntripServer_MountPointPW[0]));
     }
 
     // TCP Server
     systemPrint("debugPvtServer,bool,");
     systemPrint("enablePvtServer,bool,");
     systemPrint("pvtUdpServerPort,uint16_t,");
-
 
     systemPrintf("um980MessageRatesNMEA,char[%d],", sizeof(settings.um980MessageRatesNMEA) / sizeof(float));
     systemPrintf("um980MessageRatesRTCMRover,char[%d],", sizeof(settings.um980MessageRatesRTCMRover) / sizeof(float));

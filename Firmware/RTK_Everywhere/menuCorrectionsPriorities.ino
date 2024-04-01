@@ -23,7 +23,7 @@ void menuCorrectionsPriorities()
         systemPrintln("Enter the upper case letter to increase the correction priority");
         systemPrintln("Enter the lower case letter to decrease the correction priority");
         systemPrintln();
-        
+
         // Priority 0 is the highest
         for (int x = 0; x < correctionsSource::CORR_NUM; x++)
         {
@@ -54,14 +54,15 @@ void menuCorrectionsPriorities()
                 int makeMeHigher;
                 for (int x = 0; x < correctionsSource::CORR_NUM; x++)
                 {
-                    if (settings.correctionsSourcesPriority[x] == settings.correctionsSourcesPriority[(int)(incoming - 'a')] + 1)
+                    if (settings.correctionsSourcesPriority[x] ==
+                        settings.correctionsSourcesPriority[(int)(incoming - 'a')] + 1)
                     {
                         makeMeHigher = x;
                         break;
                     }
                 }
                 settings.correctionsSourcesPriority[(int)(incoming - 'a')] += 1; // Decrease
-                settings.correctionsSourcesPriority[makeMeHigher] -= 1; // Increase
+                settings.correctionsSourcesPriority[makeMeHigher] -= 1;          // Increase
             }
         }
         else if ((incoming >= 'A') && (incoming < ('A' + correctionsSource::CORR_NUM)))
@@ -73,14 +74,15 @@ void menuCorrectionsPriorities()
                 int makeMeLower;
                 for (int x = 0; x < correctionsSource::CORR_NUM; x++)
                 {
-                    if (settings.correctionsSourcesPriority[x] == settings.correctionsSourcesPriority[(int)(incoming - 'A')] - 1)
+                    if (settings.correctionsSourcesPriority[x] ==
+                        settings.correctionsSourcesPriority[(int)(incoming - 'A')] - 1)
                     {
                         makeMeLower = x;
                         break;
                     }
                 }
                 settings.correctionsSourcesPriority[(int)(incoming - 'A')] -= 1; // Increase
-                settings.correctionsSourcesPriority[makeMeLower] += 1; // Decrease
+                settings.correctionsSourcesPriority[makeMeLower] += 1;           // Decrease
             }
         }
 
@@ -127,9 +129,6 @@ bool validateCorrectionPriorities()
 
 void initializeCorrectionPriorities()
 {
-   for (int s = 0; s < correctionsSource::CORR_NUM; s++)
+    for (int s = 0; s < correctionsSource::CORR_NUM; s++)
         settings.correctionsSourcesPriority[s] = s;
 }
-
-
-

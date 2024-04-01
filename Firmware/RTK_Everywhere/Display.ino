@@ -256,35 +256,40 @@ void displayUpdate()
                 */
 
             case (STATE_ROVER_NOT_STARTED):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b11111111); // Single crosshair, no blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                                          0b11111111); // Single crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_NO_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b01010101); // Single crosshair, blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                                          0b01010101); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b11111111); // Single crosshair, no blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                                          0b11111111); // Single crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, 0b01010101); // Dual crosshair, blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
+                                          0b01010101); // Dual crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties, 0b11111111); // Dual crosshair, no blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
+                                          0b11111111); // Dual crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -299,7 +304,8 @@ void displayUpdate()
             // Screen is displayed while we are waiting for horz accuracy to drop to appropriate level
             // Blink crosshair icon until we have we have horz accuracy < user defined level
             case (STATE_BASE_TEMP_SETTLE):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties, 0b01010101); // Single crosshair, blink
+                displayHorizontalAccuracy(&iconPropertyList, &CrossHairProperties,
+                                          0b01010101); // Single crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -307,62 +313,60 @@ void displayUpdate()
                 break;
             case (STATE_BASE_TEMP_SURVEY_STARTED):
                 paintLogging(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);   // Top right
+                displayBatteryVsEthernet(&iconPropertyList); // Top right
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);   // Top right
+                displayBatteryVsEthernet(&iconPropertyList); // Top right
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
-                displayBatteryVsEthernet(&iconPropertyList);   // Top right
+                displayBatteryVsEthernet(&iconPropertyList); // Top right
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
-                displayBatteryVsEthernet(&iconPropertyList);   // Top right
+                displayBatteryVsEthernet(&iconPropertyList); // Top right
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
-            case (STATE_NTPSERVER_NO_SYNC):
-                {
-                    paintClock(&iconPropertyList, true); // Blink
-                    displaySivVsOpenShort(&iconPropertyList);
+            case (STATE_NTPSERVER_NO_SYNC): {
+                paintClock(&iconPropertyList, true); // Blink
+                displaySivVsOpenShort(&iconPropertyList);
 
-                    iconPropertyBlinking prop;
-                    prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                    if (online.ethernetStatus == ETH_CONNECTED)
-                        prop.duty = 0b11111111;
-                    else
-                        prop.duty = 0b01010101;
-                    iconPropertyList.push_back(prop);
+                iconPropertyBlinking prop;
+                prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+                if (online.ethernetStatus == ETH_CONNECTED)
+                    prop.duty = 0b11111111;
+                else
+                    prop.duty = 0b01010101;
+                iconPropertyList.push_back(prop);
 
-                    paintIPAddress(); // Top left
-                }
-                break;
+                paintIPAddress(); // Top left
+            }
+            break;
 
-            case (STATE_NTPSERVER_SYNC):
-                {
-                    paintClock(&iconPropertyList, false); // No blink
-                    displaySivVsOpenShort(&iconPropertyList);
-                    paintLogging(&iconPropertyList, false, true); // No pulse, NTP
+            case (STATE_NTPSERVER_SYNC): {
+                paintClock(&iconPropertyList, false); // No blink
+                displaySivVsOpenShort(&iconPropertyList);
+                paintLogging(&iconPropertyList, false, true); // No pulse, NTP
 
-                    iconPropertyBlinking prop;
-                    prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                    if (online.ethernetStatus == ETH_CONNECTED)
-                        prop.duty = 0b11111111;
-                    else
-                        prop.duty = 0b01010101;
-                    iconPropertyList.push_back(prop);
+                iconPropertyBlinking prop;
+                prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+                if (online.ethernetStatus == ETH_CONNECTED)
+                    prop.duty = 0b11111111;
+                else
+                    prop.duty = 0b01010101;
+                iconPropertyList.push_back(prop);
 
-                    paintIPAddress(); // Top left
-                }
-                break;
+                paintIPAddress(); // Top left
+            }
+            break;
 
             case (STATE_CONFIG_VIA_ETH_NOT_STARTED):
                 break;
@@ -385,7 +389,7 @@ void displayUpdate()
                 break;
             case (STATE_WIFI_CONFIG):
                 setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                displayWiFiConfig(); // Display SSID and IP
+                displayWiFiConfig();            // Display SSID and IP
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -458,7 +462,8 @@ void displayUpdate()
                 iconPropertyBlinking theIcon = *it;
 
                 if ((theIcon.duty & blinkState) > 0)
-                    displayBitmap(theIcon.icon.xPos, theIcon.icon.yPos, theIcon.icon.width, theIcon.icon.height, (const uint8_t *)theIcon.icon.bitmap);
+                    displayBitmap(theIcon.icon.xPos, theIcon.icon.yPos, theIcon.icon.width, theIcon.icon.height,
+                                  (const uint8_t *)theIcon.icon.bitmap);
             }
 
             oled->display(); // Push internal buffer to display
@@ -631,7 +636,7 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
                111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999AAAAAAAAAABBBBBBBBBBCCCCCCCC
      01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
     .--------------------------------------------------------------------------------------------------------------------------------
-     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--ESP-|  |-Down-|  |--Up--|  |-Dynamic/Base|               |--Battery / ETH--|
+     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--ESP-|  |-Down-|  |--Up--|  |-Dynamic/Base| |--Battery / ETH--|
 
 */
 
@@ -646,8 +651,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         if (present.display_type == DISPLAY_64x48)
         {
             // There are three spots for icons in the Wireless area, left/center/right
-            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if enabled)
-            // Because of lack of space we will indicate the Base/Rover if only two radios or less are active
+            // There are three radios that could be active: Bluetooth (always indicated), WiFi (if enabled), ESP-Now (if
+            // enabled) Because of lack of space we will indicate the Base/Rover if only two radios or less are active
             //
             // Top left corner - Radio icon indicators take three spots (left/center/right)
             // Allowed icon combinations:
@@ -699,7 +704,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         }
         else if (present.display_type == DISPLAY_128x64)
         {
-            paintMACAddress4digit(0,3); // Columns 0 to 22
+            paintMACAddress4digit(0, 3); // Columns 0 to 22
 
             // Bluetooth always indicated : Columns 25 to 31 . TODO don't count if BT radio type is OFF.
             {
@@ -714,7 +719,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
 #else  // COMPILE_WIFI
-               int wifiRSSI = -40; // Dummy
+                int wifiRSSI = -40; // Dummy
 #endif // COMPILE_WIFI
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
@@ -823,30 +828,27 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 paintDynamicModel(iconList);
                 break;
             case (STATE_BASE_TEMP_SETTLE):
-            case (STATE_BASE_TEMP_SURVEY_STARTED):
-                {
-                    iconPropertyBlinking prop;
-                    prop.duty = 0b00001111;
-                    prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-                    iconList->push_back(prop);
-                }
-                break;
-            case (STATE_BASE_TEMP_TRANSMITTING):
-                {
-                    iconPropertyBlinking prop;
-                    prop.duty = 0b11111111;
-                    prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-                    iconList->push_back(prop);
-                }
-                break;
-            case (STATE_BASE_FIXED_TRANSMITTING):
-                {
-                    iconPropertyBlinking prop;
-                    prop.duty = 0b11111111;
-                    prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
-                    iconList->push_back(prop);
-                }
-        break;
+            case (STATE_BASE_TEMP_SURVEY_STARTED): {
+                iconPropertyBlinking prop;
+                prop.duty = 0b00001111;
+                prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+                iconList->push_back(prop);
+            }
+            break;
+            case (STATE_BASE_TEMP_TRANSMITTING): {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+                iconList->push_back(prop);
+            }
+            break;
+            case (STATE_BASE_FIXED_TRANSMITTING): {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
+                iconList->push_back(prop);
+            }
+            break;
             default:
                 break;
             }
@@ -860,7 +862,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 void setBluetoothIcon_OneRadio(std::vector<iconPropertyBlinking> *iconList)
 {
     if (bluetoothGetState() != BT_CONNECTED)
-        paintMACAddress4digit(0,3);
+        paintMACAddress4digit(0, 3);
     else // if (bluetoothGetState() == BT_CONNECTED)
     {
         if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true) // Share the spot?
@@ -902,7 +904,7 @@ void setBluetoothIcon_OneRadio(std::vector<iconPropertyBlinking> *iconList)
 void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
     if (bluetoothGetState() != BT_CONNECTED)
-        paintMACAddress2digit(14,3);
+        paintMACAddress2digit(14, 3);
     else // if (bluetoothGetState() == BT_CONNECTED)
     {
         if (bluetoothIncomingRTCM == true || bluetoothOutgoingRTCM == true) // Share the spot?
@@ -1054,7 +1056,6 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
                 netOutgoingRTCM = false; // Reset, set during NTRIP Server
             }
-
         }
         else
         {
@@ -1131,7 +1132,6 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
                 netOutgoingRTCM = false; // Reset, set during NTRIP Server
             }
-
         }
         else
         {
@@ -1209,41 +1209,37 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
     case (STATE_BASE_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_TEMP_SETTLE):
-        {
-            iconPropertyBlinking prop;
-            prop.duty = 0b00001111;
-            prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-            iconList->push_back(prop);
-        }
-        break;
-    case (STATE_BASE_TEMP_SURVEY_STARTED):
-        {
-            iconPropertyBlinking prop;
-            prop.duty = 0b00001111;
-            prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-            iconList->push_back(prop);
-        }
-        break;
-    case (STATE_BASE_TEMP_TRANSMITTING):
-        {
-            iconPropertyBlinking prop;
-            prop.duty = 0b11111111;
-            prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
-            iconList->push_back(prop);
-        }
-        break;
+    case (STATE_BASE_TEMP_SETTLE): {
+        iconPropertyBlinking prop;
+        prop.duty = 0b00001111;
+        prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+        iconList->push_back(prop);
+    }
+    break;
+    case (STATE_BASE_TEMP_SURVEY_STARTED): {
+        iconPropertyBlinking prop;
+        prop.duty = 0b00001111;
+        prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+        iconList->push_back(prop);
+    }
+    break;
+    case (STATE_BASE_TEMP_TRANSMITTING): {
+        iconPropertyBlinking prop;
+        prop.duty = 0b11111111;
+        prop.icon = BaseTemporaryProperties.iconDisplay[present.display_type];
+        iconList->push_back(prop);
+    }
+    break;
     case (STATE_BASE_FIXED_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
-    case (STATE_BASE_FIXED_TRANSMITTING):
-        {
-            iconPropertyBlinking prop;
-            prop.duty = 0b11111111;
-            prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
-            iconList->push_back(prop);
-        }
-        break;
+    case (STATE_BASE_FIXED_TRANSMITTING): {
+        iconPropertyBlinking prop;
+        prop.duty = 0b11111111;
+        prop.icon = BaseFixedProperties.iconDisplay[present.display_type];
+        iconList->push_back(prop);
+    }
+    break;
 
     case (STATE_NTPSERVER_NOT_STARTED):
     case (STATE_NTPSERVER_NO_SYNC):
@@ -1280,8 +1276,8 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
 // Display horizontal accuracy
 void paintHorizontalAccuracy(displayCoords textCoords)
 {
-    oled->setFont(QW_FONT_8X16); // Set font to type 1: 8x16
-    oled->setCursor(textCoords.x, textCoords.y);     // x, y
+    oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
+    oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
     float hpa = gnssGetHorizontalAccuracy();
@@ -1314,7 +1310,7 @@ void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 {
     // Animate icon to show system running
     static uint8_t clockIconDisplayed = CLOCK_ICON_STATES - 1;
-    clockIconDisplayed++;    // Goto next icon
+    clockIconDisplayed++;                    // Goto next icon
     clockIconDisplayed %= CLOCK_ICON_STATES; // Wrap
 
     iconPropertyBlinking prop;
@@ -1332,8 +1328,8 @@ void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 // Display clock accuracy
 void paintClockAccuracy(displayCoords textCoords)
 {
-    oled->setFont(QW_FONT_8X16); // Set font to type 1: 8x16
-    oled->setCursor(textCoords.x, textCoords.y);     // x, y
+    oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
+    oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
     uint32_t timeAccuracy = gnssGetTimeAccuracy();
@@ -1452,9 +1448,9 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 
 void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.battery)        // Product has a battery
+    if (online.battery) // Product has a battery
         paintBatteryLevel(iconList);
-    else                       // if (present.ethernet_ws5500 == true)
+    else // if (present.ethernet_ws5500 == true)
     {
         if (online.ethernetStatus == ETH_NOT_STARTED)
             return; // If Ethernet has not stated because not needed, don't display the icon
@@ -1572,7 +1568,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
 }
 void paintSIVText(displayCoords textCoords)
 {
-    oled->setFont(QW_FONT_8X16); // Set font to type 1: 8x16
+    oled->setFont(QW_FONT_8X16);                 // Set font to type 1: 8x16
     oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
@@ -1616,7 +1612,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
 {
     // Animate icon to show system running
     static uint8_t loggingIconDisplayed = LOGGING_ICON_STATES - 1;
-    loggingIconDisplayed++;    // Goto next icon
+    loggingIconDisplayed++;                      // Goto next icon
     loggingIconDisplayed %= LOGGING_ICON_STATES; // Wrap
 
     iconPropertyBlinking prop;
@@ -1763,9 +1759,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     }
 
     if (rtcmPacketsSent < 100)
-        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30, yPos + 1); // x, y - Give space for two digits
+        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30,
+                        yPos + 1); // x, y - Give space for two digits
     else
-        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 28, yPos + 1); // x, y - Push towards colon to make room for log icon
+        oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 28,
+                        yPos + 1); // x, y - Push towards colon to make room for log icon
 
     oled->setFont(QW_FONT_8X16);  // Set font to type 1: 8x16
     oled->print(rtcmPacketsSent); // rtcmPacketsSent is controlled in processRTCM()
@@ -2694,7 +2692,7 @@ void paintResets()
         }
         else // if (present.display_type == DISPLAY_128x64)
         {
-            oled->setFont(QW_FONT_5X7);            // Small font
+            oled->setFont(QW_FONT_5X7);                 // Small font
             oled->setCursor(0, oled->getHeight() - 10); // x, y
 
             const int bufSize = 20;

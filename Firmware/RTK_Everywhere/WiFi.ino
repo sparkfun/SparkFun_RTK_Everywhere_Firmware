@@ -103,13 +103,15 @@ void menuWiFi()
             if (incoming % 2 == 1)
             {
                 systemPrintf("Enter SSID network %d: ", arraySlot + 1);
-                getUserInputString(settings.wifiNetworks[arraySlot].ssid, sizeof(settings.wifiNetworks[arraySlot].ssid));
+                getUserInputString(settings.wifiNetworks[arraySlot].ssid,
+                                   sizeof(settings.wifiNetworks[arraySlot].ssid));
                 restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
             }
             else
             {
                 systemPrintf("Enter Password for %s: ", settings.wifiNetworks[arraySlot].ssid);
-                getUserInputString(settings.wifiNetworks[arraySlot].password, sizeof(settings.wifiNetworks[arraySlot].password));
+                getUserInputString(settings.wifiNetworks[arraySlot].password,
+                                   sizeof(settings.wifiNetworks[arraySlot].password));
                 restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
             }
         }

@@ -279,8 +279,7 @@ void menuBase()
         else if ((incoming == 8) && settings.enableNtripServer == true)
         {
             // Get the index into the NTRIP server array
-            if (getNewSetting("Enter NTRIP server index", 0, NTRIP_SERVER_MAX - 1, &value) ==
-                INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter NTRIP server index", 0, NTRIP_SERVER_MAX - 1, &value) == INPUT_RESPONSE_VALID)
                 serverIndex = value;
         }
         else if ((incoming == 9) && settings.enableNtripServer == true)
@@ -300,15 +299,15 @@ void menuBase()
         else if ((incoming == 11) && settings.enableNtripServer == true)
         {
             systemPrint("Enter new Mount Point: ");
-            if (getUserInputString(&settings.ntripServer_MountPoint[serverIndex][0], sizeof(settings.ntripServer_MountPoint[serverIndex])) ==
-                INPUT_RESPONSE_VALID)
+            if (getUserInputString(&settings.ntripServer_MountPoint[serverIndex][0],
+                                   sizeof(settings.ntripServer_MountPoint[serverIndex])) == INPUT_RESPONSE_VALID)
                 restartBase = true;
         }
         else if ((incoming == 12) && settings.enableNtripServer == true)
         {
             systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint);
-            if (getUserInputString(&settings.ntripServer_MountPointPW[serverIndex][0], sizeof(settings.ntripServer_MountPointPW[serverIndex])) ==
-                INPUT_RESPONSE_VALID)
+            if (getUserInputString(&settings.ntripServer_MountPointPW[serverIndex][0],
+                                   sizeof(settings.ntripServer_MountPointPW[serverIndex])) == INPUT_RESPONSE_VALID)
                 restartBase = true;
         }
         else if (((settings.enableNtripServer == true) && ((incoming == 13))) ||

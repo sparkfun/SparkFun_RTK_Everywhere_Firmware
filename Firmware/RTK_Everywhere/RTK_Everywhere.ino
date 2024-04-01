@@ -22,21 +22,21 @@
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+#define COMPILE_WIFI // Comment out to remove WiFi functionality
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
 #define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
 #define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
-#endif // COMPILE_WIFI
+#endif                      // COMPILE_WIFI
 
 #define COMPILE_BT                   // Comment out to remove Bluetooth functionality
-#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
-#define COMPILE_UM980                // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
+#define COMPILE_UM980    // Comment out to remove UM980 functionality
+#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
-#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_BQ40Z50 // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK true
@@ -67,25 +67,25 @@
 //    the minor firmware version
 #define RTK_IDENTIFIER (FIRMWARE_VERSION_MAJOR * 0x10 + FIRMWARE_VERSION_MINOR)
 
-#define NTRIP_SERVER_MAX            4
+#define NTRIP_SERVER_MAX 4
 
 #ifdef COMPILE_ETHERNET
-#include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
 #include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
-#endif // COMPILE_ETHERNET
+#include <Ethernet.h>                       // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
+#endif                                      // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
 #include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
-#include "esp_wifi.h"   //Needed for esp_wifi_set_protocol()
-#include <DNSServer.h>  //Built-in.
-#include <ESPmDNS.h>    //Built-in.
-#include <HTTPClient.h> //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
+#include <DNSServer.h>    //Built-in.
+#include <ESPmDNS.h>      //Built-in.
+#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
 #include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
-#endif // COMPILE_WIFI
+#endif                        // COMPILE_WIFI
 
 #include "settings.h"
 
@@ -164,9 +164,9 @@ int pin_beeper = PIN_UNDEFINED;
 
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <vector> //Needed for icons etc.
 #include "icons.h"
 #include <Wire.h> //Built-in
+#include <vector> //Needed for icons etc.
 TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
@@ -599,7 +599,7 @@ class derivedEthernetUDP : public EthernetUDP
 };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
-#endif                                      // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -994,7 +994,8 @@ void setup()
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
     DMW_b("checkArrayDefaults");
-    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
+                          // (checkGNSSArrayDefaults)
 
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)

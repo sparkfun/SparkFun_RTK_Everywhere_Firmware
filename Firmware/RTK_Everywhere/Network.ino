@@ -494,8 +494,7 @@ NETWORK_DATA *networkGetUserNetwork(NETWORK_USER user)
     for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
     {
         network = networkGet(networkType, false);
-        if (network && ((network->activeUsers & userMask)
-                        || (network->userOpens & userMask)))
+        if (network && ((network->activeUsers & userMask) || (network->userOpens & userMask)))
             return network;
     }
 
@@ -659,7 +658,7 @@ void networkRetry(NETWORK_DATA *network, uint8_t previousNetworkType)
 {
     uint8_t networkType;
     int seconds;
-    //uint8_t users;
+    // uint8_t users;
 
     // Determine the delay multiplier
     network->connectionAttempt += 1;
@@ -837,8 +836,7 @@ void networkStop(uint8_t networkType)
                 switch (user)
                 {
                 default:
-                    if ((user >= NETWORK_USER_NTRIP_SERVER)
-                        && (user < (NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX)))
+                    if ((user >= NETWORK_USER_NTRIP_SERVER) && (user < (NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX)))
                     {
                         serverIndex = user - NETWORK_USER_NTRIP_SERVER;
                         if (settings.debugNetworkLayer)
@@ -1138,17 +1136,17 @@ void networkUpdate()
 
     // Update the network services
     DMW_c("mqttClientUpdate");
-    mqttClientUpdate();   // Process any Point Perfect MQTT messages
+    mqttClientUpdate(); // Process any Point Perfect MQTT messages
     DMW_c("ntpServerUpdate");
-    ntpServerUpdate();    // Process any received NTP requests
+    ntpServerUpdate(); // Process any received NTP requests
     DMW_c("ntripClientUpdate");
-    ntripClientUpdate();  // Check the NTRIP client connection and move data NTRIP --> ZED
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
     DMW_c("ntripServerUpdate");
-    ntripServerUpdate();  // Check the NTRIP server connection and move data ZED --> NTRIP
+    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
     DMW_c("pvtClientUpdate");
-    pvtClientUpdate();    // Turn on the PVT client as needed
+    pvtClientUpdate(); // Turn on the PVT client as needed
     DMW_c("pvtServerUpdate");
-    pvtServerUpdate();    // Turn on the PVT server as needed
+    pvtServerUpdate(); // Turn on the PVT server as needed
     DMW_c("pvtUdpServerUpdate");
     pvtUdpServerUpdate(); // Turn on the PVT UDP server as needed
 
