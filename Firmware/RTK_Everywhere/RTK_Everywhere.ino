@@ -67,6 +67,24 @@
 //    the minor firmware version
 #define RTK_IDENTIFIER (FIRMWARE_VERSION_MAJOR * 0x10 + FIRMWARE_VERSION_MINOR)
 
+#ifdef COMPILE_ETHERNET
+#include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
+#include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
+#endif // COMPILE_ETHERNET
+
+#ifdef COMPILE_WIFI
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
+#include "esp_wifi.h"   //Needed for esp_wifi_set_protocol()
+#include <DNSServer.h>  //Built-in.
+#include <ESPmDNS.h>    //Built-in.
+#include <HTTPClient.h> //Built-in. Needed for ThingStream API for ZTP
+#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
+#include <WiFi.h>             //Built-in.
+#include <WiFiClientSecure.h> //Built-in.
+#include <WiFiMulti.h>        //Built-in.
+#endif // COMPILE_WIFI
+
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
@@ -230,8 +248,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 
 #define MQTT_CERT_SIZE 2000
 
-#if COMPILE_NETWORK
-#endif                   // COMPILE_NETWORK
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
 
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
@@ -244,8 +260,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 
 #ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
-
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
@@ -271,19 +285,6 @@ unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OT
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_WIFI
-#include "esp_wifi.h"   //Needed for esp_wifi_set_protocol()
-#include <DNSServer.h>  //Built-in.
-#include <ESPmDNS.h>    //Built-in.
-#include <HTTPClient.h> //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
-#include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
-#include <WiFi.h>             //Built-in.
-#include <WiFiClientSecure.h> //Built-in.
-#include <WiFiMulti.h>        //Built-in.
-
-#endif // COMPILE_WIFI
-
 #include "base64.h" //Built-in. Needed for NTRIP Client credential encoding.
 
 bool enableRCFirmware;     // Goes true from AP config page
@@ -581,7 +582,6 @@ const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_ETHERNET
-#include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
 IPAddress ethernetIPAddress;
 IPAddress ethernetDNS;
 IPAddress ethernetGateway;
@@ -597,8 +597,6 @@ class derivedEthernetUDP : public EthernetUDP
 };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
-
-#include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
 #endif                                      // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
@@ -638,9 +636,6 @@ bool pplMqttCorrections;
 long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-#include "NetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
-#include "NetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
