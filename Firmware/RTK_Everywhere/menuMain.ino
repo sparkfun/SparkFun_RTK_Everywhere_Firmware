@@ -99,7 +99,7 @@ void menuMain()
 
         systemPrintln("f) Firmware upgrade");
 
-        systemPrintln("i) Configure corrections priorities");
+        systemPrintln("i) Configure Corrections Priorities");
 
 #ifdef COMPILE_ETHERNET
         if (present.ethernet_ws5500 == true)
