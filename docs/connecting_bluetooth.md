@@ -56,7 +56,7 @@ The device will begin pairing. After a few seconds, Windows should report that y
 
 The device is now paired and a series of COM ports will be added under 'Device Manager'. 
 
-![NMEA received over the Bluetooth COM port](<SparkFun RTK Everywhere - NMEA Over Bluetooth.jpg>)
+![NMEA received over the Bluetooth COM port](<img/Terminal/SparkFun RTK Everywhere - NMEA Over Bluetooth.jpg>)
 
 *NMEA received over the Bluetooth COM port*
 

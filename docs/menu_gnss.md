@@ -6,13 +6,13 @@ The SparkFun RTK product line is immensely configurable. The RTK device will, by
 
 The GNSS Configuration menu allows a user to change the report rate, dynamic model, and select which constellations should be used for fix calculations.
 
-![RTK Everywhere Main Menu](<SparkFun RTK Everywhere - Main Menu.png>)
+![RTK Everywhere Main Menu](<img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
 
 *RTK Everywhere main menu*
 
 Pressing any key will show the *Main Menu*. From the main menu, pressing 1 will bring up the *GNSS Receiver* configuration menu. 
 
-![GNSS menu showing measurement rates and dynamic model](<SparkFun RTK Everywhere - GNSS Receiver.png>)
+![GNSS menu showing measurement rates and dynamic model](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 
 *GNSS menu showing measurement rates and dynamic model*
 
@@ -28,7 +28,7 @@ The Dynamic Model can be changed but it is recommended to leave it as *Survey*. 
 
 ## Min SV Elevation and C/N0
 
-![Elevation and C/N0](<SparkFun RTK Everywhere - GNSS Receiver.png>)
+![Elevation and C/N0](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 
 *GNSS menu showing Minimum SV Elevation and C/N0*
 
@@ -38,7 +38,7 @@ A minimum C/N0 is set in dB. If a satellite is detected that is below this signa
 
 ## Constellations Menu
 
-![Enable or disable the constellations used for fixes](<SparkFun RTK Everywhere - GNSS Menu Constellations.png>)
+![Enable or disable the constellations used for fixes](<img/Terminal/SparkFun RTK Everywhere - GNSS Menu Constellations.png>)
 
 *Enable or disable the constellations used for fixes*
 
@@ -46,7 +46,7 @@ The GNSS receiver is capable of tracking 184 channels across four constellations
 
 ## NTRIP Client
 
-![NTRIP Client enabled showing settings](<SparkFun RTK Everywhere - GNSS Receiver-1.png>)
+![NTRIP Client enabled showing settings](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 
 *NTRIP Client enabled showing settings*
 

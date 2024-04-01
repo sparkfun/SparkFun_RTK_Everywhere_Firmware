@@ -2,7 +2,7 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) 
 
-![Firmware update menu](<SparkFun RTK Everywhere - Firmware Update Menu.png>)
+![Firmware update menu](<img/Terminal/SparkFun RTK Everywhere - Firmware Update Menu.png>)
 
 *Firmware Update menu*
 
