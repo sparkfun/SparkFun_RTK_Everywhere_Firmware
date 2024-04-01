@@ -20,8 +20,8 @@ void menuCorrectionsPriorities()
 
         systemPrintln();
         systemPrintln("These are the correction sources in order of decreasing priority");
-        systemPrintln("Enter the lower case letter to decrease the correction priority");
         systemPrintln("Enter the upper case letter to increase the correction priority");
+        systemPrintln("Enter the lower case letter to decrease the correction priority");
         systemPrintln();
         
         // Priority 0 is the highest
@@ -33,7 +33,7 @@ void menuCorrectionsPriorities()
                 {
                     char lower = 'a' + y;
                     char upper = 'A' + y;
-                    systemPrintf("%c%c) %s",lower, upper, correctionsSourceNames[y]);
+                    systemPrintf("%c / %c) %s", upper, lower, correctionsSourceNames[y]);
                     systemPrintln();
                     break;
                 }

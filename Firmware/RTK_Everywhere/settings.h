@@ -146,18 +146,19 @@ typedef enum
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
+
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
     // These must match correctionsSources above
     "Bluetooth",
-    "WiFi_IP_(PointPerfect/MQTT)",
-    "WiFi_TCP_(NTRIP)",
-    "Ethernet_IP_(PointPerfect/MQTT)",
-    "Ethernet_TCP_(NTRIP_Client)",
+    "WiFi IP (PointPerfect/MQTT)",
+    "WiFi TCP (NTRIP)",
+    "Ethernet IP (PointPerfect/MQTT)",
+    "Ethernet TCP (NTRIP Client)",
     "L-Band",
     "Cellular",
-    "External_Radio",
-    "LoRa_Radio",
+    "External Radio",
+    "LoRa Radio",
     "ESP-Now",
     // Add new correction sources just above this line
 };
