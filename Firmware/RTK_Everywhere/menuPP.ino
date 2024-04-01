@@ -848,13 +848,6 @@ bool pointperfectUpdateKeys()
 #endif // COMPILE_WIFI
 }
 
-char *ltrim(char *s)
-{
-    while (isspace(*s))
-        s++;
-    return s;
-}
-
 // Called when a subscribed to message arrives
 void mqttCallback(char *topic, byte *message, unsigned int length)
 {

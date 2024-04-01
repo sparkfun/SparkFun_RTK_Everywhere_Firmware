@@ -644,16 +644,3 @@ void recordLineToLFS(const char *fileName, const char *lineData)
     file.println(lineData);
     file.close();
 }
-
-// Remove ' ', \t, \v, \f, \r, \n from end of a char array
-void trim(char *str)
-{
-    int x = 0;
-    for (; str[x] != '\0'; x++)
-        ;
-    if (x > 0)
-        x--;
-
-    for (; isspace(str[x]); x--)
-        str[x] = '\0';
-}
