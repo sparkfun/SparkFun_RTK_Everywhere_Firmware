@@ -50,17 +50,17 @@ On devices that have a display, the unit will display various prompts to aid the
 
 The *Days until keys expire* inform the user how many days the unit has until it needs to connect to WiFi to obtain new keys.
 
-* Option '1' disables the use of PointPerfect corrections.
+* **1** - Disable the use of PointPerfect corrections.
 
-* Option '2' disables the automatic attempts at WiFi connections when key expiry is less than 28 days.
+* **2** - Disable the automatic attempts at WiFi connections when key expiry is less than 28 days.
 
-* Option '3' will trigger an immediate attempt to connect over WiFi and provision the device (if no keys are available) or update the keys (if provisioning has already been completed).
+* **3** - Trigger an immediate attempt to connect over WiFi and provision the device (if no keys are available) or update the keys (if provisioning has already been completed).
 
-* Option '4' will display the Device ID. This is needed when a SparkFun RTK device needs to be added to the PointPerfect system. This is normally taken care of when you purchase a product that includes a PointPerfect subscription. But for customers who wish to extend their subscription beyond the initial year, or did not purchase the service and want to add it at a later date, this Device ID is what customer service needs.
+* **4** - Display the Device ID. This is needed when a SparkFun RTK device needs to be added to the PointPerfect system. This is normally taken care of when you purchase a product that includes a PointPerfect subscription. But for customers who wish to extend their subscription beyond the initial year, or did not purchase the service and want to add it at a later date, this Device ID is what customer service needs.
 
-* Option 'c' will clear the current keys.
+* **c** - Clear the current keys.
 
-* Option 'k' will bring up the Manual Key Entry menu.
+* **k** - Bring up the Manual Key Entry menu.
 
 ## Obtaining the Device ID
 
