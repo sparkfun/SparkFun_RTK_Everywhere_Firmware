@@ -85,7 +85,7 @@ void identifyBoard()
 
         // Check if a bq40Z50 battery manager is on the I2C bus
         if (i2c_0 == nullptr)
-            i2c_0 = new TwoWire(0);
+            i2c_0 = &Wire;
         int pin_SDA = 15;
         int pin_SCL = 4;
 
@@ -182,12 +182,12 @@ void beginBoard()
         batteryStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
-        
+
         // Beep at power on if we are not locally compiled or a release candidate
         if (ENABLE_DEVELOPER == false)
         {
             beepOn();
-            delay(250); 
+            delay(250);
         }
         beepOff();
 
@@ -266,6 +266,10 @@ void beginBoard()
         //  4, A36 : microSD card detect
         pin_microSD_CardDetect = 36;
         //  5, A39 : Unused analog pin - used to generate random values for SSL
+
+        // Select the I2C 0 data structure
+        if (i2c_0 == nullptr)
+            i2c_0 = &Wire;
 
         // Disable the Ethernet controller
         DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
