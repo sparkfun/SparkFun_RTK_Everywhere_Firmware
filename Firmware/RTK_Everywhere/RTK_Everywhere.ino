@@ -746,7 +746,7 @@ unsigned long beepStopMs; // Time at which to turn off beeper
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 35
+#define MAX_BOOT_TIME_ENTRIES 38
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
