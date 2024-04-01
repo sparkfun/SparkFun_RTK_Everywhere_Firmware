@@ -56,20 +56,20 @@ void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
+void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // NTRIP server
 //----------------------------------------
 
-void ntripServerPrintStatus() {systemPrintln("**NTRIP Server not compiled**");}
-void ntripServerProcessRTCM(uint8_t incoming) {}
-void ntripServerStop(bool clientAllocated) {online.ntripServer = false;}
+void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
+void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
-bool ntripServerIsCasting() {
+bool ntripServerIsCasting(int serverIndex) {
     return (false);
 }
-void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // PVT client
