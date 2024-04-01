@@ -200,20 +200,22 @@ bool ntripServerConnectCaster(int serverIndex)
     }
 
     if (settings.debugNtripServerState)
-        systemPrintf("NTRIP Server connecting to %s:%d\r\n", settings.ntripServer_CasterHost,
+        systemPrintf("NTRIP Server %d connecting to %s:%d\r\n", serverIndex,
+                     settings.ntripServer_CasterHost,
                      settings.ntripServer_CasterPort);
 
     // Attempt a connection to the NTRIP caster
     if (!ntripServer->networkClient->connect(settings.ntripServer_CasterHost, settings.ntripServer_CasterPort))
     {
         if (settings.debugNtripServerState)
-            systemPrintf("NTRIP Server connection to NTRIP caster %s:%d failed\r\n", settings.ntripServer_CasterHost,
+            systemPrintf("NTRIP Server %d connection to NTRIP caster %s:%d failed\r\n",
+                         serverIndex, settings.ntripServer_CasterHost,
                          settings.ntripServer_CasterPort);
         return false;
     }
 
     if (settings.debugNtripServerState)
-        systemPrintln("NTRIP Server sending authorization credentials");
+        systemPrintf("NTRIP Server %d sending authorization credentials\r\n", serverIndex);
 
     // Build the authorization credentials message
     //  * Mount point
@@ -269,14 +271,14 @@ bool ntripServerConnectLimitReached(int serverIndex)
         {
             seconds = ntripServer->connectionAttemptTimeout / 1000;
             if (seconds < 120)
-                systemPrintf("NTRIP Server trying again in %d seconds.\r\n", seconds);
+                systemPrintf("NTRIP Server %d trying again in %d seconds.\r\n", serverIndex, seconds);
             else
-                systemPrintf("NTRIP Server trying again in %d minutes.\r\n", seconds / 60);
+                systemPrintf("NTRIP Server %d trying again in %d minutes.\r\n", serverIndex, seconds / 60);
         }
     }
     else
         // No more connection attempts
-        systemPrintln("NTRIP Server connection attempts exceeded!");
+        systemPrintf("NTRIP Server %d connection attempts exceeded!\r\n", serverIndex);
     return limitReached;
 }
 
@@ -319,7 +321,7 @@ void ntripServerPrintStatus(int serverIndex)
 
     if (settings.enableNtripServer == true && inBaseMode())
     {
-        systemPrint("NTRIP Server ");
+        systemPrintf("NTRIP Server %d ", serverIndex);
         ntripServerPrintStateSummary(serverIndex);
         systemPrintf(" - %s/%s:%d", settings.ntripServer_CasterHost, settings.ntripServer_MountPoint,
                      settings.ntripServer_CasterPort);
@@ -380,7 +382,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                 struct tm timeinfo = rtc.getTimeStruct();
                 char timestamp[30];
                 strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-                systemPrintf("    Tx RTCM: %s.%03ld, %d bytes sent\r\n", timestamp, rtc.getMillis(), zedBytesSent);
+                systemPrintf("    Tx%d RTCM: %s.%03ld, %d bytes sent\r\n", serverIndex, timestamp, rtc.getMillis(), zedBytesSent);
                 zedBytesSent = 0;
             }
             previousMilliseconds = currentMilliseconds;
@@ -390,7 +392,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         if (((millis() - ntripServer->timer) > 100) && (ntripServer->bytesSent > 0))
         {
             if ((!inMainMenu) && settings.debugNtripServerState)
-                systemPrintf("NTRIP Server transmitted %d RTCM bytes to Caster\r\n", ntripServer->bytesSent);
+                systemPrintf("NTRIP Server %d transmitted %d RTCM bytes to Caster\r\n", serverIndex, ntripServer->bytesSent);
 
             ntripServer->bytesSent = 0;
         }
@@ -444,12 +446,14 @@ void ntripServerRestart(int serverIndex)
 // Update the state of the NTRIP server state machine
 void ntripServerSetState(NTRIP_SERVER_DATA * ntripServer, uint8_t newState)
 {
+    int serverIndex = ntripServer - &ntripServerArray[0];
+
     if (settings.debugNtripServerState || PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
     {
         if (ntripServer->state == newState)
-            systemPrint("*");
+            systemPrintf("%d: *", serverIndex);
         else
-            systemPrintf("%s --> ", ntripServerStateName[ntripServer->state]);
+            systemPrintf("%d: %s --> ", serverIndex, ntripServerStateName[ntripServer->state]);
     }
     ntripServer->state = newState;
     if (settings.debugNtripServerState || PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
@@ -457,7 +461,7 @@ void ntripServerSetState(NTRIP_SERVER_DATA * ntripServer, uint8_t newState)
         PERIODIC_CLEAR(PD_NTRIP_SERVER_STATE);
         if (newState >= NTRIP_SERVER_STATE_MAX)
         {
-            systemPrintf("Unknown NTRIP Server state: %d\r\n", newState);
+            systemPrintf("Unknown NTRIP Server %d state: %d\r\n", serverIndex, newState);
             reportFatalError("Unknown NTRIP Server state");
         }
         else
@@ -478,7 +482,7 @@ void ntripServerStart(int serverIndex)
     reportHeapNow(settings.debugNtripServerState);
 
     // Start the NTRIP server
-    systemPrintln("NTRIP Server start");
+    systemPrintf("NTRIP Server %d start\r\n", serverIndex);
     ntripServerStop(serverIndex, false);
 }
 
@@ -571,7 +575,7 @@ void ntripServerUpdate(int serverIndex)
             if (!ntripServer->networkClient)
             {
                 // Failed to allocate the networkClient structure
-                systemPrintln("ERROR: Failed to allocate the ntripServer structure!");
+                systemPrintf("ERROR: Failed to allocate the ntripServer %d structure!\r\n", serverIndex);
                 ntripServerShutdown(serverIndex);
             }
             else
@@ -627,7 +631,7 @@ void ntripServerUpdate(int serverIndex)
             {
                 // Assume service not available
                 if (ntripServerConnectLimitReached(serverIndex)) // Update ntripServer->connectionAttemptTimeout
-                    systemPrintln("NTRIP Server failed to connect! Do you have your caster address and port correct?");
+                    systemPrintf("NTRIP Server %d failed to connect! Do you have your caster address and port correct?\r\n", serverIndex);
             }
             else
             {
@@ -652,7 +656,7 @@ void ntripServerUpdate(int serverIndex)
             if (millis() - ntripServer->timer > 10000)
             {
                 if (ntripServerConnectLimitReached(serverIndex))
-                    systemPrintln("Caster failed to respond. Do you have your caster address and port correct?");
+                    systemPrintf("Caster %d failed to respond. Do you have your caster address and port correct?\r\n", serverIndex);
             }
         }
         else
@@ -662,9 +666,9 @@ void ntripServerUpdate(int serverIndex)
             ntripServerResponse(serverIndex, response, sizeof(response));
 
             if (settings.debugNtripServerState)
-                systemPrintf("Server Response: %s\r\n", response);
+                systemPrintf("Server %d Response: %s\r\n", serverIndex, response);
             else
-                log_d("Server Response: %s", response);
+                log_d("Server %d Response: %s", serverIndex, response);
 
             // Look for various responses
             if (strstr(response, "200") != nullptr) //'200' found
@@ -672,22 +676,22 @@ void ntripServerUpdate(int serverIndex)
                 // We got a response, now check it for possible errors
                 if (strcasestr(response, "banned") != nullptr)
                 {
-                    systemPrintf("NTRIP Server connected to caster but caster responded with banned error: %s\r\n",
-                                 response);
+                    systemPrintf("NTRIP Server %d connected to caster but caster responded with banned error: %s\r\n",
+                                 serverIndex, response);
 
                     // Stop NTRIP Server operations
                     ntripServerShutdown(serverIndex);
                 }
                 else if (strcasestr(response, "sandbox") != nullptr)
                 {
-                    systemPrintf("NTRIP Server connected to caster but caster responded with sandbox error: %s\r\n",
-                                 response);
+                    systemPrintf("NTRIP Server %d connected to caster but caster responded with sandbox error: %s\r\n",
+                                 serverIndex, response);
 
                     // Stop NTRIP Server operations
                     ntripServerShutdown(serverIndex);
                 }
 
-                systemPrintf("NTRIP Server connected to %s:%d %s\r\n", settings.ntripServer_CasterHost,
+                systemPrintf("NTRIP Server %d connected to %s:%d %s\r\n", serverIndex, settings.ntripServer_CasterHost,
                              settings.ntripServer_CasterPort, settings.ntripServer_MountPoint);
 
                 // Connection is now open, start the RTCM correction data timer
@@ -702,9 +706,9 @@ void ntripServerUpdate(int serverIndex)
             // Look for '401 Unauthorized'
             else if (strstr(response, "401") != nullptr)
             {
-                systemPrintf("NTRIP Caster responded with unauthorized error: %s. Are you sure your caster credentials "
+                systemPrintf("NTRIP Caster %d responded with unauthorized error: %s. Are you sure your caster credentials "
                              "are correct?\r\n",
-                             response);
+                             serverIndex, response);
 
                 // Give up - Shutdown NTRIP server, no further retries
                 ntripServerShutdown(serverIndex);
@@ -713,12 +717,12 @@ void ntripServerUpdate(int serverIndex)
             // Other errors returned by the caster
             else
             {
-                systemPrintf("NTRIP Server connected but caster responded with problem: %s\r\n", response);
+                systemPrintf("NTRIP Server %d connected but caster responded with problem: %s\r\n", serverIndex, response);
 
                 // Check for connection limit
                 if (ntripServerConnectLimitReached(serverIndex))
-                    systemPrintln(
-                        "NTRIP Server retry limit reached; do you have your caster address and port correct?");
+                    systemPrintf(
+                        "NTRIP Server %d retry limit reached; do you have your caster address and port correct?\r\n", serverIndex);
             }
         }
         break;
@@ -734,13 +738,13 @@ void ntripServerUpdate(int serverIndex)
         else if (!ntripServer->networkClient->connected())
         {
             // Broken connection, retry the NTRIP connection
-            systemPrintln("Connection to NTRIP Caster was lost");
+            systemPrintf("Connection to NTRIP Caster %d was lost\r\n", serverIndex);
             ntripServerRestart(serverIndex);
         }
         else if ((millis() - ntripServer->timer) > (3 * 1000))
         {
             // GNSS stopped sending RTCM correction data
-            systemPrintln("NTRIP Server breaking connection to caster due to lack of RTCM data!");
+            systemPrintf("NTRIP Server %d breaking connection to caster due to lack of RTCM data!\r\n", serverIndex);
             ntripServerRestart(serverIndex);
         }
         else
@@ -758,7 +762,7 @@ void ntripServerUpdate(int serverIndex)
                 ntripServer->connectionAttempts = 0;
                 ntripServer->connectionAttemptTimeout = 0;
                 if (settings.debugNtripServerState)
-                    systemPrintln("NTRIP Server resetting connection attempt counter and timeout");
+                    systemPrintf("NTRIP Server %d resetting connection attempt counter and timeout\r\n", serverIndex);
             }
         }
         break;
