@@ -7,6 +7,7 @@
   createSettingsString();
   updateSettingWithValue();
   getSettingValue();
+  printAvailableSettings();
 
   form.h also needs to be updated to include a space for user input. This is best
   edited in the index.html and main.js files.
