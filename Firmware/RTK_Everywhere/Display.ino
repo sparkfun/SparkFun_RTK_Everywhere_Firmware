@@ -1725,7 +1725,7 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
 
     // Note: the "yPos - 1" is potentially brittle. TODO: find a better solution for this
-    if (ntripServerIsCasting())
+    if (online.ntripServer)
         printTextCenter("Casting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
     else
         printTextCenter("Xmitting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
