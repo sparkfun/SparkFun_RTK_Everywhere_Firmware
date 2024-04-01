@@ -167,6 +167,10 @@ void beginBoard()
 
         pin_beeper = 33;
 
+        pin_loraRadio_power = 19; //LoRa_EN
+        pin_loraRadio_boot = 23; //LoRa_BOOT0
+        pin_loraRadio_reset = 5; //LoRa_NRST
+
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
 
@@ -204,6 +208,15 @@ void beginBoard()
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
+
+        pinMode(pin_loraRadio_power, OUTPUT);
+        digitalWrite(pin_loraRadio_power, LOW); // Keep LoRa powered down
+
+        pinMode(pin_loraRadio_boot, OUTPUT);
+        digitalWrite(pin_loraRadio_boot, LOW);
+
+        pinMode(pin_loraRadio_reset, OUTPUT);
+        digitalWrite(pin_loraRadio_reset, LOW); // Keep LoRa in reset
     }
 
     else if (productVariant == RTK_EVK)

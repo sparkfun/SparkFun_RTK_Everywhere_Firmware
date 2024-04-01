@@ -121,12 +121,9 @@ int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
 int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
 
-int pin_radio_rx = PIN_UNDEFINED;
-int pin_radio_tx = PIN_UNDEFINED;
-int pin_radio_rst = PIN_UNDEFINED;
-int pin_radio_pwr = PIN_UNDEFINED;
-int pin_radio_cts = PIN_UNDEFINED;
-int pin_radio_rts = PIN_UNDEFINED;
+int pin_loraRadio_reset = PIN_UNDEFINED;
+int pin_loraRadio_boot = PIN_UNDEFINED;
+int pin_loraRadio_power = PIN_UNDEFINED;
 
 int pin_Ethernet_CS = PIN_UNDEFINED;
 int pin_Ethernet_Interrupt = PIN_UNDEFINED;
