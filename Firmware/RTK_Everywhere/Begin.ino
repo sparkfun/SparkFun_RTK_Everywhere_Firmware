@@ -85,7 +85,7 @@ void identifyBoard()
 
         // Check if a bq40Z50 battery manager is on the I2C bus
         if (i2c_0 == nullptr)
-            i2c_0 = &Wire;
+            i2c_0 = new TwoWire(0);
         int pin_SDA = 15;
         int pin_SCL = 4;
 
@@ -269,7 +269,7 @@ void beginBoard()
 
         // Select the I2C 0 data structure
         if (i2c_0 == nullptr)
-            i2c_0 = &Wire;
+            i2c_0 = new TwoWire(0);
 
         // Disable the Ethernet controller
         DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
