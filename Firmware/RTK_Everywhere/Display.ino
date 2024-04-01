@@ -709,7 +709,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (wifiState > WIFI_OFF) // WiFi : Columns 34 - 46
+            if (wifiState > WIFI_STATE_OFF) // WiFi : Columns 34 - 46
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
