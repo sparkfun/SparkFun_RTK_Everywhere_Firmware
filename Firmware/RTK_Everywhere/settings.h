@@ -321,12 +321,12 @@ typedef struct _NETWORK_DATA
 // either WiFi or ESP-Now are active
 enum WiFiState
 {
-    WIFI_OFF = 0,
-    WIFI_START,
-    WIFI_CONNECTING,
-    WIFI_CONNECTED,
+    WIFI_STATE_OFF = 0,
+    WIFI_STATE_START,
+    WIFI_STATE_CONNECTING,
+    WIFI_STATE_CONNECTED,
 };
-volatile byte wifiState = WIFI_OFF;
+volatile byte wifiState = WIFI_STATE_OFF;
 
 typedef enum
 {
@@ -1259,8 +1259,8 @@ Settings settings;
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
-    bool psram_2mb = false;    
-    bool psram_4mb = false;    
+    bool psram_2mb = false;
+    bool psram_4mb = false;
 
     bool gnss_zedf9p = false;
     bool gnss_zedf9r = false;
@@ -1336,7 +1336,7 @@ struct struct_online
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;
-    bool psram = false;    
+    bool psram = false;
     volatile bool gnssUartPinned = false;
     volatile bool i2cPinned = false;
     volatile bool btReadTaskRunning = false;

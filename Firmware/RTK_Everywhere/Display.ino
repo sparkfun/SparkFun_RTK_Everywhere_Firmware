@@ -658,7 +658,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-            if (wifiState > WIFI_OFF)
+            if (wifiState > WIFI_STATE_OFF)
                 numberOfRadios++;
             if (espnowState > ESPNOW_OFF)
                 numberOfRadios++;
@@ -675,7 +675,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 setBluetoothIcon_TwoRadios(iconList);
 
                 // Do we have WiFi or ESP
-                if (wifiState > WIFI_OFF)
+                if (wifiState > WIFI_STATE_OFF)
                     setWiFiIcon_TwoRadios(iconList);
                 else if (espnowState > ESPNOW_OFF)
                     setESPNowIcon_TwoRadios(iconList);
@@ -729,7 +729,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon = WiFiSymbol0128x64;
                 iconList->push_back(prop);
             }
-            
+
             if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 49 - 56
             {
                 iconPropertyBlinking prop;
@@ -786,7 +786,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
 
-            if (wifiState == WIFI_CONNECTED)
+            if (wifiState == WIFI_STATE_CONNECTED)
             {
                 if (netIncomingRTCM == true) // Download : Columns 59 - 66
                 {
@@ -1014,7 +1014,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (wifiState == WIFI_CONNECTED)
+    if (wifiState == WIFI_STATE_CONNECTED)
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1091,7 +1091,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (wifiState == WIFI_CONNECTED)
+    if (wifiState == WIFI_STATE_CONNECTED)
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1177,7 +1177,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.xPos = (oled->getWidth() / 2) - (icon.icon.width / 2);
         icon.icon.yPos = 0;
 
-        if (wifiState == WIFI_CONNECTED)
+        if (wifiState == WIFI_STATE_CONNECTED)
             icon.duty = 0b11111111;
         else
             icon.duty = 0b01010101;
@@ -1481,7 +1481,7 @@ void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
     else
     {
         displayCoords textCoords;
-        
+
         if (aStatus == SFE_UBLOX_ANTENNA_STATUS_SHORT)
         {
             textCoords = paintSIVIcon(iconList, &ShortIconProperties, 0b01010101);
@@ -1644,7 +1644,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
         {
             prop.icon = LoggingCustomIconProperties.iconDisplay[loggingIconDisplayed][present.display_type];
         }
-        
+
         iconList->push_back(prop);
     }
     else if (pulse)
@@ -3111,7 +3111,7 @@ const uint8_t *getMacAddress()
         return btMACAddress;
 #endif // COMPILE_BT
 #ifdef COMPILE_WIFI
-    if (wifiState != WIFI_OFF)
+    if (wifiState != WIFI_STATE_OFF)
         return wifiMACAddress;
 #endif // COMPILE_WIFI
 #ifdef COMPILE_ETHERNET
