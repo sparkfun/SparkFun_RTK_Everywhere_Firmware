@@ -60,7 +60,7 @@ MQTT_Client.ino
 
 ------------------------------------------------------------------------------*/
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_MQTT_CLIENT
 
 //----------------------------------------
 // Constants
@@ -730,4 +730,4 @@ bool mqttClientIsConnected()
     return false;
 }
 
-#endif // COMPILE_NETWORK
+#endif // COMPILE_MQTT_CLIENT
