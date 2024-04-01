@@ -151,7 +151,6 @@ nav:
       - menu_tilt.md
       - menu_ethernet.md
       - menu_ntp.md
-      - menu_debug.md
   - Hardware:
       - firmware_update.md
       - displays.md

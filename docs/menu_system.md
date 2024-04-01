@@ -51,10 +51,10 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 * **B, R, W, or S** - Change the mode the device is in.
 
-    * **R**over - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
-    * **B**ase - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
-    * **W**iFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
-    * **S**hut Down - If supported, the device will immediately shut down.
+    * Rover - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
+    * Base - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
+    * WiFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
+    * Shut Down - If supported, the device will immediately shut down.
 
 ## Settings
 
@@ -115,17 +115,18 @@ Pressing the 'Start New Log' button will close the current log. A new log will b
 
 If a device gets into an unknown state it can be returned to default settings using the WiFi or Serial interfaces. 
 
+Note: On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information. 
+
+Note: Log files and any other files on the SD card are *not* removed or modified.
+
+![Issuing a factory reset](<img/Terminal/SparkFun RTK Everywhere - System Menu Factory Reset.png>)
+
+*Issuing and confirming a Factory Reset*
+
+If a device gets into an unknown state it can be returned to default settings. Press 'r' then 'y' to confirm. Factory Default will erase any user settings and reset the internal receiver to stock settings. If SD is supported, any settings file and commonly used coordinate files on the SD card associated with the current profile will be removed.
+
 ![Factory Default button](<img/WiFi Config/SparkFun%20RTK%20WiFi%20Factory%20Defaults.png>)
 
 *Enabling and Starting a Factory Reset*
 
 Factory Defaults will erase any user settings and reset the internal receiver to stock settings. To prevent accidental reset the checkbox must first be checked before the button is pressed. Any logs on SD are maintained. Any settings file and commonly used coordinate files on the SD card associated with the current profile will be removed.
-
-![Issuing a factory reset](<img/Terminal/SparkFun RTK Everywhere - System Menu Factory Reset.png>)
-*Issuing and confirming a Factory Reset*
-
-If a device gets into an unknown state it can be returned to default settings. Press 'r' then 'y' to confirm. Factory Default will erase any user settings and reset the internal receiver to stock settings. If SD is supported, any settings file and commonly used coordinate files on the SD card associated with the current profile will be removed.
-
-**Note:** Log files and any other files on the SD card are *not* removed or modified.
-
-Note: A factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information. 
