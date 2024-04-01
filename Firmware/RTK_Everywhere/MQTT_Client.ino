@@ -77,7 +77,7 @@ static const int MQTT_CLIENT_DATA_TIMEOUT = (30 * 1000); // milliseconds
 enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
-    MQTT_CLIENT_ON,                  // WIFI_START state
+    MQTT_CLIENT_ON,                  // WIFI_STATE_START state
     MQTT_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
     MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
     MQTT_CLIENT_SUBSCRIBE_KEY,       // Subscribe to the MQTT_TOPIC_KEY
