@@ -360,6 +360,11 @@ void beginVersion()
     getFirmwareVersion(versionString, sizeof(versionString), true);
     systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
 
+#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
+    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
+    esp_base_mac_addr_set(developerMacAddress);
+#endif
+
     // Get unit MAC address
     esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
     memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
