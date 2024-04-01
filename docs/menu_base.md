@@ -2,7 +2,7 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
-In addition to providing accurate local location fixes, SparkFun RTK Everywhere can also serve as a correction source, also called a *Base*. The Base doesn't move and 'knows' where it is so it can calculate the discrepancies between the signals it is receiving and what it should be receiving. Said differently, the 'Base' is told where it is, and that it's not moving. If the GPS signals say otherwise, the Base knows there was a disturbance in the ~~Force~~ ionosphere. These differences are the correction values passed to the Rover so that the Rover can have millimeter-level accuracy.
+In addition to providing accurate local location fixes, SparkFun RTK devices can also serve as a correction source, also called a *Base*. The Base doesn't move and 'knows' where it is so it can calculate the discrepancies between the signals it is receiving and what it should be receiving. Said differently, the 'Base' is told where it is, and that it's not moving. If the GPS signals say otherwise, the Base knows there was a disturbance in the ~~Force~~ ionosphere. These differences are the correction values passed to the Rover so that the Rover can have millimeter-level accuracy.
 
 There are two types of bases: *Surveyed* and *Fixed*. A surveyed base is often a temporary base set up in the field. Called a 'Survey-In', this is less accurate but requires only 60 seconds to complete. The 'Fixed' base is much more accurate but the precise location at which the antenna is located must be known. A fixed base is often a structure with an antenna bolted to the side. Raw satellite signals are gathered for a few hours and then processed using Precision Point Position. We have a variety of tutorials that go into depth on these subjects but all you need to know is that the RTK Facet supports both Survey-In and Fixed Base techniques.
 
@@ -23,19 +23,19 @@ Please see the following tutorials for more information:
   </tr>
 </table>
 
+## Mode
+
 The Base Menu allows the user to select between Survey-In or Fixed Base setups.
 
 ![Serial menu showing Base options](<img/Terminal/SparkFun RTK Everywhere - Base Menu Survey-In.png>)
 
-*Base Menu Options*
-
-## Mode
+*Base Menu showing Survey-In Mode*
 
 In **Survey-In** mode, the minimum observation time can be set. The default is 60 seconds. The device will wait for the position accuracy to be better than 1 meter before a Survey-In is started. Don't be fooled; setting the observation time to 4 hours is not going to significantly improve the accuracy of the survey - use [PPP](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station#gather-raw-gnss-data) instead.
 
 ![Fixed Base Coordinate input](<img/Terminal/SparkFun RTK Everywhere - Base Menu Fixed ECEF.png>)
 
-*Fixed base coordinate input*
+*Base Menu showing Fixed Base Mode with ECEF Coordinates*
 
 In **Fixed** mode, the coordinates of the antenna need to be set. These can be entered in ECEF or Geographic coordinates. 
 
@@ -100,6 +100,8 @@ When entering coordinates for a fixed Base in Geodetic format, the following for
 * DD-MM-SS.ssssss (40-05-25.2075)
 
 ![Coordinate formats in the Base serial menu](<img/Terminal/SparkFun RTK Everywhere - Base Menu Alternate Coordinate Format.png>)
+
+*Coordinates shown in DD MM SS.ssssss format*
 
 These coordinate formats are automatically detected and converted as needed. The coordinates are displayed in the format they are entered. If a different format is desired, the coordinate display format can be changed via the serial Base menu.
 
