@@ -66,7 +66,7 @@ The *Days until keys expire* inform the user how many days the unit has until it
 
 The device ID is unique to each RTK device and must be entered by SparkFun into the PointPerfect network (also known as whitelisting). 
 
-![Device ID within the serial menu](<SparkFun RTK Everywhere - PointPerfect Menu Device ID.png>)
+![Device ID within the serial menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Device ID.png>)
 
 *Device ID within the serial menu*
 
