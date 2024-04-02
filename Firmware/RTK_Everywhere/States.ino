@@ -407,10 +407,9 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 30000)
+            if (millis() - lastSetupMenuChange > 30000) // Exit Setup after 30s
             {
                 //forceSystemStateUpdate = true; // Immediately go to this new state
-                setupDoubleTapRequired = false;
                 changeState(lastSystemState);  // Return to the last system state
             }
         }
