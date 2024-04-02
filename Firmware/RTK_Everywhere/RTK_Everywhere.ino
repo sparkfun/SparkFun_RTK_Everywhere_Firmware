@@ -675,8 +675,11 @@ uint32_t rtcmLastReceived;
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Auto-selects the setup menu option after 1500ms
+uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
+bool setupDoubleTapRequired = false; // In buttonCheckTask, require a double tap to proceed
+uint8_t setupSelectedButton = 0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
+std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'butttons'
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 

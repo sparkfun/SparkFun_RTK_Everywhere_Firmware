@@ -407,10 +407,11 @@ void stateUpdate()
         break;
 
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 1500)
+            if (millis() - lastSetupMenuChange > 30000)
             {
-                forceSystemStateUpdate = true; // Immediately go to this new state
-                changeState(setupState);       // Change to last setup state
+                //forceSystemStateUpdate = true; // Immediately go to this new state
+                setupDoubleTapRequired = false;
+                changeState(lastSystemState);  // Return to the last system state
             }
         }
         break;
@@ -1203,3 +1204,54 @@ bool inNtpMode()
         return (true);
     return (false);
 }
+
+void addSetupButton(std::vector<setupButton> *buttons, const char *name, SystemState newState)
+{
+    setupButton button;
+    button.name = name;
+    button.newState = newState;
+    buttons->push_back(button);
+}
+
+// Construct menu 'buttons' to allow user to pause on one and double tap to select it
+void constructSetupDisplay(std::vector<setupButton> *buttons)
+{
+    buttons->clear();
+
+    // It looks like we don't need "Mark"? TODO: check this!
+    addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
+    addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
+    if (present.ethernet_ws5500 == true)
+    {
+        addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
+        addSetupButton(buttons, "Cfg Eth", STATE_CONFIG_VIA_ETH_NOT_STARTED);
+        addSetupButton(buttons, "Cfg WiFi", STATE_WIFI_CONFIG_NOT_STARTED);
+    }
+    else
+    {
+        addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
+    }
+    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+    {
+        addSetupButton(buttons, "Get Keys", STATE_KEYS_NEEDED);
+    }
+    addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
+    // If only one active profile do not show any profiles
+    if (getProfileNumberFromUnit(1) > 0)
+    {
+        for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+        {
+            int activeProfile = getProfileNumberFromUnit(x);
+            if ((x == 0) || (activeProfile > 0))
+            {
+                setupButton button;
+                button.name = &profileNames[activeProfile][0];
+                button.newState = STATE_PROFILE;
+                button.newProfile = x;
+                buttons->push_back(button);
+            }
+        }
+    }
+    addSetupButton(buttons, "Exit", STATE_NOT_SET);
+}
+

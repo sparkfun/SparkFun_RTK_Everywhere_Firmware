@@ -54,10 +54,6 @@ SystemState lastSystemState = STATE_NOT_SET;
 SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
 
-// The setup display can show a limited set of states
-// When user pauses for X amount of time, system will enter that state
-SystemState setupState = STATE_ROVER_NOT_STARTED;
-
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
 #define RTK_MODE_BASE_SURVEY_IN     0x0002
@@ -162,6 +158,14 @@ const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
     "ESP-Now",
     // Add new correction sources just above this line
 };
+
+// Setup Buttons
+typedef struct
+{
+    const char *name;
+    SystemState newState;
+    uint8_t newProfile; // Only valid when newState == STATE_PROFILE
+} setupButton;
 
 
 const SystemState platformPreviousStateTable[] =
