@@ -1717,19 +1717,21 @@ void printTextwithKerning(const char *newText, uint8_t xPos, uint8_t yPos, uint8
 // Show transmission of RTCM correction data packets to NTRIP caster
 void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
-    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
-
     // Determine if the NTRIP Server is casting
     bool casting = false;
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
         casting |= online.ntripServer[serverIndex];
 
-    // Note: the "yPos - 1" is potentially brittle. TODO: find a better solution for this
+    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
+    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
+
+    if (present.display_type == DISPLAY_64x48)
+        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle. TODO: find a better solution
+
     if (casting)
-        printTextCenter("Casting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
     else
-        printTextCenter("Xmitting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
 
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
@@ -2632,6 +2634,24 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
             xBoxEnd = oled->getWidth() - 1;
 
         oled->rectangleFill(xBoxStart, yPos, xBoxEnd, 12, 1); // x, y, width, height, color
+    }
+}
+
+// Given text, and location, print text to the screen
+void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontType, uint8_t kerning) // text, x, y, font type, kearning, inverted
+{
+    oled->setFont(fontType);
+    oled->setDrawMode(grROPXOR);
+
+    uint8_t fontWidth = fontType.width;
+    if (fontWidth == 8)
+        fontWidth = 7; // 8x16, but widest character is only 7 pixels.
+
+    for (int x = 0; x < strlen(text); x++)
+    {
+        oled->setCursor(xPos, yPos);
+        oled->print(text[x]);
+        xPos += fontWidth + kerning;
     }
 }
 
