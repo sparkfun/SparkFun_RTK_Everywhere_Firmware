@@ -541,7 +541,7 @@ AsyncWebSocket *websocket;
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
-#define AP_CONFIG_SETTING_SIZE 11000
+#define AP_CONFIG_SETTING_SIZE 12000 // >= 11169 April 3rd 2024
 char *settingsCSV; // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
@@ -950,6 +950,10 @@ void setup()
     DMW_b("beginFS");
     beginFS(); // Load NVM settings
 
+    DMW_b("checkConfigureViaEthernet");
+    configureViaEthernet =
+        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
+
     // At this point product variants are known, except early RTK products that lacked ID resistors
     DMW_b("loadSettingsPartial");
     loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
@@ -971,10 +975,6 @@ void setup()
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
-
-    DMW_b("checkConfigureViaEthernet");
-    configureViaEthernet =
-        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before

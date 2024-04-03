@@ -459,6 +459,13 @@ void beginSD()
     if (present.microSd == false)
         return;
 
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        log_d("configureViaEthernet: skipping beginSD");
+        return;
+    }
+
     bool gotSemaphore;
 
     gotSemaphore = false;
@@ -623,6 +630,13 @@ void beginGnssUart()
 {
     if (present.gnss_to_uart == false)
         return;
+
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        log_d("configureViaEthernet: skipping beginGnssUart");
+        return;
+    }
 
     size_t length;
     TaskHandle_t taskHandle;
