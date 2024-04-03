@@ -167,9 +167,9 @@ void beginBoard()
 
         pin_beeper = 33;
 
-        pin_loraRadio_power = 19; //LoRa_EN
-        pin_loraRadio_boot = 23; //LoRa_BOOT0
-        pin_loraRadio_reset = 5; //LoRa_NRST
+        pin_loraRadio_power = 19; // LoRa_EN
+        pin_loraRadio_boot = 23;  // LoRa_BOOT0
+        pin_loraRadio_reset = 5;  // LoRa_NRST
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -817,6 +817,14 @@ void tickerBegin()
         beepTask.detach();                                          // Turn off any previous task
         beepTask.attach(1.0 / beepTaskUpdatesHz, tickerBeepUpdate); // Rate in seconds, callback
     }
+}
+
+//Stop any ticker tasks
+void tickerStop()
+{
+    bluetoothLedTask.detach();
+    gnssLedTask.detach();
+    batteryLedTask.detach();
 }
 
 // Configure the battery fuel gauge
