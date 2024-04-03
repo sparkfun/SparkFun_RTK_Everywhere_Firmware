@@ -1522,6 +1522,7 @@ void updateLBand()
             // If we have not received RTCM in a certain amount of time,
             // and if communication was disabled because RTCM was being received at some point,
             // re-enable L-Band communication
+            // TODO: RIP THIS OUT
             if (lBandCommunicationEnabled == false)
             {
                 if (settings.debugCorrections == true)
