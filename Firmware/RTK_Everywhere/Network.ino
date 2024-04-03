@@ -174,8 +174,17 @@ const int networkStateEntries = sizeof(networkState) / sizeof(networkState[0]);
 
 // List of network users
 const char *const networkUser[] = {
-    "MQTT Server",         "NTP Server", "NTRIP Client", "NTRIP Server",
-    "OTA Firmware Update", "PVT Client", "PVT Server",   "PVT UDP Server",
+    "MQTT Client",
+    "NTP Server",
+    "NTRIP Client",
+    "OTA Firmware Update",
+    "PVT Client",
+    "PVT Server",
+    "PVT UDP Server",
+    "NTRIP Server 0",
+    "NTRIP Server 1",
+    "NTRIP Server 2",
+    "NTRIP Server 3",
 };
 const int networkUserEntries = sizeof(networkUser) / sizeof(networkUser[0]);
 
@@ -485,8 +494,7 @@ NETWORK_DATA *networkGetUserNetwork(NETWORK_USER user)
     for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
     {
         network = networkGet(networkType, false);
-        if (network && ((network->activeUsers & userMask)
-                        || (network->userOpens & userMask)))
+        if (network && ((network->activeUsers & userMask) || (network->userOpens & userMask)))
             return network;
     }
 
@@ -650,7 +658,7 @@ void networkRetry(NETWORK_DATA *network, uint8_t previousNetworkType)
 {
     uint8_t networkType;
     int seconds;
-    //uint8_t users;
+    // uint8_t users;
 
     // Determine the delay multiplier
     network->connectionAttempt += 1;
@@ -787,6 +795,7 @@ void networkStop(uint8_t networkType)
 {
     NETWORK_DATA *network;
     bool restart;
+    int serverIndex;
     bool shutdown;
     int user;
 
@@ -826,6 +835,16 @@ void networkStop(uint8_t networkType)
                 // Stop the network client
                 switch (user)
                 {
+                default:
+                    if ((user >= NETWORK_USER_NTRIP_SERVER) && (user < (NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX)))
+                    {
+                        serverIndex = user - NETWORK_USER_NTRIP_SERVER;
+                        if (settings.debugNetworkLayer)
+                            systemPrintln("Network layer stopping NTRIP server");
+                        ntripServerRestart(serverIndex);
+                    }
+                    break;
+
                 case NETWORK_USER_MQTT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping MQTT client");
@@ -842,12 +861,6 @@ void networkStop(uint8_t networkType)
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping NTRIP client");
                     ntripClientRestart();
-                    break;
-
-                case NETWORK_USER_NTRIP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping NTRIP server");
-                    ntripServerRestart();
                     break;
 
                 case NETWORK_USER_OTA_AUTO_UPDATE:
@@ -1123,17 +1136,17 @@ void networkUpdate()
 
     // Update the network services
     DMW_c("mqttClientUpdate");
-    mqttClientUpdate();   // Process any Point Perfect MQTT messages
+    mqttClientUpdate(); // Process any Point Perfect MQTT messages
     DMW_c("ntpServerUpdate");
-    ntpServerUpdate();    // Process any received NTP requests
+    ntpServerUpdate(); // Process any received NTP requests
     DMW_c("ntripClientUpdate");
-    ntripClientUpdate();  // Check the NTRIP client connection and move data NTRIP --> ZED
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
     DMW_c("ntripServerUpdate");
-    ntripServerUpdate();  // Check the NTRIP server connection and move data ZED --> NTRIP
+    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
     DMW_c("pvtClientUpdate");
-    pvtClientUpdate();    // Turn on the PVT client as needed
+    pvtClientUpdate(); // Turn on the PVT client as needed
     DMW_c("pvtServerUpdate");
-    pvtServerUpdate();    // Turn on the PVT server as needed
+    pvtServerUpdate(); // Turn on the PVT server as needed
     DMW_c("pvtUdpServerUpdate");
     pvtUdpServerUpdate(); // Turn on the PVT UDP server as needed
 

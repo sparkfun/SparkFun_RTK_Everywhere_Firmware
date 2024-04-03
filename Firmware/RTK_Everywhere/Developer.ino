@@ -45,11 +45,8 @@ void menuNetwork() {systemPrint("**Network not compiled**");}
 void networkUpdate() {}
 void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
-void mqttClientValidateTables() {}
-void mqttClientPrintStatus() {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
-bool mqttClientIsConnected() {return false;}
 
 //----------------------------------------
 // NTRIP client
@@ -59,20 +56,20 @@ void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
+void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // NTRIP server
 //----------------------------------------
 
-void ntripServerPrintStatus() {systemPrintln("**NTRIP Server not compiled**");}
-void ntripServerProcessRTCM(uint8_t incoming) {}
-void ntripServerStop(bool clientAllocated) {online.ntripServer = false;}
+void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
+void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[0] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
-bool ntripServerIsCasting() {
+bool ntripServerIsCasting(int serverIndex) {
     return (false);
 }
-void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // PVT client
@@ -107,6 +104,20 @@ void otaAutoUpdateStop() {}
 void otaVerifyTables() {}
 
 #endif  // COMPILE_OTA_AUTO
+
+//----------------------------------------
+// MQTT Client
+//----------------------------------------
+
+#ifndef COMPILE_MQTT_CLIENT
+
+bool mqttClientIsConnected() {return false;}
+void mqttClientPrintStatus() {}
+void mqttClientRestart() {}
+void mqttClientUpdate() {}
+void mqttClientValidateTables() {}
+
+#endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
 // Web Server

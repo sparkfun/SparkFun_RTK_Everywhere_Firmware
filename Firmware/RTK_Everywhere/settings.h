@@ -1,5 +1,5 @@
-#ifndef _RTK_EVERYWHERE_SETTINGS_H
-#define _RTK_EVERYWHERE_SETTINGS_H
+#ifndef __SETTINGS_H__
+#define __SETTINGS_H__
 
 #include "UM980.h" //Structs of UM980 messages, needed for settings.h
 #include <vector>
@@ -53,10 +53,6 @@ volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
 SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
-
-// The setup display can show a limited set of states
-// When user pauses for X amount of time, system will enter that state
-SystemState setupState = STATE_ROVER_NOT_STARTED;
 
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
@@ -166,22 +162,31 @@ typedef enum
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
+
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
     // These must match correctionsSource above
     "Bluetooth",
-    "WiFi_IP_(MQTT)",
-    "WiFi_TCP_(NTRIP)",
-    "Ethernet_IP_(MQTT)",
-    "Ethernet_TCP_(NTRIP)",
-    "Cellular_IP_(MQTT)",
-    "Cellular_TCP_(NTRIP)",
+    "WiFi IP (PointPerfect/MQTT)",
+    "WiFi TCP (NTRIP)",
+    "Ethernet IP (PointPerfect/MQTT)",
+    "Ethernet TCP (NTRIP Client)",
     "L-Band",
-    "External_Radio",
-    "LoRa_Radio",
+    "Cellular",
+    "External Radio",
+    "LoRa Radio",
     "ESP-Now",
     // Add new correction sources just above this line
 };
+
+// Setup Buttons
+typedef struct
+{
+    const char *name;
+    SystemState newState;
+    uint8_t newProfile; // Only valid when newState == STATE_PROFILE
+} setupButton;
+
 
 const SystemState platformPreviousStateTable[] =
 {
@@ -292,16 +297,18 @@ enum NetworkUsers
     NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
     NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
-    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
     NETWORK_USER_PVT_CLIENT,            // PVT client
     NETWORK_USER_PVT_SERVER,            // PVT server
     NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
+
+    // Add new users above this line
+    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     // Last network user
-    NETWORK_USER_MAX
+    NETWORK_USER_MAX = NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX
 };
 
-typedef uint8_t NETWORK_USER;
+typedef uint16_t NETWORK_USER;
 
 typedef struct _NETWORK_DATA
 {
@@ -322,12 +329,41 @@ typedef struct _NETWORK_DATA
 // either WiFi or ESP-Now are active
 enum WiFiState
 {
-    WIFI_OFF = 0,
-    WIFI_START,
-    WIFI_CONNECTING,
-    WIFI_CONNECTED,
+    WIFI_STATE_OFF = 0,
+    WIFI_STATE_START,
+    WIFI_STATE_CONNECTING,
+    WIFI_STATE_CONNECTED,
 };
-volatile byte wifiState = WIFI_OFF;
+volatile byte wifiState = WIFI_STATE_OFF;
+
+#include "NetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
+#include "NetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
+
+// NTRIP Server data
+typedef struct _NTRIP_SERVER_DATA
+{
+    // Network connection used to push RTCM to NTRIP caster
+    NetworkClient *networkClient;
+    volatile uint8_t state;
+
+    // Count of bytes sent by the NTRIP server to the NTRIP caster
+    uint32_t bytesSent;
+
+    // Throttle the time between connection attempts
+    // ms - Max of 4,294,967,295 or 4.3M seconds or 71,000 minutes or 1193 hours or 49 days between attempts
+    uint32_t connectionAttemptTimeout;
+    uint32_t lastConnectionAttempt;
+    int connectionAttempts; // Count the number of connection attempts between restarts
+
+    // NTRIP server timer usage:
+    //  * Reconnection delay
+    //  * Measure the connection response time
+    //  * Receive RTCM correction data timeout
+    //  * Monitor last RTCM byte received for frame counting
+    uint32_t timer;
+    uint32_t startTime;
+    int connectionAttemptsTotal; // Count the number of connection attempts absolutely
+} NTRIP_SERVER_DATA;
 
 typedef enum
 {
@@ -452,6 +488,7 @@ typedef enum
     ZTP_DEACTIVATED,
     ZTP_NOT_WHITELISTED,
     ZTP_ALREADY_REGISTERED,
+    ZTP_RESPONSE_TIMEOUT,
     ZTP_UNKNOWN_ERROR,
 } ZtpResponse;
 
@@ -1032,7 +1069,7 @@ typedef struct
 
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
-    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
+    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
@@ -1184,13 +1221,48 @@ typedef struct
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
     bool ntripServer_StartAtSurveyIn = false;       // true = Start WiFi instead of Bluetooth at Survey-In
-    char ntripServer_CasterHost[50] = "rtk2go.com"; // It's free...
-    uint16_t ntripServer_CasterPort = 2101;
-    char ntripServer_CasterUser[50] =
-        "test@test.com"; // Some free casters require auth. User must provide their own email address to use RTK2Go
-    char ntripServer_CasterUserPW[50] = "";
-    char ntripServer_MountPoint[50] = "bldr_dwntwn2"; // NTRIP Server
-    char ntripServer_MountPointPW[50] = "WR5wRo4H";
+    char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
+    {
+        "rtk2go.com",
+        "",
+        "",
+        "",
+    };
+    uint16_t ntripServer_CasterPort[NTRIP_SERVER_MAX] =
+    {
+        2101,
+        0,
+        0,
+        0,
+    };
+    char ntripServer_CasterUser[NTRIP_SERVER_MAX][50] =
+    {
+        "test@test.com" // Some free casters require auth. User must provide their own email address to use RTK2Go
+        "",
+        "",
+        "",
+    };
+    char ntripServer_CasterUserPW[NTRIP_SERVER_MAX][50] =
+    {
+        "",
+        "",
+        "",
+        "",
+    };
+    char ntripServer_MountPoint[NTRIP_SERVER_MAX][50] =
+    {
+        "bldr_dwntwn2", // NTRIP Server
+        "",
+        "",
+        "",
+    };
+    char ntripServer_MountPointPW[NTRIP_SERVER_MAX][50] =
+    {
+        "WR5wRo4H",
+        "",
+        "",
+        "",
+    };
 
     // TCP Client
     bool debugPvtClient = false;
@@ -1260,8 +1332,8 @@ Settings settings;
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
-    bool psram_2mb = false;    
-    bool psram_4mb = false;    
+    bool psram_2mb = false;
+    bool psram_4mb = false;
 
     bool gnss_zedf9p = false;
     bool gnss_zedf9r = false;
@@ -1325,7 +1397,7 @@ struct struct_online
     bool rtc = false;
     bool battery = false;
     bool ntripClient = false;
-    bool ntripServer = false;
+    bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
     bool lband = false;
     bool lbandCorrections = false;
     bool i2c = false;
@@ -1337,7 +1409,7 @@ struct struct_online
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;
-    bool psram = false;    
+    bool psram = false;
     volatile bool gnssUartPinned = false;
     volatile bool i2cPinned = false;
     volatile bool btReadTaskRunning = false;
@@ -1376,5 +1448,4 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
 #endif // COMPILE_WIFI
-
-#endif
+#endif // __SETTINGS_H__

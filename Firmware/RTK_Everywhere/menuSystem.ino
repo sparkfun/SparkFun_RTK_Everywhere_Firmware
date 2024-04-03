@@ -91,7 +91,7 @@ void menuSystem()
         systemPrint("WiFi MAC Address: ");
         systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1], wifiMACAddress[2],
                      wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-        if (wifiState == WIFI_CONNECTED)
+        if (wifiState == WIFI_STATE_CONNECTED)
             wifiDisplayIpAddress();
 #endif // COMPILE_WIFI
 
@@ -150,7 +150,8 @@ void menuSystem()
         ntripClientPrintStatus();
 
         // Display NTRIP Server status and uptime
-        ntripServerPrintStatus();
+        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            ntripServerPrintStatus(serverIndex);
 
         systemPrintf("Filtered by parser: %d NMEA / %d RTCM / %d UBX\r\n", failedParserMessages_NMEA,
                      failedParserMessages_RTCM, failedParserMessages_UBX);
@@ -166,10 +167,12 @@ void menuSystem()
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
         systemPrintln("W) Switch to WiFi Config mode");
+        if (present.fastPowerOff == true)
+            systemPrintln("S) Shut down");
 
         systemPrintln("-----  Settings  -----");
 
-        if(present.beeper == true)
+        if (present.beeper == true)
         {
             systemPrint("a) Audible Prompts: ");
             systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
@@ -221,8 +224,6 @@ void menuSystem()
             systemPrintln("Disabled");
         else
             systemPrintln("Enabled");
-
-        systemPrintln("S) Shut down");
 
         systemPrintln("x) Exit");
 
@@ -349,14 +350,14 @@ void menuSystem()
             forceSystemStateUpdate = true; // Immediately go to this new state
             changeState(STATE_WIFI_CONFIG_NOT_STARTED);
         }
-
-        // Menu exit control
-        else if (incoming == 'S')
+        else if (incoming == 'S' && present.fastPowerOff == true)
         {
             systemPrintln("Shutting down...");
             forceDisplayUpdate = true;
             powerDown(true);
         }
+
+        // Menu exit control
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -955,8 +956,8 @@ void menuOperation()
         else if (incoming == 3)
         {
             systemPrintln("Warning: changing the Handler Buffer Size will restart the device.");
-            if (getNewSetting("Enter GNSS Handler Buffer Size in Bytes", 32, 65535,
-                              &settings.gnssHandlerBufferSize) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter GNSS Handler Buffer Size in Bytes", 32, 65535, &settings.gnssHandlerBufferSize) ==
+                INPUT_RESPONSE_VALID)
             {
                 // Stop the GNSS UART tasks to prevent the system from crashing
                 tasksStopGnssUart();
@@ -992,8 +993,8 @@ void menuOperation()
         {
             systemPrintln("Warning: changing the Receive Buffer Size will restart the device.");
 
-            if (getNewSetting("Enter UART Receive Buffer Size in Bytes", 32, 16384,
-                              &settings.uartReceiveBufferSize) == INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter UART Receive Buffer Size in Bytes", 32, 16384, &settings.uartReceiveBufferSize) ==
+                INPUT_RESPONSE_VALID)
             {
                 recordSystemSettings();
                 ESP.restart();

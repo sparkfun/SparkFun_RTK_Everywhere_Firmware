@@ -21,16 +21,17 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+#define COMPILE_BT       // Comment out to remove Bluetooth functionality
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_OTA_AUTO // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 
 #ifdef COMPILE_WIFI
-#define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
-#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
-#endif                 // COMPILE_WIFI
+#define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
+#define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
+#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
+#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
+#endif                      // COMPILE_WIFI
 
-#define COMPILE_BT                   // Comment out to remove Bluetooth functionality
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
@@ -66,6 +67,26 @@
 //    the minor firmware version
 #define RTK_IDENTIFIER (FIRMWARE_VERSION_MAJOR * 0x10 + FIRMWARE_VERSION_MINOR)
 
+#define NTRIP_SERVER_MAX 4
+
+#ifdef COMPILE_ETHERNET
+#include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
+#include <Ethernet.h>                       // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
+#endif                                      // COMPILE_ETHERNET
+
+#ifdef COMPILE_WIFI
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
+#include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
+#include <DNSServer.h>    //Built-in.
+#include <ESPmDNS.h>      //Built-in.
+#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
+#include <WiFi.h>             //Built-in.
+#include <WiFiClientSecure.h> //Built-in.
+#include <WiFiMulti.h>        //Built-in.
+#endif                        // COMPILE_WIFI
+
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
@@ -100,12 +121,9 @@ int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
 int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
 
-int pin_radio_rx = PIN_UNDEFINED;
-int pin_radio_tx = PIN_UNDEFINED;
-int pin_radio_rst = PIN_UNDEFINED;
-int pin_radio_pwr = PIN_UNDEFINED;
-int pin_radio_cts = PIN_UNDEFINED;
-int pin_radio_rts = PIN_UNDEFINED;
+int pin_loraRadio_reset = PIN_UNDEFINED;
+int pin_loraRadio_boot = PIN_UNDEFINED;
+int pin_loraRadio_power = PIN_UNDEFINED;
 
 int pin_Ethernet_CS = PIN_UNDEFINED;
 int pin_Ethernet_Interrupt = PIN_UNDEFINED;
@@ -143,9 +161,9 @@ int pin_beeper = PIN_UNDEFINED;
 
 // I2C for GNSS, battery gauge, display
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <vector> //Needed for icons etc.
 #include "icons.h"
 #include <Wire.h> //Built-in
+#include <vector> //Needed for icons etc.
 TwoWire *i2c_0 = nullptr;
 TwoWire *i2c_1 = nullptr;
 TwoWire *i2cDisplay = nullptr;
@@ -157,7 +175,7 @@ TwoWire *i2cDisplay = nullptr;
 
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
-uint8_t displayProfile;                    // Range: 0 - (MAX_PROFILE_COUNT - 1)
+uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
 uint8_t profileNumber = MAX_PROFILE_COUNT; // profileNumber gets set once at boot to save loading time
 char profileNames[MAX_PROFILE_COUNT][50];  // Populated based on names found in LittleFS and SD
 char settingsFileName[60];                 // Contains the %s_Settings_%d.txt with current profile number set
@@ -229,8 +247,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 
 #define MQTT_CERT_SIZE 2000
 
-#if COMPILE_NETWORK
-#endif                   // COMPILE_NETWORK
 #include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
 
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
@@ -243,8 +259,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 
 #ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
-
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
@@ -270,19 +284,6 @@ unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OT
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_WIFI
-#include "esp_wifi.h"   //Needed for esp_wifi_set_protocol()
-#include <DNSServer.h>  //Built-in.
-#include <ESPmDNS.h>    //Built-in.
-#include <HTTPClient.h> //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h> //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
-#include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
-#include <WiFi.h>             //Built-in.
-#include <WiFiClientSecure.h> //Built-in.
-#include <WiFiMulti.h>        //Built-in.
-
-#endif // COMPILE_WIFI
-
 #include "base64.h" //Built-in. Needed for NTRIP Client credential encoding.
 
 bool enableRCFirmware;     // Goes true from AP config page
@@ -580,7 +581,6 @@ const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_ETHERNET
-#include <Ethernet.h> // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
 IPAddress ethernetIPAddress;
 IPAddress ethernetDNS;
 IPAddress ethernetGateway;
@@ -596,9 +596,7 @@ class derivedEthernetUDP : public EthernetUDP
 };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
-
-#include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
-#endif                                      // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -637,9 +635,6 @@ bool pplMqttCorrections;
 long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-#include "NetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
-#include "NetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
 // Global variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -680,8 +675,10 @@ uint32_t rtcmLastReceived;
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Auto-selects the setup menu option after 1500ms
+uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
+uint8_t setupSelectedButton = 0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
+std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'butttons'
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
@@ -780,6 +777,7 @@ volatile bool deadManWalking;
         DMW_if systemPrintf("%s called\r\n", string);                                                                  \
     }
 #define DMW_c(string) DMW_if systemPrintf("%s called\r\n", string);
+#define DMW_ds(routine, dataStructure) DMW_if routine(dataStructure, dataStructure->state);
 #define DMW_m(string) DMW_if systemPrintln(string);
 #define DMW_r(string) DMW_if systemPrintf("%s returning\r\n", string);
 #define DMW_rs(string, status) DMW_if systemPrintf("%s returning %d\r\n", string, (int32_t)status);
@@ -838,6 +836,7 @@ volatile bool deadManWalking;
         bootTimeIndex += 1;                                                                                            \
     }
 #define DMW_c(string)
+#define DMW_ds(routine, dataStructure)
 #define DMW_m(string)
 #define DMW_r(string)
 #define DMW_rs(string, status)
@@ -997,7 +996,8 @@ void setup()
     loadSettings(); // Attempt to load settings after SD is started so we can read the settings file if available
 
     DMW_b("checkArrayDefaults");
-    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+    checkArrayDefaults(); // Check for uninitialized arrays that won't be initialized by gnssConfigure
+                          // (checkGNSSArrayDefaults)
 
     DMW_b("printPartitionTable");
     if (settings.printPartitionTable)
