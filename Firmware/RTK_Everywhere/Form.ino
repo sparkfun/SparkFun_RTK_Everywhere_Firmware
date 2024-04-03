@@ -60,7 +60,8 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
     do
     {
         ntripClientStop(true); // Do not allocate new wifiClient
-        ntripServerStop(true); // Do not allocate new wifiClient
+        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
         if (startWiFi)
             if (wifiStartAP() == false) // Exits calling wifiConnect()
@@ -135,6 +136,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // * /src/fonts/icomoon.woof
 
         // * /listfiles responds with a CSV of files and sizes in root
+        // * /listCorrections responds with a CSV of correction sources and their priorities
         // * /listMessages responds with a CSV of messages supported by this platform
         // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
         // * /file allows the download or deletion of a file
@@ -306,6 +308,17 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             getFileList(files);
             request->send(200, "text/plain", files);
         });
+
+        /*
+        // Handler for corrections priorities list
+        webserver->on("/listCorrections", HTTP_GET, [](AsyncWebServerRequest *request) {
+            String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+            systemPrintln(logmessage);
+            String corrections;
+            createCorrectionsList(corrections);
+            request->send(200, "text/plain", corrections);
+        });
+        */
 
         // Handler for supported messages list
         webserver->on("/listMessages", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -788,6 +801,25 @@ void getFileList(String &returnText)
     if (settings.debugWiFiConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
+
+/*
+// When called, responds with the corrections sources and their priorities
+// Source name and priority are formatted in CSV, formatted to html by JS
+void createCorrectionsList(String &returnText)
+{
+    returnText = "";
+
+    for (int s = 0; s < correctionsSource::CORR_NUM; s++)
+    {
+        returnText += String("correctionsPriority.") +
+                      String(correctionsSourceNames[s]) + "," +
+                      String(settings.correctionsSourcesPriority[s]) + ",";
+    }
+
+    if (settings.debugWiFiConfig == true)
+        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
+}
+*/
 
 // When called, responds with the messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS

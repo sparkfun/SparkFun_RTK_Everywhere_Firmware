@@ -1,5 +1,8 @@
-#include "UM980.h" //Structs of UM980 messages, needed for settings.h
+#ifndef __SETTINGS_H__
+#define __SETTINGS_H__
 
+#include "UM980.h" //Structs of UM980 messages, needed for settings.h
+#include <vector>
 
 // System can enter a variety of states
 // See statemachine diagram at:
@@ -50,10 +53,6 @@ volatile SystemState systemState = STATE_NOT_SET;
 SystemState lastSystemState = STATE_NOT_SET;
 SystemState requestedSystemState = STATE_NOT_SET;
 bool newSystemStateRequested = false;
-
-// The setup display can show a limited set of states
-// When user pauses for X amount of time, system will enter that state
-SystemState setupState = STATE_ROVER_NOT_STARTED;
 
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
@@ -126,6 +125,49 @@ const char * const platformProvisionTable[] =
 };
 const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
 
+// Corrections Priority
+typedef enum
+{
+    // Change the order of these to set the default priority. First (0) is highest
+    CORR_BLUETOOTH = 0,
+    CORR_WIFI_IP,
+    CORR_WIFI_TCP,
+    CORR_ETHERNET_IP,
+    CORR_ETHERNET_TCP,
+    CORR_LBAND,
+    CORR_CELLULAR,
+    CORR_RADIO_EXT,
+    CORR_RADIO_LORA,
+    CORR_ESPNOW,
+    // Add new correction sources just above this line
+    CORR_NUM
+} correctionsSource;
+
+const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
+{
+    // These must match correctionsSources above
+    "Bluetooth",
+    "WiFi IP (PointPerfect/MQTT)",
+    "WiFi TCP (NTRIP)",
+    "Ethernet IP (PointPerfect/MQTT)",
+    "Ethernet TCP (NTRIP Client)",
+    "L-Band",
+    "Cellular",
+    "External Radio",
+    "LoRa Radio",
+    "ESP-Now",
+    // Add new correction sources just above this line
+};
+
+// Setup Buttons
+typedef struct
+{
+    const char *name;
+    SystemState newState;
+    uint8_t newProfile; // Only valid when newState == STATE_PROFILE
+} setupButton;
+
+
 const SystemState platformPreviousStateTable[] =
 {
     STATE_ROVER_NOT_STARTED,    // EVK
@@ -136,6 +178,17 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED     // Unknown
 };
 const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
+
+typedef enum
+{
+    DISPLAY_64x48,
+    DISPLAY_128x64,
+    // <-- Insert any future displays here
+    DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
+} DisplayType;
+
+const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
+const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
 
 // Different GNSS modules require different libraries and configuration
 typedef enum
@@ -243,16 +296,18 @@ enum NetworkUsers
     NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
     NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
-    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
     NETWORK_USER_PVT_CLIENT,            // PVT client
     NETWORK_USER_PVT_SERVER,            // PVT server
     NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
+
+    // Add new users above this line
+    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
     // Last network user
-    NETWORK_USER_MAX
+    NETWORK_USER_MAX = NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX
 };
 
-typedef uint8_t NETWORK_USER;
+typedef uint16_t NETWORK_USER;
 
 typedef struct _NETWORK_DATA
 {
@@ -273,12 +328,41 @@ typedef struct _NETWORK_DATA
 // either WiFi or ESP-Now are active
 enum WiFiState
 {
-    WIFI_OFF = 0,
-    WIFI_START,
-    WIFI_CONNECTING,
-    WIFI_CONNECTED,
+    WIFI_STATE_OFF = 0,
+    WIFI_STATE_START,
+    WIFI_STATE_CONNECTING,
+    WIFI_STATE_CONNECTED,
 };
-volatile byte wifiState = WIFI_OFF;
+volatile byte wifiState = WIFI_STATE_OFF;
+
+#include "NetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
+#include "NetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
+
+// NTRIP Server data
+typedef struct _NTRIP_SERVER_DATA
+{
+    // Network connection used to push RTCM to NTRIP caster
+    NetworkClient *networkClient;
+    volatile uint8_t state;
+
+    // Count of bytes sent by the NTRIP server to the NTRIP caster
+    uint32_t bytesSent;
+
+    // Throttle the time between connection attempts
+    // ms - Max of 4,294,967,295 or 4.3M seconds or 71,000 minutes or 1193 hours or 49 days between attempts
+    uint32_t connectionAttemptTimeout;
+    uint32_t lastConnectionAttempt;
+    int connectionAttempts; // Count the number of connection attempts between restarts
+
+    // NTRIP server timer usage:
+    //  * Reconnection delay
+    //  * Measure the connection response time
+    //  * Receive RTCM correction data timeout
+    //  * Monitor last RTCM byte received for frame counting
+    uint32_t timer;
+    uint32_t startTime;
+    int connectionAttemptsTotal; // Count the number of connection attempts absolutely
+} NTRIP_SERVER_DATA;
 
 typedef enum
 {
@@ -403,6 +487,7 @@ typedef enum
     ZTP_DEACTIVATED,
     ZTP_NOT_WHITELISTED,
     ZTP_ALREADY_REGISTERED,
+    ZTP_RESPONSE_TIMEOUT,
     ZTP_UNKNOWN_ERROR,
 } ZtpResponse;
 
@@ -937,7 +1022,7 @@ typedef struct
     uint32_t dataPortBaud =
         (115200 * 2); // Default to 230400bps. This limits GNSS fixes at 4Hz but allows SD buffer to be reduced to 6k.
     uint32_t radioPortBaud = 57600;       // Default to 57600bps to support connection to SiK1000 type telemetry radios
-    float surveyInStartingAccuracy = 2.0; // Wait for this horizontal positional accuracy in meters before starting survey in
+    float zedSurveyInStartingAccuracy = 1.0; // Wait for this horizontal positional accuracy in meters before starting survey in
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
@@ -954,7 +1039,7 @@ typedef struct
     uint8_t dynamicModel = DYN_MODEL_PORTABLE;
     SystemState lastState = STATE_NOT_SET; // Start unit in last known state
     bool enableResetDisplay = false;
-    uint8_t resetCount = 0;
+    int resetCount = 0;
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
     uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
@@ -983,7 +1068,7 @@ typedef struct
 
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
-    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
+    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
@@ -1025,8 +1110,7 @@ typedef struct
     uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
-    // BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
-    BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP;
+    BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     bool runLogTest = false;           // When set to true, device will create a series of test logs
     bool espnowBroadcast = true;       // When true, overrides peers and sends all data via broadcast
     int16_t antennaHeight = 0;         // in mm
@@ -1136,13 +1220,48 @@ typedef struct
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
     bool ntripServer_StartAtSurveyIn = false;       // true = Start WiFi instead of Bluetooth at Survey-In
-    char ntripServer_CasterHost[50] = "rtk2go.com"; // It's free...
-    uint16_t ntripServer_CasterPort = 2101;
-    char ntripServer_CasterUser[50] =
-        "test@test.com"; // Some free casters require auth. User must provide their own email address to use RTK2Go
-    char ntripServer_CasterUserPW[50] = "";
-    char ntripServer_MountPoint[50] = "bldr_dwntwn2"; // NTRIP Server
-    char ntripServer_MountPointPW[50] = "WR5wRo4H";
+    char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
+    {
+        "rtk2go.com",
+        "",
+        "",
+        "",
+    };
+    uint16_t ntripServer_CasterPort[NTRIP_SERVER_MAX] =
+    {
+        2101,
+        0,
+        0,
+        0,
+    };
+    char ntripServer_CasterUser[NTRIP_SERVER_MAX][50] =
+    {
+        "test@test.com" // Some free casters require auth. User must provide their own email address to use RTK2Go
+        "",
+        "",
+        "",
+    };
+    char ntripServer_CasterUserPW[NTRIP_SERVER_MAX][50] =
+    {
+        "",
+        "",
+        "",
+        "",
+    };
+    char ntripServer_MountPoint[NTRIP_SERVER_MAX][50] =
+    {
+        "bldr_dwntwn2", // NTRIP Server
+        "",
+        "",
+        "",
+    };
+    char ntripServer_MountPointPW[NTRIP_SERVER_MAX][50] =
+    {
+        "WR5wRo4H",
+        "",
+        "",
+        "",
+    };
 
     // TCP Client
     bool debugPvtClient = false;
@@ -1196,10 +1315,12 @@ typedef struct
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
-    float um980SurveyInStartingAccuracy = 2.0; // Wait for 2m horizontal positional accuracy before starting survey in
+    float um980SurveyInStartingAccuracy = 2.0; // Wait for this horizontal positional accuracy in meters before starting survey in
     bool enableBeeper = true; // Some platforms have an audible notification
     uint16_t um980MeasurementRateMs = 500; // Elapsed ms between GNSS measurements. 50ms to 65535ms. Default 2Hz.
     bool enableImuCompensationDebug = false;
+
+    int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
 
     // Add new settings above <------------------------------------------------------------>
 
@@ -1209,8 +1330,8 @@ Settings settings;
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
-    bool psram_2mb = false;    
-    bool psram_4mb = false;    
+    bool psram_2mb = false;
+    bool psram_4mb = false;
 
     bool gnss_zedf9p = false;
     bool gnss_zedf9r = false;
@@ -1237,8 +1358,10 @@ struct struct_present
 
     bool i2c0BusSpeed_400 = false;
     bool i2c1BusSpeed_400 = false;
-    bool display_64x48_i2c0 = false;
-    bool display_128x64_i2c1 = false;
+    bool i2c1 = false;
+    bool display_i2c0 = false;
+    bool display_i2c1 = false;
+    DisplayType display_type = DISPLAY_MAX_NONE;
 
     bool battery_max17048 = false;
     bool battery_bq40z50 = false;
@@ -1272,7 +1395,7 @@ struct struct_online
     bool rtc = false;
     bool battery = false;
     bool ntripClient = false;
-    bool ntripServer = false;
+    bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
     bool lband = false;
     bool lbandCorrections = false;
     bool i2c = false;
@@ -1281,12 +1404,10 @@ struct struct_online
     bool pvtUdpServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
-    bool imu = false; // Online when the imu/tilt sensor is configured
-    bool tilt = false; // Online when the tilt sensor is actively compensating position
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;
     bool mqttClient = false;
-    bool psram = false;    
+    bool psram = false;
     volatile bool gnssUartPinned = false;
     volatile bool i2cPinned = false;
     volatile bool btReadTaskRunning = false;
@@ -1299,6 +1420,10 @@ struct struct_online
     volatile bool updatePplTaskRunning = false;
     bool ppl = false;
 } online;
+
+// Corrections priority
+std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+void registerCorrectionsSource(correctionsSource newSource) { registeredCorrectionsSources.push_back(newSource); }
 
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API
@@ -1325,3 +1450,4 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
 #endif // COMPILE_WIFI
+#endif // __SETTINGS_H__

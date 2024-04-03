@@ -45,11 +45,8 @@ void menuNetwork() {systemPrint("**Network not compiled**");}
 void networkUpdate() {}
 void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
-void mqttClientValidateTables() {}
-void mqttClientPrintStatus() {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
-bool mqttClientIsConnected() {return false;}
 
 //----------------------------------------
 // NTRIP client
@@ -59,20 +56,20 @@ void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
+void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // NTRIP server
 //----------------------------------------
 
-void ntripServerPrintStatus() {systemPrintln("**NTRIP Server not compiled**");}
-void ntripServerProcessRTCM(uint8_t incoming) {}
-void ntripServerStop(bool clientAllocated) {online.ntripServer = false;}
+void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
+void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
+void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[0] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
-bool ntripServerIsCasting() {
+bool ntripServerIsCasting(int serverIndex) {
     return (false);
 }
-void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // PVT client
@@ -107,6 +104,20 @@ void otaAutoUpdateStop() {}
 void otaVerifyTables() {}
 
 #endif  // COMPILE_OTA_AUTO
+
+//----------------------------------------
+// MQTT Client
+//----------------------------------------
+
+#ifndef COMPILE_MQTT_CLIENT
+
+bool mqttClientIsConnected() {return false;}
+void mqttClientPrintStatus() {}
+void mqttClientRestart() {}
+void mqttClientUpdate() {}
+void mqttClientValidateTables() {}
+
+#endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
 // Web Server
@@ -146,7 +157,6 @@ bool wifiConnect(unsigned long timeout) {return false;}
 IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
 int wifiGetRssi() {return -999;}
-bool wifiInConfigMode() {return false;}
 bool wifiIsConnected() {return false;}
 bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}
@@ -170,6 +180,7 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize) {}
 void tiltUpdate() {}
 void tiltStop() {}
 void tiltSensorFactoryReset() {}
+bool tiltIsCorrecting() {return(false);}
 
 #endif  // COMPILE_IM19_IMU
 
@@ -210,7 +221,6 @@ bool     um980IsValidTime() {return false;}
 void     um980PrintInfo() {}
 int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
 bool     um980SaveConfiguration() {}
-void     tiltSensorFactoryReset() {}
 void     um980SetBaudRateCOM3(uint32_t baudRate) {}
 bool     um980SetConstellations() {return false;}
 void     um980SetMinCNO(uint8_t cnoValue) {}
@@ -224,6 +234,16 @@ void     um980Boot() {}
 void     um980Reset() {}
 uint8_t  um980GetLeapSeconds() {return (0);}
 bool     um980IsBlocking() {return(false);}
+uint8_t  um980GetActiveMessageCount() {return(0);}
+void     um980MenuMessages(){}
+void     um980BaseRtcmDefault(){}
+void     um980BaseRtcmLowDataRate(){}
+char *   um980GetRtcmDefaultString() {return ("Not compiled");}
+char *   um980GetRtcmLowDataRateString() {return ("Not compiled");}
+float    um980GetSurveyInStartingAccuracy() {return(0.0);}
+void     um980MenuConstellations(){}
+double   um980GetRateS() {return(0.0);}
+void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}
 
 #endif  // COMPILE_UM980
 

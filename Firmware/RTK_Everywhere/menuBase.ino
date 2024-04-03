@@ -17,6 +17,9 @@ static const float maxSurveyInStartingAccuracy = 10.0;
 // Set the ECEF coordinates for a known location
 void menuBase()
 {
+    int value;
+    int ntripServerOptionOffset = 10; // NTRIP Server menus start at this value
+
     while (1)
     {
         systemPrintln();
@@ -99,7 +102,15 @@ void menuBase()
                          gnssGetSurveyInStartingAccuracy());
         }
 
-        systemPrint("7) Toggle NTRIP Server: ");
+        systemPrintln("7) Set RTCM Message Rates");
+
+        if (settings.fixedBase == false) // Survey-in
+        {
+            systemPrint("8) Select survey-in radio: ");
+            systemPrintf("%s\r\n", settings.ntripServer_StartAtSurveyIn ? "WiFi" : "Bluetooth");
+        }
+
+        systemPrint("9) Toggle NTRIP Server: ");
         if (settings.enableNtripServer == true)
             systemPrintln("Enabled");
         else
@@ -107,34 +118,20 @@ void menuBase()
 
         if (settings.enableNtripServer == true)
         {
-            systemPrint("8) Set Caster Address: ");
-            systemPrintln(settings.ntripServer_CasterHost);
+            systemPrintln("");
 
-            systemPrint("9) Set Caster Port: ");
-            systemPrintln(settings.ntripServer_CasterPort);
-
-            systemPrint("10) Set Mountpoint: ");
-            systemPrintln(settings.ntripServer_MountPoint);
-
-            systemPrint("11) Set Mountpoint PW: ");
-            systemPrintln(settings.ntripServer_MountPointPW);
-
-            systemPrint("12) Set RTCM Message Rates\r\n");
-
-            if (settings.fixedBase == false) // Survey-in
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
             {
-                systemPrint("13) Select survey-in radio: ");
-                systemPrintf("%s\r\n", settings.ntripServer_StartAtSurveyIn ? "WiFi" : "Bluetooth");
-            }
-        }
-        else
-        {
-            systemPrintln("8) Set RTCM Message Rates");
+                systemPrintf("NTRIP Server #%d\r\n", serverIndex + 1);
 
-            if (settings.fixedBase == false) // Survey-in
-            {
-                systemPrint("9) Select survey-in radio: ");
-                systemPrintf("%s\r\n", settings.ntripServer_StartAtSurveyIn ? "WiFi" : "Bluetooth");
+                systemPrintf("%d) Set Caster Address: %s\r\n", (0 + (serverIndex * 4)) + ntripServerOptionOffset,
+                             &settings.ntripServer_CasterHost[serverIndex][0]);
+                systemPrintf("%d) Set Caster Port: %d\r\n", (1 + (serverIndex * 4)) + ntripServerOptionOffset,
+                             settings.ntripServer_CasterPort[serverIndex]);
+                systemPrintf("%d) Set Mountpoint: %s\r\n", (2 + (serverIndex * 4)) + ntripServerOptionOffset,
+                             &settings.ntripServer_MountPoint[serverIndex][0]);
+                systemPrintf("%d) Set Mountpoint PW: %s\r\n", (3 + (serverIndex * 4)) + ntripServerOptionOffset,
+                             &settings.ntripServer_MountPointPW[serverIndex][0]);
             }
         }
 
@@ -258,7 +255,7 @@ void menuBase()
             if (present.gnss_zedf9p == true)
             {
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
+                              (double)maxSurveyInStartingAccuracy, &settings.zedSurveyInStartingAccuracy);
             }
             else if (present.gnss_um980 == true)
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
@@ -267,49 +264,60 @@ void menuBase()
 
         else if (incoming == 7)
         {
-            settings.enableNtripServer ^= 1;
-            restartBase = true;
-        }
-
-        else if ((incoming == 8) && settings.enableNtripServer == true)
-        {
-            systemPrint("Enter new Caster Address: ");
-            if (getUserInputString(settings.ntripServer_CasterHost,
-                                   sizeof(settings.ntripServer_CasterHost) == INPUT_RESPONSE_VALID))
-                restartBase = true;
-        }
-        else if ((incoming == 9) && settings.enableNtripServer == true)
-        {
-            // Arbitrary 99k max port #
-            if (getNewSetting("Enter new Caster Port", 1, 99999, &settings.ntripServer_CasterPort) ==
-                INPUT_RESPONSE_VALID)
-                restartBase = true;
-        }
-        else if ((incoming == 10) && settings.enableNtripServer == true)
-        {
-            systemPrint("Enter new Mount Point: ");
-            if (getUserInputString(settings.ntripServer_MountPoint, sizeof(settings.ntripServer_MountPoint)) ==
-                INPUT_RESPONSE_VALID)
-                restartBase = true;
-        }
-        else if ((incoming == 11) && settings.enableNtripServer == true)
-        {
-            systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint);
-            if (getUserInputString(settings.ntripServer_MountPointPW, sizeof(settings.ntripServer_MountPointPW)) ==
-                INPUT_RESPONSE_VALID)
-                restartBase = true;
-        }
-        else if (((settings.enableNtripServer == true) && ((incoming == 12))) ||
-                 ((settings.enableNtripServer == false) && (incoming == 8)))
-        {
             menuMessagesBaseRTCM(); // Set rates for RTCM during Base mode
         }
-        else if (((settings.enableNtripServer == true) && (settings.fixedBase == false) && ((incoming == 13))) ||
-                 ((settings.enableNtripServer == false) && (settings.fixedBase == false) && (incoming == 9)))
+        else if (settings.fixedBase == false && incoming == 8)
         {
             settings.ntripServer_StartAtSurveyIn ^= 1;
             restartBase = true;
         }
+
+        else if (incoming == 9)
+        {
+            settings.enableNtripServer ^= 1;
+            restartBase = true;
+        }
+
+        // NTRIP Server entries
+        else if ((settings.enableNtripServer == true) && (incoming >= ntripServerOptionOffset) && incoming < (ntripServerOptionOffset + 4 * NTRIP_SERVER_MAX))
+        {
+            // Down adjust user's selection
+            incoming -= ntripServerOptionOffset;
+            int serverNumber = incoming / 4;
+            incoming -= (serverNumber * 4);
+
+            if (incoming == 0)
+            {
+                systemPrintf("Enter new Caster Address for Server %d: ", serverNumber + 1);
+                if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0],
+                                       sizeof(settings.ntripServer_CasterHost[serverNumber]) == INPUT_RESPONSE_VALID))
+                    restartBase = true;
+            }
+            else if (incoming == 1)
+            {
+                // Arbitrary 99k max port #
+                char tempString[100];
+                sprintf(tempString, "Enter new Caster Port for Server %d", serverNumber + 1);
+                if (getNewSetting(tempString, 1, 99999, &settings.ntripServer_CasterPort[serverNumber]) ==
+                    INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+            else if (incoming == 2)
+            {
+                systemPrintf("Enter new Mount Point for Server %d: ", serverNumber + 1);
+                if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0],
+                                       sizeof(settings.ntripServer_MountPoint[serverNumber])) == INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+            else if (incoming == 3)
+            {
+                systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint);
+                if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0],
+                                       sizeof(settings.ntripServer_MountPointPW[serverNumber])) == INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+        }
+
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
@@ -631,17 +639,4 @@ void recordLineToLFS(const char *fileName, const char *lineData)
 
     file.println(lineData);
     file.close();
-}
-
-// Remove ' ', \t, \v, \f, \r, \n from end of a char array
-void trim(char *str)
-{
-    int x = 0;
-    for (; str[x] != '\0'; x++)
-        ;
-    if (x > 0)
-        x--;
-
-    for (; isspace(str[x]); x--)
-        str[x] = '\0';
 }

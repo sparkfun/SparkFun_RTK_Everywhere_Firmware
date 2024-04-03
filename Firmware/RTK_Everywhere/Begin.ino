@@ -73,6 +73,10 @@ void identifyBoard()
     else if (idWithAdc(idValue, 10, 100))
         productVariant = RTK_EVK;
 
+    // Facet mosaic: 1/4.7  -->  2674mV < 2721mV < 2766mV
+    else if (idWithAdc(idValue, 1, 4.7))
+        productVariant = RTK_FACET_MOSAIC;
+
     // ID resistors do not exist for the following:
     //      Torch
     else
@@ -80,6 +84,8 @@ void identifyBoard()
         log_d("Out of band or nonexistent resistor IDs");
 
         // Check if a bq40Z50 battery manager is on the I2C bus
+        if (i2c_0 == nullptr)
+            i2c_0 = new TwoWire(0);
         int pin_SDA = 15;
         int pin_SCL = 4;
 
@@ -161,6 +167,10 @@ void beginBoard()
 
         pin_beeper = 33;
 
+        pin_loraRadio_power = 19; // LoRa_EN
+        pin_loraRadio_boot = 23;  // LoRa_BOOT0
+        pin_loraRadio_reset = 5;  // LoRa_NRST
+
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
 
@@ -176,6 +186,13 @@ void beginBoard()
         batteryStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
+
+        // Beep at power on if we are not locally compiled or a release candidate
+        if (ENABLE_DEVELOPER == false)
+        {
+            beepOn();
+            delay(250);
+        }
         beepOff();
 
         pinMode(pin_powerButton, INPUT);
@@ -191,6 +208,15 @@ void beginBoard()
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
+
+        pinMode(pin_loraRadio_power, OUTPUT);
+        digitalWrite(pin_loraRadio_power, LOW); // Keep LoRa powered down
+
+        pinMode(pin_loraRadio_boot, OUTPUT);
+        digitalWrite(pin_loraRadio_boot, LOW);
+
+        pinMode(pin_loraRadio_reset, OUTPUT);
+        digitalWrite(pin_loraRadio_reset, LOW); // Keep LoRa in reset
     }
 
     else if (productVariant == RTK_EVK)
@@ -208,7 +234,9 @@ void beginBoard()
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
         present.i2c0BusSpeed_400 = true; // Run bus at higher speed
-        present.display_128x64_i2c1 = true;
+        present.i2c1 = true;
+        present.display_i2c1 = true;
+        present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
 
         // Pin Allocations:
@@ -252,6 +280,10 @@ void beginBoard()
         pin_microSD_CardDetect = 36;
         //  5, A39 : Unused analog pin - used to generate random values for SSL
 
+        // Select the I2C 0 data structure
+        if (i2c_0 == nullptr)
+            i2c_0 = new TwoWire(0);
+
         // Disable the Ethernet controller
         DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
         pinMode(pin_Ethernet_CS, OUTPUT);
@@ -274,12 +306,14 @@ void beginBoard()
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
     }
+
     else if (productVariant == RTK_FACET_V2)
     {
-        present.psram_2mb = true;
+        present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.microSd = true;
-        present.display_64x48_i2c0 = true;
+        present.display_i2c0 = true;
+        present.display_type = DISPLAY_64x48;
         present.button_powerLow = true; // Button is pressed when low
         present.battery_max17048 = true;
         present.portDataMux = true;
@@ -293,6 +327,47 @@ void beginBoard()
 
         pinMode(pin_powerFastOff, OUTPUT);
         digitalWrite(pin_powerFastOff, HIGH); // Stay on
+    }
+
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+        present.psram_4mb = true;
+        present.gnss_mosaic = true;
+        present.display_i2c0 = true;
+        present.display_type = DISPLAY_64x48;
+        present.i2c0BusSpeed_400 = true;
+        present.peripheralPowerControl = true;
+        present.button_powerLow = true; // Button is pressed when low
+        present.battery_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+
+        pin_batteryStatusLED = 34;
+        pin_muxA = 18;
+        pin_muxB = 19;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_muxDAC = 26;
+        pin_muxADC = 39;
+        pin_peripheralPowerControl = 27;
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        pin_GnssUart_RX = 13;
+        pin_GnssUart_TX = 14;
+        pin_GnssLBandUart_RX = 4;
+        pin_GnssLBandUart_TX = 25;
+
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
+
+        // pinMode(pin_powerFastOff, OUTPUT);
+        // digitalWrite(pin_powerFastOff, HIGH); // Stay on
+        pinMode(pin_powerFastOff, INPUT);
+
+        // Turn on power to the mosaic and OLED
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
     }
 }
 
@@ -744,13 +819,25 @@ void tickerBegin()
     }
 }
 
+//Stop any ticker tasks and PWM control
+void tickerStop()
+{
+    bluetoothLedTask.detach();
+    gnssLedTask.detach();
+    batteryLedTask.detach();
+
+    ledcDetachPin(pin_bluetoothStatusLED);
+    ledcDetachPin(pin_gnssStatusLED);
+    ledcDetachPin(pin_batteryStatusLED);
+}
+
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
     if (present.battery_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
-        if (lipo.begin() == false)
+        if (lipo.begin(*i2c_0) == false)
         {
             systemPrintln("Fuel gauge not detected");
             return;
@@ -793,7 +880,7 @@ void beginFuelGauge()
             return;
         }
 
-        if (bq40z50Battery->begin() == false)
+        if (bq40z50Battery->begin(*i2c_0) == false)
         {
             systemPrintln("BQ40Z50 not detected");
             delete bq40z50Battery;
@@ -810,14 +897,21 @@ void beginFuelGauge()
         // Check to see if we are dangerously low
         if ((batteryLevelPercent < 5) && (isCharging() == false)) // 5% and not charging
         {
-            systemPrintln("Battery too low. Please charge. Shutting down...");
+            // Currently only the Torch uses the BQ40Z50 and it does not have software shutdown
+            // So throw a warning, but don't do anything else.
+            systemPrintln("Battery too low. Please charge.");
 
-            if (online.display == true)
-                displayMessage("Charge Battery", 0);
+            // If future platforms use the BQ40Z50 and have software shutdown, allow it
+            // but avoid blocking Torch with the infinite loop of powerDown().
 
-            delay(2000);
+            // systemPrintln("Battery too low. Please charge. Shutting down...");
 
-            powerDown(false); // Don't display 'Shutting Down'
+            // if (online.display == true)
+            //     displayMessage("Charge Battery", 0);
+
+            // delay(2000);
+
+            // powerDown(false); // Don't display 'Shutting Down'
         }
     }
 #endif // COMPILE_BQ40Z50
@@ -899,8 +993,18 @@ void beginSystemState()
     }
     else if (productVariant == RTK_EVK)
     {
+        firstRoverStart = false; // Screen should have been tested when it was made ;-)
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
+    }
+    else if (productVariant == RTK_FACET_MOSAIC)
+    {
+        // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
+
+        firstRoverStart = true; // Allow user to enter test screen during first rover start
+        if (systemState == STATE_BASE_NOT_STARTED)
+            firstRoverStart = false;
     }
     else if (productVariant == RTK_TORCH)
     {
@@ -944,10 +1048,30 @@ void beginI2C()
 {
     TaskHandle_t taskHandle;
 
-    if (present.display_128x64_i2c1 == true)
+    if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard
+        i2c_0 = new TwoWire(0);
+
+    if (present.i2c1 == true)
     {
+        if (i2c_1 == nullptr)
+            i2c_1 = new TwoWire(1);
+    }
+
+    if ((present.display_i2c0 == true) && (present.display_i2c1 == true))
+        reportFatalError("Displays on both i2c_0 and i2c_1");
+
+    if (present.display_i2c0 == true)
+    {
+        // Display is on standard Wire bus
+        i2cDisplay = i2c_0;
+    }
+
+    if (present.display_i2c1 == true)
+    {
+        if (present.i2c1 == false)
+            reportFatalError("No i2c1 for display_i2c1");
+
         // Display is on I2C bus 1
-        i2c_1 = new TwoWire(1);
         i2cDisplay = i2c_1;
 
         // Display splash screen for at least 1 second
@@ -994,7 +1118,7 @@ void pinI2CTask(void *pvParameters)
         online.i2c = true;
 
     // Initialize I2C bus 1
-    if (i2c_1)
+    if (present.i2c1)
     {
         int bus1speed = 100;
         if (present.i2c1BusSpeed_400 == true)
@@ -1155,6 +1279,18 @@ void deleteSDSizeCheckTask()
         sdSizeCheckTaskComplete = false;
         log_d("sdSizeCheck Task deleted");
     }
+}
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+// Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+// TODO: find a better home for this
+void checkArrayDefaults()
+{
+    if (!validateCorrectionPriorities())
+        initializeCorrectionPriorities();
+    if (!validateCorrectionPriorities())
+        reportFatalError("initializeCorrectionPriorities failed.");
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

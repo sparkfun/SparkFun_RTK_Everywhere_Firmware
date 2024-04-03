@@ -103,7 +103,7 @@ bool sdCardPresent(void)
             return (true); // Card detect high - SD in place
         return (false);    // Card detect low - No SD
     }
-    //else - no card detect pin. Use software detect
+    // else - no card detect pin. Use software detect
 
     // Use software to detect a card
     DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);

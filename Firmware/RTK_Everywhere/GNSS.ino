@@ -18,7 +18,7 @@ bool gnssConfigure()
         return (false);
 
     // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
-    checkArrayDefaults();
+    checkGNSSArrayDefaults();
 
     if (gnssPlatform == PLATFORM_ZED)
     {
@@ -1223,7 +1223,7 @@ char *gnssGetRtcmDefaultString()
     {
         return (um980GetRtcmDefaultString());
     }
-    return ("Error");
+    return ((char *)"Error");
 }
 
 char *gnssGetRtcmLowDataRateString()
@@ -1236,7 +1236,7 @@ char *gnssGetRtcmLowDataRateString()
     {
         return (um980GetRtcmLowDataRateString());
     }
-    return ("Error");
+    return ((char *)"Error");
 }
 
 float gnssGetSurveyInStartingAccuracy()

@@ -1,3 +1,6 @@
+#ifndef _RTK_EVERYWHERE_UM980_H
+#define _RTK_EVERYWHERE_UM980_H
+
 /*
   Unicore defaults:
   RTCM1006 10
@@ -19,14 +22,10 @@ typedef struct
 // Available constellations: GPS, BDS, GLO, GAL, QZSS
 // SBAS and IRNSS don't seem to be supported
 const um980ConstellationCommand um980ConstellationCommands[] = {
-    {"GPS", "GPS"},
-    {"GLONASS", "GLO"},
-    {"Galileo", "GAL"},
-    {"BeiDou", "BDS"},
-    {"QZSS", "QZSS"},
+    {"GPS", "GPS"}, {"GLONASS", "GLO"}, {"Galileo", "GAL"}, {"BeiDou", "BDS"}, {"QZSS", "QZSS"},
 };
 
-#define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands)/sizeof(um980ConstellationCommand))
+#define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands) / sizeof(um980ConstellationCommand))
 
 // Struct to describe support messages on the UM980
 // Each message will have the serial command and its default value
@@ -39,11 +38,11 @@ typedef struct
 // Static array containing all the compatible messages
 const um980Msg umMessagesNMEA[] = {
     // NMEA
-    {"GPDTM", 0}, {"GPGBS", 0}, {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
+    {"GPDTM", 0}, {"GPGBS", 0},   {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
 
     {"GPGRS", 0}, {"GPGSA", 0.5}, {"GPGST", 0.5}, {"GPGSV", 1}, {"GPRMC", 0.5},
 
-    {"GPROT", 0}, {"GPTHS", 0}, {"GPVTG", 0}, {"GPZDA", 0},
+    {"GPROT", 0}, {"GPTHS", 0},   {"GPVTG", 0},   {"GPZDA", 0},
 };
 
 const um980Msg umMessagesRTCM[] = {
@@ -81,8 +80,11 @@ const um980Msg umMessagesRTCM[] = {
 #define MAX_UM980_NMEA_MSG (sizeof(umMessagesNMEA) / sizeof(um980Msg))
 #define MAX_UM980_RTCM_MSG (sizeof(umMessagesRTCM) / sizeof(um980Msg))
 
-enum um980_Models{
+enum um980_Models
+{
     UM980_DYN_MODEL_SURVEY = 0,
     UM980_DYN_MODEL_UAV,
     UM980_DYN_MODEL_AUTOMOTIVE,
 };
+
+#endif

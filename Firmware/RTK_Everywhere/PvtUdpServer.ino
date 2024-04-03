@@ -176,7 +176,7 @@ int32_t pvtUdpServerSendData(uint16_t dataHead)
 // Remove previous messages from the ring buffer
 void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail)
 {
-    int index;
+    // int index;
     uint16_t tail;
 
     tail = pvtUdpServerTail;
@@ -244,8 +244,6 @@ bool pvtUdpServerStart()
 // Stop the PVT UDP server
 void pvtUdpServerStop()
 {
-    int index;
-
     // Notify the rest of the system that the PVT server is shutting down
     if (online.pvtUdpServer)
     {
@@ -279,9 +277,6 @@ void pvtUdpServerStop()
 // Update the PVT server state
 void pvtUdpServerUpdate()
 {
-    bool connected;
-    bool dataSent;
-    int index;
     IPAddress ipAddress;
 
     // Shutdown the PVT UDP server when the mode or setting changes

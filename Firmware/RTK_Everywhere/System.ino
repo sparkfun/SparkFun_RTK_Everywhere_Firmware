@@ -45,13 +45,15 @@ void beepDurationMs(uint16_t lengthMs)
 
 void beepOn()
 {
-    if (pin_beeper != PIN_UNDEFINED && (settings.enableBeeper == true))
+    // Disallow beeper if setting is turned off
+    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
         digitalWrite(pin_beeper, HIGH);
 }
 
 void beepOff()
 {
-    if (pin_beeper != PIN_UNDEFINED && (settings.enableBeeper == true))
+    // Disallow beeper if setting is turned off
+    if ((pin_beeper != PIN_UNDEFINED) && (settings.enableBeeper == true))
         digitalWrite(pin_beeper, LOW);
 }
 
@@ -60,18 +62,18 @@ void updateBattery()
 {
     if (online.battery == true)
     {
+        static unsigned long lastBattUpdate = 0;
         if (millis() - lastBattUpdate > 5000)
         {
             lastBattUpdate = millis();
 
             checkBatteryLevels();
 
-            if(present.battery_bq40z50 == true)
+            if (present.battery_bq40z50 == true)
             {
-                //Turn on green battery LED if battery is above 50%
-                if(batteryLevelPercent > 50)
+                // Turn on green battery LED if battery is above 50%
+                if (batteryLevelPercent > 50)
                     batteryStatusLedOn();
-                
             }
         }
     }
@@ -100,7 +102,7 @@ void checkBatteryLevels()
         batteryChargingPercentPerHour =
             (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
     }
-#endif  // COMPILE_BQ40Z50
+#endif // COMPILE_BQ40Z50
 
     // Display the battery data
     if (settings.enablePrintBatteryMessages)
@@ -323,13 +325,17 @@ void printReports()
 
         if (online.gnss == true)
         {
-            float hpa = gnssGetHorizontalAccuracy();
-
-            if (hpa > 0)
+            // If we are in rover mode, display HPA and SIV
+            if (inRoverMode() == true)
             {
-                char temp[20];
-                const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3); // Returns string of the HPA units
-                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", units, temp, gnssGetSatellitesInView());
+                float hpa = gnssGetHorizontalAccuracy();
+
+                char modifiedHpa[20];
+                const char *hpaUnits =
+                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
+
+                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
+                             gnssGetSatellitesInView());
 
                 if (gnssIsRTKFix() == true)
                     systemPrint("RTK Fix");
@@ -344,14 +350,11 @@ void printReports()
 
                 systemPrintln();
             }
-            else
+
+            // If we are in base mode, display SIV only
+            else if (inBaseMode() == true)
             {
-                systemPrint("Rover Accuracy: ");
-                systemPrint(hpa);
-                systemPrint(" ");
-                systemPrint("No lock. SIV: ");
-                systemPrint(gnssGetSatellitesInView());
-                systemPrintln();
+                systemPrintf("Base Mode - SIV: %d\r\n", gnssGetSatellitesInView());
             }
         }
     }
@@ -363,6 +366,8 @@ CoordinateInputType coordinateIdentifyInputType(char *userEntryOriginal, double 
     char userEntry[50];
     strncpy(userEntry, userEntryOriginal,
             sizeof(userEntry) - 1); // strtok modifies the message so make copy into userEntry
+
+    trim(userEntry); // Remove any leading/trailing whitespace
 
     *coordinate = 0.0; // Clear what is given to us
 
@@ -760,4 +765,19 @@ bool isCharging()
     }
 
     return false;
+}
+
+// Remove leading and trailing whitespaces: ' ', \t, \v, \f, \r, \n
+// https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
+void trim(char *str)
+{
+    char *p = str;
+    int l = strlen(p);
+
+    while (isspace(p[l - 1]))
+        p[--l] = 0;
+    while (*p && isspace(*p))
+        ++p, --l;
+
+    memmove(str, p, l + 1);
 }

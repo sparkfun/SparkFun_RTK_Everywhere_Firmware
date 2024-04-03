@@ -21,7 +21,9 @@ static const uint8_t ppLbandFreeToken[16] = {POINTPERFECT_LBAND_FREE_TOKEN}; // 
 static const uint8_t ppIpPaidToken[16] = {POINTPERFECT_IP_PAID_TOKEN};       // Token in HEX form
 static const uint8_t ppIpFreeToken[16] = {POINTPERFECT_IP_FREE_TOKEN};       // Token in HEX form
 
+#ifdef COMPILE_WIFI
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
+#endif // COMPILE_WIFI
 
 //----------------------------------------
 // Forward declarations - compiled out
@@ -311,7 +313,7 @@ bool pointperfectProvisionDevice()
                          btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
 
                 systemPrintf("This device has been deactivated. Please contact "
-                             "support@sparkfun.com to renew the L-Band "
+                             "support@sparkfun.com to renew the PointPerfect "
                              "subscription. Please reference device ID: %s\r\n",
                              hardwareID);
 
@@ -324,7 +326,7 @@ bool pointperfectProvisionDevice()
                          btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
 
                 systemPrintf(
-                    "This device is not white-listed. Please contact "
+                    "This device is not whitelisted. Please contact "
                     "support@sparkfun.com to get your subscription activated. Please reference device ID: %s\r\n",
                     hardwareID);
 
@@ -334,6 +336,12 @@ bool pointperfectProvisionDevice()
             {
                 // Device is already registered to a different ZTP profile.
                 // Don't display anything. Move on to next attempt.
+            }
+            else if (ztpResponse == ZTP_RESPONSE_TIMEOUT && attemptNumber == 1)
+            {
+                // The WiFi failed to connect in a timely manner to the API.
+                // Don't display anything. Move on to next attempt.
+                // TODO - We need to retry once more using this hardware ID+token.
             }
             else
             {
@@ -456,9 +464,19 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                 systemPrintln(response);
             }
 
+            // "HTTP response error -11:  "
+            if (httpResponseCode == -11)
+            {
+                if (settings.debugCorrections == true)
+                    systemPrintln("API failed to respond in time.");
+
+                ztpResponse = ZTP_RESPONSE_TIMEOUT;
+                break;
+            }
+
             // If a device has already been registered on a different ZTP profile, response will be:
             // "HTTP response error 403: Device already registered"
-            if (response.indexOf("Device already registered") >= 0)
+            else if (response.indexOf("Device already registered") >= 0)
             {
                 if (settings.debugCorrections == true)
                     systemPrintln("Device already registered to different profile. Trying next profile.");
@@ -830,13 +848,6 @@ bool pointperfectUpdateKeys()
 #endif // COMPILE_WIFI
 }
 
-char *ltrim(char *s)
-{
-    while (isspace(*s))
-        s++;
-    return s;
-}
-
 // Called when a subscribed to message arrives
 void mqttCallback(char *topic, byte *message, unsigned int length)
 {
@@ -1179,7 +1190,7 @@ void beginLBand()
     if (present.lband_neo == false)
         return;
 
-    if (i2cLBand.begin(Wire, 0x43) ==
+    if (i2cLBand.begin(*i2c_0, 0x43) ==
         false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
     {
         if (settings.debugCorrections == true)
@@ -1400,7 +1411,6 @@ void menuPointPerfect()
                 else
                 {
                     systemPrintln("Error: No WiFi available to get keys");
-                    break;
                 }
             }
 

@@ -158,9 +158,9 @@ void beginPPL()
         // Starts task for feeding NMEA+RTCM to PPL
         if (online.updatePplTaskRunning == false)
             xTaskCreate(updatePplTask,
-                        "UpdatePpl",         // Just for humans
+                        "UpdatePpl",            // Just for humans
                         updatePplTaskStackSize, // Stack Size
-                        nullptr,             // Task input parameter
+                        nullptr,                // Task input parameter
                         updatePplTaskPriority,
                         &taskHandle); // Task handle
     }
@@ -170,14 +170,13 @@ void beginPPL()
     reportHeapNow(false);
 }
 
-
 // Start the PPL if needed
-// Because the key for the PPL expires every ~28 days, we use updatePPL to first apply keys, and 
+// Because the key for the PPL expires every ~28 days, we use updatePPL to first apply keys, and
 // restart the PPL when new keys need to be applied
 void updatePPL()
 {
-    if (online.ppl == false && 
-    (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP) || (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP))
+    if (online.ppl == false && ((settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP) ||
+                                (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected. Don't restart the PPL if we've already tried

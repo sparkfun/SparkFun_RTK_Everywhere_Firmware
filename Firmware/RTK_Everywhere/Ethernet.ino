@@ -238,17 +238,15 @@ IPAddress ethernetGetIpAddress()
 bool ethernetIsNeeded()
 {
     // Does NTP need Ethernet?
-    if (systemState >= STATE_NTPSERVER_NOT_STARTED && systemState <= STATE_NTPSERVER_SYNC)
+    if (inNtpMode() == true)
         return true;
 
     // Does Base mode NTRIP Server need Ethernet?
-    if (settings.enableNtripServer == true &&
-        (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING))
+    if (settings.enableNtripServer == true && inBaseMode() == true)
         return true;
 
     // Does Rover mode NTRIP Client need Ethernet?
-    if (settings.enableNtripClient == true &&
-        (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX))
+    if (settings.enableNtripClient == true && inRoverMode() == true)
         return true;
 
     // Does PVT client or server need Ethernet?

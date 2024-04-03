@@ -603,7 +603,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
         // Now transmit the response to the client.
         ntpServer->beginPacket(remoteIP, remotePort);
         ntpServer->write(packet.packet, NTPpacket::NTPpacketSize);
-        int result = ntpServer->endPacket();
+        // int result = ntpServer->endPacket();
         processed = true;
 
         // Add our server transmit time to the diagnostics

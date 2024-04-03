@@ -154,8 +154,6 @@ jobs:
           cd Firmware/RTK_Everywhere/build/esp32.esp32.esp32/
           mkdir ${{ env.ARTIFACT }}
           mv RTK_Everywhere.ino.bin ${{ env.ARTIFACT }}
-          mv RTK_Everywhere.ino.bootloader.bin ${{ env.ARTIFACT }}
-          mv RTK_Everywhere.ino.partitions.bin ${{ env.ARTIFACT }}
 
       - name: Upload artifact directory to action - avoid double-zip
         uses: actions/upload-artifact@v3

@@ -14,19 +14,19 @@
 
   WiFi Station States:
 
-                                  WIFI_OFF<--------------------.
+                                  WIFI_STATE_OFF <-------------.
                                     |                          |
                        wifiStart()  |                          |
                                     |                          | WL_CONNECT_FAILED (Bad password)
                                     |                          | WL_NO_SSID_AVAIL (Out of range)
-                                    v                 Fail     |
-                                  WIFI_CONNECTING------------->+
+                                    v                   Fail   |
+                                  WIFI_STATE_CONNECTING ------>+
                                     |    ^                     ^
                      wifiConnect()  |    |                     | wifiShutdown()
                                     |    | WL_CONNECTION_LOST  |
                                     |    | WL_DISCONNECTED     |
                                     v    |                     |
-                                  WIFI_CONNECTED --------------'
+                                  WIFI_STATE_CONNECTED --------'
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
@@ -103,13 +103,15 @@ void menuWiFi()
             if (incoming % 2 == 1)
             {
                 systemPrintf("Enter SSID network %d: ", arraySlot + 1);
-                getUserInputString(settings.wifiNetworks[arraySlot].ssid, sizeof(settings.wifiNetworks[arraySlot].ssid));
+                getUserInputString(settings.wifiNetworks[arraySlot].ssid,
+                                   sizeof(settings.wifiNetworks[arraySlot].ssid));
                 restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
             }
             else
             {
                 systemPrintf("Enter Password for %s: ", settings.wifiNetworks[arraySlot].ssid);
-                getUserInputString(settings.wifiNetworks[arraySlot].password, sizeof(settings.wifiNetworks[arraySlot].password));
+                getUserInputString(settings.wifiNetworks[arraySlot].password,
+                                   sizeof(settings.wifiNetworks[arraySlot].password));
                 restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
             }
         }
@@ -196,17 +198,17 @@ void wifiSetState(byte newState)
         default:
             systemPrintf("Unknown WiFi state: %d\r\n", newState);
             break;
-        case WIFI_OFF:
-            systemPrintln("WIFI_OFF");
+        case WIFI_STATE_OFF:
+            systemPrintln("WIFI_STATE_OFF");
             break;
-        case WIFI_START:
-            systemPrintln("WIFI_START");
+        case WIFI_STATE_START:
+            systemPrintln("WIFI_STATE_START");
             break;
-        case WIFI_CONNECTING:
-            systemPrintln("WIFI_CONNECTING");
+        case WIFI_STATE_CONNECTING:
+            systemPrintln("WIFI_STATE_CONNECTING");
             break;
-        case WIFI_CONNECTED:
-            systemPrintln("WIFI_CONNECTED");
+        case WIFI_STATE_CONNECTED:
+            systemPrintln("WIFI_STATE_CONNECTED");
             break;
         }
     }
@@ -323,11 +325,11 @@ void wifiUpdate()
         systemPrintf("Unknown wifiState: %d\r\n", wifiState);
         break;
 
-    case WIFI_OFF:
+    case WIFI_STATE_OFF:
         // Any service that needs WiFi will call wifiStart()
         break;
 
-    case WIFI_CONNECTING:
+    case WIFI_STATE_CONNECTING:
         // Pause until connection timeout has passed
         if (millis() - wifiLastConnectionAttempt > wifiConnectionAttemptTimeout)
         {
@@ -338,7 +340,7 @@ void wifiUpdate()
                 if (espnowState > ESPNOW_OFF)
                     espnowStart();
 
-                wifiSetState(WIFI_CONNECTED);
+                wifiSetState(WIFI_STATE_CONNECTED);
             }
             else
             {
@@ -354,20 +356,20 @@ void wifiUpdate()
                 {
                     systemPrintln("WiFi connection failed. Giving up.");
                     displayNoWiFi(2000);
-                    WIFI_STOP(); // Move back to WIFI_OFF
+                    WIFI_STOP(); // Move back to WIFI_STATE_OFF
                 }
             }
         }
 
         break;
 
-    case WIFI_CONNECTED:
+    case WIFI_STATE_CONNECTED:
         // Verify link is still up
         if (wifiIsConnected() == false)
         {
             systemPrintln("WiFi link lost");
             wifiConnectionAttempts = 0; // Reset the timeout
-            wifiSetState(WIFI_CONNECTING);
+            wifiSetState(WIFI_STATE_CONNECTING);
         }
 
         // If WiFi is connected, and no services require WiFi, shut it off
@@ -384,7 +386,7 @@ void wifiUpdate()
     }
 }
 
-// Starts the WiFi connection state machine (moves from WIFI_OFF to WIFI_CONNECTING)
+// Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
 // Sets the appropriate protocols (WiFi + ESP-Now)
 // If radio is off entirely, start WiFi
 // If ESP-Now is active, only add the LR protocol
@@ -401,12 +403,12 @@ void wifiStart()
     if (wifiIsConnected() == true)
         return; // We don't need to do anything
 
-    if (wifiState > WIFI_OFF)
+    if (wifiState > WIFI_STATE_OFF)
         return; // We're in the midst of connecting
 
     log_d("Starting WiFi");
 
-    wifiSetState(WIFI_CONNECTING); // This starts the state machine running
+    wifiSetState(WIFI_STATE_CONNECTING); // This starts the state machine running
 
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
@@ -434,7 +436,7 @@ void wifiStop()
 // If ESP NOW is active, leave WiFi on enough for ESP NOW
 void wifiShutdown()
 {
-    wifiSetState(WIFI_OFF);
+    wifiSetState(WIFI_STATE_OFF);
 
     wifiConnectionAttempts = 0; // Reset the timeout
 
@@ -567,8 +569,7 @@ bool wifiIsNeeded()
     if (systemState <= STATE_ROVER_RTK_FIX && settings.enableNtripClient == true)
         return true;
 
-    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING &&
-        settings.enableNtripServer == true)
+    if (inBaseMode() == true && settings.enableNtripServer == true)
         return true;
 
     // If the user has enabled NTRIP Client for an Assisted Survey-In, and Survey-In is running, keep WiFi on.
@@ -655,15 +656,6 @@ void wifiPrintNetworkInfo()
     systemPrint("        DNS 3: ");
     systemPrintln(WiFi.dnsIP(2));
     systemPrintln();
-}
-
-// Returns true if unit is in config mode
-// Used to disallow services (NTRIP, TCP, etc) from updating
-bool wifiInConfigMode()
-{
-    if (systemState >= STATE_WIFI_CONFIG_NOT_STARTED && systemState <= STATE_WIFI_CONFIG)
-        return true;
-    return false;
 }
 
 IPAddress wifiGetGatewayIpAddress()

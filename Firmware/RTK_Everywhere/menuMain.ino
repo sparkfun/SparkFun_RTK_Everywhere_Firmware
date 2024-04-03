@@ -99,6 +99,8 @@ void menuMain()
 
         systemPrintln("f) Firmware Update");
 
+        systemPrintln("i) Configure Corrections Priorities");
+
 #ifdef COMPILE_ETHERNET
         if (present.ethernet_ws5500 == true)
             systemPrintln("n) Configure NTP");
@@ -146,6 +148,8 @@ void menuMain()
             menuEthernet();
         else if (incoming == 'f')
             menuFirmware();
+        else if (incoming == 'i')
+            menuCorrectionsPriorities();
         else if (incoming == 'n' && (present.ethernet_ws5500 == true))
             menuNTP();
         else if (incoming == 'u')
@@ -180,7 +184,7 @@ void menuMain()
     }
 
     // Reboot as base only if currently operating as a base station
-    if (restartBase && (systemState >= STATE_BASE_NOT_STARTED) && (systemState <= STATE_BASE_FIXED_TRANSMITTING))
+    if (restartBase && inBaseMode() == true)
     {
         restartBase = false;
         requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
@@ -402,8 +406,7 @@ void factoryReset(bool alreadyHasSemaphore)
         }
     }
 
-    if (online.imu == true)
-        tiltSensorFactoryReset();
+    tiltSensorFactoryReset();
 
     systemPrintln("Formatting internal file system...");
     LittleFS.format();

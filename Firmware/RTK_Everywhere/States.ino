@@ -271,12 +271,12 @@ void stateUpdate()
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2);
-            const char *accUnits = getHpaUnits(settings.surveyInStartingAccuracy, accuracy, sizeof(accuracy), 2);
+            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
-            if (hpa > 0.0 && hpa < settings.surveyInStartingAccuracy)
+            if (hpa > 0.0 && hpa < gnssGetSurveyInStartingAccuracy())
             {
                 displaySurveyStart(0); // Show 'Survey'
 
@@ -401,16 +401,11 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_PROFILE): {
-            // Do nothing - display only
-        }
-        break;
-
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 1500)
+            if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
             {
-                forceSystemStateUpdate = true; // Immediately go to this new state
-                changeState(setupState);       // Change to last setup state
+                //forceSystemStateUpdate = true; // Immediately go to this new state
+                changeState(lastSystemState);  // Return to the last system state
             }
         }
         break;
@@ -431,8 +426,8 @@ void stateUpdate()
             bluetoothStop();
             espnowStop();
 
-            tasksStopGnssUart();   // Delete F9 serial tasks if running
-            if (!startWebServer()) // Start in AP mode and show config html page
+            tasksStopGnssUart();   // Delete serial tasks if running
+            if (!startWebServer()) // Start web server in WiFi mode and show config html page
                 changeState(STATE_ROVER_NOT_STARTED);
             else
             {
@@ -507,6 +502,11 @@ void stateUpdate()
         // Display testing screen - do nothing
         case (STATE_TESTING): {
             // Exit via button press task
+        }
+        break;
+
+        case (STATE_PROFILE): {
+            // Do nothing - display only
         }
         break;
 
@@ -673,6 +673,36 @@ void stateUpdate()
         }
         break;
 
+        case (STATE_KEYS_WIFI_TIMEOUT): {
+            paintKeyWiFiFail(2000);
+
+            forceSystemStateUpdate = true; // Imediately go to this new state
+
+            if (online.rtc == true)
+            {
+                int daysRemaining =
+                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                if (daysRemaining >= 0)
+                {
+                    changeState(STATE_KEYS_DAYS_REMAINING);
+                }
+                else
+                {
+                    paintKeysExpired();
+                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
+                }
+            }
+            else
+            {
+                // No WiFi. No RTC. We don't know if the keys we have are expired. Attempt to use them.
+                changeState(STATE_KEYS_LBAND_CONFIGURE);
+            }
+        }
+        break;
+
+        // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
+
         case (STATE_KEYS_DAYS_REMAINING): {
             if (online.rtc == true)
             {
@@ -706,34 +736,6 @@ void stateUpdate()
 
             forceSystemStateUpdate = true;   // Imediately go to this new state
             changeState(settings.lastState); // Go to either rover or base
-        }
-        break;
-
-        case (STATE_KEYS_WIFI_TIMEOUT): {
-            paintKeyWiFiFail(2000);
-
-            forceSystemStateUpdate = true; // Imediately go to this new state
-
-            if (online.rtc == true)
-            {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining >= 0)
-                {
-                    changeState(STATE_KEYS_DAYS_REMAINING);
-                }
-                else
-                {
-                    paintKeysExpired();
-                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
-                }
-            }
-            else
-            {
-                // No WiFi. No RTC. We don't know if the keys we have are expired. Attempt to use them.
-                changeState(STATE_KEYS_LBAND_CONFIGURE);
-            }
         }
         break;
 
@@ -1175,3 +1177,82 @@ const char *stateToRtkMode(SystemState state)
     // Unknown mode
     return "Unknown Mode";
 }
+
+bool inRoverMode()
+{
+    if (systemState >= STATE_ROVER_NOT_STARTED && systemState <= STATE_ROVER_RTK_FIX)
+        return (true);
+    return (false);
+}
+
+bool inBaseMode()
+{
+    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_FIXED_TRANSMITTING)
+        return (true);
+    return (false);
+}
+
+bool inWiFiConfigMode()
+{
+    if (systemState >= STATE_WIFI_CONFIG_NOT_STARTED && systemState <= STATE_WIFI_CONFIG)
+        return (true);
+    return (false);
+}
+
+bool inNtpMode()
+{
+    if (systemState >= STATE_NTPSERVER_NOT_STARTED && systemState <= STATE_NTPSERVER_SYNC)
+        return (true);
+    return (false);
+}
+
+void addSetupButton(std::vector<setupButton> *buttons, const char *name, SystemState newState)
+{
+    setupButton button;
+    button.name = name;
+    button.newState = newState;
+    buttons->push_back(button);
+}
+
+// Construct menu 'buttons' to allow user to pause on one and double tap to select it
+void constructSetupDisplay(std::vector<setupButton> *buttons)
+{
+    buttons->clear();
+
+    // It looks like we don't need "Mark"? TODO: check this!
+    addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
+    addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
+    if (present.ethernet_ws5500 == true)
+    {
+        addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
+        addSetupButton(buttons, "Cfg Eth", STATE_CONFIG_VIA_ETH_NOT_STARTED);
+        addSetupButton(buttons, "Cfg WiFi", STATE_WIFI_CONFIG_NOT_STARTED);
+    }
+    else
+    {
+        addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
+    }
+    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+    {
+        addSetupButton(buttons, "Get Keys", STATE_KEYS_NEEDED);
+    }
+    addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
+    // If only one active profile do not show any profiles
+    if (getProfileNumberFromUnit(1) >= 0)
+    {
+        for (int x = 0; x < MAX_PROFILE_COUNT; x++)
+        {
+            int profile = getProfileNumberFromUnit(x);
+            if (profile >= 0)
+            {
+                setupButton button;
+                button.name = &profileNames[profile][0];
+                button.newState = STATE_PROFILE;
+                button.newProfile = x; // paintProfile needs the unit
+                buttons->push_back(button);
+            }
+        }
+    }
+    addSetupButton(buttons, "Exit", STATE_NOT_SET);
+}
+

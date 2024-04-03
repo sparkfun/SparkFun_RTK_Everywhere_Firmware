@@ -121,7 +121,8 @@ void storeRTCM1006data(RTCM_1006_data_t *rtcmData1006)
 void zedBegin()
 {
     // Instantiate the library
-    theGNSS = new SFE_UBLOX_GNSS_SUPER_DERIVED();
+    if (theGNSS == nullptr)
+        theGNSS = new SFE_UBLOX_GNSS_SUPER_DERIVED();
 
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
@@ -130,13 +131,13 @@ void zedBegin()
         return;
     }
 
-    if (theGNSS->begin() == false)
+    if (theGNSS->begin(*i2c_0) == false)
     {
         log_d("GNSS Failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
-        if (theGNSS->begin() == false)
+        if (theGNSS->begin(*i2c_0) == false)
         {
             log_d("GNSS offline");
             displayGNSSFail(1000);
@@ -240,7 +241,8 @@ bool zedConfigure()
         theGNSS->disableDebugging();
 
     // Check if the ubxMessageRates or ubxMessageRatesBase need to be defaulted
-    checkArrayDefaults();
+    // Redundant - also done by gnssConfigure
+    // checkGNSSArrayDefaults();
 
     theGNSS->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
     theGNSS->setAutoHPPOSLLHcallbackPtr(
@@ -1048,7 +1050,7 @@ double zedGetRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
     float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
-    double measurementRateS = 1.0 / measurementFrequency; //1 / 4Hz = 0.25s
+    double measurementRateS = 1.0 / measurementFrequency; // 1 / 4Hz = 0.25s
 
     return (measurementRateS);
 }
@@ -1655,16 +1657,16 @@ void zedBaseRtcmLowDataRate()
 
 char *zedGetRtcmDefaultString()
 {
-    return ("1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
+    return ((char *)"1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
 }
 char *zedGetRtcmLowDataRateString()
 {
-    return ("1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
+    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
 }
 
 float zedGetSurveyInStartingAccuracy()
 {
-    return (settings.surveyInStartingAccuracy);
+    return (settings.zedSurveyInStartingAccuracy);
 }
 
 // Controls the constellations that are used to generate a fix and logged

@@ -84,9 +84,8 @@ static volatile RING_BUFFER_OFFSET pvtServerClientTails[PVT_SERVER_MAX_CLIENTS];
 // Send data to the PVT clients
 int32_t pvtServerClientSendData(int index, uint8_t *data, uint16_t length)
 {
-
     length = pvtServerClient[index]->write(data, length);
-    if (length >= 0)
+    if (length > 0)
     {
         // Update the data sent flag when data successfully sent
         if (length > 0)

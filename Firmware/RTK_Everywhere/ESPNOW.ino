@@ -96,7 +96,7 @@ void espnowStart()
 
     esp_err_t response;
 
-    if (wifiState == WIFI_OFF && espnowState == ESPNOW_OFF)
+    if (wifiState == WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
     {
         if (WiFi.getMode() != WIFI_STA)
             WiFi.mode(WIFI_STA);
@@ -110,7 +110,7 @@ void espnowStart()
             log_d("WiFi off, ESP-Now added to protocols");
     }
     // If WiFi is on but ESP NOW is off, then enable LR protocol
-    else if (wifiState > WIFI_OFF && espnowState == ESPNOW_OFF)
+    else if (wifiState > WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
     {
         if (WiFi.getMode() != WIFI_STA)
             WiFi.mode(WIFI_STA);
@@ -237,7 +237,7 @@ void espnowStop()
 
     espnowSetState(ESPNOW_OFF);
 
-    if (wifiState == WIFI_OFF)
+    if (wifiState == WIFI_STATE_OFF)
     {
         // ESP Now was the only thing using the radio so turn WiFi radio off entirely
         WiFi.mode(WIFI_OFF);
@@ -245,7 +245,7 @@ void espnowStop()
         log_d("WiFi Radio off entirely");
     }
     // If WiFi is on, then restart WiFi
-    else if (wifiState > WIFI_OFF)
+    else if (wifiState > WIFI_STATE_OFF)
     {
         log_d("ESP-Now starting WiFi");
         wifiStart(); // Force WiFi to restart

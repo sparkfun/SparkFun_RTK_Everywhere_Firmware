@@ -1,4 +1,4 @@
-const uint8_t bufferLen = 1024;
+const uint16_t bufferLen = 1024;
 char cmdBuffer[bufferLen];
 char valueBuffer[bufferLen];
 const int MAX_TOKENS = 10;
@@ -65,6 +65,13 @@ void menuCommands()
             ESP.restart();
             return;
         }
+        else if (strcmp(tokens[0], "LIST") == 0)
+        {
+            systemPrintln("OK");
+            printAvailableSettings();
+            return;
+        }
+
         else
         {
             systemPrintln("ERROR");
@@ -137,8 +144,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.dataPortBaud = settingValue;
     else if (strcmp(settingName, "radioPortBaud") == 0)
         settings.radioPortBaud = settingValue;
-    else if (strcmp(settingName, "surveyInStartingAccuracy") == 0)
-        settings.surveyInStartingAccuracy = settingValue;
+    else if (strcmp(settingName, "zedSurveyInStartingAccuracy") == 0)
+        settings.zedSurveyInStartingAccuracy = settingValue;
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
         settings.measurementRate = (int)(1000.0 / settingValue);
@@ -462,18 +469,14 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.enableNtripServer = settingValue;
     else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
         settings.ntripServer_StartAtSurveyIn = settingValue;
-    else if (strcmp(settingName, "ntripServer_CasterHost") == 0)
-        strcpy(settings.ntripServer_CasterHost, settingValueStr);
-    else if (strcmp(settingName, "ntripServer_CasterPort") == 0)
-        settings.ntripServer_CasterPort = settingValue;
-    else if (strcmp(settingName, "ntripServer_CasterUser") == 0)
-        strcpy(settings.ntripServer_CasterUser, settingValueStr);
-    else if (strcmp(settingName, "ntripServer_CasterUserPW") == 0)
-        strcpy(settings.ntripServer_CasterUserPW, settingValueStr);
-    else if (strcmp(settingName, "ntripServer_MountPoint") == 0)
-        strcpy(settings.ntripServer_MountPoint, settingValueStr);
-    else if (strcmp(settingName, "ntripServer_MountPointPW") == 0)
-        strcpy(settings.ntripServer_MountPointPW, settingValueStr);
+
+    // The following values are handled below:
+    // ntripServer_CasterHost
+    // ntripServer_CasterPort
+    // ntripServer_CasterUser
+    // ntripServer_CasterUserPW
+    // ntripServer_MountPoint
+    // ntripServer_MountPointPW
 
     // TCP Client
     else if (strcmp(settingName, "debugPvtClient") == 0)
@@ -560,6 +563,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         settings.enableImuCompensationDebug = settingValue;
 
+    // correctionsPriority not handled here
+
     // Add new settings above <--------------------------------------------------->
 
     else if (strstr(settingName, "stationECEF") != nullptr)
@@ -601,7 +606,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settings.debugWiFiConfig == true)
             systemPrintln("Sending reset confirmation");
 
-        sendStringToWebsocket("confirmReset,1,");
+        sendStringToWebsocket((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
         if (configureViaEthernet)
@@ -698,7 +703,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settings.debugWiFiConfig == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
-        sendStringToWebsocket("checkingNewFirmware,1,"); // Tell the config page we received their request
+        sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
         char reportedVersion[20];
         char newVersionCSV[100];
@@ -737,13 +742,13 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settings.debugWiFiConfig == true)
             systemPrintln("Getting new OTA Pull firmware");
 
-        sendStringToWebsocket("gettingNewFirmware,1,");
+        sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
         apConfigFirmwareUpdateInProcess = true;
         otaUpdate();
 
         // We get here if WiFi failed to connect
-        sendStringToWebsocket("gettingNewFirmware,ERROR,");
+        sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
     }
 
     // Unused variables - read to avoid errors
@@ -939,6 +944,119 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
             }
         }
 
+        // Scan for corrections priorities
+        if (knownSetting == false)
+        {
+            for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+            {
+                char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s", correctionsSourceNames[x]);
+
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    settings.correctionsSourcesPriority[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterHost
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterHost_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.ntripServer_CasterHost[serverIndex][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterPort
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterPort_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    settings.ntripServer_CasterPort[serverIndex] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterUser
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterUser_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.ntripServer_CasterUser[serverIndex][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_CasterUserPW
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_CasterUserPW_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.ntripServer_CasterUserPW[serverIndex][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_MountPoint
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_MountPoint_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.ntripServer_MountPoint[serverIndex][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for ntripServer_MountPointPW
+        if (knownSetting == false)
+        {
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "ntripServer_MountPointPW_%d", serverIndex);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.ntripServer_MountPointPW[serverIndex][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
         // Last catch
         if (knownSetting == false)
         {
@@ -952,7 +1070,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 // The order of variables matches the order found in settings.h
 void createSettingsString(char *newSettings)
 {
-    char tagText[50];
+    char tagText[80];
     char nameText[64];
 
     newSettings[0] = '\0'; // Erase current settings string
@@ -1018,7 +1136,7 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "dataPortBaud", settings.dataPortBaud);
     stringRecord(newSettings, "radioPortBaud", settings.radioPortBaud);
-    stringRecord(newSettings, "surveyInStartingAccuracy", settings.surveyInStartingAccuracy, 1);
+    stringRecord(newSettings, "zedSurveyInStartingAccuracy", settings.zedSurveyInStartingAccuracy, 1);
     stringRecord(newSettings, "measurementRateHz", 1000.0 / settings.measurementRate, 2); // 2 = decimals to print
     stringRecord(newSettings, "debugGnss", settings.debugGnss);
     stringRecord(newSettings, "enableHeapReport", settings.enableHeapReport);
@@ -1235,12 +1353,20 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "debugNtripServerState", settings.debugNtripServerState);
     stringRecord(newSettings, "enableNtripServer", settings.enableNtripServer);
     stringRecord(newSettings, "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
-    stringRecord(newSettings, "ntripServer_CasterHost", settings.ntripServer_CasterHost);
-    stringRecord(newSettings, "ntripServer_CasterPort", settings.ntripServer_CasterPort);
-    stringRecord(newSettings, "ntripServer_CasterUser", settings.ntripServer_CasterUser);
-    stringRecord(newSettings, "ntripServer_CasterUserPW", settings.ntripServer_CasterUserPW);
-    stringRecord(newSettings, "ntripServer_MountPoint", settings.ntripServer_MountPoint);
-    stringRecord(newSettings, "ntripServer_MountPointPW", settings.ntripServer_MountPointPW);
+    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+    {
+        stringRecordN(newSettings, "ntripServer_CasterHost", serverIndex,
+                      &settings.ntripServer_CasterHost[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_CasterPort", serverIndex, settings.ntripServer_CasterPort[serverIndex]);
+        stringRecordN(newSettings, "ntripServer_CasterUser", serverIndex,
+                      &settings.ntripServer_CasterUser[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_CasterUserPW", serverIndex,
+                      &settings.ntripServer_CasterUserPW[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_MountPoint", serverIndex,
+                      &settings.ntripServer_MountPoint[serverIndex][0]);
+        stringRecordN(newSettings, "ntripServer_MountPointPW", serverIndex,
+                      &settings.ntripServer_MountPointPW[serverIndex][0]);
+    }
 
     // TCP Client
     stringRecord(newSettings, "debugPvtClient", settings.debugPvtClient);
@@ -1321,6 +1447,14 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "enableBeeper", settings.enableBeeper);
     stringRecord(newSettings, "um980MeasurementRateMs", settings.um980MeasurementRateMs);
     stringRecord(newSettings, "enableImuCompensationDebug", settings.enableImuCompensationDebug);
+
+    // Add corrections priorities
+    for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+    {
+        // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+        snprintf(tagText, sizeof(tagText), "correctionsPriority.%s", correctionsSourceNames[x]);
+        stringRecord(newSettings, tagText, settings.correctionsSourcesPriority[x]);
+    }
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1514,7 +1648,13 @@ void createSettingsString(char *newSettings)
 
     strcat(newSettings, "\0");
     systemPrintf("newSettings len: %d\r\n", strlen(newSettings));
-    systemPrintf("newSettings: %s\r\n", newSettings);
+
+    // systemPrintf("newSettings: %s\r\n", newSettings); // newSettings is >10k. Sending to systemPrint causes stack
+    // overflow
+    for (int x = 0; x < strlen(newSettings); x++) // Print manually
+        systemWrite(newSettings[x]);
+
+    systemPrintln();
 }
 
 // Add record with int
@@ -1577,6 +1717,22 @@ void stringRecord(char *settingsCSV, const char *id, uint64_t settingValue)
     strcat(settingsCSV, record);
 }
 
+// Add record with int
+void stringRecordN(char *settingsCSV, const char *id, int n, int settingValue)
+{
+    char record[100];
+    snprintf(record, sizeof(record), "%s_%d,%d,", id, n, settingValue);
+    strcat(settingsCSV, record);
+}
+
+// Add record with string
+void stringRecordN(char *settingsCSV, const char *id, int n, char *settingValue)
+{
+    char record[100];
+    snprintf(record, sizeof(record), "%s_%d,%s,", id, n, settingValue);
+    strcat(settingsCSV, record);
+}
+
 void writeToString(char *settingValueStr, bool value)
 {
     sprintf(settingValueStr, "%s", value ? "true" : "false");
@@ -1588,12 +1744,12 @@ void writeToString(char *settingValueStr, int value)
 }
 void writeToString(char *settingValueStr, uint64_t value)
 {
-    sprintf(settingValueStr, "%lu", value);
+    sprintf(settingValueStr, "%" PRIu64, value);
 }
 
 void writeToString(char *settingValueStr, uint32_t value)
 {
-    sprintf(settingValueStr, "%lu", value);
+    sprintf(settingValueStr, "%" PRIu32, value);
 }
 void writeToString(char *settingValueStr, double value)
 {
@@ -1647,8 +1803,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.dataPortBaud);
     else if (strcmp(settingName, "radioPortBaud") == 0)
         writeToString(settingValueStr, settings.radioPortBaud);
-    else if (strcmp(settingName, "surveyInStartingAccuracy") == 0)
-        writeToString(settingValueStr, settings.surveyInStartingAccuracy);
+    else if (strcmp(settingName, "zedSurveyInStartingAccuracy") == 0)
+        writeToString(settingValueStr, settings.zedSurveyInStartingAccuracy);
     else if (strcmp(settingName, "measurementRate") == 0)
         writeToString(settingValueStr, settings.measurementRate);
     else if (strcmp(settingName, "navigationRate") == 0)
@@ -1942,18 +2098,14 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.debugNtripServerState);
     else if (strcmp(settingName, "enableNtripServer") == 0)
         writeToString(settingValueStr, settings.enableNtripServer);
-    else if (strcmp(settingName, "ntripServer_CasterHost") == 0)
-        writeToString(settingValueStr, settings.ntripServer_CasterHost);
-    else if (strcmp(settingName, "ntripServer_CasterPort") == 0)
-        writeToString(settingValueStr, settings.ntripServer_CasterPort);
-    else if (strcmp(settingName, "ntripServer_CasterUser") == 0)
-        writeToString(settingValueStr, settings.ntripServer_CasterUser);
-    else if (strcmp(settingName, "ntripServer_CasterUserPW") == 0)
-        writeToString(settingValueStr, settings.ntripServer_CasterUserPW);
-    else if (strcmp(settingName, "ntripServer_MountPoint") == 0)
-        writeToString(settingValueStr, settings.ntripServer_MountPoint);
-    else if (strcmp(settingName, "ntripServer_MountPointPW") == 0)
-        writeToString(settingValueStr, settings.ntripServer_MountPointPW);
+
+    // The following values are handled below:
+    // ntripServer_CasterHost
+    // ntripServer_CasterPort
+    // ntripServer_CasterUser
+    // ntripServer_CasterUserPW
+    // ntripServer_MountPoint
+    // ntripServer_MountPointPW
 
     // TCP Client
     else if (strcmp(settingName, "debugPvtClient") == 0)
@@ -2038,6 +2190,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.um980MeasurementRateMs);
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         writeToString(settingValueStr, settings.enableImuCompensationDebug);
+
+    // correctionsPriority handled below
 
     // Add new settings above <------------------------------------------------------------>
 
@@ -2168,8 +2322,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
             }
         }
 
-
-
         // Scan for UM980 NMEA message rates
         if (knownSetting == false)
         {
@@ -2240,10 +2392,275 @@ void getSettingValue(const char *settingName, char *settingValueStr)
             }
         }
 
+        // Scan for corrections priorities
+        if (knownSetting == false)
+        {
+            for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+            {
+                char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s", correctionsSourceNames[x]);
+
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    writeToString(settingValueStr, settings.correctionsSourcesPriority[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
         if (knownSetting == false)
         {
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
         }
 
     } // End last strcpy catch
+}
+
+// List available settings and their type in CSV
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
+void printAvailableSettings()
+{
+    systemPrint("printDebugMessages,bool,");
+    systemPrint("enableSD,bool,");
+    systemPrint("enableDisplay,bool,");
+    systemPrint("maxLogTime_minutes,int,");
+    systemPrint("maxLogLength_minutes,int,");
+    systemPrint("observationSeconds,int,");
+    systemPrint("observationPositionAccuracy,float,");
+    systemPrint("fixedBase,bool,");
+    systemPrint("fixedBaseCoordinateType,bool,");
+    systemPrint("fixedEcefX,double,");
+    systemPrint("fixedEcefY,double,");
+    systemPrint("fixedEcefZ,double,");
+    systemPrint("fixedLat,double,");
+    systemPrint("fixedLong,double,");
+    systemPrint("fixedAltitude,double,");
+    systemPrint("dataPortBaud,uint32_t,");
+    systemPrint("radioPortBaud,uint32_t,");
+    systemPrint("surveyInStartingAccuracy,float,");
+    systemPrint("measurementRate,uint16_t,");
+    systemPrint("navigationRate,uint16_t,");
+    systemPrint("debugGnss,bool,");
+    systemPrint("enableHeapReport,bool,");
+    systemPrint("enableTaskReports,bool,");
+    systemPrint("dataPortChannel,muxConnectionType_e,");
+    systemPrint("spiFrequency,uint16_t,");
+    systemPrint("enableLogging,bool,");
+    systemPrint("enableARPLogging,bool,");
+    systemPrint("ARPLoggingInterval_s,uint16_t,");
+    systemPrint("sppRxQueueSize,uint16_t,");
+    systemPrint("sppTxQueueSize,uint16_t,");
+    systemPrint("dynamicModel,uint8_t,");
+    systemPrint("lastState,SystemState,");
+    systemPrint("enableResetDisplay,bool,");
+    systemPrint("resetCount,uint8_t,");
+    systemPrint("enableExternalPulse,bool,");
+    systemPrint("externalPulseTimeBetweenPulse_us,uint64_t,");
+    systemPrint("externalPulseLength_us,uint64_t,");
+    systemPrint("externalPulsePolarity,pulseEdgeType_e,");
+    systemPrint("enableExternalHardwareEventLogging,bool,");
+    systemPrint("enableUART2UBXIn,bool,");
+
+    systemPrint("ubxMessageRates,uint8_t,");
+    systemPrintf("ubxConstellations,ubxConstellation[%d],",
+                 sizeof(settings.ubxConstellations) / sizeof(ubxConstellation));
+
+    systemPrintf("profileName,char[%d],", sizeof(settings.profileName) / sizeof(char));
+
+    systemPrint("serialTimeoutGNSS,int16_t,");
+
+    // Point Perfect
+    systemPrintf("pointPerfectDeviceProfileToken,char[%d],",
+                 sizeof(settings.pointPerfectDeviceProfileToken) / sizeof(char));
+    systemPrint("pointPerfectCorrectionsSource,PointPerfect_Corrections_Source,");
+    systemPrint("autoKeyRenewal,bool,");
+    systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
+    systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));
+    systemPrintf("pointPerfectLBandTopic,char[%d],", sizeof(settings.pointPerfectLBandTopic) / sizeof(char));
+    systemPrintf("pointPerfectCurrentKey,char[%d],", sizeof(settings.pointPerfectCurrentKey) / sizeof(char));
+    systemPrint("pointPerfectCurrentKeyDuration,uint64_t,");
+    systemPrint("pointPerfectCurrentKeyStart,uint64_t,");
+
+    systemPrintf("pointPerfectNextKey,char[%d],", sizeof(settings.pointPerfectNextKey) / sizeof(char));
+    systemPrint("pointPerfectNextKeyDuration,uint64_t,");
+    systemPrint("pointPerfectNextKeyStart,uint64_t,");
+
+    systemPrint("lastKeyAttempt,uint64_t,");
+    systemPrint("updateGNSSSettings,bool,");
+    systemPrint("LBandFreq,uint32_t,");
+
+    systemPrint("debugPpCertificate,bool,");
+
+    // Time Zone - Default to UTC
+    systemPrint("timeZoneHours,int8_t,");
+    systemPrint("timeZoneMinutes,int8_t,");
+    systemPrint("timeZoneSeconds,int8_t,");
+
+    // Debug settings
+    systemPrint("enablePrintState,bool,");
+    systemPrint("enablePrintPosition,bool,");
+    systemPrint("enablePrintIdleTime,bool,");
+    systemPrint("enablePrintBatteryMessages,bool,");
+    systemPrint("enablePrintRoverAccuracy,bool,");
+    systemPrint("enablePrintBadMessages,bool,");
+    systemPrint("enablePrintLogFileMessages,bool,");
+    systemPrint("enablePrintLogFileStatus,bool,");
+    systemPrint("enablePrintRingBufferOffsets,bool,");
+    systemPrint("enablePrintStates,bool,");
+    systemPrint("enablePrintDuplicateStates,bool,");
+    systemPrint("enablePrintRtcSync,bool,");
+    systemPrint("radioType,RadioType_e,");
+    systemPrint("espnowPeers,uint8_t[5][6],");
+    systemPrint("espnowPeerCount,uint8_t,");
+    systemPrint("enableRtcmMessageChecking,bool,");
+    systemPrint("bluetoothRadioType,BluetoothRadioType_e,");
+    systemPrint("runLogTest,bool,");
+    systemPrint("espnowBroadcast,bool,");
+    systemPrint("antennaHeight,int16_t,");
+    systemPrint("antennaReferencePoint,float,");
+    systemPrint("echoUserInput,bool,");
+    systemPrint("uartReceiveBufferSize,int,");
+    systemPrint("gnssHandlerBufferSize,int,");
+
+    systemPrint("enablePrintBufferOverrun,bool,");
+    systemPrint("enablePrintSDBuffers,bool,");
+    systemPrint("periodicDisplay,PeriodicDisplay_t,");
+    systemPrint("periodicDisplayInterval,uint32_t,");
+
+    systemPrint("rebootSeconds,uint32_t,");
+    systemPrint("forceResetOnSDFail,bool,");
+
+    systemPrint("minElev,uint8_t,");
+    systemPrintf("ubxMessageRatesBase,uint8_t[%d],", MAX_UBX_MSG_RTCM);
+
+    systemPrint("coordinateInputType,CoordinateInputType,");
+    systemPrint("lbandFixTimeout_seconds,uint16_t,");
+    systemPrint("minCNO_F9P,int16_t,");
+    systemPrint("serialGNSSRxFullThreshold,uint16_t,");
+    systemPrint("btReadTaskPriority,uint8_t,");
+    systemPrint("gnssReadTaskPriority,uint8_t,");
+    systemPrint("handleGnssDataTaskPriority,uint8_t,");
+    systemPrint("btReadTaskCore,uint8_t,");
+    systemPrint("gnssReadTaskCore,uint8_t,");
+    systemPrint("handleGnssDataTaskCore,uint8_t,");
+    systemPrint("gnssUartInterruptsCore,uint8_t,");
+    systemPrint("bluetoothInterruptsCore,uint8_t,");
+    systemPrint("i2cInterruptsCore,uint8_t,");
+    systemPrint("shutdownNoChargeTimeout_s,uint32_t,");
+    systemPrint("disableSetupButton,bool,");
+    systemPrint("useI2cForLbandCorrections,bool,");
+    systemPrint("useI2cForLbandCorrectionsConfigured,bool,");
+
+    // Ethernet
+    systemPrint("enablePrintEthernetDiag,bool,");
+    systemPrint("ethernetDHCP,bool,");
+    systemPrint("ethernetIP,IPAddress,");
+    systemPrint("ethernetDNS,IPAddress,");
+    systemPrint("ethernetGateway,IPAddress,");
+    systemPrint("ethernetSubnet,IPAddress,");
+    systemPrint("httpPort,uint16_t,");
+
+    // WiFi
+    systemPrint("debugWifiState,bool,");
+    systemPrint("wifiConfigOverAP,bool,");
+    systemPrintf("wifiNetworks,WiFiNetwork[%d],", MAX_WIFI_NETWORKS);
+
+    // Network layer
+    systemPrint("defaultNetworkType,uint8_t,");
+    systemPrint("debugNetworkLayer,bool,");
+    systemPrint("enableNetworkFailover,bool,");
+    systemPrint("printNetworkStatus,bool,");
+
+    // Multicast DNS Server
+    systemPrint("mdnsEnable,bool,");
+
+    // MQTT Client (PointPerfect)
+    systemPrint("debugMqttClientData,bool,");
+    systemPrint("debugMqttClientState,bool,");
+    systemPrint("useEuropeCorrections,bool,");
+
+    // NTP
+    systemPrint("debugNtp,bool,");
+    systemPrint("ethernetNtpPort,uint16_t,");
+    systemPrint("enableNTPFile,bool,");
+    systemPrint("ntpPollExponent,uint8_t,");
+    systemPrint("ntpPrecision,int8_t,");
+    systemPrint("ntpRootDelay,uint32_t,");
+    systemPrint("ntpRootDispersion,uint32_t,");
+    systemPrintf("ntpReferenceId,char[%d],", sizeof(settings.ntpReferenceId) / sizeof(char));
+
+    // NTRIP Client
+    systemPrint("debugNtripClientRtcm,bool,");
+    systemPrint("debugNtripClientState,bool,");
+    systemPrint("enableNtripClient,bool,");
+    systemPrintf("ntripClient_CasterHost,char[%d],", sizeof(settings.ntripClient_CasterHost) / sizeof(char));
+    systemPrint("ntripClient_CasterPort,uint16_t,");
+    systemPrintf("ntripClient_CasterUser,char[%d],", sizeof(settings.ntripClient_CasterUser) / sizeof(char));
+    systemPrintf("ntripClient_MountPoint,char[%d],", sizeof(settings.ntripClient_MountPoint) / sizeof(char));
+    systemPrintf("ntripClient_MountPointPW,char[%d],", sizeof(settings.ntripClient_MountPointPW) / sizeof(char));
+    systemPrint("ntripClient_TransmitGGA,bool,");
+
+    // NTRIP Server
+    systemPrint("debugNtripServerRtcm,bool,");
+    systemPrint("debugNtripServerState,bool,");
+    systemPrint("enableNtripServer,bool,");
+    systemPrint("ntripServer_StartAtSurveyIn,bool,");
+    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+    {
+        systemPrintf("ntripServer_CasterHost_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterHost[0]));
+        systemPrintf("ntripServer_CasterPort_%d,uint16_t,", serverIndex);
+        systemPrintf("ntripServer_CasterUser_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterUser[0]));
+        systemPrintf("ntripServer_CasterUserPW_%d,char[%d],", serverIndex,
+                     sizeof(settings.ntripServer_CasterUserPW[0]));
+        systemPrintf("ntripServer_MountPoint_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_MountPoint[0]));
+        systemPrintf("ntripServer_MountPointPW_%d,char[%d],", serverIndex,
+                     sizeof(settings.ntripServer_MountPointPW[0]));
+    }
+
+    // TCP Server
+    systemPrint("debugPvtServer,bool,");
+    systemPrint("enablePvtServer,bool,");
+    systemPrint("pvtUdpServerPort,uint16_t,");
+
+    systemPrintf("um980MessageRatesNMEA,char[%d],", sizeof(settings.um980MessageRatesNMEA) / sizeof(float));
+    systemPrintf("um980MessageRatesRTCMRover,char[%d],", sizeof(settings.um980MessageRatesRTCMRover) / sizeof(float));
+    systemPrintf("um980MessageRatesRTCMBase,char[%d],", sizeof(settings.um980MessageRatesRTCMBase) / sizeof(float));
+    systemPrintf("um980Constellations,char[%d],", sizeof(settings.um980Constellations) / sizeof(uint8_t));
+    systemPrint("minCNO_um980,int16_t,");
+    systemPrint("enableTiltCompensation,bool,");
+    systemPrint("tiltPoleLength,float,");
+    systemPrint("rtcmTimeoutBeforeUsingLBand_s,uint8_t,");
+    systemPrint("enableImuDebug,bool,");
+
+    // Automatic Firmware Update
+    systemPrint("debugFirmwareUpdate,bool,");
+    systemPrint("enableAutoFirmwareUpdate,bool,");
+    systemPrint("autoFirmwareCheckMinutes,uint32_t,");
+
+    systemPrint("debugCorrections,bool,");
+    systemPrint("enableCaptivePortal,bool,");
+
+    // Boot times
+    systemPrint("printBootTimes,bool,");
+
+    // Partition table
+    systemPrint("printPartitionTable,bool,");
+
+    // Measurement scale
+    systemPrint("measurementScale,uint8_t,");
+
+    systemPrint("debugWiFiConfig,bool,");
+    systemPrint("enablePsram,bool,");
+    systemPrint("printTaskStartStop,bool,");
+    systemPrint("psramMallocLevel,uint16_t,");
+    systemPrint("um980SurveyInStartingAccuracy,float,");
+    systemPrint("enableBeeper,bool,");
+    systemPrint("um980MeasurementRateMs,uint16_t,");
+    systemPrint("enableImuCompensationDebug,bool,");
+
+    // TODO: Would correctionsPriority.Bluetooth,int, correctionsPriority.ESP-Now,int, etc. be more useful?
+    systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
+
+    systemPrintln();
 }
