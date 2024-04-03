@@ -315,10 +315,8 @@ void mqttClientReceiveMessage(int messageSize)
                 if (strstr(topic, spartnTopic) != nullptr)
                 {
                     // SPARTN
-                    // I think that MQTT SPARTN data can only arrive via WiFi - not (yet) via Ethernet or cellular?
-                    // TODO: check this and update as necessary
-                    updateCorrectionsLastSeen(CORR_WIFI_IP);
-                    if (isHighestRegisteredCorrectionsSource(CORR_WIFI_IP))
+                    updateCorrectionsLastSeen(CORR_IP);
+                    if (isHighestRegisteredCorrectionsSource(CORR_IP))
                     {
                         gnssPushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;

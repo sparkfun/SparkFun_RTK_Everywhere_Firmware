@@ -824,10 +824,8 @@ void ntripClientUpdate()
 
                         netIncomingRTCM = true;
 
-                        // I think that NTRIP data can only arrive via WiFi - not (yet) via Ethernet or cellular?
-                        // TODO: check this and update as necessary
-                        updateCorrectionsLastSeen(CORR_WIFI_TCP);
-                        if (isHighestRegisteredCorrectionsSource(CORR_WIFI_TCP))
+                        updateCorrectionsLastSeen(CORR_TCP);
+                        if (isHighestRegisteredCorrectionsSource(CORR_TCP))
                         {
                             // Push RTCM to GNSS module over I2C / SPI
                             gnssPushRawData(rtcmData, rtcmCount);

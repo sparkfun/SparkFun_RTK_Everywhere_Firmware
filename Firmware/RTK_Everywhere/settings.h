@@ -149,12 +149,8 @@ typedef enum
 {
     // Change the order of these to set the default priority. First (0) is highest
     CORR_BLUETOOTH = 0, // Added - Tasks.ino (sendGnssBuffer)
-    CORR_WIFI_IP, // Added - MQTT_Client.ino - TODO: disentangle WiFi, Ethernet and Cellular
-    CORR_WIFI_TCP, // Added - NtripClient.ino - TODO: disentangle WiFi, Ethernet and Cellular
-    CORR_ETHERNET_IP, // TODO: see WiFi above
-    CORR_ETHERNET_TCP, // TODO: see WiFi above
-    CORR_CELLULAR_IP, // TODO: see WiFi above
-    CORR_CELLULAR_TCP, // TODO: see WiFi above
+    CORR_IP, // Added - MQTT_Client.ino
+    CORR_TCP, // Added - NtripClient.ino
     CORR_LBAND, // Added - menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
     CORR_RADIO_EXT, // TODO: this needs a meeting. Data goes direct from RADIO connector to ZED - or X5. How to disable / enable it? Via port protocol?
     CORR_RADIO_LORA, // TODO: this needs a meeting. UM980 only? Does data go direct from LoRa to UM980?
@@ -167,12 +163,9 @@ const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
     // These must match correctionsSource above
     "Bluetooth",
-    "WiFi IP (PointPerfect/MQTT)",
-    "WiFi TCP (NTRIP)",
-    "Ethernet IP (PointPerfect/MQTT)",
-    "Ethernet TCP (NTRIP Client)",
+    "IP (PointPerfect/MQTT)",
+    "TCP (NTRIP)",
     "L-Band",
-    "Cellular",
     "External Radio",
     "LoRa Radio",
     "ESP-Now",
