@@ -362,10 +362,16 @@ void beginTilt()
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
     // Unknown new command for v2
-    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From tock firmware
+    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From stock firmware
 
     // Trigger IMU on PPS from UM980
     result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING");
+
+    // Enable magnetic field mode
+    // 'it is recommended to use the magnetic field initialization mode to speed up the initialization process'
+    result &= tiltSensor->sendCommand("AHRS=ENABLE"); 
+
+    result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE"); 
 
     if (result == true)
     {
