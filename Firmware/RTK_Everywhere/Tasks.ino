@@ -1364,6 +1364,11 @@ void buttonCheckTask(void *e)
                 // Beep if we are not locally compiled or a release candidate
                 if (ENABLE_DEVELOPER == false)
                     beepDurationMs(500); // Announce powering down
+
+                tickerStop(); // Stop controlling LEDs via ticker task
+
+                gnssStatusLedOn();
+                bluetoothLedOn();
             }
         }    // End productVariant == Torch
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic

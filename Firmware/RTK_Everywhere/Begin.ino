@@ -819,12 +819,16 @@ void tickerBegin()
     }
 }
 
-//Stop any ticker tasks
+//Stop any ticker tasks and PWM control
 void tickerStop()
 {
     bluetoothLedTask.detach();
     gnssLedTask.detach();
     batteryLedTask.detach();
+
+    ledcDetachPin(pin_bluetoothStatusLED);
+    ledcDetachPin(pin_gnssStatusLED);
+    ledcDetachPin(pin_batteryStatusLED);
 }
 
 // Configure the battery fuel gauge
