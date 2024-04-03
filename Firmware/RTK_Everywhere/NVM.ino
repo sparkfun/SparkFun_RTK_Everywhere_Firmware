@@ -1888,8 +1888,8 @@ bool getProfileNameFromUnit(uint8_t profileUnit, char *profileName, uint8_t prof
 
 // Return profile number based on units
 // Profiles may not be sequential (user might have empty profile #2, but filled #3) so we look up the profile unit and
-// return the count
-uint8_t getProfileNumberFromUnit(uint8_t profileUnit)
+// return the count. Return -1 if profileUnit is not found.
+int8_t getProfileNumberFromUnit(uint8_t profileUnit)
 {
     uint8_t located = 0;
 
@@ -1906,7 +1906,7 @@ uint8_t getProfileNumberFromUnit(uint8_t profileUnit)
     }
     log_d("Profile unit %d not found", profileUnit);
 
-    return (0);
+    return (-1);
 }
 
 // Record large character blob to file

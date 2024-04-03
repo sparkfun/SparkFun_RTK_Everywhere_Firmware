@@ -102,7 +102,6 @@ void menuCorrectionsPriorities()
 bool validateCorrectionPriorities()
 {
     // Check priorities have been initialized
-    // TODO: this should probably be somewhere else. But not sure where...?
     if (settings.correctionsSourcesPriority[0] == -1)
         return false;
 

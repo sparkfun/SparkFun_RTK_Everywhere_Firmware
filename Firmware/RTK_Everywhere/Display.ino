@@ -1308,14 +1308,17 @@ void paintHorizontalAccuracy(displayCoords textCoords)
 // Display clock with moving hands
 void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 {
-    // Animate icon to show system running
-    static uint8_t clockIconDisplayed = CLOCK_ICON_STATES - 1;
-    clockIconDisplayed++;                    // Goto next icon
-    clockIconDisplayed %= CLOCK_ICON_STATES; // Wrap
+    // Animate icon to show system running. The 2* makes the blink correct
+    static uint8_t clockIconDisplayed = (2 * CLOCK_ICON_STATES) - 1;
+    clockIconDisplayed++; // Goto next icon
+    clockIconDisplayed %= (2 * CLOCK_ICON_STATES); // Wrap
 
     iconPropertyBlinking prop;
-    prop.icon = ClockIconProperties.iconDisplay[clockIconDisplayed][present.display_type];
-    prop.duty = 0b01010101;
+    prop.icon = ClockIconProperties.iconDisplay[clockIconDisplayed / 2][present.display_type];
+    if (blinking)
+        prop.duty = 0b01010101;
+    else
+        prop.duty = 0b11111111;
     iconList->push_back(prop);
 
     displayCoords textCoords;
@@ -1717,19 +1720,21 @@ void printTextwithKerning(const char *newText, uint8_t xPos, uint8_t yPos, uint8
 // Show transmission of RTCM correction data packets to NTRIP caster
 void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
 {
-    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
-    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
-
     // Determine if the NTRIP Server is casting
     bool casting = false;
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
         casting |= online.ntripServer[serverIndex];
 
-    // Note: the "yPos - 1" is potentially brittle. TODO: find a better solution for this
+    uint8_t xPos = CrossHairProperties.iconDisplay[present.display_type].xPos;
+    uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
+
+    if (present.display_type == DISPLAY_64x48)
+        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle. TODO: find a better solution
+
     if (casting)
-        printTextCenter("Casting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
     else
-        printTextCenter("Xmitting", yPos - 1, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
 
     xPos = SIVIconProperties.iconDisplay[present.display_type].xPos;
     yPos = SIVIconProperties.iconDisplay[present.display_type].yPos;
@@ -1771,7 +1776,8 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     paintResets();
 }
 
-// Show connecting to NTRIP caster service
+// Show connecting to NTRIP caster service.
+// Note: NOT USED. TODO: if this is used, the text position needs to be changed for 128x64
 void paintConnectingToNtripCaster()
 {
     int yPos = 18;
@@ -2254,19 +2260,29 @@ void paintProfile(uint8_t profileUnit)
     if (getProfileNameFromUnit(profileUnit, profileName, sizeof(profileName)) ==
         true) // Load the profile name, limited to 8 chars
     {
-        settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
-        recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+        // Lookup profileNumber based on unit.
+        // getProfileNumberFromUnit should not fail (return -1), because we have already called getProfileNameFromUnit.
+        int8_t profileNumber = getProfileNumberFromUnit(profileUnit);
 
-        // Lookup profileNumber based on unit
-        uint8_t profileNumber = getProfileNumberFromUnit(profileUnit);
-        recordProfileNumber(profileNumber); // Update internal settings with user's choice, mark unit for config update
+        if (profileNumber >= 0)
+        {
+            settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
+            recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
-        log_d("Going to profile number %d from unit %d, name '%s'", profileNumber, profileUnit, profileName);
+            recordProfileNumber((uint8_t)profileNumber); // Update internal settings with user's choice, mark unit for config update
 
-        snprintf(profileMessage, sizeof(profileMessage), "Loading %s", profileName);
-        displayMessage(profileMessage, 2000);
-        ESP.restart(); // Profiles require full restart to take effect
+            log_d("Going to profile number %d from unit %d, name '%s'", profileNumber, profileUnit, profileName);
+
+            snprintf(profileMessage, sizeof(profileMessage), "Loading %s", profileName);
+            displayMessage(profileMessage, 2000);
+            ESP.restart(); // Profiles require full restart to take effect
+        }
     }
+
+    log_d("Cannot go to profileUnit %d. No profile name / number. Restarting...", profileUnit);
+    snprintf(profileMessage, sizeof(profileMessage), "Invalid profile%d", profileUnit);
+    displayMessage(profileMessage, 2000);
+    ESP.restart(); // Something bad happened. Restart...
 }
 
 // Display unit self-tests until user presses a button to exit
@@ -2434,168 +2450,62 @@ void paintSystemTest()
     }
 }
 
-// Display the setup profiles
-void paintDisplaySetupProfile(const char *firstState)
-{
-    int index;
-    int itemsDisplayed;
-    char profileName[8 + 1];
-
-    // Display the first state if this is the first profile
-    itemsDisplayed = 0;
-    if (displayProfile == 0)
-    {
-        printTextCenter(firstState, 12 * itemsDisplayed, QW_FONT_8X16, 1, false);
-        itemsDisplayed++;
-    }
-
-    // Display Bubble if this is the second profile
-    if (displayProfile <= 1)
-    {
-        printTextCenter("Bubble", 12 * itemsDisplayed, QW_FONT_8X16, 1, false);
-        itemsDisplayed++;
-    }
-
-    // Display Config if this is the third profile
-    if (displayProfile <= 2)
-    {
-        printTextCenter("Config", 12 * itemsDisplayed, QW_FONT_8X16, 1, false);
-        itemsDisplayed++;
-    }
-
-    //  displayProfile  itemsDisplayed  index
-    //        0               3           0
-    //        1               2           0
-    //        2               1           0
-    //        3               0           0
-    //        4               0           1
-    //        5               0           2
-    //        n >= 3          0           n - 3
-
-    // Display the profile names
-    for (index = (displayProfile >= 3) ? displayProfile - 3 : 0; itemsDisplayed < 4; itemsDisplayed++)
-    {
-        // Lookup next available profile, limit to 8 characters
-        getProfileNameFromUnit(index, profileName, sizeof(profileName));
-
-        profileName[6] = 0; // Shorten profileName to 6 characters
-
-        char miniProfileName[16] = {0};
-        snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", index, profileName); // Prefix with index #
-
-        printTextCenter(miniProfileName, 12 * itemsDisplayed, QW_FONT_8X16, 1, itemsDisplayed == 3);
-        index++;
-    }
-}
-
-// Show different menu 'buttons' to allow user to pause on one to select it
+// Show different menu 'buttons'.
+// The first button is always highlighted, ready for selection. The user needs to double tap it to select it
 void paintDisplaySetup()
 {
-    if (setupState == STATE_ROVER_NOT_STARTED)
+    constructSetupDisplay(&setupButtons); // Construct the vector (linked list) of buttons
+
+    uint8_t maxButtons = ((present.display_type == DISPLAY_128x64) ? 5 : 4);
+
+    uint8_t printedButtons = 0;
+
+    uint8_t thisIsButton = 0;
+
+    for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
     {
-        if (present.ethernet_ws5500 == true)
+        setupButton theButton = *it;
+
+        if (thisIsButton >= setupSelectedButton) // Should we display this button based on the global setupSelectedButton?
         {
-            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
+            if (printedButtons < maxButtons) // Do we have room to display it?
+            {
+                if (theButton.newState == STATE_PROFILE)
+                {
+                    int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
+                    char miniProfileName[nameWidth] = {0};
+                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", theButton.newProfile, theButton.name); // Prefix with index #
+                    printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                }
+                else
+                    printTextCenter(theButton.name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                printedButtons++;
+            }
         }
-        else
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, true);
-            printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-    }
-    else if (setupState == STATE_BASE_NOT_STARTED)
-    {
-        if (present.ethernet_ws5500 == true)
-        {
-            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, true); // string, y, font type, kerning, inverted
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-        else
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, true);
-            printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-    }
-    else if (setupState == STATE_NTPSERVER_NOT_STARTED)
-    {
-        {
-            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, true);
-            printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, false);
-        }
-    }
-    else if (setupState == STATE_CONFIG_VIA_ETH_NOT_STARTED)
-    {
-        printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-        printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-        printTextCenter("NTP", 12 * 2, QW_FONT_8X16, 1, false);
-        printTextCenter("Cfg Eth", 12 * 3, QW_FONT_8X16, 1, true);
-    }
-    else if (setupState == STATE_WIFI_CONFIG_NOT_STARTED)
-    {
-        if (present.ethernet_ws5500 == true)
-        {
-            printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-            printTextCenter("NTP", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Cfg Eth", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("CfgWiFi", 12 * 3, QW_FONT_8X16, 1, true);
-        }
-        else
-        {
-            printTextCenter("Mark", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Rover", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Base", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 3, QW_FONT_8X16, 1, true);
-        }
+
+        thisIsButton++;
     }
 
-    // If we are on an L-Band unit, display GetKeys option
-    else if (setupState == STATE_KEYS_NEEDED)
+    // If we printed less than maxButtons, print more.
+    // This causes Base to be printed below Exit, indicating you can "go round again".
+    // I think that's what we want?
+    // If not, we could comment this and leave the display blank below Exit.
+    while (printedButtons < maxButtons)
     {
-        printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
-        printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
-        printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-        printTextCenter("GetKeys", 12 * 3, QW_FONT_8X16, 1, true);
-    }
+        for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
+        {
+            setupButton theButton = *it;
 
-    else if (setupState == STATE_ESPNOW_PAIRING_NOT_STARTED)
-    {
-        if (present.ethernet_ws5500 == true)
-        {
-            printTextCenter("NTP", 12 * 0, QW_FONT_8X16, 1, false); // string, y, font type, kerning, inverted
-            printTextCenter("Cfg Eth", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("CfgWiFi", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-        }
-        else if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
-        {
-            // If we are on an L-Band unit, scroll GetKeys option
-            printTextCenter("Base", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("GetKeys", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
-        }
-        else
-        {
-            printTextCenter("Rover", 12 * 0, QW_FONT_8X16, 1, false);
-            printTextCenter("Base", 12 * 1, QW_FONT_8X16, 1, false);
-            printTextCenter("Config", 12 * 2, QW_FONT_8X16, 1, false);
-            printTextCenter("E-Pair", 12 * 3, QW_FONT_8X16, 1, true);
+            if (printedButtons < maxButtons) // Do we have room to display it?
+            {
+                printTextCenter(theButton.name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                printedButtons++;
+            }
+
+            if (printedButtons == maxButtons)
+                break;
         }
     }
-
-    else if (setupState == STATE_PROFILE)
-        paintDisplaySetupProfile("Base");
 }
 
 // Given text, and location, print text center of the screen
@@ -2632,6 +2542,24 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
             xBoxEnd = oled->getWidth() - 1;
 
         oled->rectangleFill(xBoxStart, yPos, xBoxEnd, 12, 1); // x, y, width, height, color
+    }
+}
+
+// Given text, and location, print text to the screen
+void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontType, uint8_t kerning) // text, x, y, font type, kearning, inverted
+{
+    oled->setFont(fontType);
+    oled->setDrawMode(grROPXOR);
+
+    uint8_t fontWidth = fontType.width;
+    if (fontWidth == 8)
+        fontWidth = 7; // 8x16, but widest character is only 7 pixels.
+
+    for (int x = 0; x < strlen(text); x++)
+    {
+        oled->setCursor(xPos, yPos);
+        oled->print(text[x]);
+        xPos += fontWidth + kerning;
     }
 }
 

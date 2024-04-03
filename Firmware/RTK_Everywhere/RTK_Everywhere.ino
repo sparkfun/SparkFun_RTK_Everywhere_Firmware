@@ -175,7 +175,7 @@ TwoWire *i2cDisplay = nullptr;
 
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
-uint8_t displayProfile;                    // Range: 0 - (MAX_PROFILE_COUNT - 1)
+uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
 uint8_t profileNumber = MAX_PROFILE_COUNT; // profileNumber gets set once at boot to save loading time
 char profileNames[MAX_PROFILE_COUNT][50];  // Populated based on names found in LittleFS and SD
 char settingsFileName[60];                 // Contains the %s_Settings_%d.txt with current profile number set
@@ -675,8 +675,10 @@ uint32_t rtcmLastReceived;
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
-uint32_t lastSetupMenuChange; // Auto-selects the setup menu option after 1500ms
+uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
+uint8_t setupSelectedButton = 0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
+std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'butttons'
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
