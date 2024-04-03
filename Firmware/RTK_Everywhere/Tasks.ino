@@ -1381,50 +1381,48 @@ void buttonCheckTask(void *e)
             }
             else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) && (userBtn->pressedFor(500)))
             {
+                lastSetupMenuChange = millis(); // Prevent a timeout during state change
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_TEST);
-                lastTestMenuChange = millis(); // Avoid exiting test menu for 1s
             }
             else if (singleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
             {
                 switch (systemState)
                 {
-                // If we are in any running state, change to STATE_DISPLAY_SETUP and require a double tap to exit
+                // If we are in any running state, change to STATE_DISPLAY_SETUP
+                case STATE_ROVER_NOT_STARTED:
+                case STATE_ROVER_NO_FIX:
+                case STATE_ROVER_FIX:
+                case STATE_ROVER_RTK_FLOAT:
+                case STATE_ROVER_RTK_FIX:
                 case STATE_BASE_NOT_STARTED:
                 case STATE_BASE_TEMP_SETTLE:
                 case STATE_BASE_TEMP_SURVEY_STARTED:
                 case STATE_BASE_TEMP_TRANSMITTING:
                 case STATE_BASE_FIXED_NOT_STARTED:
                 case STATE_BASE_FIXED_TRANSMITTING:
-                case STATE_ROVER_NOT_STARTED:
-                case STATE_ROVER_NO_FIX:
-                case STATE_ROVER_FIX:
-                case STATE_ROVER_RTK_FLOAT:
-                case STATE_ROVER_RTK_FIX:
+                case STATE_WIFI_CONFIG_NOT_STARTED:
+                case STATE_WIFI_CONFIG:
+                case STATE_ESPNOW_PAIRING_NOT_STARTED:
+                case STATE_ESPNOW_PAIRING:
                 case STATE_NTPSERVER_NOT_STARTED:
                 case STATE_NTPSERVER_NO_SYNC:
                 case STATE_NTPSERVER_SYNC:
-                case STATE_WIFI_CONFIG_NOT_STARTED:
-                case STATE_WIFI_CONFIG:
                 case STATE_CONFIG_VIA_ETH_NOT_STARTED:
-                case STATE_ESPNOW_PAIRING_NOT_STARTED:
-                case STATE_ESPNOW_PAIRING:
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
                     setupSelectedButton = 0; // Highlight the first button
                     break;
 
-                case STATE_CONFIG_VIA_ETH_STARTED:
-                case STATE_CONFIG_VIA_ETH:
-                    // If the user presses the button during configure-via-ethernet, then do a complete restart into
-                    // Base mode
-                    requestChangeState(STATE_CONFIG_VIA_ETH_RESTART_BASE);
-                    break;
-
-                case STATE_PROFILE:
-                    // If the user presses the setup button during a profile change, do nothing
-                    // Allow system to return to lastSystemState
+                case STATE_DISPLAY_SETUP:
+                    // If we are displaying the setup menu, a single tap will cycle through possible system states
+                    // Exit into new system state on double tap - see below
+                    // Exit display setup into previous state after ~10s - see updateSystemState()
+                    lastSetupMenuChange = millis();
+                    setupSelectedButton++;
+                    if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                        setupSelectedButton = 0;
                     break;
 
                 case STATE_TEST:
@@ -1433,21 +1431,43 @@ void buttonCheckTask(void *e)
 
                 case STATE_TESTING:
                     // If we are in testing, return to Base Not Started
+                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
                     requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
 
-                case STATE_DISPLAY_SETUP:
-                    // If we are displaying the setup menu, a single tap will cycle through possible system states
-                    // Exit into new system state on double tap
-                    // Exit display setup into previous state after ~30s in updateSystemState()
-                    setupSelectedButton++;
-                    if (setupSelectedButton == setupButtons.size()) // Limit reached?
-                        setupSelectedButton = 0;
+                case STATE_PROFILE:
+                    // If the user presses the setup button during a profile change, do nothing
+                    // Allow system to return to lastSystemState
                     break;
+
+                case STATE_CONFIG_VIA_ETH_STARTED:
+                case STATE_CONFIG_VIA_ETH:
+                    // If the user presses the button during configure-via-ethernet,
+                    // do a complete restart into Base mode
+                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    requestChangeState(STATE_CONFIG_VIA_ETH_RESTART_BASE);
+                    break;
+
+                /* These lines are commented to allow default to print the diagnostic.
+                case STATE_KEYS_STARTED:
+                case STATE_KEYS_NEEDED:
+                case STATE_KEYS_WIFI_STARTED:
+                case STATE_KEYS_WIFI_CONNECTED:
+                case STATE_KEYS_WIFI_TIMEOUT:
+                case STATE_KEYS_EXPIRED:
+                case STATE_KEYS_DAYS_REMAINING:
+                case STATE_KEYS_LBAND_CONFIGURE:
+                case STATE_KEYS_LBAND_ENCRYPTED:
+                case STATE_KEYS_PROVISION_WIFI_STARTED:
+                case STATE_KEYS_PROVISION_WIFI_CONNECTED:
+                    // Abort key download?
+                    // TODO: check this! I think we want to be able to terminate STATE_KEYS via the button?
+                    break;
+                */
 
                 default:
-                    systemPrintf("ButtonCheckTask single tap - unknown system state: %d\r\n", systemState);
-                    requestChangeState(STATE_BASE_NOT_STARTED);
+                    systemPrintf("buttonCheckTask single tap - untrapped system state: %d\r\n", systemState);
+                    //requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End singleTap switch (systemState)
             } // End singleTap
@@ -1457,7 +1477,10 @@ void buttonCheckTask(void *e)
                 {
                 case STATE_DISPLAY_SETUP:
                     {
+                        // If we are displaying the setup menu, a single tap will cycle through possible system states - see above
                         // Exit into new system state on double tap
+                        // Exit display setup into previous state after ~10s - see updateSystemState()
+                        lastSetupMenuChange = millis(); // Prevent a timeout during state change
                         uint8_t thisIsButton = 0;
                         for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
                         {
@@ -1477,7 +1500,6 @@ void buttonCheckTask(void *e)
 
                                 break;
                             }
-
                             thisIsButton++;
                         }
                     }

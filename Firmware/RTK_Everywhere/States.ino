@@ -401,13 +401,8 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_PROFILE): {
-            // Do nothing - display only
-        }
-        break;
-
         case (STATE_DISPLAY_SETUP): {
-            if (millis() - lastSetupMenuChange > 30000) // Exit Setup after 30s
+            if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
             {
                 //forceSystemStateUpdate = true; // Immediately go to this new state
                 changeState(lastSystemState);  // Return to the last system state
@@ -507,6 +502,11 @@ void stateUpdate()
         // Display testing screen - do nothing
         case (STATE_TESTING): {
             // Exit via button press task
+        }
+        break;
+
+        case (STATE_PROFILE): {
+            // Do nothing - display only
         }
         break;
 
@@ -673,6 +673,36 @@ void stateUpdate()
         }
         break;
 
+        case (STATE_KEYS_WIFI_TIMEOUT): {
+            paintKeyWiFiFail(2000);
+
+            forceSystemStateUpdate = true; // Imediately go to this new state
+
+            if (online.rtc == true)
+            {
+                int daysRemaining =
+                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                if (daysRemaining >= 0)
+                {
+                    changeState(STATE_KEYS_DAYS_REMAINING);
+                }
+                else
+                {
+                    paintKeysExpired();
+                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
+                }
+            }
+            else
+            {
+                // No WiFi. No RTC. We don't know if the keys we have are expired. Attempt to use them.
+                changeState(STATE_KEYS_LBAND_CONFIGURE);
+            }
+        }
+        break;
+
+        // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
+
         case (STATE_KEYS_DAYS_REMAINING): {
             if (online.rtc == true)
             {
@@ -706,34 +736,6 @@ void stateUpdate()
 
             forceSystemStateUpdate = true;   // Imediately go to this new state
             changeState(settings.lastState); // Go to either rover or base
-        }
-        break;
-
-        case (STATE_KEYS_WIFI_TIMEOUT): {
-            paintKeyWiFiFail(2000);
-
-            forceSystemStateUpdate = true; // Imediately go to this new state
-
-            if (online.rtc == true)
-            {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining >= 0)
-                {
-                    changeState(STATE_KEYS_DAYS_REMAINING);
-                }
-                else
-                {
-                    paintKeysExpired();
-                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
-                }
-            }
-            else
-            {
-                // No WiFi. No RTC. We don't know if the keys we have are expired. Attempt to use them.
-                changeState(STATE_KEYS_LBAND_CONFIGURE);
-            }
         }
         break;
 

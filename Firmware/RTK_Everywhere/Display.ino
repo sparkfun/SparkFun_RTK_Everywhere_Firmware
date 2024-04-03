@@ -2473,7 +2473,11 @@ void paintDisplaySetup()
         thisIsButton++;
     }
 
-    if (printedButtons < maxButtons) // If we printed less than maxButtons, print more
+    // If we printed less than maxButtons, print more.
+    // This causes Base to be printed below Exit, indicating you can "go round again".
+    // I think that's what we want?
+    // If not, we could comment this and leave the display blank below Exit.
+    while (printedButtons < maxButtons)
     {
         for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
         {

@@ -974,6 +974,7 @@ void beginSystemState()
     }
     else if (productVariant == RTK_EVK)
     {
+        firstRoverStart = false; // Screen should have been tested when it was made ;-)
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
     }
