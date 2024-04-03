@@ -175,7 +175,7 @@ TwoWire *i2cDisplay = nullptr;
 
 #define MAX_PROFILE_COUNT 8
 uint8_t activeProfiles;                    // Bit vector indicating which profiles are active
-uint8_t displayProfile;                    // Range: 0 - (MAX_PROFILE_COUNT - 1)
+uint8_t displayProfile;                    // Profile Unit - Range: 0 - (MAX_PROFILE_COUNT - 1)
 uint8_t profileNumber = MAX_PROFILE_COUNT; // profileNumber gets set once at boot to save loading time
 char profileNames[MAX_PROFILE_COUNT][50];  // Populated based on names found in LittleFS and SD
 char settingsFileName[60];                 // Contains the %s_Settings_%d.txt with current profile number set

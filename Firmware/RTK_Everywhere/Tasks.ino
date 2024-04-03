@@ -1490,8 +1490,8 @@ void buttonCheckTask(void *e)
 
                                 if (theButton.newState == STATE_PROFILE)
                                 {
-                                    displayProfile = theButton.newProfile;
-                                    requestChangeState(theButton.newState);
+                                    displayProfile = theButton.newProfile; // paintProfile needs the unit
+                                    requestChangeState(STATE_PROFILE);
                                 }
                                 else if (theButton.newState == STATE_NOT_SET) // Exit
                                     requestChangeState(lastSystemState);

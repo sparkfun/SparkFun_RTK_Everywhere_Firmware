@@ -1308,14 +1308,17 @@ void paintHorizontalAccuracy(displayCoords textCoords)
 // Display clock with moving hands
 void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 {
-    // Animate icon to show system running
-    static uint8_t clockIconDisplayed = CLOCK_ICON_STATES - 1;
-    clockIconDisplayed++;                    // Goto next icon
-    clockIconDisplayed %= CLOCK_ICON_STATES; // Wrap
+    // Animate icon to show system running. The 2* makes the blink correct
+    static uint8_t clockIconDisplayed = (2 * CLOCK_ICON_STATES) - 1;
+    clockIconDisplayed++; // Goto next icon
+    clockIconDisplayed %= (2 * CLOCK_ICON_STATES); // Wrap
 
     iconPropertyBlinking prop;
-    prop.icon = ClockIconProperties.iconDisplay[clockIconDisplayed][present.display_type];
-    prop.duty = 0b01010101;
+    prop.icon = ClockIconProperties.iconDisplay[clockIconDisplayed / 2][present.display_type];
+    if (blinking)
+        prop.duty = 0b01010101;
+    else
+        prop.duty = 0b11111111;
     iconList->push_back(prop);
 
     displayCoords textCoords;
@@ -2257,19 +2260,29 @@ void paintProfile(uint8_t profileUnit)
     if (getProfileNameFromUnit(profileUnit, profileName, sizeof(profileName)) ==
         true) // Load the profile name, limited to 8 chars
     {
-        settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
-        recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
+        // Lookup profileNumber based on unit.
+        // getProfileNumberFromUnit should not fail (return -1), because we have already called getProfileNameFromUnit.
+        int8_t profileNumber = getProfileNumberFromUnit(profileUnit);
 
-        // Lookup profileNumber based on unit
-        uint8_t profileNumber = getProfileNumberFromUnit(profileUnit);
-        recordProfileNumber(profileNumber); // Update internal settings with user's choice, mark unit for config update
+        if (profileNumber >= 0)
+        {
+            settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
+            recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
-        log_d("Going to profile number %d from unit %d, name '%s'", profileNumber, profileUnit, profileName);
+            recordProfileNumber((uint8_t)profileNumber); // Update internal settings with user's choice, mark unit for config update
 
-        snprintf(profileMessage, sizeof(profileMessage), "Loading %s", profileName);
-        displayMessage(profileMessage, 2000);
-        ESP.restart(); // Profiles require full restart to take effect
+            log_d("Going to profile number %d from unit %d, name '%s'", profileNumber, profileUnit, profileName);
+
+            snprintf(profileMessage, sizeof(profileMessage), "Loading %s", profileName);
+            displayMessage(profileMessage, 2000);
+            ESP.restart(); // Profiles require full restart to take effect
+        }
     }
+
+    log_d("Cannot go to profileUnit %d. No profile name / number. Restarting...", profileUnit);
+    snprintf(profileMessage, sizeof(profileMessage), "Invalid profile%d", profileUnit);
+    displayMessage(profileMessage, 2000);
+    ESP.restart(); // Something bad happened. Restart...
 }
 
 // Display unit self-tests until user presses a button to exit

@@ -1238,17 +1238,17 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     }
     addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
     // If only one active profile do not show any profiles
-    if (getProfileNumberFromUnit(1) > 0)
+    if (getProfileNumberFromUnit(1) >= 0)
     {
         for (int x = 0; x < MAX_PROFILE_COUNT; x++)
         {
-            int activeProfile = getProfileNumberFromUnit(x);
-            if ((x == 0) || (activeProfile > 0))
+            int profile = getProfileNumberFromUnit(x);
+            if (profile >= 0)
             {
                 setupButton button;
-                button.name = &profileNames[activeProfile][0];
+                button.name = &profileNames[profile][0];
                 button.newState = STATE_PROFILE;
-                button.newProfile = x;
+                button.newProfile = x; // paintProfile needs the unit
                 buttons->push_back(button);
             }
         }
