@@ -144,7 +144,7 @@ Once you have decided on a correction source we need to feed that data into your
 
 Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
 
-![Double crosshair indicating RTK Fix](<SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png>)
+![Double crosshair indicating RTK Fix](</img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png>)
 
 *Figure 2*
 

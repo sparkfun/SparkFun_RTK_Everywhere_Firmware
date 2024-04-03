@@ -1,24 +1,26 @@
 # Connecting Bluetooth
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
-SparkFun RTK products transmit full NMEA sentences over Bluetooth serial port profile (SPP) at 4Hz and 115200bps. This means that nearly any GIS application that can receive NMEA data over a serial port (almost all do) can be used with the RTK Express. As long as your device can open a serial port over Bluetooth (also known as SPP) your device can retrieve industry-standard NMEA positional data. The following steps show how to connect an external tablet, or cell phone to the RTK device so that any serial port-based GIS application can be used.
+SparkFun RTK devices transmit full NMEA sentences over Bluetooth serial port profile (SPP) at 2Hz and 115200bps. This means that nearly any GIS application that can receive NMEA data over a serial port (almost all do) can be used with SparkFun RTK devices. As long as your end system can open a serial port over Bluetooth (also known as SPP) your system can retrieve industry-standard NMEA positional data. The following steps show how to connect an external tablet, or cell phone to the RTK device so that any serial port-based GIS application can be used.
+
+**Note**: BLE is also supported and can be used in place of Bluetooth SPP. See [Bluetooth Protocols](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_system/#bluetooth-protocol) for more information.
 
 ## Android
 
-![Pairing with the RTK Express over Bluetooth](<img/Bluetooth/SparkFun RTK Bluetooth List Connect.png>)
+![List of Bluetooth devices on Android](<img/QuickStart/SparkFun Torch - Available Devices.png>)
 
-*Pairing with the 'Express Rover-5556' over Bluetooth*
+*Pairing with the 'Torch Rover-DFAE' over Bluetooth*
 
 Open Android's system settings and find the 'Bluetooth' or 'Connected devices' options. Scan for devices and pair with the device in the list that matches the Bluetooth MAC address on your RTK device.
 
-When powered on, the RTK product will broadcast itself as either '[Platform] Rover-5556' or '[Platform] Base-5556' depending on which state it is in. [Platform] is Facet, Express, Surveyor, etc. Discover and pair with this device from your phone or tablet. Once paired, open SW Maps. 
+When powered on, the RTK product will broadcast itself as either '[Platform] Rover-5556' or '[Platform] Base-5556' depending on which state it is in. [Platform] is Torch, Facet, etc. Discover and pair with this device from your phone or tablet. Once paired, open SW Maps. 
 
 ![Bluetooth MAC address B022 is shown in the upper left corner](img/Displays/SparkFun%20RTK%20Rover%20Display.png)
 
 *Bluetooth MAC address B022 is shown in the upper left corner*
 
-**Note:** *B022* is the last four digits of your unit's MAC address and will be unique to the device in front of you. This is helpful in case there are multiple RTK devices within Bluetooth range.
+**Note:** For devices with a built-in display, *B022* is the last four digits of your unit's MAC address and will be unique to the device in front of you. This is helpful in case there are multiple RTK devices within Bluetooth range.
 
 ## Windows
 
@@ -40,7 +42,7 @@ Click on the RTK device. When powered on, the RTK product will broadcast itself 
 
 *Bluetooth MAC address B022 is shown in the upper left corner*
 
-**Note:** *B022* is the last four digits of your unit's MAC address and will be unique to the device in front of you. This is helpful in case there are multiple RTK devices within Bluetooth range.
+**Note:** For devices with a built-in display, *B022* is the last four digits of your unit's MAC address and will be unique to the device in front of you. This is helpful in case there are multiple RTK devices within Bluetooth range.
 
 ![Bluetooth Connection Success](img/Bluetooth/SparkFun%20RTK%20Software%20-%20Add%20Bluetooth%20Device%203.jpg)
 
@@ -54,7 +56,7 @@ The device will begin pairing. After a few seconds, Windows should report that y
 
 The device is now paired and a series of COM ports will be added under 'Device Manager'. 
 
-![NMEA received over the Bluetooth COM port](img/Terminal/SparkFun%20RTK%20Software%20-%20Add%20Bluetooth%20Device%205.jpg)
+![NMEA received over the Bluetooth COM port](<img/Terminal/SparkFun RTK Everywhere - NMEA Over Bluetooth.jpg>)
 
 *NMEA received over the Bluetooth COM port*
 
