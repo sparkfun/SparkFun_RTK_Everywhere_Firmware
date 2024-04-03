@@ -3000,34 +3000,40 @@ void displayConfigViaEthernet()
 
         printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos += 8;
+        if (present.display_type == DISPLAY_128x64)
+            yPos += 4;
 
-        char ipAddress[40];
+        char ipAddress[16];
         IPAddress localIP = ETH.localIP();
-        snprintf(ipAddress, sizeof(ipAddress), "          %d.%d.%d.%d          ", localIP[0], localIP[1], localIP[2],
-                 localIP[3]);
+        snprintf(ipAddress, sizeof(ipAddress), "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
 
         static uint8_t ipAddressPosition = 0;
 
-        // Print ten characters of IP address
-        char printThis[12];
+        int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
 
-        // Check if the IP address is <= 10 chars and will fit without scrolling
-        if (strlen(ipAddress) <= 28)
-            ipAddressPosition = 9;
-        else if (strlen(ipAddress) <= 30)
-            ipAddressPosition = 10;
-
-        snprintf(printThis, sizeof(printThis), "%c%c%c%c%c%c%c%c%c%c", ipAddress[ipAddressPosition + 0],
-                 ipAddress[ipAddressPosition + 1], ipAddress[ipAddressPosition + 2], ipAddress[ipAddressPosition + 3],
-                 ipAddress[ipAddressPosition + 4], ipAddress[ipAddressPosition + 5], ipAddress[ipAddressPosition + 6],
-                 ipAddress[ipAddressPosition + 7], ipAddress[ipAddressPosition + 8], ipAddress[ipAddressPosition + 9]);
-
-        oled->setCursor(0, yPos);
-        oled->print(printThis);
-
-        ipAddressPosition++;                        // Increment the print position
-        if (ipAddress[ipAddressPosition + 10] == 0) // Wrap
-            ipAddressPosition = 0;
+        // If we can print the full IP address without shuttling
+        if (strlen(ipAddress) <= displayWidthChars)
+        {
+            printTextCenter(ipAddress, yPos, QW_FONT_5X7, 1, false);
+        }
+        else
+        {
+            // Print as many characters as we can. Shuttle back and forth to display all.
+            static int startPos = 0;
+            char printThis[displayWidthChars + 1];
+            int extras = strlen(ipAddress) - displayWidthChars;
+            int shuttle[2 * extras];
+            int x;
+            for (x = 0; x <= extras; x++)
+                shuttle[x] = x;
+            for (int y = extras - 1; y > 0; y--)
+                shuttle[x++] = y;
+            if (startPos >= (2 * extras))
+                startPos = 0;
+            snprintf(printThis, sizeof(printThis), &ipAddress[shuttle[startPos]]);
+            startPos++;
+            printTextCenter(printThis, yPos, QW_FONT_5X7, 1, false);
+        }
 
         oled->display();
     }
