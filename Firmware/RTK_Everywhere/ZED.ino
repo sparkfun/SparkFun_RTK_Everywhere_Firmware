@@ -955,7 +955,7 @@ bool zedEnableLBandCommunication()
 
     So, what does all of this mean?
     EVK v1.0 supports direct NEO to ZED UART communication, but V1.1 will not. There is no point in supporting it here.
-    Facet v2 can pipe NEO PMP data from UART to the ZED (over I2C or UART), but the hardware doesn't exist yet so there
+    Facet v2 can pipe NEO UART PMP data to the ZED (over I2C or maybe UART), but the hardware doesn't exist yet so there
     is no point in adding that feature yet... TODO.
     So, right now, we should assume NEO PMP data will arrive via I2C, and will get pushed to the ZED via I2C if the
     corrections priority permits.

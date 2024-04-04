@@ -25,12 +25,16 @@ void loadSettings()
 
     // Temp store any variables from LFS that should override SD
     int resetCount = settings.resetCount;
+    SystemState stateFromLFS = settings.lastState;
 
     bool readFromSD = false;
     if (loadSystemSettingsFromFileSD(settingsFileName, &settings) == true)
         readFromSD = true;
 
     settings.resetCount = resetCount;
+
+    // stateFromLFS should override SD - because SD is not accessible during configure-via-Ethernet
+    settings.lastState = stateFromLFS;
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
