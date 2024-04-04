@@ -974,6 +974,45 @@ bool zedEnableLBandCommunication()
     return (response);
 }
 
+// Disable data output from the NEO
+bool zedDisableLBandCommunication()
+{
+    bool response = true;
+
+#ifdef COMPILE_L_BAND
+    response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
+    response &= theGNSS->setRXMCORcallbackPtr(
+        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
+
+    if (present.lband_neo == true)
+    {
+        // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
+        // to the ZED. Check if the user has explicitly set I2C corrections.
+        if (settings.useI2cForLbandCorrections == true)
+        {
+            response &= i2cLBand.newCfgValset();
+            response &=
+                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
+        }
+        else // Setup ZED to NEO serial communication
+        {
+            response &= i2cLBand.newCfgValset();
+            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
+        }
+    }
+    else
+    {
+        systemPrintln("zedEnableLBandCorrections: Unknown platform");
+        return (false);
+    }
+
+    response &= i2cLBand.sendCfgValset();
+
+#endif
+
+    return (response);
+}
+
 // Given the number of seconds between desired solution reports, determine measurementRate and navigationRate
 // measurementRate > 25 & <= 65535
 // navigationRate >= 1 && <= 127
@@ -1380,45 +1419,6 @@ uint16_t zedExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
     theGNSS->extractFileBufferData(fileBuffer,
                                    fileBytesToRead); // TODO Does extractFileBufferData not return the bytes read?
     return (1);
-}
-
-// Disable data output from the NEO
-bool zedDisableLBandCommunication()
-{
-    bool response = true;
-
-#ifdef COMPILE_L_BAND
-    response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
-    response &= theGNSS->setRXMCORcallbackPtr(
-        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
-
-    if (present.lband_neo == true)
-    {
-        // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
-        // to the ZED. Check if the user has explicitly set I2C corrections.
-        if (settings.useI2cForLbandCorrections == true)
-        {
-            response &= i2cLBand.newCfgValset();
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
-        }
-        else // Setup ZED to NEO serial communication
-        {
-            response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
-        }
-    }
-    else
-    {
-        systemPrintln("zedEnableLBandCorrections: Unknown platform");
-        return (false);
-    }
-
-    response &= i2cLBand.sendCfgValset();
-
-#endif
-
-    return (response);
 }
 
 // Query GNSS for current leap seconds
