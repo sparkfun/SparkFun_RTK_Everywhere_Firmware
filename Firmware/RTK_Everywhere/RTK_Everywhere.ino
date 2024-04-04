@@ -541,7 +541,7 @@ AsyncWebSocket *websocket;
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
-#define AP_CONFIG_SETTING_SIZE 11000
+#define AP_CONFIG_SETTING_SIZE 15000
 char *settingsCSV; // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
