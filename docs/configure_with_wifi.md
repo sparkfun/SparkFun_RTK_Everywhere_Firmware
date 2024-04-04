@@ -1,29 +1,29 @@
 # Configure with WiFi
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
-![WiFi configuration over AP](img/WiFi Config/SparkFun%20RTK%20Header%20Information.png)
+
+![WiFi configuration over AP](<img/WiFi Config/SparkFun%20RTK%20Header%20Information.png>)
 
 *Configuration page via WiFi*
 
-Starting with firmware v1.7, WiFi-based configuration is supported. For more information about updating the firmware on your device, please see [Updating RTK Firmware](firmware_update.md).
+During WiFi configuration, the RTK device will present a webpage that is viewable from either a desktop/laptop with WiFi or a cell phone. For advanced configurations, a desktop is recommended. For quick in-field changes, a cell phone works great.
 
-The RTK device will present a webpage that is viewable from either a desktop/laptop with WiFi or a cell phone. For advanced configurations, a desktop is recommended. For quick in-field changes, a cell phone works great.
-
-![Desktop vs Phone display size configuration](img/WiFi Config/SparkFun_RTK_Facet_-_Desktop_vs_Phone_Config.jpg)
+![Desktop vs Phone display size configuration](<img/WiFi Config/SparkFun_RTK_Facet_-_Desktop_vs_Phone_Config.jpg>)
 
 *Desktop vs Phone display size configuration*
 
-## RTK Express / Express Plus / Facet
+## RTK Torch
+
 To get into WiFi configuration follow these steps:
 
-1. Power on the RTK Express, Express Plus, or Facet.
-2. Once the device has started press the Setup button repeatedly until the *Config* menu is highlighted.
-3. The display will blink a WiFi icon indicating it is waiting for incoming connections.
+1. Power on the RTK Torch
+2. Once the device has started press the Power Button twice within 1 second (double tap).
+3. The display will beep twice indicating it is waiting for incoming connections.
 4. Connect to WiFi network named ‘RTK Config’.
 5. Open a browser (Chrome is preferred) and type **192.168.4.1** into the address bar.
 
-![Display showing IP address](img/Displays/SparkFun_RTK_Facet_-_Display_WiFi_Config.jpg)
+![Display showing IP address]()
 
 *Device ready for cellphone configuration*
 

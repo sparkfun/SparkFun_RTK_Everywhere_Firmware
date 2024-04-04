@@ -59,5 +59,9 @@ void powerDown(bool displayInfo)
         peripheralsOff();
 
     while (1)
-        delay(1);
+    {
+        //We should never get here but good to know if we do
+        systemPrintln("Device powered down");
+        delay(250);
+    }
 }

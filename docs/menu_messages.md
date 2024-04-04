@@ -2,7 +2,7 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) 
 
-![Message rate configuration](<SparkFun RTK Everywhere - Messages Menu.png>)
+![Message rate configuration](<img/Terminal/SparkFun RTK Everywhere - Messages Menu.png>)
 
 *The messages configuration menu*
 
@@ -24,7 +24,7 @@ These five NMEA sentences are commonly used with SW Maps for general surveying.
 
 ## Individual Messages
 
-![Configuring the NMEA messages](<SparkFun RTK Everywhere - Messages Menu NMEA.png>)
+![Configuring the NMEA messages](<img/Terminal/SparkFun RTK Everywhere - Messages Menu NMEA.png>)
 
 *Configuring the NMEA messages*
 

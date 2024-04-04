@@ -736,7 +736,10 @@ unsigned long um980BaseStartTimer; // Tracks how long the base averaging mode ha
 
 RtkMode_t rtkMode; // Mode of operation
 
-unsigned long beepStopMs; // Time at which to turn off beeper
+unsigned long beepLengthMs; // Number of ms to make noise
+unsigned long beepQuietLengthMs; // Number of ms to make reset between multiple beeps
+unsigned long beepNextEventMs; // Time at which to move the beeper to the next state
+unsigned long beepCount; // Number of beeps to do
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

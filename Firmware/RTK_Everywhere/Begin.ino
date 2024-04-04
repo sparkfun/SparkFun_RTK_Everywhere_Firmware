@@ -167,9 +167,9 @@ void beginBoard()
 
         pin_beeper = 33;
 
-        pin_loraRadio_power = 19; //LoRa_EN
-        pin_loraRadio_boot = 23; //LoRa_BOOT0
-        pin_loraRadio_reset = 5; //LoRa_NRST
+        pin_loraRadio_power = 19; // LoRa_EN
+        pin_loraRadio_boot = 23;  // LoRa_BOOT0
+        pin_loraRadio_reset = 5;  // LoRa_NRST
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -838,6 +838,18 @@ void tickerBegin()
     }
 }
 
+//Stop any ticker tasks and PWM control
+void tickerStop()
+{
+    bluetoothLedTask.detach();
+    gnssLedTask.detach();
+    batteryLedTask.detach();
+
+    ledcDetachPin(pin_bluetoothStatusLED);
+    ledcDetachPin(pin_gnssStatusLED);
+    ledcDetachPin(pin_batteryStatusLED);
+}
+
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
@@ -904,14 +916,21 @@ void beginFuelGauge()
         // Check to see if we are dangerously low
         if ((batteryLevelPercent < 5) && (isCharging() == false)) // 5% and not charging
         {
-            systemPrintln("Battery too low. Please charge. Shutting down...");
+            // Currently only the Torch uses the BQ40Z50 and it does not have software shutdown
+            // So throw a warning, but don't do anything else.
+            systemPrintln("Battery too low. Please charge.");
 
-            if (online.display == true)
-                displayMessage("Charge Battery", 0);
+            // If future platforms use the BQ40Z50 and have software shutdown, allow it
+            // but avoid blocking Torch with the infinite loop of powerDown().
 
-            delay(2000);
+            // systemPrintln("Battery too low. Please charge. Shutting down...");
 
-            powerDown(false); // Don't display 'Shutting Down'
+            // if (online.display == true)
+            //     displayMessage("Charge Battery", 0);
+
+            // delay(2000);
+
+            // powerDown(false); // Don't display 'Shutting Down'
         }
     }
 #endif // COMPILE_BQ40Z50

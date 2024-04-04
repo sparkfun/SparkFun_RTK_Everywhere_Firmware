@@ -160,7 +160,7 @@ If you haven't already done so, move the brown FPC from the original display boa
 
 ## Reinstalling Main Board
 
-![Alt text](img/Repair/SparkFun-RTK-Repair-23.jpg)
+![Returning boards into place](img/Repair/SparkFun-RTK-Repair-23.jpg)
 
 Slide the main board and connector boards back into place along with the battery. We find it easier to partially insert the connector board, then the main board, and then adjust them down together.
 

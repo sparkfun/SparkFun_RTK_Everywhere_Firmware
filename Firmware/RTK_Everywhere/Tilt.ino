@@ -141,7 +141,7 @@ void tiltUpdate()
             // Check to see if tilt compensation is active
             if (tiltSensor->isCorrecting())
             {
-                beepDurationMs(2000); // Audibly indicate the start of tilt
+                beepMultiple(2, 500, 500); //Number of beeps, length of beep ms, length of quiet ms
 
                 lastTiltBeepMs = millis();
 
@@ -362,10 +362,16 @@ void beginTilt()
     result &= tiltSensor->sendCommand("MEMS_OUTPUT=UART1,OFF");
 
     // Unknown new command for v2
-    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From tock firmware
+    result &= tiltSensor->sendCommand("CORRECT_HOLDER=ENABLE"); // From stock firmware
 
     // Trigger IMU on PPS from UM980
     result &= tiltSensor->sendCommand("SET_PPS_EDGE=RISING");
+
+    // Enable magnetic field mode
+    // 'it is recommended to use the magnetic field initialization mode to speed up the initialization process'
+    result &= tiltSensor->sendCommand("AHRS=ENABLE"); 
+
+    result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE"); 
 
     if (result == true)
     {

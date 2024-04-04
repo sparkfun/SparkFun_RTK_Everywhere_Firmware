@@ -570,7 +570,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                     ztpResponse = ZTP_SUCCESS;
                 }
             } // JSON Derialized correctly
-        }     // HTTP Response was 200
+        } // HTTP Response was 200
     } while (0);
 
     // Free the allocated buffers
@@ -1296,27 +1296,27 @@ void menuPointPerfect()
         if (settings.debugCorrections == true)
             systemPrintf("settings.pointPerfectLBandTopic: %s\r\n", settings.pointPerfectLBandTopic);
 
-        systemPrint("Days until keys expire: ");
-        if (strlen(settings.pointPerfectCurrentKey) > 0)
-        {
-            if (online.rtc == false)
+            systemPrint("Days until keys expire: ");
+            if (strlen(settings.pointPerfectCurrentKey) > 0)
             {
-                // If we don't have RTC we can't calculate days to expire
-                systemPrintln("No RTC");
+                if (online.rtc == false)
+                {
+                    // If we don't have RTC we can't calculate days to expire
+                    systemPrintln("No RTC");
+                }
+                else
+                {
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                    if (daysRemaining < 0)
+                        systemPrintln("Expired");
+                    else
+                        systemPrintln(daysRemaining);
+                }
             }
             else
-            {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining < 0)
-                    systemPrintln("Expired");
-                else
-                    systemPrintln(daysRemaining);
-            }
-        }
-        else
-            systemPrintln("No keys");
+                systemPrintln("No keys");
 
         // All units should be able to obtain corrections over IP
         // Only units with an lband receiver can obtain LBand corrections
@@ -1328,22 +1328,25 @@ void menuPointPerfect()
         else
             systemPrintln("Disabled");
 
-        systemPrint("2) Toggle Auto Key Renewal: ");
-        if (settings.autoKeyRenewal == true)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
+        if (pointPerfectIsEnabled())
+        {
+            systemPrint("2) Toggle Auto Key Renewal: ");
+            if (settings.autoKeyRenewal == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
 
-        if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectLBandTopic) == 0)
-            systemPrintln("3) Provision Device");
-        else
-            systemPrintln("3) Update Keys");
+            if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectLBandTopic) == 0)
+                systemPrintln("3) Provision Device");
+            else
+                systemPrintln("3) Update Keys");
 
-        systemPrintln("4) Show device ID");
+            systemPrintln("4) Show device ID");
 
-        systemPrintln("c) Clear the Keys");
+            systemPrintln("c) Clear the Keys");
 
-        systemPrintln("k) Manual Key Entry");
+            systemPrintln("k) Manual Key Entry");
+        }
 
         systemPrintln("x) Exit");
 
@@ -1373,11 +1376,11 @@ void menuPointPerfect()
             }
         }
 
-        else if (incoming == 2)
+        else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
         }
-        else if (incoming == 3)
+        else if (incoming == 3 && pointPerfectIsEnabled())
         {
             if (wifiNetworkCount() == 0)
             {
@@ -1426,19 +1429,19 @@ void menuPointPerfect()
 
             WIFI_STOP();
         }
-        else if (incoming == 4)
+        else if (incoming == 4 && pointPerfectIsEnabled())
         {
             char hardwareID[13];
             snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                      btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
             systemPrintf("Device ID: %s\r\n", hardwareID);
         }
-        else if (incoming == 'c')
+        else if (incoming == 'c' && pointPerfectIsEnabled())
         {
             settings.pointPerfectCurrentKey[0] = 0;
             settings.pointPerfectNextKey[0] = 0;
         }
-        else if (incoming == 'k')
+        else if (incoming == 'k' && pointPerfectIsEnabled())
         {
             menuPointPerfectKeys();
         }
@@ -1458,6 +1461,13 @@ void menuPointPerfect()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+bool pointPerfectIsEnabled()
+{
+    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+        return (true);
+    return (false);
 }
 
 // Process any new L-Band from I2C

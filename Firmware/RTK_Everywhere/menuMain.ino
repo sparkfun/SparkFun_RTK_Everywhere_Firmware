@@ -97,7 +97,7 @@ void menuMain()
             systemPrintln("e) Configure Ethernet");
 #endif // COMPILE_ETHERNET
 
-        systemPrintln("f) Firmware upgrade");
+        systemPrintln("f) Firmware Update");
 
         systemPrintln("i) Configure Corrections Priorities");
 
@@ -106,7 +106,7 @@ void menuMain()
             systemPrintln("n) Configure NTP");
 #endif // COMPILE_ETHERNET
 
-        systemPrintln("p) Configure User Profiles");
+        systemPrintln("u) Configure User Profiles");
 
 #ifdef COMPILE_ESPNOW
         systemPrintln("r) Configure Radios");
@@ -114,7 +114,7 @@ void menuMain()
         systemPrintln("r) **ESP-Now Not Compiled**");
 #endif // COMPILE_ESPNOW
 
-        systemPrintln("P) Configure PointPerfect");
+        systemPrintln("p) Configure PointPerfect");
 
         systemPrintln("s) Configure System");
 
@@ -152,9 +152,9 @@ void menuMain()
             menuCorrectionsPriorities();
         else if (incoming == 'n' && (present.ethernet_ws5500 == true))
             menuNTP();
-        else if (incoming == 'p')
+        else if (incoming == 'u')
             menuUserProfiles();
-        else if (incoming == 'P')
+        else if (incoming == 'p')
             menuPointPerfect();
 #ifdef COMPILE_ESPNOW
         else if (incoming == 'r')
