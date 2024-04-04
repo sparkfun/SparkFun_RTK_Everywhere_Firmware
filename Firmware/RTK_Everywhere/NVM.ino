@@ -337,9 +337,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "i2cInterruptsCore", settings.i2cInterruptsCore);
     settingsFile->printf("%s=%d\r\n", "shutdownNoChargeTimeout_s", settings.shutdownNoChargeTimeout_s);
     settingsFile->printf("%s=%d\r\n", "disableSetupButton", settings.disableSetupButton);
-    settingsFile->printf("%s=%d\r\n", "useI2cForLbandCorrections", settings.useI2cForLbandCorrections);
-    settingsFile->printf("%s=%d\r\n", "useI2cForLbandCorrectionsConfigured",
-                         settings.useI2cForLbandCorrectionsConfigured);
 
     // Ethernet
     settingsFile->printf("%s=%d\r\n", "enablePrintEthernetDiag", settings.enablePrintEthernetDiag);
@@ -476,7 +473,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "minCNO_um980", settings.minCNO_um980);
     settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
     settingsFile->printf("%s=%0.2f\r\n", "tiltPoleLength", settings.tiltPoleLength);
-    settingsFile->printf("%s=%d\r\n", "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
     settingsFile->printf("%s=%d\r\n", "enableImuDebug", settings.enableImuDebug);
 
     // Automatic Firmware Update
@@ -1174,10 +1170,6 @@ bool parseLine(char *str, Settings *settings)
         settings->shutdownNoChargeTimeout_s = d;
     else if (strcmp(settingName, "disableSetupButton") == 0)
         settings->disableSetupButton = d;
-    else if (strcmp(settingName, "useI2cForLbandCorrections") == 0)
-        settings->useI2cForLbandCorrections = d;
-    else if (strcmp(settingName, "useI2cForLbandCorrectionsConfigured") == 0)
-        settings->useI2cForLbandCorrectionsConfigured = d;
     else if (strcmp(settingName, "enablePrintEthernetDiag") == 0)
         settings->enablePrintEthernetDiag = d;
     else if (strcmp(settingName, "ethernetDHCP") == 0)
@@ -1323,8 +1315,6 @@ bool parseLine(char *str, Settings *settings)
         settings->enableTiltCompensation = d;
     else if (strcmp(settingName, "tiltPoleLength") == 0)
         settings->tiltPoleLength = d;
-    else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
-        settings->rtcmTimeoutBeforeUsingLBand_s = d;
     else if (strcmp(settingName, "enableImuDebug") == 0)
         settings->enableImuDebug = d;
 

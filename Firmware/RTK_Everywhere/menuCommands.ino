@@ -352,10 +352,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.shutdownNoChargeTimeout_s = settingValue;
     else if (strcmp(settingName, "disableSetupButton") == 0)
         settings.disableSetupButton = settingValue;
-    else if (strcmp(settingName, "useI2cForLbandCorrections") == 0)
-        settings.useI2cForLbandCorrections = settingValue;
-    else if (strcmp(settingName, "useI2cForLbandCorrectionsConfigured") == 0)
-        settings.useI2cForLbandCorrectionsConfigured = settingValue;
     else if (strcmp(settingName, "enablePrintEthernetDiag") == 0)
         settings.enablePrintEthernetDiag = settingValue;
     else if (strcmp(settingName, "ethernetDHCP") == 0)
@@ -515,8 +511,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.enableTiltCompensation = settingValue;
     else if (strcmp(settingName, "tiltPoleLength") == 0)
         settings.tiltPoleLength = settingValue;
-    else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
-        settings.rtcmTimeoutBeforeUsingLBand_s = settingValue;
     else if (strcmp(settingName, "enableImuDebug") == 0)
         settings.enableImuDebug = settingValue;
 
@@ -1278,8 +1272,6 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "i2cInterruptsCore", settings.i2cInterruptsCore);
     stringRecord(newSettings, "shutdownNoChargeTimeout_s", settings.shutdownNoChargeTimeout_s);
     stringRecord(newSettings, "disableSetupButton", settings.disableSetupButton);
-    stringRecord(newSettings, "useI2cForLbandCorrections", settings.useI2cForLbandCorrections);
-    stringRecord(newSettings, "useI2cForLbandCorrectionsConfigured", settings.useI2cForLbandCorrectionsConfigured);
 
     // Ethernet
     stringRecord(newSettings, "enablePrintEthernetDiag", settings.enablePrintEthernetDiag);
@@ -1422,7 +1414,6 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "minCNO_um980", settings.minCNO_um980);
     stringRecord(newSettings, "enableTiltCompensation", settings.enableTiltCompensation);
     stringRecord(newSettings, "tiltPoleLength", settings.tiltPoleLength, 3);
-    stringRecord(newSettings, "rtcmTimeoutBeforeUsingLBand_s", settings.rtcmTimeoutBeforeUsingLBand_s);
     stringRecord(newSettings, "enableImuDebug", settings.enableImuDebug);
 
     // Automatic Firmware Update
@@ -2006,10 +1997,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.shutdownNoChargeTimeout_s);
     else if (strcmp(settingName, "disableSetupButton") == 0)
         writeToString(settingValueStr, settings.disableSetupButton);
-    else if (strcmp(settingName, "useI2cForLbandCorrections") == 0)
-        writeToString(settingValueStr, settings.useI2cForLbandCorrections);
-    else if (strcmp(settingName, "useI2cForLbandCorrectionsConfigured") == 0)
-        writeToString(settingValueStr, settings.useI2cForLbandCorrectionsConfigured);
 
     // Ethernet
     else if (strcmp(settingName, "enablePrintEthernetDiag") == 0)
@@ -2149,8 +2136,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.enableTiltCompensation);
     else if (strcmp(settingName, "tiltPoleLength") == 0)
         writeToString(settingValueStr, settings.tiltPoleLength);
-    else if (strcmp(settingName, "rtcmTimeoutBeforeUsingLBand_s") == 0)
-        writeToString(settingValueStr, settings.rtcmTimeoutBeforeUsingLBand_s);
     else if (strcmp(settingName, "enableImuDebug") == 0)
         writeToString(settingValueStr, settings.enableImuDebug);
 
@@ -2557,8 +2542,6 @@ void printAvailableSettings()
     systemPrint("i2cInterruptsCore,uint8_t,");
     systemPrint("shutdownNoChargeTimeout_s,uint32_t,");
     systemPrint("disableSetupButton,bool,");
-    systemPrint("useI2cForLbandCorrections,bool,");
-    systemPrint("useI2cForLbandCorrectionsConfigured,bool,");
 
     // Ethernet
     systemPrint("enablePrintEthernetDiag,bool,");
@@ -2638,7 +2621,6 @@ void printAvailableSettings()
     systemPrint("minCNO_um980,int16_t,");
     systemPrint("enableTiltCompensation,bool,");
     systemPrint("tiltPoleLength,float,");
-    systemPrint("rtcmTimeoutBeforeUsingLBand_s,uint8_t,");
     systemPrint("enableImuDebug,bool,");
 
     // Automatic Firmware Update

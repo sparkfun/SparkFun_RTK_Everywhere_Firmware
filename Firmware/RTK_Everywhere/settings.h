@@ -1146,8 +1146,6 @@ typedef struct
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint32_t shutdownNoChargeTimeout_s = 0; // If > 0, shut down unit after timeout if not charging
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
-    bool useI2cForLbandCorrections = true; //Set to false to stop I2C callback. Corrections will require direct ZED to NEO UART2 connections.
-    bool useI2cForLbandCorrectionsConfigured = false; //If a user sets useI2cForLbandCorrections, this goes true.
 
     // Ethernet
     bool enablePrintEthernetDiag = false;
@@ -1285,7 +1283,6 @@ typedef struct
     int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
-    uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
 
     // Automatic Firmware Update

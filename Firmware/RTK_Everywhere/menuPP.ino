@@ -1266,7 +1266,7 @@ void beginLBand()
 
     response &= i2cLBand.sendCfgValset();
 
-    lBandCommunicationEnabled = zedEnableLBandCommunication();
+    response &= zedEnableLBandCommunication();
 
     if (response == false)
         systemPrintln("L-Band failed to configure");
@@ -1515,31 +1515,6 @@ void updateLBand()
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
                 systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
-        }
-
-        if ((millis() - rtcmLastPacketReceived) / 1000 > settings.rtcmTimeoutBeforeUsingLBand_s)
-        {
-            // If we have not received RTCM in a certain amount of time,
-            // and if communication was disabled because RTCM was being received at some point,
-            // re-enable L-Band communication
-            // TODO: RIP THIS OUT
-            if (lBandCommunicationEnabled == false)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Enabling L-Band communication due to RTCM timeout");
-                lBandCommunicationEnabled = zedEnableLBandCommunication();
-            }
-        }
-        else
-        {
-            // If we *have* recently received RTCM then disable corrections from then NEO-D9S L-Band receiver
-            if (lBandCommunicationEnabled == true)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Disabling L-Band communication due to RTCM reception");
-                lBandCommunicationEnabled = !zedDisableLBandCommunication(); // zedDisableLBandCommunication() returns
-                                                                             // true if we successfully disabled
-            }
         }
     }
 

@@ -387,7 +387,6 @@ int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
 const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
-bool lBandCommunicationEnabled;
 bool lBandForceGetKeys; // Used to allow key update from display
 unsigned long rtcmLastPacketReceived;
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.

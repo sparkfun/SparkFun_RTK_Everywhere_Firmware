@@ -900,14 +900,8 @@ void menuOperation()
         // ZED
         systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
-        systemPrint("11) Use I2C for L-Band Corrections: ");
-        systemPrintf("%s\r\n", settings.useI2cForLbandCorrections ? "Enabled" : "Disabled");
-
-        systemPrintf("12) RTCM timeout before L-Band override (seconds): %d\r\n",
-                     settings.rtcmTimeoutBeforeUsingLBand_s);
-
         // Measurement scale
-        systemPrintf("13) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
+        systemPrintf("11) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
 
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
@@ -1010,17 +1004,6 @@ void menuOperation()
                 systemPrintln(F("USB messages successfully enabled"));
         }
         else if (incoming == 11)
-        {
-            settings.useI2cForLbandCorrectionsConfigured =
-                true; // Record that the user has manually modified the settings.
-            settings.useI2cForLbandCorrections ^= 1;
-        }
-        else if (incoming == 12)
-        {
-            getNewSetting("Enter the number of seconds before L-Band is used once RTCM is absent", 1, 255,
-                          &settings.rtcmTimeoutBeforeUsingLBand_s);
-        }
-        else if (incoming == 13)
         {
             settings.measurementScale += 1;
             if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
