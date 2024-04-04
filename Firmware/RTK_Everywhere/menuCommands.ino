@@ -1081,23 +1081,14 @@ void createSettingsString(char *newSettings)
     getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
-    if (!configureViaEthernet) // ZED type is unknown if we are in configure-via-ethernet mode
-    {
-        char apZedPlatform[50];
-        strcpy(apZedPlatform, "ZED-F9P");
+    char apZedPlatform[50];
+    strcpy(apZedPlatform, "ZED-F9P");
 
-        char apZedFirmwareVersion[80];
-        snprintf(apZedFirmwareVersion, sizeof(apZedFirmwareVersion), "%s Firmware: %s ID: %s", apZedPlatform,
-                 zedFirmwareVersion, zedUniqueId);
-        stringRecord(newSettings, "zedFirmwareVersion", apZedFirmwareVersion);
-        stringRecord(newSettings, "zedFirmwareVersionInt", zedFirmwareVersionInt);
-    }
-    else
-    {
-        char apZedFirmwareVersion[80];
-        snprintf(apZedFirmwareVersion, sizeof(apZedFirmwareVersion), "ZED-F9: Unknown");
-        stringRecord(newSettings, "zedFirmwareVersion", apZedFirmwareVersion);
-    }
+    char apZedFirmwareVersion[80];
+    snprintf(apZedFirmwareVersion, sizeof(apZedFirmwareVersion), "%s Firmware: %s ID: %s", apZedPlatform,
+                zedFirmwareVersion, zedUniqueId);
+    stringRecord(newSettings, "zedFirmwareVersion", apZedFirmwareVersion);
+    stringRecord(newSettings, "zedFirmwareVersionInt", zedFirmwareVersionInt);
 
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %02X%02X", btMACAddress[4], btMACAddress[5]);
