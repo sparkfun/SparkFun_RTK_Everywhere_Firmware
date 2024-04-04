@@ -124,12 +124,7 @@ void zedBegin()
     if (theGNSS == nullptr)
         theGNSS = new SFE_UBLOX_GNSS_SUPER_DERIVED();
 
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginGNSS");
-        return;
-    }
+    // Note: we don't need to skip this for configureViaEthernet because the ZED is on I2C only - not SPI
 
     if (theGNSS->begin(*i2c_0) == false)
     {
@@ -222,13 +217,6 @@ void zedBegin()
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 bool zedConfigure()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping configureGNSS");
-        return (false);
-    }
-
     if (online.gnss == false)
         return (false);
 
@@ -832,13 +820,6 @@ bool zedFixedBaseStart()
 // Setup TM2 time stamp input as need
 bool zedBeginExternalEvent()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginExternalTriggers");
-        return (false);
-    }
-
     if (online.gnss == false)
         return (false);
 
@@ -868,13 +849,6 @@ bool zedBeginExternalEvent()
 // Setup the timepulse output on the PPS pin for external triggering
 bool zedBeginPPS()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginExternalTriggers");
-        return (false);
-    }
-
     if (online.gnss == false)
         return (false);
 
