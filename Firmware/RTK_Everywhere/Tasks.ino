@@ -1562,17 +1562,15 @@ void buttonCheckTask(void *e)
                     {
                         if (thisIsButton == setupSelectedButton)
                         {
-                            setupButton theButton = *it;
-
-                            if (theButton.newState == STATE_PROFILE)
+                            if (it->newState == STATE_PROFILE)
                             {
-                                displayProfile = theButton.newProfile; // paintProfile needs the unit
+                                displayProfile = it->newProfile; // paintProfile needs the unit
                                 requestChangeState(STATE_PROFILE);
                             }
-                            else if (theButton.newState == STATE_NOT_SET) // Exit
+                            else if (it->newState == STATE_NOT_SET) // Exit
                                 requestChangeState(lastSystemState);
                             else
-                                requestChangeState(theButton.newState);
+                                requestChangeState(it->newState);
 
                             break;
                         }

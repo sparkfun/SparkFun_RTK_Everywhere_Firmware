@@ -165,9 +165,7 @@ bool isAResisteredCorrectionsSource(correctionsSource theSource)
 {
     for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
     {
-        registeredCorrectionsSource aSource = *it;
-
-        if (aSource.source == theSource)
+        if (it->source == theSource)
             return true; // Return true if theSource is found in the vector of registered sources
     }
     return false;
@@ -180,10 +178,8 @@ bool isHighestRegisteredCorrectionsSource(correctionsSource theSource)
     // Find the registered correction source with the highest priority
     for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
     {
-        registeredCorrectionsSource aSource = *it;
-
-        if (settings.correctionsSourcesPriority[(int)aSource.source] < highestPriority) // Higher
-            highestPriority = settings.correctionsSourcesPriority[(int)aSource.source];
+        if (settings.correctionsSourcesPriority[(int)it->source] < highestPriority) // Higher
+            highestPriority = settings.correctionsSourcesPriority[(int)it->source];
     }
 
     if (highestPriority == (int)CORR_NUM)
@@ -203,11 +199,9 @@ void updateCorrectionsLastSeen(correctionsSource theSource)
 
     for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
     {
-        registeredCorrectionsSource aSource = *it;
-
-        if (aSource.source == theSource)
+        if (it->source == theSource)
         {
-            aSource.lastSeen = millis();
+            it->lastSeen = millis();
             return;
         }
     }
@@ -218,11 +212,10 @@ void checkRegisteredCorrectionsSources()
 {
     for (auto it = registeredCorrectionsSources.begin(); it != registeredCorrectionsSources.end(); it = std::next(it))
     {
-        registeredCorrectionsSource aSource = *it;
-
-        if ((millis() - (settings.correctionsSourcesLifetime_s * 1000)) > aSource.lastSeen)
+        if ((millis() - (settings.correctionsSourcesLifetime_s * 1000)) > it->lastSeen)
         {
             registeredCorrectionsSources.erase(it);
+            it = std::prev(it);
         }
-    }    
+    }
 }

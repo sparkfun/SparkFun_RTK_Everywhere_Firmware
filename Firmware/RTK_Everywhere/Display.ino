@@ -459,11 +459,9 @@ void displayUpdate()
                 blinkState = 0b00000001;
             for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
             {
-                iconPropertyBlinking theIcon = *it;
-
-                if ((theIcon.duty & blinkState) > 0)
-                    displayBitmap(theIcon.icon.xPos, theIcon.icon.yPos, theIcon.icon.width, theIcon.icon.height,
-                                  (const uint8_t *)theIcon.icon.bitmap);
+                if ((it->duty & blinkState) > 0)
+                    displayBitmap(it->icon.xPos, it->icon.yPos, it->icon.width, it->icon.height,
+                                  (const uint8_t *)it->icon.bitmap);
             }
 
             oled->display(); // Push internal buffer to display
@@ -2470,21 +2468,19 @@ void paintDisplaySetup()
 
     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
     {
-        setupButton theButton = *it;
-
         if (thisIsButton >= setupSelectedButton) // Should we display this button based on the global setupSelectedButton?
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                if (theButton.newState == STATE_PROFILE)
+                if (it->newState == STATE_PROFILE)
                 {
                     int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                     char miniProfileName[nameWidth] = {0};
-                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", theButton.newProfile, theButton.name); // Prefix with index #
+                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile, it->name); // Prefix with index #
                     printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 }
                 else
-                    printTextCenter(theButton.name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
         }
@@ -2500,11 +2496,9 @@ void paintDisplaySetup()
     {
         for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
         {
-            setupButton theButton = *it;
-
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                printTextCenter(theButton.name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
 
