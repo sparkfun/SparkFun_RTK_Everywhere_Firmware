@@ -1042,7 +1042,7 @@ void handleGnssDataTask(void *e)
                     slowConsumer = "SD card";
                 }
             } // bytesToSend
-        }     // End connected
+        } // End connected
 
         //----------------------------------------------------------------------
         // Update the available space in the ring buffer
@@ -1230,18 +1230,74 @@ void tickerBatteryLedUpdate()
     }
 }
 
+enum BeepState
+{
+    BEEP_OFF = 0,
+    BEEP_ON,
+    BEEP_QUIET,
+};
+BeepState beepState = BEEP_OFF;
+
 // Control the length of time the beeper makes noise
+// We move through a simple state machine in order to handle multiple types of beeps (see beepMultiple())
 void tickerBeepUpdate()
 {
     if (present.beeper == true)
     {
-        if (beepStopMs > 0)
+        switch (beepState)
         {
-            if (millis() >= beepStopMs)
+        default:
+            if (beepState != BEEP_OFF)
+                beepState = BEEP_OFF;
+            break;
+
+        case BEEP_OFF:
+            if (beepLengthMs > 0)
             {
-                beepStopMs = 0; // Signal the beeper is off
-                beepOff();
+                beepNextEventMs = millis() + beepLengthMs;
+                beepOn();
+                beepState = BEEP_ON;
             }
+            break;
+
+        case BEEP_ON:
+            if (millis() >= beepNextEventMs)
+            {
+                if (beepCount == 1)
+                {
+                    beepLengthMs = 0; // Stop state machine
+                    beepState = BEEP_OFF;
+                    beepOff();
+                }
+                else
+                {
+                    beepNextEventMs = millis() + beepQuietLengthMs;
+                    beepState = BEEP_QUIET;
+                    beepOff();
+                }
+            }
+            break;
+
+        case BEEP_QUIET:
+            if (millis() >= beepNextEventMs)
+            {
+                beepCount--;
+
+                if (beepCount == 0)
+                {
+                    // We should not be here, but just in case
+                    beepLengthMs = 0; // Stop state machine
+                    beepState = BEEP_OFF;
+                    beepOff();
+                }
+                else
+                {
+                    beepNextEventMs = millis() + beepLengthMs;
+                    beepState = BEEP_ON;
+                    beepOn();
+                }
+            }
+            break;
         }
     }
 }
@@ -1359,18 +1415,23 @@ void buttonCheckTask(void *e)
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
-            else if (userBtn->pressedFor(2500))
+            else if (userBtn->pressedFor(2100))
             {
-                // Beep if we are not locally compiled or a release candidate
-                if (ENABLE_DEVELOPER == false)
-                    beepDurationMs(500); // Announce powering down
-
                 tickerStop(); // Stop controlling LEDs via ticker task
 
                 gnssStatusLedOn();
                 bluetoothLedOn();
+
+                // Beep if we are not locally compiled or a release candidate
+                if (ENABLE_DEVELOPER == false)
+                {
+                    // Announce powering down
+                    beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
+
+                    delay(500); //We will be shutting off during this delay but this prevents another beepMultiple() from firing
+                }
             }
-        }    // End productVariant == Torch
+        } // End productVariant == Torch
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic
         {
             if (systemState == STATE_SHUTDOWN)
@@ -1477,7 +1538,7 @@ void buttonCheckTask(void *e)
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End singleTap switch (systemState)
-            }     // End singleTap
+            } // End singleTap
             else if (doubleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
             {
                 switch (systemState)
@@ -1516,8 +1577,8 @@ void buttonCheckTask(void *e)
                     // requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
                 } // End doubleTap switch (systemState)
-            }     // End doubleTap
-        }         // End productVariant != Torch
+            } // End doubleTap
+        } // End productVariant != Torch
 
         feedWdt();
         taskYIELD();

@@ -141,7 +141,7 @@ void tiltUpdate()
             // Check to see if tilt compensation is active
             if (tiltSensor->isCorrecting())
             {
-                beepDurationMs(2000); // Audibly indicate the start of tilt
+                beepMultiple(2, 500, 500); //Number of beeps, length of beep ms, length of quiet ms
 
                 lastTiltBeepMs = millis();
 

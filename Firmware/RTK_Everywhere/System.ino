@@ -39,8 +39,15 @@ void finishDisplay()
 // Start the beeper and limit its beep length using the tickerBeepUpdate task
 void beepDurationMs(uint16_t lengthMs)
 {
-    beepStopMs = millis() + lengthMs;
-    beepOn();
+    beepMultiple(1, lengthMs, 0); // Number of beeps, length of beep, length of quiet
+}
+
+// Number of beeps, length of beep ms, length of quiet ms
+void beepMultiple(int numberOfBeeps, int lengthOfBeepMs, int lengthOfQuietMs)
+{
+    beepCount = numberOfBeeps;
+    beepLengthMs = lengthOfBeepMs;
+    beepQuietLengthMs = lengthOfQuietMs;
 }
 
 void beepOn()
