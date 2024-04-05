@@ -1,14 +1,12 @@
 # Correction Sources
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Not Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/YellowDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
 To achieve an RTK Fix, SparkFun RTK products must be provided with a correction source. This correction data, sometimes called RTCM (see [What is RTCM?](https://learn.sparkfun.com/tutorials/what-is-gps-rtk/all#what-is-rtcm)), can be produced from a variety of sources.
 
 * [Paid Services](correction_sources.md#paid-services)
 * [Government Provided Corrections](correction_sources.md#government-provided-corrections)
 * [Permanent Base](correction_sources.md#permanent-base)
-
-**Note:** The RTK Facet L-Band is capable of receiving RTCM corrections from a terrestrial source but because it has a built-in L-Band receiver, we recommend using the satellite-based corrections.
 
 ## Paid Services
 
@@ -49,9 +47,12 @@ One downside is that with a 'regional' provider such as Skylark the distance to 
 
 **PointPerfect**
 
-![PointPerfacet Coverage Map](img/Corrections/SparkFun_RTK_Facet_L-Band_Coverage_Area.jpg)
 
-PointPerfect is a correction service run by u-blox. The service runs about $44 per month and covers the contiguous USA and Europe. Unfortunately, it does not have NTRIP access at the time of writing. Instead, they use an API and encrypted packets in a format called SPARTN. SparkFun uses the PointPerfect service to provide satellite-based corrections to the [RTK Facet L-Band](https://www.sparkfun.com/products/20000). This service works very well for the RTK Facet L-Band, but because no 3rd party GIS software is known to exist that can communicate with PointPerfect, we don't currently recommend using PointPerfect with SW Maps, Lefebure, Field Genius, SurvPC, Survey Master, etc.
+[![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
+
+*PointPerfect Coverage map including L-Band and IP delivery methods*
+
+SparkFun RTK Everywhere devices are equipped to get corrections from a service called PointPerfect. Please see the [PointPerfect Menu](menu_pointperfect.md) page for more information.
 
 ## Government Provided Corrections
 
@@ -81,43 +82,28 @@ A permanent base is a user-owned and operated base station. See [Creating a Perm
 
 ## Temporary Base
 
-[![Temporary RTK Express Base setup](img/Corrections/SparkFun_RTK_Express_-_Base_Radio.jpg)](img/Corrections/SparkFun_RTK_Express_-_Base_Radio - Big.jpg)
+[![Temporary RTK Express Base setup](<img/Corrections/SparkFun_RTK_Express_-_Base_Radio.jpg>)](<img/Corrections/SparkFun_RTK_Express_-_Base_Radio - Big.jpg>)
 
 *Temporary RTK Express Base setup with serial radio*
 
 A temporary or mobile base setup is handy when you are in the field too far away from a correction source, or if your measurements do not require absolute accuracy. 
 
-To set up a temporary base, a 2nd RTK device is mounted to a tripod and it is configured to complete a survey-in (aka, locate itself). It will then begin broadcasting RTCM correction data. This data (~1000 bytes a second) is sent over a data link to one or multiple rovers that can then obtain RTK Fix. 
+To set up a temporary base, an RTK device is mounted to a tripod and is configured to complete a survey-in (aka, locate itself). It will then begin broadcasting RTCM correction data. This data (~1000 bytes a second) is sent over a data link to one or multiple rovers that can then obtain RTK Fix. 
 
 Any tripod with a ¼” camera thread will work. The [Amazon Basics tripod](https://www.amazon.com/AmazonBasics-Lightweight-Camera-Mount-Tripod/dp/B00XI87KV8) works well enough but is a bit lightweight and rickety. 
 
-For RTK products with an external antenna (ie, RTK Surveyor, RTK Express, RTK Express Plus) a cell phone holder is clamped to the tripod and the RTK device is held in the clamp. The ¼” camera thread is [adapted to ⅝” 11-TPI](https://www.sparkfun.com/products/17546) and an [L1/L2 antenna](https://www.sparkfun.com/products/17751) is attached. A [Male TNC to Male SMA adapter](https://www.sparkfun.com/products/17833) connects the antenna to the RTK device.
+Any of the RTK Everywhere products can be set up to operate in **Base** mode. Once the base has been set up with a clear view of the sky, turn on the RTK device.
 
-Any of the RTK Products (excluding the RTK Express Plus) can be set up to operate in **Base** mode. Once the base has been set up with a clear view of the sky, turn on the RTK device.
-
-On the RTK Surveyor, toggle the *Setup* switch to **BASE**. The device will then enter either 'Fixed' or 'Survey-In' type **Base** mode depending on the system configuration. If the type has been set to Survey-In, the red BASE LED will blink while a survey-in is active. Once complete, the LED will turn solid red and begin transmitting RTCM out the **RADIO** port.
-
-![RTK Facet in Survey-In Mode](img/Displays/SparkFun_RTK_Express_-_Display_-_Survey-In.jpg)
+![RTK Torch in Survey-In Mode](img/SparkFun_RTK_Torch_On_Tripod.jpg)
+![](img/Displays/SparkFun_RTK_Express_-_Display_-_Survey-In.jpg)
 
 *RTK device in Survey-In Mode*
 
-On the RTK Facet, RTK Facet L-Band, and RTK Express press the **SETUP** button until *Base* is illuminated then stop pressing the Setup button. The device will then enter either 'Fixed' or 'Survey-In' type **Base** mode depending on the system configuration. If the type has been set to Survey-In, the display will show the Survey-In screen.
+On the RTK Torch, base mode is entered using a [Mode Switch](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_system/#mode-switch) from the System Menu.
 
-*Note:* Base mode is not possible on the RTK Express Plus.
-
-![External Serial Radio attached to the back of the RTK Express](img/Corrections/SparkFun_RTK_Surveyor_-_Radio.jpg)
-
-*External Serial Radio attached to the back of the RTK Express*
-
-Once the survey is complete the device will begin producing RTCM correction data. If you are using a serial radio, data should start flowing across the link. RTK devices are designed to follow the u-blox recommended survey-in of 60 seconds and a mean 3D standard deviation of 5m of all fixes. If a survey fails to achieve these requirements it will auto-restart after 10 minutes.
-
-More expensive surveyor bases have a ⅝” 11-TPI thread but the top of the surveyor base will often interfere with the antenna’s TNC connector. If you chose to use a surveyor’s ‘stick’ (often called a Prism Pole) be sure to obtain an extension to raise the antenna at least an inch.
-
-If you’re shopping for a cell phone clamp be sure to get one that is compatible with the diameter of your tripod and has a knob to increase clamp pressure. Our tripod is 18mm in diameter and we’ve had a good experience with [this clamp](https://www.amazon.com/gp/product/B072DSRF3J). Your mileage may vary.
+Once the survey is complete the device will begin producing RTCM correction data. If you are using the internal 2.4GHz ESP-Now radios, data will start to broadcast. If you have an NTRIP Server enabled, corrections will be uploaded to the NTRIP Caster of your choosing. 
 
 Note: A mobile base station works well for quick trips to the field. However, the survey-in method is not recommended for the highest accuracy measurements because the positional accuracy of the base will directly translate to the accuracy of the rover. Said differently, if your base's calculated position is off by 100cm, so will every reading your rover makes. For many applications, such as surveying, this is acceptable since the Surveyor may only be concerned with measuring the lengths of property lines or features. If you’re looking for maximum accuracy consider installing a [permanent static base with a fixed antenna](permanent_base.md). We were able to pinpoint the antenna on the top of SparkFun with an incredible accuracy [+/-2mm of accuracy](img/Corrections/SparkFun_PPP_Results.png) using PPP!
-
-
 
 ## Other Sources
 

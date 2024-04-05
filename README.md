@@ -26,7 +26,7 @@ For compiled binaries of the firmware, please see [SparkFun RTK Everywhere Firmw
 Documentation
 --------------
 
-* **[RTK Product Manual](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/)** - A detail guide describing all the various software features of the RTK product line.   Essentially it is a manual for the firmware in this repository.
+* **[RTK Everywhere Product Manual](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/)** - A detailed guide describing all the various software features of the RTK product line. Essentially it is a manual for the firmware in this repository.
 
 Repository Contents
 -------------------
