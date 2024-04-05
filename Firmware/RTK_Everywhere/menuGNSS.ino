@@ -15,7 +15,7 @@ void menuGNSS()
         systemPrint("2) Set measurement rate in seconds between measurements: ");
         systemPrintln(gnssGetRateS(), 5);
 
-        systemPrintln("\tNote: The measurement rate is overridden to 1Hz when in Base mode.");
+        systemPrintln("        Note: The measurement rate is overridden to 1Hz when in Base mode.");
 
         systemPrint("3) Set dynamic model: ");
         if (gnssPlatform == PLATFORM_ZED)
