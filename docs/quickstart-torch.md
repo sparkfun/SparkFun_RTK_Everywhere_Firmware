@@ -4,7 +4,7 @@
 
 This quick start guide will get you started in 10 minutes or less. For the full product manual, please proceed to the [**Introduction**](index.md).
 
-Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#android) or [iOS](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#ios)?
+Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#android) or [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#ios)?
 
 ## Android
 
@@ -49,7 +49,7 @@ Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#a
 
     *Figure 7*
 
-You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#rtk-crash-course).
+You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#rtk-crash-course).
 
 ## iOS
 
@@ -91,7 +91,7 @@ The software options for Apple iOS are much more limited because Apple products 
 
     *Figure 7*
 
-You can now use your RTK device to measure points with very good (sub-meter) accuracy. If you need extreme accuracy (down to 10mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#rtk-crash-course).
+You can now use your RTK device to measure points with very good (sub-meter) accuracy. If you need extreme accuracy (down to 10mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#rtk-crash-course).
 
 ## RTK Crash Course
 
@@ -122,7 +122,7 @@ Be sure to check if your state or country provides corrections for free. Many do
 
 *The base station at SparkFun*
 
-You can set up your own correction source. This is done with a 2nd GNSS receiver that is stationary, often called a Base Station. There is just the one-time upfront cost of the Base Station hardware. See the [Creating a Permanent Base](https://docs.sparkfun.com/SparkFun_RTK_Firmware/permanent_base/) document for more information.
+You can set up your own correction source. This is done with a 2nd GNSS receiver that is stationary, often called a Base Station. There is just the one-time upfront cost of the Base Station hardware. See the [Creating a Permanent Base](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/permanent_base/) document for more information.
 
 ## NTRIP Example
 
@@ -208,4 +208,4 @@ Facet L-Band is unique in that it must obtain keys to decrypt the signal from a 
 
     Upon successful reception and decryption of L-Band corrections, the satellite dish icon will increase to a three-pronged icon (Figure 5). As the unit's accuracy increases a normal cross-hair will turn to a double blinking cross-hair indicating a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution. The HPA will be below 0.030 (30mm) or better once RTK Fix is achieved.
 
-You can now use your RTK device to measure points with millimeter accuracy. Please see [Android](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#android) or [iOS](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#ios) for guidance on getting the RTK device connected to GIS software over Bluetooth.
+You can now use your RTK device to measure points with millimeter accuracy. Please see [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#android) or [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#ios) for guidance on getting the RTK device connected to GIS software over Bluetooth.

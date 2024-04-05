@@ -39,4 +39,4 @@ E.g. to connect to a local machine via its IP Address, select option "c" and the
 
 ![Ethernet TCP Client connection](img/Terminal/TCP_Client.gif)
 
-The above animation was generated using [TCP_Server.py](https://github.com/sparkfun/SparkFun_RTK_Firmware/blob/main/Firmware/Tools/TCP_Server.py).
+The above animation was generated using [TCP_Server.py](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/Tools/TCP_Server.py).
