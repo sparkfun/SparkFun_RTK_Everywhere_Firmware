@@ -126,7 +126,8 @@ extra:
   
 nav:
   - Introduction: index.md
-  - intro.md
+  - Quick Start:
+    - quickstart-torch.md
   - connecting_bluetooth.md
   - gis_software.md
   - Configuration Methods:
@@ -161,4 +162,5 @@ nav:
       - correction_transport.md
       - permanent_base.md
       - accuracy_verification.md
+  - reference_documents.md
   - contribute.md
