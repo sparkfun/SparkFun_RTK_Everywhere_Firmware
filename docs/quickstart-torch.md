@@ -1,6 +1,6 @@
 # Quick Start - RTK Torch
 
-![RTK Torch](SparkFun_RTK_Torch-1.png)
+![RTK Torch](img/SparkFun_RTK_Torch.png)
 
 This quick start guide will get you started in 10 minutes or less. For the full product manual, please proceed to the [**Introduction**](index.md).
 
