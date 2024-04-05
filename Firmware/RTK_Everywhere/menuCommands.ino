@@ -1468,9 +1468,9 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "sdMounted", online.microSD);
 
     // Add Device ID used for corrections
-    char hardwareID[13];
-    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+    char hardwareID[15];
+    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
     stringRecord(newSettings, "hardwareID", hardwareID);
 
     // Add Days Remaining for corrections
