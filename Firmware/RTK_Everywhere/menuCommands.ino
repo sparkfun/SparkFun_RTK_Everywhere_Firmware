@@ -467,8 +467,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.debugNtripServerState = settingValue;
     else if (strcmp(settingName, "enableNtripServer") == 0)
         settings.enableNtripServer = settingValue;
-    else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
-        settings.ntripServer_StartAtSurveyIn = settingValue;
 
     // The following values are handled below:
     // ntripServer_CasterHost
@@ -1352,7 +1350,6 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "debugNtripServerRtcm", settings.debugNtripServerRtcm);
     stringRecord(newSettings, "debugNtripServerState", settings.debugNtripServerState);
     stringRecord(newSettings, "enableNtripServer", settings.enableNtripServer);
-    stringRecord(newSettings, "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
         stringRecordN(newSettings, "ntripServer_CasterHost", serverIndex,
@@ -2605,7 +2602,6 @@ void printAvailableSettings()
     systemPrint("debugNtripServerRtcm,bool,");
     systemPrint("debugNtripServerState,bool,");
     systemPrint("enableNtripServer,bool,");
-    systemPrint("ntripServer_StartAtSurveyIn,bool,");
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
         systemPrintf("ntripServer_CasterHost_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterHost[0]));

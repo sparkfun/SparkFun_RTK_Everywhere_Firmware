@@ -404,7 +404,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "debugNtripServerRtcm", settings.debugNtripServerRtcm);
     settingsFile->printf("%s=%d\r\n", "debugNtripServerState", settings.debugNtripServerState);
     settingsFile->printf("%s=%d\r\n", "enableNtripServer", settings.enableNtripServer);
-    settingsFile->printf("%s=%d\r\n", "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
         settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterHost", serverIndex,
@@ -1282,8 +1281,6 @@ bool parseLine(char *str, Settings *settings)
         settings->debugNtripServerState = d;
     else if (strcmp(settingName, "enableNtripServer") == 0)
         settings->enableNtripServer = d;
-    else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
-        settings->ntripServer_StartAtSurveyIn = d;
 
     // TCP Client
     else if (strcmp(settingName, "debugPvtClient") == 0)

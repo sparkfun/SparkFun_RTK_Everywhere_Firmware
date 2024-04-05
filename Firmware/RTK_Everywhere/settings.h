@@ -1220,7 +1220,6 @@ typedef struct
     bool debugNtripServerRtcm = false;
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
-    bool ntripServer_StartAtSurveyIn = false;       // true = Start WiFi instead of Bluetooth at Survey-In
     char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
     {
         "rtk2go.com",
