@@ -60,13 +60,17 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
     }
     else
     {
-        espnowRSSI = packetRSSI; // Record this packets RSSI as an ESP NOW packet
+        espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
 
         // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
         gnssPushRawData((uint8_t *)incomingData, len);
 
         if (!inMainMenu)
-            log_d("ESPNOW received %d RTCM bytes, pushed to ZED, RSSI: %d", len, espnowRSSI);
+        {
+            if (settings.debugEspNow == true)
+                systemPrintf("ESPNOW received %d RTCM bytes and pushed to GNSS receiver. RSSI: %d\r\n", len,
+                             espnowRSSI);
+        }
 
         espnowIncomingRTCM = true;
         lastEspnowRssiUpdate = millis();
@@ -107,7 +111,10 @@ void espnowStart()
         if (response != ESP_OK)
             systemPrintf("espnowStart: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
         else
-            log_d("WiFi off, ESP-Now added to protocols");
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("WiFi off, ESP-Now added to protocols");
+        }
     }
     // If WiFi is on but ESP NOW is off, then enable LR protocol
     else if (wifiState > WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
@@ -123,13 +130,17 @@ void espnowStart()
         if (response != ESP_OK)
             systemPrintf("espnowStart: Error setting ESP-Now + WiFi protocols: %s\r\n", esp_err_to_name(response));
         else
-            log_d("WiFi on, ESP-Now added to protocols");
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("WiFi on, ESP-Now added to protocols");
+        }
     }
 
     // If ESP-Now is already active, do nothing
     else
     {
-        log_d("ESP-Now already on");
+        if (settings.debugEspNow == true)
+            systemPrintln("ESP-Now already on");
     }
 
     // Init ESP-NOW
@@ -159,16 +170,24 @@ void espnowStart()
         // If we already have peers, move to paired state
         espnowSetState(ESPNOW_PAIRED);
 
-        log_d("Adding %d espnow peers", settings.espnowPeerCount);
+        if (settings.debugEspNow == true)
+            systemPrintf("Adding %d espnow peers\r\n", settings.espnowPeerCount);
+
         for (int x = 0; x < settings.espnowPeerCount; x++)
         {
             if (esp_now_is_peer_exist(settings.espnowPeers[x]) == true)
-                log_d("Peer already exists");
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("Peer already exists");
+            }
             else
             {
                 esp_err_t result = espnowAddPeer(settings.espnowPeers[x]);
                 if (result != ESP_OK)
-                    log_d("Failed to add peer #%d", x);
+                {
+                    if (settings.debugEspNow == true)
+                        systemPrintf("Failed to add peer #%d\r\n", x);
+                }
             }
         }
     }
@@ -179,12 +198,18 @@ void espnowStart()
         uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
         if (esp_now_is_peer_exist(broadcastMac) == true)
-            log_d("Broadcast peer already exists");
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("Broadcast peer already exists");
+        }
         else
         {
             esp_err_t result = espnowAddPeer(broadcastMac, false); // Encryption not support for broadcast MAC
             if (result != ESP_OK)
-                log_d("Failed to add broadcast peer");
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("Failed to add broadcast peer");
+            }
         }
     }
 
@@ -226,7 +251,10 @@ void espnowStop()
     if (response != ESP_OK)
         systemPrintf("espnowStop: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
     else
-        log_d("WiFi on, ESP-Now added to protocols");
+    {
+        if (settings.debugEspNow == true)
+            systemPrintln("WiFi on, ESP-Now added to protocols");
+    }
 
     // Deinit ESP-NOW
     if (esp_now_deinit() != ESP_OK)
@@ -242,12 +270,14 @@ void espnowStop()
         // ESP Now was the only thing using the radio so turn WiFi radio off entirely
         WiFi.mode(WIFI_OFF);
 
-        log_d("WiFi Radio off entirely");
+        if (settings.debugEspNow == true)
+            systemPrintln("WiFi Radio off entirely");
     }
     // If WiFi is on, then restart WiFi
     else if (wifiState > WIFI_STATE_OFF)
     {
-        log_d("ESP-Now starting WiFi");
+        if (settings.debugEspNow == true)
+            systemPrintln("ESP-Now starting WiFi");
         wifiStart(); // Force WiFi to restart
     }
 
@@ -281,7 +311,10 @@ bool espnowIsPaired()
         }
 
         if (esp_now_is_peer_exist(receivedMAC) == true)
-            log_d("Peer already exists");
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("Peer already exists");
+        }
         else
         {
             // Add new peer to system
@@ -350,8 +383,11 @@ esp_err_t espnowAddPeer(uint8_t *peerMac, bool encrypt)
 
     esp_err_t result = esp_now_add_peer(&peerInfo);
     if (result != ESP_OK)
-        log_d("Failed to add peer: 0x%02X%02X%02X%02X%02X%02X", peerMac[0], peerMac[1], peerMac[2], peerMac[3],
-              peerMac[4], peerMac[5]);
+    {
+        if (settings.debugEspNow == true)
+            systemPrintf("Failed to add peer: 0x%02X%02X%02X%02X%02X%02X\r\n", peerMac[0], peerMac[1], peerMac[2],
+                         peerMac[3], peerMac[4], peerMac[5]);
+    }
     return (result);
 #else  // COMPILE_ESPNOW
     return (ESP_OK);
@@ -364,7 +400,10 @@ esp_err_t espnowRemovePeer(uint8_t *peerMac)
 #ifdef COMPILE_ESPNOW
     esp_err_t response = esp_now_del_peer(peerMac);
     if (response != ESP_OK)
-        log_d("Failed to remove peer: %s", esp_err_to_name(response));
+    {
+        if (settings.debugEspNow == true)
+            systemPrintf("Failed to remove peer: %s\r\n", esp_err_to_name(response));
+    }
 
     return (response);
 #else  // COMPILE_ESPNOW

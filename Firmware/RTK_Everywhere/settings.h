@@ -1321,7 +1321,8 @@ typedef struct
     bool enableImuCompensationDebug = false;
 
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
-
+    bool debugEspNow = false;
+    
     // Add new settings above <------------------------------------------------------------>
 
 } Settings;

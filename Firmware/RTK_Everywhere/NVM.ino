@@ -514,6 +514,8 @@ void recordSystemSettingsToFile(File *settingsFile)
         settingsFile->println(tempString);
     }
 
+    settingsFile->printf("%s=%d\r\n", "debugEspNow", settings.debugEspNow);
+
     // Add new settings above <--------------------------------------------------->
 
     // Below are things not part of settings.h
@@ -1366,6 +1368,8 @@ bool parseLine(char *str, Settings *settings)
         settings->um980MeasurementRateMs = d;
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         settings->enableImuCompensationDebug = d;
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings->debugEspNow = d;
 
     // Add new settings above <--------------------------------------------------->
 

@@ -561,7 +561,10 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         settings.enableImuCompensationDebug = settingValue;
 
-    // correctionsPriority not handled here
+    // correctionsPriority handled below
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings.debugEspNow = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1453,6 +1456,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, tagText, settings.correctionsSourcesPriority[x]);
     }
 
+    stringRecord(newSettings, "debugEspNow", settings.debugEspNow);
     // stringRecord(newSettings, "", settings.);
 
     // Add new settings above <------------------------------------------------------------>
@@ -2190,6 +2194,9 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
     // correctionsPriority handled below
 
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        writeToString(settingValueStr, settings.debugEspNow);
+
     // Add new settings above <------------------------------------------------------------>
 
     // Check global setting
@@ -2657,6 +2664,10 @@ void printAvailableSettings()
 
     // TODO: Would correctionsPriority.Bluetooth,int, correctionsPriority.ESP-Now,int, etc. be more useful?
     systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
+
+    systemPrint("debugEspNow,bool,");
+
+    // Add new settings above <--------------------------------------------------->
 
     systemPrintln();
 }
