@@ -73,10 +73,10 @@ typedef uint8_t RtkMode_t;
 //Used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
-    RTK_EVK = 0,
-    RTK_FACET_V2,
-    RTK_FACET_MOSAIC,
-    RTK_TORCH,
+    RTK_EVK = 0, // 0x00
+    RTK_FACET_V2 = 1, // 0x01
+    RTK_FACET_MOSAIC = 2, // 0x02
+    RTK_TORCH = 3, // 0x03
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
