@@ -70,6 +70,7 @@ typedef uint8_t RtkMode_t;
 #define EQ_RTK_MODE(mode)       (rtkMode && (rtkMode == (mode & rtkMode)))
 #define NEQ_RTK_MODE(mode)      (rtkMode && (rtkMode != (mode & rtkMode)))
 
+//Used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
     RTK_EVK = 0,
