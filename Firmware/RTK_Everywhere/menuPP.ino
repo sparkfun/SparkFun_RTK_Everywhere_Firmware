@@ -219,15 +219,15 @@ bool pointperfectProvisionDevice()
 
     do
     {
-        char hardwareID[13];
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+        char hardwareID[15];
+        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                  btMACAddress[2], btMACAddress[3], btMACAddress[4],
-                 btMACAddress[5]); // Get ready for JSON
+                 btMACAddress[5], productVariant); // Get ready for JSON
 
 #ifdef WHITELISTED_ID
         // Override ID with testing ID
-        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", whitelistID[0], whitelistID[1],
-                 whitelistID[2], whitelistID[3], whitelistID[4], whitelistID[5]);
+        snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", whitelistID[0], whitelistID[1],
+                 whitelistID[2], whitelistID[3], whitelistID[4], whitelistID[5], productVariant);
 #endif // WHITELISTED_ID
 
         // Given name must be between 1 and 50 characters
@@ -308,9 +308,9 @@ bool pointperfectProvisionDevice()
             }
             else if (ztpResponse == ZTP_DEACTIVATED && attemptNumber == 1)
             {
-                char hardwareID[13];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+                char hardwareID[15];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
 
                 systemPrintf("This device has been deactivated. Please contact "
                              "support@sparkfun.com to renew the PointPerfect "
@@ -321,9 +321,9 @@ bool pointperfectProvisionDevice()
             }
             else if (ztpResponse == ZTP_NOT_WHITELISTED && attemptNumber == 1)
             {
-                char hardwareID[13];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+                char hardwareID[15];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
 
                 systemPrintf(
                     "This device is not whitelisted. Please contact "
@@ -1421,9 +1421,9 @@ void menuPointPerfect()
         }
         else if (incoming == 4 && pointPerfectIsEnabled())
         {
-            char hardwareID[13];
-            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
             systemPrintf("Device ID: %s\r\n", hardwareID);
         }
         else if (incoming == 'c' && pointPerfectIsEnabled())
