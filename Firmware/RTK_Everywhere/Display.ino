@@ -2820,16 +2820,13 @@ void paintKeyProvisionFail(uint16_t displayTime)
         int y = 0;
         int fontHeight = 8;
 
-        printTextCenter("ZTP", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        y += fontHeight;
         printTextCenter("Failed", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight;
-        printTextCenter("ID:", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("ZTP ID:", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
-        // The MAC address is 12 characters long so we have to split it onto two lines
-        char hardwareID[13];
+        // The device ID is 14 characters long so we have to split it into three lines
+        char hardwareID[15];
         const uint8_t *rtkMacAddress = getMacAddress();
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[0], rtkMacAddress[1], rtkMacAddress[2]);
@@ -2837,6 +2834,10 @@ void paintKeyProvisionFail(uint16_t displayTime)
         printTextCenter(hardwareID, y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[3], rtkMacAddress[4], rtkMacAddress[5]);
+        y += fontHeight;
+        printTextCenter(hardwareID, y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+
+        snprintf(hardwareID, sizeof(hardwareID), "%02X", productVariant);
         y += fontHeight;
         printTextCenter(hardwareID, y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
