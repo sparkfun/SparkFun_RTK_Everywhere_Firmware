@@ -992,6 +992,47 @@ enum OtaState
 
 #endif  // COMPILE_OTA_AUTO
 
+// Regional Support
+// Some regions have both L-Band and IP. More just have IP.
+// Do we want the user to be able to specify which region they are in?
+// Or do we want to figure it out based on position?
+// If we define a simple 'square' area for each region, we can do both.
+
+typedef struct
+{
+    const int32_t latNorth; // Degrees * 10-7
+    const int32_t latSouth; // Degrees * 10-7
+    const int32_t lonEast; // Degrees * 10-7
+    const int32_t lonWest; // Degrees * 10-7
+} Regional_Area;
+
+typedef struct
+{
+    const char *lBandTopic; // L-Band / L-Band+IP
+    const char *ipTopic; // IP-only
+} Plan_Pair;
+
+typedef struct
+{
+    const char *name;
+    const Regional_Area area;
+    const bool hasLBand; // true if L-Band is supported in this region, otherwise false
+    const uint32_t frequency; // L-Band frequency, Hz, if supported. 0 if not supported
+    const Plan_Pair keyTopics; // The key distribution topics for this region
+    const Plan_Pair correctionTopics; // The correction topics for this region
+    const Plan_Pair geoAreaTopics; // The geographic area topics for this region
+} Regional_Information;
+
+const Regional_Information Regional_Information_Table[] = 
+{
+    { "US", { 500000000,  250000000, -600000000, -1250000000}, true, 1556290000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/us", "/pp/ip/us" } , { "/pp/Lb/us/gad", "/pp/ip/us/gad" } },
+    { "EU", { 720000000,  360000000,  320000000,  -110000000}, true, 1545260000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/eu", "/pp/ip/eu" } , { "/pp/Lb/eu/gad", "/pp/ip/eu/gad" } },
+    { "AU", {-250000000, -450000000, 1540000000,  1130000000}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/au", "/pp/ip/au" } , { "/pp/Lb/au/gad", "/pp/ip/au/gad" } },
+    { "KR", { 390000000,  340000000, 1295000000,  1250000000}, false, 0, { "NULL", "/pp/ubx/0236/ip" }, { "NULL", "/pp/ip/kr" } , { "NULL", "/pp/ip/kr/gad" } },
+    { "JP", { 460000000,  310000000, 1460000000,  1295000000}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/jp", "/pp/ip/jp" } , { "/pp/Lb/jp/gad", "/pp/ip/jp/gad" } },
+};
+const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 typedef struct
