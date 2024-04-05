@@ -4,8 +4,8 @@ Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supp
 
 The device has two primary firmwares:
 
-* Firmware on the ESP32 microcontroller. Keep reading.
-* Firmware on the u-blox ZED-F9P, ZED-F9P, or NEO-D9S Receiver. [See below](firmware_update.md#updating-u-blox-firmware).
+* Firmware on the ESP32 microcontroller
+* Firmware on the GNSS receiver. [See below](firmware_update.md#updating-u-blox-firmware).
 
 The device firmware is displayed in a variety of places:
 
@@ -13,11 +13,11 @@ The device firmware is displayed in a variety of places:
 * Serial Config Menu
 * WiFi Config
 
-![RTK Express with firmware v3.0](img/Displays/SparkFun%20RTK%20Boot%20Screen%20Version%20Number.png)
+![RTK Express with firmware v3.0](<img/Displays/SparkFun%20RTK%20Boot%20Screen%20Version%20Number.png>)
 
 *RTK Express with firmware v3.0*
 
-During power-on, the display will show the current device Firmware.
+During power-on, on devices that have a display, the firmware version will be shown.
 
 ![Main Menu showing RTK Firmware v3.0-Jan 19 2023](img/Terminal/SparkFun%20RTK%20Main%20Menu.png)
 
@@ -25,7 +25,7 @@ During power-on, the display will show the current device Firmware.
 
 The firmware is displayed when the main menu is opened over a serial connection.
 
-![WiFi Config page showing device firmware v2.7](img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20Screen%20Version%20Number.png)
+![WiFi Config page showing device firmware v2.7](<img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20Screen%20Version%20Number.png>)
 
 *WiFi Config page showing device firmware v2.7 and ZED-F9P firmware HPG 1.32*
 
@@ -48,7 +48,7 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 
 *Updating the firmware via WiFi config page*
 
-![Updating the firmware via Firmware serial menu](img/Terminal/SparkFun%20RTK%20Firmware%20Update%20Menu.png)
+![Updating the firmware via Firmware serial menu](<img/Terminal/SparkFun RTK Everywhere - Firmware Update Menu.png>)
 
 *Updating the firmware via Firmware serial menu*
 
@@ -98,7 +98,9 @@ If your RTK 'freezes' after the update, press ```Reset ESP32``` to get it going 
 
 ## Updating Firmware From the SD Card
 
-![Firmware update menu](img/Terminal/SparkFun_RTK_Firmware_Update-ProgressBar.jpg)
+On devices that support it, the firmware can be loaded from an SD card.
+
+![Firmware update menu](<img/Terminal/SparkFun_RTK_Firmware_Update-ProgressBar.jpg>)
 
 *Firmware update taking place*
 
@@ -114,7 +116,7 @@ In the rare event that a unit is not staying on long enough for new firmware to 
 
 ## Updating Firmware From WiFi
 
-![Advanced system settings](img/WiFi Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png)
+![Advanced system settings](<img/WiFi Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png>)
 
 **Note:** Firmware versions 1.1 to 1.9 have an issue that severely limits firmware upload over WiFi and is not recommended; use the [GUI](firmware_update.md#updating-firmware-using-the-uploader-gui) method instead. Firmware versions v1.10 and beyond support direct firmware updates via WiFi.
 
@@ -134,7 +136,7 @@ Connect a USB A to C cable from your computer to the ESP32 port on the RTK devic
 
 If the COM port is not showing be sure the unit is turned **On**. If an unknown device is appearing, you’ll need to [install drivers for the CH340](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Once you know the COM port, open a command prompt (Windows button + r then type ‘cmd’).
 
-![batch_program.bat running esptool](img/Terminal/SparkFun%20RTK%20Firmware%20Update%20CLI.png)
+![batch_program.bat running esptool](<img/Terminal/SparkFun%20RTK%20Firmware%20Update%20CLI.png>)
 
 *batch_program.bat running esptool*
 
@@ -164,30 +166,7 @@ Where */dev/ttyUSB0* is replaced with the port that the RTK product enumerated a
 
 **Note:** Some users have reported the 921600bps baud rate does not work. Decrease this to 115200 as needed.
 
-Upon completion, your RTK device will reset and power down.
-
-## Updating 4MB Surveyors
-
-RTK Surveyors sold before September 2021 may have an ESP32 WROOM module with 4MB flash instead of 16MB flash. These units still support all the functionality of other RTK products with the following limitations:
-
-* There is not enough flash space for OTA. Upgrading the firmware must be done via [CLI](firmware_update.md#updating-firmware-from-cli) or [GUI](firmware_update.md#updating-firmware-using-windows-gui). OTA, WiFi, or SD update paths are not possible.
-
-The GUI (as of v1.3) will autodetect the ESP32's flash size and load the appropriate partition file. No user interaction is required.
-
-If you are using the CLI method, be sure to point to the [4MB partition file](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/blob/main/bin/RTK_Surveyor_Partitions_4MB.bin?raw=true). For example:
-
-```
-esptool.exe --chip esp32 --port COM6 --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0x1000 ./bin/RTK_Surveyor.ino.bootloader.bin 0x8000 ./bin/**RTK_Surveyor_Partitions_4MB**.bin 0xe000 ./bin/boot_app0.bin 0x10000 ./RTK_Surveyor_Firmware_vxx.bin
-```
-
-### Determining The Size of Flash
-
-To determine if the device has a 4MB module:
-
-* Use the esptool via CLI. Please see the [flash_id](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/esptool/basic-commands.html#read-spi-flash-id-flash-id) command for usage.
-* Use the GUI and attempt a firmware update. The output will auto-detect and show the flash size, as shown below:
-
-![Module with 4MB flash](img/SparkFun%20RTK%20Firmware%20Update%20GUI%20-%204MB.png)
+Upon completion, your RTK device will reset.
 
 ## Updating u-blox Firmware
 
