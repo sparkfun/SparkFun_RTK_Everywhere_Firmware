@@ -251,8 +251,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.lastKeyAttempt = settingValue;
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         settings.updateGNSSSettings = settingValue;
-    else if (strcmp(settingName, "LBandFreq") == 0)
-        settings.LBandFreq = settingValue;
     else if (strcmp(settingName, "debugPpCertificate") == 0)
         settings.debugPpCertificate = settingValue;
 
@@ -561,6 +559,9 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings.correctionsSourcesLifetime_s = settingValue;
+
+    else if (strcmp(settingName, "geographicRegion") == 0)
+        settings.geographicRegion = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1204,7 +1205,6 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "lastKeyAttempt", settings.lastKeyAttempt);
     stringRecord(newSettings, "updateGNSSSettings", settings.updateGNSSSettings);
-    stringRecord(newSettings, "LBandFreq", settings.LBandFreq);
 
     // Time Zone - Default to UTC
     stringRecord(newSettings, "timeZoneHours", settings.timeZoneHours);
@@ -1442,6 +1442,8 @@ void createSettingsString(char *newSettings)
     }
 
     stringRecord(newSettings, "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
+
+    stringRecord(newSettings, "geographicRegion", settings.geographicRegion);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1877,8 +1879,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.lastKeyAttempt);
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         writeToString(settingValueStr, settings.updateGNSSSettings);
-    else if (strcmp(settingName, "LBandFreq") == 0)
-        writeToString(settingValueStr, settings.LBandFreq);
 
     else if (strcmp(settingName, "debugPpCertificate") == 0)
         writeToString(settingValueStr, settings.debugPpCertificate);
@@ -2177,6 +2177,9 @@ void getSettingValue(const char *settingName, char *settingValueStr)
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         writeToString(settingValueStr, settings.correctionsSourcesLifetime_s);
 
+    else if (strcmp(settingName, "geographicRegion") == 0)
+        writeToString(settingValueStr, settings.geographicRegion);
+
     // Add new settings above <------------------------------------------------------------>
 
     // Check global setting
@@ -2472,7 +2475,6 @@ void printAvailableSettings()
 
     systemPrint("lastKeyAttempt,uint64_t,");
     systemPrint("updateGNSSSettings,bool,");
-    systemPrint("LBandFreq,uint32_t,");
 
     systemPrint("debugPpCertificate,bool,");
 
@@ -2642,6 +2644,8 @@ void printAvailableSettings()
 
     systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
     systemPrint("correctionsSourcesLifetime_s,int,");
+
+    systemPrint("geographicRegion,int,");
 
     systemPrintln();
 }

@@ -1220,46 +1220,35 @@ void beginLBand()
 
     gnssUpdate();
 
-    // If we have a fix, check which frequency to use
-    if (gnssIsFixed())
+    // Previously the L-Band frequency was set here based on gnssGetLongitude and gnssGetLatitude
+    // if gnssIsFixed was true. beginLBand is called early during setup and I worry that the
+    // GNSS may not always be fixed... I think it is far safer to set the frequency based on the
+    // selected geographical region...
+
+    uint32_t lBandFreq;
+    if (Regional_Information_Table[settings.geographicRegion].hasLBand)
     {
-        if ((gnssGetLongitude() > -125 && gnssGetLongitude() < -67) &&
-            (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
-        {
-            if (settings.debugCorrections == true)
-                systemPrintln("Setting L-Band to US");
-            settings.LBandFreq = 1556290000; // We are in US band
-        }
-        else if ((gnssGetLongitude() > -25 && gnssGetLongitude() < 70) &&
-                 (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
-        {
-            if (settings.debugCorrections == true)
-                systemPrintln("Setting L-Band to EU");
-            settings.LBandFreq = 1545260000; // We are in EU band
-        }
-        else
-        {
-            systemPrintln("Error: Unknown band area. Defaulting to US band.");
-            settings.LBandFreq = 1556290000; // Default to US
-        }
-        recordSystemSettings();
+        lBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+        if (settings.debugCorrections == true)
+            systemPrintf("L-Band frequency (Hz): %d\r\n", lBandFreq);
     }
     else
     {
+        lBandFreq = Regional_Information_Table[0].frequency;
         if (settings.debugCorrections == true)
-            systemPrintln("No fix available for L-Band frequency determination");
+            systemPrintf("Geographic region has no L-Band frequency. Defaulting to (Hz): %d\r\n", lBandFreq);
     }
 
     bool response = true;
     response &= i2cLBand.newCfgValset();
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, settings.LBandFreq); // Default 1539812500 Hz
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);                  // Default 2200 Hz
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);                    // Default 1
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);                    // Default 50821
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);                      // Default 2400 bps
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);                   // Default 1
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);              // Default 23560
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);                 // Default 0
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, lBandFreq); // Default 1539812500 Hz
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
     response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
     response &=
         i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Diasable UBX-RXM-PMP on UART1. Not used.
@@ -1318,8 +1307,40 @@ void menuPointPerfect()
             else
                 systemPrintln("No keys");
 
-        // All units should be able to obtain corrections over IP
-        // Only units with an lband receiver can obtain LBand corrections
+        // There are three possibilities here: IP-only, L-Band-only, L-Band+IP
+        // IP-only - e.g. Torch - can:
+        //    Receive SPARTN over IP (WiFi)
+        //    Get keys
+        //    Decrypt SPARTN and convert into RTCM using the PPL
+        //    Push RTCM to the UM980
+        // IP-only - e.g. Facet v2 (without L-Band) - can:
+        //    Receive SPARTN over IP (WiFi)
+        //    Get keys
+        //    Push SPARTN to the ZED-F9P
+        //    ZED-F9P decrypts the SPARTN using the keys. Needs UBLOX_CFG_SPARTN_USE_SOURCE 0
+        // L-Band-only - e.g. Facet v2 L-Band - can:
+        //    Receive PMP (SPARTN) from L-Band (NEO-D9S)
+        //    Get keys
+        //    Push PMP to the ZED-F9P
+        //    ZED-F9P decrypts the SPARTN using the keys
+        //    ** Facet v2 L-Band would be capable of using both L-Band and IP if
+        //    ** it had a L-Band+IP plan. But I don't think we want to go there?
+        // L-Band-only - e.g. Facet mosaic - can:
+        //    Receive raw SPARTN from L-Band
+        //    Get keys
+        //    Decrypt SPARTN and convert into RTCM using the PPL
+        //    Push RTCM to the X5
+        // L-Band+IP - e.g. EVK - _could_:
+        //    Receive SPARTN over IP (WiFi or TODO Ethernet / Cellular)
+        //    Get keys
+        //    Push SPARTN to the ZED-F9P
+        //    ZED-F9P decrypts the SPARTN using the keys. Needs UBLOX_CFG_SPARTN_USE_SOURCE 0
+        //    Receive PMP (SPARTN) from L-Band (NEO-D9S)
+        //    Push PMP to the ZED-F9P
+        //    ZED-F9P decrypts the SPARTN using the keys. Needs UBLOX_CFG_SPARTN_USE_SOURCE 1
+        //    ** This creates a minor headache as the UBLOX_CFG_SPARTN_USE_SOURCE needs to
+        //    ** change depending on which corrections source is being used, based on its
+        //    ** availability and priority.
         systemPrint("1) PointPerfect Corrections: ");
         if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
             systemPrintln("L-Band and IP");
@@ -1347,6 +1368,9 @@ void menuPointPerfect()
 
             systemPrintln("k) Manual Key Entry");
         }
+
+        systemPrint("g) Geographic Region: ");
+        systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
 
         systemPrintln("x) Exit");
 
@@ -1444,6 +1468,12 @@ void menuPointPerfect()
         else if (incoming == 'k' && pointPerfectIsEnabled())
         {
             menuPointPerfectKeys();
+        }
+        else if (incoming == 'g')
+        {
+            settings.geographicRegion++;
+            if (settings.geographicRegion >= numRegionalAreas)
+                settings.geographicRegion = 0;
         }
         else if (incoming == 'x')
             break;

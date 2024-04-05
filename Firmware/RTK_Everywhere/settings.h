@@ -1000,10 +1000,10 @@ enum OtaState
 
 typedef struct
 {
-    const int32_t latNorth; // Degrees * 10-7
-    const int32_t latSouth; // Degrees * 10-7
-    const int32_t lonEast; // Degrees * 10-7
-    const int32_t lonWest; // Degrees * 10-7
+    const double latNorth; // Degrees
+    const double latSouth; // Degrees
+    const double lonEast; // Degrees
+    const double lonWest; // Degrees
 } Regional_Area;
 
 typedef struct
@@ -1025,11 +1025,11 @@ typedef struct
 
 const Regional_Information Regional_Information_Table[] = 
 {
-    { "US", { 500000000,  250000000, -600000000, -1250000000}, true, 1556290000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/us", "/pp/ip/us" } , { "/pp/Lb/us/gad", "/pp/ip/us/gad" } },
-    { "EU", { 720000000,  360000000,  320000000,  -110000000}, true, 1545260000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/eu", "/pp/ip/eu" } , { "/pp/Lb/eu/gad", "/pp/ip/eu/gad" } },
-    { "AU", {-250000000, -450000000, 1540000000,  1130000000}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/au", "/pp/ip/au" } , { "/pp/Lb/au/gad", "/pp/ip/au/gad" } },
-    { "KR", { 390000000,  340000000, 1295000000,  1250000000}, false, 0, { "NULL", "/pp/ubx/0236/ip" }, { "NULL", "/pp/ip/kr" } , { "NULL", "/pp/ip/kr/gad" } },
-    { "JP", { 460000000,  310000000, 1460000000,  1295000000}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/jp", "/pp/ip/jp" } , { "/pp/Lb/jp/gad", "/pp/ip/jp/gad" } },
+    { "US", { 50.0,  25.0, -60.0, -125.0}, true, 1556290000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/us", "/pp/ip/us" } , { "/pp/Lb/us/gad", "/pp/ip/us/gad" } },
+    { "EU", { 72.0,  36.0,  32.0,  -11.0}, true, 1545260000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/eu", "/pp/ip/eu" } , { "/pp/Lb/eu/gad", "/pp/ip/eu/gad" } },
+    { "AU", {-25.0, -45.0, 154.0,  113.0}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/au", "/pp/ip/au" } , { "/pp/Lb/au/gad", "/pp/ip/au/gad" } },
+    { "KR", { 39.0,  34.0, 129.5,  125.0}, false, 0, { "NULL", "/pp/ubx/0236/ip" }, { "NULL", "/pp/ip/kr" } , { "NULL", "/pp/ip/kr/gad" } },
+    { "JP", { 46.0,  31.0, 146.0,  129.5}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/jp", "/pp/ip/jp" } , { "/pp/Lb/jp/gad", "/pp/ip/jp/gad" } },
 };
 const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
 
@@ -1119,7 +1119,6 @@ typedef struct
 
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
     bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
-    uint32_t LBandFreq = 1556290000; // Default to US band
 
     bool debugPpCertificate = false; // Debug Point Perfect certificate management
 
@@ -1354,6 +1353,8 @@ typedef struct
 
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
+
+    int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
 
     // Add new settings above <------------------------------------------------------------>
 

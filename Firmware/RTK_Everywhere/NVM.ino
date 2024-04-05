@@ -261,7 +261,6 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%llu\r\n", "lastKeyAttempt", settings.lastKeyAttempt);
     settingsFile->printf("%s=%d\r\n", "updateGNSSSettings", settings.updateGNSSSettings);
-    settingsFile->printf("%s=%d\r\n", "LBandFreq", settings.LBandFreq);
 
     settingsFile->printf("%s=%d\r\n", "debugPpCertificate", settings.debugPpCertificate);
 
@@ -515,6 +514,8 @@ void recordSystemSettingsToFile(File *settingsFile)
         settingsFile->println(tempString);
     }
     settingsFile->printf("%s=%d\r\n", "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
+
+    settingsFile->printf("%s=%d\r\n", "geographicRegion", settings.geographicRegion);
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1057,8 +1058,6 @@ bool parseLine(char *str, Settings *settings)
         settings->lastKeyAttempt = d;
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         settings->updateGNSSSettings = d;
-    else if (strcmp(settingName, "LBandFreq") == 0)
-        settings->LBandFreq = d;
     else if (strcmp(settingName, "debugPpCertificate") == 0)
         settings->debugPpCertificate = d;
 
@@ -1366,6 +1365,9 @@ bool parseLine(char *str, Settings *settings)
         settings->enableImuCompensationDebug = d;
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings->correctionsSourcesLifetime_s = d;
+
+    else if (strcmp(settingName, "geographicRegion") == 0)
+        settings->geographicRegion = d;
 
     // Add new settings above <--------------------------------------------------->
 
