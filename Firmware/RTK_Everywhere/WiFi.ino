@@ -448,7 +448,7 @@ void wifiShutdown()
 
     wifiConnectionAttempts = 0; // Reset the timeout
 
-    // If ESP-Now is active, change protocol to only Long Range and re-start WiFi
+    // If ESP-Now is active, change protocol to only Long Range
     if (espnowState > ESPNOW_OFF)
     {
         if (WiFi.getMode() != WIFI_STA)
