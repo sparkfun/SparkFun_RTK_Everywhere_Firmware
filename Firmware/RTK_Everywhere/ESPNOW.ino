@@ -210,6 +210,11 @@ void espnowStart()
                 if (settings.debugEspNow == true)
                     systemPrintln("Failed to add broadcast peer");
             }
+            else
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("Broadcast peer added");
+            }
         }
     }
 
@@ -414,31 +419,34 @@ esp_err_t espnowRemovePeer(uint8_t *peerMac)
 // Update the state of the ESP Now state machine
 void espnowSetState(ESPNOWState newState)
 {
-    if (espnowState == newState)
+    if (espnowState == newState && settings.debugEspNow == true)
         systemPrint("*");
     espnowState = newState;
 
-    systemPrint("espnowState: ");
-    switch (newState)
+    if (settings.debugEspNow == true)
     {
-    case ESPNOW_OFF:
-        systemPrintln("ESPNOW_OFF");
-        break;
-    case ESPNOW_ON:
-        systemPrintln("ESPNOW_ON");
-        break;
-    case ESPNOW_PAIRING:
-        systemPrintln("ESPNOW_PAIRING");
-        break;
-    case ESPNOW_MAC_RECEIVED:
-        systemPrintln("ESPNOW_MAC_RECEIVED");
-        break;
-    case ESPNOW_PAIRED:
-        systemPrintln("ESPNOW_PAIRED");
-        break;
-    default:
-        systemPrintf("Unknown ESPNOW state: %d\r\n", newState);
-        break;
+        systemPrint("espnowState: ");
+        switch (newState)
+        {
+        case ESPNOW_OFF:
+            systemPrintln("ESPNOW_OFF");
+            break;
+        case ESPNOW_ON:
+            systemPrintln("ESPNOW_ON");
+            break;
+        case ESPNOW_PAIRING:
+            systemPrintln("ESPNOW_PAIRING");
+            break;
+        case ESPNOW_MAC_RECEIVED:
+            systemPrintln("ESPNOW_MAC_RECEIVED");
+            break;
+        case ESPNOW_PAIRED:
+            systemPrintln("ESPNOW_PAIRED");
+            break;
+        default:
+            systemPrintf("Unknown ESPNOW state: %d\r\n", newState);
+            break;
+        }
     }
 }
 

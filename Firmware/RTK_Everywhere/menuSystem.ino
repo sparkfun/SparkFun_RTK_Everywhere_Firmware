@@ -7,7 +7,6 @@ void menuSystem()
         systemPrintln("System Status");
 
         printTimeStamp();
-        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         beginI2C();
         if (online.i2c == false)
@@ -160,6 +159,7 @@ void menuSystem()
         systemPrintln("Menu: System");
         // Separate the menu from the status
         systemPrintln("-----  Mode Switch  -----");
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         // Support mode switching
         systemPrintln("B) Switch to Base mode");
