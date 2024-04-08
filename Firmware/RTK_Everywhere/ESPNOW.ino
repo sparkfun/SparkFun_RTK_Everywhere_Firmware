@@ -98,41 +98,57 @@ void espnowStart()
 {
 #ifdef COMPILE_ESPNOW
 
-    esp_err_t response;
+    // Before we can issue esp_wifi_() commands WiFi must be started
+    if (WiFi.getMode() != WIFI_STA)
+        WiFi.mode(WIFI_STA);
+
+    // Verify that the necessary protocols are set
+    uint8_t protocols = 0;
+    esp_err_t response = esp_wifi_get_protocol(WIFI_IF_STA, &protocols);
+    if (response != ESP_OK)
+        systemPrintf("espnowStart: Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
     if (wifiState == WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
     {
-        if (WiFi.getMode() != WIFI_STA)
-            WiFi.mode(WIFI_STA);
-
         // Radio is off, turn it on
-        // esp_wifi_set_protocol requires WiFi to be started
-        response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR); // Stops WiFi Station.
-        if (response != ESP_OK)
-            systemPrintf("espnowStart: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
+        if (protocols != (WIFI_PROTOCOL_LR))
+        {
+            response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR); // Stops WiFi Station.
+            if (response != ESP_OK)
+                systemPrintf("espnowStart: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
+            else
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("WiFi off, ESP-Now added to protocols");
+            }
+        }
         else
         {
             if (settings.debugEspNow == true)
-                systemPrintln("WiFi off, ESP-Now added to protocols");
+                systemPrintln("LR protocol already in place");
         }
     }
     // If WiFi is on but ESP NOW is off, then enable LR protocol
     else if (wifiState > WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
     {
-        if (WiFi.getMode() != WIFI_STA)
-            WiFi.mode(WIFI_STA);
-
-        // Enable WiFi + ESP-Now
-        // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
-        // esp_wifi_set_protocol requires WiFi to be started
-        response = esp_wifi_set_protocol(WIFI_IF_STA,
-                                         WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR);
-        if (response != ESP_OK)
-            systemPrintf("espnowStart: Error setting ESP-Now + WiFi protocols: %s\r\n", esp_err_to_name(response));
+        // // Enable WiFi + ESP-Now
+        // // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
+        if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR))
+        {
+            response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N |
+                                                              WIFI_PROTOCOL_LR);
+            if (response != ESP_OK)
+                systemPrintf("espnowStart: Error setting ESP-Now + WiFi protocols: %s\r\n", esp_err_to_name(response));
+            else
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("WiFi on, ESP-Now added to protocols");
+            }
+        }
         else
         {
             if (settings.debugEspNow == true)
-                systemPrintln("WiFi on, ESP-Now added to protocols");
+                systemPrintln("WiFi was already on, and LR protocol already in place");
         }
     }
 
@@ -140,7 +156,7 @@ void espnowStart()
     else
     {
         if (settings.debugEspNow == true)
-            systemPrintln("ESP-Now already on");
+            systemPrintln("ESP-Now already on.");
     }
 
     // Init ESP-NOW
@@ -178,7 +194,7 @@ void espnowStart()
             if (esp_now_is_peer_exist(settings.espnowPeers[x]) == true)
             {
                 if (settings.debugEspNow == true)
-                    systemPrintf("Peer #%d already exists\r\n");
+                    systemPrintf("Peer #%d already exists\r\n", x);
             }
             else
             {
@@ -250,15 +266,28 @@ void espnowStop()
     if (WiFi.getMode() != WIFI_STA)
         WiFi.mode(WIFI_STA);
 
-    // Leave WiFi with default settings (no WIFI_PROTOCOL_LR for ESP NOW)
-    // esp_wifi_set_protocol requires WiFi to be started
-    response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+    // Verify that the necessary protocols are set
+    uint8_t protocols = 0;
+    response = esp_wifi_get_protocol(WIFI_IF_STA, &protocols);
     if (response != ESP_OK)
-        systemPrintf("espnowStop: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
+        systemPrintf("wifiConnect: Failed to get protocols: %s\r\n", esp_err_to_name(response));
+
+    // Leave WiFi with default settings (no WIFI_PROTOCOL_LR for ESP NOW)
+    if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N))
+    {
+        response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+        if (response != ESP_OK)
+            systemPrintf("espnowStop: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
+        else
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("espnowStop: WiFi on, ESP-Now removed from protocols");
+        }
+    }
     else
     {
         if (settings.debugEspNow == true)
-            systemPrintln("WiFi on, ESP-Now removed from protocols");
+            systemPrintln("espnowStop: ESP-Now already removed from protocols");
     }
 
     // Deinit ESP-NOW
