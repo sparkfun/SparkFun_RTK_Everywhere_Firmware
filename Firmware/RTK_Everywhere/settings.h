@@ -998,6 +998,9 @@ enum OtaState
 // Do we want the user to be able to specify which region they are in?
 // Or do we want to figure it out based on position?
 // If we define a simple 'square' area for each region, we can do both.
+// Note: the best way to obtain the L-Band frequencies would be from the MQTT /pp/frequencies/Lb topic.
+//       But it is easier to record them here, in case we don't have access to MQTT...
+// Note: the key distribution topic is provided during ZTP. We don't need to record it here.
 
 typedef struct
 {
@@ -1009,28 +1012,19 @@ typedef struct
 
 typedef struct
 {
-    const char *lBandTopic; // L-Band / L-Band+IP
-    const char *ipTopic; // IP-only
-} Plan_Pair;
-
-typedef struct
-{
-    const char *name;
+    const char *name; // As defined in the ZTP subscriptions description: EU, US, KR, AU, Japan
+    const char *topicRegion; // As used in the corrections topic path
     const Regional_Area area;
-    const bool hasLBand; // true if L-Band is supported in this region, otherwise false
     const uint32_t frequency; // L-Band frequency, Hz, if supported. 0 if not supported
-    const Plan_Pair keyTopics; // The key distribution topics for this region
-    const Plan_Pair correctionTopics; // The correction topics for this region
-    const Plan_Pair geoAreaTopics; // The geographic area topics for this region
 } Regional_Information;
 
 const Regional_Information Regional_Information_Table[] = 
 {
-    { "US", { 50.0,  25.0, -60.0, -125.0}, true, 1556290000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/us", "/pp/ip/us" } , { "/pp/Lb/us/gad", "/pp/ip/us/gad" } },
-    { "EU", { 72.0,  36.0,  32.0,  -11.0}, true, 1545260000, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/eu", "/pp/ip/eu" } , { "/pp/Lb/eu/gad", "/pp/ip/eu/gad" } },
-    { "AU", {-25.0, -45.0, 154.0,  113.0}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/au", "/pp/ip/au" } , { "/pp/Lb/au/gad", "/pp/ip/au/gad" } },
-    { "KR", { 39.0,  34.0, 129.5,  125.0}, false, 0, { "NULL", "/pp/ubx/0236/ip" }, { "NULL", "/pp/ip/kr" } , { "NULL", "/pp/ip/kr/gad" } },
-    { "JP", { 46.0,  31.0, 146.0,  129.5}, false, 0, { "/pp/ubx/0236/Lb", "/pp/ubx/0236/ip" }, { "/pp/Lb/jp", "/pp/ip/jp" } , { "/pp/Lb/jp/gad", "/pp/ip/jp/gad" } },
+    { "US", "us", { 50.0,  25.0, -60.0, -125.0}, 1556290000 },
+    { "EU", "eu", { 72.0,  36.0,  32.0,  -11.0}, 1545260000 },
+    { "AU", "au", {-25.0, -45.0, 154.0,  113.0}, 0 },
+    { "KR", "kr", { 39.0,  34.0, 129.5,  125.0}, 0 },
+    { "Japan", "jp", { 46.0,  31.0, 146.0,  129.5}, 0 },
 };
 const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
 
@@ -1108,7 +1102,7 @@ typedef struct
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
-    char pointPerfectLBandTopic[20] = ""; // /pp/key/Lb
+    char pointPerfectKeyDistributionTopic[20] = ""; // /pp/key/Lb or /pp/key/ip - from ZTP
 
     char pointPerfectCurrentKey[33] = ""; // 32 hexadecimal digits = 128 bits = 16 Bytes
     uint64_t pointPerfectCurrentKeyDuration = 0;
@@ -1356,6 +1350,19 @@ typedef struct
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
 
     int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
+
+    // The correction topics are provided during ZTP (pointperfectTryZtpToken)
+    // For IP-only plans, these will be /pp/ip/us, /pp/ip/eu, etc.
+    // For L-Band+IP plans, these will be /pp/Lb/us, /pp/Lb/eu, etc.
+    // L-Band-only plans have no correction topics
+    char regionalCorrectionTopics[numRegionalAreas][10] =
+    {
+        "",
+        "",
+        "",
+        "",
+        "",
+    };
 
     // Add new settings above <------------------------------------------------------------>
 

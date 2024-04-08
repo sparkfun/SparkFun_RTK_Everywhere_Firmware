@@ -258,7 +258,7 @@ bool pointperfectProvisionDevice()
             else
             {
                 // Use the user's custom token
-                strcpy(tokenString, settings.pointPerfectDeviceProfileToken);
+                strncpy(tokenString, settings.pointPerfectDeviceProfileToken, sizeof(tokenString));
                 systemPrintf("Using custom token: %s\r\n", tokenString);
             }
 
@@ -551,16 +551,42 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                     if (settings.debugPpCertificate)
                         systemPrintln("Certificates recorded successfully.");
 
-                    strcpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]));
-                    strcpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]));
-                    strcpy(settings.pointPerfectLBandTopic, (const char *)((*jsonZtp)["subscriptions"][0]["path"]));
+                    strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]), sizeof(settings.pointPerfectClientID));
+                    strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]), sizeof(settings.pointPerfectBrokerHost));
 
-                    strcpy(settings.pointPerfectCurrentKey,
-                           (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]));
+                    // Note: from the ZTP documentation:
+                    // ["subscriptions"][0] should contain the key distribution topic
+                    // Assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
+                    // It is safer to check the "description" contains "key distribution topic"
+                    // If we are on an IP-only plan, the path will be /pp/key/ip
+                    // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/key/Lb
+                    int subscription = findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
+                    if (subscription >= 0)
+                        strncpy(settings.pointPerfectKeyDistributionTopic, (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.pointPerfectKeyDistributionTopic));
+
+                    // "subscriptions" will also contain the correction topics for all available regional areas - for IP-only or L-Band+IP
+                    // We should store those too, and then allow the user to select the one for their regional area
+                    for (int r = 0; r < numRegionalAreas; r++)
+                    {
+                        char findMe[40];
+                        snprintf(findMe, sizeof(findMe), "correction topic for %s", Regional_Information_Table[r].name); // Search for "US" etc.
+                        subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
+                        if (subscription >= 0)
+                            strncpy(settings.regionalCorrectionTopics[r], (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.regionalCorrectionTopics[0]));
+                        else
+                            settings.regionalCorrectionTopics[r][0] = 0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
+                    }
+
+                    // "subscriptions" also contains the geographic area definition topic for each region for localized distribution.
+                    // We can cheat by appending "/gad" to the correction topic. TODO: think about doing this properly.
+
+                    // Now we extract the current and next key pair
+                    strncpy(settings.pointPerfectCurrentKey,
+                           (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]), sizeof(settings.pointPerfectCurrentKey));
                     settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
                     settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
 
-                    strcpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]));
+                    strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]), sizeof(settings.pointPerfectNextKey));
                     settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
                     settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
 
@@ -584,6 +610,26 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
 #else  // COMPILE_WIFI
     return (ZTP_UNKNOWN_ERROR);
 #endif // COMPILE_WIFI
+}
+
+// Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
+int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, DynamicJsonDocument *jsonZtp)
+{
+    if (!jsonZtp)
+        return (-1);
+
+    int i = (*jsonZtp)[thing1].size();
+
+    if (i == 0)
+        return (-1);
+
+    for (int j = 0; j < i; j++)
+        if (strstr((const char *)(*jsonZtp)[thing1][j][thing2], thing3) != nullptr)
+        {
+            return j;
+        }
+    
+    return (-1);
 }
 
 // Given a token array, format it in the proper way and store it in the buffer
@@ -782,7 +828,7 @@ bool pointperfectUpdateKeys()
 
             // Originally the provisioning process reported the '/pp/key/Lb' channel which fails to respond with
             // keys. Looks like they fixed it to /pp/ubx/0236/Lb.
-            mqttClient.subscribe(settings.pointPerfectLBandTopic);
+            mqttClient.subscribe(settings.pointPerfectKeyDistributionTopic);
         }
         else
         {
@@ -851,7 +897,7 @@ bool pointperfectUpdateKeys()
 // Called when a subscribed to message arrives
 void mqttCallback(char *topic, byte *message, unsigned int length)
 {
-    if (String(topic) == settings.pointPerfectLBandTopic)
+    if (String(topic) == settings.pointPerfectKeyDistributionTopic)
     {
         // Separate the UBX message into its constituent Key/ToW/Week parts
         // Obtained from SparkFun u-blox Arduino library - setDynamicSPARTNKeys()
@@ -1225,10 +1271,9 @@ void beginLBand()
     // GNSS may not always be fixed... I think it is far safer to set the frequency based on the
     // selected geographical region...
 
-    uint32_t lBandFreq;
-    if (Regional_Information_Table[settings.geographicRegion].hasLBand)
+    uint32_t lBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+    if (lBandFreq > 0)
     {
-        lBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
         if (settings.debugCorrections == true)
             systemPrintf("L-Band frequency (Hz): %d\r\n", lBandFreq);
     }
@@ -1283,7 +1328,7 @@ void menuPointPerfect()
             systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, lbandRestarts);
 
         if (settings.debugCorrections == true)
-            systemPrintf("settings.pointPerfectLBandTopic: %s\r\n", settings.pointPerfectLBandTopic);
+            systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n", settings.pointPerfectKeyDistributionTopic);
 
             systemPrint("Days until keys expire: ");
             if (strlen(settings.pointPerfectCurrentKey) > 0)
@@ -1357,7 +1402,7 @@ void menuPointPerfect()
             else
                 systemPrintln("Disabled");
 
-            if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectLBandTopic) == 0)
+            if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectKeyDistributionTopic) == 0)
                 systemPrintln("3) Provision Device");
             else
                 systemPrintln("3) Update Keys");
@@ -1423,7 +1468,7 @@ void menuPointPerfect()
                         pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
                     }
                     else if (strlen(settings.pointPerfectCurrentKey) == 0 ||
-                             strlen(settings.pointPerfectLBandTopic) == 0)
+                             strlen(settings.pointPerfectKeyDistributionTopic) == 0)
                     {
                         pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
                     }

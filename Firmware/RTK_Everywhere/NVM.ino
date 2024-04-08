@@ -249,7 +249,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "autoKeyRenewal", settings.autoKeyRenewal);
     settingsFile->printf("%s=%s\r\n", "pointPerfectClientID", settings.pointPerfectClientID);
     settingsFile->printf("%s=%s\r\n", "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
-    settingsFile->printf("%s=%s\r\n", "pointPerfectLBandTopic", settings.pointPerfectLBandTopic);
+    settingsFile->printf("%s=%s\r\n", "pointPerfectKeyDistributionTopic", settings.pointPerfectKeyDistributionTopic);
 
     settingsFile->printf("%s=%s\r\n", "pointPerfectCurrentKey", settings.pointPerfectCurrentKey);
     settingsFile->printf("%s=%llu\r\n", "pointPerfectCurrentKeyDuration", settings.pointPerfectCurrentKeyDuration);
@@ -516,6 +516,12 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
 
     settingsFile->printf("%s=%d\r\n", "geographicRegion", settings.geographicRegion);
+
+    for (int r = 0; r < numRegionalAreas; r++)
+    {
+        settingsFile->printf("%s_%d=%s\r\n", "regionalCorrectionTopics", r,
+                             &settings.regionalCorrectionTopics[r][0]);
+    }
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1037,8 +1043,8 @@ bool parseLine(char *str, Settings *settings)
         strcpy(settings->pointPerfectClientID, settingString);
     else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
         strcpy(settings->pointPerfectBrokerHost, settingString);
-    else if (strcmp(settingName, "pointPerfectLBandTopic") == 0)
-        strcpy(settings->pointPerfectLBandTopic, settingString);
+    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
+        strcpy(settings->pointPerfectKeyDistributionTopic, settingString);
 
     else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
         strcpy(settings->pointPerfectCurrentKey, settingString);
@@ -1711,6 +1717,22 @@ bool parseLine(char *str, Settings *settings)
                 if (strcmp(settingName, tempString) == 0)
                 {
                     strcpy(&settings->ntripServer_MountPointPW[serverIndex][0], settingString);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for regionalCorrectionTopics
+        if (knownSetting == false)
+        {
+            for (int r = 0; r < numRegionalAreas; r++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "regionalCorrectionTopics_%d", r);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->regionalCorrectionTopics[r][0], settingString);
                     knownSetting = true;
                     break;
                 }

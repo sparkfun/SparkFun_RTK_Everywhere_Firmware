@@ -104,12 +104,7 @@ const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqtt
 const RtkMode_t mqttClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 
 const char MQTT_TOPIC_ASSISTNOW[] = "/pp/ubx/mga"; // AssistNow (MGA) topic
-const char MQTT_TOPIC_KEY[] = "/pp/ubx/0236/ip";   // This topic provides the dynamic keys in UBX format - IP-only
-const char MQTT_TOPIC_KEY_LBAND[] = "/pp/ubx/0236/Lb";   // This topic provides the dynamic keys in UBX format - L-Band and L-Band + IP
-const char MQTT_TOPIC_SPARTN_EU[] = "/pp/ip/eu";   // European SPARTN correction data - IP-only
-const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us";   // North American SPARTN correction data - IP-only
-const char MQTT_TOPIC_SPARTN_LBAND_EU[] = "/pp/Lb/eu";   // European SPARTN correction data - L-Band + IP
-const char MQTT_TOPIC_SPARTN_LBAND_US[] = "/pp/Lb/us";   // North American SPARTN correction data - L-Band + IP
+// Note: the key and correction topics are now stored in settings - extracted from ZTP
 
 //----------------------------------------
 // Locals
@@ -314,10 +309,7 @@ void mqttClientReceiveMessage(int messageSize)
             if (present.gnss_zedf9p == true)
             {
                 // Always push KEYS and MGA to the ZED. Only push SPARTN if the priority says we can
-                if ((strstr(topic, MQTT_TOPIC_SPARTN_US) != nullptr) ||
-                    (strstr(topic, MQTT_TOPIC_SPARTN_EU) != nullptr) ||
-                    (strstr(topic, MQTT_TOPIC_SPARTN_LBAND_US) != nullptr) ||
-                    (strstr(topic, MQTT_TOPIC_SPARTN_LBAND_EU) != nullptr))
+                if (strstr(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) != nullptr)
                 {
                     // SPARTN
                     updateCorrectionsLastSeen(CORR_IP);
@@ -667,24 +659,18 @@ void mqttClientUpdate()
             break;
         }
 
-        // Subscribe to the MQTT_TOPIC_KEY
-        const char *keyTopic;
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-            keyTopic = MQTT_TOPIC_KEY_LBAND;
-        else
-            keyTopic = MQTT_TOPIC_KEY;
-        if (!mqttClient->subscribe(keyTopic))
+        // Subscribe to the key distribution topic
+        if (!mqttClient->subscribe(settings.pointPerfectKeyDistributionTopic))
         {
             mqttClientRestart();
-            systemPrintln("ERROR: Subscription to MQTT_TOPIC_KEY failed!!");
+            systemPrintln("ERROR: Subscription to key distribution topic failed!!");
             mqttClientRestart();
             break;
         }
 
         if (settings.debugMqttClientState)
-            systemPrintln("MQTT client subscribed to MQTT_TOPIC_KEY");
+            systemPrintln("MQTT client subscribed to key distribution topic");
 
-        // Now subscribed to the MQTT_TOPIC_KEY
         mqttClientSetState(MQTT_CLIENT_SUBSCRIBE_SPARTN);
         break;
     }
@@ -699,35 +685,18 @@ void mqttClientUpdate()
             break;
         }
 
-        // Subscribe to the MQTT_TOPIC_SPARTN
-        const char *spartnTopic;
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-        {
-            if (settings.useEuropeCorrections)
-                spartnTopic = MQTT_TOPIC_SPARTN_LBAND_EU;
-            else
-                spartnTopic = MQTT_TOPIC_SPARTN_LBAND_US;
-        }
-        else
-        {
-            if (settings.useEuropeCorrections)
-                spartnTopic = MQTT_TOPIC_SPARTN_EU;
-            else
-                spartnTopic = MQTT_TOPIC_SPARTN_US;
-        }
-
-        if (!mqttClient->subscribe(spartnTopic))
+        // Subscribe to the correction topic
+        if (!mqttClient->subscribe(settings.regionalCorrectionTopics[settings.geographicRegion]))
         {
             mqttClientRestart();
-            systemPrintln("ERROR: Subscription to MQTT_TOPIC_SPARTN failed!!");
+            systemPrintln("ERROR: Subscription to corrections topic failed!!");
             mqttClientRestart();
             break;
         }
 
         if (settings.debugMqttClientState)
-            systemPrintln("MQTT client subscribed to MQTT_TOPIC_SPARTN");
+            systemPrintln("MQTT client subscribed to corrections topic");
 
-        // Now subscribed to the MQTT_TOPIC_SPARTN
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
         break;
     }

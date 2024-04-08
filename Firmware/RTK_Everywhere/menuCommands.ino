@@ -230,8 +230,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         strcpy(settings.pointPerfectClientID, settingValueStr);
     else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
         strcpy(settings.pointPerfectBrokerHost, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectLBandTopic") == 0)
-        strcpy(settings.pointPerfectLBandTopic, settingValueStr);
+    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
+        strcpy(settings.pointPerfectKeyDistributionTopic, settingValueStr);
 
     else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
         strcpy(settings.pointPerfectCurrentKey, settingValueStr);
@@ -1055,6 +1055,22 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
             }
         }
 
+        // Scan for regionalCorrectionTopics
+        if (knownSetting == false)
+        {
+            for (int r = 0; r < numRegionalAreas; r++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "regionalCorrectionTopics_%d", r);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.regionalCorrectionTopics[r][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
         // Last catch
         if (knownSetting == false)
         {
@@ -1193,7 +1209,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "autoKeyRenewal", settings.autoKeyRenewal);
     stringRecord(newSettings, "pointPerfectClientID", settings.pointPerfectClientID);
     stringRecord(newSettings, "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
-    stringRecord(newSettings, "pointPerfectLBandTopic", settings.pointPerfectLBandTopic);
+    stringRecord(newSettings, "pointPerfectKeyDistributionTopic", settings.pointPerfectKeyDistributionTopic);
 
     stringRecord(newSettings, "pointPerfectCurrentKey", settings.pointPerfectCurrentKey);
     stringRecord(newSettings, "pointPerfectCurrentKeyDuration", settings.pointPerfectCurrentKeyDuration);
@@ -1444,6 +1460,12 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
 
     stringRecord(newSettings, "geographicRegion", settings.geographicRegion);
+
+    for (int r = 0; r < numRegionalAreas; r++)
+    {
+        stringRecordN(newSettings, "regionalCorrectionTopics", r,
+                      &settings.regionalCorrectionTopics[r][0]);
+    }
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1857,8 +1879,8 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.pointPerfectClientID);
     else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
         writeToString(settingValueStr, settings.pointPerfectBrokerHost);
-    else if (strcmp(settingName, "pointPerfectLBandTopic") == 0)
-        writeToString(settingValueStr, settings.pointPerfectLBandTopic);
+    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
+        writeToString(settingValueStr, settings.pointPerfectKeyDistributionTopic);
 
     else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
         writeToString(settingValueStr, settings.pointPerfectCurrentKey);
@@ -2464,7 +2486,7 @@ void printAvailableSettings()
     systemPrint("autoKeyRenewal,bool,");
     systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
     systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));
-    systemPrintf("pointPerfectLBandTopic,char[%d],", sizeof(settings.pointPerfectLBandTopic) / sizeof(char));
+    systemPrintf("pointPerfectKeyDistributionTopic,char[%d],", sizeof(settings.pointPerfectKeyDistributionTopic) / sizeof(char));
     systemPrintf("pointPerfectCurrentKey,char[%d],", sizeof(settings.pointPerfectCurrentKey) / sizeof(char));
     systemPrint("pointPerfectCurrentKeyDuration,uint64_t,");
     systemPrint("pointPerfectCurrentKeyStart,uint64_t,");
@@ -2646,6 +2668,11 @@ void printAvailableSettings()
     systemPrint("correctionsSourcesLifetime_s,int,");
 
     systemPrint("geographicRegion,int,");
+
+    for (int r = 0; r < numRegionalAreas; r++)
+    {
+        systemPrintf("regionalCorrectionTopics_%d,char[%d],", r, sizeof(settings.regionalCorrectionTopics[0]));
+    }
 
     systemPrintln();
 }
