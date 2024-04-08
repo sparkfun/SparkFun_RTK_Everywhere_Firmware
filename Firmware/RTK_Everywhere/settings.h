@@ -1113,7 +1113,7 @@ typedef struct
     bool enableRtcmMessageChecking = false;
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     bool runLogTest = false;           // When set to true, device will create a series of test logs
-    bool espnowBroadcast = true;       // When true, overrides peers and sends all data via broadcast
+    bool espnowBroadcast = false;       // When true, overrides peers and sends all data via broadcast
     int16_t antennaHeight = 0;         // in mm
     float antennaReferencePoint = 0.0; // in mm
     bool echoUserInput = true;
