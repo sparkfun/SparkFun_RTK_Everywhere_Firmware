@@ -525,25 +525,48 @@ bool wifiConnect(unsigned long timeout)
         }
     }
 
-    WiFiMulti wifiMulti;
+    int wifiResponse = WL_DISCONNECTED;
 
-    // Load SSIDs
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+    // WiFi.begin() is much faster than wifiMulti (requires scan time)
+    // Use wifiMulti only if multiple credentials exist
+    if (wifiNetworkCount() == 1)
     {
-        if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+        systemPrint("Connecting WiFi");
+
+        // Load SSID - may not be in spot 0
+        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+        {
+            if (strlen(settings.wifiNetworks[x].ssid) > 0)
+            {
+                WiFi.begin(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+                break;
+            }
+        }
+
+        wifiResponse = WiFi.waitForConnectResult();
+    }
+    else
+    {
+        systemPrint("Connecting WiFi... ");
+        WiFiMulti wifiMulti;
+
+        // Load SSIDs
+        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+        {
+            if (strlen(settings.wifiNetworks[x].ssid) > 0)
+                wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+        }
+
+        wifiResponse = wifiMulti.run(timeout);
     }
 
-    systemPrint("Connecting WiFi... ");
-
-    int wifiResponse = wifiMulti.run(timeout);
     if (wifiResponse == WL_CONNECTED)
     {
         if (settings.enablePvtClient == true || settings.enablePvtServer == true || settings.enablePvtUdpServer == true)
         {
             if (settings.mdnsEnable == true)
             {
-                if (MDNS.begin("rtk") == false) // This should make the module findable from 'rtk.local' in browser
+                if (MDNS.begin("rtk") == false) // This should make the device findable from 'rtk.local' in a browser
                     systemPrintln("Error setting up MDNS responder!");
                 else
                     MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
