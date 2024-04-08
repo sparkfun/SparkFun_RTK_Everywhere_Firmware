@@ -98,8 +98,6 @@ void stateUpdate()
 
             // Configure for rover mode
             displayRoverStart(0);
-
-            // If we are survey'd in, but switch is rover then disable survey
             if (gnssConfigureRover() == false)
             {
                 systemPrintln("Rover config failed");
