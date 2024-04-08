@@ -178,7 +178,7 @@ void espnowStart()
             if (esp_now_is_peer_exist(settings.espnowPeers[x]) == true)
             {
                 if (settings.debugEspNow == true)
-                    systemPrintln("Peer already exists");
+                    systemPrintf("Peer #%d already exists\r\n");
             }
             else
             {
@@ -258,7 +258,7 @@ void espnowStop()
     else
     {
         if (settings.debugEspNow == true)
-            systemPrintln("WiFi on, ESP-Now added to protocols");
+            systemPrintln("WiFi on, ESP-Now removed from protocols");
     }
 
     // Deinit ESP-NOW
