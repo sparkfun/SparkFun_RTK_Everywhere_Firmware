@@ -851,6 +851,8 @@ function checkCheckboxMutex(id1, id2, errorText, collapseID) {
 }
 
 function checkCorrectionsPriorities() {
+    checkElementValue("correctionsSourcesLifetime_s", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
+
     var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
     if (correctionsSources.length > 0) {
         var correctionSeen = [];
