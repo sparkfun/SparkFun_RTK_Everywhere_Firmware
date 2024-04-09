@@ -1443,7 +1443,10 @@ void updateRadio()
                 }
 
                 if (!inMainMenu)
-                    log_d("ESPNOW transmitted %d RTCM bytes", espnowBytesSent + espnowOutgoingSpot);
+                {
+                    if(settings.debugEspNow == true)
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                }
                 espnowBytesSent = 0;
                 espnowOutgoingSpot = 0; // Reset
             }

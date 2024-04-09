@@ -18,7 +18,7 @@ static const float maxSurveyInStartingAccuracy = 10.0;
 void menuBase()
 {
     int value;
-    int ntripServerOptionOffset = 10; // NTRIP Server menus start at this value
+    int ntripServerOptionOffset = 9; // NTRIP Server menus start at this value
 
     while (1)
     {
@@ -104,13 +104,7 @@ void menuBase()
 
         systemPrintln("7) Set RTCM Message Rates");
 
-        if (settings.fixedBase == false) // Survey-in
-        {
-            systemPrint("8) Select survey-in radio: ");
-            systemPrintf("%s\r\n", settings.ntripServer_StartAtSurveyIn ? "WiFi" : "Bluetooth");
-        }
-
-        systemPrint("9) Toggle NTRIP Server: ");
+        systemPrint("8) Toggle NTRIP Server: ");
         if (settings.enableNtripServer == true)
             systemPrintln("Enabled");
         else
@@ -266,13 +260,8 @@ void menuBase()
         {
             menuMessagesBaseRTCM(); // Set rates for RTCM during Base mode
         }
-        else if (settings.fixedBase == false && incoming == 8)
-        {
-            settings.ntripServer_StartAtSurveyIn ^= 1;
-            restartBase = true;
-        }
 
-        else if (incoming == 9)
+        else if (incoming == 8)
         {
             settings.enableNtripServer ^= 1;
             restartBase = true;

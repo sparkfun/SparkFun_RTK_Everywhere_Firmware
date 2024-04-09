@@ -156,7 +156,8 @@ void menuWiFi()
             // Restart WiFi if we are not in AP config mode
             if (wifiIsConnected())
             {
-                log_d("Menu caused restarting of WiFi");
+                if (settings.debugWifiState == true)
+                    systemPrintln("Menu caused restarting of WiFi");
                 WIFI_STOP();
                 wifiStart();
                 wifiConnectionAttempts = 0; // Reset the timeout
@@ -242,7 +243,10 @@ bool wifiStartAP(bool forceAP)
         if (response != ESP_OK)
             systemPrintf("wifiStartAP: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
         else
-            log_d("WiFi protocols set");
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi protocols set");
+        }
 
         IPAddress local_IP(192, 168, 4, 1);
         IPAddress gateway(192, 168, 4, 1);
@@ -265,7 +269,8 @@ bool wifiStartAP(bool forceAP)
         }
         else
         {
-            log_d("DNS Server started");
+            if (settings.debugWifiState == true)
+                systemPrintln("DNS Server started");
         }
     }
     else
@@ -307,7 +312,8 @@ void wifiUpdate()
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        // log_d("configureViaEthernet: skipping wifiUpdate");
+        // if(settings.debugWifiState == true)
+        //     systemPrintln("configureViaEthernet: skipping wifiUpdate");
         return;
     }
 
@@ -337,6 +343,7 @@ void wifiUpdate()
 
             if (wifiConnect(10000) == true) // Attempt to connect to any SSID on settings list
             {
+                // Restart ESPNow if it was previously on
                 if (espnowState > ESPNOW_OFF)
                     espnowStart();
 
@@ -406,7 +413,8 @@ void wifiStart()
     if (wifiState > WIFI_STATE_OFF)
         return; // We're in the midst of connecting
 
-    log_d("Starting WiFi");
+    if (settings.debugWifiState == true)
+        systemPrintln("Starting WiFi");
 
     wifiSetState(WIFI_STATE_CONNECTING); // This starts the state machine running
 
@@ -440,7 +448,7 @@ void wifiShutdown()
 
     wifiConnectionAttempts = 0; // Reset the timeout
 
-    // If ESP-Now is active, change protocol to only Long Range and re-start WiFi
+    // If ESP-Now is active, change protocol to only Long Range
     if (espnowState > ESPNOW_OFF)
     {
         if (WiFi.getMode() != WIFI_STA)
@@ -452,12 +460,16 @@ void wifiShutdown()
         if (response != ESP_OK)
             systemPrintf("wifiShutdown: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
         else
-            log_d("WiFi disabled, ESP-Now left in place");
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi disabled, ESP-Now left in place");
+        }
     }
     else
     {
         WiFi.mode(WIFI_OFF);
-        log_d("WiFi Stopped");
+        if (settings.debugWifiState == true)
+            systemPrintln("WiFi Stopped");
     }
 
     // Display the heap state
@@ -513,25 +525,48 @@ bool wifiConnect(unsigned long timeout)
         }
     }
 
-    WiFiMulti wifiMulti;
+    int wifiResponse = WL_DISCONNECTED;
 
-    // Load SSIDs
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+    // WiFi.begin() is much faster than wifiMulti (requires scan time)
+    // Use wifiMulti only if multiple credentials exist
+    if (wifiNetworkCount() == 1)
     {
-        if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+        systemPrint("Connecting WiFi");
+
+        // Load SSID - may not be in spot 0
+        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+        {
+            if (strlen(settings.wifiNetworks[x].ssid) > 0)
+            {
+                WiFi.begin(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+                break;
+            }
+        }
+
+        wifiResponse = WiFi.waitForConnectResult();
+    }
+    else
+    {
+        systemPrint("Connecting WiFi... ");
+        WiFiMulti wifiMulti;
+
+        // Load SSIDs
+        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+        {
+            if (strlen(settings.wifiNetworks[x].ssid) > 0)
+                wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+        }
+
+        wifiResponse = wifiMulti.run(timeout);
     }
 
-    systemPrint("Connecting WiFi... ");
-
-    int wifiResponse = wifiMulti.run(timeout);
     if (wifiResponse == WL_CONNECTED)
     {
         if (settings.enablePvtClient == true || settings.enablePvtServer == true || settings.enablePvtUdpServer == true)
         {
             if (settings.mdnsEnable == true)
             {
-                if (MDNS.begin("rtk") == false) // This should make the module findable from 'rtk.local' in browser
+                if (MDNS.begin("rtk") == false) // This should make the device findable from 'rtk.local' in a browser
                     systemPrintln("Error setting up MDNS responder!");
                 else
                     MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS

@@ -463,8 +463,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.debugNtripServerState = settingValue;
     else if (strcmp(settingName, "enableNtripServer") == 0)
         settings.enableNtripServer = settingValue;
-    else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
-        settings.ntripServer_StartAtSurveyIn = settingValue;
 
     // The following values are handled below:
     // ntripServer_CasterHost
@@ -557,7 +555,10 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
         settings.enableImuCompensationDebug = settingValue;
 
-    // correctionsPriority not handled here
+    // correctionsPriority handled below
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings.debugEspNow = settingValue;
 
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings.correctionsSourcesLifetime_s = settingValue;
@@ -1338,7 +1339,6 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "debugNtripServerRtcm", settings.debugNtripServerRtcm);
     stringRecord(newSettings, "debugNtripServerState", settings.debugNtripServerState);
     stringRecord(newSettings, "enableNtripServer", settings.enableNtripServer);
-    stringRecord(newSettings, "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
         stringRecordN(newSettings, "ntripServer_CasterHost", serverIndex,
@@ -1442,6 +1442,8 @@ void createSettingsString(char *newSettings)
     }
 
     stringRecord(newSettings, "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
+
+    stringRecord(newSettings, "debugEspNow", settings.debugEspNow);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -2176,6 +2178,9 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         writeToString(settingValueStr, settings.correctionsSourcesLifetime_s);
+        
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        writeToString(settingValueStr, settings.debugEspNow);
 
     // Add new settings above <------------------------------------------------------------>
 
@@ -2587,7 +2592,6 @@ void printAvailableSettings()
     systemPrint("debugNtripServerRtcm,bool,");
     systemPrint("debugNtripServerState,bool,");
     systemPrint("enableNtripServer,bool,");
-    systemPrint("ntripServer_StartAtSurveyIn,bool,");
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
         systemPrintf("ntripServer_CasterHost_%d,char[%d],", serverIndex, sizeof(settings.ntripServer_CasterHost[0]));
@@ -2642,6 +2646,10 @@ void printAvailableSettings()
 
     systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
     systemPrint("correctionsSourcesLifetime_s,int,");
+
+    systemPrint("debugEspNow,bool,");
+
+    // Add new settings above <--------------------------------------------------->
 
     systemPrintln();
 }

@@ -405,7 +405,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "debugNtripServerRtcm", settings.debugNtripServerRtcm);
     settingsFile->printf("%s=%d\r\n", "debugNtripServerState", settings.debugNtripServerState);
     settingsFile->printf("%s=%d\r\n", "enableNtripServer", settings.enableNtripServer);
-    settingsFile->printf("%s=%d\r\n", "ntripServer_StartAtSurveyIn", settings.ntripServer_StartAtSurveyIn);
     for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
     {
         settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterHost", serverIndex,
@@ -515,6 +514,8 @@ void recordSystemSettingsToFile(File *settingsFile)
         settingsFile->println(tempString);
     }
     settingsFile->printf("%s=%d\r\n", "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
+
+    settingsFile->printf("%s=%d\r\n", "debugEspNow", settings.debugEspNow);
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1279,8 +1280,6 @@ bool parseLine(char *str, Settings *settings)
         settings->debugNtripServerState = d;
     else if (strcmp(settingName, "enableNtripServer") == 0)
         settings->enableNtripServer = d;
-    else if (strcmp(settingName, "ntripServer_StartAtSurveyIn") == 0)
-        settings->ntripServer_StartAtSurveyIn = d;
 
     // TCP Client
     else if (strcmp(settingName, "debugPvtClient") == 0)
@@ -1366,6 +1365,8 @@ bool parseLine(char *str, Settings *settings)
         settings->enableImuCompensationDebug = d;
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings->correctionsSourcesLifetime_s = d;
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings->debugEspNow = d;
 
     // Add new settings above <--------------------------------------------------->
 
