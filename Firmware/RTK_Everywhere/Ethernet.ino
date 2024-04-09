@@ -127,7 +127,8 @@ void ethernetBegin()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        log_d("configureViaEthernet: skipping ethernetBegin");
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping ethernetBegin");
         return;
     }
 

@@ -7,7 +7,6 @@ void menuSystem()
         systemPrintln("System Status");
 
         printTimeStamp();
-        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         beginI2C();
         if (online.i2c == false)
@@ -161,6 +160,7 @@ void menuSystem()
         systemPrintln("Menu: System");
         // Separate the menu from the status
         systemPrintln("-----  Mode Switch  -----");
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         // Support mode switching
         systemPrintln("B) Switch to Base mode");
@@ -438,6 +438,9 @@ void menuDebugHardware()
         systemPrint("): ");
         systemPrintf("%s\r\n", settings.enablePsram ? "Enabled" : "Disabled");
 
+        systemPrint("15) Print ESP-Now Debugging: ");
+        systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -518,6 +521,10 @@ void menuDebugHardware()
         else if (incoming == 14)
         {
             settings.enablePsram ^= 1;
+        }
+        else if (incoming == 15)
+        {
+            settings.debugEspNow ^= 1;
         }
         else if (incoming == 'e')
         {

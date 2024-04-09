@@ -429,7 +429,7 @@ void bluetoothTest(bool runTest)
     {
         if (runTest && (zedUartPassed == false))
         {
-            tasksStopGnssUart(); // Stop absoring serial via task from GNSS receiver
+            tasksStopGnssUart(); // Stop absorbing serial via task from GNSS receiver
 
             gnssSetBaudrate(115200 * 2);
 

@@ -458,7 +458,7 @@ void menuRadio()
 
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
-            if (ENABLE_DEVELOPER)
+            if (settings.debugEspNow == true)
             {
                 systemPrintln("4) Add dummy radio");
                 systemPrintln("5) Send dummy data");
@@ -496,8 +496,11 @@ void menuRadio()
                 systemPrintln("Radios forgotten");
             }
         }
-        else if (ENABLE_DEVELOPER && settings.radioType == RADIO_ESPNOW && incoming == 4)
+        else if (settings.radioType == RADIO_ESPNOW && incoming == 4 && settings.debugEspNow == true)
         {
+            if (espnowState == ESPNOW_OFF)
+                espnowStart();
+
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
             if (esp_now_is_peer_exist(peer1) == true)
                 log_d("Peer already exists");
@@ -515,16 +518,22 @@ void menuRadio()
 
             espnowSetState(ESPNOW_PAIRED);
         }
-        else if (ENABLE_DEVELOPER && settings.radioType == RADIO_ESPNOW && incoming == 5)
+        else if (settings.radioType == RADIO_ESPNOW && incoming == 5 && settings.debugEspNow == true)
         {
+            if (espnowState == ESPNOW_OFF)
+                espnowStart();
+
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
         }
-        else if (ENABLE_DEVELOPER && settings.radioType == RADIO_ESPNOW && incoming == 6)
+        else if (settings.radioType == RADIO_ESPNOW && incoming == 6 && settings.debugEspNow == true)
         {
+            if (espnowState == ESPNOW_OFF)
+                espnowStart();
+
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "

@@ -73,10 +73,10 @@ typedef uint8_t RtkMode_t;
 //Used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
-    RTK_EVK = 0,
-    RTK_FACET_V2,
-    RTK_FACET_MOSAIC,
-    RTK_TORCH,
+    RTK_EVK = 0, // 0x00
+    RTK_FACET_V2 = 1, // 0x01
+    RTK_FACET_MOSAIC = 2, // 0x02
+    RTK_TORCH = 3, // 0x03
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
@@ -1131,7 +1131,7 @@ typedef struct
     bool enableRtcmMessageChecking = false;
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     bool runLogTest = false;           // When set to true, device will create a series of test logs
-    bool espnowBroadcast = true;       // When true, overrides peers and sends all data via broadcast
+    bool espnowBroadcast = false;       // When true, overrides peers and sends all data via broadcast
     int16_t antennaHeight = 0;         // in mm
     float antennaReferencePoint = 0.0; // in mm
     bool echoUserInput = true;
@@ -1236,7 +1236,6 @@ typedef struct
     bool debugNtripServerRtcm = false;
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
-    bool ntripServer_StartAtSurveyIn = false;       // true = Start WiFi instead of Bluetooth at Survey-In
     char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
     {
         "rtk2go.com",
@@ -1354,6 +1353,8 @@ typedef struct
         "",
     };
 
+    bool debugEspNow = false;
+    
     // Add new settings above <------------------------------------------------------------>
 
 } Settings;

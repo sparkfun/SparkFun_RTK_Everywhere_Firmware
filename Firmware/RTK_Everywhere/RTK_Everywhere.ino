@@ -935,8 +935,8 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
-    DMW_b("housekeepingSetup");
-    housekeepingSetup(); // Do any housekeeping tasks, like initializing (clearing) vectors like registeredCorrectionsSources
+    DMW_b("initializeCorrectionsPriorities");
+    initializeCorrectionsPriorities(); // Initialize (clear) the registeredCorrectionsSources vector
 
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
@@ -1167,8 +1167,8 @@ void loop()
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();
 
-    DMW_c("housekeepingLoop");
-    housekeepingLoop(); // Do any housekeeping tasks, like deleting expired registeredCorrectionsSources
+    DMW_c("updateCorrectionsPriorities");
+    updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }
@@ -1445,7 +1445,10 @@ void updateRadio()
                 }
 
                 if (!inMainMenu)
-                    log_d("ESPNOW transmitted %d RTCM bytes", espnowBytesSent + espnowOutgoingSpot);
+                {
+                    if(settings.debugEspNow == true)
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                }
                 espnowBytesSent = 0;
                 espnowOutgoingSpot = 0; // Reset
             }

@@ -4,6 +4,6 @@ This quick start guide will get you started in 10 minutes or less. For the full 
 
 Which device are you using?
 
-[![RTK Torch](SparkFun_RTK_Torch.png)](quickstart-torch.md)
+[![RTK Torch](img/SparkFun_RTK_Torch.png)](quickstart-torch.md)
 
 [RTK Torch Quick Start](quickstart-torch.md)
