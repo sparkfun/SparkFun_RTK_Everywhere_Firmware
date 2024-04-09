@@ -77,7 +77,8 @@ void menuSystem()
             if (lbandCorrectionsReceived == false)
                 systemPrint(" Failed");
 
-            systemPrintf(" / Eb/N0[dB] (>9 is good): %0.2f", lBandEBNO);
+            if (zedCorrectionsSource == 1) // Only print for L-Band
+                systemPrintf(" / Eb/N0[dB] (>9 is good): %0.2f", lBandEBNO);
 
             systemPrint(" - ");
 

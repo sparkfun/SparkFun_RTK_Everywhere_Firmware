@@ -1214,7 +1214,7 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 // Check if the PMP data is being decrypted successfully
 void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
 {
-    if (settings.debugCorrections == true && !inMainMenu)
+    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
         systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
 
     lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
