@@ -315,10 +315,18 @@ void mqttClientReceiveMessage(int messageSize)
                     updateCorrectionsLastSeen(CORR_IP);
                     if (isHighestRegisteredCorrectionsSource(CORR_IP))
                     {
+                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+                            systemPrintf("Pushing %d bytes from %s topic to ZED", mqttCountd, topic);
+
                         updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
                         gnssPushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;
+                    }
+                    else
+                    {
+                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+                            systemPrintf("NOT pushing %d bytes from %s topic to ZED due to priority", mqttCount, topic);
                     }
                 }
                 // Always push KEYS and MGA to the ZED
@@ -336,6 +344,12 @@ void mqttClientReceiveMessage(int messageSize)
             // For the UM980, we have to pass the data through the PPL first
             else if (gnssPlatform == PLATFORM_UM980)
             {
+                if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+                    systemPrintf("Pushing %d bytes from %s topic to PPL for UM980", mqttCount, topic);
+
+                if (online.ppl == false)
+                    systemPrintln("Warning: PPL is offline");
+
                 sendSpartnToPpl(mqttData, mqttCount);
                 bytesPushed += mqttCount;
             }
@@ -345,20 +359,6 @@ void mqttClientReceiveMessage(int messageSize)
 
             // Set flag for main loop updatePPL()
             pplNewSpartn = true;
-        }
-    }
-
-    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu && bytesPushed > 0)
-    {
-        systemPrintf("Pushed %d bytes from %s topic to ", bytesPushed, topic);
-        if (gnssPlatform == PLATFORM_ZED)
-            systemPrintln("ZED");
-        else if (gnssPlatform == PLATFORM_UM980)
-        {
-            systemPrintln("PPL/UM980");
-
-            if (online.ppl == false)
-                systemPrintln("Warning: PPL is offline");
         }
     }
 }
