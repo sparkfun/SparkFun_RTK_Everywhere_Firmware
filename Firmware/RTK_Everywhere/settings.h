@@ -533,16 +533,6 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
 
-// All units should be able to obtain corrections over IP
-// Only units with an lband receiver can obtain LBand corrections
-typedef enum
-{
-    POINTPERFECT_CORRECTIONS_DISABLED = 0,
-    POINTPERFECT_CORRECTIONS_IP,
-    POINTPERFECT_CORRECTIONS_LBAND,
-    POINTPERFECT_CORRECTIONS_LBAND_IP,
-} PointPerfect_Corrections_Source;
-
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
 typedef enum
@@ -1098,11 +1088,11 @@ typedef struct
 
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
-    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
+    bool enablePointPerfectCorrections = false; // Things are better now. We could default to true. Also change line 940 in index.html
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
-    char pointPerfectKeyDistributionTopic[20] = ""; // /pp/key/Lb or /pp/key/ip - from ZTP
+    char pointPerfectKeyDistributionTopic[20] = ""; // /pp/ubx/0236/ip or /pp/ubx/0236/Lb - from ZTP
 
     char pointPerfectCurrentKey[33] = ""; // 32 hexadecimal digits = 128 bits = 16 Bytes
     uint64_t pointPerfectCurrentKeyDuration = 0;
@@ -1374,11 +1364,6 @@ struct struct_present
 {
     bool psram_2mb = false;
     bool psram_4mb = false;
-
-    bool gnss_zedf9p = false;
-    bool gnss_zedf9r = false;
-    bool gnss_um980 = false;
-    bool gnss_mosaic = false;
 
     bool lband_neo = false;
     bool cellular_lara = false;

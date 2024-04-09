@@ -131,7 +131,6 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         present.psram_2mb = true;
-        present.gnss_um980 = true;
         present.radio_lora = true;
         present.battery_bq40z50 = true;
         present.encryption_atecc608a = true;
@@ -222,7 +221,6 @@ void beginBoard()
     else if (productVariant == RTK_EVK)
     {
         present.psram_4mb = true;
-        present.gnss_zedf9p = true;
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -310,7 +308,6 @@ void beginBoard()
     else if (productVariant == RTK_FACET_V2)
     {
         present.psram_4mb = true;
-        present.gnss_zedf9p = true;
         present.microSd = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
@@ -332,7 +329,6 @@ void beginBoard()
     else if (productVariant == RTK_FACET_MOSAIC)
     {
         present.psram_4mb = true;
-        present.gnss_mosaic = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
@@ -1032,7 +1028,7 @@ void beginSystemState()
 
         systemState = STATE_ROVER_NOT_STARTED;
 
-        if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+        if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
     }
     else

@@ -148,7 +148,7 @@ bool mqttClientConnectLimitReached()
     limitReached = (mqttClientConnectionAttempts >= MAX_MQTT_CLIENT_CONNECTION_ATTEMPTS);
 
     bool enableMqttClient = true;
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+    if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
 
     // Attempt to restart the network if possible
@@ -234,7 +234,7 @@ void mqttClientPrintStatus()
     byte seconds;
 
     bool enableMqttClient = true;
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+    if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
 
     // Display MQTT Client status and uptime
@@ -306,29 +306,35 @@ void mqttClientReceiveMessage(int messageSize)
         if (mqttCount > 0)
         {
             // Correction data from PP can go direct to ZED module
-            if (present.gnss_zedf9p == true)
+            if (gnssPlatform == PLATFORM_ZED)
             {
-                // Always push KEYS and MGA to the ZED. Only push SPARTN if the priority says we can
+                // Only push SPARTN if the priority says we can
                 if (strstr(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) != nullptr)
                 {
                     // SPARTN
                     updateCorrectionsLastSeen(CORR_IP);
                     if (isHighestRegisteredCorrectionsSource(CORR_IP))
                     {
+                        updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+
                         gnssPushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;
                     }
                 }
+                // Always push KEYS and MGA to the ZED
                 else
                 {
                     // KEYS or MGA
                     gnssPushRawData(mqttData, mqttCount);
                     bytesPushed += mqttCount;
+
+                    // TODO: the keys may have changed. We could extract them here and update settings.
+                    // But, remember the keys will be in UBX format. Use the same code as ZTP mqttCallback
                 }
             }
 
             // For the UM980, we have to pass the data through the PPL first
-            else if (present.gnss_um980 == true)
+            else if (gnssPlatform == PLATFORM_UM980)
             {
                 sendSpartnToPpl(mqttData, mqttCount);
                 bytesPushed += mqttCount;
@@ -345,13 +351,15 @@ void mqttClientReceiveMessage(int messageSize)
     if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu && bytesPushed > 0)
     {
         systemPrintf("Pushed %d bytes from %s topic to ", bytesPushed, topic);
-        if (present.gnss_zedf9p == true)
+        if (gnssPlatform == PLATFORM_ZED)
             systemPrintln("ZED");
-        else if (present.gnss_um980 == true)
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
             systemPrintln("PPL/UM980");
 
-        if (online.ppl == false)
-            systemPrintln("Warning: PPL is offline");
+            if (online.ppl == false)
+                systemPrintln("Warning: PPL is offline");
+        }
     }
 }
 
@@ -399,24 +407,6 @@ void mqttClientStart()
 {
     // Display the heap state
     reportHeapNow(settings.debugMqttClientState);
-
-    if (present.gnss_zedf9p == true && online.gnss == true)
-    {
-        // Change ZED source of corrections
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
-            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Default to 0 if disabled
-        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 0); // Set source to IP
-        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
-            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // Set source to L-Band
-        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-        {
-            // TODO
-            // Here we need to know where our corrections are coming from.
-            // If they are coming from a NEO-D9S, we should select "1".
-            // If they are coming from PointPerfect via IP, we should select "0".
-        }
-    }
 
     // Start the MQTT client
     systemPrintln("MQTT Client start");
@@ -483,7 +473,7 @@ void mqttClientStop(bool shutdown)
     if (shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);
-        settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
+        settings.enablePointPerfectCorrections = false;
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
     }
@@ -497,7 +487,7 @@ void mqttClientStop(bool shutdown)
 void mqttClientUpdate()
 {
     bool enableMqttClient = true;
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+    if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
 
     // Shutdown the MQTT client when the mode or setting changes
@@ -685,17 +675,25 @@ void mqttClientUpdate()
             break;
         }
 
-        // Subscribe to the correction topic
-        if (!mqttClient->subscribe(settings.regionalCorrectionTopics[settings.geographicRegion]))
+        // Subscribe to the correction topic for our region - if we have one. L-Band-only does not.
+        if (strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
         {
-            mqttClientRestart();
-            systemPrintln("ERROR: Subscription to corrections topic failed!!");
-            mqttClientRestart();
-            break;
-        }
+            if (!mqttClient->subscribe(settings.regionalCorrectionTopics[settings.geographicRegion]))
+            {
+                mqttClientRestart();
+                systemPrintln("ERROR: Subscription to corrections topic failed!!");
+                mqttClientRestart();
+                break;
+            }
 
-        if (settings.debugMqttClientState)
-            systemPrintln("MQTT client subscribed to corrections topic");
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT client subscribed to corrections topic");
+        }
+        else
+        {
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT client - no corrections topic. Continuing...");
+        }
 
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
         break;

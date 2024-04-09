@@ -518,7 +518,7 @@ void stateUpdate()
             forceSystemStateUpdate = true; // Immediately go to this new state
 
             // If user has turned off PointPerfect, skip everything
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+            if (!settings.enablePointPerfectCorrections)
             {
                 changeState(settings.lastState); // Go to either rover or base
             }
@@ -1232,7 +1232,7 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     {
         addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
     }
-    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+    if (settings.enablePointPerfectCorrections)
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_NEEDED);
     }

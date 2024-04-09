@@ -316,7 +316,7 @@ bool um980EnableNMEA()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
             {
                 // Mark PPL requied messages as enabled if rate > 0
                 if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
@@ -327,7 +327,7 @@ bool um980EnableNMEA()
         }
     }
 
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    if (settings.enablePointPerfectCorrections)
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -365,7 +365,7 @@ bool um980EnableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            if (settings.enablePointPerfectCorrections)
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
@@ -380,7 +380,7 @@ bool um980EnableRTCMRover()
         }
     }
 
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    if (settings.enablePointPerfectCorrections)
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)

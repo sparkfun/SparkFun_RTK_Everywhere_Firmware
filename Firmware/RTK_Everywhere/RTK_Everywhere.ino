@@ -701,6 +701,8 @@ unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic durin
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
+uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
+
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
 

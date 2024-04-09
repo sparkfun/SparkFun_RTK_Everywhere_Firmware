@@ -1432,68 +1432,102 @@ uint8_t zedGetLeapSeconds()
     return (leapSeconds);
 }
 
-// If we have decryption keys, and L-Band is online, configure module
+// If we have decryption keys, configure module
+// Note: don't check online.lband here. We could be using ip corrections
 void zedApplyPointPerfectKeys()
 {
-    if (online.lband == true)
+    if (online.gnss == false)
     {
-        if (online.gnss == false)
+        if (settings.debugCorrections == true)
+            systemPrintln("ZED-F9P not available");
+        return;
+    }
+
+    // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
+    if (zedFirmwareVersionInt < 130)
+    {
+        systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
+                        "Please upgrade your ZED firmware: "
+                        "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
+        return;
+    }
+
+    if (strlen(settings.pointPerfectNextKey) > 0)
+    {
+        const uint8_t currentKeyLengthBytes = 16;
+        const uint8_t nextKeyLengthBytes = 16;
+
+        uint16_t currentKeyGPSWeek;
+        uint32_t currentKeyGPSToW;
+        long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
+        epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
+
+        uint16_t nextKeyGPSWeek;
+        uint32_t nextKeyGPSToW;
+        epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
+        epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
+
+        // If we are on a L-Band-only or L-Band+IP, set the SOURCE to 1 (L-Band)
+        // Else set the SOURCE to 0 (IP)
+        // If we are on L-Band+IP and IP corrections start to arrive, the corrections
+        // priority code will change SOURCE to match
+        if (strstr(settings.pointPerfectKeyDistributionTopic, "/Lb") != nullptr)
         {
-            if (settings.debugCorrections == true)
-                systemPrintln("ZED-F9P not available");
-            return;
-        }
-
-        // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
-        if (zedFirmwareVersionInt < 130)
-        {
-            systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
-                          "Please upgrade your ZED firmware: "
-                          "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
-            return;
-        }
-
-        if (strlen(settings.pointPerfectNextKey) > 0)
-        {
-            const uint8_t currentKeyLengthBytes = 16;
-            const uint8_t nextKeyLengthBytes = 16;
-
-            uint16_t currentKeyGPSWeek;
-            uint32_t currentKeyGPSToW;
-            long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
-            epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
-
-            uint16_t nextKeyGPSWeek;
-            uint32_t nextKeyGPSToW;
-            epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
-            epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
-
-            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // use LBAND PMP message
-
-            theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
-
-            theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                             3); // Set the differential mode - ambiguities are fixed whenever possible
-
-            bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                          settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                          nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
-
-            if (response == false)
-                systemPrintln("setDynamicSPARTNKeys failed");
-            else
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("PointPerfect keys applied");
-                online.lbandCorrections = true;
-            }
+            updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
         }
         else
         {
+            updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+        }
+
+        theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
+
+        theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
+                            3); // Set the differential mode - ambiguities are fixed whenever possible
+
+        bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
+                                                        settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                        nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+
+        if (response == false)
+            systemPrintln("setDynamicSPARTNKeys failed");
+        else
+        {
             if (settings.debugCorrections == true)
-                systemPrintln("No PointPerfect keys available");
+                systemPrintln("PointPerfect keys applied");
+            online.lbandCorrections = true;
         }
     }
+    else
+    {
+        if (settings.debugCorrections == true)
+            systemPrintln("No PointPerfect keys available");
+    }
+}
+
+void updateZEDCorrectionsSource(uint8_t source)
+{
+    if (!online.gnss)
+        return;
+
+    if (gnssPlatform != PLATFORM_ZED)
+        return;
+
+    if (zedCorrectionsSource == source)
+        return;
+
+    // This is important. Retry if needed
+    int retries = 0;
+    while ((!theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, source)) && (retries < 3))
+        retries++;
+    if (retries < 3)
+    {
+        zedCorrectionsSource = source;
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("ZED UBLOX_CFG_SPARTN_USE_SOURCE changed to %d\r\n", source);
+    }
+    else
+        systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
 }
 
 uint8_t zedGetActiveMessageCount()

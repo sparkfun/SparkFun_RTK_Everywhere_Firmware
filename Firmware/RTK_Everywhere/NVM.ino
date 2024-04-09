@@ -245,7 +245,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     // Point Perfect
     settingsFile->printf("%s=%s\r\n", "pointPerfectDeviceProfileToken", settings.pointPerfectDeviceProfileToken);
-    settingsFile->printf("%s=%d\r\n", "pointPerfectCorrectionsSource", (int)settings.pointPerfectCorrectionsSource);
+    settingsFile->printf("%s=%d\r\n", "enablePointPerfectCorrections", settings.enablePointPerfectCorrections);
     settingsFile->printf("%s=%d\r\n", "autoKeyRenewal", settings.autoKeyRenewal);
     settingsFile->printf("%s=%s\r\n", "pointPerfectClientID", settings.pointPerfectClientID);
     settingsFile->printf("%s=%s\r\n", "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
@@ -1035,8 +1035,8 @@ bool parseLine(char *str, Settings *settings)
     // Point Perfect
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         strcpy(settings->pointPerfectDeviceProfileToken, settingString);
-    else if (strcmp(settingName, "pointPerfectCorrectionsSource") == 0)
-        settings->pointPerfectCorrectionsSource = (PointPerfect_Corrections_Source)d;
+    else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
+        settings->enablePointPerfectCorrections = d;
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         settings->autoKeyRenewal = d;
     else if (strcmp(settingName, "pointPerfectClientID") == 0)

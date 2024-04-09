@@ -222,8 +222,8 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.serialTimeoutGNSS = settingValue;
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         strcpy(settings.pointPerfectDeviceProfileToken, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectCorrectionsSource") == 0)
-        settings.pointPerfectCorrectionsSource = (PointPerfect_Corrections_Source)settingValue;
+    else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
+        settings.enablePointPerfectCorrections = settingValue;
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         settings.autoKeyRenewal = settingValue;
     else if (strcmp(settingName, "pointPerfectClientID") == 0)
@@ -1205,7 +1205,7 @@ void createSettingsString(char *newSettings)
 
     // Point Perfect
     stringRecord(newSettings, "pointPerfectDeviceProfileToken", settings.pointPerfectDeviceProfileToken);
-    stringRecord(newSettings, "pointPerfectCorrectionsSource", (int)settings.pointPerfectCorrectionsSource);
+    stringRecord(newSettings, "enablePointPerfectCorrections", settings.enablePointPerfectCorrections);
     stringRecord(newSettings, "autoKeyRenewal", settings.autoKeyRenewal);
     stringRecord(newSettings, "pointPerfectClientID", settings.pointPerfectClientID);
     stringRecord(newSettings, "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
@@ -1872,7 +1872,7 @@ void getSettingValue(const char *settingName, char *settingValueStr)
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         writeToString(settingValueStr, settings.pointPerfectDeviceProfileToken);
     else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
-        writeToString(settingValueStr, (int)settings.pointPerfectCorrectionsSource);
+        writeToString(settingValueStr, settings.enablePointPerfectCorrections);
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         writeToString(settingValueStr, settings.autoKeyRenewal);
     else if (strcmp(settingName, "pointPerfectClientID") == 0)
@@ -2482,7 +2482,7 @@ void printAvailableSettings()
     // Point Perfect
     systemPrintf("pointPerfectDeviceProfileToken,char[%d],",
                  sizeof(settings.pointPerfectDeviceProfileToken) / sizeof(char));
-    systemPrint("pointPerfectCorrectionsSource,PointPerfect_Corrections_Source,");
+    systemPrint("enablePointPerfectCorrections,bool,");
     systemPrint("autoKeyRenewal,bool,");
     systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
     systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));

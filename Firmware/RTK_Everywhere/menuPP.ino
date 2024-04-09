@@ -359,19 +359,17 @@ bool pointperfectProvisionDevice()
 
 // Given a token buffer and an attempt number, decide which token to use
 // Decide which token to use for ZTP
-// There are six lists:
+// There are four lists:
 //   L-Band annual
 //   L-Band free-month
 //   IP annual
 //   IP free-month
-//   IP+L-Band annual
-//   IP+L-Band free-month
 void pointperfectGetToken(char *tokenString, int attemptNumber)
 {
     // Convert uint8_t array into string with dashes in spots
     // We must assume u-blox will not change the position of their dashes or length of their token
 
-    if (present.gnss_mosaic == false && present.lband_neo == false)
+    if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
     {
         // If the hardware lacks L-Band capability, start with IP free token
         if (attemptNumber == 0)
@@ -379,7 +377,7 @@ void pointperfectGetToken(char *tokenString, int attemptNumber)
         else
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpPaidToken, sizeof(ppIpPaidToken));
     }
-    else if (present.gnss_mosaic == true || present.lband_neo == true)
+    else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
     {
         // If the hardware is L-Band capable, start with L-Band free token first
         if (attemptNumber == 0)
@@ -402,12 +400,12 @@ int pointperfectGetMaxAttempts()
     if (strlen(settings.pointPerfectDeviceProfileToken) != 0)
         return (1);
 
-    if (present.gnss_mosaic == false && present.lband_neo == false)
+    if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
     {
         // If the hardware is IP only, there are only two tokens to try
         return (2);
     }
-    else if (present.gnss_mosaic == true || present.lband_neo == true)
+    else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
     {
         // If the hardware is L-Band centric, there are only two tokens to try
         return (2);
@@ -555,11 +553,13 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                     strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]), sizeof(settings.pointPerfectBrokerHost));
 
                     // Note: from the ZTP documentation:
-                    // ["subscriptions"][0] should contain the key distribution topic
-                    // Assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
+                    // ["subscriptions"][0] will contain the key distribution topic
+                    // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
                     // It is safer to check the "description" contains "key distribution topic"
-                    // If we are on an IP-only plan, the path will be /pp/key/ip
-                    // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/key/Lb
+                    // If we are on an IP-only plan, the path will be /pp/ubx/0236/ip
+                    // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/ubx/0236/Lb
+                    // These 0236 key distribution topics provide the keys in UBX format, ready to be pushed to a ZED.
+                    // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we don't use those.
                     int subscription = findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
                     if (subscription >= 0)
                         strncpy(settings.pointPerfectKeyDistributionTopic, (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.pointPerfectKeyDistributionTopic));
@@ -826,8 +826,10 @@ bool pointperfectUpdateKeys()
             // Successful connection
             systemPrintln("MQTT connected");
 
-            // Originally the provisioning process reported the '/pp/key/Lb' channel which fails to respond with
-            // keys. Looks like they fixed it to /pp/ubx/0236/Lb.
+            // pointPerfectKeyDistributionTopic is /pp/ubx/0236/ip or /pp/ubx/0236/Lb.
+            // It is provided during ZTP provisioning.
+            // The topic contains the keys in UBX format, ready to be pushed to a ZED.
+            // These need to be unpicked into JSON format and stored in settings - by mqttCallback below.
             mqttClient.subscribe(settings.pointPerfectKeyDistributionTopic);
         }
         else
@@ -1194,6 +1196,8 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 
     if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
     {
+        updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
+
         if (settings.debugCorrections == true && !inMainMenu)
             systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
 
@@ -1352,45 +1356,36 @@ void menuPointPerfect()
             else
                 systemPrintln("No keys");
 
-        // There are three possibilities here: IP-only, L-Band-only, L-Band+IP
-        // IP-only - e.g. Torch - can:
-        //    Receive SPARTN over IP (WiFi)
-        //    Get keys
-        //    Decrypt SPARTN and convert into RTCM using the PPL
-        //    Push RTCM to the UM980
-        // IP-only - e.g. Facet v2 (without L-Band) - can:
-        //    Receive SPARTN over IP (WiFi)
-        //    Get keys
-        //    Push SPARTN to the ZED-F9P
-        //    ZED-F9P decrypts the SPARTN using the keys. Needs UBLOX_CFG_SPARTN_USE_SOURCE 0
-        // L-Band-only - e.g. Facet v2 L-Band - can:
-        //    Receive PMP (SPARTN) from L-Band (NEO-D9S)
-        //    Get keys
-        //    Push PMP to the ZED-F9P
-        //    ZED-F9P decrypts the SPARTN using the keys
-        //    ** Facet v2 L-Band would be capable of using both L-Band and IP if
-        //    ** it had a L-Band+IP plan. But I don't think we want to go there?
-        // L-Band-only - e.g. Facet mosaic - can:
-        //    Receive raw SPARTN from L-Band
-        //    Get keys
-        //    Decrypt SPARTN and convert into RTCM using the PPL
-        //    Push RTCM to the X5
-        // L-Band+IP - e.g. EVK - _could_:
-        //    Receive SPARTN over IP (WiFi or TODO Ethernet / Cellular)
-        //    Get keys
-        //    Push SPARTN to the ZED-F9P
-        //    ZED-F9P decrypts the SPARTN using the keys. Needs UBLOX_CFG_SPARTN_USE_SOURCE 0
-        //    Receive PMP (SPARTN) from L-Band (NEO-D9S)
-        //    Push PMP to the ZED-F9P
-        //    ZED-F9P decrypts the SPARTN using the keys. Needs UBLOX_CFG_SPARTN_USE_SOURCE 1
-        //    ** This creates a minor headache as the UBLOX_CFG_SPARTN_USE_SOURCE needs to
-        //    ** change depending on which corrections source is being used, based on its
-        //    ** availability and priority.
+        // How this works:
+        //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP
+        //   For IP-only - e.g. Torch:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
+        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
+        //     We need to subscribe to our regional correction topic and push the data to the PPL
+        //     RTCM from the PPL is pushed to the UM980
+        //   For L-Band-only - e.g. EVK or Facet mosaic or Facet v2 L-Band
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     There are no regional correction topics for L-Band-only
+        //     EVK pushes the keys to the ZED and pushes PMP from the NEO to the ZED
+        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
+        //     Facet v2 L-Band does the same as EVK
+        //   For a future L-Band+IP product:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
+        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
+        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
+        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
+        //   We can figure it out from the key distribution topic:
+        //     IP-only gets /pp/ubx/0236/ip.
+        //     L-Band-only and L-Band+IP get /pp/ubx/0236/Lb.
+        //   And from the regional correction topics:
+        //     IP-only gets /pp/ip/us , /pp/ip/eu , etc.
+        //     L-Band-only gets none
+        //     L-Band+IP gets /pp/Lb/us , /pp/Lb/eu , etc.
+
         systemPrint("1) PointPerfect Corrections: ");
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-            systemPrintln("L-Band and IP");
-        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-            systemPrintln("IP");
+        if (settings.enablePointPerfectCorrections)
+            systemPrintln("Enabled");
         else
             systemPrintln("Disabled");
 
@@ -1423,26 +1418,7 @@ void menuPointPerfect()
 
         if (incoming == 1)
         {
-
-            // We have three states: disabled, Ip only, Ip+Lband (if supported)
-            if (present.lband_neo == true || present.gnss_mosaic == true)
-            {
-                if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND_IP;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
-            }
-            else // No L-Band support
-            {
-                if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
-            }
+            settings.enablePointPerfectCorrections ^= 1;
         }
 
         else if (incoming == 2 && pointPerfectIsEnabled())
@@ -1540,9 +1516,7 @@ void menuPointPerfect()
 
 bool pointPerfectIsEnabled()
 {
-    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
-        return (true);
-    return (false);
+    return (settings.enablePointPerfectCorrections);
 }
 
 // Process any new L-Band from I2C

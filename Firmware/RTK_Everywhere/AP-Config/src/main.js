@@ -336,7 +336,7 @@ function parseIncoming(msg) {
         ge("enableNtripServer").dispatchEvent(new CustomEvent('change'));
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
-        ge("pointPerfectCorrectionsSource").dispatchEvent(new CustomEvent('change'));
+        ge("enablePointPerfectCorrections").dispatchEvent(new CustomEvent('change'));
         ge("radioType").dispatchEvent(new CustomEvent('change'));
         ge("antennaReferencePoint").dispatchEvent(new CustomEvent('change'));
         // autoIMUmountAlignment is only used on Express Plus (ZED-F9R). It should not (currently) be here...
@@ -561,7 +561,7 @@ function validateFields() {
 
     //PointPerfect Config
     if (platformPrefix == "Facet L-Band") {
-        if (ge("pointPerfectCorrectionsSource").checked == true) {
+        if (ge("enablePointPerfectCorrections").checked == true) {
             value = ge("pointPerfectDeviceProfileToken").value;
             if (value.length > 0)
                 checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
@@ -1139,8 +1139,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("pointPerfectCorrectionsSource").addEventListener("change", function () {
-        if (ge("pointPerfectCorrectionsSource").checked) {
+    ge("enablePointPerfectCorrections").addEventListener("change", function () {
+        if (ge("enablePointPerfectCorrections").checked) {
             show("ppSettingsConfig");
         }
         else {
