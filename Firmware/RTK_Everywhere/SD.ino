@@ -6,6 +6,14 @@ void sdUpdate()
     if (!present.microSd)
         return;
 
+    // Skip if going into / in configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        //if (settings.debugNetworkLayer)
+        //    systemPrintln("configureViaEthernet: skipping sdUpdate");
+        return;
+    }
+
     if (settings.enableSD == false)
     {
         if (online.microSD == true)

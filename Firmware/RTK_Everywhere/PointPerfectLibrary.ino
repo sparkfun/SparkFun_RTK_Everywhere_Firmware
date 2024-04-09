@@ -33,15 +33,24 @@ void updatePplTask(void *e)
             {
                 if (rtcmLength > 0)
                 {
-                    if (settings.debugCorrections == true)
-                        systemPrintln("Received RTCM from PPL. Pushing to the GNSS.");
+                    updateCorrectionsLastSeen(CORR_LBAND);
+                    if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
+                    {
+                        gnssPushRawData(pplRtcmBuffer, rtcmLength);
 
-                    gnssPushRawData(pplRtcmBuffer, rtcmLength);
+                        if (settings.debugCorrections == true && !inMainMenu)
+                            systemPrintf("Received %d RTCM bytes from PPL. Pushing to the GNSS.\r\n", rtcmLength);
+                    }
+                    else
+                    {
+                        if (settings.debugCorrections == true && !inMainMenu)
+                            systemPrintf("Received %d RTCM bytes from PPL. NOT pushed to the GNSS due to priority.\r\n", rtcmLength);
+                    }
                 }
             }
             else
             {
-                if (settings.debugCorrections == true)
+                if (settings.debugCorrections == true && !inMainMenu)
                     systemPrintf("PPL_GetRTCMOutput Result: %s\r\n", PPLReturnStatusToStr(result));
             }
         }

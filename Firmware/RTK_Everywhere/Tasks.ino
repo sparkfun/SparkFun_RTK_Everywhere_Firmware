@@ -259,25 +259,34 @@ void addToGnssBuffer(uint8_t incoming)
     }
 }
 
-// Push the buffered data in bulk to the GNSS over I2C
-bool sendGnssBuffer()
+// Push the buffered data in bulk to the GNSS
+void sendGnssBuffer()
 {
-    bool response = gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead);
-
-    if (response == true)
+    updateCorrectionsLastSeen(CORR_BLUETOOTH);
+    if (isHighestRegisteredCorrectionsSource(CORR_BLUETOOTH))
+    {
+        if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
+        {
+            if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
+            {
+                PERIODIC_CLEAR(PD_ZED_DATA_TX);
+                systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
+            }
+            // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
+        }
+    }
+    else
     {
         if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
         {
             PERIODIC_CLEAR(PD_ZED_DATA_TX);
-            systemPrintf("GNSS TX: Sending %d bytes from I2C\r\n", bluetoothOutgoingToGnssHead);
+            systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
         }
-        // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
     }
 
     // No matter the response, wrap the head and reset the timer
     bluetoothOutgoingToGnssHead = 0;
     lastGnssSend = millis();
-    return (response);
 }
 
 // Normally a delay(1) will feed the WDT but if we don't want to wait that long, this feeds the WDT without delay
@@ -1553,17 +1562,15 @@ void buttonCheckTask(void *e)
                     {
                         if (thisIsButton == setupSelectedButton)
                         {
-                            setupButton theButton = *it;
-
-                            if (theButton.newState == STATE_PROFILE)
+                            if (it->newState == STATE_PROFILE)
                             {
-                                displayProfile = theButton.newProfile; // paintProfile needs the unit
+                                displayProfile = it->newProfile; // paintProfile needs the unit
                                 requestChangeState(STATE_PROFILE);
                             }
-                            else if (theButton.newState == STATE_NOT_SET) // Exit
+                            else if (it->newState == STATE_NOT_SET) // Exit
                                 requestChangeState(lastSystemState);
                             else
-                                requestChangeState(theButton.newState);
+                                requestChangeState(it->newState);
 
                             break;
                         }

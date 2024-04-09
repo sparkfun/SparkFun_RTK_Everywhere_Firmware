@@ -326,6 +326,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             systemPrintln(logmessage);
             String messages;
             createMessageList(messages);
+            systemPrintln(messages);
             request->send(200, "text/plain", messages);
         });
 
@@ -335,6 +336,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             systemPrintln(logmessage);
             String messageList;
             createMessageListBase(messageList);
+            systemPrintln(messageList);
             request->send(200, "text/plain", messageList);
         });
 

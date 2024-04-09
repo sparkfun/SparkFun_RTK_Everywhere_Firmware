@@ -822,14 +822,27 @@ void ntripClientUpdate()
                         // L-Band.
                         rtcmLastPacketReceived = millis();
 
-                        // Push RTCM to GNSS module over I2C / SPI
-                        gnssPushRawData(rtcmData, rtcmCount);
                         netIncomingRTCM = true;
 
-                        if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
+                        updateCorrectionsLastSeen(CORR_TCP);
+                        if (isHighestRegisteredCorrectionsSource(CORR_TCP))
                         {
-                            PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
-                            systemPrintf("NTRIP Client received %d RTCM bytes, pushed to ZED\r\n", rtcmCount);
+                            // Push RTCM to GNSS module over I2C / SPI
+                            gnssPushRawData(rtcmData, rtcmCount);
+
+                            if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
+                            {
+                                PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
+                                systemPrintf("NTRIP Client received %d RTCM bytes, pushed to ZED\r\n", rtcmCount);
+                            }
+                        }
+                        else
+                        {
+                            if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
+                            {
+                                PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
+                                systemPrintf("NTRIP Client received %d RTCM bytes, NOT pushed to ZED due to priority\r\n", rtcmCount);
+                            }
                         }
                     }
                 }

@@ -104,9 +104,12 @@ const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqtt
 const RtkMode_t mqttClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 
 const char MQTT_TOPIC_ASSISTNOW[] = "/pp/ubx/mga"; // AssistNow (MGA) topic
-const char MQTT_TOPIC_KEY[] = "/pp/ubx/0236/ip";   // This topic provides the IP only dynamic keys in UBX format
-const char MQTT_TOPIC_SPARTN_EU[] = "/pp/ip/eu";   // European SPARTN correction data
-const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us";   // North American SPARTN correction data
+const char MQTT_TOPIC_KEY[] = "/pp/ubx/0236/ip";   // This topic provides the dynamic keys in UBX format - IP-only
+const char MQTT_TOPIC_KEY_LBAND[] = "/pp/ubx/0236/Lb";   // This topic provides the dynamic keys in UBX format - L-Band and L-Band + IP
+const char MQTT_TOPIC_SPARTN_EU[] = "/pp/ip/eu";   // European SPARTN correction data - IP-only
+const char MQTT_TOPIC_SPARTN_US[] = "/pp/ip/us";   // North American SPARTN correction data - IP-only
+const char MQTT_TOPIC_SPARTN_LBAND_EU[] = "/pp/Lb/eu";   // European SPARTN correction data - L-Band + IP
+const char MQTT_TOPIC_SPARTN_LBAND_US[] = "/pp/Lb/us";   // North American SPARTN correction data - L-Band + IP
 
 //----------------------------------------
 // Locals
@@ -307,19 +310,36 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
-            bytesPushed += mqttCount;
-
             // Correction data from PP can go direct to ZED module
             if (present.gnss_zedf9p == true)
             {
-                // Push KEYS or SPARTN data to ZED
-                gnssPushRawData(mqttData, mqttCount);
+                // Always push KEYS and MGA to the ZED. Only push SPARTN if the priority says we can
+                if ((strstr(topic, MQTT_TOPIC_SPARTN_US) != nullptr) ||
+                    (strstr(topic, MQTT_TOPIC_SPARTN_EU) != nullptr) ||
+                    (strstr(topic, MQTT_TOPIC_SPARTN_LBAND_US) != nullptr) ||
+                    (strstr(topic, MQTT_TOPIC_SPARTN_LBAND_EU) != nullptr))
+                {
+                    // SPARTN
+                    updateCorrectionsLastSeen(CORR_IP);
+                    if (isHighestRegisteredCorrectionsSource(CORR_IP))
+                    {
+                        gnssPushRawData(mqttData, mqttCount);
+                        bytesPushed += mqttCount;
+                    }
+                }
+                else
+                {
+                    // KEYS or MGA
+                    gnssPushRawData(mqttData, mqttCount);
+                    bytesPushed += mqttCount;
+                }
             }
 
             // For the UM980, we have to pass the data through the PPL first
             else if (present.gnss_um980 == true)
             {
                 sendSpartnToPpl(mqttData, mqttCount);
+                bytesPushed += mqttCount;
             }
 
             // Record the arrival of data over MQTT
@@ -330,7 +350,7 @@ void mqttClientReceiveMessage(int messageSize)
         }
     }
 
-    if (settings.debugMqttClientData == true)
+    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu && bytesPushed > 0)
     {
         systemPrintf("Pushed %d bytes from %s topic to ", bytesPushed, topic);
         if (present.gnss_zedf9p == true)
@@ -400,6 +420,9 @@ void mqttClientStart()
         else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
         {
             // TODO
+            // Here we need to know where our corrections are coming from.
+            // If they are coming from a NEO-D9S, we should select "1".
+            // If they are coming from PointPerfect via IP, we should select "0".
         }
     }
 
@@ -645,7 +668,12 @@ void mqttClientUpdate()
         }
 
         // Subscribe to the MQTT_TOPIC_KEY
-        if (!mqttClient->subscribe(MQTT_TOPIC_KEY))
+        const char *keyTopic;
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+            keyTopic = MQTT_TOPIC_KEY_LBAND;
+        else
+            keyTopic = MQTT_TOPIC_KEY;
+        if (!mqttClient->subscribe(keyTopic))
         {
             mqttClientRestart();
             systemPrintln("ERROR: Subscription to MQTT_TOPIC_KEY failed!!");
@@ -672,8 +700,23 @@ void mqttClientUpdate()
         }
 
         // Subscribe to the MQTT_TOPIC_SPARTN
-        const char *topic = settings.useEuropeCorrections ? MQTT_TOPIC_SPARTN_EU : MQTT_TOPIC_SPARTN_US;
-        if (!mqttClient->subscribe(topic))
+        const char *spartnTopic;
+        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
+        {
+            if (settings.useEuropeCorrections)
+                spartnTopic = MQTT_TOPIC_SPARTN_LBAND_EU;
+            else
+                spartnTopic = MQTT_TOPIC_SPARTN_LBAND_US;
+        }
+        else
+        {
+            if (settings.useEuropeCorrections)
+                spartnTopic = MQTT_TOPIC_SPARTN_EU;
+            else
+                spartnTopic = MQTT_TOPIC_SPARTN_US;
+        }
+
+        if (!mqttClient->subscribe(spartnTopic))
         {
             mqttClientRestart();
             systemPrintln("ERROR: Subscription to MQTT_TOPIC_SPARTN failed!!");

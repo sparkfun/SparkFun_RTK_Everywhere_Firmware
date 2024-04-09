@@ -387,7 +387,6 @@ int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
 const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
-bool lBandCommunicationEnabled;
 bool lBandForceGetKeys; // Used to allow key update from display
 unsigned long rtcmLastPacketReceived;
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
@@ -746,7 +745,7 @@ unsigned long beepCount; // Number of beeps to do
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 35
+#define MAX_BOOT_TIME_ENTRIES 38
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -934,6 +933,9 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
+    DMW_b("initializeCorrectionsPriorities");
+    initializeCorrectionsPriorities(); // Initialize (clear) the registeredCorrectionsSources vector
+
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
     {
@@ -949,6 +951,10 @@ void setup()
 
     DMW_b("beginFS");
     beginFS(); // Load NVM settings
+
+    DMW_b("checkConfigureViaEthernet");
+    configureViaEthernet =
+        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     // At this point product variants are known, except early RTK products that lacked ID resistors
     DMW_b("loadSettingsPartial");
@@ -971,10 +977,6 @@ void setup()
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
-
-    DMW_b("checkConfigureViaEthernet");
-    configureViaEthernet =
-        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
@@ -1162,6 +1164,9 @@ void loop()
 
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();
+
+    DMW_c("updateCorrectionsPriorities");
+    updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }

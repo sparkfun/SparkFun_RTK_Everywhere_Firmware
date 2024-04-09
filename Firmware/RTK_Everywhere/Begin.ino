@@ -377,6 +377,12 @@ void beginVersion()
     getFirmwareVersion(versionString, sizeof(versionString), true);
     systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
 
+#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
+    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
+    esp_base_mac_addr_set(developerMacAddress);
+    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
+#endif
+
     // Get unit MAC address
     esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
     memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
@@ -453,6 +459,14 @@ void beginSD()
 {
     if (present.microSd == false)
         return;
+
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginSD");
+        return;
+    }
 
     bool gotSemaphore;
 
@@ -619,6 +633,14 @@ void beginGnssUart()
     if (present.gnss_to_uart == false)
         return;
 
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginGnssUart");
+        return;
+    }
+
     size_t length;
     TaskHandle_t taskHandle;
 
@@ -723,7 +745,8 @@ bool checkConfigureViaEthernet()
 
     if (LittleFS.exists("/configureViaEthernet.txt"))
     {
-        log_d("LittleFS configureViaEthernet.txt exists");
+        if (settings.debugNetworkLayer)
+            systemPrintln("LittleFS configureViaEthernet.txt exists");
         LittleFS.remove("/configureViaEthernet.txt");
         return true;
     }
@@ -740,7 +763,8 @@ bool forceConfigureViaEthernet()
 
     if (LittleFS.exists("/configureViaEthernet.txt"))
     {
-        log_d("LittleFS configureViaEthernet.txt already exists");
+        if (settings.debugNetworkLayer)
+            systemPrintln("LittleFS configureViaEthernet.txt already exists");
         return true;
     }
 
@@ -750,7 +774,8 @@ bool forceConfigureViaEthernet()
     if (LittleFS.exists("/configureViaEthernet.txt"))
         return true;
 
-    log_d("Unable to create configureViaEthernet.txt on LittleFS");
+    if (settings.debugNetworkLayer)
+        systemPrintln("Unable to create configureViaEthernet.txt on LittleFS");
     return false;
 }
 
@@ -760,7 +785,8 @@ void beginInterrupts()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        log_d("configureViaEthernet: skipping beginInterrupts");
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginInterrupts");
         return;
     }
 
@@ -1282,7 +1308,18 @@ void deleteSDSizeCheckTask()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Corrections Priorities Housekeeping
+void initializeCorrectionsPriorities()
+{
+    clearRegisteredCorrectionsSources(); // Clear (initialize) the vector of corrections sources. Probably redundant...?
+}
 
+void updateCorrectionsPriorities()
+{
+    checkRegisteredCorrectionsSources(); // Delete any expired corrections sources
+}
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
 // TODO: find a better home for this
 void checkArrayDefaults()

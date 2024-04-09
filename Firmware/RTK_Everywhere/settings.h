@@ -126,34 +126,47 @@ const char * const platformProvisionTable[] =
 };
 const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
 
+// Different GNSS modules require different libraries and configuration
+typedef enum
+{
+    PLATFORM_ZED = 0b0001,
+    PLATFORM_UM980 = 0b0010,
+    PLATFORM_MOSAIC = 0b0011,
+} GnssPlatform;
+
+const GnssPlatform platformGnssTable[] =
+{
+    PLATFORM_ZED,   // EVK
+    PLATFORM_ZED,   // Facet v2
+    PLATFORM_MOSAIC,   // Facet mosaic
+    PLATFORM_UM980, // Torch
+    // Add new values just above this line
+    PLATFORM_ZED    // Unknown
+};
+const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
+
 // Corrections Priority
 typedef enum
 {
     // Change the order of these to set the default priority. First (0) is highest
-    CORR_BLUETOOTH = 0,
-    CORR_WIFI_IP,
-    CORR_WIFI_TCP,
-    CORR_ETHERNET_IP,
-    CORR_ETHERNET_TCP,
-    CORR_LBAND,
-    CORR_CELLULAR,
-    CORR_RADIO_EXT,
-    CORR_RADIO_LORA,
-    CORR_ESPNOW,
+    CORR_BLUETOOTH = 0, // Added - Tasks.ino (sendGnssBuffer)
+    CORR_IP, // Added - MQTT_Client.ino
+    CORR_TCP, // Added - NtripClient.ino
+    CORR_LBAND, // Added - menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_RADIO_EXT, // TODO: this needs a meeting. Data goes direct from RADIO connector to ZED - or X5. How to disable / enable it? Via port protocol?
+    CORR_RADIO_LORA, // TODO: this needs a meeting. UM980 only? Does data go direct from LoRa to UM980?
+    CORR_ESPNOW, // Added - ESPNOW.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
 
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
-    // These must match correctionsSources above
+    // These must match correctionsSource above
     "Bluetooth",
-    "WiFi IP (PointPerfect/MQTT)",
-    "WiFi TCP (NTRIP)",
-    "Ethernet IP (PointPerfect/MQTT)",
-    "Ethernet TCP (NTRIP Client)",
+    "IP (PointPerfect/MQTT)",
+    "TCP (NTRIP)",
     "L-Band",
-    "Cellular",
     "External Radio",
     "LoRa Radio",
     "ESP-Now",
@@ -190,25 +203,6 @@ typedef enum
 
 const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
 const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
-
-// Different GNSS modules require different libraries and configuration
-typedef enum
-{
-    PLATFORM_ZED = 0b0001,
-    PLATFORM_UM980 = 0b0010,
-    PLATFORM_MOSAIC = 0b0011,
-} GnssPlatform;
-
-const GnssPlatform platformGnssTable[] =
-{
-    PLATFORM_ZED,   // EVK
-    PLATFORM_ZED,   // Facet v2
-    PLATFORM_MOSAIC,   // Facet mosaic
-    PLATFORM_UM980, // Torch
-    // Add new values just above this line
-    PLATFORM_ZED    // Unknown
-};
-const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
 typedef enum
 {
@@ -1153,8 +1147,6 @@ typedef struct
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint32_t shutdownNoChargeTimeout_s = 0; // If > 0, shut down unit after timeout if not charging
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
-    bool useI2cForLbandCorrections = true; //Set to false to stop I2C callback. Corrections will require direct ZED to NEO UART2 connections.
-    bool useI2cForLbandCorrectionsConfigured = false; //If a user sets useI2cForLbandCorrections, this goes true.
 
     // Ethernet
     bool enablePrintEthernetDiag = false;
@@ -1291,7 +1283,6 @@ typedef struct
     int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
-    uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
 
     // Automatic Firmware Update
@@ -1321,6 +1312,8 @@ typedef struct
     bool enableImuCompensationDebug = false;
 
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
+    int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
+
     bool debugEspNow = false;
     
     // Add new settings above <------------------------------------------------------------>
@@ -1421,10 +1414,6 @@ struct struct_online
     volatile bool updatePplTaskRunning = false;
     bool ppl = false;
 } online;
-
-// Corrections priority
-std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
-void registerCorrectionsSource(correctionsSource newSource) { registeredCorrectionsSources.push_back(newSource); }
 
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API

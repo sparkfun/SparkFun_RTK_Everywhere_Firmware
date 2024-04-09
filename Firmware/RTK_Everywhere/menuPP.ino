@@ -1144,11 +1144,21 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 {
     uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
 
-    if (settings.debugCorrections == true && !inMainMenu)
-        systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
+    updateCorrectionsLastSeen(CORR_LBAND); // This will (re)register the correction source if needed
 
-    gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-    gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+    if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
+
+        gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
+        gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+    }
+    else
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("NOT pushing %d bytes of RXM-PMP data to GNSS due to priority\r\n", payloadLen);
+    }
 }
 
 // Check if the PMP data is being decrypted successfully
@@ -1256,7 +1266,7 @@ void beginLBand()
 
     response &= i2cLBand.sendCfgValset();
 
-    lBandCommunicationEnabled = zedEnableLBandCommunication();
+    response &= zedEnableLBandCommunication();
 
     if (response == false)
         systemPrintln("L-Band failed to configure");
@@ -1515,30 +1525,6 @@ void updateLBand()
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
                 systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
-        }
-
-        if ((millis() - rtcmLastPacketReceived) / 1000 > settings.rtcmTimeoutBeforeUsingLBand_s)
-        {
-            // If we have not received RTCM in a certain amount of time,
-            // and if communication was disabled because RTCM was being received at some point,
-            // re-enable L-Band communication
-            if (lBandCommunicationEnabled == false)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Enabling L-Band communication due to RTCM timeout");
-                lBandCommunicationEnabled = zedEnableLBandCommunication();
-            }
-        }
-        else
-        {
-            // If we *have* recently received RTCM then disable corrections from then NEO-D9S L-Band receiver
-            if (lBandCommunicationEnabled == true)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Disabling L-Band communication due to RTCM reception");
-                lBandCommunicationEnabled = !zedDisableLBandCommunication(); // zedDisableLBandCommunication() returns
-                                                                             // true if we successfully disabled
-            }
         }
     }
 
