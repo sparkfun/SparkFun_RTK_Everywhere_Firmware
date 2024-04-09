@@ -463,7 +463,8 @@ void beginSD()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        log_d("configureViaEthernet: skipping beginSD");
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginSD");
         return;
     }
 
@@ -635,7 +636,8 @@ void beginGnssUart()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        log_d("configureViaEthernet: skipping beginGnssUart");
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginGnssUart");
         return;
     }
 
@@ -743,7 +745,8 @@ bool checkConfigureViaEthernet()
 
     if (LittleFS.exists("/configureViaEthernet.txt"))
     {
-        log_d("LittleFS configureViaEthernet.txt exists");
+        if (settings.debugNetworkLayer)
+            systemPrintln("LittleFS configureViaEthernet.txt exists");
         LittleFS.remove("/configureViaEthernet.txt");
         return true;
     }
@@ -760,7 +763,8 @@ bool forceConfigureViaEthernet()
 
     if (LittleFS.exists("/configureViaEthernet.txt"))
     {
-        log_d("LittleFS configureViaEthernet.txt already exists");
+        if (settings.debugNetworkLayer)
+            systemPrintln("LittleFS configureViaEthernet.txt already exists");
         return true;
     }
 
@@ -770,7 +774,8 @@ bool forceConfigureViaEthernet()
     if (LittleFS.exists("/configureViaEthernet.txt"))
         return true;
 
-    log_d("Unable to create configureViaEthernet.txt on LittleFS");
+    if (settings.debugNetworkLayer)
+        systemPrintln("Unable to create configureViaEthernet.txt on LittleFS");
     return false;
 }
 
@@ -780,7 +785,8 @@ void beginInterrupts()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        log_d("configureViaEthernet: skipping beginInterrupts");
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginInterrupts");
         return;
     }
 

@@ -9,7 +9,8 @@ void sdUpdate()
     // Skip if going into / in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        //log_d("configureViaEthernet: skipping sdUpdate");
+        //if (settings.debugNetworkLayer)
+        //    systemPrintln("configureViaEthernet: skipping sdUpdate");
         return;
     }
 
