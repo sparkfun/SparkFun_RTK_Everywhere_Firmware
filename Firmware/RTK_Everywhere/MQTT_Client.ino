@@ -316,7 +316,7 @@ void mqttClientReceiveMessage(int messageSize)
                     if (isHighestRegisteredCorrectionsSource(CORR_IP))
                     {
                         if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                            systemPrintf("Pushing %d bytes from %s topic to ZED", mqttCountd, topic);
+                            systemPrintf("Pushing %d bytes from %s topic to ZED\r\n", mqttCount, topic);
 
                         updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
@@ -326,7 +326,7 @@ void mqttClientReceiveMessage(int messageSize)
                     else
                     {
                         if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                            systemPrintf("NOT pushing %d bytes from %s topic to ZED due to priority", mqttCount, topic);
+                            systemPrintf("NOT pushing %d bytes from %s topic to ZED due to priority\r\n", mqttCount, topic);
                     }
                 }
                 // Always push KEYS and MGA to the ZED
@@ -345,7 +345,7 @@ void mqttClientReceiveMessage(int messageSize)
             else if (gnssPlatform == PLATFORM_UM980)
             {
                 if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                    systemPrintf("Pushing %d bytes from %s topic to PPL for UM980", mqttCount, topic);
+                    systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
 
                 if (online.ppl == false)
                     systemPrintln("Warning: PPL is offline");
