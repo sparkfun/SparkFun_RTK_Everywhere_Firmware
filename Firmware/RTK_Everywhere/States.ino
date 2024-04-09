@@ -533,7 +533,7 @@ void stateUpdate()
             // If we don't have keys, begin zero touch provisioning
             else if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
             {
-                log_d("L_Band Keys starting WiFi");
+                log_d("PointPerfect Keys starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
