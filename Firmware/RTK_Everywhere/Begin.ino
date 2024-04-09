@@ -380,6 +380,7 @@ void beginVersion()
 #if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
     static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
     esp_base_mac_addr_set(developerMacAddress);
+    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
 #endif
 
     // Get unit MAC address
