@@ -1308,13 +1308,13 @@ void deleteSDSizeCheckTask()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// Housekeeping
-void housekeepingSetup()
+// Corrections Priorities Housekeeping
+void initializeCorrectionsPriorities()
 {
     clearRegisteredCorrectionsSources(); // Clear (initialize) the vector of corrections sources. Probably redundant...?
 }
 
-void housekeepingLoop()
+void updateCorrectionsPriorities()
 {
     checkRegisteredCorrectionsSources(); // Delete any expired corrections sources
 }
