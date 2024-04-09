@@ -33,9 +33,6 @@ void updatePplTask(void *e)
             {
                 if (rtcmLength > 0)
                 {
-                    // You could imagine a scenario where you feed the data from a NEO-D9S into the PPL,
-                    // because you believe the PPL can do a better job generating corrections than the ZED.
-                    // TODO: check if we want to add a CORR_LBAND_PPL corrections source - for the ZED
                     updateCorrectionsLastSeen(CORR_LBAND);
                     if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
                     {
