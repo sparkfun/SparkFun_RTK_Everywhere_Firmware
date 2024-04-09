@@ -1009,8 +1009,18 @@ void beginSystemState()
     else if (productVariant == RTK_EVK)
     {
         firstRoverStart = false; // Screen should have been tested when it was made ;-)
+
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
+
+        // Begin process for getting new keys if corrections are enabled
+        // Because this is the only way to set online.lbandCorrections to true via
+        // STATE_KEYS_LBAND_CONFIGURE -> gnssApplyPointPerfectKeys -> zedApplyPointPerfectKeys
+        // TODO: we need to rethink this. We need correction keys for both ip and Lb.
+        // We should really restructure things so we use online.corrections...
+        if (settings.enablePointPerfectCorrections)
+            systemState = STATE_KEYS_STARTED;
+
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
