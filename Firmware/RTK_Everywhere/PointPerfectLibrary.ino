@@ -36,7 +36,11 @@ void updatePplTask(void *e)
                     updateCorrectionsLastSeen(CORR_LBAND);
                     if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
                     {
-                        updateZEDCorrectionsSource(1); // Set ZED SOURCE to 1 (L-Band) if needed
+                        // Set ZED SOURCE to 1 (L-Band) if needed
+                        // Note: this is almost certainly redundant. It would only be used if we
+                        // believe the PPL can do a better job generating corrections than the
+                        // ZED can internally using SPARTN direct.
+                        updateZEDCorrectionsSource(1);
                         
                         gnssPushRawData(pplRtcmBuffer, rtcmLength);
 
@@ -117,7 +121,7 @@ void beginPPL()
     if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
     {
         if (settings.debugCorrections == true)
-            systemPrintln("Unable to get usable key");
+            systemPrintln("Unable to get usable PPL key");
         return;
     }
 

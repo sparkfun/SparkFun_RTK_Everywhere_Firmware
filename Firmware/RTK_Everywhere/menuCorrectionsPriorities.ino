@@ -48,7 +48,7 @@ void menuCorrectionsPriorities()
 
         byte incoming = getUserInputCharacterNumber();
 
-        if (incoming == '1')
+        if (incoming == 1)
         {
             getNewSetting("Enter new correction source lifetime in seconds (5-120): ", 5, 120, &settings.correctionsSourcesLifetime_s);
         }
