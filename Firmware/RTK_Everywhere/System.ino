@@ -286,7 +286,7 @@ bool messageSupported(int messageNumber)
 {
     bool messageSupported = false;
 
-    if (zedFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
+    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
         messageSupported = true;
 
     return (messageSupported);
@@ -310,7 +310,7 @@ bool commandSupported(const uint32_t key)
     }
     else
     {
-        if (zedFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
+        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
             commandSupported = true;
     }
     return (commandSupported);

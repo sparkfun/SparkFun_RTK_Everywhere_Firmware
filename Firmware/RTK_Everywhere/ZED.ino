@@ -150,11 +150,10 @@ void zedBegin()
     if (theGNSS->getModuleInfo(1100) == true) // Try to get the module info
     {
         // Reconstruct the firmware version
-        snprintf(zedFirmwareVersion, sizeof(zedFirmwareVersion), "%s %d.%02d", theGNSS->getFirmwareType(),
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s %d.%02d", theGNSS->getFirmwareType(),
                  theGNSS->getFirmwareVersionHigh(), theGNSS->getFirmwareVersionLow());
 
-        // Construct the firmware version as uint8_t. Note: will fail above 2.55!
-        zedFirmwareVersionInt = (theGNSS->getFirmwareVersionHigh() * 100) + theGNSS->getFirmwareVersionLow();
+        gnssFirmwareVersionInt = (theGNSS->getFirmwareVersionHigh() * 100) + theGNSS->getFirmwareVersionLow();
 
         // Check this is known firmware
         //"1.20" - Mostly for F9R HPS 1.20, but also F9P HPG v1.20
@@ -166,14 +165,14 @@ void zedBegin()
         bool knownFirmware = false;
         for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(uint8_t)); i++)
         {
-            if (zedFirmwareVersionInt == knownFirmwareVersions[i])
+            if (gnssFirmwareVersionInt == knownFirmwareVersions[i])
                 knownFirmware = true;
         }
 
         if (!knownFirmware)
         {
-            systemPrintf("Unknown firmware version: %s\r\n", zedFirmwareVersion);
-            zedFirmwareVersionInt = 99; // 0.99 invalid firmware version
+            systemPrintf("Unknown firmware version: %s\r\n", gnssFirmwareVersion);
+            gnssFirmwareVersionInt = 99; // 0.99 invalid firmware version
         }
 
         // Determine if we have a ZED-F9P or an ZED-F9R
@@ -204,7 +203,7 @@ void zedBegin()
     UBX_SEC_UNIQID_data_t chipID;
     if (theGNSS->getUniqueChipId(&chipID))
     {
-        snprintf(zedUniqueId, sizeof(zedUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
+        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
     }
 
     systemPrintln("GNSS ZED online");
@@ -1209,7 +1208,7 @@ uint16_t zedFixAgeMilliseconds()
 // Print the module type and firmware version
 void zedPrintInfo()
 {
-    systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
+    systemPrintf("ZED-F9P firmware: %s\r\n", gnssFirmwareVersion);
 }
 
 void zedFactoryReset()
@@ -1361,7 +1360,7 @@ bool zedSetConstellations(bool sendCompleteBatch)
 
     // v1.12 ZED-F9P firmware does not allow for SBAS control
     // Also, if we can't identify the version (99), skip SBAS enable
-    if ((zedFirmwareVersionInt == 112) || (zedFirmwareVersionInt == 99))
+    if ((gnssFirmwareVersionInt == 112) || (gnssFirmwareVersionInt == 99))
     {
         // Skip
     }
@@ -1444,7 +1443,7 @@ void zedApplyPointPerfectKeys()
     }
 
     // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
-    if (zedFirmwareVersionInt < 130)
+    if (gnssFirmwareVersionInt < 130)
     {
         systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
                         "Please upgrade your ZED firmware: "

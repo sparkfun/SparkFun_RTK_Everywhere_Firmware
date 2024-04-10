@@ -1099,14 +1099,23 @@ void createSettingsString(char *newSettings)
     getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
-    char apZedPlatform[50];
-    strcpy(apZedPlatform, "ZED-F9P");
-
-    char apZedFirmwareVersion[80];
-    snprintf(apZedFirmwareVersion, sizeof(apZedFirmwareVersion), "%s Firmware: %s ID: %s", apZedPlatform,
-                zedFirmwareVersion, zedUniqueId);
-    stringRecord(newSettings, "zedFirmwareVersion", apZedFirmwareVersion);
-    stringRecord(newSettings, "zedFirmwareVersionInt", zedFirmwareVersionInt);
+    char apGNSSFirmwareVersion[80];
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
+                gnssFirmwareVersion, gnssUniqueId);
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s",
+                gnssFirmwareVersion, gnssUniqueId);
+    }
+    else if (gnssPlatform == PLATFORM_MOSAIC)
+    {
+        // *** TODO ***
+    }
+    stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
+    stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %02X%02X", btMACAddress[4], btMACAddress[5]);

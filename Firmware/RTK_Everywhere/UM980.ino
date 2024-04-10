@@ -58,6 +58,15 @@ void um980Begin()
     // Check firmware version and print info
     um980PrintInfo();
 
+    // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
+    snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", um980->getVersion());
+
+    // getVersion returns the "Build" "7923". I think we probably need the "R4.10" which preceeds Build? TODO
+    if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
+        gnssFirmwareVersionInt = 99;
+
+    snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", um980->getID());
+
     online.gnss = true;
 }
 

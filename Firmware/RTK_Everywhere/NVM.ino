@@ -531,9 +531,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     getFirmwareVersion(firmwareVersion, sizeof(firmwareVersion), true);
     settingsFile->printf("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "zedFirmwareVersion", zedFirmwareVersion);
+    settingsFile->printf("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "zedUniqueId", zedUniqueId);
+    settingsFile->printf("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
     if (present.lband_neo == true)
         settingsFile->printf("%s=%s\r\n", "neoFirmwareVersion", neoFirmwareVersion);
@@ -805,10 +805,10 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "zedFirmwareVersion") == 0)
+    else if (strcmp(settingName, "gnssFirmwareVersion") == 0)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "zedUniqueId") == 0)
+    else if (strcmp(settingName, "gnssUniqueId") == 0)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
     else if (strcmp(settingName, "neoFirmwareVersion") == 0)

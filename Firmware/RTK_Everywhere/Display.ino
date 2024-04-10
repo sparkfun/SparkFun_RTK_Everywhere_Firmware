@@ -2434,12 +2434,12 @@ void paintSystemTest()
             oled->setFont(QW_FONT_5X7); // Set font to smallest
 
             oled->setCursor(xOffset, yOffset); // x, y
-            oled->print("ZED Firm:");
+            oled->print("GNSS Firm:");
             oled->setCursor(xOffset, yOffset + (1 * charHeight)); // x, y
-            oled->print("  ");
-            oled->print(zedFirmwareVersionInt);
+            oled->print(" ");
+            oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if (zedFirmwareVersionInt < 130)
+            if ((gnssPlatform == PLATFORM_ZED) && (gnssFirmwareVersionInt < 130))
                 oled->print("FAIL");
             else
                 oled->print("OK");
