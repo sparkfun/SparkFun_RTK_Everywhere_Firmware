@@ -13,6 +13,8 @@
 #define POINTPERFECT_LBAND_PAID_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_FREE_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_PAID_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_LBAND_IP_FREE_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_LBAND_IP_PAID_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_LBAND_PAID_TOKEN
 
 static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};             // Token in HEX form
@@ -20,6 +22,8 @@ static const uint8_t ppLbandPaidToken[16] = {POINTPERFECT_LBAND_PAID_TOKEN}; // 
 static const uint8_t ppLbandFreeToken[16] = {POINTPERFECT_LBAND_FREE_TOKEN}; // Token in HEX form
 static const uint8_t ppIpPaidToken[16] = {POINTPERFECT_IP_PAID_TOKEN};       // Token in HEX form
 static const uint8_t ppIpFreeToken[16] = {POINTPERFECT_IP_FREE_TOKEN};       // Token in HEX form
+static const uint8_t ppLbandIpPaidToken[16] = {POINTPERFECT_LBAND_IP_PAID_TOKEN}; // Token in HEX form
+static const uint8_t ppLbandIpFreeToken[16] = {POINTPERFECT_LBAND_IP_FREE_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_WIFI
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
@@ -249,6 +253,7 @@ bool pointperfectProvisionDevice()
                 // Depending on how many times we've tried the ZTP interface, change the token
                 pointperfectGetToken(tokenString, attemptNumber);
 
+                // @nseidle : please check if the next two lines are wanted / needed / correct. They look wrong to me...
                 if (memcmp(ppLbandPaidToken, developmentToken, sizeof(developmentToken)) == 0)
                     systemPrintln("Warning: Using the development token!");
 
@@ -369,7 +374,15 @@ void pointperfectGetToken(char *tokenString, int attemptNumber)
     // Convert uint8_t array into string with dashes in spots
     // We must assume u-blox will not change the position of their dashes or length of their token
 
-    if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
+    if (productVariant == RTK_EVK)
+    {
+        // If the hardware is EVK, use L-Band+IP
+        if (attemptNumber == 0)
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpFreeToken, sizeof(ppLbandIpFreeToken));
+        else
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpPaidToken, sizeof(ppLbandIpPaidToken));
+    }
+    else if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
     {
         // If the hardware lacks L-Band capability, start with IP free token
         if (attemptNumber == 0)
