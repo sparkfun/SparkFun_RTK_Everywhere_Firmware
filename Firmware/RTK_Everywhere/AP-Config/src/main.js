@@ -94,7 +94,16 @@ function parseIncoming(msg) {
             fullPageUpdate = true;
             correctionText = "";
 
-            if (platformPrefix == "Facet v2") {
+            if (platformPrefix == "EVK") {
+                show("baseConfig");
+                //hide("sensorConfig");
+                show("ppConfig");
+                show("ethernetConfig");
+                show("ntpConfig");
+                //hide("allowWiFiOverEthernetClient"); //For future expansion
+                //hide("allowWiFiOverEthernetServer"); //For future expansion
+            }
+            else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
                 //hide("sensorConfig");
                 show("ppConfig");
@@ -112,12 +121,12 @@ function parseIncoming(msg) {
                 //hide("allowWiFiOverEthernetClient"); //For future expansion
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
-            else if (platformPrefix == "EVK") {
+            else if (platformPrefix == "Torch") {
                 show("baseConfig");
                 //hide("sensorConfig");
                 show("ppConfig");
-                show("ethernetConfig");
-                show("ntpConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
                 //hide("allowWiFiOverEthernetClient"); //For future expansion
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
