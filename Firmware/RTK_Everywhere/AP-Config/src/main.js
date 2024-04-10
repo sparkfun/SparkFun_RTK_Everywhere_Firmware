@@ -95,6 +95,7 @@ function parseIncoming(msg) {
             correctionText = "";
 
             if (platformPrefix == "EVK") {
+                show("zedFirmwareVersion");
                 show("baseConfig");
                 //hide("sensorConfig");
                 show("ppConfig");
@@ -104,6 +105,7 @@ function parseIncoming(msg) {
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
             else if (platformPrefix == "Facet v2") {
+                show("zedFirmwareVersion");
                 show("baseConfig");
                 //hide("sensorConfig");
                 show("ppConfig");
@@ -113,6 +115,7 @@ function parseIncoming(msg) {
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
             else if (platformPrefix == "Facet mosaic") {
+                hide("zedFirmwareVersion");
                 show("baseConfig");
                 //hide("sensorConfig");
                 show("ppConfig");
@@ -122,6 +125,7 @@ function parseIncoming(msg) {
                 //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
             else if (platformPrefix == "Torch") {
+                hide("zedFirmwareVersion");
                 show("baseConfig");
                 //hide("sensorConfig");
                 show("ppConfig");
