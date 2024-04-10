@@ -245,11 +245,11 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     // Point Perfect
     settingsFile->printf("%s=%s\r\n", "pointPerfectDeviceProfileToken", settings.pointPerfectDeviceProfileToken);
-    settingsFile->printf("%s=%d\r\n", "pointPerfectCorrectionsSource", (int)settings.pointPerfectCorrectionsSource);
+    settingsFile->printf("%s=%d\r\n", "enablePointPerfectCorrections", settings.enablePointPerfectCorrections);
     settingsFile->printf("%s=%d\r\n", "autoKeyRenewal", settings.autoKeyRenewal);
     settingsFile->printf("%s=%s\r\n", "pointPerfectClientID", settings.pointPerfectClientID);
     settingsFile->printf("%s=%s\r\n", "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
-    settingsFile->printf("%s=%s\r\n", "pointPerfectLBandTopic", settings.pointPerfectLBandTopic);
+    settingsFile->printf("%s=%s\r\n", "pointPerfectKeyDistributionTopic", settings.pointPerfectKeyDistributionTopic);
 
     settingsFile->printf("%s=%s\r\n", "pointPerfectCurrentKey", settings.pointPerfectCurrentKey);
     settingsFile->printf("%s=%llu\r\n", "pointPerfectCurrentKeyDuration", settings.pointPerfectCurrentKeyDuration);
@@ -261,7 +261,6 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     settingsFile->printf("%s=%llu\r\n", "lastKeyAttempt", settings.lastKeyAttempt);
     settingsFile->printf("%s=%d\r\n", "updateGNSSSettings", settings.updateGNSSSettings);
-    settingsFile->printf("%s=%d\r\n", "LBandFreq", settings.LBandFreq);
 
     settingsFile->printf("%s=%d\r\n", "debugPpCertificate", settings.debugPpCertificate);
 
@@ -515,6 +514,13 @@ void recordSystemSettingsToFile(File *settingsFile)
     }
     settingsFile->printf("%s=%d\r\n", "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
 
+    settingsFile->printf("%s=%d\r\n", "geographicRegion", settings.geographicRegion);
+
+    for (int r = 0; r < numRegionalAreas; r++)
+    {
+        settingsFile->printf("%s_%d=%s\r\n", "regionalCorrectionTopics", r,
+                             &settings.regionalCorrectionTopics[r][0]);
+    }
     settingsFile->printf("%s=%d\r\n", "debugEspNow", settings.debugEspNow);
 
     // Add new settings above <--------------------------------------------------->
@@ -525,9 +531,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     getFirmwareVersion(firmwareVersion, sizeof(firmwareVersion), true);
     settingsFile->printf("%s=%s\r\n", "rtkFirmwareVersion", firmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "zedFirmwareVersion", zedFirmwareVersion);
+    settingsFile->printf("%s=%s\r\n", "gnssFirmwareVersion", gnssFirmwareVersion);
 
-    settingsFile->printf("%s=%s\r\n", "zedUniqueId", zedUniqueId);
+    settingsFile->printf("%s=%s\r\n", "gnssUniqueId", gnssUniqueId);
 
     if (present.lband_neo == true)
         settingsFile->printf("%s=%s\r\n", "neoFirmwareVersion", neoFirmwareVersion);
@@ -799,10 +805,10 @@ bool parseLine(char *str, Settings *settings)
     else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "zedFirmwareVersion") == 0)
+    else if (strcmp(settingName, "gnssFirmwareVersion") == 0)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "zedUniqueId") == 0)
+    else if (strcmp(settingName, "gnssUniqueId") == 0)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
     else if (strcmp(settingName, "neoFirmwareVersion") == 0)
@@ -1029,16 +1035,16 @@ bool parseLine(char *str, Settings *settings)
     // Point Perfect
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         strcpy(settings->pointPerfectDeviceProfileToken, settingString);
-    else if (strcmp(settingName, "pointPerfectCorrectionsSource") == 0)
-        settings->pointPerfectCorrectionsSource = (PointPerfect_Corrections_Source)d;
+    else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
+        settings->enablePointPerfectCorrections = d;
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         settings->autoKeyRenewal = d;
     else if (strcmp(settingName, "pointPerfectClientID") == 0)
         strcpy(settings->pointPerfectClientID, settingString);
     else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
         strcpy(settings->pointPerfectBrokerHost, settingString);
-    else if (strcmp(settingName, "pointPerfectLBandTopic") == 0)
-        strcpy(settings->pointPerfectLBandTopic, settingString);
+    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
+        strcpy(settings->pointPerfectKeyDistributionTopic, settingString);
 
     else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
         strcpy(settings->pointPerfectCurrentKey, settingString);
@@ -1058,8 +1064,6 @@ bool parseLine(char *str, Settings *settings)
         settings->lastKeyAttempt = d;
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         settings->updateGNSSSettings = d;
-    else if (strcmp(settingName, "LBandFreq") == 0)
-        settings->LBandFreq = d;
     else if (strcmp(settingName, "debugPpCertificate") == 0)
         settings->debugPpCertificate = d;
 
@@ -1367,6 +1371,9 @@ bool parseLine(char *str, Settings *settings)
         settings->correctionsSourcesLifetime_s = d;
     else if (strcmp(settingName, "debugEspNow") == 0)
         settings->debugEspNow = d;
+
+    else if (strcmp(settingName, "geographicRegion") == 0)
+        settings->geographicRegion = d;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1710,6 +1717,22 @@ bool parseLine(char *str, Settings *settings)
                 if (strcmp(settingName, tempString) == 0)
                 {
                     strcpy(&settings->ntripServer_MountPointPW[serverIndex][0], settingString);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
+        // Scan for regionalCorrectionTopics
+        if (knownSetting == false)
+        {
+            for (int r = 0; r < numRegionalAreas; r++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "regionalCorrectionTopics_%d", r);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings->regionalCorrectionTopics[r][0], settingString);
                     knownSetting = true;
                     break;
                 }

@@ -516,7 +516,7 @@ void stateUpdate()
             forceSystemStateUpdate = true; // Immediately go to this new state
 
             // If user has turned off PointPerfect, skip everything
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+            if (!settings.enablePointPerfectCorrections)
             {
                 changeState(settings.lastState); // Go to either rover or base
             }
@@ -531,7 +531,7 @@ void stateUpdate()
             // If we don't have keys, begin zero touch provisioning
             else if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
             {
-                log_d("L_Band Keys starting WiFi");
+                log_d("PointPerfect Keys starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -1230,7 +1230,7 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     {
         addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
     }
-    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+    if (settings.enablePointPerfectCorrections)
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_NEEDED);
     }

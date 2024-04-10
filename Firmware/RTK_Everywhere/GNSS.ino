@@ -1106,7 +1106,7 @@ char *gnssGetId()
     {
         if (gnssPlatform == PLATFORM_ZED)
         {
-            return (zedUniqueId);
+            return (gnssUniqueId);
         }
         else if (gnssPlatform == PLATFORM_UM980)
         {

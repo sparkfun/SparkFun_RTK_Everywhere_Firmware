@@ -533,16 +533,6 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
 
-// All units should be able to obtain corrections over IP
-// Only units with an lband receiver can obtain LBand corrections
-typedef enum
-{
-    POINTPERFECT_CORRECTIONS_DISABLED = 0,
-    POINTPERFECT_CORRECTIONS_IP,
-    POINTPERFECT_CORRECTIONS_LBAND,
-    POINTPERFECT_CORRECTIONS_LBAND_IP,
-} PointPerfect_Corrections_Source;
-
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
 typedef enum
@@ -993,6 +983,41 @@ enum OtaState
 
 #endif  // COMPILE_OTA_AUTO
 
+// Regional Support
+// Some regions have both L-Band and IP. More just have IP.
+// Do we want the user to be able to specify which region they are in?
+// Or do we want to figure it out based on position?
+// If we define a simple 'square' area for each region, we can do both.
+// Note: the best way to obtain the L-Band frequencies would be from the MQTT /pp/frequencies/Lb topic.
+//       But it is easier to record them here, in case we don't have access to MQTT...
+// Note: the key distribution topic is provided during ZTP. We don't need to record it here.
+
+typedef struct
+{
+    const double latNorth; // Degrees
+    const double latSouth; // Degrees
+    const double lonEast; // Degrees
+    const double lonWest; // Degrees
+} Regional_Area;
+
+typedef struct
+{
+    const char *name; // As defined in the ZTP subscriptions description: EU, US, KR, AU, Japan
+    const char *topicRegion; // As used in the corrections topic path
+    const Regional_Area area;
+    const uint32_t frequency; // L-Band frequency, Hz, if supported. 0 if not supported
+} Regional_Information;
+
+const Regional_Information Regional_Information_Table[] = 
+{
+    { "US", "us", { 50.0,  25.0, -60.0, -125.0}, 1556290000 },
+    { "EU", "eu", { 72.0,  36.0,  32.0,  -11.0}, 1545260000 },
+    { "AU", "au", {-25.0, -45.0, 154.0,  113.0}, 0 },
+    { "KR", "kr", { 39.0,  34.0, 129.5,  125.0}, 0 },
+    { "Japan", "jp", { 46.0,  31.0, 146.0,  129.5}, 0 },
+};
+const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 typedef struct
@@ -1063,11 +1088,11 @@ typedef struct
 
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
-    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
+    bool enablePointPerfectCorrections = false; // Things are better now. We could default to true. Also change line 940 in index.html
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
-    char pointPerfectLBandTopic[20] = ""; // /pp/key/Lb
+    char pointPerfectKeyDistributionTopic[20] = ""; // /pp/ubx/0236/ip or /pp/ubx/0236/Lb - from ZTP
 
     char pointPerfectCurrentKey[33] = ""; // 32 hexadecimal digits = 128 bits = 16 Bytes
     uint64_t pointPerfectCurrentKeyDuration = 0;
@@ -1079,7 +1104,6 @@ typedef struct
 
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
     bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
-    uint32_t LBandFreq = 1556290000; // Default to US band
 
     bool debugPpCertificate = false; // Debug Point Perfect certificate management
 
@@ -1314,6 +1338,21 @@ typedef struct
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
 
+    int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
+
+    // The correction topics are provided during ZTP (pointperfectTryZtpToken)
+    // For IP-only plans, these will be /pp/ip/us, /pp/ip/eu, etc.
+    // For L-Band+IP plans, these will be /pp/Lb/us, /pp/Lb/eu, etc.
+    // L-Band-only plans have no correction topics
+    char regionalCorrectionTopics[numRegionalAreas][10] =
+    {
+        "",
+        "",
+        "",
+        "",
+        "",
+    };
+
     bool debugEspNow = false;
     
     // Add new settings above <------------------------------------------------------------>
@@ -1326,11 +1365,6 @@ struct struct_present
 {
     bool psram_2mb = false;
     bool psram_4mb = false;
-
-    bool gnss_zedf9p = false;
-    bool gnss_zedf9r = false;
-    bool gnss_um980 = false;
-    bool gnss_mosaic = false;
 
     bool lband_neo = false;
     bool cellular_lara = false;

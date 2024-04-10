@@ -36,6 +36,12 @@ void updatePplTask(void *e)
                     updateCorrectionsLastSeen(CORR_LBAND);
                     if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
                     {
+                        // Set ZED SOURCE to 1 (L-Band) if needed
+                        // Note: this is almost certainly redundant. It would only be used if we
+                        // believe the PPL can do a better job generating corrections than the
+                        // ZED can internally using SPARTN direct.
+                        updateZEDCorrectionsSource(1);
+                        
                         gnssPushRawData(pplRtcmBuffer, rtcmLength);
 
                         if (settings.debugCorrections == true && !inMainMenu)
@@ -115,7 +121,7 @@ void beginPPL()
     if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
     {
         if (settings.debugCorrections == true)
-            systemPrintln("Unable to get usable key");
+            systemPrintln("Unable to get usable PPL key");
         return;
     }
 
@@ -184,8 +190,7 @@ void beginPPL()
 // restart the PPL when new keys need to be applied
 void updatePPL()
 {
-    if (online.ppl == false && ((settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP) ||
-                                (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)))
+    if (online.ppl == false && (settings.enablePointPerfectCorrections))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected. Don't restart the PPL if we've already tried

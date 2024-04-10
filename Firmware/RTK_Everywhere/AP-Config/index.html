@@ -113,7 +113,7 @@
 
             <div align="center" class="small left">
                 RTK Firmware: <span id="rtkFirmwareVersion" style="display:inline;">v0.0</span><br>
-                <span id="zedFirmwareVersion" style="display:inline;">ZED-F9P Firmware: v0.0</span> <br>
+                <span id="gnssFirmwareVersion" style="display:inline;">GNSS Firmware: v0.0</span> <br>
                 <span id="deviceBTID" style="display:inline;">Device Bluetooth ID: 0000</span> <br>
                 <span id="coordinatesLLH" style="display:inline;">LLh:
                     <span id="geodeticLat" style="display:inline;">40.09029479</span>,
@@ -934,13 +934,28 @@
                     </div>
 
                     <div class="form-check mt-3">
-                        <label class="form-check-label" for="pointPerfectCorrectionsSource">Enable PointPerfect L-Band
-                            Corrections</label>
-                        <input class="form-check-input" type="checkbox" value="" id="pointPerfectCorrectionsSource">
+                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect Corrections </label>
+                        <input class="form-check-input" type="checkbox" value="" id="enablePointPerfectCorrections">
                         <span class="tt" data-bs-placement="right"
-                            title="Use L-Band PointPerfect corrections when available. Default: Enabled">
+                            title="Use L-Band / IP PointPerfect corrections when available. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
+                    </div>
+
+                    <div id="geographicRegionDropdown">
+                        <label for="geographicRegion">Geographic Region:</label>
+                        <select name="geographicRegion" id="geographicRegion" class="form-dropdown mb-2">
+                            <option value="0">US</option>
+                            <option value="1">EU</option>
+                            <option value="2">AU</option>
+                            <option value="3">KR</option>
+                            <option value="4">Japan</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="Select your geographic region. This defines the L-Band frequency and Regional Correction topic. Default: US">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                        <br>
                     </div>
 
                     <div id="ppSettingsConfig">
@@ -1356,6 +1371,17 @@
 
             <div class="collapse" id="collapseCorrectionsPriorityConfig">
                 <div class="card card-body">
+
+                    <div class="form-group row">
+                        <label for="correctionsSourcesLifetime_s" class="box-margin40 col-sm-3 col-7 col-form-label">Corrections Source Lifetime:
+                            <span class="tt" data-bs-placement="right"
+                                title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <input type="number" class="form-control box-small" id="correctionsSourcesLifetime_s">
+                        <p id="correctionsSourcesLifetime_sError" class="inlineError"></p>
+                    </div>
 
                     <div class="form-group mt-2">
                         Corrections Source:

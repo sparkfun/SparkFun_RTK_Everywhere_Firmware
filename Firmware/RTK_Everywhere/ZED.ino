@@ -150,11 +150,10 @@ void zedBegin()
     if (theGNSS->getModuleInfo(1100) == true) // Try to get the module info
     {
         // Reconstruct the firmware version
-        snprintf(zedFirmwareVersion, sizeof(zedFirmwareVersion), "%s %d.%02d", theGNSS->getFirmwareType(),
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s %d.%02d", theGNSS->getFirmwareType(),
                  theGNSS->getFirmwareVersionHigh(), theGNSS->getFirmwareVersionLow());
 
-        // Construct the firmware version as uint8_t. Note: will fail above 2.55!
-        zedFirmwareVersionInt = (theGNSS->getFirmwareVersionHigh() * 100) + theGNSS->getFirmwareVersionLow();
+        gnssFirmwareVersionInt = (theGNSS->getFirmwareVersionHigh() * 100) + theGNSS->getFirmwareVersionLow();
 
         // Check this is known firmware
         //"1.20" - Mostly for F9R HPS 1.20, but also F9P HPG v1.20
@@ -166,14 +165,14 @@ void zedBegin()
         bool knownFirmware = false;
         for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(uint8_t)); i++)
         {
-            if (zedFirmwareVersionInt == knownFirmwareVersions[i])
+            if (gnssFirmwareVersionInt == knownFirmwareVersions[i])
                 knownFirmware = true;
         }
 
         if (!knownFirmware)
         {
-            systemPrintf("Unknown firmware version: %s\r\n", zedFirmwareVersion);
-            zedFirmwareVersionInt = 99; // 0.99 invalid firmware version
+            systemPrintf("Unknown firmware version: %s\r\n", gnssFirmwareVersion);
+            gnssFirmwareVersionInt = 99; // 0.99 invalid firmware version
         }
 
         // Determine if we have a ZED-F9P or an ZED-F9R
@@ -204,7 +203,7 @@ void zedBegin()
     UBX_SEC_UNIQID_data_t chipID;
     if (theGNSS->getUniqueChipId(&chipID))
     {
-        snprintf(zedUniqueId, sizeof(zedUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
+        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
     }
 
     systemPrintln("GNSS ZED online");
@@ -1209,7 +1208,7 @@ uint16_t zedFixAgeMilliseconds()
 // Print the module type and firmware version
 void zedPrintInfo()
 {
-    systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
+    systemPrintf("ZED-F9P firmware: %s\r\n", gnssFirmwareVersion);
 }
 
 void zedFactoryReset()
@@ -1361,7 +1360,7 @@ bool zedSetConstellations(bool sendCompleteBatch)
 
     // v1.12 ZED-F9P firmware does not allow for SBAS control
     // Also, if we can't identify the version (99), skip SBAS enable
-    if ((zedFirmwareVersionInt == 112) || (zedFirmwareVersionInt == 99))
+    if ((gnssFirmwareVersionInt == 112) || (gnssFirmwareVersionInt == 99))
     {
         // Skip
     }
@@ -1432,68 +1431,102 @@ uint8_t zedGetLeapSeconds()
     return (leapSeconds);
 }
 
-// If we have decryption keys, and L-Band is online, configure module
+// If we have decryption keys, configure module
+// Note: don't check online.lband here. We could be using ip corrections
 void zedApplyPointPerfectKeys()
 {
-    if (online.lband == true)
+    if (online.gnss == false)
     {
-        if (online.gnss == false)
+        if (settings.debugCorrections == true)
+            systemPrintln("ZED-F9P not available");
+        return;
+    }
+
+    // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
+    if (gnssFirmwareVersionInt < 130)
+    {
+        systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
+                        "Please upgrade your ZED firmware: "
+                        "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
+        return;
+    }
+
+    if (strlen(settings.pointPerfectNextKey) > 0)
+    {
+        const uint8_t currentKeyLengthBytes = 16;
+        const uint8_t nextKeyLengthBytes = 16;
+
+        uint16_t currentKeyGPSWeek;
+        uint32_t currentKeyGPSToW;
+        long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
+        epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
+
+        uint16_t nextKeyGPSWeek;
+        uint32_t nextKeyGPSToW;
+        epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
+        epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
+
+        // If we are on a L-Band-only or L-Band+IP, set the SOURCE to 1 (L-Band)
+        // Else set the SOURCE to 0 (IP)
+        // If we are on L-Band+IP and IP corrections start to arrive, the corrections
+        // priority code will change SOURCE to match
+        if (strstr(settings.pointPerfectKeyDistributionTopic, "/Lb") != nullptr)
         {
-            if (settings.debugCorrections == true)
-                systemPrintln("ZED-F9P not available");
-            return;
-        }
-
-        // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
-        if (zedFirmwareVersionInt < 130)
-        {
-            systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
-                          "Please upgrade your ZED firmware: "
-                          "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
-            return;
-        }
-
-        if (strlen(settings.pointPerfectNextKey) > 0)
-        {
-            const uint8_t currentKeyLengthBytes = 16;
-            const uint8_t nextKeyLengthBytes = 16;
-
-            uint16_t currentKeyGPSWeek;
-            uint32_t currentKeyGPSToW;
-            long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
-            epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
-
-            uint16_t nextKeyGPSWeek;
-            uint32_t nextKeyGPSToW;
-            epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
-            epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
-
-            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // use LBAND PMP message
-
-            theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
-
-            theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                             3); // Set the differential mode - ambiguities are fixed whenever possible
-
-            bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                          settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                          nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
-
-            if (response == false)
-                systemPrintln("setDynamicSPARTNKeys failed");
-            else
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("PointPerfect keys applied");
-                online.lbandCorrections = true;
-            }
+            updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
         }
         else
         {
+            updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+        }
+
+        theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
+
+        theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
+                            3); // Set the differential mode - ambiguities are fixed whenever possible
+
+        bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
+                                                        settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                        nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+
+        if (response == false)
+            systemPrintln("setDynamicSPARTNKeys failed");
+        else
+        {
             if (settings.debugCorrections == true)
-                systemPrintln("No PointPerfect keys available");
+                systemPrintln("PointPerfect keys applied");
+            online.lbandCorrections = true;
         }
     }
+    else
+    {
+        if (settings.debugCorrections == true)
+            systemPrintln("No PointPerfect keys available");
+    }
+}
+
+void updateZEDCorrectionsSource(uint8_t source)
+{
+    if (!online.gnss)
+        return;
+
+    if (gnssPlatform != PLATFORM_ZED)
+        return;
+
+    if (zedCorrectionsSource == source)
+        return;
+
+    // This is important. Retry if needed
+    int retries = 0;
+    while ((!theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, source)) && (retries < 3))
+        retries++;
+    if (retries < 3)
+    {
+        zedCorrectionsSource = source;
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("ZED UBLOX_CFG_SPARTN_USE_SOURCE changed to %d\r\n", source);
+    }
+    else
+        systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
 }
 
 uint8_t zedGetActiveMessageCount()

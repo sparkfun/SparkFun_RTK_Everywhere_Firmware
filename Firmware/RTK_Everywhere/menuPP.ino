@@ -13,6 +13,8 @@
 #define POINTPERFECT_LBAND_PAID_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_FREE_TOKEN DEVELOPMENT_TOKEN
 #define POINTPERFECT_IP_PAID_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_LBAND_IP_FREE_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_LBAND_IP_PAID_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_LBAND_PAID_TOKEN
 
 static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};             // Token in HEX form
@@ -20,6 +22,8 @@ static const uint8_t ppLbandPaidToken[16] = {POINTPERFECT_LBAND_PAID_TOKEN}; // 
 static const uint8_t ppLbandFreeToken[16] = {POINTPERFECT_LBAND_FREE_TOKEN}; // Token in HEX form
 static const uint8_t ppIpPaidToken[16] = {POINTPERFECT_IP_PAID_TOKEN};       // Token in HEX form
 static const uint8_t ppIpFreeToken[16] = {POINTPERFECT_IP_FREE_TOKEN};       // Token in HEX form
+static const uint8_t ppLbandIpPaidToken[16] = {POINTPERFECT_LBAND_IP_PAID_TOKEN}; // Token in HEX form
+static const uint8_t ppLbandIpFreeToken[16] = {POINTPERFECT_LBAND_IP_FREE_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_WIFI
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
@@ -249,6 +253,7 @@ bool pointperfectProvisionDevice()
                 // Depending on how many times we've tried the ZTP interface, change the token
                 pointperfectGetToken(tokenString, attemptNumber);
 
+                // @nseidle : please check if the next two lines are wanted / needed / correct. They look wrong to me...
                 if (memcmp(ppLbandPaidToken, developmentToken, sizeof(developmentToken)) == 0)
                     systemPrintln("Warning: Using the development token!");
 
@@ -258,7 +263,7 @@ bool pointperfectProvisionDevice()
             else
             {
                 // Use the user's custom token
-                strcpy(tokenString, settings.pointPerfectDeviceProfileToken);
+                strncpy(tokenString, settings.pointPerfectDeviceProfileToken, sizeof(tokenString));
                 systemPrintf("Using custom token: %s\r\n", tokenString);
             }
 
@@ -359,19 +364,25 @@ bool pointperfectProvisionDevice()
 
 // Given a token buffer and an attempt number, decide which token to use
 // Decide which token to use for ZTP
-// There are six lists:
+// There are four lists:
 //   L-Band annual
 //   L-Band free-month
 //   IP annual
 //   IP free-month
-//   IP+L-Band annual
-//   IP+L-Band free-month
 void pointperfectGetToken(char *tokenString, int attemptNumber)
 {
     // Convert uint8_t array into string with dashes in spots
     // We must assume u-blox will not change the position of their dashes or length of their token
 
-    if (present.gnss_mosaic == false && present.lband_neo == false)
+    if (productVariant == RTK_EVK)
+    {
+        // If the hardware is EVK, use L-Band+IP
+        if (attemptNumber == 0)
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpFreeToken, sizeof(ppLbandIpFreeToken));
+        else
+            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpPaidToken, sizeof(ppLbandIpPaidToken));
+    }
+    else if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
     {
         // If the hardware lacks L-Band capability, start with IP free token
         if (attemptNumber == 0)
@@ -379,7 +390,7 @@ void pointperfectGetToken(char *tokenString, int attemptNumber)
         else
             pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpPaidToken, sizeof(ppIpPaidToken));
     }
-    else if (present.gnss_mosaic == true || present.lband_neo == true)
+    else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
     {
         // If the hardware is L-Band capable, start with L-Band free token first
         if (attemptNumber == 0)
@@ -402,12 +413,12 @@ int pointperfectGetMaxAttempts()
     if (strlen(settings.pointPerfectDeviceProfileToken) != 0)
         return (1);
 
-    if (present.gnss_mosaic == false && present.lband_neo == false)
+    if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
     {
         // If the hardware is IP only, there are only two tokens to try
         return (2);
     }
-    else if (present.gnss_mosaic == true || present.lband_neo == true)
+    else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
     {
         // If the hardware is L-Band centric, there are only two tokens to try
         return (2);
@@ -551,16 +562,44 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                     if (settings.debugPpCertificate)
                         systemPrintln("Certificates recorded successfully.");
 
-                    strcpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]));
-                    strcpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]));
-                    strcpy(settings.pointPerfectLBandTopic, (const char *)((*jsonZtp)["subscriptions"][0]["path"]));
+                    strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]), sizeof(settings.pointPerfectClientID));
+                    strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]), sizeof(settings.pointPerfectBrokerHost));
 
-                    strcpy(settings.pointPerfectCurrentKey,
-                           (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]));
+                    // Note: from the ZTP documentation:
+                    // ["subscriptions"][0] will contain the key distribution topic
+                    // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
+                    // It is safer to check the "description" contains "key distribution topic"
+                    // If we are on an IP-only plan, the path will be /pp/ubx/0236/ip
+                    // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/ubx/0236/Lb
+                    // These 0236 key distribution topics provide the keys in UBX format, ready to be pushed to a ZED.
+                    // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we don't use those.
+                    int subscription = findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
+                    if (subscription >= 0)
+                        strncpy(settings.pointPerfectKeyDistributionTopic, (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.pointPerfectKeyDistributionTopic));
+
+                    // "subscriptions" will also contain the correction topics for all available regional areas - for IP-only or L-Band+IP
+                    // We should store those too, and then allow the user to select the one for their regional area
+                    for (int r = 0; r < numRegionalAreas; r++)
+                    {
+                        char findMe[40];
+                        snprintf(findMe, sizeof(findMe), "correction topic for %s", Regional_Information_Table[r].name); // Search for "US" etc.
+                        subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
+                        if (subscription >= 0)
+                            strncpy(settings.regionalCorrectionTopics[r], (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.regionalCorrectionTopics[0]));
+                        else
+                            settings.regionalCorrectionTopics[r][0] = 0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
+                    }
+
+                    // "subscriptions" also contains the geographic area definition topic for each region for localized distribution.
+                    // We can cheat by appending "/gad" to the correction topic. TODO: think about doing this properly.
+
+                    // Now we extract the current and next key pair
+                    strncpy(settings.pointPerfectCurrentKey,
+                           (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]), sizeof(settings.pointPerfectCurrentKey));
                     settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
                     settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
 
-                    strcpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]));
+                    strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]), sizeof(settings.pointPerfectNextKey));
                     settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
                     settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
 
@@ -584,6 +623,26 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
 #else  // COMPILE_WIFI
     return (ZTP_UNKNOWN_ERROR);
 #endif // COMPILE_WIFI
+}
+
+// Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
+int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, DynamicJsonDocument *jsonZtp)
+{
+    if (!jsonZtp)
+        return (-1);
+
+    int i = (*jsonZtp)[thing1].size();
+
+    if (i == 0)
+        return (-1);
+
+    for (int j = 0; j < i; j++)
+        if (strstr((const char *)(*jsonZtp)[thing1][j][thing2], thing3) != nullptr)
+        {
+            return j;
+        }
+    
+    return (-1);
 }
 
 // Given a token array, format it in the proper way and store it in the buffer
@@ -780,9 +839,11 @@ bool pointperfectUpdateKeys()
             // Successful connection
             systemPrintln("MQTT connected");
 
-            // Originally the provisioning process reported the '/pp/key/Lb' channel which fails to respond with
-            // keys. Looks like they fixed it to /pp/ubx/0236/Lb.
-            mqttClient.subscribe(settings.pointPerfectLBandTopic);
+            // pointPerfectKeyDistributionTopic is /pp/ubx/0236/ip or /pp/ubx/0236/Lb.
+            // It is provided during ZTP provisioning.
+            // The topic contains the keys in UBX format, ready to be pushed to a ZED.
+            // These need to be unpicked into JSON format and stored in settings - by mqttCallback below.
+            mqttClient.subscribe(settings.pointPerfectKeyDistributionTopic);
         }
         else
         {
@@ -851,7 +912,7 @@ bool pointperfectUpdateKeys()
 // Called when a subscribed to message arrives
 void mqttCallback(char *topic, byte *message, unsigned int length)
 {
-    if (String(topic) == settings.pointPerfectLBandTopic)
+    if (String(topic) == settings.pointPerfectKeyDistributionTopic)
     {
         // Separate the UBX message into its constituent Key/ToW/Week parts
         // Obtained from SparkFun u-blox Arduino library - setDynamicSPARTNKeys()
@@ -1148,6 +1209,8 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 
     if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
     {
+        updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
+
         if (settings.debugCorrections == true && !inMainMenu)
             systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
 
@@ -1164,7 +1227,7 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 // Check if the PMP data is being decrypted successfully
 void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
 {
-    if (settings.debugCorrections == true && !inMainMenu)
+    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
         systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
 
     lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
@@ -1220,46 +1283,34 @@ void beginLBand()
 
     gnssUpdate();
 
-    // If we have a fix, check which frequency to use
-    if (gnssIsFixed())
+    // Previously the L-Band frequency was set here based on gnssGetLongitude and gnssGetLatitude
+    // if gnssIsFixed was true. beginLBand is called early during setup and I worry that the
+    // GNSS may not always be fixed... I think it is far safer to set the frequency based on the
+    // selected geographical region...
+
+    uint32_t lBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+    if (lBandFreq > 0)
     {
-        if ((gnssGetLongitude() > -125 && gnssGetLongitude() < -67) &&
-            (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
-        {
-            if (settings.debugCorrections == true)
-                systemPrintln("Setting L-Band to US");
-            settings.LBandFreq = 1556290000; // We are in US band
-        }
-        else if ((gnssGetLongitude() > -25 && gnssGetLongitude() < 70) &&
-                 (gnssGetLatitude() > -90 && gnssGetLatitude() < 90))
-        {
-            if (settings.debugCorrections == true)
-                systemPrintln("Setting L-Band to EU");
-            settings.LBandFreq = 1545260000; // We are in EU band
-        }
-        else
-        {
-            systemPrintln("Error: Unknown band area. Defaulting to US band.");
-            settings.LBandFreq = 1556290000; // Default to US
-        }
-        recordSystemSettings();
+        if (settings.debugCorrections == true)
+            systemPrintf("L-Band frequency (Hz): %d\r\n", lBandFreq);
     }
     else
     {
+        lBandFreq = Regional_Information_Table[0].frequency;
         if (settings.debugCorrections == true)
-            systemPrintln("No fix available for L-Band frequency determination");
+            systemPrintf("Geographic region has no L-Band frequency. Defaulting to (Hz): %d\r\n", lBandFreq);
     }
 
     bool response = true;
     response &= i2cLBand.newCfgValset();
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, settings.LBandFreq); // Default 1539812500 Hz
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);                  // Default 2200 Hz
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);                    // Default 1
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);                    // Default 50821
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);                      // Default 2400 bps
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);                   // Default 1
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);              // Default 23560
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);                 // Default 0
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, lBandFreq); // Default 1539812500 Hz
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
     response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
     response &=
         i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Diasable UBX-RXM-PMP on UART1. Not used.
@@ -1294,7 +1345,7 @@ void menuPointPerfect()
             systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, lbandRestarts);
 
         if (settings.debugCorrections == true)
-            systemPrintf("settings.pointPerfectLBandTopic: %s\r\n", settings.pointPerfectLBandTopic);
+            systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n", settings.pointPerfectKeyDistributionTopic);
 
             systemPrint("Days until keys expire: ");
             if (strlen(settings.pointPerfectCurrentKey) > 0)
@@ -1318,13 +1369,36 @@ void menuPointPerfect()
             else
                 systemPrintln("No keys");
 
-        // All units should be able to obtain corrections over IP
-        // Only units with an lband receiver can obtain LBand corrections
+        // How this works:
+        //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP
+        //   For IP-only - e.g. Torch:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/ip
+        //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
+        //     We need to subscribe to our regional correction topic and push the data to the PPL
+        //     RTCM from the PPL is pushed to the UM980
+        //   For L-Band-only - e.g. EVK or Facet mosaic or Facet v2 L-Band
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     There are no regional correction topics for L-Band-only
+        //     EVK pushes the keys to the ZED and pushes PMP from the NEO to the ZED
+        //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
+        //     Facet v2 L-Band does the same as EVK
+        //   For a future L-Band+IP product:
+        //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
+        //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
+        //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
+        //     Or we can push PMP data from the NEO to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 1
+        //   We do not need the user to tell us which pointPerfectCorrectionsSource to use.
+        //   We can figure it out from the key distribution topic:
+        //     IP-only gets /pp/ubx/0236/ip.
+        //     L-Band-only and L-Band+IP get /pp/ubx/0236/Lb.
+        //   And from the regional correction topics:
+        //     IP-only gets /pp/ip/us , /pp/ip/eu , etc.
+        //     L-Band-only gets none
+        //     L-Band+IP gets /pp/Lb/us , /pp/Lb/eu , etc.
+
         systemPrint("1) PointPerfect Corrections: ");
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-            systemPrintln("L-Band and IP");
-        else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-            systemPrintln("IP");
+        if (settings.enablePointPerfectCorrections)
+            systemPrintln("Enabled");
         else
             systemPrintln("Disabled");
 
@@ -1336,7 +1410,7 @@ void menuPointPerfect()
             else
                 systemPrintln("Disabled");
 
-            if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectLBandTopic) == 0)
+            if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectKeyDistributionTopic) == 0)
                 systemPrintln("3) Provision Device");
             else
                 systemPrintln("3) Update Keys");
@@ -1348,32 +1422,16 @@ void menuPointPerfect()
             systemPrintln("k) Manual Key Entry");
         }
 
+        systemPrint("g) Geographic Region: ");
+        systemPrintln(Regional_Information_Table[settings.geographicRegion].name);
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
 
         if (incoming == 1)
         {
-
-            // We have three states: disabled, Ip only, Ip+Lband (if supported)
-            if (present.lband_neo == true || present.gnss_mosaic == true)
-            {
-                if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_LBAND_IP;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
-            }
-            else // No L-Band support
-            {
-                if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_IP;
-                else if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
-                    settings.pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
-            }
+            settings.enablePointPerfectCorrections ^= 1;
         }
 
         else if (incoming == 2 && pointPerfectIsEnabled())
@@ -1399,7 +1457,7 @@ void menuPointPerfect()
                         pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
                     }
                     else if (strlen(settings.pointPerfectCurrentKey) == 0 ||
-                             strlen(settings.pointPerfectLBandTopic) == 0)
+                             strlen(settings.pointPerfectKeyDistributionTopic) == 0)
                     {
                         pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
                     }
@@ -1445,6 +1503,12 @@ void menuPointPerfect()
         {
             menuPointPerfectKeys();
         }
+        else if (incoming == 'g')
+        {
+            settings.geographicRegion++;
+            if (settings.geographicRegion >= numRegionalAreas)
+                settings.geographicRegion = 0;
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -1465,9 +1529,7 @@ void menuPointPerfect()
 
 bool pointPerfectIsEnabled()
 {
-    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
-        return (true);
-    return (false);
+    return (settings.enablePointPerfectCorrections);
 }
 
 // Process any new L-Band from I2C

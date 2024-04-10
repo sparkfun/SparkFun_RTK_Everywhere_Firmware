@@ -131,7 +131,6 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         present.psram_2mb = true;
-        present.gnss_um980 = true;
         present.radio_lora = true;
         present.battery_bq40z50 = true;
         present.encryption_atecc608a = true;
@@ -139,7 +138,7 @@ void beginBoard()
         present.beeper = true;
         present.gnss_to_uart = true;
         present.antennaReferencePoint_mm = 102.0;
-        present.needsExternalPpl = true; // Used the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -222,7 +221,6 @@ void beginBoard()
     else if (productVariant == RTK_EVK)
     {
         present.psram_4mb = true;
-        present.gnss_zedf9p = true;
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -310,7 +308,6 @@ void beginBoard()
     else if (productVariant == RTK_FACET_V2)
     {
         present.psram_4mb = true;
-        present.gnss_zedf9p = true;
         present.microSd = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
@@ -332,7 +329,6 @@ void beginBoard()
     else if (productVariant == RTK_FACET_MOSAIC)
     {
         present.psram_4mb = true;
-        present.gnss_mosaic = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
@@ -1020,8 +1016,18 @@ void beginSystemState()
     else if (productVariant == RTK_EVK)
     {
         firstRoverStart = false; // Screen should have been tested when it was made ;-)
+
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
+
+        // Begin process for getting new keys if corrections are enabled
+        // Because this is the only way to set online.lbandCorrections to true via
+        // STATE_KEYS_LBAND_CONFIGURE -> gnssApplyPointPerfectKeys -> zedApplyPointPerfectKeys
+        // TODO: we need to rethink this. We need correction keys for both ip and Lb.
+        // We should really restructure things so we use online.corrections...
+        if (settings.enablePointPerfectCorrections)
+            systemState = STATE_KEYS_STARTED;
+
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -1039,7 +1045,7 @@ void beginSystemState()
 
         systemState = STATE_ROVER_NOT_STARTED;
 
-        if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+        if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
     }
     else

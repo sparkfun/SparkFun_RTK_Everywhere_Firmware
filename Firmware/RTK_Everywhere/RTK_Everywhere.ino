@@ -299,11 +299,7 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
 
-char zedFirmwareVersion[20];   // The string looks like 'HPG 1.12'. Output to system status menu and settings file.
 char neoFirmwareVersion[20];   // Output to system status menu.
-uint8_t zedFirmwareVersionInt; // Controls which features (constellations) can be configured (v1.12 doesn't support
-                               // SBAS). Note: will fail above 2.55!
-char zedUniqueId[11];          // Output to system status menu and log file.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called.
@@ -404,6 +400,9 @@ unsigned long rtcmLastPacketReceived;
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GnssPlatform gnssPlatform = PLATFORM_ZED;
+char gnssFirmwareVersion[20];
+uint16_t gnssFirmwareVersionInt;
+char gnssUniqueId[20]; // um980 ID is 16 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Battery fuel gauge and PWM LEDs
@@ -700,6 +699,8 @@ uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
+
+uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;

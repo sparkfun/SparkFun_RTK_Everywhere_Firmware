@@ -222,16 +222,16 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.serialTimeoutGNSS = settingValue;
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         strcpy(settings.pointPerfectDeviceProfileToken, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectCorrectionsSource") == 0)
-        settings.pointPerfectCorrectionsSource = (PointPerfect_Corrections_Source)settingValue;
+    else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
+        settings.enablePointPerfectCorrections = settingValue;
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         settings.autoKeyRenewal = settingValue;
     else if (strcmp(settingName, "pointPerfectClientID") == 0)
         strcpy(settings.pointPerfectClientID, settingValueStr);
     else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
         strcpy(settings.pointPerfectBrokerHost, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectLBandTopic") == 0)
-        strcpy(settings.pointPerfectLBandTopic, settingValueStr);
+    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
+        strcpy(settings.pointPerfectKeyDistributionTopic, settingValueStr);
 
     else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
         strcpy(settings.pointPerfectCurrentKey, settingValueStr);
@@ -251,8 +251,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.lastKeyAttempt = settingValue;
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         settings.updateGNSSSettings = settingValue;
-    else if (strcmp(settingName, "LBandFreq") == 0)
-        settings.LBandFreq = settingValue;
     else if (strcmp(settingName, "debugPpCertificate") == 0)
         settings.debugPpCertificate = settingValue;
 
@@ -562,6 +560,9 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings.correctionsSourcesLifetime_s = settingValue;
+
+    else if (strcmp(settingName, "geographicRegion") == 0)
+        settings.geographicRegion = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1055,6 +1056,22 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
             }
         }
 
+        // Scan for regionalCorrectionTopics
+        if (knownSetting == false)
+        {
+            for (int r = 0; r < numRegionalAreas; r++)
+            {
+                char tempString[50];
+                snprintf(tempString, sizeof(tempString), "regionalCorrectionTopics_%d", r);
+                if (strcmp(settingName, tempString) == 0)
+                {
+                    strcpy(&settings.regionalCorrectionTopics[r][0], settingValueStr);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+
         // Last catch
         if (knownSetting == false)
         {
@@ -1082,14 +1099,23 @@ void createSettingsString(char *newSettings)
     getFirmwareVersion(apRtkFirmwareVersion, sizeof(apRtkFirmwareVersion), true);
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
-    char apZedPlatform[50];
-    strcpy(apZedPlatform, "ZED-F9P");
-
-    char apZedFirmwareVersion[80];
-    snprintf(apZedFirmwareVersion, sizeof(apZedFirmwareVersion), "%s Firmware: %s ID: %s", apZedPlatform,
-                zedFirmwareVersion, zedUniqueId);
-    stringRecord(newSettings, "zedFirmwareVersion", apZedFirmwareVersion);
-    stringRecord(newSettings, "zedFirmwareVersionInt", zedFirmwareVersionInt);
+    char apGNSSFirmwareVersion[80];
+    if (gnssPlatform == PLATFORM_ZED)
+    {
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
+                gnssFirmwareVersion, gnssUniqueId);
+    }
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s",
+                gnssFirmwareVersion, gnssUniqueId);
+    }
+    else if (gnssPlatform == PLATFORM_MOSAIC)
+    {
+        // *** TODO ***
+    }
+    stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
+    stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 
     char apDeviceBTID[30];
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %02X%02X", btMACAddress[4], btMACAddress[5]);
@@ -1189,11 +1215,11 @@ void createSettingsString(char *newSettings)
 
     // Point Perfect
     stringRecord(newSettings, "pointPerfectDeviceProfileToken", settings.pointPerfectDeviceProfileToken);
-    stringRecord(newSettings, "pointPerfectCorrectionsSource", (int)settings.pointPerfectCorrectionsSource);
+    stringRecord(newSettings, "enablePointPerfectCorrections", settings.enablePointPerfectCorrections);
     stringRecord(newSettings, "autoKeyRenewal", settings.autoKeyRenewal);
     stringRecord(newSettings, "pointPerfectClientID", settings.pointPerfectClientID);
     stringRecord(newSettings, "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
-    stringRecord(newSettings, "pointPerfectLBandTopic", settings.pointPerfectLBandTopic);
+    stringRecord(newSettings, "pointPerfectKeyDistributionTopic", settings.pointPerfectKeyDistributionTopic);
 
     stringRecord(newSettings, "pointPerfectCurrentKey", settings.pointPerfectCurrentKey);
     stringRecord(newSettings, "pointPerfectCurrentKeyDuration", settings.pointPerfectCurrentKeyDuration);
@@ -1205,7 +1231,6 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "lastKeyAttempt", settings.lastKeyAttempt);
     stringRecord(newSettings, "updateGNSSSettings", settings.updateGNSSSettings);
-    stringRecord(newSettings, "LBandFreq", settings.LBandFreq);
 
     // Time Zone - Default to UTC
     stringRecord(newSettings, "timeZoneHours", settings.timeZoneHours);
@@ -1443,6 +1468,13 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
 
+    stringRecord(newSettings, "geographicRegion", settings.geographicRegion);
+
+    for (int r = 0; r < numRegionalAreas; r++)
+    {
+        stringRecordN(newSettings, "regionalCorrectionTopics", r,
+                      &settings.regionalCorrectionTopics[r][0]);
+    }
     stringRecord(newSettings, "debugEspNow", settings.debugEspNow);
 
     // stringRecord(newSettings, "", settings.);
@@ -1850,15 +1882,15 @@ void getSettingValue(const char *settingName, char *settingValueStr)
     else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
         writeToString(settingValueStr, settings.pointPerfectDeviceProfileToken);
     else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
-        writeToString(settingValueStr, (int)settings.pointPerfectCorrectionsSource);
+        writeToString(settingValueStr, settings.enablePointPerfectCorrections);
     else if (strcmp(settingName, "autoKeyRenewal") == 0)
         writeToString(settingValueStr, settings.autoKeyRenewal);
     else if (strcmp(settingName, "pointPerfectClientID") == 0)
         writeToString(settingValueStr, settings.pointPerfectClientID);
     else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
         writeToString(settingValueStr, settings.pointPerfectBrokerHost);
-    else if (strcmp(settingName, "pointPerfectLBandTopic") == 0)
-        writeToString(settingValueStr, settings.pointPerfectLBandTopic);
+    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
+        writeToString(settingValueStr, settings.pointPerfectKeyDistributionTopic);
 
     else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
         writeToString(settingValueStr, settings.pointPerfectCurrentKey);
@@ -1879,8 +1911,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.lastKeyAttempt);
     else if (strcmp(settingName, "updateGNSSSettings") == 0)
         writeToString(settingValueStr, settings.updateGNSSSettings);
-    else if (strcmp(settingName, "LBandFreq") == 0)
-        writeToString(settingValueStr, settings.LBandFreq);
 
     else if (strcmp(settingName, "debugPpCertificate") == 0)
         writeToString(settingValueStr, settings.debugPpCertificate);
@@ -2182,6 +2212,9 @@ void getSettingValue(const char *settingName, char *settingValueStr)
     else if (strcmp(settingName, "debugEspNow") == 0)
         writeToString(settingValueStr, settings.debugEspNow);
 
+    else if (strcmp(settingName, "geographicRegion") == 0)
+        writeToString(settingValueStr, settings.geographicRegion);
+
     // Add new settings above <------------------------------------------------------------>
 
     // Check global setting
@@ -2462,11 +2495,11 @@ void printAvailableSettings()
     // Point Perfect
     systemPrintf("pointPerfectDeviceProfileToken,char[%d],",
                  sizeof(settings.pointPerfectDeviceProfileToken) / sizeof(char));
-    systemPrint("pointPerfectCorrectionsSource,PointPerfect_Corrections_Source,");
+    systemPrint("enablePointPerfectCorrections,bool,");
     systemPrint("autoKeyRenewal,bool,");
     systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
     systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));
-    systemPrintf("pointPerfectLBandTopic,char[%d],", sizeof(settings.pointPerfectLBandTopic) / sizeof(char));
+    systemPrintf("pointPerfectKeyDistributionTopic,char[%d],", sizeof(settings.pointPerfectKeyDistributionTopic) / sizeof(char));
     systemPrintf("pointPerfectCurrentKey,char[%d],", sizeof(settings.pointPerfectCurrentKey) / sizeof(char));
     systemPrint("pointPerfectCurrentKeyDuration,uint64_t,");
     systemPrint("pointPerfectCurrentKeyStart,uint64_t,");
@@ -2477,7 +2510,6 @@ void printAvailableSettings()
 
     systemPrint("lastKeyAttempt,uint64_t,");
     systemPrint("updateGNSSSettings,bool,");
-    systemPrint("LBandFreq,uint32_t,");
 
     systemPrint("debugPpCertificate,bool,");
 
@@ -2647,6 +2679,12 @@ void printAvailableSettings()
     systemPrintf("correctionsPriority,int[%d],", sizeof(settings.correctionsSourcesPriority) / sizeof(int));
     systemPrint("correctionsSourcesLifetime_s,int,");
 
+    systemPrint("geographicRegion,int,");
+
+    for (int r = 0; r < numRegionalAreas; r++)
+    {
+        systemPrintf("regionalCorrectionTopics_%d,char[%d],", r, sizeof(settings.regionalCorrectionTopics[0]));
+    }
     systemPrint("debugEspNow,bool,");
 
     // Add new settings above <--------------------------------------------------->
