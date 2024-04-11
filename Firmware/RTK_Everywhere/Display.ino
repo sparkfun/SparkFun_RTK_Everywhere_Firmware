@@ -3002,8 +3002,6 @@ void displayConfigViaEthernet()
         IPAddress localIP = ETH.localIP();
         snprintf(ipAddress, sizeof(ipAddress), "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
 
-        static uint8_t ipAddressPosition = 0;
-
         int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
 
         // If we can print the full IP address without shuttling

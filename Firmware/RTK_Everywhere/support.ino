@@ -563,6 +563,9 @@ bool checkRtcmMessage(uint8_t data)
     case RTCM_TRANSPORT_STATE_READ_CRC_3:
         rtcmParsingState = RTCM_TRANSPORT_STATE_CHECK_CRC;
         break;
+
+    case RTCM_TRANSPORT_STATE_CHECK_CRC:
+        break; // Do nothing. Code below resets the state to PREAMBLE_D3
     }
 
     // Check the CRC. Note: this doesn't actually check the CRC!

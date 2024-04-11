@@ -19,7 +19,7 @@ void menuLog()
             stringHumanReadableSize(freeSpace, sdFreeSpace);
             freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
 
-            char myString[60];
+            char myString[70];
             snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
             systemPrintln(myString);
 
@@ -452,7 +452,7 @@ void beginLogging(const char *customFileName)
 
                 // Record today's time/date into log. This is in case a log is restarted. See issue 440:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/440
-                char currentDate[sizeof("230101,120101")];
+                char currentDate[80]; // 80 is just to keep the compiler happy...
                 snprintf(currentDate, sizeof(currentDate), "%02d%02d%02d,%02d%02d%02d", rtc.getYear() - 2000,
                          rtc.getMonth() + 1, rtc.getDay(), // ESP32Time returns month:0-11
                          rtc.getHour(true), rtc.getMinute(),
