@@ -58,7 +58,7 @@ void menuCorrectionsPriorities()
             // But only if not already the lowest priority
             if (settings.correctionsSourcesPriority[(int)(incoming - 'a')] < (correctionsSource::CORR_NUM - 1))
             {
-                int makeMeHigher;
+                int makeMeHigher = -1;
                 for (int x = 0; x < correctionsSource::CORR_NUM; x++)
                 {
                     if (settings.correctionsSourcesPriority[x] ==
@@ -68,8 +68,11 @@ void menuCorrectionsPriorities()
                         break;
                     }
                 }
-                settings.correctionsSourcesPriority[(int)(incoming - 'a')] += 1; // Decrease
-                settings.correctionsSourcesPriority[makeMeHigher] -= 1;          // Increase
+                if (makeMeHigher >= 0)
+                {
+                    settings.correctionsSourcesPriority[(int)(incoming - 'a')] += 1; // Decrease
+                    settings.correctionsSourcesPriority[makeMeHigher] -= 1;          // Increase
+                }
             }
         }
         else if ((incoming >= 'A') && (incoming < ('A' + correctionsSource::CORR_NUM)))
@@ -78,7 +81,7 @@ void menuCorrectionsPriorities()
             // But only if not already priority 0 (highest)
             if (settings.correctionsSourcesPriority[(int)(incoming - 'A')] > 0)
             {
-                int makeMeLower;
+                int makeMeLower = -1;
                 for (int x = 0; x < correctionsSource::CORR_NUM; x++)
                 {
                     if (settings.correctionsSourcesPriority[x] ==
@@ -88,8 +91,11 @@ void menuCorrectionsPriorities()
                         break;
                     }
                 }
-                settings.correctionsSourcesPriority[(int)(incoming - 'A')] -= 1; // Increase
-                settings.correctionsSourcesPriority[makeMeLower] += 1;           // Decrease
+                if (makeMeLower >= 0)
+                {
+                    settings.correctionsSourcesPriority[(int)(incoming - 'A')] -= 1; // Increase
+                    settings.correctionsSourcesPriority[makeMeLower] += 1;           // Decrease
+                }
             }
         }
 

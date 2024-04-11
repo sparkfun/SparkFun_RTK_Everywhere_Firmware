@@ -1579,7 +1579,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "batteryIconFileName", batteryIconFileName);
 
         // Determine battery percent
-        char batteryPercent[sizeof("+100%__")];
+        char batteryPercent[15];
         int tempLevel = batteryLevelPercent;
         if (tempLevel > 100)
             tempLevel = 100;

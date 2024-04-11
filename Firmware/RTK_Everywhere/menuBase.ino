@@ -17,7 +17,6 @@ static const float maxSurveyInStartingAccuracy = 10.0;
 // Set the ECEF coordinates for a known location
 void menuBase()
 {
-    int value;
     int ntripServerOptionOffset = 9; // NTRIP Server menus start at this value
 
     while (1)

@@ -401,7 +401,7 @@ unsigned long rtcmLastPacketReceived;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 GnssPlatform gnssPlatform = PLATFORM_ZED;
 char gnssFirmwareVersion[20];
-uint16_t gnssFirmwareVersionInt;
+int gnssFirmwareVersionInt;
 char gnssUniqueId[20]; // um980 ID is 16 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

@@ -895,7 +895,7 @@ void ntpServerUpdate()
                         markSemaphore(FUNCTION_NTPEVENT);
 
                         // Get the marks file name
-                        char fileName[32];
+                        char fileName[55];
                         bool fileOpen = false;
                         bool sdCardWasOnline;
                         int year;

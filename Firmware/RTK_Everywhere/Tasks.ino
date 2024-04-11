@@ -1314,8 +1314,6 @@ void tickerBeepUpdate()
 // Monitor momentary buttons
 void buttonCheckTask(void *e)
 {
-    uint8_t index;
-
     // Record the time of the most recent two button releases
     // This allows us to detect single and double presses
     unsigned long doubleTapInterval = 500; // User must press and release twice within this to create a double tap
