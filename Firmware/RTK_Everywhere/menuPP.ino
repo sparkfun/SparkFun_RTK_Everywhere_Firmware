@@ -253,7 +253,6 @@ bool pointperfectProvisionDevice()
                 // Depending on how many times we've tried the ZTP interface, change the token
                 pointperfectGetToken(tokenString, attemptNumber);
 
-                // @nseidle : please check if the next two lines are wanted / needed / correct. They look wrong to me...
                 if (memcmp(ppLbandPaidToken, developmentToken, sizeof(developmentToken)) == 0)
                     systemPrintln("Warning: Using the development token!");
 
