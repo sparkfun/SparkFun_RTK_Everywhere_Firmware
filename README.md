@@ -67,9 +67,9 @@ For building the u-blox_Update_GUI see [u-blox_Update_GUI](https://github.com/sp
 License Information
 -------------------
 
-This product is _**open source**_!  Please feel free to [contribute](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/contribute/) to both the firmware and documentation.
+This product is _**open source**_! Please see [License.md](./License.md) for more details.
 
-Various bits of the code have different licenses applied. Anything SparkFun wrote is beerware; if you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round!
+Please feel free to [contribute](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/contribute/) to both the firmware and documentation.
 
 Please use, reuse, and modify these files as you see fit. Please maintain attribution to SparkFun Electronics and release anything derivative under the same license.
 
