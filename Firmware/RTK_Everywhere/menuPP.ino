@@ -243,6 +243,7 @@ bool pointperfectProvisionDevice()
         StaticJsonDocument<256> pointPerfectAPIPost;
 
         char tokenString[37] = "\0";
+        char tokenChar;
 
         for (int attemptNumber = 0; attemptNumber < pointperfectGetMaxAttempts(); attemptNumber++)
         {
@@ -258,7 +259,13 @@ bool pointperfectProvisionDevice()
                     systemPrintln("Warning: Using the development token!");
 
                 if (settings.debugCorrections == true)
+                {
+                    // Don't expose the SparkFun tokens
+                    tokenChar = tokenString[4];
+                    tokenString[4] = 0;
                     systemPrintf("Using token: %s\r\n", tokenString);
+                    tokenString[4] = tokenChar;
+                }
             }
             else
             {
@@ -289,15 +296,29 @@ bool pointperfectProvisionDevice()
             pointPerfectAPIPost["givenName"] = givenName;
             pointPerfectAPIPost["hardwareId"] = hardwareID; // Appears as 'Sticker Ref' in ThingStream
 
+            const char * tag;
             if (attemptNumber == 0)
-                pointPerfectAPIPost["tags"][0] = "freetrial"; // Tags must be all lower case
+                tag = "freetrial"; // Tags must be all lower case
             else if (attemptNumber == 1)
-                pointPerfectAPIPost["tags"][0] = "paidunit";
+                tag = "paidunit";
+            pointPerfectAPIPost["tags"][0] = tag;
 
             systemPrintf("Connecting to: %s\r\n", pointPerfectAPI);
 
             if (settings.debugCorrections == true)
-                serializeJsonPretty(pointPerfectAPIPost, Serial);
+            {
+                systemPrintln("{");
+                tokenChar = tokenString[4];
+                tokenString[4] = 0;
+                systemPrintf("  token: %s\r\n", tokenString);
+                tokenString[4] = tokenChar;
+                systemPrintf("  givenName: %s\r\n", givenName);
+                systemPrintf("  hardwareId: %s\r\n", hardwareID);
+                systemPrintln("  tags: [");
+                systemPrintf("    %s\r\n", tag);
+                systemPrintln("  ]");
+                systemPrintln("}");
+            }
 
             // Using this token and hardwareID, attempt to get keys
             // Do not print feedback to user until we have success or exhausted known tokens
@@ -443,10 +464,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
     String json;
     serializeJson(apiPost, json);
     if (settings.debugPpCertificate)
-    {
-        systemPrintln("JSON:");
-        dumpBuffer((uint8_t *)json.c_str(), strlen(json.c_str()) + 1);
-    }
+        systemPrintf("Sending JSON, %d bytes\r\n", strlen(json.c_str()));
 
     HTTPClient http;
     http.begin(client, pointPerfectAPI);
@@ -456,11 +474,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
 
     String response = http.getString();
     if (settings.debugPpCertificate)
-    {
-        systemPrintln("Response:");
-        dumpBuffer((uint8_t *)response.c_str(), strlen(response.c_str()) + 1);
-    }
-
+        systemPrintf("Response: %d bytes\r\n", strlen(response.c_str()));
     http.end();
 
     ZtpResponse ztpResponse = ZTP_UNKNOWN_ERROR;
@@ -963,6 +977,8 @@ void mqttCallback(int messageSize)
 
         // Get the message data
         menuppMqttClient->read(message, messageSize);
+        if (settings.debugCorrections)
+            systemPrintf("\r\nReceived %d bytes\r\n", messageSize);
 
         // Separate the UBX message into its constituent Key/ToW/Week parts
         // Obtained from SparkFun u-blox Arduino library - setDynamicSPARTNKeys()
