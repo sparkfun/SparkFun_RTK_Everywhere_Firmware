@@ -27,6 +27,7 @@ static const uint8_t ppLbandIpFreeToken[16] = {POINTPERFECT_LBAND_IP_FREE_TOKEN}
 
 #ifdef COMPILE_WIFI
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
+MqttClient * menuppMqttClient;
 #endif // COMPILE_WIFI
 
 //----------------------------------------
@@ -242,6 +243,7 @@ bool pointperfectProvisionDevice()
         StaticJsonDocument<256> pointPerfectAPIPost;
 
         char tokenString[37] = "\0";
+        char tokenChar;
 
         for (int attemptNumber = 0; attemptNumber < pointperfectGetMaxAttempts(); attemptNumber++)
         {
@@ -257,7 +259,13 @@ bool pointperfectProvisionDevice()
                     systemPrintln("Warning: Using the development token!");
 
                 if (settings.debugCorrections == true)
+                {
+                    // Don't expose the SparkFun tokens
+                    tokenChar = tokenString[4];
+                    tokenString[4] = 0;
                     systemPrintf("Using token: %s\r\n", tokenString);
+                    tokenString[4] = tokenChar;
+                }
             }
             else
             {
@@ -288,15 +296,29 @@ bool pointperfectProvisionDevice()
             pointPerfectAPIPost["givenName"] = givenName;
             pointPerfectAPIPost["hardwareId"] = hardwareID; // Appears as 'Sticker Ref' in ThingStream
 
+            const char * tag;
             if (attemptNumber == 0)
-                pointPerfectAPIPost["tags"][0] = "freetrial"; // Tags must be all lower case
+                tag = "freetrial"; // Tags must be all lower case
             else if (attemptNumber == 1)
-                pointPerfectAPIPost["tags"][0] = "paidunit";
+                tag = "paidunit";
+            pointPerfectAPIPost["tags"][0] = tag;
 
             systemPrintf("Connecting to: %s\r\n", pointPerfectAPI);
 
             if (settings.debugCorrections == true)
-                serializeJsonPretty(pointPerfectAPIPost, Serial);
+            {
+                systemPrintln("{");
+                tokenChar = tokenString[4];
+                tokenString[4] = 0;
+                systemPrintf("  token: %s\r\n", tokenString);
+                tokenString[4] = tokenChar;
+                systemPrintf("  givenName: %s\r\n", givenName);
+                systemPrintf("  hardwareId: %s\r\n", hardwareID);
+                systemPrintln("  tags: [");
+                systemPrintf("    %s\r\n", tag);
+                systemPrintln("  ]");
+                systemPrintln("}");
+            }
 
             // Using this token and hardwareID, attempt to get keys
             // Do not print feedback to user until we have success or exhausted known tokens
@@ -442,10 +464,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
     String json;
     serializeJson(apiPost, json);
     if (settings.debugPpCertificate)
-    {
-        systemPrintln("JSON:");
-        dumpBuffer((uint8_t *)json.c_str(), strlen(json.c_str()) + 1);
-    }
+        systemPrintf("Sending JSON, %d bytes\r\n", strlen(json.c_str()));
 
     HTTPClient http;
     http.begin(client, pointPerfectAPI);
@@ -455,11 +474,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
 
     String response = http.getString();
     if (settings.debugPpCertificate)
-    {
-        systemPrintln("Response:");
-        dumpBuffer((uint8_t *)response.c_str(), strlen(response.c_str()) + 1);
-    }
-
+        systemPrintf("Response: %d bytes\r\n", strlen(response.c_str()));
     http.end();
 
     ZtpResponse ztpResponse = ZTP_UNKNOWN_ERROR;
@@ -640,7 +655,7 @@ int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3,
         {
             return j;
         }
-    
+
     return (-1);
 }
 
@@ -792,6 +807,7 @@ bool pointperfectUpdateKeys()
     char *keyContents = nullptr;
     WiFiClientSecure secureClient;
     bool gotKeys = false;
+    menuppMqttClient = nullptr;
 
     do
     {
@@ -827,24 +843,21 @@ bool pointperfectUpdateKeys()
 
         secureClient.setCACert(AWS_PUBLIC_CERT);
 
-        PubSubClient mqttClient(secureClient);
-        mqttClient.setCallback(mqttCallback);
-        mqttClient.setServer(settings.pointPerfectBrokerHost, 8883);
-
-        systemPrintf("Attempting to connect to MQTT broker: %s\r\n", settings.pointPerfectBrokerHost);
-
-        if (mqttClient.connect(settings.pointPerfectClientID) == true)
+        // Allocate the MQTT client
+        menuppMqttClient = new MqttClient(secureClient);
+        if (!menuppMqttClient)
         {
-            // Successful connection
-            systemPrintln("MQTT connected");
-
-            // pointPerfectKeyDistributionTopic is /pp/ubx/0236/ip or /pp/ubx/0236/Lb.
-            // It is provided during ZTP provisioning.
-            // The topic contains the keys in UBX format, ready to be pushed to a ZED.
-            // These need to be unpicked into JSON format and stored in settings - by mqttCallback below.
-            mqttClient.subscribe(settings.pointPerfectKeyDistributionTopic);
+            systemPrintln("Failed to allocate the MQTT client structure!");
+            break;
         }
-        else
+
+        // Configure the MQTT client
+        menuppMqttClient->setId(settings.pointPerfectClientID);
+        menuppMqttClient->onMessage(mqttCallback);
+
+        // Attempt to the MQTT broker
+        systemPrintf("Attempting to connect to MQTT broker: %s\r\n", settings.pointPerfectBrokerHost);
+        if (!menuppMqttClient->connect(settings.pointPerfectBrokerHost, 8883))
         {
             systemPrintln("Failed to connect to MQTT Broker");
 
@@ -854,18 +867,31 @@ bool pointperfectUpdateKeys()
             break; // Skip the remaining MQTT checking, release resources
         }
 
-        systemPrint("Waiting for keys");
+        // Successful connection
+        systemPrintln("MQTT connected");
 
+        // pointPerfectKeyDistributionTopic is /pp/ubx/0236/ip or /pp/ubx/0236/Lb.
+        // It is provided during ZTP provisioning.
+        // The topic contains the keys in UBX format, ready to be pushed to a ZED.
+        // These need to be unpicked into JSON format and stored in settings - by mqttCallback below.
         mqttMessageReceived = false;
+        if (!menuppMqttClient->subscribe(settings.pointPerfectKeyDistributionTopic))
+        {
+            systemPrintf("Failed to subscribe to %s!\r\n", settings.pointPerfectKeyDistributionTopic);
+            pointperfectProvisionDevice();
+            break;
+        }
+
+        systemPrint("Waiting for keys");
 
         // Wait for callback
         startTime = millis();
         while (1)
         {
-            mqttClient.loop();
+            menuppMqttClient->poll();
             if (mqttMessageReceived == true)
                 break;
-            if (mqttClient.connected() == false)
+            if (menuppMqttClient->connected() == false)
             {
                 if (settings.debugCorrections == true)
                     systemPrintln("Client disconnected");
@@ -892,8 +918,16 @@ bool pointperfectUpdateKeys()
         }
 
         // Done with the MQTT client
-        mqttClient.disconnect();
+        menuppMqttClient->unsubscribe(settings.pointPerfectKeyDistributionTopic);
     } while (0);
+
+    // Stop and delete the MQTT client
+    if (menuppMqttClient)
+    {
+        menuppMqttClient->stop();
+        delete menuppMqttClient;
+        menuppMqttClient = nullptr;
+    }
 
     // Free the content buffers
     if (keyContents)
@@ -909,10 +943,43 @@ bool pointperfectUpdateKeys()
 }
 
 // Called when a subscribed to message arrives
-void mqttCallback(char *topic, byte *message, unsigned int length)
+void mqttCallback(int messageSize)
 {
-    if (String(topic) == settings.pointPerfectKeyDistributionTopic)
+    static uint32_t messageLength;
+    static byte * message;
+
+    do
     {
+        // Determine if this is a message that should be processed
+        if (menuppMqttClient->messageTopic() != settings.pointPerfectKeyDistributionTopic)
+            break;
+
+        // Allocate the message buffer
+        if (messageLength < messageSize)
+        {
+            // Free the previous message buffer
+            if (message)
+            {
+                free(message);
+                message = nullptr;
+            }
+
+            // Allocate the new message buffer
+            messageLength = (messageSize + 512) & (~511);
+            message = (byte *)malloc(messageLength);
+            if (!message)
+            {
+                messageLength = 0;
+                systemPrintln("Failed to allocate MQTT message buffer!");
+                break;
+            }
+        }
+
+        // Get the message data
+        menuppMqttClient->read(message, messageSize);
+        if (settings.debugCorrections)
+            systemPrintf("\r\nReceived %d bytes\r\n", messageSize);
+
         // Separate the UBX message into its constituent Key/ToW/Week parts
         // Obtained from SparkFun u-blox Arduino library - setDynamicSPARTNKeys()
         byte *payLoad = &message[6];
@@ -965,9 +1032,9 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
 
         if (settings.debugCorrections == true)
             pointperfectPrintKeyInformation();
-    }
 
-    mqttMessageReceived = true;
+        mqttMessageReceived = true;
+    } while (0);
 }
 
 // Get a date from a user
