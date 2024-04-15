@@ -385,12 +385,6 @@ typedef enum
 
 typedef enum
 {
-    RADIO_EXTERNAL = 0,
-    RADIO_ESPNOW,
-} RadioType_e;
-
-typedef enum
-{
     BLUETOOTH_RADIO_SPP = 0,
     BLUETOOTH_RADIO_BLE,
     BLUETOOTH_RADIO_SPP_AND_BLE,
@@ -1125,7 +1119,6 @@ typedef struct
     bool enablePrintStates = true;
     bool enablePrintDuplicateStates = false;
     bool enablePrintRtcSync = false;
-    RadioType_e radioType = RADIO_EXTERNAL;
     uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
@@ -1354,7 +1347,9 @@ typedef struct
     };
 
     bool debugEspNow = false;
-    
+    bool enableEspNow = false;
+    uint8_t wifiChannel = 1; //Valid channels are 1 to 14
+
     // Add new settings above <------------------------------------------------------------>
 
 } Settings;

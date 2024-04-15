@@ -17,17 +17,17 @@
 #define POINTPERFECT_LBAND_IP_PAID_TOKEN DEVELOPMENT_TOKEN
 #endif // POINTPERFECT_LBAND_PAID_TOKEN
 
-static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};             // Token in HEX form
-static const uint8_t ppLbandPaidToken[16] = {POINTPERFECT_LBAND_PAID_TOKEN}; // Token in HEX form
-static const uint8_t ppLbandFreeToken[16] = {POINTPERFECT_LBAND_FREE_TOKEN}; // Token in HEX form
-static const uint8_t ppIpPaidToken[16] = {POINTPERFECT_IP_PAID_TOKEN};       // Token in HEX form
-static const uint8_t ppIpFreeToken[16] = {POINTPERFECT_IP_FREE_TOKEN};       // Token in HEX form
+static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};                  // Token in HEX form
+static const uint8_t ppLbandPaidToken[16] = {POINTPERFECT_LBAND_PAID_TOKEN};      // Token in HEX form
+static const uint8_t ppLbandFreeToken[16] = {POINTPERFECT_LBAND_FREE_TOKEN};      // Token in HEX form
+static const uint8_t ppIpPaidToken[16] = {POINTPERFECT_IP_PAID_TOKEN};            // Token in HEX form
+static const uint8_t ppIpFreeToken[16] = {POINTPERFECT_IP_FREE_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpPaidToken[16] = {POINTPERFECT_LBAND_IP_PAID_TOKEN}; // Token in HEX form
 static const uint8_t ppLbandIpFreeToken[16] = {POINTPERFECT_LBAND_IP_FREE_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_WIFI
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
-MqttClient * menuppMqttClient;
+MqttClient *menuppMqttClient;
 #endif // COMPILE_WIFI
 
 //----------------------------------------
@@ -226,8 +226,8 @@ bool pointperfectProvisionDevice()
     {
         char hardwareID[15];
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                 btMACAddress[2], btMACAddress[3], btMACAddress[4],
-                 btMACAddress[5], productVariant); // Get ready for JSON
+                 btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
+                 productVariant); // Get ready for JSON
 
 #ifdef WHITELISTED_ID
         // Override ID with testing ID
@@ -296,7 +296,7 @@ bool pointperfectProvisionDevice()
             pointPerfectAPIPost["givenName"] = givenName;
             pointPerfectAPIPost["hardwareId"] = hardwareID; // Appears as 'Sticker Ref' in ThingStream
 
-            const char * tag;
+            const char *tag;
             if (attemptNumber == 0)
                 tag = "freetrial"; // Tags must be all lower case
             else if (attemptNumber == 1)
@@ -335,8 +335,9 @@ bool pointperfectProvisionDevice()
             else if (ztpResponse == ZTP_DEACTIVATED && attemptNumber == 1)
             {
                 char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0],
+                         btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
+                         productVariant);
 
                 systemPrintf("This device has been deactivated. Please contact "
                              "support@sparkfun.com to renew the PointPerfect "
@@ -348,8 +349,9 @@ bool pointperfectProvisionDevice()
             else if (ztpResponse == ZTP_NOT_WHITELISTED && attemptNumber == 1)
             {
                 char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0],
+                         btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
+                         productVariant);
 
                 systemPrintf(
                     "This device is not whitelisted. Please contact "
@@ -576,8 +578,10 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                     if (settings.debugPpCertificate)
                         systemPrintln("Certificates recorded successfully.");
 
-                    strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]), sizeof(settings.pointPerfectClientID));
-                    strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]), sizeof(settings.pointPerfectBrokerHost));
+                    strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]),
+                            sizeof(settings.pointPerfectClientID));
+                    strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]),
+                            sizeof(settings.pointPerfectBrokerHost));
 
                     // Note: from the ZTP documentation:
                     // ["subscriptions"][0] will contain the key distribution topic
@@ -586,34 +590,46 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
                     // If we are on an IP-only plan, the path will be /pp/ubx/0236/ip
                     // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/ubx/0236/Lb
                     // These 0236 key distribution topics provide the keys in UBX format, ready to be pushed to a ZED.
-                    // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we don't use those.
-                    int subscription = findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
+                    // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we
+                    // don't use those.
+                    int subscription =
+                        findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
                     if (subscription >= 0)
-                        strncpy(settings.pointPerfectKeyDistributionTopic, (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.pointPerfectKeyDistributionTopic));
+                        strncpy(settings.pointPerfectKeyDistributionTopic,
+                                (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
+                                sizeof(settings.pointPerfectKeyDistributionTopic));
 
-                    // "subscriptions" will also contain the correction topics for all available regional areas - for IP-only or L-Band+IP
-                    // We should store those too, and then allow the user to select the one for their regional area
+                    // "subscriptions" will also contain the correction topics for all available regional areas - for
+                    // IP-only or L-Band+IP We should store those too, and then allow the user to select the one for
+                    // their regional area
                     for (int r = 0; r < numRegionalAreas; r++)
                     {
                         char findMe[40];
-                        snprintf(findMe, sizeof(findMe), "correction topic for %s", Regional_Information_Table[r].name); // Search for "US" etc.
+                        snprintf(findMe, sizeof(findMe), "correction topic for %s",
+                                 Regional_Information_Table[r].name); // Search for "US" etc.
                         subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
                         if (subscription >= 0)
-                            strncpy(settings.regionalCorrectionTopics[r], (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]), sizeof(settings.regionalCorrectionTopics[0]));
+                            strncpy(settings.regionalCorrectionTopics[r],
+                                    (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
+                                    sizeof(settings.regionalCorrectionTopics[0]));
                         else
-                            settings.regionalCorrectionTopics[r][0] = 0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
+                            settings.regionalCorrectionTopics[r][0] =
+                                0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
                     }
 
-                    // "subscriptions" also contains the geographic area definition topic for each region for localized distribution.
-                    // We can cheat by appending "/gad" to the correction topic. TODO: think about doing this properly.
+                    // "subscriptions" also contains the geographic area definition topic for each region for localized
+                    // distribution. We can cheat by appending "/gad" to the correction topic. TODO: think about doing
+                    // this properly.
 
                     // Now we extract the current and next key pair
                     strncpy(settings.pointPerfectCurrentKey,
-                           (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]), sizeof(settings.pointPerfectCurrentKey));
+                            (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]),
+                            sizeof(settings.pointPerfectCurrentKey));
                     settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
                     settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
 
-                    strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]), sizeof(settings.pointPerfectNextKey));
+                    strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]),
+                            sizeof(settings.pointPerfectNextKey));
                     settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
                     settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
 
@@ -945,8 +961,9 @@ bool pointperfectUpdateKeys()
 // Called when a subscribed to message arrives
 void mqttCallback(int messageSize)
 {
+#ifdef COMPILE_WIFI
     static uint32_t messageLength;
-    static byte * message;
+    static byte *message;
 
     do
     {
@@ -1035,6 +1052,7 @@ void mqttCallback(int messageSize)
 
         mqttMessageReceived = true;
     } while (0);
+#endif // COMPILE_WIFI
 }
 
 // Get a date from a user
@@ -1411,29 +1429,30 @@ void menuPointPerfect()
             systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, lbandRestarts);
 
         if (settings.debugCorrections == true)
-            systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n", settings.pointPerfectKeyDistributionTopic);
+            systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
+                         settings.pointPerfectKeyDistributionTopic);
 
-            systemPrint("Days until keys expire: ");
-            if (strlen(settings.pointPerfectCurrentKey) > 0)
+        systemPrint("Days until keys expire: ");
+        if (strlen(settings.pointPerfectCurrentKey) > 0)
+        {
+            if (online.rtc == false)
             {
-                if (online.rtc == false)
-                {
-                    // If we don't have RTC we can't calculate days to expire
-                    systemPrintln("No RTC");
-                }
-                else
-                {
-                    int daysRemaining =
-                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                    if (daysRemaining < 0)
-                        systemPrintln("Expired");
-                    else
-                        systemPrintln(daysRemaining);
-                }
+                // If we don't have RTC we can't calculate days to expire
+                systemPrintln("No RTC");
             }
             else
-                systemPrintln("No keys");
+            {
+                int daysRemaining =
+                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                if (daysRemaining < 0)
+                    systemPrintln("Expired");
+                else
+                    systemPrintln(daysRemaining);
+            }
+        }
+        else
+            systemPrintln("No keys");
 
         // How this works:
         //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP

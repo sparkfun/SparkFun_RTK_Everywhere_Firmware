@@ -282,7 +282,6 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "enablePrintStates", settings.enablePrintStates);
     settingsFile->printf("%s=%d\r\n", "enablePrintDuplicateStates", settings.enablePrintDuplicateStates);
     settingsFile->printf("%s=%d\r\n", "enablePrintRtcSync", settings.enablePrintRtcSync);
-    settingsFile->printf("%s=%d\r\n", "radioType", settings.radioType);
 
     // Record ESP-Now peer MAC addresses
     for (int x = 0; x < settings.espnowPeerCount; x++)
@@ -522,6 +521,8 @@ void recordSystemSettingsToFile(File *settingsFile)
                              &settings.regionalCorrectionTopics[r][0]);
     }
     settingsFile->printf("%s=%d\r\n", "debugEspNow", settings.debugEspNow);
+    settingsFile->printf("%s=%d\r\n", "enableEspNow", settings.enableEspNow);
+    settingsFile->printf("%s=%d\r\n", "wifiChannel", settings.wifiChannel);
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1097,8 +1098,6 @@ bool parseLine(char *str, Settings *settings)
         settings->enablePrintDuplicateStates = d;
     else if (strcmp(settingName, "enablePrintRtcSync") == 0)
         settings->enablePrintRtcSync = d;
-    else if (strcmp(settingName, "radioType") == 0)
-        settings->radioType = (RadioType_e)d;
 
     // espnowPeers handled in bulk below
 
@@ -1369,11 +1368,17 @@ bool parseLine(char *str, Settings *settings)
         settings->enableImuCompensationDebug = d;
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings->correctionsSourcesLifetime_s = d;
-    else if (strcmp(settingName, "debugEspNow") == 0)
-        settings->debugEspNow = d;
-
     else if (strcmp(settingName, "geographicRegion") == 0)
         settings->geographicRegion = d;
+
+    //regionalCorrectionTopics handled below
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings->debugEspNow = d;
+    else if (strcmp(settingName, "enableEspNow") == 0)
+        settings->enableEspNow = d;
+    else if (strcmp(settingName, "wifiChannel") == 0)
+        settings->wifiChannel = d;
 
     // Add new settings above <--------------------------------------------------->
 

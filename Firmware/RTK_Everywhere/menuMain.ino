@@ -428,13 +428,10 @@ void menuRadio()
         systemPrintln();
         systemPrintln("Menu: Radios");
 
-        systemPrint("1) Select Radio Type: ");
-        if (settings.radioType == RADIO_EXTERNAL)
-            systemPrintln("External only");
-        else if (settings.radioType == RADIO_ESPNOW)
-            systemPrintln("Internal ESP-Now");
+        systemPrint("1) ESP-NOW Radio: ");
+        systemPrintf("%s\r\n", settings.enableEspNow ? "Enabled" : "Disabled");
 
-        if (settings.radioType == RADIO_ESPNOW)
+        if (settings.enableEspNow == true)
         {
             // Pretty print the MAC of all radios
             systemPrint("  Radio MAC: ");
@@ -458,11 +455,14 @@ void menuRadio()
 
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
+
+            systemPrintf("4) Set channel: %d\r\n", espnowGetChannel());
+
             if (settings.debugEspNow == true)
             {
-                systemPrintln("4) Add dummy radio");
-                systemPrintln("5) Send dummy data");
-                systemPrintln("6) Broadcast dummy data");
+                systemPrintln("5) Add dummy radio");
+                systemPrintln("6) Send dummy data");
+                systemPrintln("7) Broadcast dummy data");
             }
         }
 
@@ -472,16 +472,13 @@ void menuRadio()
 
         if (incoming == 1)
         {
-            if (settings.radioType == RADIO_EXTERNAL)
-                settings.radioType = RADIO_ESPNOW;
-            else if (settings.radioType == RADIO_ESPNOW)
-                settings.radioType = RADIO_EXTERNAL;
+            settings.enableEspNow ^= 1;
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 2)
+        else if (settings.enableEspNow == true && incoming == 2)
         {
             espnowStaticPairing();
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 3)
+        else if (settings.enableEspNow == true && incoming == 3)
         {
             systemPrintln("\r\nForgetting all paired radios. Press 'y' to confirm:");
             byte bContinue = getUserInputCharacterNumber();
@@ -496,7 +493,11 @@ void menuRadio()
                 systemPrintln("Radios forgotten");
             }
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 4 && settings.debugEspNow == true)
+        else if (settings.enableEspNow == true && incoming == 4)
+        {
+            getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14, &settings.wifiChannel);
+        }
+        else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
             if (espnowState == ESPNOW_OFF)
                 espnowStart();
@@ -518,7 +519,7 @@ void menuRadio()
 
             espnowSetState(ESPNOW_PAIRED);
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 5 && settings.debugEspNow == true)
+        else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
             if (espnowState == ESPNOW_OFF)
                 espnowStart();
@@ -529,7 +530,7 @@ void menuRadio()
                 "nearing 200 characters but needs to be near 250.";
             esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 6 && settings.debugEspNow == true)
+        else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
             if (espnowState == ESPNOW_OFF)
                 espnowStart();

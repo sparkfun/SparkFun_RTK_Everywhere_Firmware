@@ -296,8 +296,6 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         settings.enablePrintDuplicateStates = settingValue;
     else if (strcmp(settingName, "enablePrintRtcSync") == 0)
         settings.enablePrintRtcSync = settingValue;
-    else if (strcmp(settingName, "radioType") == 0)
-        settings.radioType = (RadioType_e)settingValue; // 0 = Radio off, 1 = ESP-Now
 
     // espnowPeers
     // espnowPeerCount
@@ -566,14 +564,19 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
 
     // correctionsPriority handled below
 
-    else if (strcmp(settingName, "debugEspNow") == 0)
-        settings.debugEspNow = settingValue;
-
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         settings.correctionsSourcesLifetime_s = settingValue;
-
     else if (strcmp(settingName, "geographicRegion") == 0)
         settings.geographicRegion = settingValue;
+
+    // regionalCorrectionTopics handled below
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings.debugEspNow = settingValue;
+    else if (strcmp(settingName, "enableEspNow") == 0)
+        settings.enableEspNow = settingValue;
+    else if (strcmp(settingName, "wifiChannel") == 0)
+        settings.wifiChannel = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -1491,6 +1494,8 @@ void createSettingsString(char *newSettings)
         stringRecordN(newSettings, "regionalCorrectionTopics", r, &settings.regionalCorrectionTopics[r][0]);
     }
     stringRecord(newSettings, "debugEspNow", settings.debugEspNow);
+    stringRecord(newSettings, "enableEspNow", settings.enableEspNow);
+    stringRecord(newSettings, "wifiChannel", settings.wifiChannel);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1552,7 +1557,6 @@ void createSettingsString(char *newSettings)
     snprintf(radioMAC, sizeof(radioMAC), "%02X:%02X:%02X:%02X:%02X:%02X", wifiMACAddress[0], wifiMACAddress[1],
              wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
     stringRecord(newSettings, "radioMAC", radioMAC);
-    stringRecord(newSettings, "radioType", settings.radioType);
     stringRecord(newSettings, "espnowPeerCount", settings.espnowPeerCount);
     for (int index = 0; index < settings.espnowPeerCount; index++)
     {
@@ -1964,8 +1968,6 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.enablePrintDuplicateStates);
     else if (strcmp(settingName, "enablePrintRtcSync") == 0)
         writeToString(settingValueStr, settings.enablePrintRtcSync);
-    else if (strcmp(settingName, "radioType") == 0)
-        writeToString(settingValueStr, settings.radioType); // 0 = Radio off, 1 = ESP-Now
     // espnowPeers yet not handled
     else if (strcmp(settingName, "espnowPeerCount") == 0)
         writeToString(settingValueStr, settings.espnowPeerCount);
@@ -2224,11 +2226,18 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         writeToString(settingValueStr, settings.correctionsSourcesLifetime_s);
 
-    else if (strcmp(settingName, "debugEspNow") == 0)
-        writeToString(settingValueStr, settings.debugEspNow);
-
     else if (strcmp(settingName, "geographicRegion") == 0)
         writeToString(settingValueStr, settings.geographicRegion);
+
+    //regionalCorrectionTopics not yet handled
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        writeToString(settingValueStr, settings.debugEspNow);
+    else if (strcmp(settingName, "enableEspNow") == 0)
+        writeToString(settingValueStr, settings.enableEspNow);
+    else if (strcmp(settingName, "wifiChannel") == 0)
+        writeToString(settingValueStr, settings.wifiChannel);
+
 
     // Add new settings above <------------------------------------------------------------>
 
@@ -2552,7 +2561,6 @@ void printAvailableSettings()
     systemPrint("enablePrintStates,bool,");
     systemPrint("enablePrintDuplicateStates,bool,");
     systemPrint("enablePrintRtcSync,bool,");
-    systemPrint("radioType,RadioType_e,");
     systemPrint("espnowPeers,uint8_t[5][6],");
     systemPrint("espnowPeerCount,uint8_t,");
     systemPrint("enableRtcmMessageChecking,bool,");
@@ -2706,7 +2714,10 @@ void printAvailableSettings()
     {
         systemPrintf("regionalCorrectionTopics_%d,char[%d],", r, sizeof(settings.regionalCorrectionTopics[0]));
     }
+
     systemPrint("debugEspNow,bool,");
+    systemPrint("enableEspNow,bool,");
+    systemPrint("wifiChannel,uint8_t,");
 
     // Add new settings above <--------------------------------------------------->
 

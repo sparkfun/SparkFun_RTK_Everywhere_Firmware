@@ -83,7 +83,8 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
         else
         {
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
-                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len, espnowRSSI);
+                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len,
+                             espnowRSSI);
         }
 
         espnowIncomingRTCM = true; // Display a download icon
@@ -186,6 +187,15 @@ void espnowStart()
         systemPrintf("espnowStart: Error setting promiscuous mode: %s\r\n", esp_err_to_name(response));
 
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
+
+    //Assign channel
+    esp_err_t response = esp_wifi_set_channel(settings.wifiChannel, WIFI_SECOND_CHAN_NONE);
+    if (response != ESP_OK)
+    {
+        char responseString[100];
+        esp_err_to_name_r(response, responseString, sizeof(responseString));
+        systemPrintf("setChannel failed: %s\r\n", responseString);
+    }
 
     // Register callbacks
     // esp_now_register_send_cb(espnowOnDataSent);
@@ -378,9 +388,9 @@ bool espnowIsPaired()
         espnowSendPairMessage(receivedMAC);
 
         // Enable radio. User may have arrived here from the setup menu rather than serial menu.
-        settings.radioType = RADIO_ESPNOW;
+        settings.enableEspNow = true;
 
-        recordSystemSettings(); // Record radioType and espnowPeerCount to NVM
+        recordSystemSettings(); // Record enableEspNow and espnowPeerCount to NVM
 
         espnowSetState(ESPNOW_PAIRED);
         return (true);
@@ -568,4 +578,25 @@ void espnowStaticPairing()
 
         systemPrintln("Scanning for other radio...");
     }
+}
+
+// Returns the current channel being used by WiFi
+uint8_t espnowGetChannel()
+{
+#ifdef COMPILE_ESPNOW
+    if (espnowState == ESPNOW_OFF)
+        return 0;
+    uint8_t primaryChannelNumber = 0;
+    uint8_t secondaryChannelNumber = 0;
+
+    esp_err_t response = esp_wifi_get_channel(&primaryChannelNumber, &secondaryChannelNumber);
+    if (response != ESP_OK)
+    {
+        char responseString[100];
+        esp_err_to_name_r(response, responseString, sizeof(responseString));
+        systemPrintf("getChannel failed: %s\r\n", responseString);
+    }
+    return (primaryChannelNumber);
+
+#endif
 }

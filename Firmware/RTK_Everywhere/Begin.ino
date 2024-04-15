@@ -1302,15 +1302,10 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
 // Depending on radio selection, begin hardware
 void radioStart()
 {
-    if (settings.radioType == RADIO_EXTERNAL)
-    {
-        espnowStop();
-
-        // Nothing to start. UART2 of ZED is connected to external Radio port and is configured at
-        // gnssConfigure()
-    }
-    else if (settings.radioType == RADIO_ESPNOW)
+    if (settings.enableEspNow == true)
         espnowStart();
+    else
+        espnowStop();
 }
 
 // Start task to determine SD card size

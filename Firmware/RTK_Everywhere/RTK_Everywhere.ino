@@ -1430,7 +1430,7 @@ void updateRadio()
     }
 
 #ifdef COMPILE_ESPNOW
-    if (settings.radioType == RADIO_ESPNOW)
+    if (settings.enableEspNow == true)
     {
         if (espnowState == ESPNOW_PAIRED)
         {
