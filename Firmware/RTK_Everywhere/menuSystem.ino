@@ -35,7 +35,7 @@ void menuSystem()
                 systemPrintln("Offline");
         }
 
-        if (present.battery_bq40z50 || present.battery_max17048)
+        if (present.fuelgauge_bq40z50 || present.fuelgauge_max17048)
         {
             systemPrint("Fuel Gauge: ");
             if (online.batteryFuelGauge == true)

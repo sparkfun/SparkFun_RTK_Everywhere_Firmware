@@ -2328,7 +2328,7 @@ void paintSystemTest()
             else
                 oled->print("FAIL");
 
-            if (present.battery_max17048 || present.battery_bq40z50)
+            if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50)
             {
                 oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
                 oled->print("Batt:");

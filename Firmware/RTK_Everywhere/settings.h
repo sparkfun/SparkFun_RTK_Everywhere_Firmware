@@ -1391,8 +1391,8 @@ struct struct_present
     bool display_i2c1 = false;
     DisplayType display_type = DISPLAY_MAX_NONE;
 
-    bool battery_max17048 = false;
-    bool battery_bq40z50 = false;
+    bool fuelgauge_max17048 = false;
+    bool fuelgauge_bq40z50 = false;
     bool charger_mp2762a = false;
 
     bool beeper = false;

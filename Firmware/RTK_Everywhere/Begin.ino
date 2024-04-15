@@ -132,7 +132,7 @@ void beginBoard()
     {
         present.psram_2mb = true;
         present.radio_lora = true;
-        present.battery_bq40z50 = true;
+        present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
         present.encryption_atecc608a = true;
         present.button_powerHigh = true; // Button is pressed when high
@@ -313,7 +313,7 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.button_powerLow = true; // Button is pressed when low
-        present.battery_max17048 = true;
+        present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
 
@@ -335,7 +335,7 @@ void beginBoard()
         present.i2c0BusSpeed_400 = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
-        present.battery_max17048 = true;
+        present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
 
@@ -857,7 +857,7 @@ void tickerStop()
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if (present.battery_max17048 == true)
+    if (present.fuelgauge_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
         if (lipo.begin(*i2c_0) == false)
@@ -892,7 +892,7 @@ void beginFuelGauge()
         }
     }
 #ifdef COMPILE_BQ40Z50
-    else if (present.battery_bq40z50 == true)
+    else if (present.fuelgauge_bq40z50 == true)
     {
         if (bq40z50Battery == nullptr)
             bq40z50Battery = new BQ40Z50;

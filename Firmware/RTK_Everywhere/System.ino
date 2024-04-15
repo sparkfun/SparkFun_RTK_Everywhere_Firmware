@@ -77,7 +77,7 @@ void updateBattery()
 
             checkBatteryLevels();
 
-            if (present.battery_bq40z50 == true)
+            if (present.fuelgauge_bq40z50 == true)
             {
                 // Turn on green battery LED if battery is above 50%
                 if (batteryLevelPercent > 50)
@@ -123,7 +123,7 @@ void checkBatteryLevels()
         return;
 
     // Get the battery voltage, level and charge rate
-    if (present.battery_max17048 == true)
+    if (present.fuelgauge_max17048 == true)
     {
         batteryLevelPercent = lipo.getSOC();
         batteryVoltage = lipo.getVoltage();
@@ -131,7 +131,7 @@ void checkBatteryLevels()
     }
 
 #ifdef COMPILE_BQ40Z50
-    else if (present.battery_bq40z50 == true)
+    else if (present.fuelgauge_bq40z50 == true)
     {
         batteryLevelPercent = bq40z50Battery->getRelativeStateOfCharge();
         batteryVoltage = (bq40z50Battery->getVoltageMv() / 1000.0);
@@ -800,7 +800,7 @@ bool isUsbAttached()
 // Return true if charger is actively charging
 bool isCharging()
 {
-    if (present.battery_max17048 == true && online.batteryFuelGauge == true)
+    if (present.fuelgauge_max17048 == true && online.batteryFuelGauge == true)
     {
         if (batteryChargingPercentPerHour >= -0.01)
             return true;
