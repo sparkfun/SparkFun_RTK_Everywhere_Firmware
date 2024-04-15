@@ -31,21 +31,32 @@ void menuCommands()
             auto field = tokens[1];
             if (tokens[2] == nullptr)
             {
-                updateSettingWithValue(field, "");
+                if (updateSettingWithValue(field, "") == true)
+                    systemPrintln("OK");
+                else
+                    systemPrintln("ERROR");
             }
             else
             {
                 auto value = tokens[2];
-                updateSettingWithValue(field, value);
+                if (updateSettingWithValue(field, value) == true)
+                    systemPrintln("OK");
+                else
+                    systemPrintln("ERROR");
             }
-            systemPrintln("OK");
         }
         else if (strcmp(tokens[0], "GET") == 0)
         {
             auto field = tokens[1];
-            getSettingValue(field, valueBuffer);
-            systemPrint(">");
-            systemPrintln(valueBuffer);
+            if (getSettingValue(field, valueBuffer) == true)
+            {
+                systemPrint(">");
+                systemPrintln(valueBuffer);
+            }
+            else
+            {
+                systemPrintln("ERROR"); // Machine interface expects a structured response, not verbose.
+            }
         }
         else if (strcmp(tokens[0], "CMD") == 0)
         {
@@ -83,7 +94,7 @@ void menuCommands()
 
 // Given a settingName, and string value, update a given setting
 // The order of variables matches the order found in settings.h
-void updateSettingWithValue(const char *settingName, const char *settingValueStr)
+bool updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
     char *ptr;
     double settingValue = strtod(settingValueStr, &ptr);
@@ -1075,10 +1086,15 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         // Last catch
         if (knownSetting == false)
         {
-            systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+            if (settings.debugWiFiConfig == true)
+                systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+
+            return (false);
         }
 
     } // End last strcpy catch
+
+    return (true);
 }
 
 // Create a csv string with current settings
@@ -1103,12 +1119,12 @@ void createSettingsString(char *newSettings)
     if (gnssPlatform == PLATFORM_ZED)
     {
         snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
-                gnssFirmwareVersion, gnssUniqueId);
+                 gnssFirmwareVersion, gnssUniqueId);
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s",
-                gnssFirmwareVersion, gnssUniqueId);
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s", gnssFirmwareVersion,
+                 gnssUniqueId);
     }
     else if (gnssPlatform == PLATFORM_MOSAIC)
     {
@@ -1472,8 +1488,7 @@ void createSettingsString(char *newSettings)
 
     for (int r = 0; r < numRegionalAreas; r++)
     {
-        stringRecordN(newSettings, "regionalCorrectionTopics", r,
-                      &settings.regionalCorrectionTopics[r][0]);
+        stringRecordN(newSettings, "regionalCorrectionTopics", r, &settings.regionalCorrectionTopics[r][0]);
     }
     stringRecord(newSettings, "debugEspNow", settings.debugEspNow);
 
@@ -1786,7 +1801,7 @@ void writeToString(char *settingValueStr, char *value)
 // Given a settingName, create a string with setting value
 // Used in conjunction with the command line interface
 // The order of variables matches the order found in settings.h
-void getSettingValue(const char *settingName, char *settingValueStr)
+bool getSettingValue(const char *settingName, char *settingValueStr)
 {
     if (strcmp(settingName, "printDebugMessages") == 0)
         writeToString(settingValueStr, settings.printDebugMessages);
@@ -2208,7 +2223,7 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         writeToString(settingValueStr, settings.correctionsSourcesLifetime_s);
-        
+
     else if (strcmp(settingName, "debugEspNow") == 0)
         writeToString(settingValueStr, settings.debugEspNow);
 
@@ -2433,10 +2448,15 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
         if (knownSetting == false)
         {
-            systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
+            if (settings.debugWiFiConfig)
+                systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
+
+            return (false); // Failed to identify this command
         }
 
     } // End last strcpy catch
+
+    return (true);
 }
 
 // List available settings and their type in CSV
@@ -2499,7 +2519,8 @@ void printAvailableSettings()
     systemPrint("autoKeyRenewal,bool,");
     systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
     systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));
-    systemPrintf("pointPerfectKeyDistributionTopic,char[%d],", sizeof(settings.pointPerfectKeyDistributionTopic) / sizeof(char));
+    systemPrintf("pointPerfectKeyDistributionTopic,char[%d],",
+                 sizeof(settings.pointPerfectKeyDistributionTopic) / sizeof(char));
     systemPrintf("pointPerfectCurrentKey,char[%d],", sizeof(settings.pointPerfectCurrentKey) / sizeof(char));
     systemPrint("pointPerfectCurrentKeyDuration,uint64_t,");
     systemPrint("pointPerfectCurrentKeyStart,uint64_t,");
