@@ -93,9 +93,9 @@ void updateBattery()
         {
             lastBatteryChargerUpdate = millis();
 
-            // If power cable is attached, and charging has stopped, we and are below 7V, then re-enable trickle charge
+            // If the power cable is attached, and charging has stopped, and we are below 7V, then re-enable trickle charge
             // This is likely because the 1-hour trickle charge limit has been reached
-            // Reset charger. See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
+            // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
 
             if (isUsbAttached() == true)
             {
