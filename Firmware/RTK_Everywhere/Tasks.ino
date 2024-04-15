@@ -1435,7 +1435,8 @@ void buttonCheckTask(void *e)
                     // Announce powering down
                     beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
 
-                    delay(500); //We will be shutting off during this delay but this prevents another beepMultiple() from firing
+                    delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
+                                // from firing
                 }
             }
         } // End productVariant == Torch
