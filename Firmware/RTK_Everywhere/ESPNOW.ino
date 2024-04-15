@@ -189,7 +189,7 @@ void espnowStart()
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
 
     //Assign channel
-    esp_err_t response = esp_wifi_set_channel(settings.wifiChannel, WIFI_SECOND_CHAN_NONE);
+    response = esp_wifi_set_channel(settings.wifiChannel, WIFI_SECOND_CHAN_NONE);
     if (response != ESP_OK)
     {
         char responseString[100];
@@ -589,7 +589,7 @@ uint8_t espnowGetChannel()
     uint8_t primaryChannelNumber = 0;
     uint8_t secondaryChannelNumber = 0;
 
-    esp_err_t response = esp_wifi_get_channel(&primaryChannelNumber, &secondaryChannelNumber);
+    esp_err_t response = esp_wifi_get_channel(primaryChannelNumber, secondaryChannelNumber);
     if (response != ESP_OK)
     {
         char responseString[100];
