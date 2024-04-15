@@ -1421,7 +1421,7 @@ struct struct_online
     bool serialOutput = false;
     bool fs = false;
     bool rtc = false;
-    bool battery = false;
+    bool batteryFuelGauge = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
     bool lband = false;

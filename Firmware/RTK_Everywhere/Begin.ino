@@ -841,7 +841,7 @@ void tickerBegin()
     }
 }
 
-//Stop any ticker tasks and PWM control
+// Stop any ticker tasks and PWM control
 void tickerStop()
 {
     bluetoothLedTask.detach();
@@ -865,7 +865,7 @@ void beginFuelGauge()
             return;
         }
 
-        online.battery = true;
+        online.batteryFuelGauge = true;
 
         // Always use hibernate mode
         if (lipo.getHIBRTActThr() < 0xFF)
@@ -910,7 +910,7 @@ void beginFuelGauge()
             return;
         }
 
-        online.battery = true;
+        online.batteryFuelGauge = true;
 
         systemPrintln("Fuel gauge configuration complete");
 
@@ -1027,7 +1027,6 @@ void beginSystemState()
         // We should really restructure things so we use online.corrections...
         if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED;
-
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {

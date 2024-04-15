@@ -1566,7 +1566,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "logFileName", logFileName);
 
     // Add battery level and icon file name
-    if (online.battery == false) // Product has no battery
+    if (online.batteryFuelGauge == false) // Product has no battery
     {
         stringRecord(newSettings, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(newSettings, "batteryPercent", (char *)" ");

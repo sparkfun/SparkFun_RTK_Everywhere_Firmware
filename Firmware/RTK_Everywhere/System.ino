@@ -64,15 +64,15 @@ void beepOff()
         digitalWrite(pin_beeper, LOW);
 }
 
-// Update Battery level LEDs every 5s
+// Update battery levels every 5 seconds
 void updateBattery()
 {
-    if (online.battery == true)
+    if (online.batteryFuelGauge == true)
     {
-        static unsigned long lastBattUpdate = 0;
-        if (millis() - lastBattUpdate > 5000)
+        static unsigned long lastBatteryFuelGaugeUpdate = 0;
+        if (millis() - lastBatteryFuelGaugeUpdate > 5000)
         {
-            lastBattUpdate = millis();
+            lastBatteryFuelGaugeUpdate = millis();
 
             checkBatteryLevels();
 
@@ -90,7 +90,7 @@ void updateBattery()
 // And outputs a serial message to USB
 void checkBatteryLevels()
 {
-    if (online.battery == false)
+    if (online.batteryFuelGauge == false)
         return;
 
     // Get the battery voltage, level and charge rate
@@ -764,7 +764,7 @@ bool isCharging()
             return false;
         return true;
     }
-    else if (present.battery_max17048 == true && online.battery == true)
+    else if (present.battery_max17048 == true && online.batteryFuelGauge == true)
     {
         if (batteryChargingPercentPerHour >= -0.01)
             return true;
