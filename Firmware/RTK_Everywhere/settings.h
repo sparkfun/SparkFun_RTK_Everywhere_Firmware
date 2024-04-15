@@ -1393,6 +1393,7 @@ struct struct_present
 
     bool battery_max17048 = false;
     bool battery_bq40z50 = false;
+    bool charger_mp2762a = false;
 
     bool beeper = false;
     bool encryption_atecc608a = false;
@@ -1447,6 +1448,7 @@ struct struct_online
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
     bool ppl = false;
+    bool batteryCharger = false;
 } online;
 
 #ifdef COMPILE_WIFI

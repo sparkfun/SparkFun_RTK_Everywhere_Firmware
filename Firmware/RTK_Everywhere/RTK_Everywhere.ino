@@ -746,7 +746,7 @@ unsigned long beepCount; // Number of beeps to do
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 38
+#define MAX_BOOT_TIME_ENTRIES 39
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1011,6 +1011,9 @@ void setup()
 
     DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
+
+    DMW_b("beginCharger");
+    beginCharger(); // Configure battery charger
 
     DMW_b("gnssConfigure");
     gnssConfigure(); // Requires settings. Configure ZED module

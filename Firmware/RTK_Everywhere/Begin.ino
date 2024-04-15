@@ -133,6 +133,7 @@ void beginBoard()
         present.psram_2mb = true;
         present.radio_lora = true;
         present.battery_bq40z50 = true;
+        present.charger_mp2762a = true;
         present.encryption_atecc608a = true;
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
@@ -937,6 +938,34 @@ void beginFuelGauge()
         }
     }
 #endif // COMPILE_BQ40Z50
+}
+
+// Configure the battery charger IC
+void beginCharger()
+{
+    if (present.charger_mp2762a == true)
+    {
+        // Set pre-charge defaults for the MP2762A
+        // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
+        if (mp2762Begin(i2c_0) == true)
+        {
+            // Resetting registers to defaults
+            mp2762registerReset();
+
+            // Setting FastCharge to 6.6V
+            mp2762setFastChargeVoltageMv(6600);
+
+            // Setting precharge current to 880mA
+            mp2762setPrechargeCurrentMa(880);
+
+            systemPrintln("Charger configuration complete");
+            online.batteryCharger = true;
+        }
+        else
+        {
+            systemPrintln("MP2762A charger failed to initialize");
+        }
+    }
 }
 
 void beginButtons()
