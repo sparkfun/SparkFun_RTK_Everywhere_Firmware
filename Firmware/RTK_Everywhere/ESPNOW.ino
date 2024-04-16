@@ -188,14 +188,9 @@ void espnowStart()
 
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
 
-    //Assign channel
-    response = esp_wifi_set_channel(settings.wifiChannel, WIFI_SECOND_CHAN_NONE);
-    if (response != ESP_OK)
-    {
-        char responseString[100];
-        esp_err_to_name_r(response, responseString, sizeof(responseString));
-        systemPrintf("setChannel failed: %s\r\n", responseString);
-    }
+    // Assign channel if not connected to an AP
+    if (wifiIsConnected() == false)
+        espnowSetChannel(settings.wifiChannel);
 
     // Register callbacks
     // esp_now_register_send_cb(espnowOnDataSent);
@@ -586,17 +581,37 @@ uint8_t espnowGetChannel()
 #ifdef COMPILE_ESPNOW
     if (espnowState == ESPNOW_OFF)
         return 0;
-    uint8_t primaryChannelNumber = 0;
-    uint8_t secondaryChannelNumber = 0;
 
-    esp_err_t response = esp_wifi_get_channel(primaryChannelNumber, secondaryChannelNumber);
+    uint8_t primaryChannelNumber = 0;
+    wifi_second_chan_t secondaryChannelNumber;
+
+    esp_err_t response = esp_wifi_get_channel(&primaryChannelNumber, &secondaryChannelNumber);
+    if (response != ESP_OK)
+        systemPrintf("getChannel failed: %s\r\n", esp_err_to_name(response));
+    return (primaryChannelNumber);
+#else
+    return (0);
+#endif
+}
+
+// Returns the current channel being used by WiFi
+bool espnowSetChannel(uint8_t channelNumber)
+{
+#ifdef COMPILE_ESPNOW
+    if (wifiIsConnected() == true)
+    {
+        systemPrintln("ESP-NOW channel can't be modified while WiFi is connected.");
+        return (false);
+    }
+
+    esp_err_t response = esp_wifi_set_channel(channelNumber, WIFI_SECOND_CHAN_NONE);
     if (response != ESP_OK)
     {
-        char responseString[100];
-        esp_err_to_name_r(response, responseString, sizeof(responseString));
-        systemPrintf("getChannel failed: %s\r\n", responseString);
+        systemPrintf("setChannel to %d failed: %s\r\n", channelNumber, esp_err_to_name(response));
+        return (false);
     }
-    return (primaryChannelNumber);
-
+    return (true);
+#else
+    return (false);
 #endif
 }
