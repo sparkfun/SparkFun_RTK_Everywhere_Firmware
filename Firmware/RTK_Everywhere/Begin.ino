@@ -1299,7 +1299,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     return true;
 }
 
-// Depending on radio selection, begin hardware
+// Depending on radio settings, begin hardware
 void radioStart()
 {
     if (settings.enableEspNow == true)

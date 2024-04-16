@@ -473,6 +473,12 @@ void menuRadio()
         if (incoming == 1)
         {
             settings.enableEspNow ^= 1;
+
+            //Start ESP-NOW so that getChannel runs correctly
+            if(settings.enableEspNow == true)
+                espnowStart();
+            else
+                espnowStop();
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {

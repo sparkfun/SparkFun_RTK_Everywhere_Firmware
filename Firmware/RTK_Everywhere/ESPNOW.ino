@@ -174,6 +174,8 @@ void espnowStart()
             systemPrintln("ESP-Now already on.");
     }
 
+    WiFi.setSleep(false); //We must disable sleep so that ESP-NOW can readily receive packets
+
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK)
     {
@@ -582,12 +584,26 @@ uint8_t espnowGetChannel()
     if (espnowState == ESPNOW_OFF)
         return 0;
 
+    bool originalPromiscuousMode = false;
+    esp_err_t response = esp_wifi_get_promiscuous(&originalPromiscuousMode);
+    if (response != ESP_OK)
+        systemPrintf("getPromiscuous failed: %s\r\n", esp_err_to_name(response));
+
+    // We must be in promiscuous mode to get the channel number
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(true);
+
     uint8_t primaryChannelNumber = 0;
     wifi_second_chan_t secondaryChannelNumber;
 
-    esp_err_t response = esp_wifi_get_channel(&primaryChannelNumber, &secondaryChannelNumber);
+    response = esp_wifi_get_channel(&primaryChannelNumber, &secondaryChannelNumber);
     if (response != ESP_OK)
         systemPrintf("getChannel failed: %s\r\n", esp_err_to_name(response));
+
+    // Return to the original mode
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(false);
+
     return (primaryChannelNumber);
 #else
     return (0);
@@ -604,13 +620,27 @@ bool espnowSetChannel(uint8_t channelNumber)
         return (false);
     }
 
-    esp_err_t response = esp_wifi_set_channel(channelNumber, WIFI_SECOND_CHAN_NONE);
+    bool originalPromiscuousMode = false;
+    esp_err_t response = esp_wifi_get_promiscuous(&originalPromiscuousMode);
     if (response != ESP_OK)
-    {
+        systemPrintf("getPromiscuous failed: %s\r\n", esp_err_to_name(response));
+
+    // We must be in promiscuous mode to set the channel number
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(true);
+
+    bool setSuccess = false;
+    response = esp_wifi_set_channel(channelNumber, WIFI_SECOND_CHAN_NONE);
+    if (response != ESP_OK)
         systemPrintf("setChannel to %d failed: %s\r\n", channelNumber, esp_err_to_name(response));
-        return (false);
-    }
-    return (true);
+    else
+        setSuccess = true;
+
+    // Return to the original mode
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(false);
+
+    return (setSuccess);
 #else
     return (false);
 #endif
