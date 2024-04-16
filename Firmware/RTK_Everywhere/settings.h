@@ -1025,22 +1025,7 @@ struct Settings
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
 
-    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
-    bool enableHeapReport = false;                        // Turn on to display free heap
-    bool enableTaskReports = false;                       // Turn on to display task high water marks
-    bool enableLogging = true;                            // If an SD card is present, log default sentences
-    bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
-    uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
-    uint16_t sppRxQueueSize = 512 * 4;
-    uint16_t sppTxQueueSize = 32;
-
     bool enableSD = true;
-    uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
-    muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
-    SystemState lastState = STATE_NOT_SET; // Start unit in last known state
-    bool enableResetDisplay = false;
-    int resetCount = 0;
-
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int observationSeconds = 60;             // Default survey in time of 60 seconds
@@ -1060,7 +1045,20 @@ struct Settings
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
+    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
+    bool enableHeapReport = false;                        // Turn on to display free heap
+    bool enableTaskReports = false;                       // Turn on to display task high water marks
+    muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
+    uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
+    bool enableLogging = true;                            // If an SD card is present, log default sentences
+    bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
+    uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
+    uint16_t sppRxQueueSize = 512 * 4;
+    uint16_t sppTxQueueSize = 32;
     uint8_t dynamicModel = DYN_MODEL_PORTABLE;
+    SystemState lastState = STATE_NOT_SET; // Start unit in last known state
+    bool enableResetDisplay = false;
+    int resetCount = 0;
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
     uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
@@ -1126,7 +1124,6 @@ struct Settings
     bool enablePrintStates = true;
     bool enablePrintDuplicateStates = false;
     bool enablePrintRtcSync = false;
-    RadioType_e radioType = RADIO_EXTERNAL;
     uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
@@ -1355,7 +1352,9 @@ struct Settings
     };
 
     bool debugEspNow = false;
-    
+    bool enableEspNow = false;
+    uint8_t wifiChannel = 1; //Valid channels are 1 to 14
+
     // Add new settings above <------------------------------------------------------------>
     // Then also add to rtkSettingsEntries below
 
@@ -1375,12 +1374,10 @@ typedef enum {
     _muxConnectionType_e,
     _SystemState,
     _pulseEdgeType_e,
-    _RadioType_e,
     _BluetoothRadioType_e,
     _PeriodicDisplay_t,
     _CoordinateInputType,
     _charArray,
-    _uint8_t_2Darray,
     _IPString,
 } RTK_Settings_Types;
 
@@ -1388,59 +1385,53 @@ typedef struct {
     void *var;
     const char *name;
     const RTK_Settings_Types type;
-    const int arraySizeX;
-    const int arraySizeY;
+    const int qualifier1;
+    const int qualifier2;
 } RTK_Settings_Entry;
+
+enum Settings_float_Precision {
+    noPrecision = 0,
+    point1float,
+    point2float,
+    point3float,
+    point4float,
+    point9float = 9,
+};
 
 const RTK_Settings_Entry rtkSettingsEntries[] = {
 
+    { & settings.enableSD, "enableSD", _bool },
+    { & settings.maxLogTime_minutes, "maxLogTime_minutes", _int },
+    { & settings.maxLogLength_minutes, "maxLogLength_minutes", _int },
+    { & settings.observationSeconds, "observationSeconds", _int },
+    { & settings.observationPositionAccuracy, "observationPositionAccuracy", _float, point2float },
+    { & settings.fixedBase, "baseTypeFixed", _bool }, // Note: name mismatch
+    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateTypeLLH", _bool }, // Note: name changed to match inverted settingsValue
+    { & settings.fixedEcefX, "fixedEcefX", _double, point3float },
+    { & settings.fixedEcefY, "fixedEcefY", _double, point3float },
+    { & settings.fixedEcefZ, "fixedEcefZ", _double, point3float },
+    { & settings.fixedLat, "fixedLat", _double, point9float }, // TODO: fixedLatText
+    { & settings.fixedLong, "fixedLong", _double, point9float }, // TODO: fixedLongText
+    { & settings.fixedAltitude, "fixedAltitude", _double, point4float },
+    { & settings.dataPortBaud, "dataPortBaud", _uint32_t },
+    { & settings.radioPortBaud, "radioPortBaud", _uint32_t },
+    { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float, point1float },
+    { & settings.measurementRate, "measurementRateHz", _uint16_t }, // TODO: convert from Hz; removeFile(stationCoordinateECEFFileName); removeFile(stationCoordinateGeodeticFileName);
+    { & settings.navigationRate, "navigationRate", _uint16_t },
     { & settings.debugGnss, "debugGnss", _bool },
     { & settings.enableHeapReport, "enableHeapReport", _bool },
     { & settings.enableTaskReports, "enableTaskReports", _bool },
+    { & settings.dataPortChannel, "dataPortChannel", _muxConnectionType_e },
+    { & settings.spiFrequency, "spiFrequency", _uint16_t },
     { & settings.enableLogging, "enableLogging", _bool },
     { & settings.enableARPLogging, "enableARPLogging", _bool },
     { & settings.ARPLoggingInterval_s, "ARPLoggingInterval_s", _uint16_t },
     { & settings.sppRxQueueSize, "sppRxQueueSize", _uint16_t },
     { & settings.sppTxQueueSize, "sppTxQueueSize", _uint16_t },
-
-    { & settings.enablePrintState, "enablePrintState", _bool },
-    { & settings.enablePrintPosition, "enablePrintPosition", _bool },
-    { & settings.enablePrintIdleTime, "enablePrintIdleTime", _bool },
-    { & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", _bool },
-    { & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", _bool },
-    { & settings.enablePrintBadMessages, "enablePrintBadMessages", _bool },
-    { & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages", _bool },
-    { & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus", _bool },
-    { & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets", _bool },
-    { & settings.enablePrintStates, "enablePrintStates", _bool },
-    { & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", _bool },
-    { & settings.enablePrintRtcSync, "enablePrintRtcSync", _bool },
-
-    { & settings.enableSD, "enableSD", _bool },
-    { & settings.spiFrequency, "spiFrequency", _uint16_t },
-    { & settings.dataPortChannel, "dataPortChannel", _muxConnectionType_e },
+    { & settings.dynamicModel, "dynamicModel", _uint8_t },
     { & settings.lastState, "lastState", _SystemState },
     { & settings.enableResetDisplay, "enableResetDisplay", _bool },
     { & settings.resetCount, "resetCount", _int },
-
-    { & settings.maxLogTime_minutes, "maxLogTime_minutes", _int },
-    { & settings.maxLogLength_minutes, "maxLogLength_minutes", _int },
-    { & settings.observationSeconds, "observationSeconds", _int },
-    { & settings.observationPositionAccuracy, "observationPositionAccuracy", _float },
-    { & settings.fixedBase, "baseTypeFixed", _bool }, // Note: name mismatch
-    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateTypeLLH", _bool }, // Note: name changed to match inverted settingsValue
-    { & settings.fixedEcefX, "fixedEcefX", _double },
-    { & settings.fixedEcefY, "fixedEcefY", _double },
-    { & settings.fixedEcefZ, "fixedEcefZ", _double },
-    { & settings.fixedLat, "fixedLat", _double }, // TODO: fixedLatText
-    { & settings.fixedLong, "fixedLong", _double }, // TODO: fixedLongText
-    { & settings.fixedAltitude, "fixedAltitude", _double },
-    { & settings.dataPortBaud, "dataPortBaud", _uint32_t },
-    { & settings.radioPortBaud, "radioPortBaud", _uint32_t },
-    { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float },
-    { & settings.measurementRate, "measurementRateHz", _uint16_t }, // TODO: convert from Hz; removeFile(stationCoordinateECEFFileName); removeFile(stationCoordinateGeodeticFileName);
-    { & settings.navigationRate, "navigationRate", _uint16_t },
-    { & settings.dynamicModel, "dynamicModel", _uint8_t },
     { & settings.enableExternalPulse, "enableExternalPulse", _bool },
     { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse_us", _uint64_t },
     { & settings.externalPulseLength_us, "externalPulseLength_us", _uint64_t },
@@ -1480,15 +1471,28 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.timeZoneMinutes, "timeZoneMinutes", _int8_t },
     { & settings.timeZoneSeconds, "timeZoneSeconds", _int8_t },
 
-    { & settings.radioType, "radioType", _RadioType_e },
-    { & settings.espnowPeers, "espnowPeers", _uint8_t_2Darray, sizeof(settings.espnowPeers) / sizeof(settings.espnowPeers[0]), sizeof(settings.espnowPeers[0]) },
+    { & settings.enablePrintState, "enablePrintState", _bool },
+    { & settings.enablePrintPosition, "enablePrintPosition", _bool },
+    { & settings.enablePrintIdleTime, "enablePrintIdleTime", _bool },
+    { & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", _bool },
+    { & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", _bool },
+    { & settings.enablePrintBadMessages, "enablePrintBadMessages", _bool },
+    { & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages", _bool },
+    { & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus", _bool },
+    { & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets", _bool },
+    { & settings.enablePrintStates, "enablePrintStates", _bool },
+    { & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", _bool },
+    { & settings.enablePrintRtcSync, "enablePrintRtcSync", _bool },
+
+    // espnowPeers is handled separately
+
     { & settings.espnowPeerCount, "espnowPeerCount", _uint8_t }, // TODO: forgetEspNowPeers & espnowRemovePeer
     { & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", _bool },
     { & settings.bluetoothRadioType, "bluetoothRadioType", _BluetoothRadioType_e },
     { & settings.runLogTest, "runLogTest", _bool },
     { & settings.espnowBroadcast, "espnowBroadcast", _bool },
     { & settings.antennaHeight, "antennaHeight", _int16_t },
-    { & settings.antennaReferencePoint, "antennaReferencePoint", _float },
+    { & settings.antennaReferencePoint, "antennaReferencePoint", _float, point2float },
     { & settings.echoUserInput, "echoUserInput", _bool },
     { & settings.uartReceiveBufferSize, "uartReceiveBufferSize", _int },
     { & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", _int },
@@ -1597,7 +1601,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
 
     { & settings.minCNO_um980, "minCNO_um980", _int16_t },
     { & settings.enableTiltCompensation, "enableTiltCompensation", _bool },
-    { & settings.tiltPoleLength, "tiltPoleLength", _float },
+    { & settings.tiltPoleLength, "tiltPoleLength", _float, point2float },
     { & settings.enableImuDebug, "enableImuDebug", _bool },
 
     { & settings.debugFirmwareUpdate, "debugFirmwareUpdate", _bool },
@@ -1617,7 +1621,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enablePsram, "enablePsram", _bool },
     { & settings.printTaskStartStop, "printTaskStartStop", _bool },
     { & settings.psramMallocLevel, "psramMallocLevel", _uint16_t },
-    { & settings.um980SurveyInStartingAccuracy, "um980SurveyInStartingAccuracy", _float },
+    { & settings.um980SurveyInStartingAccuracy, "um980SurveyInStartingAccuracy", _float, point1float },
     { & settings.enableBeeper, "enableBeeper", _bool },
     { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t },
     { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool },

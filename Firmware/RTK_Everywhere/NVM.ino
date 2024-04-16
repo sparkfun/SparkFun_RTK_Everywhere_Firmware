@@ -180,7 +180,166 @@ void recordSystemSettingsToFile(File *settingsFile)
 {
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
-    
+
+
+    // Loop through the 'easy' single entries
+    for (int i = 0; i < numRtkSettingsEntries; i++)
+    {
+        switch (rtkSettingsEntries[i].type)
+        {
+            default:
+                break;
+            case _bool:
+                {
+                    bool *ptr = (bool *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _int:
+                {
+                    int *ptr = (int *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _float:
+                {
+                    float *ptr = (float *)rtkSettingsEntries[i].var;
+                    switch (rtkSettingsEntries[i].qualifier1)
+                    {
+                        case point1float:
+                            settingsFile->printf("%s=%0.1f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        default:
+                        case point2float:
+                            settingsFile->printf("%s=%0.2f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        case point3float:
+                            settingsFile->printf("%s=%0.3f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        case point4float:
+                            settingsFile->printf("%s=%0.4f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        case point9float:
+                            settingsFile->printf("%s=%0.9f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                    }
+                }
+                break;
+            case _double:
+                {
+                    double *ptr = (double *)rtkSettingsEntries[i].var;
+                    switch (rtkSettingsEntries[i].qualifier1)
+                    {
+                        case point1float:
+                            settingsFile->printf("%s=%0.1f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        default:
+                        case point2float:
+                            settingsFile->printf("%s=%0.2f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        case point3float:
+                            settingsFile->printf("%s=%0.3f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        case point4float:
+                            settingsFile->printf("%s=%0.4f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                        case point9float:
+                            settingsFile->printf("%s=%0.9f\r\n", rtkSettingsEntries[i].name, *ptr);
+                            break;
+                    }
+                }
+                break;
+            case _uint8_t:
+                {
+                    uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _uint16_t:
+                {
+                    uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _uint32_t:
+                {
+                    uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _uint64_t:
+                {
+                    uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _int8_t:
+                {
+                    int8_t *ptr = (int8_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _int16_t:
+                {
+                    int16_t *ptr = (int16_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, *ptr);
+                }
+                break;
+            case _muxConnectionType_e:
+                {
+                    muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+                }
+                break;
+            case _SystemState:
+                {
+                    SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+                }
+                break;
+            case _pulseEdgeType_e:
+                {
+                    pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+                }
+                break;
+            case _BluetoothRadioType_e:
+                {
+                    BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+                }
+                break;
+            case _PeriodicDisplay_t:
+                {
+                    PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+                }
+                break;
+            case _CoordinateInputType:
+                {
+                    CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%d\r\n", rtkSettingsEntries[i].name, (int)*ptr);
+                }
+                break;
+            case _charArray:
+                {
+                    char *ptr = (char *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr);
+                }
+                break;
+            case _IPString:
+                {
+                    IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
+                    settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
+                }
+                break;
+        }
+    }
+
+
+
+
+
     settingsFile->printf("%s=%d\r\n", "enableSD", settings.enableSD);
     settingsFile->printf("%s=%d\r\n", "maxLogTime_minutes", settings.maxLogTime_minutes);
     settingsFile->printf("%s=%d\r\n", "maxLogLength_minutes", settings.maxLogLength_minutes);

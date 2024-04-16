@@ -127,6 +127,15 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         }
     }
 
+    // espnowPeers
+    else if (sscanf(settingName, "espnowPeerMAC%d", &scratch) == 1)
+    {
+        String tempString = String(settingValueStr);
+        IPAddress *ptr = (IPAddress *)&settings.espnowPeers[scratch];
+        ptr->fromString(tempString);
+        knownSetting = true;
+    }
+
     // ubxMessageRatesBase
     else if (sscanf(settingName, "messageBase.%50[^.].msgRate", scratchpad) == 1)
     {
@@ -354,13 +363,6 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
                             knownSetting = true;
                         }
                         break;
-                    case _RadioType_e:
-                        {
-                            RadioType_e *ptr = (RadioType_e *)rtkSettingsEntries[i].var;
-                            *ptr = (RadioType_e)settingValue;
-                            knownSetting = true;
-                        }
-                        break;
                     case _BluetoothRadioType_e:
                         {
                             BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
@@ -385,20 +387,9 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
                     case _charArray:
                         {
                             char *ptr = (char *)rtkSettingsEntries[i].var;
-                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].arraySizeX);
-                            for (int i = strlen(settingValueStr); i < rtkSettingsEntries[i].arraySizeX; i++)
+                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].qualifier1);
+                            for (int i = strlen(settingValueStr); i < rtkSettingsEntries[i].qualifier1; i++)
                                 *ptr++ = 0;
-                            knownSetting = true;
-                        }
-                        break;
-                    case _uint8_t_2Darray:
-                        {
-                            uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
-                            for (int i = 0; i < rtkSettingsEntries[i]. arraySizeX; i++)
-                            {
-                                memcpy(ptr, settingValueStr, rtkSettingsEntries[i].arraySizeY);
-                                ptr += rtkSettingsEntries[i]. arraySizeY;
-                            }
                             knownSetting = true;
                         }
                         break;
