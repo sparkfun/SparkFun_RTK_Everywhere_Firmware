@@ -84,6 +84,7 @@ void menuCommands()
 // Given a settingName, and string value, update a given setting
 void updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
+    
     char *ptr;
     double settingValue = strtod(settingValueStr, &ptr);
 
@@ -92,19 +93,159 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     if (strcmp(settingValueStr, "false") == 0)
         settingValue = 0;
 
-    // Trap the special cases first. The test is fast. Test now, not after the for loop.
+    bool knownSetting = false;
 
-    //uint8_t ubxMessageRates[MAX_UBX_MSG] - message.%s.msgRate
-    char messageName[50];
-    if (sscanf(settingName, "message.%[^.].msgRate", messageName) == 1)
+    // Trap the special cases first. The test is fast. Test before, not after the big for loop.
+
+    // ubxMessageRates
+    char scratchpad[51];
+    int scratch;
+    if (sscanf(settingName, "message.%50[^.].msgRate", scratchpad) == 1)
     {
         for (int i = 0; i < MAX_UBX_MSG; i++)
         {
-            if ((messageName[0] == settingName[0]) && strcmp(messageName, settingName) == 0)
+            if ((scratchpad[0] == ubxMessages[i].msgTextName[0]) && (strcmp(scratchpad, ubxMessages[i].msgTextName) == 0))
             {
                 settings.ubxMessageRates[i] = (uint8_t)settingValue;
+                knownSetting = true;
+                break;
             }
         }
+    }
+
+    // ubxConstellations
+    else if (sscanf(settingName, "ubxConstellations%50s", scratchpad) == 1)
+    {
+        for (int i = 0; i < MAX_CONSTELLATIONS; i++)
+        {
+            if ((scratchpad[0] == settings.ubxConstellations[i].textName[0]) && (strcmp(scratchpad, settings.ubxConstellations[i].textName) == 0))
+            {
+                settings.ubxConstellations[i].enabled = settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+    }
+
+    // ubxMessageRatesBase
+    else if (sscanf(settingName, "messageBase.%50[^.].msgRate", scratchpad) == 1)
+    {
+        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+
+        for (int i = 0; i < MAX_UBX_MSG_RTCM; i++)
+        {
+            if ((scratchpad[0] == ubxMessages[firstRTCMRecord + i].msgTextName[0]) && (strcmp(scratchpad, ubxMessages[firstRTCMRecord + i].msgTextName) == 0))
+            {
+                settings.ubxMessageRatesBase[i] = (uint8_t)settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+    }
+
+    // wifiNetworks
+    else if (sscanf(settingName, "wifiNetwork%dSSID", &scratch) == 1)
+    {
+        strncpy(settings.wifiNetworks[scratch].ssid, settingValueStr, sizeof(settings.wifiNetworks[0].ssid));
+        knownSetting = true;
+    }
+    else if (sscanf(settingName, "wifiNetwork%dPassword", &scratch) == 1)
+    {
+        strncpy(settings.wifiNetworks[scratch].password, settingValueStr, sizeof(settings.wifiNetworks[0].password));
+        knownSetting = true;
+    }
+
+    // NTRIP
+    else if (sscanf(settingName, "ntripServer_CasterHost_%d", &scratch) == 1)
+    {
+        strncpy(&settings.ntripServer_CasterHost[scratch][0], settingValueStr, sizeof(settings.ntripServer_CasterHost[scratch]));
+        knownSetting = true;
+    }
+    else if (sscanf(settingName, "ntripServer_CasterPort_%d", &scratch) == 1)
+    {
+        settings.ntripServer_CasterPort[scratch] = settingValue;
+        knownSetting = true;
+    }
+    else if (sscanf(settingName, "ntripServer_CasterUser_%d", &scratch) == 1)
+    {
+        strncpy(&settings.ntripServer_CasterUser[scratch][0], settingValueStr, sizeof(settings.ntripServer_CasterUser[scratch]));
+        knownSetting = true;
+    }
+    else if (sscanf(settingName, "ntripServer_CasterUserPW_%d", &scratch) == 1)
+    {
+        strncpy(&settings.ntripServer_CasterUserPW[scratch][0], settingValueStr, sizeof(settings.ntripServer_CasterUserPW[scratch]));
+        knownSetting = true;
+    }
+    else if (sscanf(settingName, "ntripServer_MountPoint_%d", &scratch) == 1)
+    {
+        strncpy(&settings.ntripServer_MountPoint[scratch][0], settingValueStr, sizeof(settings.ntripServer_MountPoint[scratch]));
+        knownSetting = true;
+    }
+    else if (sscanf(settingName, "ntripServer_MountPointPW_%d", &scratch) == 1)
+    {
+        strncpy(&settings.ntripServer_MountPointPW[scratch][0], settingValueStr, sizeof(settings.ntripServer_MountPointPW[scratch]));
+        knownSetting = true;
+    }
+
+    // um980MessageRatesNMEA.GPDTM=0.05
+    else if (sscanf(settingName, "um980MessageRatesNMEA.%50s", scratchpad) == 1)
+    {
+        for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+        {
+            if ((scratchpad[0] == umMessagesNMEA[x].msgTextName[0]) && (strcmp(scratchpad, umMessagesNMEA[x].msgTextName) == 0))
+            {
+                settings.um980MessageRatesNMEA[x] = settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+    }
+    // um980MessageRatesRTCMRover.RTCM1001=0.2
+    else if (sscanf(settingName, "um980MessageRatesRTCMRover.%50s", scratchpad) == 1)
+    {
+        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+        {
+            if ((scratchpad[0] == umMessagesRTCM[x].msgTextName[0]) && (strcmp(scratchpad, umMessagesRTCM[x].msgTextName) == 0))
+            {
+                settings.um980MessageRatesRTCMRover[x] = settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+    }
+    // Scan for UM980 Constellation settings
+    else if (sscanf(settingName, "um980Constellations.%50s", scratchpad) == 1)
+    {
+        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+        {
+            if ((scratchpad[0] == um980ConstellationCommands[x].textName[0]) && (strcmp(scratchpad, um980ConstellationCommands[x].textName) == 0))
+            {
+                settings.um980Constellations[x] = settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+    }
+
+    // Scan for corrections priorities
+    else if (sscanf(settingName, "correctionsPriority.%50s", scratchpad) == 1)
+    {
+        for (int x = 0; x < correctionsSource::CORR_NUM; x++)
+        {
+            if ((scratchpad[0] == correctionsSourceNames[x][0]) && (strcmp(scratchpad, correctionsSourceNames[x]) == 0))
+            {
+                settings.correctionsSourcesPriority[x] = settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+    }
+
+    // Scan for regionalCorrectionTopics
+    else if (sscanf(settingName, "regionalCorrectionTopics_%d", &scratch) == 1)
+    {
+        strncpy(&settings.regionalCorrectionTopics[scratch][0], settingValueStr, sizeof(settings.regionalCorrectionTopics[0]));
+        knownSetting = true;
     }
 
     else
@@ -126,72 +267,147 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
                         {
                             bool *ptr = (bool *)rtkSettingsEntries[i].var;
                             *ptr = (bool)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _int:
                         {
                             int *ptr = (int *)rtkSettingsEntries[i].var;
                             *ptr = (int)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _float:
                         {
                             float *ptr = (float *)rtkSettingsEntries[i].var;
                             *ptr = (float)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _double:
                         {
                             double *ptr = (double *)rtkSettingsEntries[i].var;
                             *ptr = settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _uint8_t:
                         {
                             uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
                             *ptr = (uint8_t)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _uint16_t:
                         {
                             uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
                             *ptr = (uint16_t)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _uint32_t:
                         {
                             uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
                             *ptr = (uint32_t)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _uint64_t:
                         {
                             uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
                             *ptr = (uint64_t)settingValue;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _int8_t:
+                        {
+                            int8_t *ptr = (int8_t *)rtkSettingsEntries[i].var;
+                            *ptr = (int8_t)settingValue;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _int16_t:
+                        {
+                            int16_t *ptr = (int16_t *)rtkSettingsEntries[i].var;
+                            *ptr = (int16_t)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _muxConnectionType_e:
                         {
                             muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
                             *ptr = (muxConnectionType_e)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _SystemState:
                         {
                             SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
                             *ptr = (SystemState)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _pulseEdgeType_e:
                         {
                             pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
                             *ptr = (pulseEdgeType_e)settingValue;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _RadioType_e:
+                        {
+                            RadioType_e *ptr = (RadioType_e *)rtkSettingsEntries[i].var;
+                            *ptr = (RadioType_e)settingValue;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _BluetoothRadioType_e:
+                        {
+                            BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
+                            *ptr = (BluetoothRadioType_e)settingValue;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _PeriodicDisplay_t:
+                        {
+                            PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
+                            *ptr = (PeriodicDisplay_t)settingValue;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _CoordinateInputType:
+                        {
+                            CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
+                            *ptr = (CoordinateInputType)settingValue;
+                            knownSetting = true;
                         }
                         break;
                     case _charArray:
                         {
                             char *ptr = (char *)rtkSettingsEntries[i].var;
-                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].charArraySize);
+                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].arraySizeX);
+                            for (int i = strlen(settingValueStr); i < rtkSettingsEntries[i].arraySizeX; i++)
+                                *ptr++ = 0;
+                            knownSetting = true;
+                        }
+                        break;
+                    case _uint8_t_2Darray:
+                        {
+                            uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
+                            for (int i = 0; i < rtkSettingsEntries[i]. arraySizeX; i++)
+                            {
+                                memcpy(ptr, settingValueStr, rtkSettingsEntries[i].arraySizeY);
+                                ptr += rtkSettingsEntries[i]. arraySizeY;
+                            }
+                            knownSetting = true;
+                        }
+                        break;
+                    case _IPString:
+                        {
+                            String tempString = String(settingValueStr);
+                            IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
+                            ptr->fromString(tempString);
+                            knownSetting = true;
                         }
                         break;
                 }
@@ -199,26 +415,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         }
     }
 
-    if (strcmp(settingName, "enableSD") == 0)
-        settings.enableSD = settingValue;
-    else if (strcmp(settingName, "maxLogTime_minutes") == 0)
-        settings.maxLogTime_minutes = settingValue;
-    else if (strcmp(settingName, "observationSeconds") == 0)
-        settings.observationSeconds = settingValue;
-    else if (strcmp(settingName, "observationPositionAccuracy") == 0)
-        settings.observationPositionAccuracy = settingValue;
-    else if (strcmp(settingName, "baseTypeFixed") == 0)
-        settings.fixedBase = settingValue;
-    else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
-        settings.fixedBaseCoordinateType =
-            !settingValue; // When ECEF is true, fixedBaseCoordinateType = 0 (COORD_TYPE_ECEF)
-    else if (strcmp(settingName, "fixedEcefX") == 0)
-        settings.fixedEcefX = settingValue;
-    else if (strcmp(settingName, "fixedEcefY") == 0)
-        settings.fixedEcefY = settingValue;
-    else if (strcmp(settingName, "fixedEcefZ") == 0)
-        settings.fixedEcefZ = settingValue;
-    else if (strcmp(settingName, "fixedLatText") == 0)
+    if (strcmp(settingName, "fixedLatText") == 0)
     {
         double newCoordinate = 0.0;
         CoordinateInputType newCoordinateInputType =
@@ -240,14 +437,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         else
             settings.fixedLong = newCoordinate;
     }
-    else if (strcmp(settingName, "fixedAltitude") == 0)
-        settings.fixedAltitude = settingValue;
-    else if (strcmp(settingName, "dataPortBaud") == 0)
-        settings.dataPortBaud = settingValue;
-    else if (strcmp(settingName, "radioPortBaud") == 0)
-        settings.radioPortBaud = settingValue;
-    else if (strcmp(settingName, "zedSurveyInStartingAccuracy") == 0)
-        settings.zedSurveyInStartingAccuracy = settingValue;
+
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
         settings.measurementRate = (int)(1000.0 / settingValue);
@@ -261,410 +451,13 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
 
     // navigationRate is calculated using measurementRateHz
 
-    else if (strcmp(settingName, "debugGnss") == 0)
-        settings.debugGnss = settingValue;
-    else if (strcmp(settingName, "enableHeapReport") == 0)
-        settings.enableHeapReport = settingValue;
-    else if (strcmp(settingName, "enableTaskReports") == 0)
-        settings.enableTaskReports = settingValue;
-    else if (strcmp(settingName, "dataPortChannel") == 0)
-        settings.dataPortChannel = (muxConnectionType_e)settingValue;
-    else if (strcmp(settingName, "spiFrequency") == 0)
-        settings.spiFrequency = settingValue;
-    else if (strcmp(settingName, "enableLogging") == 0)
-        settings.enableLogging = settingValue;
-    else if (strcmp(settingName, "enableARPLogging") == 0)
-        settings.enableARPLogging = settingValue;
-    else if (strcmp(settingName, "ARPLoggingInterval") == 0)
-        settings.ARPLoggingInterval_s = settingValue;
-    else if (strcmp(settingName, "sppRxQueueSize") == 0)
-        settings.sppRxQueueSize = settingValue;
-    else if (strcmp(settingName, "sppTxQueueSize") == 0)
-        settings.sppTxQueueSize = settingValue;
-    else if (strcmp(settingName, "dynamicModel") == 0)
-        settings.dynamicModel = settingValue;
-    else if (strcmp(settingName, "lastState") == 0)
-    {
-        // 0 = Rover, 1 = Base, 2 = NTP
-        settings.lastState = STATE_ROVER_NOT_STARTED; // Default
-        if (settingValue == 1)
-            settings.lastState = STATE_BASE_NOT_STARTED;
-        if (settingValue == 2)
-            settings.lastState = STATE_NTPSERVER_NOT_STARTED;
-    }
-    else if (strcmp(settingName, "enableResetDisplay") == 0)
-        settings.enableResetDisplay = settingValue;
-    else if (strcmp(settingName, "resetCount") == 0)
-        settings.resetCount = settingValue;
-    else if (strcmp(settingName, "enableExternalPulse") == 0)
-        settings.enableExternalPulse = settingValue;
-    else if (strcmp(settingName, "externalPulseTimeBetweenPulse_us") == 0)
-        settings.externalPulseTimeBetweenPulse_us = settingValue;
-    else if (strcmp(settingName, "externalPulseLength_us") == 0)
-        settings.externalPulseLength_us = settingValue;
-    else if (strcmp(settingName, "externalPulsePolarity") == 0)
-        settings.externalPulsePolarity = (pulseEdgeType_e)settingValue;
-    else if (strcmp(settingName, "enableExternalHardwareEventLogging") == 0)
-        settings.enableExternalHardwareEventLogging = settingValue;
-    else if (strcmp(settingName, "enableUART2UBXIn") == 0)
-        settings.enableUART2UBXIn = settingValue;
 
-    // ubxMessageRates handled in bulk below
-    // ubxConstellations handled in bulk below
-
-    else if (strcmp(settingName, "maxLogLength_minutes") == 0)
-        settings.maxLogLength_minutes = settingValue;
     else if (strcmp(settingName, "profileName") == 0)
     {
         strcpy(settings.profileName, settingValueStr);
         setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile names at
                                        // location profileNumber
     }
-    else if (strcmp(settingName, "serialTimeoutGNSS") == 0)
-        settings.serialTimeoutGNSS = settingValue;
-    else if (strcmp(settingName, "pointPerfectDeviceProfileToken") == 0)
-        strcpy(settings.pointPerfectDeviceProfileToken, settingValueStr);
-    else if (strcmp(settingName, "enablePointPerfectCorrections") == 0)
-        settings.enablePointPerfectCorrections = settingValue;
-    else if (strcmp(settingName, "autoKeyRenewal") == 0)
-        settings.autoKeyRenewal = settingValue;
-    else if (strcmp(settingName, "pointPerfectClientID") == 0)
-        strcpy(settings.pointPerfectClientID, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectBrokerHost") == 0)
-        strcpy(settings.pointPerfectBrokerHost, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectKeyDistributionTopic") == 0)
-        strcpy(settings.pointPerfectKeyDistributionTopic, settingValueStr);
-
-    else if (strcmp(settingName, "pointPerfectCurrentKey") == 0)
-        strcpy(settings.pointPerfectCurrentKey, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectCurrentKeyDuration") == 0)
-        settings.pointPerfectCurrentKeyDuration = settingValue;
-    else if (strcmp(settingName, "pointPerfectCurrentKeyStart") == 0)
-        settings.pointPerfectCurrentKeyStart = settingValue;
-
-    else if (strcmp(settingName, "pointPerfectNextKey") == 0)
-        strcpy(settings.pointPerfectNextKey, settingValueStr);
-    else if (strcmp(settingName, "pointPerfectNextKeyDuration") == 0)
-        settings.pointPerfectNextKeyDuration = settingValue;
-    else if (strcmp(settingName, "pointPerfectNextKeyStart") == 0)
-        settings.pointPerfectNextKeyStart = settingValue;
-
-    else if (strcmp(settingName, "lastKeyAttempt") == 0)
-        settings.lastKeyAttempt = settingValue;
-    else if (strcmp(settingName, "updateGNSSSettings") == 0)
-        settings.updateGNSSSettings = settingValue;
-    else if (strcmp(settingName, "debugPpCertificate") == 0)
-        settings.debugPpCertificate = settingValue;
-
-    else if (strcmp(settingName, "timeZoneHours") == 0)
-        settings.timeZoneHours = settingValue;
-    else if (strcmp(settingName, "timeZoneMinutes") == 0)
-        settings.timeZoneMinutes = settingValue;
-    else if (strcmp(settingName, "timeZoneSeconds") == 0)
-        settings.timeZoneSeconds = settingValue;
-
-    else if (strcmp(settingName, "enablePrintState") == 0)
-        settings.enablePrintState = settingValue;
-    else if (strcmp(settingName, "enablePrintPosition") == 0)
-        settings.enablePrintPosition = settingValue;
-    else if (strcmp(settingName, "enablePrintIdleTime") == 0)
-        settings.enablePrintIdleTime = settingValue;
-    else if (strcmp(settingName, "enablePrintBatteryMessages") == 0)
-        settings.enablePrintBatteryMessages = settingValue;
-    else if (strcmp(settingName, "enablePrintRoverAccuracy") == 0)
-        settings.enablePrintRoverAccuracy = settingValue;
-    else if (strcmp(settingName, "enablePrintBadMessages") == 0)
-        settings.enablePrintBadMessages = settingValue;
-    else if (strcmp(settingName, "enablePrintLogFileMessages") == 0)
-        settings.enablePrintLogFileMessages = settingValue;
-    else if (strcmp(settingName, "enablePrintLogFileStatus") == 0)
-        settings.enablePrintLogFileStatus = settingValue;
-    else if (strcmp(settingName, "enablePrintRingBufferOffsets") == 0)
-        settings.enablePrintRingBufferOffsets = settingValue;
-    else if (strcmp(settingName, "enablePrintStates") == 0)
-        settings.enablePrintStates = settingValue;
-    else if (strcmp(settingName, "enablePrintDuplicateStates") == 0)
-        settings.enablePrintDuplicateStates = settingValue;
-    else if (strcmp(settingName, "enablePrintRtcSync") == 0)
-        settings.enablePrintRtcSync = settingValue;
-    else if (strcmp(settingName, "radioType") == 0)
-        settings.radioType = (RadioType_e)settingValue; // 0 = Radio off, 1 = ESP-Now
-
-    // espnowPeers
-    // espnowPeerCount
-
-    else if (strcmp(settingName, "enableRtcmMessageChecking") == 0)
-        settings.enableRtcmMessageChecking = settingValue;
-    else if (strcmp(settingName, "bluetoothRadioType") == 0)
-        settings.bluetoothRadioType = (BluetoothRadioType_e)settingValue; // 0 = SPP, 1 = BLE, 2 = Off
-    else if (strcmp(settingName, "espnowBroadcast") == 0)
-        settings.espnowBroadcast = settingValue;
-    else if (strcmp(settingName, "antennaHeight") == 0)
-        settings.antennaHeight = settingValue;
-    else if (strcmp(settingName, "antennaReferencePoint") == 0)
-        settings.antennaReferencePoint = settingValue;
-    else if (strcmp(settingName, "echoUserInput") == 0)
-        settings.echoUserInput = settingValue;
-    else if (strcmp(settingName, "uartReceiveBufferSize") == 0)
-        settings.uartReceiveBufferSize = settingValue;
-    else if (strcmp(settingName, "gnssHandlerBufferSize") == 0)
-        settings.gnssHandlerBufferSize = settingValue;
-    else if (strcmp(settingName, "enablePrintBufferOverrun") == 0)
-        settings.enablePrintBufferOverrun = settingValue;
-    else if (strcmp(settingName, "enablePrintSDBuffers") == 0)
-        settings.enablePrintSDBuffers = settingValue;
-    else if (strcmp(settingName, "periodicDisplay") == 0)
-        settings.periodicDisplay = settingValue;
-    else if (strcmp(settingName, "periodicDisplayInterval") == 0)
-        settings.periodicDisplayInterval = settingValue;
-    else if (strcmp(settingName, "rebootSeconds") == 0)
-        settings.rebootSeconds = settingValue;
-    else if (strcmp(settingName, "forceResetOnSDFail") == 0)
-        settings.forceResetOnSDFail = settingValue;
-    else if (strcmp(settingName, "minElev") == 0)
-        settings.minElev = settingValue;
-    // coordinateInputType is set when lat/lon are received
-    else if (strcmp(settingName, "lbandFixTimeout_seconds") == 0)
-        settings.lbandFixTimeout_seconds = settingValue;
-    else if (strcmp(settingName, "minCNO") == 0)
-        settings.minCNO_F9P = settingValue;
-    else if (strcmp(settingName, "serialGNSSRxFullThreshold") == 0)
-        settings.serialGNSSRxFullThreshold = settingValue;
-    else if (strcmp(settingName, "btReadTaskPriority") == 0)
-        settings.btReadTaskPriority = settingValue;
-    else if (strcmp(settingName, "gnssReadTaskPriority") == 0)
-        settings.gnssReadTaskPriority = settingValue;
-    else if (strcmp(settingName, "handleGnssDataTaskPriority") == 0)
-        settings.handleGnssDataTaskPriority = settingValue;
-    else if (strcmp(settingName, "btReadTaskCore") == 0)
-        settings.btReadTaskCore = settingValue;
-    else if (strcmp(settingName, "gnssReadTaskCore") == 0)
-        settings.gnssReadTaskCore = settingValue;
-    else if (strcmp(settingName, "handleGnssDataTaskCore") == 0)
-        settings.handleGnssDataTaskCore = settingValue;
-    else if (strcmp(settingName, "gnssUartInterruptsCore") == 0)
-        settings.gnssUartInterruptsCore = settingValue;
-    else if (strcmp(settingName, "bluetoothInterruptsCore") == 0)
-        settings.bluetoothInterruptsCore = settingValue;
-    else if (strcmp(settingName, "i2cInterruptsCore") == 0)
-        settings.i2cInterruptsCore = settingValue;
-    else if (strcmp(settingName, "shutdownNoChargeTimeout_s") == 0)
-        settings.shutdownNoChargeTimeout_s = settingValue;
-    else if (strcmp(settingName, "disableSetupButton") == 0)
-        settings.disableSetupButton = settingValue;
-    else if (strcmp(settingName, "enablePrintEthernetDiag") == 0)
-        settings.enablePrintEthernetDiag = settingValue;
-    else if (strcmp(settingName, "ethernetDHCP") == 0)
-        settings.ethernetDHCP = settingValue;
-    else if (strcmp(settingName, "ethernetIP") == 0)
-    {
-        String tempString = String(settingValueStr);
-        settings.ethernetIP.fromString(tempString);
-    }
-    else if (strcmp(settingName, "ethernetDNS") == 0)
-    {
-        String tempString = String(settingValueStr);
-        settings.ethernetDNS.fromString(tempString);
-    }
-    else if (strcmp(settingName, "ethernetGateway") == 0)
-    {
-        String tempString = String(settingValueStr);
-        settings.ethernetGateway.fromString(tempString);
-    }
-    else if (strcmp(settingName, "ethernetSubnet") == 0)
-    {
-        String tempString = String(settingValueStr);
-        settings.ethernetSubnet.fromString(tempString);
-    }
-    else if (strcmp(settingName, "httpPort") == 0)
-        settings.httpPort = settingValue;
-    else if (strcmp(settingName, "debugWifiState") == 0)
-        settings.debugWifiState = settingValue;
-    else if (strcmp(settingName, "wifiConfigOverAP") == 0)
-    {
-        if (settingValue == 1) // Drop downs come back as a value
-            settings.wifiConfigOverAP = true;
-        else
-            settings.wifiConfigOverAP = false;
-    }
-
-    // wifiNetworks
-
-    // Network layer
-    else if (strcmp(settingName, "defaultNetworkType") == 0)
-        settings.defaultNetworkType = settingValue;
-    else if (strcmp(settingName, "debugNetworkLayer") == 0)
-        settings.debugNetworkLayer = settingValue;
-    else if (strcmp(settingName, "enableNetworkFailover") == 0)
-        settings.enableNetworkFailover = settingValue;
-    else if (strcmp(settingName, "printNetworkStatus") == 0)
-        settings.printNetworkStatus = settingValue;
-
-    // Multicast DNS Server
-    else if (strcmp(settingName, "mdnsEnable") == 0)
-        settings.mdnsEnable = settingValue;
-
-    // MQTT Client (Point Perfect)
-    else if (strcmp(settingName, "debugMqttClientData") == 0)
-        settings.debugMqttClientData = settingValue;
-    else if (strcmp(settingName, "debugMqttClientState") == 0)
-        settings.debugMqttClientState = settingValue;
-    else if (strcmp(settingName, "useEuropeCorrections") == 0)
-        settings.useEuropeCorrections = settingValue;
-
-    // NTP
-    else if (strcmp(settingName, "debugNtp") == 0)
-        settings.debugNtp = settingValue;
-    else if (strcmp(settingName, "ethernetNtpPort") == 0)
-        settings.ethernetNtpPort = settingValue;
-    else if (strcmp(settingName, "enableNTPFile") == 0)
-        settings.enableNTPFile = settingValue;
-    else if (strcmp(settingName, "ntpPollExponent") == 0)
-        settings.ntpPollExponent = settingValue;
-    else if (strcmp(settingName, "ntpPrecision") == 0)
-        settings.ntpPrecision = settingValue;
-    else if (strcmp(settingName, "ntpRootDelay") == 0)
-        settings.ntpRootDelay = settingValue;
-    else if (strcmp(settingName, "ntpRootDispersion") == 0)
-        settings.ntpRootDispersion = settingValue;
-    else if (strcmp(settingName, "ntpReferenceId") == 0)
-    {
-        strcpy(settings.ntpReferenceId, settingValueStr);
-        for (int i = strlen(settingValueStr); i < 5; i++)
-            settings.ntpReferenceId[i] = 0;
-    }
-
-    // NTRIP Client
-    else if (strcmp(settingName, "debugNtripClientRtcm") == 0)
-        settings.debugNtripClientRtcm = settingValue;
-    else if (strcmp(settingName, "debugNtripClientState") == 0)
-        settings.debugNtripClientState = settingValue;
-    else if (strcmp(settingName, "enableNtripClient") == 0)
-        settings.enableNtripClient = settingValue;
-    else if (strcmp(settingName, "ntripClient_CasterHost") == 0)
-        strcpy(settings.ntripClient_CasterHost, settingValueStr);
-    else if (strcmp(settingName, "ntripClient_CasterPort") == 0)
-        settings.ntripClient_CasterPort = settingValue;
-    else if (strcmp(settingName, "ntripClient_CasterUser") == 0)
-        strcpy(settings.ntripClient_CasterUser, settingValueStr);
-    else if (strcmp(settingName, "ntripClient_CasterUserPW") == 0)
-        strcpy(settings.ntripClient_CasterUserPW, settingValueStr);
-    else if (strcmp(settingName, "ntripClient_MountPoint") == 0)
-        strcpy(settings.ntripClient_MountPoint, settingValueStr);
-    else if (strcmp(settingName, "ntripClient_MountPointPW") == 0)
-        strcpy(settings.ntripClient_MountPointPW, settingValueStr);
-    else if (strcmp(settingName, "ntripClient_TransmitGGA") == 0)
-        settings.ntripClient_TransmitGGA = settingValue;
-
-    // NTRIP Server
-    else if (strcmp(settingName, "debugNtripServerRtcm") == 0)
-        settings.debugNtripServerRtcm = settingValue;
-    else if (strcmp(settingName, "debugNtripServerState") == 0)
-        settings.debugNtripServerState = settingValue;
-    else if (strcmp(settingName, "enableNtripServer") == 0)
-        settings.enableNtripServer = settingValue;
-
-    // The following values are handled below:
-    // ntripServer_CasterHost
-    // ntripServer_CasterPort
-    // ntripServer_CasterUser
-    // ntripServer_CasterUserPW
-    // ntripServer_MountPoint
-    // ntripServer_MountPointPW
-
-    // TCP Client
-    else if (strcmp(settingName, "debugPvtClient") == 0)
-        settings.debugPvtClient = settingValue;
-    else if (strcmp(settingName, "enablePvtClient") == 0)
-        settings.enablePvtClient = settingValue;
-    else if (strcmp(settingName, "pvtClientPort") == 0)
-        settings.pvtClientPort = settingValue;
-    else if (strcmp(settingName, "pvtClientHost") == 0)
-        strcpy(settings.pvtClientHost, settingValueStr);
-
-    // TCP Server
-    else if (strcmp(settingName, "debugPvtServer") == 0)
-        settings.debugPvtServer = settingValue;
-    else if (strcmp(settingName, "enablePvtServer") == 0)
-        settings.enablePvtServer = settingValue;
-    else if (strcmp(settingName, "pvtServerPort") == 0)
-        settings.pvtServerPort = settingValue;
-
-    // UDP Server
-    else if (strcmp(settingName, "debugPvtUdpServer") == 0)
-        settings.debugPvtUdpServer = settingValue;
-    else if (strcmp(settingName, "enablePvtUdpServer") == 0)
-        settings.enablePvtUdpServer = settingValue;
-    else if (strcmp(settingName, "pvtUdpServerPort") == 0)
-        settings.pvtUdpServerPort = settingValue;
-
-    // um980MessageRatesNMEA not handled here
-    // um980MessageRatesRTCMRover not handled here
-    // um980MessageRatesRTCMBase not handled here
-    // um980Constellations not handled here
-
-    else if (strcmp(settingName, "minCNO_um980") == 0)
-        settings.minCNO_um980 = settingValue;
-    else if (strcmp(settingName, "enableTiltCompensation") == 0)
-        settings.enableTiltCompensation = settingValue;
-    else if (strcmp(settingName, "tiltPoleLength") == 0)
-        settings.tiltPoleLength = settingValue;
-    else if (strcmp(settingName, "enableImuDebug") == 0)
-        settings.enableImuDebug = settingValue;
-
-    // Automatic Firmware Update
-    else if (strcmp(settingName, "debugFirmwareUpdate") == 0)
-        settings.debugFirmwareUpdate = settingValue;
-    else if (strcmp(settingName, "enableAutoFirmwareUpdate") == 0)
-        settings.enableAutoFirmwareUpdate = settingValue;
-    else if (strcmp(settingName, "autoFirmwareCheckMinutes") == 0)
-        settings.autoFirmwareCheckMinutes = settingValue;
-
-    else if (strcmp(settingName, "debugCorrections") == 0)
-        settings.debugCorrections = settingValue;
-    else if (strcmp(settingName, "enableCaptivePortal") == 0)
-        settings.enableCaptivePortal = settingValue;
-
-    // Boot times
-    else if (strcmp(settingName, "printBootTimes") == 0)
-        settings.printBootTimes = settingValue;
-
-    // Partition table
-    else if (strcmp(settingName, "printPartitionTable") == 0)
-        settings.printPartitionTable = settingValue;
-
-    // Measurement scale
-    else if (strcmp(settingName, "measurementScale") == 0)
-        settings.measurementScale = settingValue;
-
-    else if (strcmp(settingName, "debugWiFiConfig") == 0)
-        settings.debugWiFiConfig = settingValue;
-    else if (strcmp(settingName, "enablePsram") == 0)
-        settings.enablePsram = settingValue;
-
-    else if (strcmp(settingName, "printTaskStartStop") == 0)
-        settings.printTaskStartStop = settingValue;
-    else if (strcmp(settingName, "psramMallocLevel") == 0)
-        settings.psramMallocLevel = settingValue;
-    else if (strcmp(settingName, "um980SurveyInStartingAccuracy") == 0)
-        settings.um980SurveyInStartingAccuracy = settingValue;
-    else if (strcmp(settingName, "enableBeeper") == 0)
-        settings.enableBeeper = settingValue;
-    else if (strcmp(settingName, "um980MeasurementRateMs") == 0)
-        settings.um980MeasurementRateMs = settingValue;
-    else if (strcmp(settingName, "enableImuCompensationDebug") == 0)
-        settings.enableImuCompensationDebug = settingValue;
-
-    // correctionsPriority handled below
-
-    else if (strcmp(settingName, "debugEspNow") == 0)
-        settings.debugEspNow = settingValue;
-
-    else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
-        settings.correctionsSourcesLifetime_s = settingValue;
-
-    else if (strcmp(settingName, "geographicRegion") == 0)
-        settings.geographicRegion = settingValue;
 
     // Add new settings above <--------------------------------------------------->
 
@@ -890,297 +683,13 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     {
     }
 
-    // Check for bulk settings (constellations and message rates)
-    // Must be last on else list
-    else
+
+    // Last catch
+    if (knownSetting == false)
     {
-        bool knownSetting = false;
+        systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
+    }
 
-        // Scan for WiFi credentials
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-            {
-                char tempString[100]; // wifiNetwork0Password=parachutes
-                snprintf(tempString, sizeof(tempString), "wifiNetwork%dSSID", x);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(settings.wifiNetworks[x].ssid, settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-                else
-                {
-                    snprintf(tempString, sizeof(tempString), "wifiNetwork%dPassword", x);
-                    if (strcmp(settingName, tempString) == 0)
-                    {
-                        strcpy(settings.wifiNetworks[x].password, settingValueStr);
-                        knownSetting = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Scan for constellation settings
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < MAX_CONSTELLATIONS; x++)
-            {
-                char tempString[50]; // ubxConstellationsSBAS
-                snprintf(tempString, sizeof(tempString), "ubxConstellations%s", settings.ubxConstellations[x].textName);
-
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.ubxConstellations[x].enabled = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for message settings
-        if (knownSetting == false)
-        {
-            char tempString[50];
-
-            for (int x = 0; x < MAX_UBX_MSG; x++)
-            {
-                snprintf(tempString, sizeof(tempString), "%s", ubxMessages[x].msgTextName); // UBX_RTCM_1074
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.ubxMessageRates[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for Base RTCM message settings
-        if (knownSetting == false)
-        {
-            int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
-
-            char tempString[50];
-            for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-            {
-                snprintf(tempString, sizeof(tempString), "%sBase",
-                         ubxMessages[firstRTCMRecord + x].msgTextName); // UBX_RTCM_1074Base
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.ubxMessageRatesBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for UM980 NMEA message rates
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-            {
-                char tempString[50]; // um980MessageRatesNMEA.GPDTM=0.05
-                snprintf(tempString, sizeof(tempString), "um980MessageRatesNMEA.%s", umMessagesNMEA[x].msgTextName);
-
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.um980MessageRatesNMEA[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for UM980 Rover RTCM rates
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMRover.RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMRover.%s",
-                         umMessagesRTCM[x].msgTextName);
-
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.um980MessageRatesRTCMRover[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for UM980 Base RTCM rates
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            {
-                char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
-                snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMBase.%s", umMessagesRTCM[x].msgTextName);
-
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.um980MessageRatesRTCMBase[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for UM980 Constellation settings
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            {
-                char tempString[50]; // um980Constellations.GLONASS=1
-                snprintf(tempString, sizeof(tempString), "um980Constellations.%s",
-                         um980ConstellationCommands[x].textName);
-
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.um980Constellations[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for corrections priorities
-        if (knownSetting == false)
-        {
-            for (int x = 0; x < correctionsSource::CORR_NUM; x++)
-            {
-                char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "correctionsPriority.%s", correctionsSourceNames[x]);
-
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.correctionsSourcesPriority[x] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for ntripServer_CasterHost
-        if (knownSetting == false)
-        {
-            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "ntripServer_CasterHost_%d", serverIndex);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(&settings.ntripServer_CasterHost[serverIndex][0], settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for ntripServer_CasterPort
-        if (knownSetting == false)
-        {
-            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "ntripServer_CasterPort_%d", serverIndex);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    settings.ntripServer_CasterPort[serverIndex] = settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for ntripServer_CasterUser
-        if (knownSetting == false)
-        {
-            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "ntripServer_CasterUser_%d", serverIndex);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(&settings.ntripServer_CasterUser[serverIndex][0], settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for ntripServer_CasterUserPW
-        if (knownSetting == false)
-        {
-            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "ntripServer_CasterUserPW_%d", serverIndex);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(&settings.ntripServer_CasterUserPW[serverIndex][0], settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for ntripServer_MountPoint
-        if (knownSetting == false)
-        {
-            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "ntripServer_MountPoint_%d", serverIndex);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(&settings.ntripServer_MountPoint[serverIndex][0], settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for ntripServer_MountPointPW
-        if (knownSetting == false)
-        {
-            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "ntripServer_MountPointPW_%d", serverIndex);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(&settings.ntripServer_MountPointPW[serverIndex][0], settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Scan for regionalCorrectionTopics
-        if (knownSetting == false)
-        {
-            for (int r = 0; r < numRegionalAreas; r++)
-            {
-                char tempString[50];
-                snprintf(tempString, sizeof(tempString), "regionalCorrectionTopics_%d", r);
-                if (strcmp(settingName, tempString) == 0)
-                {
-                    strcpy(&settings.regionalCorrectionTopics[r][0], settingValueStr);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-
-        // Last catch
-        if (knownSetting == false)
-        {
-            systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
-        }
-
-    } // End last strcpy catch
 }
 
 // Create a csv string with current settings
