@@ -650,7 +650,7 @@ void createDynamicDataString(char *settingsCSV)
     stringRecord(settingsCSV, "ecefY", ecefY, 3);
     stringRecord(settingsCSV, "ecefZ", ecefZ, 3);
 
-    if (online.battery == false) // Product has no battery
+    if (online.batteryFuelGauge == false) // Product has no battery
     {
         stringRecord(settingsCSV, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(settingsCSV, "batteryPercent", (char *)" ");

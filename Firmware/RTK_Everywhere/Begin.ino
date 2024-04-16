@@ -132,7 +132,8 @@ void beginBoard()
     {
         present.psram_2mb = true;
         present.radio_lora = true;
-        present.battery_bq40z50 = true;
+        present.fuelgauge_bq40z50 = true;
+        present.charger_mp2762a = true;
         present.encryption_atecc608a = true;
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
@@ -312,7 +313,7 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.button_powerLow = true; // Button is pressed when low
-        present.battery_max17048 = true;
+        present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
 
@@ -334,7 +335,7 @@ void beginBoard()
         present.i2c0BusSpeed_400 = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
-        present.battery_max17048 = true;
+        present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
 
@@ -841,7 +842,7 @@ void tickerBegin()
     }
 }
 
-//Stop any ticker tasks and PWM control
+// Stop any ticker tasks and PWM control
 void tickerStop()
 {
     bluetoothLedTask.detach();
@@ -856,7 +857,7 @@ void tickerStop()
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if (present.battery_max17048 == true)
+    if (present.fuelgauge_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
         if (lipo.begin(*i2c_0) == false)
@@ -865,7 +866,7 @@ void beginFuelGauge()
             return;
         }
 
-        online.battery = true;
+        online.batteryFuelGauge = true;
 
         // Always use hibernate mode
         if (lipo.getHIBRTActThr() < 0xFF)
@@ -891,7 +892,7 @@ void beginFuelGauge()
         }
     }
 #ifdef COMPILE_BQ40Z50
-    else if (present.battery_bq40z50 == true)
+    else if (present.fuelgauge_bq40z50 == true)
     {
         if (bq40z50Battery == nullptr)
             bq40z50Battery = new BQ40Z50;
@@ -910,7 +911,7 @@ void beginFuelGauge()
             return;
         }
 
-        online.battery = true;
+        online.batteryFuelGauge = true;
 
         systemPrintln("Fuel gauge configuration complete");
 
@@ -937,6 +938,34 @@ void beginFuelGauge()
         }
     }
 #endif // COMPILE_BQ40Z50
+}
+
+// Configure the battery charger IC
+void beginCharger()
+{
+    if (present.charger_mp2762a == true)
+    {
+        // Set pre-charge defaults for the MP2762A
+        // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
+        if (mp2762Begin(i2c_0) == true)
+        {
+            // Resetting registers to defaults
+            mp2762registerReset();
+
+            // Setting FastCharge to 6.6V
+            mp2762setFastChargeVoltageMv(6600);
+
+            // Setting precharge current to 880mA
+            mp2762setPrechargeCurrentMa(880);
+
+            systemPrintln("Charger configuration complete");
+            online.batteryCharger = true;
+        }
+        else
+        {
+            systemPrintln("MP2762A charger failed to initialize");
+        }
+    }
 }
 
 void beginButtons()
@@ -1027,7 +1056,6 @@ void beginSystemState()
         // We should really restructure things so we use online.corrections...
         if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED;
-
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -1271,18 +1299,13 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     return true;
 }
 
-// Depending on radio selection, begin hardware
+// Depending on radio settings, begin hardware
 void radioStart()
 {
-    if (settings.radioType == RADIO_EXTERNAL)
-    {
-        espnowStop();
-
-        // Nothing to start. UART2 of ZED is connected to external Radio port and is configured at
-        // gnssConfigure()
-    }
-    else if (settings.radioType == RADIO_ESPNOW)
+    if (settings.enableEspNow == true)
         espnowStart();
+    else
+        espnowStop();
 }
 
 // Start task to determine SD card size

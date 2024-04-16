@@ -83,7 +83,8 @@ void espnowOnDataReceived(const uint8_t *mac, const uint8_t *incomingData, int l
         else
         {
             if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
-                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len, espnowRSSI);
+                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len,
+                             espnowRSSI);
         }
 
         espnowIncomingRTCM = true; // Display a download icon
@@ -173,6 +174,8 @@ void espnowStart()
             systemPrintln("ESP-Now already on.");
     }
 
+    //WiFi.setSleep(false); //We must disable sleep so that ESP-NOW can readily receive packets
+
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK)
     {
@@ -186,6 +189,10 @@ void espnowStart()
         systemPrintf("espnowStart: Error setting promiscuous mode: %s\r\n", esp_err_to_name(response));
 
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
+
+    // Assign channel if not connected to an AP
+    if (wifiIsConnected() == false)
+        espnowSetChannel(settings.wifiChannel);
 
     // Register callbacks
     // esp_now_register_send_cb(espnowOnDataSent);
@@ -378,9 +385,9 @@ bool espnowIsPaired()
         espnowSendPairMessage(receivedMAC);
 
         // Enable radio. User may have arrived here from the setup menu rather than serial menu.
-        settings.radioType = RADIO_ESPNOW;
+        settings.enableEspNow = true;
 
-        recordSystemSettings(); // Record radioType and espnowPeerCount to NVM
+        recordSystemSettings(); // Record enableEspNow and espnowPeerCount to NVM
 
         espnowSetState(ESPNOW_PAIRED);
         return (true);
@@ -568,4 +575,73 @@ void espnowStaticPairing()
 
         systemPrintln("Scanning for other radio...");
     }
+}
+
+// Returns the current channel being used by WiFi
+uint8_t espnowGetChannel()
+{
+#ifdef COMPILE_ESPNOW
+    if (espnowState == ESPNOW_OFF)
+        return 0;
+
+    bool originalPromiscuousMode = false;
+    esp_err_t response = esp_wifi_get_promiscuous(&originalPromiscuousMode);
+    if (response != ESP_OK)
+        systemPrintf("getPromiscuous failed: %s\r\n", esp_err_to_name(response));
+
+    // We must be in promiscuous mode to get the channel number
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(true);
+
+    uint8_t primaryChannelNumber = 0;
+    wifi_second_chan_t secondaryChannelNumber;
+
+    response = esp_wifi_get_channel(&primaryChannelNumber, &secondaryChannelNumber);
+    if (response != ESP_OK)
+        systemPrintf("getChannel failed: %s\r\n", esp_err_to_name(response));
+
+    // Return to the original mode
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(false);
+
+    return (primaryChannelNumber);
+#else
+    return (0);
+#endif
+}
+
+// Returns the current channel being used by WiFi
+bool espnowSetChannel(uint8_t channelNumber)
+{
+#ifdef COMPILE_ESPNOW
+    if (wifiIsConnected() == true)
+    {
+        systemPrintln("ESP-NOW channel can't be modified while WiFi is connected.");
+        return (false);
+    }
+
+    bool originalPromiscuousMode = false;
+    esp_err_t response = esp_wifi_get_promiscuous(&originalPromiscuousMode);
+    if (response != ESP_OK)
+        systemPrintf("getPromiscuous failed: %s\r\n", esp_err_to_name(response));
+
+    // We must be in promiscuous mode to set the channel number
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(true);
+
+    bool setSuccess = false;
+    response = esp_wifi_set_channel(channelNumber, WIFI_SECOND_CHAN_NONE);
+    if (response != ESP_OK)
+        systemPrintf("setChannel to %d failed: %s\r\n", channelNumber, esp_err_to_name(response));
+    else
+        setSuccess = true;
+
+    // Return to the original mode
+    if (originalPromiscuousMode == false)
+        esp_wifi_set_promiscuous(false);
+
+    return (setSuccess);
+#else
+    return (false);
+#endif
 }

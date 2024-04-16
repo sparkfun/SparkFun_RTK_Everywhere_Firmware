@@ -81,7 +81,6 @@
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
 #include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
-#include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
 #include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
@@ -742,11 +741,13 @@ unsigned long beepQuietLengthMs; // Number of ms to make reset between multiple 
 unsigned long beepNextEventMs; // Time at which to move the beeper to the next state
 unsigned long beepCount; // Number of beeps to do
 
+unsigned long lastMqttToPpl;
+unsigned long lastGnssToPpl;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 38
+#define MAX_BOOT_TIME_ENTRIES 39
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1010,6 +1011,9 @@ void setup()
 
     DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
+
+    DMW_b("beginCharger");
+    beginCharger(); // Configure battery charger
 
     DMW_b("gnssConfigure");
     gnssConfigure(); // Requires settings. Configure ZED module
@@ -1425,7 +1429,7 @@ void updateRadio()
     }
 
 #ifdef COMPILE_ESPNOW
-    if (settings.radioType == RADIO_ESPNOW)
+    if (settings.enableEspNow == true)
     {
         if (espnowState == ESPNOW_PAIRED)
         {

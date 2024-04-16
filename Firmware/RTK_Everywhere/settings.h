@@ -385,12 +385,6 @@ typedef enum
 
 typedef enum
 {
-    RADIO_EXTERNAL = 0,
-    RADIO_ESPNOW,
-} RadioType_e;
-
-typedef enum
-{
     BLUETOOTH_RADIO_SPP = 0,
     BLUETOOTH_RADIO_BLE,
     BLUETOOTH_RADIO_SPP_AND_BLE,
@@ -1675,8 +1669,9 @@ struct struct_present
     bool display_i2c1 = false;
     DisplayType display_type = DISPLAY_MAX_NONE;
 
-    bool battery_max17048 = false;
-    bool battery_bq40z50 = false;
+    bool fuelgauge_max17048 = false;
+    bool fuelgauge_bq40z50 = false;
+    bool charger_mp2762a = false;
 
     bool beeper = false;
     bool encryption_atecc608a = false;
@@ -1705,7 +1700,7 @@ struct struct_online
     bool serialOutput = false;
     bool fs = false;
     bool rtc = false;
-    bool battery = false;
+    bool batteryFuelGauge = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
     bool lband = false;
@@ -1731,6 +1726,7 @@ struct struct_online
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
     bool ppl = false;
+    bool batteryCharger = false;
 } online;
 
 #ifdef COMPILE_WIFI

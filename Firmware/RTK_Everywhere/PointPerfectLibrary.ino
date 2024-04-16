@@ -41,16 +41,19 @@ void updatePplTask(void *e)
                         // believe the PPL can do a better job generating corrections than the
                         // ZED can internally using SPARTN direct.
                         updateZEDCorrectionsSource(1);
-                        
+
                         gnssPushRawData(pplRtcmBuffer, rtcmLength);
 
                         if (settings.debugCorrections == true && !inMainMenu)
                             systemPrintf("Received %d RTCM bytes from PPL. Pushing to the GNSS.\r\n", rtcmLength);
+                        else if (!inMainMenu)
+                            systemPrintln("PointPerfect corrections sent to GNSS.");
                     }
                     else
                     {
                         if (settings.debugCorrections == true && !inMainMenu)
-                            systemPrintf("Received %d RTCM bytes from PPL. NOT pushed to the GNSS due to priority.\r\n", rtcmLength);
+                            systemPrintf("Received %d RTCM bytes from PPL. NOT pushed to the GNSS due to priority.\r\n",
+                                         rtcmLength);
                     }
                 }
             }
@@ -205,6 +208,23 @@ void updatePPL()
             }
         }
     }
+    else if (online.ppl == true)
+    {
+        if (settings.debugCorrections == true)
+        {
+            static unsigned long pplReport = 0;
+            if (millis() - pplReport > 5000)
+            {
+                pplReport = millis();
+                
+                // Report which data source may be fouling the RTCM generation from the PPL
+                if ((millis() - lastMqttToPpl) > 5000)
+                    systemPrintln("PPL MQTT Data is stale");
+                if ((millis() - lastGnssToPpl) > 5000)
+                    systemPrintln("PPL GNSS Data is stale");
+            }
+        }
+    }
 
     // The PPL is fed during updatePplTask()
 }
@@ -287,6 +307,7 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
                 systemPrintf("PPL_SendRcvrData Result: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
+        lastGnssToPpl = millis();
         return true;
     }
     else
@@ -310,6 +331,7 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
                 systemPrintf("ERROR processRXMPMP PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
+        lastMqttToPpl = millis();
         return true;
     }
     else

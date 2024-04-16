@@ -1455,7 +1455,7 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 
 void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.battery) // Product has a battery
+    if (online.batteryFuelGauge) // Product has a battery
         paintBatteryLevel(iconList);
     else // if (present.ethernet_ws5500 == true)
     {
@@ -2328,11 +2328,11 @@ void paintSystemTest()
             else
                 oled->print("FAIL");
 
-            if (present.battery_max17048 || present.battery_bq40z50)
+            if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50)
             {
                 oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
                 oled->print("Batt:");
-                if (online.battery == true)
+                if (online.batteryFuelGauge == true)
                     oled->print("OK");
                 else
                     oled->print("FAIL");

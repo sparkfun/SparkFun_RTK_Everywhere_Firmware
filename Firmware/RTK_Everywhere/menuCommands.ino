@@ -31,21 +31,32 @@ void menuCommands()
             auto field = tokens[1];
             if (tokens[2] == nullptr)
             {
-                updateSettingWithValue(field, "");
+                if (updateSettingWithValue(field, "") == true)
+                    systemPrintln("OK");
+                else
+                    systemPrintln("ERROR");
             }
             else
             {
                 auto value = tokens[2];
-                updateSettingWithValue(field, value);
+                if (updateSettingWithValue(field, value) == true)
+                    systemPrintln("OK");
+                else
+                    systemPrintln("ERROR");
             }
-            systemPrintln("OK");
         }
         else if (strcmp(tokens[0], "GET") == 0)
         {
             auto field = tokens[1];
-            getSettingValue(field, valueBuffer);
-            systemPrint(">");
-            systemPrintln(valueBuffer);
+            if (getSettingValue(field, valueBuffer) == true)
+            {
+                systemPrint(">");
+                systemPrintln(valueBuffer);
+            }
+            else
+            {
+                systemPrintln("ERROR"); // Machine interface expects a structured response, not verbose.
+            }
         }
         else if (strcmp(tokens[0], "CMD") == 0)
         {
@@ -450,6 +461,15 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
                                        // location profileNumber
     }
 
+    // regionalCorrectionTopics handled below
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        settings.debugEspNow = settingValue;
+    else if (strcmp(settingName, "enableEspNow") == 0)
+        settings.enableEspNow = settingValue;
+    else if (strcmp(settingName, "wifiChannel") == 0)
+        settings.wifiChannel = settingValue;
+
     // Add new settings above <--------------------------------------------------->
 
     else if (strstr(settingName, "stationECEF") != nullptr)
@@ -705,12 +725,12 @@ void createSettingsString(char *newSettings)
     if (gnssPlatform == PLATFORM_ZED)
     {
         snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
-                gnssFirmwareVersion, gnssUniqueId);
+                 gnssFirmwareVersion, gnssUniqueId);
     }
     else if (gnssPlatform == PLATFORM_UM980)
     {
-        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s",
-                gnssFirmwareVersion, gnssUniqueId);
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s", gnssFirmwareVersion,
+                 gnssUniqueId);
     }
     else if (gnssPlatform == PLATFORM_MOSAIC)
     {
@@ -1072,10 +1092,11 @@ void createSettingsString(char *newSettings)
 
     for (int r = 0; r < numRegionalAreas; r++)
     {
-        stringRecordN(newSettings, "regionalCorrectionTopics", r,
-                      &settings.regionalCorrectionTopics[r][0]);
+        stringRecordN(newSettings, "regionalCorrectionTopics", r, &settings.regionalCorrectionTopics[r][0]);
     }
     stringRecord(newSettings, "debugEspNow", settings.debugEspNow);
+    stringRecord(newSettings, "enableEspNow", settings.enableEspNow);
+    stringRecord(newSettings, "wifiChannel", settings.wifiChannel);
 
     // stringRecord(newSettings, "", settings.);
 
@@ -1137,7 +1158,6 @@ void createSettingsString(char *newSettings)
     snprintf(radioMAC, sizeof(radioMAC), "%02X:%02X:%02X:%02X:%02X:%02X", wifiMACAddress[0], wifiMACAddress[1],
              wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
     stringRecord(newSettings, "radioMAC", radioMAC);
-    stringRecord(newSettings, "radioType", settings.radioType);
     stringRecord(newSettings, "espnowPeerCount", settings.espnowPeerCount);
     for (int index = 0; index < settings.espnowPeerCount; index++)
     {
@@ -1151,7 +1171,7 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "logFileName", logFileName);
 
     // Add battery level and icon file name
-    if (online.battery == false) // Product has no battery
+    if (online.batteryFuelGauge == false) // Product has no battery
     {
         stringRecord(newSettings, "batteryIconFileName", (char *)"src/BatteryBlank.png");
         stringRecord(newSettings, "batteryPercent", (char *)" ");
@@ -1386,7 +1406,7 @@ void writeToString(char *settingValueStr, char *value)
 // Given a settingName, create a string with setting value
 // Used in conjunction with the command line interface
 // The order of variables matches the order found in settings.h
-void getSettingValue(const char *settingName, char *settingValueStr)
+bool getSettingValue(const char *settingName, char *settingValueStr)
 {
     if (strcmp(settingName, "enableSD") == 0)
         writeToString(settingValueStr, settings.enableSD);
@@ -1545,8 +1565,6 @@ void getSettingValue(const char *settingName, char *settingValueStr)
         writeToString(settingValueStr, settings.enablePrintDuplicateStates);
     else if (strcmp(settingName, "enablePrintRtcSync") == 0)
         writeToString(settingValueStr, settings.enablePrintRtcSync);
-    else if (strcmp(settingName, "radioType") == 0)
-        writeToString(settingValueStr, settings.radioType); // 0 = Radio off, 1 = ESP-Now
     // espnowPeers yet not handled
     else if (strcmp(settingName, "espnowPeerCount") == 0)
         writeToString(settingValueStr, settings.espnowPeerCount);
@@ -1804,12 +1822,19 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
     else if (strcmp(settingName, "correctionsSourcesLifetime_s") == 0)
         writeToString(settingValueStr, settings.correctionsSourcesLifetime_s);
-        
-    else if (strcmp(settingName, "debugEspNow") == 0)
-        writeToString(settingValueStr, settings.debugEspNow);
 
     else if (strcmp(settingName, "geographicRegion") == 0)
         writeToString(settingValueStr, settings.geographicRegion);
+
+    //regionalCorrectionTopics not yet handled
+
+    else if (strcmp(settingName, "debugEspNow") == 0)
+        writeToString(settingValueStr, settings.debugEspNow);
+    else if (strcmp(settingName, "enableEspNow") == 0)
+        writeToString(settingValueStr, settings.enableEspNow);
+    else if (strcmp(settingName, "wifiChannel") == 0)
+        writeToString(settingValueStr, settings.wifiChannel);
+
 
     // Add new settings above <------------------------------------------------------------>
 
@@ -2029,10 +2054,15 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 
         if (knownSetting == false)
         {
-            systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
+            if (settings.debugWiFiConfig)
+                systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
+
+            return (false); // Failed to identify this command
         }
 
     } // End last strcpy catch
+
+    return (true);
 }
 
 // List available settings and their type in CSV
@@ -2093,7 +2123,8 @@ void printAvailableSettings()
     systemPrint("autoKeyRenewal,bool,");
     systemPrintf("pointPerfectClientID,char[%d],", sizeof(settings.pointPerfectClientID) / sizeof(char));
     systemPrintf("pointPerfectBrokerHost,char[%d],", sizeof(settings.pointPerfectBrokerHost) / sizeof(char));
-    systemPrintf("pointPerfectKeyDistributionTopic,char[%d],", sizeof(settings.pointPerfectKeyDistributionTopic) / sizeof(char));
+    systemPrintf("pointPerfectKeyDistributionTopic,char[%d],",
+                 sizeof(settings.pointPerfectKeyDistributionTopic) / sizeof(char));
     systemPrintf("pointPerfectCurrentKey,char[%d],", sizeof(settings.pointPerfectCurrentKey) / sizeof(char));
     systemPrint("pointPerfectCurrentKeyDuration,uint64_t,");
     systemPrint("pointPerfectCurrentKeyStart,uint64_t,");
@@ -2125,7 +2156,6 @@ void printAvailableSettings()
     systemPrint("enablePrintStates,bool,");
     systemPrint("enablePrintDuplicateStates,bool,");
     systemPrint("enablePrintRtcSync,bool,");
-    systemPrint("radioType,RadioType_e,");
     systemPrint("espnowPeers,uint8_t[5][6],");
     systemPrint("espnowPeerCount,uint8_t,");
     systemPrint("enableRtcmMessageChecking,bool,");
@@ -2279,7 +2309,10 @@ void printAvailableSettings()
     {
         systemPrintf("regionalCorrectionTopics_%d,char[%d],", r, sizeof(settings.regionalCorrectionTopics[0]));
     }
+
     systemPrint("debugEspNow,bool,");
+    systemPrint("enableEspNow,bool,");
+    systemPrint("wifiChannel,uint8_t,");
 
     // Add new settings above <--------------------------------------------------->
 
