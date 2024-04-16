@@ -180,9 +180,7 @@ void recordSystemSettingsToFile(File *settingsFile)
 {
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
-    settingsFile->printf("%s=%d\r\n", "printDebugMessages", settings.printDebugMessages);
     settingsFile->printf("%s=%d\r\n", "enableSD", settings.enableSD);
-    settingsFile->printf("%s=%d\r\n", "enableDisplay", settings.enableDisplay);
     settingsFile->printf("%s=%d\r\n", "maxLogTime_minutes", settings.maxLogTime_minutes);
     settingsFile->printf("%s=%d\r\n", "maxLogLength_minutes", settings.maxLogLength_minutes);
     settingsFile->printf("%s=%d\r\n", "observationSeconds", settings.observationSeconds);
@@ -815,12 +813,8 @@ bool parseLine(char *str, Settings *settings)
     {
     } // Do nothing. Just read it to avoid 'Unknown setting' error
 
-    else if (strcmp(settingName, "printDebugMessages") == 0)
-        settings->printDebugMessages = d;
     else if (strcmp(settingName, "enableSD") == 0)
         settings->enableSD = d;
-    else if (strcmp(settingName, "enableDisplay") == 0)
-        settings->enableDisplay = d;
     else if (strcmp(settingName, "maxLogTime_minutes") == 0)
         settings->maxLogTime_minutes = d;
     else if (strcmp(settingName, "maxLogLength_minutes") == 0)

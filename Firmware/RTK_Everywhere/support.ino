@@ -436,14 +436,6 @@ void printElapsedTime(const char *title)
     systemPrintf("%s: %ld\r\n", title, millis() - startTime);
 }
 
-void printDebug(String thingToPrint)
-{
-    if (settings.printDebugMessages == true)
-    {
-        systemPrint(thingToPrint);
-    }
-}
-
 #define TIMESTAMP_INTERVAL 1000 // Milliseconds
 
 // Print the timestamp

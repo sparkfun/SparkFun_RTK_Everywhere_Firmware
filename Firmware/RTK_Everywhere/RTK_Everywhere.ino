@@ -21,9 +21,9 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+//#define COMPILE_BT       // Comment out to remove Bluetooth functionality
+//#define COMPILE_WIFI     // Comment out to remove WiFi functionality
+//#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
@@ -791,7 +791,6 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.printDebugMessages = true;                                                                            \
         settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \

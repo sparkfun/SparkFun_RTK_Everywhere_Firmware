@@ -1020,13 +1020,27 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
-typedef struct
+struct Settings
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
-    bool printDebugMessages = false;
+
+    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
+    bool enableHeapReport = false;                        // Turn on to display free heap
+    bool enableTaskReports = false;                       // Turn on to display task high water marks
+    bool enableLogging = true;                            // If an SD card is present, log default sentences
+    bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
+    uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
+    uint16_t sppRxQueueSize = 512 * 4;
+    uint16_t sppTxQueueSize = 32;
+
     bool enableSD = true;
-    bool enableDisplay = true;
+    uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
+    muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
+    SystemState lastState = STATE_NOT_SET; // Start unit in last known state
+    bool enableResetDisplay = false;
+    int resetCount = 0;
+
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int observationSeconds = 60;             // Default survey in time of 60 seconds
@@ -1046,20 +1060,7 @@ typedef struct
     uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
-    bool enableHeapReport = false;                        // Turn on to display free heap
-    bool enableTaskReports = false;                       // Turn on to display task high water marks
-    muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
-    uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
-    bool enableLogging = true;                            // If an SD card is present, log default sentences
-    bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
-    uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
-    uint16_t sppRxQueueSize = 512 * 4;
-    uint16_t sppTxQueueSize = 32;
     uint8_t dynamicModel = DYN_MODEL_PORTABLE;
-    SystemState lastState = STATE_NOT_SET; // Start unit in last known state
-    bool enableResetDisplay = false;
-    int resetCount = 0;
     bool enableExternalPulse = true;                           // Send pulse once lock is achieved
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
     uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
@@ -1356,9 +1357,88 @@ typedef struct
     bool debugEspNow = false;
     
     // Add new settings above <------------------------------------------------------------>
+    // Then also add to rtkSettingsEntries below
 
-} Settings;
-Settings settings;
+} settings;
+
+typedef enum {
+    _bool = 0,
+    _int,
+    _float,
+    _double,
+    _uint8_t,
+    _uint16_t,
+    _uint32_t,
+    _uint64_t,
+    _muxConnectionType_e,
+    _SystemState,
+    _pulseEdgeType_e,
+    _charArray,
+} RTK_Settings_Types;
+
+typedef struct {
+    void *var;
+    const char *name;
+    const RTK_Settings_Types type;
+    const int charArraySize;
+} RTK_Settings_Entry;
+
+const RTK_Settings_Entry rtkSettingsEntries[] = {
+
+    { & settings.debugGnss, "debugGnss", _bool },
+    { & settings.enableHeapReport, "enableHeapReport", _bool },
+    { & settings.enableTaskReports, "enableTaskReports", _bool },
+    { & settings.enableLogging, "enableLogging", _bool },
+    { & settings.enableARPLogging, "enableARPLogging", _bool },
+    { & settings.ARPLoggingInterval_s, "ARPLoggingInterval_s", _uint16_t },
+    { & settings.sppRxQueueSize, "sppRxQueueSize", _uint16_t },
+    { & settings.sppTxQueueSize, "sppTxQueueSize", _uint16_t },
+
+    { & settings.enableSD, "enableSD", _bool },
+    { & settings.spiFrequency, "spiFrequency", _uint16_t },
+    { & settings.dataPortChannel, "dataPortChannel", _muxConnectionType_e },
+    { & settings.lastState, "lastState", _SystemState },
+    { & settings.enableResetDisplay, "enableResetDisplay", _bool },
+    { & settings.resetCount, "resetCount", _int },
+
+    { & settings.maxLogTime_minutes, "maxLogTime_minutes", _int },
+    { & settings.maxLogLength_minutes, "maxLogLength_minutes", _int },
+    { & settings.observationSeconds, "observationSeconds", _int },
+    { & settings.observationPositionAccuracy, "observationPositionAccuracy", _float },
+    { & settings.fixedBase, "fixedBase", _bool },
+    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", _bool },
+    { & settings.fixedEcefX, "fixedEcefX", _double },
+    { & settings.fixedEcefY, "fixedEcefY", _double },
+    { & settings.fixedEcefZ, "fixedEcefZ", _double },
+    { & settings.fixedLat, "fixedLat", _double },
+    { & settings.fixedLong, "fixedLong", _double },
+    { & settings.fixedAltitude, "fixedAltitude", _double },
+    { & settings.dataPortBaud, "dataPortBaud", _uint32_t },
+    { & settings.radioPortBaud, "radioPortBaud", _uint32_t },
+    { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float },
+    { & settings.measurementRate, "measurementRate", _uint16_t },
+    { & settings.navigationRate, "navigationRate", _uint16_t },
+    { & settings.dynamicModel, "dynamicModel", _uint8_t },
+    { & settings.enableExternalPulse, "enableExternalPulse", _bool },
+    { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse_us", _uint64_t },
+    { & settings.externalPulseLength_us, "externalPulseLength_us", _uint64_t },
+    { & settings.externalPulsePolarity, "externalPulsePolarity", _pulseEdgeType_e },
+    { & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", _bool },
+    { & settings.enableUART2UBXIn, "enableUART2UBXIn", _bool },
+
+    // ubxMessageRates is handled separately
+
+    // ubxConstellations is handled separately
+
+    { & settings.profileName, "profileName", _charArray, 50 },
+
+    // Add new settings above <------------------------------------------------------------>
+    /*
+    { & settings., "",  },
+    */
+};
+
+const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
 // Indicate which peripherals are present on a given platform
 struct struct_present

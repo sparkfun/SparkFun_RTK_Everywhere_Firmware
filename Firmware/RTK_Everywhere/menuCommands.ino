@@ -82,7 +82,6 @@ void menuCommands()
 }
 
 // Given a settingName, and string value, update a given setting
-// The order of variables matches the order found in settings.h
 void updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
     char *ptr;
@@ -93,12 +92,115 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     if (strcmp(settingValueStr, "false") == 0)
         settingValue = 0;
 
-    if (strcmp(settingName, "printDebugMessages") == 0)
-        settings.printDebugMessages = settingValue;
-    else if (strcmp(settingName, "enableSD") == 0)
+    // Trap the special cases first. The test is fast. Test now, not after the for loop.
+
+    //uint8_t ubxMessageRates[MAX_UBX_MSG] - message.%s.msgRate
+    char messageName[50];
+    if (sscanf(settingName, "message.%[^.].msgRate", messageName) == 1)
+    {
+        for (int i = 0; i < MAX_UBX_MSG; i++)
+        {
+            if ((messageName[0] == settingName[0]) && strcmp(messageName, settingName) == 0)
+            {
+                settings.ubxMessageRates[i] = (uint8_t)settingValue;
+            }
+        }
+    }
+
+    else
+    {
+        // Loop through the 'easy' single entries
+        // TODO: make this faster
+        // E.g. by storing the previous value of i and starting there.
+        // Most of the time, the match will be i+1.
+        for (int i = 0; i < numRtkSettingsEntries; i++)
+        {
+            // For speed, compare the first letter, then the whole string
+            if ((rtkSettingsEntries[i].name[0] == settingName[0]) && (strcmp(rtkSettingsEntries[i].name, settingName) == 0))
+            {
+                switch (rtkSettingsEntries[i].type)
+                {
+                    default:
+                        break;
+                    case _bool:
+                        {
+                            bool *ptr = (bool *)rtkSettingsEntries[i].var;
+                            *ptr = (bool)settingValue;
+                        }
+                        break;
+                    case _int:
+                        {
+                            int *ptr = (int *)rtkSettingsEntries[i].var;
+                            *ptr = (int)settingValue;
+                        }
+                        break;
+                    case _float:
+                        {
+                            float *ptr = (float *)rtkSettingsEntries[i].var;
+                            *ptr = (float)settingValue;
+                        }
+                        break;
+                    case _double:
+                        {
+                            double *ptr = (double *)rtkSettingsEntries[i].var;
+                            *ptr = settingValue;
+                        }
+                        break;
+                    case _uint8_t:
+                        {
+                            uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
+                            *ptr = (uint8_t)settingValue;
+                        }
+                        break;
+                    case _uint16_t:
+                        {
+                            uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
+                            *ptr = (uint16_t)settingValue;
+                        }
+                        break;
+                    case _uint32_t:
+                        {
+                            uint32_t *ptr = (uint32_t *)rtkSettingsEntries[i].var;
+                            *ptr = (uint32_t)settingValue;
+                        }
+                        break;
+                    case _uint64_t:
+                        {
+                            uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
+                            *ptr = (uint64_t)settingValue;
+                        }
+                        break;
+                    case _muxConnectionType_e:
+                        {
+                            muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
+                            *ptr = (muxConnectionType_e)settingValue;
+                        }
+                        break;
+                    case _SystemState:
+                        {
+                            SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
+                            *ptr = (SystemState)settingValue;
+                        }
+                        break;
+                    case _pulseEdgeType_e:
+                        {
+                            pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
+                            *ptr = (pulseEdgeType_e)settingValue;
+                        }
+                        break;
+                    case _charArray:
+                        {
+                            char *ptr = (char *)rtkSettingsEntries[i].var;
+                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].charArraySize);
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    if (strcmp(settingName, "enableSD") == 0)
         settings.enableSD = settingValue;
-    else if (strcmp(settingName, "enableDisplay") == 0)
-        settings.enableDisplay = settingValue;
     else if (strcmp(settingName, "maxLogTime_minutes") == 0)
         settings.maxLogTime_minutes = settingValue;
     else if (strcmp(settingName, "observationSeconds") == 0)
@@ -1121,9 +1223,7 @@ void createSettingsString(char *newSettings)
     snprintf(apDeviceBTID, sizeof(apDeviceBTID), "Device Bluetooth ID: %02X%02X", btMACAddress[4], btMACAddress[5]);
     stringRecord(newSettings, "deviceBTID", apDeviceBTID);
 
-    stringRecord(newSettings, "printDebugMessages", settings.printDebugMessages);
     stringRecord(newSettings, "enableSD", settings.enableSD);
-    stringRecord(newSettings, "enableDisplay", settings.enableDisplay);
     stringRecord(newSettings, "maxLogTime_minutes", settings.maxLogTime_minutes);
     stringRecord(newSettings, "maxLogLength_minutes", settings.maxLogLength_minutes);
     stringRecord(newSettings, "observationSeconds", settings.observationSeconds);
@@ -1788,12 +1888,8 @@ void writeToString(char *settingValueStr, char *value)
 // The order of variables matches the order found in settings.h
 void getSettingValue(const char *settingName, char *settingValueStr)
 {
-    if (strcmp(settingName, "printDebugMessages") == 0)
-        writeToString(settingValueStr, settings.printDebugMessages);
-    else if (strcmp(settingName, "enableSD") == 0)
+    if (strcmp(settingName, "enableSD") == 0)
         writeToString(settingValueStr, settings.enableSD);
-    else if (strcmp(settingName, "enableDisplay") == 0)
-        writeToString(settingValueStr, settings.enableDisplay);
     else if (strcmp(settingName, "maxLogTime_minutes") == 0)
         writeToString(settingValueStr, settings.maxLogTime_minutes);
     else if (strcmp(settingName, "maxLogLength_minutes") == 0)
@@ -2443,9 +2539,7 @@ void getSettingValue(const char *settingName, char *settingValueStr)
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
 void printAvailableSettings()
 {
-    systemPrint("printDebugMessages,bool,");
     systemPrint("enableSD,bool,");
-    systemPrint("enableDisplay,bool,");
     systemPrint("maxLogTime_minutes,int,");
     systemPrint("maxLogLength_minutes,int,");
     systemPrint("observationSeconds,int,");
