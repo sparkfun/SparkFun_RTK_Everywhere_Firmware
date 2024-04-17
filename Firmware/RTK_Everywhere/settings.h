@@ -369,6 +369,8 @@ typedef enum
 } ESPNOWState;
 volatile ESPNOWState espnowState = ESPNOW_OFF;
 
+const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
+
 typedef enum
 {
     RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3 = 0,
@@ -1118,7 +1120,9 @@ struct Settings
     bool enablePrintStates = true;
     bool enablePrintDuplicateStates = false;
     bool enablePrintRtcSync = false;
-    uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
+
+    uint8_t espnowPeers[ESPNOW_MAX_PEERS][6] = {0}; // Contains the MAC addresses (6 bytes) of paired units
+
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
@@ -1373,6 +1377,23 @@ typedef enum {
     _CoordinateInputType,
     _charArray,
     _IPString,
+    _ubxMessageRates,
+    _ubxConstellations,
+    _espnowPeers,
+    _ubxMessageRateBase,
+    _wifiNetwork,
+    _ntripServerCasterHost,
+    _ntripServerCasterPort,
+    _ntripServerCasterUser,
+    _ntripServerCasterUserPW,
+    _ntripServerMountPoint,
+    _ntripServerMountPointPW,
+    _um980MessageRatesNMEA,
+    _um980MessageRatesRTCMRover,
+    _um980MessageRatesRTCMBase,
+    _um980Constellations,
+    _correctionsSourcesPriority,
+    _regionalCorrectionTopics,
 } RTK_Settings_Types;
 
 typedef struct {
@@ -1392,14 +1413,14 @@ enum Settings_float_Precision {
 };
 
 const RTK_Settings_Entry rtkSettingsEntries[] = {
-
+    // Note: don't use "_" in the name - "_" is reserved for "array" settings like "ubxMessageRate_"
     { & settings.enableSD, "enableSD", _bool },
-    { & settings.maxLogTime_minutes, "maxLogTime_minutes", _int },
-    { & settings.maxLogLength_minutes, "maxLogLength_minutes", _int },
+    { & settings.maxLogTime_minutes, "maxLogTime", _int },
+    { & settings.maxLogLength_minutes, "maxLogLength", _int },
     { & settings.observationSeconds, "observationSeconds", _int },
     { & settings.observationPositionAccuracy, "observationPositionAccuracy", _float, point2float },
-    { & settings.fixedBase, "baseTypeFixed", _bool }, // Note: name mismatch
-    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateTypeLLH", _bool }, // Note: name changed to match inverted settingsValue
+    { & settings.fixedBase, "fixedBase", _bool },
+    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", _bool }, // TODO: check this. Do we need to invert?
     { & settings.fixedEcefX, "fixedEcefX", _double, point3float },
     { & settings.fixedEcefY, "fixedEcefY", _double, point3float },
     { & settings.fixedEcefZ, "fixedEcefZ", _double, point3float },
@@ -1409,7 +1430,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.dataPortBaud, "dataPortBaud", _uint32_t },
     { & settings.radioPortBaud, "radioPortBaud", _uint32_t },
     { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float, point1float },
-    { & settings.measurementRate, "measurementRateHz", _uint16_t }, // TODO: convert from Hz; removeFile(stationCoordinateECEFFileName); removeFile(stationCoordinateGeodeticFileName);
+    { & settings.measurementRate, "measurementRate", _uint16_t }, // TODO: convert from Hz; removeFile(stationCoordinateECEFFileName); removeFile(stationCoordinateGeodeticFileName);
     { & settings.navigationRate, "navigationRate", _uint16_t },
     { & settings.debugGnss, "debugGnss", _bool },
     { & settings.enableHeapReport, "enableHeapReport", _bool },
@@ -1418,7 +1439,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.spiFrequency, "spiFrequency", _uint16_t },
     { & settings.enableLogging, "enableLogging", _bool },
     { & settings.enableARPLogging, "enableARPLogging", _bool },
-    { & settings.ARPLoggingInterval_s, "ARPLoggingInterval_s", _uint16_t },
+    { & settings.ARPLoggingInterval_s, "ARPLoggingInterval", _uint16_t },
     { & settings.sppRxQueueSize, "sppRxQueueSize", _uint16_t },
     { & settings.sppTxQueueSize, "sppTxQueueSize", _uint16_t },
     { & settings.dynamicModel, "dynamicModel", _uint8_t },
@@ -1426,15 +1447,15 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enableResetDisplay, "enableResetDisplay", _bool },
     { & settings.resetCount, "resetCount", _int },
     { & settings.enableExternalPulse, "enableExternalPulse", _bool },
-    { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse_us", _uint64_t },
-    { & settings.externalPulseLength_us, "externalPulseLength_us", _uint64_t },
+    { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse", _uint64_t },
+    { & settings.externalPulseLength_us, "externalPulseLength", _uint64_t },
     { & settings.externalPulsePolarity, "externalPulsePolarity", _pulseEdgeType_e },
     { & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", _bool },
     { & settings.enableUART2UBXIn, "enableUART2UBXIn", _bool },
 
-    // ubxMessageRates is handled separately
+    { & settings.ubxMessageRates[0], "ubxMessageRate_", _ubxMessageRates, MAX_UBX_MSG },
 
-    // ubxConstellations is handled separately
+    { & settings.ubxConstellations[0], "ubxConstellation_", _ubxConstellations, MAX_CONSTELLATIONS },
 
     { & settings.profileName, "profileName", _charArray, sizeof(settings.profileName) }, // TODO: setProfileName(profileNumber);
 
@@ -1477,12 +1498,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", _bool },
     { & settings.enablePrintRtcSync, "enablePrintRtcSync", _bool },
 
-    // espnowPeers is handled separately
+    { & settings.espnowPeers[0][0], "espnowPeer_", _espnowPeers, ESPNOW_MAX_PEERS },
 
     { & settings.espnowPeerCount, "espnowPeerCount", _uint8_t }, // TODO: forgetEspNowPeers & espnowRemovePeer
     { & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", _bool },
     { & settings.bluetoothRadioType, "bluetoothRadioType", _BluetoothRadioType_e },
-    { & settings.runLogTest, "runLogTest", _bool },
+    { & settings.runLogTest, "runLogTest", _bool }, // Not stored in NVM
     { & settings.espnowBroadcast, "espnowBroadcast", _bool },
     { & settings.antennaHeight, "antennaHeight", _int16_t },
     { & settings.antennaReferencePoint, "antennaReferencePoint", _float, point2float },
@@ -1500,11 +1521,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
 
     { & settings.minElev, "minElev", _uint8_t },
 
-    // ubxMessageRatesBase is handled separately
+    { & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", _ubxMessageRateBase, MAX_UBX_MSG_RTCM },
 
     { & settings.coordinateInputType, "coordinateInputType", _CoordinateInputType }, // TODO
-    { & settings.lbandFixTimeout_seconds, "lbandFixTimeout_seconds", _uint16_t },
-    { & settings.minCNO_F9P, "minCNO_F9P", _int16_t },
+    { & settings.lbandFixTimeout_seconds, "lbandFixTimeout", _uint16_t },
+    { & settings.minCNO_F9P, "minCNOF9P", _int16_t },
     { & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", _uint16_t },
     { & settings.btReadTaskPriority, "btReadTaskPriority", _uint8_t },
     { & settings.gnssReadTaskPriority, "gnssReadTaskPriority", _uint8_t },
@@ -1515,7 +1536,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore", _uint8_t },
     { & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore", _uint8_t },
     { & settings.i2cInterruptsCore, "i2cInterruptsCore", _uint8_t },
-    { & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout_s", _uint32_t },
+    { & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout", _uint32_t },
     { & settings.disableSetupButton, "disableSetupButton", _bool },
 
     { & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", _bool },
@@ -1529,7 +1550,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.debugWifiState, "debugWifiState", _bool },
     { & settings.wifiConfigOverAP, "wifiConfigOverAP", _bool }, // TODO: check drop downs
 
-    // wifiNetworks is handled separately
+    { & settings.wifiNetworks, "wifiNetwork_", _wifiNetwork, MAX_WIFI_NETWORKS },
 
     { & settings.defaultNetworkType, "defaultNetworkType", _uint8_t },
     { & settings.debugNetworkLayer, "debugNetworkLayer", _bool },
@@ -1553,25 +1574,24 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.debugNtripClientRtcm, "debugNtripClientRtcm", _bool },
     { & settings.debugNtripClientState, "debugNtripClientState", _bool },
     { & settings.enableNtripClient, "enableNtripClient", _bool },
-    { & settings.ntripClient_CasterHost, "ntripClient_CasterHost", _charArray, sizeof(settings.ntripClient_CasterHost) },
-    { & settings.ntripClient_CasterPort, "ntripClient_CasterPort", _uint16_t },
-    { & settings.ntripClient_CasterUser, "ntripClient_CasterUser", _charArray, sizeof(settings.ntripClient_CasterUser) },
-    { & settings.ntripClient_CasterUserPW, "ntripClient_CasterUserPW", _charArray, sizeof(settings.ntripClient_CasterUserPW) },
-    { & settings.ntripClient_MountPoint, "ntripClient_MountPoint", _charArray, sizeof(settings.ntripClient_MountPoint) },
-    { & settings.ntripClient_MountPointPW, "ntripClient_MountPointPW", _charArray, sizeof(settings.ntripClient_MountPointPW) },
-    { & settings.ntripClient_TransmitGGA, "ntripClient_TransmitGGA", _bool },
+    { & settings.ntripClient_CasterHost, "ntripClientCasterHost", _charArray, sizeof(settings.ntripClient_CasterHost) },
+    { & settings.ntripClient_CasterPort, "ntripClientCasterPort", _uint16_t },
+    { & settings.ntripClient_CasterUser, "ntripClientCasterUser", _charArray, sizeof(settings.ntripClient_CasterUser) },
+    { & settings.ntripClient_CasterUserPW, "ntripClientCasterUserPW", _charArray, sizeof(settings.ntripClient_CasterUserPW) },
+    { & settings.ntripClient_MountPoint, "ntripClientMountPoint", _charArray, sizeof(settings.ntripClient_MountPoint) },
+    { & settings.ntripClient_MountPointPW, "ntripClientMountPointPW", _charArray, sizeof(settings.ntripClient_MountPointPW) },
+    { & settings.ntripClient_TransmitGGA, "ntripClientTransmitGGA", _bool },
 
     { & settings.debugNtripServerRtcm, "debugNtripServerRtcm", _bool },
     { & settings.debugNtripServerState, "debugNtripServerState", _bool },
     { & settings.enableNtripServer, "enableNtripServer", _bool },
 
-    // The following values are handled separately:
-    // ntripServer_CasterHost
-    // ntripServer_CasterPort
-    // ntripServer_CasterUser
-    // ntripServer_CasterUserPW
-    // ntripServer_MountPoint
-    // ntripServer_MountPointPW
+    { & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", _ntripServerCasterHost, NTRIP_SERVER_MAX },
+    { & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", _ntripServerCasterPort, NTRIP_SERVER_MAX },
+    { & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", _ntripServerCasterUser, NTRIP_SERVER_MAX },
+    { & settings.ntripServer_CasterUserPW[0], "ntripServerCasterUserPW_", _ntripServerCasterUserPW, NTRIP_SERVER_MAX },
+    { & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_", _ntripServerMountPoint, NTRIP_SERVER_MAX },
+    { & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_", _ntripServerMountPointPW, NTRIP_SERVER_MAX },
 
     { & settings.debugPvtClient, "debugPvtClient", _bool },
     { & settings.enablePvtClient, "enablePvtClient", _bool },
@@ -1586,13 +1606,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enablePvtUdpServer, "enablePvtUdpServer", _bool },
     { & settings.pvtUdpServerPort, "pvtUdpServerPort", _uint16_t },
 
-    // The following values are handled separately:
-    // um980MessageRatesNMEA
-    // um980MessageRatesRTCMRover
-    // um980MessageRatesRTCMBase
-    // um980Constellations
+    { & settings.um980MessageRatesNMEA, "um980MessageRatesNMEA_", _um980MessageRatesNMEA, MAX_UM980_NMEA_MSG },
+    { & settings.um980MessageRatesRTCMRover, "um980MessageRatesRTCMRover_", _um980MessageRatesRTCMRover, MAX_UM980_RTCM_MSG },
+    { & settings.um980MessageRatesRTCMBase, "um980MessageRatesRTCMBase_", _um980MessageRatesRTCMBase, MAX_UM980_RTCM_MSG },
+    { & settings.um980Constellations, "um980Constellations_", _um980Constellations, MAX_UM980_CONSTELLATIONS },
 
-    { & settings.minCNO_um980, "minCNO_um980", _int16_t },
+    { & settings.minCNO_um980, "minCNOum980", _int16_t },
     { & settings.enableTiltCompensation, "enableTiltCompensation", _bool },
     { & settings.tiltPoleLength, "tiltPoleLength", _float, point2float },
     { & settings.enableImuDebug, "enableImuDebug", _bool },
@@ -1619,15 +1638,17 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t },
     { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool },
 
-    // correctionsSourcesPriority is handled separately
+    { & settings.correctionsSourcesPriority, "correctionsSourcesPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM },
 
-    { & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime_s", _int },
+    { & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", _int },
 
     { & settings.geographicRegion, "geographicRegion", _int },
 
-    // regionalCorrectionTopics is handled separately
+    { & settings.regionalCorrectionTopics, "regionalCorrectionTopics_", _regionalCorrectionTopics, numRegionalAreas },
 
     { & settings.debugEspNow, "debugEspNow", _bool },
+    { & settings.enableEspNow, "enableEspNow", _bool },
+    { & settings.wifiChannel, "wifiChannel", _uint8_t },
 
     // Add new settings above <------------------------------------------------------------>
     /*

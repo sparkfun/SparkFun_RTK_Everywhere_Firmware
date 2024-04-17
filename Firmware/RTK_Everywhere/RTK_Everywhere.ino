@@ -573,7 +573,7 @@ unsigned long lastEspnowRssiUpdate;
 #endif // COMPILE_ESPNOW
 
 int espnowRSSI;
-const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
+// const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
 
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

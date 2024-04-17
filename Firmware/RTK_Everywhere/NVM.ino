@@ -181,10 +181,13 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
 
-
-    // Loop through the 'easy' single entries
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
+        // Exceptions:
+        // runLogTest not stored in NVM
+        if (strcmp(rtkSettingsEntries[i].name, "runLogTest") == 0)
+            continue;
+
         switch (rtkSettingsEntries[i].type)
         {
             default:
@@ -333,351 +336,195 @@ void recordSystemSettingsToFile(File *settingsFile)
                     settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
                 }
                 break;
+            case _ubxMessageRates:
+                {
+                    // Record message settings
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // message.nmea_dtm.msgRate=5
+                        snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName,
+                                settings.ubxMessageRates[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _ubxConstellations:
+                {
+                    // Record constellation settings
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // constellation.BeiDou=1
+                        snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, settings.ubxConstellations[x].textName,
+                                settings.ubxConstellations[x].enabled);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _espnowPeers:
+                {
+                    // Record ESP-Now peer MAC addresses
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // espnowPeers.1=B4,C1,33,42,DE,01,
+                        snprintf(tempString, sizeof(tempString), "%s%d=%02X,%02X,%02X,%02X,%02X,%02X,", rtkSettingsEntries[i].name, x,
+                                settings.espnowPeers[x][0], settings.espnowPeers[x][1], settings.espnowPeers[x][2],
+                                settings.espnowPeers[x][3], settings.espnowPeers[x][4], settings.espnowPeers[x][5]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _ubxMessageRateBase:
+                {
+                    // Record message settings
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
+                        snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName,
+                                settings.ubxMessageRates[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _wifiNetwork:
+                {
+                    // Record WiFi credential table
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[100]; // wifiNetwork_0Password=parachutes
+
+                        snprintf(tempString, sizeof(tempString), "%s%dSSID=%s", rtkSettingsEntries[i].name, x, settings.wifiNetworks[x].ssid);
+                        settingsFile->println(tempString);
+                        snprintf(tempString, sizeof(tempString), "%s%dPassword=%s", rtkSettingsEntries[i].name, x, settings.wifiNetworks[x].password);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _ntripServerCasterHost:
+                {
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                             &settings.ntripServer_CasterHost[x][0]);
+                    }
+                }
+                break;
+            case _ntripServerCasterPort:
+                {
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                             &settings.ntripServer_CasterPort[x]);
+                    }
+                }
+                break;
+            case _ntripServerCasterUser:
+                {
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                             &settings.ntripServer_CasterUser[x][0]);
+                    }
+                }
+                break;
+            case _ntripServerCasterUserPW:
+                {
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                             &settings.ntripServer_CasterUserPW[x][0]);
+                    }
+                }
+                break;
+            case _ntripServerMountPoint:
+                {
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                             &settings.ntripServer_MountPoint[x][0]);
+                    }
+                }
+                break;
+            case _ntripServerMountPointPW:
+                {
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
+                             &settings.ntripServer_MountPointPW[x][0]);
+                    }
+                }
+                break;
+            case _um980MessageRatesNMEA:
+                {
+                    // Record UM980 NMEA rates
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // um980MessageRatesNMEA.GPDTM=0.05
+                        snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name, umMessagesNMEA[x].msgTextName,
+                                settings.um980MessageRatesNMEA[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _um980MessageRatesRTCMRover:
+                {
+                    // Record UM980 Rover RTCM rates
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // um980MessageRatesRTCMRover.RTCM1001=0.2
+                        snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName,
+                                settings.um980MessageRatesRTCMRover[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _um980MessageRatesRTCMBase:
+                {
+                    // Record UM980 Base RTCM rates
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
+                        snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName,
+                                settings.um980MessageRatesRTCMBase[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _um980Constellations:
+                {
+                    // Record UM980 Constellations
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[50]; // um980Constellations.GLONASS=1
+                        snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, um980ConstellationCommands[x].textName,
+                                settings.um980Constellations[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _correctionsSourcesPriority:
+                {
+                    // Record corrections priorities
+                    for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                    {
+                        char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                        snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, correctionsSourceNames[x],
+                                settings.correctionsSourcesPriority[x]);
+                        settingsFile->println(tempString);
+                    }
+                }
+                break;
+            case _regionalCorrectionTopics:
+                {
+                    for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
+                    {
+                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, r,
+                                            &settings.regionalCorrectionTopics[r][0]);
+                    }
+                }
+                break;
         }
     }
 
-
-
-
-
-    settingsFile->printf("%s=%d\r\n", "enableSD", settings.enableSD);
-    settingsFile->printf("%s=%d\r\n", "maxLogTime_minutes", settings.maxLogTime_minutes);
-    settingsFile->printf("%s=%d\r\n", "maxLogLength_minutes", settings.maxLogLength_minutes);
-    settingsFile->printf("%s=%d\r\n", "observationSeconds", settings.observationSeconds);
-    settingsFile->printf("%s=%0.2f\r\n", "observationPositionAccuracy", settings.observationPositionAccuracy);
-    settingsFile->printf("%s=%d\r\n", "fixedBase", settings.fixedBase);
-    settingsFile->printf("%s=%d\r\n", "fixedBaseCoordinateType", settings.fixedBaseCoordinateType);
-    settingsFile->printf("%s=%0.3f\r\n", "fixedEcefX", settings.fixedEcefX); //-1280206.568
-    settingsFile->printf("%s=%0.3f\r\n", "fixedEcefY", settings.fixedEcefY);
-    settingsFile->printf("%s=%0.3f\r\n", "fixedEcefZ", settings.fixedEcefZ);
-    settingsFile->printf("%s=%0.9f\r\n", "fixedLat", settings.fixedLat); // 40.09029479
-    settingsFile->printf("%s=%0.9f\r\n", "fixedLong", settings.fixedLong);
-    settingsFile->printf("%s=%0.4f\r\n", "fixedAltitude", settings.fixedAltitude);
-    settingsFile->printf("%s=%d\r\n", "dataPortBaud", settings.dataPortBaud);
-    settingsFile->printf("%s=%d\r\n", "radioPortBaud", settings.radioPortBaud);
-    settingsFile->printf("%s=%0.1f\r\n", "zedSurveyInStartingAccuracy", settings.zedSurveyInStartingAccuracy);
-    settingsFile->printf("%s=%d\r\n", "measurementRate", settings.measurementRate);
-    settingsFile->printf("%s=%d\r\n", "navigationRate", settings.navigationRate);
-    settingsFile->printf("%s=%d\r\n", "debugGnss", settings.debugGnss);
-    settingsFile->printf("%s=%d\r\n", "enableHeapReport", settings.enableHeapReport);
-    settingsFile->printf("%s=%d\r\n", "enableTaskReports", settings.enableTaskReports);
-    settingsFile->printf("%s=%d\r\n", "dataPortChannel", (uint8_t)settings.dataPortChannel);
-    settingsFile->printf("%s=%d\r\n", "spiFrequency", settings.spiFrequency);
-    settingsFile->printf("%s=%d\r\n", "enableLogging", settings.enableLogging);
-    settingsFile->printf("%s=%d\r\n", "enableARPLogging", settings.enableARPLogging);
-    settingsFile->printf("%s=%d\r\n", "ARPLoggingInterval_s", settings.ARPLoggingInterval_s);
-    settingsFile->printf("%s=%d\r\n", "sppRxQueueSize", settings.sppRxQueueSize);
-    settingsFile->printf("%s=%d\r\n", "sppTxQueueSize", settings.sppTxQueueSize);
-    settingsFile->printf("%s=%d\r\n", "dynamicModel", settings.dynamicModel);
-    settingsFile->printf("%s=%d\r\n", "lastState", settings.lastState);
-    settingsFile->printf("%s=%d\r\n", "enableResetDisplay", settings.enableResetDisplay);
-    settingsFile->printf("%s=%d\r\n", "enableExternalPulse", settings.enableExternalPulse);
-    settingsFile->printf("%s=%llu\r\n", "externalPulseTimeBetweenPulse_us", settings.externalPulseTimeBetweenPulse_us);
-    settingsFile->printf("%s=%llu\r\n", "externalPulseLength_us", settings.externalPulseLength_us);
-    settingsFile->printf("%s=%d\r\n", "externalPulsePolarity", settings.externalPulsePolarity);
-    settingsFile->printf("%s=%d\r\n", "enableExternalHardwareEventLogging",
-                         settings.enableExternalHardwareEventLogging);
-    settingsFile->printf("%s=%d\r\n", "enableUART2UBXIn", settings.enableUART2UBXIn);
-
-    // Record message settings
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-    {
-        char tempString[50]; // message.nmea_dtm.msgRate=5
-        snprintf(tempString, sizeof(tempString), "message.%s.msgRate=%d", ubxMessages[x].msgTextName,
-                 settings.ubxMessageRates[x]);
-        settingsFile->println(tempString);
-    }
-
-    // Record constellation settings
-    for (int x = 0; x < MAX_CONSTELLATIONS; x++)
-    {
-        char tempString[50]; // constellation.BeiDou=1
-        snprintf(tempString, sizeof(tempString), "constellation.%s=%d", settings.ubxConstellations[x].textName,
-                 settings.ubxConstellations[x].enabled);
-        settingsFile->println(tempString);
-    }
-
-    settingsFile->printf("%s=%s\r\n", "profileName", settings.profileName);
-
-    settingsFile->printf("%s=%d\r\n", "serialTimeoutGNSS", settings.serialTimeoutGNSS);
-
-    // Point Perfect
-    settingsFile->printf("%s=%s\r\n", "pointPerfectDeviceProfileToken", settings.pointPerfectDeviceProfileToken);
-    settingsFile->printf("%s=%d\r\n", "enablePointPerfectCorrections", settings.enablePointPerfectCorrections);
-    settingsFile->printf("%s=%d\r\n", "autoKeyRenewal", settings.autoKeyRenewal);
-    settingsFile->printf("%s=%s\r\n", "pointPerfectClientID", settings.pointPerfectClientID);
-    settingsFile->printf("%s=%s\r\n", "pointPerfectBrokerHost", settings.pointPerfectBrokerHost);
-    settingsFile->printf("%s=%s\r\n", "pointPerfectKeyDistributionTopic", settings.pointPerfectKeyDistributionTopic);
-
-    settingsFile->printf("%s=%s\r\n", "pointPerfectCurrentKey", settings.pointPerfectCurrentKey);
-    settingsFile->printf("%s=%llu\r\n", "pointPerfectCurrentKeyDuration", settings.pointPerfectCurrentKeyDuration);
-    settingsFile->printf("%s=%llu\r\n", "pointPerfectCurrentKeyStart", settings.pointPerfectCurrentKeyStart);
-
-    settingsFile->printf("%s=%s\r\n", "pointPerfectNextKey", settings.pointPerfectNextKey);
-    settingsFile->printf("%s=%llu\r\n", "pointPerfectNextKeyDuration", settings.pointPerfectNextKeyDuration);
-    settingsFile->printf("%s=%llu\r\n", "pointPerfectNextKeyStart", settings.pointPerfectNextKeyStart);
-
-    settingsFile->printf("%s=%llu\r\n", "lastKeyAttempt", settings.lastKeyAttempt);
-    settingsFile->printf("%s=%d\r\n", "updateGNSSSettings", settings.updateGNSSSettings);
-
-    settingsFile->printf("%s=%d\r\n", "debugPpCertificate", settings.debugPpCertificate);
-
-    // Time Zone - Default to UTC
-    settingsFile->printf("%s=%d\r\n", "timeZoneHours", settings.timeZoneHours);
-    settingsFile->printf("%s=%d\r\n", "timeZoneMinutes", settings.timeZoneMinutes);
-    settingsFile->printf("%s=%d\r\n", "timeZoneSeconds", settings.timeZoneSeconds);
-
-    // Debug settings
-    settingsFile->printf("%s=%d\r\n", "enablePrintState", settings.enablePrintState);
-    settingsFile->printf("%s=%d\r\n", "enablePrintPosition", settings.enablePrintPosition);
-    settingsFile->printf("%s=%d\r\n", "enablePrintIdleTime", settings.enablePrintIdleTime);
-    settingsFile->printf("%s=%d\r\n", "enablePrintBatteryMessages", settings.enablePrintBatteryMessages);
-    settingsFile->printf("%s=%d\r\n", "enablePrintRoverAccuracy", settings.enablePrintRoverAccuracy);
-    settingsFile->printf("%s=%d\r\n", "enablePrintBadMessages", settings.enablePrintBadMessages);
-    settingsFile->printf("%s=%d\r\n", "enablePrintLogFileMessages", settings.enablePrintLogFileMessages);
-    settingsFile->printf("%s=%d\r\n", "enablePrintLogFileStatus", settings.enablePrintLogFileStatus);
-    settingsFile->printf("%s=%d\r\n", "enablePrintRingBufferOffsets", settings.enablePrintRingBufferOffsets);
-    settingsFile->printf("%s=%d\r\n", "enablePrintStates", settings.enablePrintStates);
-    settingsFile->printf("%s=%d\r\n", "enablePrintDuplicateStates", settings.enablePrintDuplicateStates);
-    settingsFile->printf("%s=%d\r\n", "enablePrintRtcSync", settings.enablePrintRtcSync);
-
-    // Record ESP-Now peer MAC addresses
-    for (int x = 0; x < settings.espnowPeerCount; x++)
-    {
-        char tempString[50]; // espnowPeers.1=B4,C1,33,42,DE,01,
-        snprintf(tempString, sizeof(tempString), "espnowPeers.%d=%02X,%02X,%02X,%02X,%02X,%02X,", x,
-                 settings.espnowPeers[x][0], settings.espnowPeers[x][1], settings.espnowPeers[x][2],
-                 settings.espnowPeers[x][3], settings.espnowPeers[x][4], settings.espnowPeers[x][5]);
-        settingsFile->println(tempString);
-    }
-    settingsFile->printf("%s=%d\r\n", "espnowPeerCount", settings.espnowPeerCount);
-    settingsFile->printf("%s=%d\r\n", "enableRtcmMessageChecking", settings.enableRtcmMessageChecking);
-    settingsFile->printf("%s=%d\r\n", "bluetoothRadioType", settings.bluetoothRadioType);
-
-    // runLogTest not stored in NVM
-
-    settingsFile->printf("%s=%d\r\n", "espnowBroadcast", settings.espnowBroadcast);
-    settingsFile->printf("%s=%d\r\n", "antennaHeight", settings.antennaHeight);
-    settingsFile->printf("%s=%0.2f\r\n", "antennaReferencePoint", settings.antennaReferencePoint);
-    settingsFile->printf("%s=%d\r\n", "echoUserInput", settings.echoUserInput);
-    settingsFile->printf("%s=%d\r\n", "uartReceiveBufferSize", settings.uartReceiveBufferSize);
-    settingsFile->printf("%s=%d\r\n", "gnssHandlerBufferSize", settings.gnssHandlerBufferSize);
-
-    settingsFile->printf("%s=%d\r\n", "enablePrintBufferOverrun", settings.enablePrintBufferOverrun);
-    settingsFile->printf("%s=%d\r\n", "enablePrintSDBuffers", settings.enablePrintSDBuffers);
-    settingsFile->printf("%s=%llu\r\n", "periodicDisplay", settings.periodicDisplay);
-    settingsFile->printf("%s=%d\r\n", "periodicDisplayInterval", settings.periodicDisplayInterval);
-
-    settingsFile->printf("%s=%d\r\n", "rebootSeconds", settings.rebootSeconds);
-    settingsFile->printf("%s=%d\r\n", "forceResetOnSDFail", settings.forceResetOnSDFail);
-
-    settingsFile->printf("%s=%d\r\n", "minElev", settings.minElev);
-
-    // Record message settings
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-    {
-        char tempString[50]; // message.nmea_dtm.msgRate=5
-        snprintf(tempString, sizeof(tempString), "message.%s.msgRate=%d", ubxMessages[x].msgTextName,
-                 settings.ubxMessageRates[x]);
-        settingsFile->println(tempString);
-    }
-
-    settingsFile->printf("%s=%d\r\n", "coordinateInputType", settings.coordinateInputType);
-    settingsFile->printf("%s=%d\r\n", "lbandFixTimeout_seconds", settings.lbandFixTimeout_seconds);
-    settingsFile->printf("%s=%d\r\n", "minCNO_F9P", settings.minCNO_F9P);
-    settingsFile->printf("%s=%d\r\n", "serialGNSSRxFullThreshold", settings.serialGNSSRxFullThreshold);
-    settingsFile->printf("%s=%d\r\n", "btReadTaskPriority", settings.btReadTaskPriority);
-    settingsFile->printf("%s=%d\r\n", "gnssReadTaskPriority", settings.gnssReadTaskPriority);
-    settingsFile->printf("%s=%d\r\n", "handleGnssDataTaskPriority", settings.handleGnssDataTaskPriority);
-    settingsFile->printf("%s=%d\r\n", "btReadTaskCore", settings.btReadTaskCore);
-    settingsFile->printf("%s=%d\r\n", "gnssReadTaskCore", settings.gnssReadTaskCore);
-    settingsFile->printf("%s=%d\r\n", "handleGnssDataTaskCore", settings.handleGnssDataTaskCore);
-    settingsFile->printf("%s=%d\r\n", "gnssUartInterruptsCore", settings.gnssUartInterruptsCore);
-    settingsFile->printf("%s=%d\r\n", "bluetoothInterruptsCore", settings.bluetoothInterruptsCore);
-    settingsFile->printf("%s=%d\r\n", "i2cInterruptsCore", settings.i2cInterruptsCore);
-    settingsFile->printf("%s=%d\r\n", "shutdownNoChargeTimeout_s", settings.shutdownNoChargeTimeout_s);
-    settingsFile->printf("%s=%d\r\n", "disableSetupButton", settings.disableSetupButton);
-
-    // Ethernet
-    settingsFile->printf("%s=%d\r\n", "enablePrintEthernetDiag", settings.enablePrintEthernetDiag);
-    settingsFile->printf("%s=%d\r\n", "ethernetDHCP", settings.ethernetDHCP);
-    settingsFile->printf("%s=%s\r\n", "ethernetIP", settings.ethernetIP.toString().c_str());
-    settingsFile->printf("%s=%s\r\n", "ethernetDNS", settings.ethernetDNS.toString().c_str());
-    settingsFile->printf("%s=%s\r\n", "ethernetGateway", settings.ethernetGateway.toString().c_str());
-    settingsFile->printf("%s=%s\r\n", "ethernetSubnet", settings.ethernetSubnet.toString().c_str());
-    settingsFile->printf("%s=%d\r\n", "httpPort", settings.httpPort);
-
-    // WiFi
-    settingsFile->printf("%s=%d\r\n", "debugWifiState", settings.debugWifiState);
-    settingsFile->printf("%s=%d\r\n", "wifiConfigOverAP", settings.wifiConfigOverAP);
-    // Record WiFi credential table
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-    {
-        char tempString[100]; // wifiNetwork0Password=parachutes
-
-        snprintf(tempString, sizeof(tempString), "wifiNetwork%dSSID=%s", x, settings.wifiNetworks[x].ssid);
-        settingsFile->println(tempString);
-        snprintf(tempString, sizeof(tempString), "wifiNetwork%dPassword=%s", x, settings.wifiNetworks[x].password);
-        settingsFile->println(tempString);
-    }
-
-    // Network layer
-    settingsFile->printf("%s=%d\r\n", "defaultNetworkType", settings.defaultNetworkType);
-    settingsFile->printf("%s=%d\r\n", "debugNetworkLayer", settings.debugNetworkLayer);
-    settingsFile->printf("%s=%d\r\n", "enableNetworkFailover", settings.enableNetworkFailover);
-    settingsFile->printf("%s=%d\r\n", "printNetworkStatus", settings.printNetworkStatus);
-
-    // Multicast DNS Server
-    settingsFile->printf("%s=%d\r\n", "mdnsEnable", settings.mdnsEnable);
-
-    // MQTT Client (PointPerfect)
-    settingsFile->printf("%s=%d\r\n", "debugMqttClientData", settings.debugMqttClientData);
-    settingsFile->printf("%s=%d\r\n", "debugMqttClientState", settings.debugMqttClientState);
-    settingsFile->printf("%s=%d\r\n", "useEuropeCorrections", settings.useEuropeCorrections);
-
-    // NTP
-    settingsFile->printf("%s=%d\r\n", "debugNtp", settings.debugNtp);
-    settingsFile->printf("%s=%d\r\n", "ethernetNtpPort", settings.ethernetNtpPort);
-    settingsFile->printf("%s=%d\r\n", "enableNTPFile", settings.enableNTPFile);
-    settingsFile->printf("%s=%d\r\n", "ntpPollExponent", settings.ntpPollExponent);
-    settingsFile->printf("%s=%d\r\n", "ntpPrecision", settings.ntpPrecision);
-    settingsFile->printf("%s=%d\r\n", "ntpRootDelay", settings.ntpRootDelay);
-    settingsFile->printf("%s=%d\r\n", "ntpRootDispersion", settings.ntpRootDispersion);
-    settingsFile->printf("%s=%s\r\n", "ntpReferenceId", settings.ntpReferenceId);
-
-    // NTRIP Client
-    settingsFile->printf("%s=%d\r\n", "debugNtripClientRtcm", settings.debugNtripClientRtcm);
-    settingsFile->printf("%s=%d\r\n", "debugNtripClientState", settings.debugNtripClientState);
-    settingsFile->printf("%s=%d\r\n", "enableNtripClient", settings.enableNtripClient);
-    settingsFile->printf("%s=%s\r\n", "ntripClient_CasterHost", settings.ntripClient_CasterHost);
-    settingsFile->printf("%s=%d\r\n", "ntripClient_CasterPort", settings.ntripClient_CasterPort);
-    settingsFile->printf("%s=%s\r\n", "ntripClient_CasterUser", settings.ntripClient_CasterUser);
-    settingsFile->printf("%s=%s\r\n", "ntripClient_CasterUserPW", settings.ntripClient_CasterUserPW);
-    settingsFile->printf("%s=%s\r\n", "ntripClient_MountPoint", settings.ntripClient_MountPoint);
-    settingsFile->printf("%s=%s\r\n", "ntripClient_MountPointPW", settings.ntripClient_MountPointPW);
-    settingsFile->printf("%s=%d\r\n", "ntripClient_TransmitGGA", settings.ntripClient_TransmitGGA);
-
-    // NTRIP Server
-    settingsFile->printf("%s=%d\r\n", "debugNtripServerRtcm", settings.debugNtripServerRtcm);
-    settingsFile->printf("%s=%d\r\n", "debugNtripServerState", settings.debugNtripServerState);
-    settingsFile->printf("%s=%d\r\n", "enableNtripServer", settings.enableNtripServer);
-    for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-    {
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterHost", serverIndex,
-                             &settings.ntripServer_CasterHost[serverIndex][0]);
-        settingsFile->printf("%s_%d=%d\r\n", "ntripServer_CasterPort", serverIndex,
-                             settings.ntripServer_CasterPort[serverIndex]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUser", serverIndex,
-                             &settings.ntripServer_CasterUser[serverIndex][0]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_CasterUserPW", serverIndex,
-                             &settings.ntripServer_CasterUserPW[serverIndex][0]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPoint", serverIndex,
-                             &settings.ntripServer_MountPoint[serverIndex][0]);
-        settingsFile->printf("%s_%d=%s\r\n", "ntripServer_MountPointPW", serverIndex,
-                             &settings.ntripServer_MountPointPW[serverIndex][0]);
-    }
-
-    // TCP Client
-    settingsFile->printf("%s=%d\r\n", "debugPvtClient", settings.debugPvtClient);
-    settingsFile->printf("%s=%d\r\n", "enablePvtClient", settings.enablePvtClient);
-    settingsFile->printf("%s=%d\r\n", "pvtClientPort", settings.pvtClientPort);
-    settingsFile->printf("%s=%s\r\n", "pvtClientHost", settings.pvtClientHost);
-
-    // TCP Server
-    settingsFile->printf("%s=%d\r\n", "debugPvtServer", settings.debugPvtServer);
-    settingsFile->printf("%s=%d\r\n", "enablePvtServer", settings.enablePvtServer);
-    settingsFile->printf("%s=%d\r\n", "pvtServerPort", settings.pvtServerPort);
-
-    // UDP Server
-    settingsFile->printf("%s=%d\r\n", "debugPvtUdpServer", settings.debugPvtUdpServer);
-    settingsFile->printf("%s=%d\r\n", "enablePvtUdpServer", settings.enablePvtUdpServer);
-    settingsFile->printf("%s=%d\r\n", "pvtUdpServerPort", settings.pvtUdpServerPort);
-
-    // Record UM980 NMEA rates
-    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-    {
-        char tempString[50]; // um980MessageRatesNMEA.GPDTM=0.05
-        snprintf(tempString, sizeof(tempString), "um980MessageRatesNMEA.%s=%0.2f", umMessagesNMEA[x].msgTextName,
-                 settings.um980MessageRatesNMEA[x]);
-        settingsFile->println(tempString);
-    }
-
-    // Record UM980 Rover RTCM rates
-    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-    {
-        char tempString[50]; // um980MessageRatesRTCMRover.RTCM1001=0.2
-        snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMRover.%s=%0.2f", umMessagesRTCM[x].msgTextName,
-                 settings.um980MessageRatesRTCMRover[x]);
-        settingsFile->println(tempString);
-    }
-
-    // Record UM980 Base RTCM rates
-    for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-    {
-        char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
-        snprintf(tempString, sizeof(tempString), "um980MessageRatesRTCMBase.%s=%0.2f", umMessagesRTCM[x].msgTextName,
-                 settings.um980MessageRatesRTCMBase[x]);
-        settingsFile->println(tempString);
-    }
-
-    // Record UM980 Constellations
-    for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-    {
-        char tempString[50]; // um980Constellations.GLONASS=1
-        snprintf(tempString, sizeof(tempString), "um980Constellations.%s=%0d", um980ConstellationCommands[x].textName,
-                 settings.um980Constellations[x]);
-        settingsFile->println(tempString);
-    }
-
-    settingsFile->printf("%s=%d\r\n", "minCNO_um980", settings.minCNO_um980);
-    settingsFile->printf("%s=%d\r\n", "enableTiltCompensation", settings.enableTiltCompensation);
-    settingsFile->printf("%s=%0.2f\r\n", "tiltPoleLength", settings.tiltPoleLength);
-    settingsFile->printf("%s=%d\r\n", "enableImuDebug", settings.enableImuDebug);
-
-    // Automatic Firmware Update
-    settingsFile->printf("%s=%d\r\n", "debugFirmwareUpdate", settings.debugFirmwareUpdate);
-    settingsFile->printf("%s=%d\r\n", "enableAutoFirmwareUpdate", settings.enableAutoFirmwareUpdate);
-    settingsFile->printf("%s=%d\r\n", "autoFirmwareCheckMinutes", settings.autoFirmwareCheckMinutes);
-
-    settingsFile->printf("%s=%d\r\n", "debugCorrections", settings.debugCorrections);
-    settingsFile->printf("%s=%d\r\n", "enableCaptivePortal", settings.enableCaptivePortal);
-
-    // Boot times
-    settingsFile->printf("%s=%d\r\n", "printBootTimes", settings.printBootTimes);
-
-    // Partition table
-    settingsFile->printf("%s=%d\r\n", "printPartitionTable", settings.printPartitionTable);
-
-    // Measurement scale
-    settingsFile->printf("%s=%d\r\n", "measurementScale", settings.measurementScale);
-
-    settingsFile->printf("%s=%d\r\n", "debugWiFiConfig", settings.debugWiFiConfig);
-    settingsFile->printf("%s=%d\r\n", "enablePsram", settings.enablePsram);
-
-    settingsFile->printf("%s=%d\r\n", "printTaskStartStop", settings.printTaskStartStop);
-    settingsFile->printf("%s=%d\r\n", "psramMallocLevel", settings.psramMallocLevel);
-    settingsFile->printf("%s=%0.1f\r\n", "um980SurveyInStartingAccuracy", settings.um980SurveyInStartingAccuracy);
-    settingsFile->printf("%s=%d\r\n", "enableBeeper", settings.enableBeeper);
-    settingsFile->printf("%s=%d\r\n", "um980MeasurementRateMs", settings.um980MeasurementRateMs);
-    settingsFile->printf("%s=%d\r\n", "enableImuCompensationDebug", settings.enableImuCompensationDebug);
-
-    // Record corrections priorities
-    for (int x = 0; x < correctionsSource::CORR_NUM; x++)
-    {
-        char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
-        snprintf(tempString, sizeof(tempString), "correctionsPriority.%s=%0d", correctionsSourceNames[x],
-                 settings.correctionsSourcesPriority[x]);
-        settingsFile->println(tempString);
-    }
-    settingsFile->printf("%s=%d\r\n", "correctionsSourcesLifetime_s", settings.correctionsSourcesLifetime_s);
-
-    settingsFile->printf("%s=%d\r\n", "geographicRegion", settings.geographicRegion);
-
-    for (int r = 0; r < numRegionalAreas; r++)
-    {
-        settingsFile->printf("%s_%d=%s\r\n", "regionalCorrectionTopics", r,
-                             &settings.regionalCorrectionTopics[r][0]);
-    }
     settingsFile->printf("%s=%d\r\n", "debugEspNow", settings.debugEspNow);
     settingsFile->printf("%s=%d\r\n", "enableEspNow", settings.enableEspNow);
     settingsFile->printf("%s=%d\r\n", "wifiChannel", settings.wifiChannel);
