@@ -1379,8 +1379,7 @@ typedef struct {
     void *var;
     const char *name;
     const RTK_Settings_Types type;
-    const int qualifier1;
-    const int qualifier2;
+    const int qualifier;
 } RTK_Settings_Entry;
 
 enum Settings_float_Precision {

@@ -204,7 +204,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             case _float:
                 {
                     float *ptr = (float *)rtkSettingsEntries[i].var;
-                    switch (rtkSettingsEntries[i].qualifier1)
+                    switch (rtkSettingsEntries[i].qualifier)
                     {
                         case point1float:
                             settingsFile->printf("%s=%0.1f\r\n", rtkSettingsEntries[i].name, *ptr);
@@ -228,7 +228,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             case _double:
                 {
                     double *ptr = (double *)rtkSettingsEntries[i].var;
-                    switch (rtkSettingsEntries[i].qualifier1)
+                    switch (rtkSettingsEntries[i].qualifier)
                     {
                         case point1float:
                             settingsFile->printf("%s=%0.1f\r\n", rtkSettingsEntries[i].name, *ptr);

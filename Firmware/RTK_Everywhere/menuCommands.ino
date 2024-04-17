@@ -401,8 +401,8 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                     case _charArray:
                         {
                             char *ptr = (char *)rtkSettingsEntries[i].var;
-                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].qualifier1);
-                            for (int i = strlen(settingValueStr); i < rtkSettingsEntries[i].qualifier1; i++)
+                            strncpy(ptr, settingValueStr, rtkSettingsEntries[i].qualifier);
+                            for (int i = strlen(settingValueStr); i < rtkSettingsEntries[i].qualifier; i++)
                                 *ptr++ = 0;
                             knownSetting = true;
                         }
