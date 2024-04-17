@@ -93,9 +93,8 @@ void menuCommands()
 }
 
 // Given a settingName, and string value, update a given setting
-void updateSettingWithValue(const char *settingName, const char *settingValueStr)
+bool updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
-    
     char *ptr;
     double settingValue = strtod(settingValueStr, &ptr);
 
@@ -139,12 +138,16 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
     }
 
     // espnowPeers
-    else if (sscanf(settingName, "espnowPeerMAC%d", &scratch) == 1)
+    else if (sscanf(settingName, "espnowPeers.%d", &scratch) == 1)
     {
-        String tempString = String(settingValueStr);
-        IPAddress *ptr = (IPAddress *)&settings.espnowPeers[scratch];
-        ptr->fromString(tempString);
-        knownSetting = true;
+        int mac[6];
+        if (sscanf(settingValueStr, "%X,%X,%X,%X,%X,%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) == 6)
+        {
+            for (int i = 0; i < 6; i++)
+                settings.espnowPeers[scratch][i] = mac[i];
+
+            knownSetting = true;
+        }
     }
 
     // ubxMessageRatesBase
@@ -701,6 +704,7 @@ void updateSettingWithValue(const char *settingName, const char *settingValueStr
         systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
     }
 
+    return (knownSetting);
 }
 
 // Create a csv string with current settings
