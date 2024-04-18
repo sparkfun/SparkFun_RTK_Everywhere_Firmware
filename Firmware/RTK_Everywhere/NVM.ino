@@ -415,10 +415,13 @@ void recordSystemSettingsToFile(File *settingsFile)
             case _ubxMessageRateBase:
                 {
                     // Record message settings
+
+                    int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
                         char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
-                        snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName,
+                        snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, ubxMessages[firstRTCMRecord + x].msgTextName,
                                 settings.ubxMessageRatesBase[x]);
                         settingsFile->println(tempString);
                     }
