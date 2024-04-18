@@ -2,12 +2,47 @@
   For any new setting added to the settings struct, we must add it to setting file
   recording and logging, and to the WiFi AP load/read in the following places:
 
-  recordSystemSettingsToFile(); - Settings Refactor: Done
-  parseLine(); - Settings Refactor: Done
-  createSettingsString(); - Settings Refactor: Done
-  updateSettingWithValue(); - Settings Refactor: Done
+  recordSystemSettingsToFile();
+    In this file NVM.ino
+    Records all settings to the selected file (LFS or SD) as setting=value\r\n
+    Uses standard settingsFile->printf to do the printing / writing
+    Settings Refactor: Done
+  
+  parseLine();
+    In this file NVM.ino
+    Splits a line from a settings file (setting=value\r\n) into settingName plus string / double value
+    Then updates settings using those
+    Called by loadSystemSettingsFromFileSD and loadSystemSettingsFromFileLFS
+    Settings Refactor: Done
+    Note: there is a _lot_ of commonality between this and updateSettingWithValue. It should be
+          possible to update parseLine so it calls updateSettingWithValue to do the actual updating.
+  
+  createSettingsString();
+    In menuCommands.ino
+    Generates a CSV string of all settings and their values
+    Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile), 
+    Calls the stringRecord methods - also in menuCommands.ino
+    Settings Refactor: Done
+    Note: there is a _lot_ of commonality between this and recordSystemSettingsToFile. It may be
+          possible to share code between the two.
+
+  updateSettingWithValue();
+    In menuCommnds.ino
+    Updates the selected settings using a text value
+    Called by Command SET
+    Also called by parseIncomingSettings (HTML/JS Config)
+    Settings Refactor: Done
+
   getSettingValue();
+    In menuCommands.ino
+    Returns the value of the selected setting as text in response to Command GET
+    Calls the writeToString methods - also in menuCommands.ino
+    Settings Refactor: Done
+
   printAvailableSettings();
+    In menuCommands.ino
+    Prints all available settings and their types as CSV in response to Command LIST
+    Settings Refactor: Done
 
   form.h also needs to be updated to include a space for user input. This is best
   edited in the index.html and main.js files.
@@ -337,6 +372,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                 {
                     IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
                     settingsFile->printf("%s=%s\r\n", rtkSettingsEntries[i].name, ptr->toString().c_str());
+                    // Note: toString separates the four bytes with dots / periods "192.168.1.1"
                 }
                 break;
             case _ubxMessageRates:
@@ -344,7 +380,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record message settings
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // message.nmea_dtm.msgRate=5
+                        char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
                         snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName,
                                 settings.ubxMessageRates[x]);
                         settingsFile->println(tempString);
@@ -356,7 +392,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record constellation settings
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // constellation.BeiDou=1
+                        char tempString[50]; // ubxConstellation_BeiDou=1
                         snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, settings.ubxConstellations[x].textName,
                                 settings.ubxConstellations[x].enabled);
                         settingsFile->println(tempString);
@@ -368,8 +404,8 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record ESP-Now peer MAC addresses
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // espnowPeers.1=B4,C1,33,42,DE,01,
-                        snprintf(tempString, sizeof(tempString), "%s%d=%02X,%02X,%02X,%02X,%02X,%02X,", rtkSettingsEntries[i].name, x,
+                        char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
+                        snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X,", rtkSettingsEntries[i].name, x,
                                 settings.espnowPeers[x][0], settings.espnowPeers[x][1], settings.espnowPeers[x][2],
                                 settings.espnowPeers[x][3], settings.espnowPeers[x][4], settings.espnowPeers[x][5]);
                         settingsFile->println(tempString);
@@ -383,7 +419,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     {
                         char tempString[50]; // ubxMessageRateBase_UBX_NMEA_DTM=5
                         snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName,
-                                settings.ubxMessageRates[x]);
+                                settings.ubxMessageRatesBase[x]);
                         settingsFile->println(tempString);
                     }
                 }
@@ -415,8 +451,8 @@ void recordSystemSettingsToFile(File *settingsFile)
                 {
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        settingsFile->printf("%s%d=%s\r\n", rtkSettingsEntries[i].name, x,
-                             &settings.ntripServer_CasterPort[x]);
+                        settingsFile->printf("%s%d=%d\r\n", rtkSettingsEntries[i].name, x,
+                             settings.ntripServer_CasterPort[x]);
                     }
                 }
                 break;
@@ -461,7 +497,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record UM980 NMEA rates
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // um980MessageRatesNMEA.GPDTM=0.05
+                        char tempString[50]; // um980MessageRatesNMEA_GPDTM=0.05
                         snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name, umMessagesNMEA[x].msgTextName,
                                 settings.um980MessageRatesNMEA[x]);
                         settingsFile->println(tempString);
@@ -473,7 +509,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record UM980 Rover RTCM rates
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // um980MessageRatesRTCMRover.RTCM1001=0.2
+                        char tempString[50]; // um980MessageRatesRTCMRover_RTCM1001=0.2
                         snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName,
                                 settings.um980MessageRatesRTCMRover[x]);
                         settingsFile->println(tempString);
@@ -485,7 +521,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record UM980 Base RTCM rates
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // um980MessageRatesRTCMBase.RTCM1001=0.2
+                        char tempString[50]; // um980MessageRatesRTCMBase_RTCM1001=0.2
                         snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName,
                                 settings.um980MessageRatesRTCMBase[x]);
                         settingsFile->println(tempString);
@@ -497,7 +533,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record UM980 Constellations
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[50]; // um980Constellations.GLONASS=1
+                        char tempString[50]; // um980Constellations_GLONASS=1
                         snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, um980ConstellationCommands[x].textName,
                                 settings.um980Constellations[x]);
                         settingsFile->println(tempString);
@@ -509,7 +545,7 @@ void recordSystemSettingsToFile(File *settingsFile)
                     // Record corrections priorities
                     for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                     {
-                        char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
+                        char tempString[80]; // correctionsPriority_Ethernet_IP_(PointPerfect/MQTT)=99
                         snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, correctionsSourceNames[x],
                                 settings.correctionsSourcesPriority[x]);
                         settingsFile->println(tempString);
@@ -905,7 +941,7 @@ bool parseLine(char *str)
             // For speed, compare the first letter, then the whole string
             if ((rtkSettingsEntries[i].name[0] == truncatedName[0]) && (strcmp(rtkSettingsEntries[i].name, truncatedName) == 0))
             {
-                updateGNSS |= rtkSettingsEntries[i].updateGNSSOnChange;
+                updateGNSS |= rtkSettingsEntries[i].updateGNSSOnChange; // Does this setting require a GNSS update?
                 switch (rtkSettingsEntries[i].type)
                 {
                     default:
@@ -1071,7 +1107,7 @@ bool parseLine(char *str)
                             if (sscanf(suffix, "%d", &suffixNum) == 1)
                             {
                                 int mac[6];
-                                if (sscanf(settingString, "%X,%X,%X,%X,%X,%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) == 6)
+                                if (sscanf(settingString, "%X:%X:%X:%X:%X:%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) == 6)
                                 {
                                     for (int i = 0; i < 6; i++)
                                         settings.espnowPeers[suffixNum][i] = mac[i];
