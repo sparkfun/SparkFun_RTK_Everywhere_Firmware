@@ -41,6 +41,7 @@ Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmwa
     ![SW Map list of Bluetooth devices](<img/QuickStart/SparkFun Torch - SW Maps Bluetooth Small.png>)
 
     *Figure 5*
+
 8. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
 
 9. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 7). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
@@ -101,6 +102,7 @@ To get millimeter accuracy we need to provide the RTK unit with correction value
 
 These companies set up a large number of reference stations that cover entire regions and countries, but charge a monthly fee. They are often easy to use but can be expensive.
 
+* [PointPerfect](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/#pointperfect-corrections) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea.
 * [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($50/month) - US, EU, Australia, South Korea
 * [Skylark](https://www.swiftnav.com/skylark) ($29 to $69/month) - US, EU, Japan, Australia
 * [SensorCloud RTK](https://rtk.sensorcloud.com/pricing/) ($100/month) partial US, EU
@@ -124,9 +126,19 @@ Be sure to check if your state or country provides corrections for free. Many do
 
 You can set up your own correction source. This is done with a 2nd GNSS receiver that is stationary, often called a Base Station. There is just the one-time upfront cost of the Base Station hardware. See the [Creating a Permanent Base](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/permanent_base/) document for more information.
 
+## PointPerfect Corrections
+
+One of the great features of the RTK Torch is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/pointperfect) with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage
+
+[![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
+
+*PointPerfect Coverage map including L-Band and IP delivery methods*
+
+The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the RTK Torch is compatible with any area that has *IP Coverage* (it is not compatible with L-Band coverage).
+
 ## NTRIP Example
 
-Once you have decided on a correction source we need to feed that data into your SparkFun RTK device. In this example, we will use PointOneNav and SW Maps.
+If you decide to use a service that provides NTRIP (as opposed to PointPerfect) we need to feed that data into your SparkFun RTK device. In this example, we will use PointOneNav and SW Maps.
 
 1. Create an account on [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun). **Note:** This service costs $50 per month at the time of writing.
 
@@ -163,49 +175,3 @@ RTK Fix will be maintained as long as there is a clear view of the sky and corre
 * The location reported by the RTK device is the location of the antenna element; it's *not* the location of the pointy end of the stick. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software. Note: This rule does not apply when tilt compensation is activated. Go here for more information.
 
 * An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). See [Correction Transport](correction_transport.md) for more details.
-
-## RTK Torch PointPerfect Keys
-
-The RTK Torch has the ability to get corrections from PointPerfect.
-
-Facet L-Band is unique in that it must obtain keys to decrypt the signal from a geosynchronous satellite. Here are the steps to do so:
-
-1. Turn on your RTK Facet L-Band by pressing the POWER button until the display shows ‘SparkFun RTK' then you can release it (Figure 1). 
-
-    ![RTK Boot Display](<img/Displays/SparkFun RTK Facet Boot Display.png>)
-
-    *Figure 1*
-
-2. Put the RTK device into configuration mode by tapping the POWER button multiple times until the Config menu is highlighted (Figure 2).
-
-    ![Config menu highlighted on the display](<img/Displays/SparkFun RTK Config Display.png>)
-    
-    *Figure 2*
-
-3. From your phone or laptop, connect to the WiFi network *RTK Config*.
-
-4. Open a browser (Chrome is preferred) and type **rtk.local** into the address bar. Note: Devices with older firmware may still need to enter **192.168.4.1**.
-
-5. Under the *WiFi Configuration* menu, enter the SSID and password for your local WiFi network (Figure 3). You can enter up to four. This can be a home,   office, cellular hotspot, or any other WiFi network. The unit will attempt to connect to the internet periodically to obtain new keys, including this first day. Then click **Save Configuration** and then **Exit and Reset**. The unit will now reboot.
-
-    ![WiFi settings](<img/WiFi%20Config/SparkFun%20RTK%20AP%20WiFi%20Menu.png>)
-
-    *Figure 3*
-
-6. After reboot, the device will connect to WiFi and obtain keys. You should see a series of displays indicating the automatic process (Figure 4).
-
-    ![Days until L-Band keys expire](<img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg>)
-
-    *Figure 4* 
-
-    Keys are valid for a minimum of 29 days and a maximum of 60. The device will automatically attempt to connect to WiFi to obtain new keys. If WiFi is not available during that period the keys will expire. The device will continue to operate with expired keys, with ~0.3m accuracy but not be able to obtain RTK Fix mode.
-
-7. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Within about 30 seconds you should see 10 or more satellites in view (SIV). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. 
-
-    ![Days until L-Band keys expire](<img/Displays/SparkFun_RTK_LBand_Indicator.jpg>)
-
-    *Figure 5*
-
-    Upon successful reception and decryption of L-Band corrections, the satellite dish icon will increase to a three-pronged icon (Figure 5). As the unit's accuracy increases a normal cross-hair will turn to a double blinking cross-hair indicating a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution. The HPA will be below 0.030 (30mm) or better once RTK Fix is achieved.
-
-You can now use your RTK device to measure points with millimeter accuracy. Please see [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#android) or [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#ios) for guidance on getting the RTK device connected to GIS software over Bluetooth.
