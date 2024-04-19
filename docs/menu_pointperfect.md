@@ -108,13 +108,13 @@ This message is seen when no WiFi network credentials (SSID and password) have b
 
     This device is not whitelisted. Please contact support@sparkfun.com to get your subscription activated. Please reference device ID: [device ID]
 
-This message is seen whenever the PointPerfect service is not aware of the given device. Please use the [subscription form](https://www.sparkfun.com/pointperfect) or contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
+This message is seen whenever the PointPerfect service is not aware of the given device. Please use the [subscription form](https://www.sparkfun.com/pointperfect) or contact support@sparkfun.com with your device ID (see [Obtaining the Device ID](menu_pointperfect.md#obtaining-the-device-id) above).
 
 ### Device Deactivated
 
     This device has been deactivated. Please contact support@sparkfun.com to renew the PointPerfect subscription. Please reference device ID: [device ID]
 
-This message is seen whenever the device's subscription has lapsed. Please use the [subscription form](https://www.sparkfun.com/pointperfect) or contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
+This message is seen whenever the device's subscription has lapsed. Please use the [subscription form](https://www.sparkfun.com/pointperfect) or contact support@sparkfun.com with your device ID (see [Obtaining the Device ID](menu_pointperfect.md#obtaining-the-device-id) above).
 
 ### HTTP response error -11 - Read Timeout
 
