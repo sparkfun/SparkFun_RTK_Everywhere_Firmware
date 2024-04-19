@@ -2109,9 +2109,11 @@ void printAvailableSettings()
                 case _ubxMessageRateBase:
                     {
                         // Record message settings
+                        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+
                         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                         {
-                            systemPrintf("%s%s,uint8_t,", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
+                            systemPrintf("%s%s,uint8_t,", rtkSettingsEntries[i].name, ubxMessages[firstRTCMRecord + x].msgTextName);
                         }
                     }
                     break;
