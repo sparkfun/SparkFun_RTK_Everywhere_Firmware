@@ -174,7 +174,8 @@ void espnowStart()
             systemPrintln("ESP-Now already on.");
     }
 
-    //WiFi.setSleep(false); //We must disable sleep so that ESP-NOW can readily receive packets
+    // WiFi.setSleep(false); //We must disable sleep so that ESP-NOW can readily receive packets
+    // See: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/241
 
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK)
