@@ -230,15 +230,21 @@ The RTK Torch can be opened by removing four Phillips head screws located on the
 
 *Antenna covered removed from the RTK Torch*
 
+### Removing Antenna Stackup
+
 Once the antenna cover is removed, remove the three Phillips holding the antenna in place. 
 
 With the screws removed, gently and very carefully pull up on the upper PCB antenna. There is an MMCX connector that will pop loose, along with a U.FL connection. Pulling too hard may damage the connectors, the PCB antennas, or both.
+
+### Removing Mainboard
 
 ![The RTK Torch mainboard](img/Repair/GPS-24672-RTK-Torch-Internal1.jpg)
 
 *The RTK Torch mainboard*
 
 With the mainboard removed, three Phillips head screws hold the mainboard in place. Remove these screws and the mainboard will be released. Remove the battery connector from the bottom side of the mainboard to free it.
+
+### Remoing Battery
 
 The lower 7.2V LiPo battery pack is held in place by a metal retaining plate. Remove the Phillips head screws to release the battery.
 

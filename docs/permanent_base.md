@@ -8,7 +8,7 @@ This section show various options to create your own base station. This is ideal
 
 *SparkFun RTK mosaic base station kit*
 
-This is the gold standard for RTK base station kits. The RTK mosaic is tri-band capable, includes all the bits you need (minus the antenna mounting hardware) to have a fully fledged CORS (continuously operating reference station). Additionally, the RTK mosaic is capable of transmitting to up to four Casters so you can push correction data simultaneously to your own caster (say RTK2Go) and to casters that may generate some income (ie, [Onocoy](https://www.onocoy.com/) or [Geodnet](https://geodnet.com/)).
+This is the gold standard for RTK base station kits. The [RTK mosaic](https://www.sparkfun.com/products/23748) is multi-band/multi-signal/multi-constellation capable, includes all the bits you need (minus the antenna mounting hardware) to have a fully fledged CORS (continuously operating reference station). Additionally, the RTK mosaic is capable of transmitting to up to four Casters so you can push correction data simultaneously to your own caster (say RTK2Go) and to casters that may generate some income (ie, [Onocoy](https://www.onocoy.com/) or [Geodnet](https://geodnet.com/)).
 
 [![SPK6618H antenna on a magnetic mount](https://docs.sparkfun.com/SparkFun_RTK_mosaic-X5/assets/img/hookup_guide/assembly-gnss-mount_location.jpg)](https://www.sparkfun.com/products/21257)
 
@@ -22,7 +22,7 @@ If you've got a metal roof or parapet, the [magentic mount](https://www.sparkfun
 
 *SparkFun RTK Reference Station kit*
 
-The RTK Reference Station is similar to the RTK mosaic; it has all the parts you need and is a very capable CORS. While being slightly cheaper in price, it is only dual band (L1/L2) capable so the corrections are *quite* as good as the tri-band [RTK mosaic](https://www.sparkfun.com/products/23748). Additionally, the RTK Reference Station is only capable of transmitting to a single Caster so you can't push correction data simultaneously to say RTK2Go and Onocoy at the same time.
+The [RTK Reference Station](https://www.sparkfun.com/products/22429) is similar to the RTK mosaic; it has all the parts you need and is a very capable CORS. While being slightly cheaper in price, it is only dual band (L1/L2) capable so the corrections are *quite* as good as the tri-band [RTK mosaic](https://www.sparkfun.com/products/23748). Additionally, the RTK Reference Station is only capable of transmitting to a single Caster so you can't push correction data simultaneously to say [RTK2Go](https://rtk2go.com/) and [Onocoy](https://www.onocoy.com/) at the same time.
 
 [![SPK6618H antenna on a magnetic mount](https://docs.sparkfun.com/SparkFun_RTK_mosaic-X5/assets/img/hookup_guide/assembly-gnss-mount_location.jpg)](https://www.sparkfun.com/products/21257)
 
