@@ -24,7 +24,7 @@ Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmwa
 
 3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until the two front LEDs illuminate (Figure 2). 
 
-    [![RTK Torch Power Button Explanation](<img/SparkFun Torch - Button Explanation Small.png>)](<img/SparkFun Torch - Button Explanation.png>)
+    [![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
 
     *Figure 2*
 
@@ -71,7 +71,7 @@ The software options for Apple iOS are much more limited because Apple products 
 
 3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until the two front LEDs illuminate (Figure 2). 
 
-    [![RTK Torch Power Button Explanation](<img/SparkFun Torch - Button Explanation Small.png>)](<img/SparkFun Torch - Button Explanation.png>)
+    [![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
 
     *Figure 2*
 

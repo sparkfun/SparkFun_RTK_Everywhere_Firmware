@@ -12,7 +12,7 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
     <td><a href="https://www.sparkfun.com/products/24672">SparkFun RTK Torch (GPS-24672)</a></td>
   </tr>
   <tr align="center">
-    <td><a href="https://learn.sparkfun.com/tutorials/sparkfun-rtk-facet-l-band-hookup-guide">Hookup Guide</a></td>
+    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
   </tr>
 </table>
 
