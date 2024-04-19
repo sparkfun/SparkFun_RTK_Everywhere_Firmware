@@ -1,12 +1,12 @@
 # Configure with Bluetooth
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Configuration menu open over Bluetooth](img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Config%20Menu.png)
 
 *Configuration menu via Bluetooth*
 
-Starting with firmware v3.0, Bluetooth-based configuration is supported. For more information about updating the firmware on your device, please see [Updating RTK Firmware](firmware_update.md).
+Bluetooth-based configuration provides a quick and easy way to navigate the serial menus as if you were connected over a USB cable. For regular users, this is often the preferred configuration method.
 
 The RTK device will be a discoverable Bluetooth device (both BT SPP and BLE are supported). For information about Bluetooth pairing, please see [Connecting Bluetooth](connecting_bluetooth.md).
 

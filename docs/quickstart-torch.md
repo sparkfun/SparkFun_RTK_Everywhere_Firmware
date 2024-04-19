@@ -136,6 +136,8 @@ One of the great features of the RTK Torch is that it has the ability to get cor
 
 The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the RTK Torch is compatible with any area that has *IP Coverage* (it is not compatible with L-Band coverage).
 
+See the [PointPerfect Menu](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/) for more information about this service.
+
 Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
 
 ## NTRIP Example
