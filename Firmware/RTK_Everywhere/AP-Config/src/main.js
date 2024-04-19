@@ -716,10 +716,10 @@ function saveConfig() {
 }
 
 function checkConstellations() {
-    if ((ge("ubxConstellationsGPS").checked == false)
-     && (ge("ubxConstellationsGalileo").checked == false)
-     && (ge("ubxConstellationsBeiDou").checked == false)
-     && (ge("ubxConstellationsGLONASS").checked == false)) {
+    if ((ge("ubxConstellation_GPS").checked == false)
+     && (ge("ubxConstellation_Galileo").checked == false)
+     && (ge("ubxConstellation_BeiDou").checked == false)
+     && (ge("ubxConstellation_GLONASS").checked == false)) {
         ge("collapseGNSSConfig").classList.add('show');
         showError('ubxConstellations', "Please choose one constellation");
         errorCount++;

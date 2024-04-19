@@ -867,6 +867,7 @@ void createSettingsString(char *newSettings)
                         int *ptr = (int *)rtkSettingsEntries[i].var;
                         stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
                     }
+                    break;
                 case _float:
                     {
                         float *ptr = (float *)rtkSettingsEntries[i].var;
