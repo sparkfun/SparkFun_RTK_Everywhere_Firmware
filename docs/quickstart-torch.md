@@ -44,11 +44,11 @@ Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmwa
 
 8. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
 
-9. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 7). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
+9. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 6). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
 
     ![RTK GNSS Status Window](<img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png>)
 
-    *Figure 7*
+    *Figure 6*
 
 You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#rtk-crash-course).
 
@@ -76,23 +76,19 @@ The software options for Apple iOS are much more limited because Apple products 
 
     *Figure 2*
 
-9. Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’. 
+4. Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’. 
 
-10. Press the SW Maps icon in the top left corner of the home screen and select Bluetooth GNSS. You will need to agree to allow a Bluetooth connection. Set the *Instrument Model* to **Generic NMEA (Bluetooth LE)**. Press 'Scan' and your RTK device should appear. Select it then press the ‘Connect’ button in the bottom left corner.
+5. Press the SW Maps icon in the top left corner of the home screen and select Bluetooth GNSS. You will need to agree to allow a Bluetooth connection. Set the *Instrument Model* to **Generic NMEA (Bluetooth LE)**. Press 'Scan' and your RTK device should appear. Select it then press the ‘Connect’ button in the bottom left corner.
 
-11. Once connected, have a look at the display on the RTK device. You should see the MAC address disappear and be replaced by the Bluetooth icon (Figure 6). You’re connected!
+6. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
 
-    ![Display showing Bluetooth connection](<img/Displays/SparkFun RTK Display - Bluetooth.png>)
+7. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows.  Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
 
-    *Figure 6*
+    ![RTK GNSS Status Window](<img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png>)
 
-12. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 7). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. If you wait a few moments, this will drop dramatically to around 0.3 meters (300mm = 1ft) or better. 
+    *Figure 3*
 
-    ![RTK Display Explanation](img/Displays/SparkFun_RTK_Facet_-_Main_Display_Icons.jpg)
-
-    *Figure 7*
-
-You can now use your RTK device to measure points with very good (sub-meter) accuracy. If you need extreme accuracy (down to 10mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#rtk-crash-course).
+You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/intro/#rtk-crash-course).
 
 ## RTK Crash Course
 
