@@ -119,6 +119,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (length >= sizeof(truncatedName))
             length = sizeof(truncatedName) - 1;
         strncpy(truncatedName, settingName, length);
+        truncatedName[length] = 0; // Manually NULL-terminate because length < strlen(settingName)
         strncpy(suffix, &settingName[length], sizeof(suffix) - 1);
     }
     else
@@ -286,7 +287,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                     {
                         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                         {
-                            if ((suffix[0] == settings.ubxConstellations[i].textName[0]) && (strcmp(suffix, settings.ubxConstellations[i].textName) == 0))
+                            if ((suffix[0] == settings.ubxConstellations[x].textName[0]) && (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
                             {
                                 settings.ubxConstellations[x].enabled = settingValue;
                                 knownSetting = true;
@@ -1550,6 +1551,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
         if (length >= sizeof(truncatedName))
             length = sizeof(truncatedName) - 1;
         strncpy(truncatedName, settingName, length);
+        truncatedName[length] = 0; // Manually NULL-terminate because length < strlen(settingName)
         strncpy(suffix, &settingName[length], sizeof(suffix) - 1);
     }
     else
@@ -1693,7 +1695,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 case _IPString:
                     {
                         IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
-                        writeToString(settingValueStr, ptr->toString().c_str());
+                        writeToString(settingValueStr, (char *)ptr->toString().c_str());
                         knownSetting = true;
                     }
                     break;
@@ -1714,7 +1716,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                     {
                         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                         {
-                            if ((suffix[0] == settings.ubxConstellations[i].textName[0]) && (strcmp(suffix, settings.ubxConstellations[i].textName) == 0))
+                            if ((suffix[0] == settings.ubxConstellations[x].textName[0]) && (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
                             {
                                 writeToString(settingValueStr, settings.ubxConstellations[x].enabled);
                                 knownSetting = true;
@@ -1982,7 +1984,7 @@ void printAvailableSettings()
 {
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (rtkSettingsEntries[i].inSettingsString)
+        if (rtkSettingsEntries[i].inCommands)
         {
             switch (rtkSettingsEntries[i].type)
             {

@@ -1643,7 +1643,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t, 0, false, true, true },
     { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool, 0, false, true, true },
 
-    { & settings.correctionsSourcesPriority, "correctionsSourcesPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM, false, true, true },
+    { & settings.correctionsSourcesPriority, "correctionsPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM, false, true, true },
 
     { & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", _int, 0, false, true, true },
 

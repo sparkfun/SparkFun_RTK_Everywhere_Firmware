@@ -19,7 +19,7 @@
   
   createSettingsString();
     In menuCommands.ino
-    Generates a CSV string of all settings and their values
+    Generates a CSV string of all settings and their values - if they are inSettingsString
     Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile), 
     Calls the stringRecord methods - also in menuCommands.ino
     Settings Refactor: Done
@@ -42,6 +42,7 @@
   printAvailableSettings();
     In menuCommands.ino
     Prints all available settings and their types as CSV in response to Command LIST
+    - if they are inCommands
     Settings Refactor: Done
 
   form.h also needs to be updated to include a space for user input. This is best
@@ -927,6 +928,7 @@ bool parseLine(char *str)
             if (length >= sizeof(truncatedName))
                 length = sizeof(truncatedName) - 1;
             strncpy(truncatedName, settingName, length);
+            truncatedName[length] = 0; // Manually NULL-terminate because length < strlen(settingName)
             strncpy(suffix, &settingName[length], sizeof(suffix) - 1);
         }
         else
@@ -1095,7 +1097,7 @@ bool parseLine(char *str)
                         {
                             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                             {
-                                if ((suffix[0] == settings.ubxConstellations[i].textName[0]) && (strcmp(suffix, settings.ubxConstellations[i].textName) == 0))
+                                if ((suffix[0] == settings.ubxConstellations[x].textName[0]) && (strcmp(suffix, settings.ubxConstellations[x].textName) == 0))
                                 {
                                     settings.ubxConstellations[x].enabled = d;
                                     knownSetting = true;
