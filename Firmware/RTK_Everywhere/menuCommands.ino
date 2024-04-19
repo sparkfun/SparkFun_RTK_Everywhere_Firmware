@@ -862,6 +862,11 @@ void createSettingsString(char *newSettings)
                         stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
                     }
                     break;
+                case _int:
+                    {
+                        int *ptr = (int *)rtkSettingsEntries[i].var;
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
+                    }
                 case _float:
                     {
                         float *ptr = (float *)rtkSettingsEntries[i].var;
@@ -874,14 +879,16 @@ void createSettingsString(char *newSettings)
                         stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr, rtkSettingsEntries[i].qualifier);
                     }
                     break;
-                case _int:
                 case _uint8_t:
-                case _uint16_t:
-                case _int8_t:
-                case _int16_t:
                     {
-                        int *ptr = (int *)rtkSettingsEntries[i].var;
-                        stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
+                        uint8_t *ptr = (uint8_t *)rtkSettingsEntries[i].var;
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
+                    }
+                    break;
+                case _uint16_t:
+                    {
+                        uint16_t *ptr = (uint16_t *)rtkSettingsEntries[i].var;
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
                     }
                     break;
                 case _uint32_t:
@@ -894,6 +901,18 @@ void createSettingsString(char *newSettings)
                     {
                         uint64_t *ptr = (uint64_t *)rtkSettingsEntries[i].var;
                         stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
+                    }
+                    break;
+                case _int8_t:
+                    {
+                        int8_t *ptr = (int8_t *)rtkSettingsEntries[i].var;
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
+                    }
+                    break;
+                case _int16_t:
+                    {
+                        int16_t *ptr = (int16_t *)rtkSettingsEntries[i].var;
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
                     }
                     break;
                 case _muxConnectionType_e:
