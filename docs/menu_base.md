@@ -55,7 +55,7 @@ Enabling NTRIP will present a handful of new options seen below:
 
 *Settings for the NTRIP Servers*
 
-This is a powerful feature of the RTK line of products. The RTK device can be configured to transmit its RTCM directly over WiFi to up to 4 mount points. This eliminates the need for a radio link.
+This is a powerful feature of the RTK line of products. The RTK device can be configured to transmit its RTCM directly over WiFi to up to **4 Casters**. This eliminates the need for a radio link between one Base and one Rover. Providing more than one caster is a unique RTK Everywhere feature that allows a single base installation to push corrections to a public Caster (such as RTK2Go) as well as payment-generating casters (such as [Onocoy](https://www.onocoy.com/) or [Geodnet](https://geodnet.com/)).
 
 Once the NTRIP server is enabled you will need a handful of credentials:
 

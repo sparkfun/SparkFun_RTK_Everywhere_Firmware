@@ -42,7 +42,7 @@ A minimum C/N0 is set in dB. If a satellite is detected that is below this signa
 
 *Enable or disable the constellations used for fixes*
 
-The GNSS receiver is capable of tracking 184 channels across four constellations and three bands (L1/L2/5) including GPS (USA), Galileo (EU), BeiDou (China), and GLONASS (Russia). SBAS (satellite-based augmentation system) is also supported. By default, all constellations are used. Some users may want to study, log, or monitor a subset. Disabling a constellation will cause the GNSS receiver to ignore those signals when calculating a location fix.
+The GNSS receiver is capable of tracking multiple channels across four constellations, each producing their own GNSS signals (ie, L1C/A, L1C, L2P, L2C, L5, E1, E5a, E5b, E6, B1I, B2I, B3I, B1C, B2a, B2b, etc). The supported constellations include GPS (USA), Galileo (EU), BeiDou (China), and GLONASS (Russia). SBAS (satellite-based augmentation system) is also supported. By default, all constellations are used. Some users may want to study, log, or monitor a subset. Disabling a constellation will cause the GNSS receiver to ignore those signals when calculating a location fix.
 
 ## NTRIP Client
 

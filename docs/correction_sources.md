@@ -12,6 +12,7 @@ To achieve an RTK Fix, SparkFun RTK products must be provided with a correction 
 
 These services cover entire countries and regions but charge a monthly fee. Easy to use, but the most expensive.
 
+* [PointPerfect](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/#pointperfect-corrections) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea.
 * [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($50/month) - US, EU
 * [Skylark](https://www.swiftnav.com/skylark) ($29 to $69/month) - US, EU, Japan, Australia
 * [Vector RTK](https://vectorrtk.com/) ($115/month) - UK
@@ -19,7 +20,17 @@ These services cover entire countries and regions but charge a monthly fee. Easy
 * [KeyNetGPS](https://www.keypre.com/KeynetGPS) ($375/month) North Eastern US
 * [Hexagon/Leica](https://hxgnsmartnet.com/en-US) ($500/month) - partial US, EU
 
-Using PointOneNav is discussed in the [Quick Start guide](https://docs.sparkfun.com/SparkFun_RTK_Firmware/intro/#ntrip-example). We'll discuss using Skylark below. All services have the same basic interface: as long as the service has NTRIP, the SparkFun RTK product can use it.
+**PointPerfect**
+
+One of the great features of SparkFun RTK Everywhere devices is that they are equipped to get corrections from a service called PointPerfect. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/pointperfect) with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage. Please see the [PointPerfect Menu](menu_pointperfect.md) page for more information. 
+
+[![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
+
+*PointPerfect Coverage map including L-Band and IP delivery methods*
+
+The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics.
+
+Some SparkFun RTK devices support corrections delivered over IP only (ie, RTK Torch), some devices support L-Band only, and some devices support both IP and L-Band delivery methods. Please see the product description or hookup guide for your particular device for more information.
 
 **Skylark**
 
@@ -44,15 +55,6 @@ The most difficult part of using Skylark for corrections is entering the auto-ge
 *SW Maps showing Positional Accuracy*
 
 One downside is that with a 'regional' provider such as Skylark the distance to the correction station may be larger than 10km. While we've always gotten an RTK fix, we often see horizontal positional accuracy of ~30mm instead of the 14mm when using our fixed GNSS reference station. Your mileage may vary.
-
-**PointPerfect**
-
-
-[![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
-
-*PointPerfect Coverage map including L-Band and IP delivery methods*
-
-SparkFun RTK Everywhere devices are equipped to get corrections from a service called PointPerfect. Please see the [PointPerfect Menu](menu_pointperfect.md) page for more information.
 
 ## Government Provided Corrections
 
