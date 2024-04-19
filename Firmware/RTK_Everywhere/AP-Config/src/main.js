@@ -485,20 +485,20 @@ function validateFields() {
     checkElementValue("minCNO", 0, 90, "Must be between 0 and 90", "collapseGNSSConfig");
 
     if (ge("enableNtripClient").checked == true) {
-        checkElementString("ntripClient_CasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
-        checkElementValue("ntripClient_CasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
-        checkElementString("ntripClient_MountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
-        checkElementCasterUser("ntripClient_CasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
-        checkElementCasterUser("ntripClient_CasterUser", "www.rtk2go.com", "User must use their email address", "collapseGNSSConfig");
+        checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
+        checkElementValue("ntripClientCasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
+        checkElementString("ntripClientMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
+        checkElementCasterUser("ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
+        checkElementCasterUser("ntripClientCasterUser", "www.rtk2go.com", "User must use their email address", "collapseGNSSConfig");
     }
     else {
-        clearElement("ntripClient_CasterHost", "rtk2go.com");
-        clearElement("ntripClient_CasterPort", 2101);
-        clearElement("ntripClient_MountPoint", "bldr_SparkFun1");
-        clearElement("ntripClient_MountPointPW");
-        clearElement("ntripClient_CasterUser", "test@test.com");
-        clearElement("ntripClient_CasterUserPW", "");
-        ge("ntripClient_TransmitGGA").checked = true;
+        clearElement("ntripClientCasterHost", "rtk2go.com");
+        clearElement("ntripClientCasterPort", 2101);
+        clearElement("ntripClientMountPoint", "bldr_SparkFun1");
+        clearElement("ntripClientMountPointPW");
+        clearElement("ntripClientCasterUser", "test@test.com");
+        clearElement("ntripClientCasterUserPW", "");
+        ge("ntripClientTransmitGGA").checked = true;
     }
 
     //Check all UBX message boxes
@@ -554,18 +554,18 @@ function validateFields() {
     }
 
     if (ge("enableNtripServer").checked == true) {
-        checkElementString("ntripServer_CasterHost", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-        checkElementValue("ntripServer_CasterPort", 1, 99999, "Must be 1 to 99999", "collapseBaseConfig");
-        checkElementString("ntripServer_MountPoint", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-        checkElementString("ntripServer_MountPointPW", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+        checkElementString("ntripServerCasterHost", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+        checkElementValue("ntripServerCasterPort", 1, 99999, "Must be 1 to 99999", "collapseBaseConfig");
+        checkElementString("ntripServerMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+        checkElementString("ntripServerMountPointPW", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
     }
     else {
-        clearElement("ntripServer_CasterHost", "rtk2go.com");
-        clearElement("ntripServer_CasterPort", 2101);
-        clearElement("ntripServer_CasterUser", "");
-        clearElement("ntripServer_CasterUserPW", "");
-        clearElement("ntripServer_MountPoint", "bldr_dwntwn2");
-        clearElement("ntripServer_MountPointPW", "WR5wRo4H");
+        clearElement("ntripServerCasterHost", "rtk2go.com");
+        clearElement("ntripServerCasterPort", 2101);
+        clearElement("ntripServerCasterUser", "");
+        clearElement("ntripServerCasterUserPW", "");
+        clearElement("ntripServerMountPoint", "bldr_dwntwn2");
+        clearElement("ntripServerMountPointPW", "WR5wRo4H");
     }
 
 
@@ -601,12 +601,12 @@ function validateFields() {
 
     //System Config
     if (ge("enableLogging").checked == true) {
-        checkElementValue("maxLogTime_minutes", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
-        checkElementValue("maxLogLength_minutes", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogTime", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
+        checkElementValue("maxLogLength", 1, 1051200, "Must be 1 to 1,051,200", "collapseSystemConfig");
     }
     else {
-        clearElement("maxLogTime_minutes", 60 * 24);
-        clearElement("maxLogLength_minutes", 60 * 24);
+        clearElement("maxLogTime", 60 * 24);
+        clearElement("maxLogLength", 60 * 24);
     }
 
     if (ge("enableARPLogging").checked == true) {
@@ -623,7 +623,7 @@ function validateFields() {
         checkElementIPAddress("ethernetDNS", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetGateway", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetSubnet", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
-        checkElementValue("ethernetHttpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
+        checkElementValue("httpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
         checkElementValue("ethernetNtpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
         if (ge("enableTcpClientEthernet").checked == true) {
             checkElementString("ethernetTcpPort", 1, 65535, "Must be 1 to 65535", "collapseEthernetConfig");
@@ -635,7 +635,7 @@ function validateFields() {
         //    clearElement("ethernetDNS", "192.168.4.100");
         //    clearElement("ethernetGateway", "192.168.0.1");
         //    clearElement("ethernetSubnet", "255.255.255.0");
-        //    clearElement("ethernetHttpPort", 80);
+        //    clearElement("httpPort", 80);
         //    clearElement("ethernetNtpPort", 123);
         //}
     }
@@ -651,8 +651,8 @@ function validateFields() {
 
     //Port Config
     if (ge("enableExternalPulse").checked == true) {
-        checkElementValue("externalPulseTimeBetweenPulse_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-        checkElementValue("externalPulseLength_us", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+        checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+        checkElementValue("externalPulseLength", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
     }
 }
 
@@ -840,7 +840,7 @@ function checkElementIPAddress(id, errorText, collapseID) {
 }
 
 function checkElementCasterUser(id, badUserName, errorText, collapseID) {
-    if (ge("ntripClient_CasterHost").value.toLowerCase() == "rtk2go.com") {
+    if (ge("ntripClientCasterHost").value.toLowerCase() == "rtk2go.com") {
         checkElementString(id, 1, 50, errorText, collapseID);
     }
     else
@@ -861,7 +861,7 @@ function checkCheckboxMutex(id1, id2, errorText, collapseID) {
 }
 
 function checkCorrectionsPriorities() {
-    checkElementValue("correctionsSourcesLifetime_s", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
+    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
 
     var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
     if (correctionsSources.length > 0) {
@@ -984,7 +984,7 @@ function useECEFCoordinates() {
 function useGeodeticCoordinates() {
     ge("fixedLatText").value = geodeticLat;
     ge("fixedLongText").value = geodeticLon;
-    ge("fixedHAE_APC").value = geodeticAlt;
+    ge("fixedHAEAPC").value = geodeticAlt;
 
     $("input[name=markRadio][value=1]").prop('checked', true);
     $("input[name=markRadio][value=2]").prop('checked', false);
@@ -1217,7 +1217,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         adjustHAE();
     });
 
-    ge("fixedHAE_APC").addEventListener("change", function () {
+    ge("fixedHAEAPC").addEventListener("change", function () {
         adjustHAE();
     });
 
@@ -1354,16 +1354,16 @@ function adjustHAE() {
     var haeMethod = document.querySelector('input[name=markRadio]:checked').value;
     var hae;
     if (haeMethod == 1) {
-        ge("fixedHAE_APC").disabled = false;
+        ge("fixedHAEAPC").disabled = false;
         ge("fixedAltitude").disabled = true;
-        hae = Number(ge("fixedHAE_APC").value) - (Number(ge("antennaHeight").value) / 1000 + Number(ge("antennaReferencePoint").value) / 1000);
+        hae = Number(ge("fixedHAEAPC").value) - (Number(ge("antennaHeight").value) / 1000 + Number(ge("antennaReferencePoint").value) / 1000);
         ge("fixedAltitude").value = hae.toFixed(3);
     }
     else {
-        ge("fixedHAE_APC").disabled = true;
+        ge("fixedHAEAPC").disabled = true;
         ge("fixedAltitude").disabled = false;
         hae = Number(ge("fixedAltitude").value) + (Number(ge("antennaHeight").value) / 1000 + Number(ge("antennaReferencePoint").value) / 1000);
-        ge("fixedHAE_APC").value = hae.toFixed(3);
+        ge("fixedHAEAPC").value = hae.toFixed(3);
     }
 }
 

@@ -983,9 +983,9 @@ void createSettingsString(char *newSettings)
                         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                         {
                             char tempString[50];
-                            snprintf(tempString, sizeof(tempString), "%s%s,%d,",
+                            snprintf(tempString, sizeof(tempString), "%s%s,%s,",
                                     rtkSettingsEntries[i].name, settings.ubxConstellations[x].textName,
-                                    settings.ubxConstellations[x].enabled);
+                                    settings.ubxConstellations[x].enabled ? "true" : "false" );
                             stringRecord(newSettings, tempString);
                         }
                     }

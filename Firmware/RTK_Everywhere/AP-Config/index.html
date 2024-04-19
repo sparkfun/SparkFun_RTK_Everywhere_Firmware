@@ -355,68 +355,68 @@
 
                     <div id="ntripClientConfig" class="collapse mb-2">
                         <div class="form-group row">
-                            <label for="ntripClient_CasterHost"
+                            <label for="ntripClientCasterHost"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Host:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripClient_CasterHost">
-                                <p id="ntripClient_CasterHostError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripClientCasterHost">
+                                <p id="ntripClientCasterHostError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClient_CasterPort"
+                            <label for="ntripClientCasterPort"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Port:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="number" class="form-control" id="ntripClient_CasterPort">
-                                <p id="ntripClient_CasterPortError" class="inlineError"></p>
+                                <input type="number" class="form-control" id="ntripClientCasterPort">
+                                <p id="ntripClientCasterPortError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClient_CasterUser"
+                            <label for="ntripClientCasterUser"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 User:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripClient_CasterUser">
-                                <p id="ntripClient_CasterUserError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripClientCasterUser">
+                                <p id="ntripClientCasterUserError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClient_CasterUserPW"
+                            <label for="ntripClientCasterUserPW"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 User PW:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripClient_CasterUserPW">
-                                <p id="ntripClient_CasterUserPWError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripClientCasterUserPW">
+                                <p id="ntripClientCasterUserPWError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClient_MountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                            <label for="ntripClientMountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
                                 Point:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripClient_MountPoint">
-                                <p id="ntripClient_MountPointError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripClientMountPoint">
+                                <p id="ntripClientMountPointError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClient_MountPointPW"
+                            <label for="ntripClientMountPointPW"
                                 class="box-margin20 col-sm-4 col-6 col-form-label">Mount
                                 Point
                                 PW:</label>
                             <div class="col-sm-7 col-5">
-                                <input type="text" class="form-control" id="ntripClient_MountPointPW">
-                                <p id="ntripClient_MountPointPWError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripClientMountPointPW">
+                                <p id="ntripClientMountPointPWError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-check mt-1 box-margin20">
-                            <label class="form-check-label" for="ntripClient_TransmitGGA">Transmit GGA to Caster</label>
-                            <input class="form-check-input" type="checkbox" value="" id="ntripClient_TransmitGGA"
+                            <label class="form-check-label" for="ntripClientTransmitGGA">Transmit GGA to Caster</label>
+                            <input class="form-check-input" type="checkbox" value="" id="ntripClientTransmitGGA"
                                 unchecked>
                             <span class="tt" data-bs-placement="right"
                                 title="Some casters require a regular position update from the rover (GGA message) so that the caster can automatically select the nearest available correction data. Default: Disabled">
@@ -735,15 +735,15 @@
                             </div>
 
                             <div class="form-group row">
-                                <label for="fixedHAE_APC" class="box-margin40 col-sm-3 col-5 col-form-label">HAE APC(m):
+                                <label for="fixedHAEAPC" class="box-margin40 col-sm-3 col-5 col-form-label">HAE APC(m):
                                     <span class="tt" data-bs-placement="right"
                                         title="Height Above Ellipsoid of the Antenna Phase Center. This is the sum of the antenna height, phase center, and mark height. Not user editable, shown for information only.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
                                 <div class="col-sm-4 col-5">
-                                    <input type="number" class="form-control" id="fixedHAE_APC" disabled>
-                                    <p id="fixedHAE_APCError" class="inlineError"></p>
+                                    <input type="number" class="form-control" id="fixedHAEAPC" disabled>
+                                    <p id="fixedHAEAPCError" class="inlineError"></p>
                                 </div>
                             </div><br>
 
@@ -813,62 +813,62 @@
 
                     <div id="ntripServerConfig" class="collapse mb-2">
                         <div class="form-group row">
-                            <label for="ntripServer_CasterHost"
+                            <label for="ntripServerCasterHost"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Host:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServer_CasterHost">
-                                <p id="ntripServer_CasterHostError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripServerCasterHost">
+                                <p id="ntripServerCasterHostError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripServer_CasterPort"
+                            <label for="ntripServerCasterPort"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Port:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="number" class="form-control" id="ntripServer_CasterPort">
-                                <p id="ntripServer_CasterPortError" class="inlineError"></p>
+                                <input type="number" class="form-control" id="ntripServerCasterPort">
+                                <p id="ntripServerCasterPortError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripServer_CasterUser"
+                            <label for="ntripServerCasterUser"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 User:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServer_CasterUser">
-                                <p id="ntripServer_CasterUserError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripServerCasterUser">
+                                <p id="ntripServerCasterUserError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripServer_CasterUserPW"
+                            <label for="ntripServerCasterUserPW"
                                 class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 User PW:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServer_CasterUserPW">
-                                <p id="ntripServer_CasterUserPWError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripServerCasterUserPW">
+                                <p id="ntripServerCasterUserPWError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripServer_MountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                            <label for="ntripServerMountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
                                 Point:</label>
                             <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServer_MountPoint">
-                                <p id="ntripServer_MountPointError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripServerMountPoint">
+                                <p id="ntripServerMountPointError" class="inlineError"></p>
                             </div>
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripServer_MountPointPW"
+                            <label for="ntripServerMountPointPW"
                                 class="box-margin20 col-sm-4 col-6 col-form-label">Mount
                                 Point
                                 PW:</label>
                             <div class="col-sm-7 col-5">
-                                <input type="text" class="form-control" id="ntripServer_MountPointPW">
-                                <p id="ntripServer_MountPointPWError" class="inlineError"></p>
+                                <input type="text" class="form-control" id="ntripServerMountPointPW">
+                                <p id="ntripServerMountPointPWError" class="inlineError"></p>
                             </div>
                         </div>
 
@@ -1060,21 +1060,21 @@
 
                         <div id="externalPulseConfigDetails" class="collapse mb-2">
                             <div class="form-group row">
-                                <label for="externalPulseTimeBetweenPulse_us"
+                                <label for="externalPulseTimeBetweenPulse"
                                     class="box-margin20 col-sm-3 col-4 col-form-label">Time between pulses (µs):
                                 </label>
                                 <div class="col-sm-8 col-7">
-                                    <input type="number" class="form-control" id="externalPulseTimeBetweenPulse_us">
-                                    <p id="externalPulseTimeBetweenPulse_usError" class="inlineError"></p>
+                                    <input type="number" class="form-control" id="externalPulseTimeBetweenPulse">
+                                    <p id="externalPulseTimeBetweenPulseError" class="inlineError"></p>
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label for="externalPulseLength_us"
+                                <label for="externalPulseLength"
                                     class="box-margin20 col-sm-3 col-4 col-form-label">Pulse length (µs):</label>
                                 <div class="col-sm-8 col-7">
-                                    <input type="number" class="form-control" id="externalPulseLength_us">
-                                    <p id="externalPulseLength_usError" class="inlineError"></p>
+                                    <input type="number" class="form-control" id="externalPulseLength">
+                                    <p id="externalPulseLengthError" class="inlineError"></p>
                                 </div>
                             </div>
 
@@ -1373,14 +1373,14 @@
                 <div class="card card-body">
 
                     <div class="form-group row">
-                        <label for="correctionsSourcesLifetime_s" class="box-margin40 col-sm-3 col-7 col-form-label">Corrections Source Lifetime:
+                        <label for="correctionsSourcesLifetime" class="box-margin40 col-sm-3 col-7 col-form-label">Corrections Source Lifetime:
                             <span class="tt" data-bs-placement="right"
                                 title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
-                        <input type="number" class="form-control box-small" id="correctionsSourcesLifetime_s">
-                        <p id="correctionsSourcesLifetime_sError" class="inlineError"></p>
+                        <input type="number" class="form-control box-small" id="correctionsSourcesLifetime">
+                        <p id="correctionsSourcesLifetimeError" class="inlineError"></p>
                     </div>
 
                     <div class="form-group mt-2">
@@ -1491,27 +1491,27 @@
                     <div id="enableLoggingDetails" class="collapse mb-2">
 
                         <div class="form-group row">
-                            <label for="maxLogTime_minutes" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
+                            <label for="maxLogTime" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
                                 Time (min):
                                 <span class="tt" data-bs-placement="right"
                                     title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
-                            <input type="number" class="form-control box-small" id="maxLogTime_minutes">
-                            <p id="maxLogTime_minutesError" class="inlineError"></p>
+                            <input type="number" class="form-control box-small" id="maxLogTime">
+                            <p id="maxLogTimeError" class="inlineError"></p>
                         </div>
 
                         <div class="form-group row">
-                            <label for="maxLogLength_minutes" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
+                            <label for="maxLogLength" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
                                 Length (min):<span class="tt" data-bs-placement="right"
                                     title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
 
-                            <input type="number" class="form-control box-small" id="maxLogLength_minutes">
-                            <p id="maxLogLength_minutesError" class="inlineError"></p>
+                            <input type="number" class="form-control box-small" id="maxLogLength">
+                            <p id="maxLogLengthError" class="inlineError"></p>
                         </div>
 
                         <div id="logFile" class="row">
@@ -1674,14 +1674,14 @@
                     <br>
 
                     <div class="form-group row">
-                        <label for="ethernetHttpPort" class="col-5 col-form-label">Ethernet HTTP Port:
+                        <label for="httpPort" class="col-5 col-form-label">Ethernet HTTP Port:
                             <span class="tt" data-bs-placement="right" title="Ethernet HTTP Port. Default is 80">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
                         <div class="col-sm-5">
-                            <input type="number" class="form-control" id="ethernetHttpPort">
-                            <p id="ethernetHttpPortError" class="inlineError"></p>
+                            <input type="number" class="form-control" id="httpPort">
+                            <p id="httpPortError" class="inlineError"></p>
                         </div>
                     </div>
                     <div class="form-group row">
