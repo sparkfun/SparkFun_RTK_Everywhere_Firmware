@@ -936,7 +936,7 @@ void createSettingsString(char *newSettings)
                 case _charArray:
                     {
                         char *ptr = (char *)rtkSettingsEntries[i].var;
-                        stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, ptr);
                     }
                     break;
                 case _IPString:
@@ -1688,7 +1688,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 case _charArray:
                     {
                         char *ptr = (char *)rtkSettingsEntries[i].var;
-                        writeToString(settingValueStr, *ptr);
+                        writeToString(settingValueStr, ptr);
                         knownSetting = true;
                     }
                     break;
