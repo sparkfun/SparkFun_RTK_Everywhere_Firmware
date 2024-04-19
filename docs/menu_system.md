@@ -84,6 +84,8 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 * **r** - Reset all settings to default including a factory reset of the GNSS receiver. This can be helpful if the unit has been configured into an unknown or problematic state. See [Factory Reset](menu_system.md#factory-reset).
 
+* **u** - Change between metric and Imperial units. This only modifies the units shown on serial status messages and on the display (if available), it does not change NMEA output.
+
 * **z** - A local timezone in hours, minutes and seconds may be set by pressing 'z'. The timezone values change the RTC clock setting and the file system's timestamps for new files.
 
 * **~** - If desired, the external button(s) can be disabled to prevent accidental mode changes.
