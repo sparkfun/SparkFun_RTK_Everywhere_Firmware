@@ -13,7 +13,7 @@ To achieve an RTK Fix, SparkFun RTK products must be provided with a correction 
 These services cover entire countries and regions but charge a monthly fee. Easy to use, but the most expensive.
 
 * [PointPerfect](correction_sources.md#pointperfect) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea.
-* [PointOneNav](correction_sources.md#pointone_nav) ($50/month) - US, EU
+* [PointOneNav](correction_sources.md#pointone-nav) ($50/month) - US, EU
 * [Skylark](correction_sources.md#skylark) ($29 to $69/month) - US, EU, Japan, Australia
 * [Vector RTK](https://vectorrtk.com/) ($115/month) - UK
 * [SensorCloud RTK](https://rtk.sensorcloud.com/pricing/) ($100/month) partial US, EU
@@ -133,9 +133,8 @@ Any tripod with a ¼” camera thread will work. The [Amazon Basics tripod](http
 Any of the RTK Everywhere products can be set up to operate in **Base** mode. Once the base has been set up with a clear view of the sky, turn on the RTK device.
 
 ![RTK Torch in Survey-In Mode](img/SparkFun_RTK_Torch_On_Tripod.jpg)
-![](img/Displays/SparkFun_RTK_Express_-_Display_-_Survey-In.jpg)
 
-*RTK device in Survey-In Mode*
+*RTK Torch setup as a base*
 
 On the RTK Torch, base mode is entered using a [Mode Switch](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_system/#mode-switch) from the System Menu.
 
