@@ -1067,8 +1067,7 @@ bool parseLine(char *str)
                         {
                             char *ptr = (char *)rtkSettingsEntries[i].var;
                             strncpy(ptr, settingString, rtkSettingsEntries[i].qualifier);
-                            for (int x = strlen(settingString); x < rtkSettingsEntries[i].qualifier; x++)
-                                *ptr++ = 0; // Zero the unused characters - needed for ntpReferenceId
+                            // strncpy pads with zeros. No need to add them here for ntpReferenceId
                             knownSetting = true;
                         }
                         break;

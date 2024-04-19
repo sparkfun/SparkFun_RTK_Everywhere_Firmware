@@ -257,8 +257,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                     {
                         char *ptr = (char *)rtkSettingsEntries[i].var;
                         strncpy(ptr, settingValueStr, rtkSettingsEntries[i].qualifier);
-                        for (int x = strlen(settingValueStr); x < rtkSettingsEntries[i].qualifier; x++)
-                            *ptr++ = 0; // Zero the unused characters - needed for ntpReferenceId
+                        // strncpy pads with zeros. No need to add them here for ntpReferenceId
                         knownSetting = true;
                     }
                     break;
