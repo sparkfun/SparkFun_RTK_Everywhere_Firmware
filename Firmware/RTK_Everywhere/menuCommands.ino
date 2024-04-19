@@ -942,7 +942,7 @@ void createSettingsString(char *newSettings)
                 case _IPString:
                     {
                         IPAddress *ptr = (IPAddress *)rtkSettingsEntries[i].var;
-                        stringRecord(newSettings, rtkSettingsEntries[i].name, ptr->toString().c_str());
+                        stringRecord(newSettings, rtkSettingsEntries[i].name, (char *)ptr->toString().c_str());
                     }
                     break;
                 case _ubxMessageRates:
