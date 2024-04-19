@@ -1,6 +1,6 @@
 # Accuracy Verification
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Facet in the field](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%2016%20Facet%20in%20the%20Field.jpg)
 
