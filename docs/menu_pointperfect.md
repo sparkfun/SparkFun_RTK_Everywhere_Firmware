@@ -14,7 +14,7 @@ SparkFun RTK devices are equipped to get corrections from a service called Point
 
 PointPerfect has the following benefits and challenges:
 
-* Most SparkFun RTK devices come with either a pre-paid subscription or one month of free access to PointPerfect. Please see the product details for your device.
+* Most SparkFun RTK devices come with either a pre-paid subscription or one month of free access to PointPerfect. Please see the product details for your device. [Go here](https://www.sparkfun.com/pointperfect) to enable or renew your subscription.
 * A SparkFun RTK device can obtain RTK Fix anywhere there is [coverage](https://www.u-blox.com/en/pointperfect-service-coverage). This includes the US contiguous 48 states, the EU, Korea, as well as parts of Australia, Brazil, and Canada. Note: L-Band coverage is not available in some of these areas.
 * You don't need to be near a base station - the PPP-RTK model covers entire continents.
 * Because PointPerfect uses a model instead of a dedicated base station, it is cheaper. However, the RTK Fix is not as accurate (3-6cm) as compared to getting corrections from a dedicated base station (2cm or better but depends on the baseline distance).
@@ -108,13 +108,13 @@ This message is seen when no WiFi network credentials (SSID and password) have b
 
     This device is not whitelisted. Please contact support@sparkfun.com to get your subscription activated. Please reference device ID: [device ID]
 
-This message is seen whenever the PointPerfect service is not aware of the given device. Please contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
+This message is seen whenever the PointPerfect service is not aware of the given device. Please use the [subscription form](https://www.sparkfun.com/pointperfect) or contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
 
 ### Device Deactivated
 
     This device has been deactivated. Please contact support@sparkfun.com to renew the PointPerfect subscription. Please reference device ID: [device ID]
 
-This message is seen whenever the device's subscription has lapsed. Please contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
+This message is seen whenever the device's subscription has lapsed. Please use the [subscription form](https://www.sparkfun.com/pointperfect) or contact support@sparkfun.com with your device ID (see 'Obtaining the Device ID' above).
 
 ### HTTP response error -11 - Read Timeout
 
