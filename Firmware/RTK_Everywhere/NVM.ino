@@ -31,19 +31,19 @@
     Updates the selected settings using a text value
     Called by Command SET
     Also called by parseIncomingSettings (HTML/JS Config)
-    Settings Refactor: Done
+    Settings Refactor: Done + Tested (Command)
 
   getSettingValue();
     In menuCommands.ino
     Returns the value of the selected setting as text in response to Command GET
     Calls the writeToString methods - also in menuCommands.ino
-    Settings Refactor: Done
+    Settings Refactor: Done + Tested
 
   printAvailableSettings();
     In menuCommands.ino
     Prints all available settings and their types as CSV in response to Command LIST
     - if they are inCommands
-    Settings Refactor: Done
+    Settings Refactor: Done + Tested
 
   form.h also needs to be updated to include a space for user input. This is best
   edited in the index.html and main.js files.

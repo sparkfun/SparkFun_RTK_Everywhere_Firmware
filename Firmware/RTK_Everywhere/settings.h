@@ -1450,7 +1450,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.dynamicModel, "dynamicModel", _uint8_t, 0, true, true, true },
     { & settings.lastState, "lastState", _SystemState, 0, true, false, true },
     { & settings.enableResetDisplay, "enableResetDisplay", _bool, 0, false, true, true },
-    { & settings.resetCount, "resetCount", _int, 0, false, true, true },
+    { & settings.resetCount, "resetCount", _int, 0, false, false, true },
     { & settings.enableExternalPulse, "enableExternalPulse", _bool, 0, true, true, true },
     { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse", _uint64_t, 0, true, true, true },
     { & settings.externalPulseLength_us, "externalPulseLength", _uint64_t, 0, true, true, true },
