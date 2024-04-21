@@ -829,11 +829,28 @@ void createMessageList(String &returnText)
 {
     returnText = "";
 
-    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+    if (gnssPlatform == PLATFORM_ZED)
     {
-        if (messageSupported(messageNumber) == true)
-            returnText += String(ubxMessages[messageNumber].msgTextName) + "," +
-                          String(settings.ubxMessageRates[messageNumber]) + ","; // UBX_RTCM_1074,4,
+        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
+        {
+            if (messageSupported(messageNumber) == true)
+                returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
+                            String(settings.ubxMessageRates[messageNumber]) + ",";
+        }
+    }
+
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
+        {
+            returnText += "um980MessageRatesNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
+                        String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+        {
+            returnText += "um980MessageRatesRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                        String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
+        }
     }
 
     if (settings.debugWiFiConfig == true)
@@ -846,13 +863,25 @@ void createMessageListBase(String &returnText)
 {
     returnText = "";
 
-    int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
-
-    for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
+    if (gnssPlatform == PLATFORM_ZED)
     {
-        if (messageSupported(firstRTCMRecord + messageNumber) == true)
-            returnText += String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) + "Base," +
-                          String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+
+        for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
+        {
+            if (messageSupported(firstRTCMRecord + messageNumber) == true)
+                returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) + "Base," +
+                            String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+        }
+    }
+
+    else if (gnssPlatform == PLATFORM_UM980)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
+        {
+            returnText += "um980MessageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                        String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
+        }
     }
 
     if (settings.debugWiFiConfig == true)
