@@ -791,10 +791,6 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         {
             knownSetting = true;
         }
-        else if (strcmp(settingName, "measurementRateSecBase") == 0)
-        {
-            knownSetting = true;
-        }
     }
 
 
@@ -1977,11 +1973,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
         {
             knownSetting = true;
         }
-        else if (strcmp(settingName, "fixedHAE_APC") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "measurementRateSecBase") == 0)
+        else if (strcmp(settingName, "fixedHAEAPC") == 0)
         {
             knownSetting = true;
         }
