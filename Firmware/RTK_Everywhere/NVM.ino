@@ -1437,7 +1437,7 @@ bool getProfileName(char *fileName, char *profileName, uint8_t profileNameLength
     char profileNameLFS[50] = "";
     loadSystemSettingsFromFileLFS(fileName, "profileName=", profileNameLFS, sizeof(profileNameLFS));
     char profileNameSD[50] = "";
-    loadSystemSettingsFromFileLFS(fileName, "profileName=", profileNameSD, sizeof(profileNameSD));
+    loadSystemSettingsFromFileSD(fileName, "profileName=", profileNameSD, sizeof(profileNameSD));
 
     // Zero terminate the profile name
     *profileName = 0;
