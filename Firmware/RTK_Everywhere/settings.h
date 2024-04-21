@@ -1618,7 +1618,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
 
     { & settings.minCNO_um980, "minCNOum980", _int16_t, 0, false, true, true },
     { & settings.enableTiltCompensation, "enableTiltCompensation", _bool, 0, false, true, true },
-    { & settings.tiltPoleLength, "tiltPoleLength", _float, point2float, false, true, true },
+    { & settings.tiltPoleLength, "tiltPoleLength", _float, point3float, false, true, true },
     { & settings.enableImuDebug, "enableImuDebug", _bool, 0, false, true, true },
 
     { & settings.debugFirmwareUpdate, "debugFirmwareUpdate", _bool, 0, false, true, true },
