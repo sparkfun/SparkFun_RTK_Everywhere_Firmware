@@ -217,6 +217,8 @@ void menuSystem()
 
         systemPrintln("r) Reset all settings to default");
 
+        systemPrintf("u) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
+
         systemPrintf("z) Set time zone offset: %02d:%02d:%02d\r\n", settings.timeZoneHours, settings.timeZoneMinutes,
                      settings.timeZoneSeconds);
 
@@ -281,6 +283,12 @@ void menuSystem()
             }
             else
                 systemPrintln("Reset aborted");
+        }
+        else if (incoming == 'u')
+        {
+            settings.measurementScale += 1;
+            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+                settings.measurementScale = 0;
         }
         else if (incoming == 'z')
         {
@@ -908,9 +916,6 @@ void menuOperation()
         // ZED
         systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
-        // Measurement scale
-        systemPrintf("11) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
-
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
         systemPrintln(settings.bluetoothInterruptsCore);
@@ -1010,12 +1015,6 @@ void menuOperation()
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
-        }
-        else if (incoming == 11)
-        {
-            settings.measurementScale += 1;
-            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
-                settings.measurementScale = 0;
         }
 
         else if (incoming == 30)
