@@ -665,10 +665,19 @@ bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *foun
                     else
                     {
                         // Check if line contains findMe. If it does, return the remainder of the line in found.
+                        // Don't copy the \r or \n
                         const char *ptr = strstr(line, findMe);
                         if (ptr != nullptr)
                         {
-                            strncpy(found, ptr + strlen(findMe), len);
+                            ptr += strlen(findMe);
+                            for (size_t i = strlen(findMe); i < strlen(line); i++)
+                            {
+                                if ((line[i] == '\r') || (line[i] == '\n'))
+                                {
+                                    line[i] = 0;
+                                }
+                            }
+                            strncpy(found, ptr, len);
                             break;
                         }
                     }
