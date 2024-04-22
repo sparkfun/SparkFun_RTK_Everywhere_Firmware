@@ -96,44 +96,106 @@ function parseIncoming(msg) {
 
             if (platformPrefix == "EVK") {
                 show("baseConfig");
-                //hide("sensorConfig");
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
-                //hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
-                //hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
-                //hide("sensorConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                //hide("allowWiFiOverEthernetClient"); //For future expansion
-                //hide("allowWiFiOverEthernetServer"); //For future expansion
+
+                select = ge("dynamicModel");
+                let newOption = new Option('Survey', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('UAV', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Automotive', '2');
+                select.add(newOption, undefined);
+
+                ge("gnssConstellations").innerHTML = "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_GPS'>GPS</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GPS'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_GLONASS'>GLONASS</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GLONASS'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_Galileo'>Galileo</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_Galileo'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_BeiDou'>BeiDou</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_BeiDou'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_QZSS'>QZSS</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_QZSS'>";
+                ge("gnssConstellations").innerHTML += "</div>";
             }
+
+            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+                ge("gnssConstellations").innerHTML = "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_GPS'>GPS/QZSS</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GPS'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_SBAS'>SBAS</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_SBAS'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_Galileo'>Galileo</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_Galileo'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_BeiDou'>BeiDou</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_BeiDou'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
+                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_GLONASS'>GLONASS</label>";
+                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GLONASS'>";
+                ge("gnssConstellations").innerHTML += "</div>";
+            }
+
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
             if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+                select = ge("dynamicModel");
+                let newOption = new Option('Portable', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Stationary', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Pedestrian', '3');
+                select.add(newOption, undefined);
+                newOption = new Option('Automotive', '4');
+                select.add(newOption, undefined);
+                newOption = new Option('Sea', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('Airborne 1g', '6');
+                select.add(newOption, undefined);
+                newOption = new Option('Airborne 2g', '7');
+                select.add(newOption, undefined);
+                newOption = new Option('Airborne 4g', '8');
+                select.add(newOption, undefined);
+                newOption = new Option('Wrist', '9');
+                select.add(newOption, undefined);
+                newOption = new Option('Bike', '10');
+                select.add(newOption, undefined);
                 if (val >= 121) {
                     select = ge("dynamicModel");
                     let newOption = new Option('Mower', '11');
@@ -583,14 +645,14 @@ function validateFields() {
     }
 
     //WiFi Config
-    checkElementString("wifiNetwork0SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork0Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork1SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork1Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork2SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_0SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_0Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_1SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_1Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_2SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     if ((ge("enablePvtClient").checked  == true) || (ge("enablePvtServer").checked == true)) {
         checkElementString("pvtServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
@@ -716,16 +778,30 @@ function saveConfig() {
 }
 
 function checkConstellations() {
-    if ((ge("ubxConstellation_GPS").checked == false)
-     && (ge("ubxConstellation_Galileo").checked == false)
-     && (ge("ubxConstellation_BeiDou").checked == false)
-     && (ge("ubxConstellation_GLONASS").checked == false)) {
-        ge("collapseGNSSConfig").classList.add('show');
-        showError('ubxConstellations', "Please choose one constellation");
-        errorCount++;
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+        if ((ge("ubxConstellation_GPS").checked == false)
+        && (ge("ubxConstellation_Galileo").checked == false)
+        && (ge("ubxConstellation_BeiDou").checked == false)
+        && (ge("ubxConstellation_GLONASS").checked == false)) {
+            ge("collapseGNSSConfig").classList.add('show');
+            showError('gnssConstellations', "Please choose one constellation");
+            errorCount++;
+        }
+        else
+            clearError("gnssConstellations");
     }
-    else
-        clearError("ubxConstellations");
+    if (platformPrefix == "Torch") {
+        if ((ge("um980Constellations_GPS").checked == false)
+        && (ge("um980Constellations_Galileo").checked == false)
+        && (ge("um980Constellations_BeiDou").checked == false)
+        && (ge("um980Constellations_GLONASS").checked == false)) {
+            ge("collapseGNSSConfig").classList.add('show');
+            showError('gnssConstellations', "Please choose one constellation");
+            errorCount++;
+        }
+        else
+            clearError("gnssConstellations");
+    }
 }
 
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
