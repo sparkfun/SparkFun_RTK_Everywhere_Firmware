@@ -1071,7 +1071,8 @@ void beginSystemState()
         // Do not allow user to enter test screen during first rover start because there is no screen
         firstRoverStart = false;
 
-        systemState = STATE_ROVER_NOT_STARTED;
+        // Return to either Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
 
         if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
