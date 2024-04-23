@@ -87,15 +87,15 @@ jobs:
           "SparkFun Extensible Message Parser"@1.0.0
           "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
           "ArduinoMqttClient"@0.1.8
+          "SparkFun u-blox PointPerfect Library"@1.11.4
+          "SparkFun IM19 IMU Arduino Library"@1.0.1
+          "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.2
 
       - name: Enable external libs
         run: arduino-cli config set library.enable_unsafe_install true
 
       - name: Get Libraries
         run: arduino-cli lib install --git-url
-          https://${{ secrets.GET_PRIVATE_PPL_LIBRARY }}@github.com/sparkfun/SparkFun_u-blox_PointPerfect_Library.git
-          https://${{ secrets.GET_PRIVATE_IM19_LIBRARY }}@github.com/sparkfun/SparkFun_IM19_IMU_Arduino_Library.git
-          https://github.com/sparkfun/SparkFun_Unicore_GNSS_Arduino_Library.git
           https://github.com/me-no-dev/ESPAsyncWebServer.git
           https://github.com/me-no-dev/AsyncTCP.git
           
