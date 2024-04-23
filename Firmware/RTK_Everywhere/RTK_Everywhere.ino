@@ -712,7 +712,6 @@ bool espnowIncomingRTCM;
 bool espnowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
-static RtcmTransportState rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
 uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;

@@ -413,7 +413,6 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
     else if (ntripServer->state == NTRIP_SERVER_WAIT_GNSS_DATA)
     {
         ntripServerSetState(ntripServer, NTRIP_SERVER_CONNECTING);
-        rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
     }
 }
 
