@@ -164,7 +164,7 @@ void menuMain()
             menuSystem();
         else if (incoming == 't' && (present.imu_im19 == true))
             menuTilt();
-        else if (incoming == 'b')
+        else if (incoming == 'b' && btPrintEcho == true)
         {
             printEndpoint = PRINT_ENDPOINT_SERIAL;
             systemPrintln("BT device has exited echo mode");
