@@ -350,7 +350,7 @@ function parseIncoming(msg) {
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
             var correctionPriority = val;
-            var correctionData = id.split('_');
+            var correctionData = correctionName.split('_');
             var correctionNameLabel = correctionData[1];
 
             if (correctionsSourceNames.length < numCorrectionsSources) {
@@ -480,6 +480,10 @@ function sendData() {
         settingCSV += "stationGeodetic" + x + ',' + recordsGeodetic[x] + ",";
     }
 
+    for (let x = 0; x < correctionsSourceNames.length; x++) {
+        settingCSV += "correctionsPriority_" + correctionsSourceNames[x] + ',' + correctionsSourcePriorities[x] + ",";
+    }
+
     console.log("Sending: " + settingCSV);
     websocket.send(settingCSV);
 
@@ -583,7 +587,8 @@ function validateFields() {
     }
 
     //Check all UBX message boxes
-    var ubxMessages = document.querySelectorAll('input[id^=UBX_]'); //match all ids starting with UBX_
+    //match all ids starting with ubxMessageRate (ubxMessageRate_ & ubxMessageRateBase_)
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
         checkMessageValue(messageName);
@@ -746,6 +751,9 @@ function validateFields() {
         checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
         checkElementValue("externalPulseLength", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
     }
+
+    //Corrections Priorities
+    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
 }
 
 var currentProfileNumber = 0;
@@ -778,7 +786,6 @@ function changeProfile() {
         collapseSection("collapseGNSSConfig", "gnssCaret");
         collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
         collapseSection("collapseBaseConfig", "baseCaret");
-        //collapseSection("collapseSensorConfig", "sensorCaret");
         collapseSection("collapsePPConfig", "pointPerfectCaret");
         collapseSection("collapsePortsConfig", "portsCaret");
         collapseSection("collapseSystemConfig", "systemCaret");
@@ -987,15 +994,16 @@ function zeroElement(id) {
 }
 
 function resetToCorrectionsPriorityDefaults() {
-    var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
-    for (let x = 0; x < correctionsSources.length; x++) {
-        var correctionName = correctionsSources[x].id;
-        ge(correctionName).value = x;
+    for (let x = 0; x < correctionsSourcePriorities.length; x++) {
+        correctionsSourcePriorities[x] = x;
     }
+
+    updateCorrectionsPriorities();
 }
 
 function zeroMessages() {
-    var ubxMessages = document.querySelectorAll('input[id^=UBX_]'); //match all ids starting with UBX_
+    //match all ids starting with ubxMessageRate (ubxMessageRate_ & ubxMessageRateBase_)
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
         zeroElement(messageName);
@@ -1003,55 +1011,55 @@ function zeroMessages() {
 }
 function resetToNmeaDefaults() {
     zeroMessages();
-    ge("UBX_NMEA_GGA").value = 1;
-    ge("UBX_NMEA_GSA").value = 1;
-    ge("UBX_NMEA_GST").value = 1;
-    ge("UBX_NMEA_GSV").value = 4;
-    ge("UBX_NMEA_RMC").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GGA").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GSA").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GST").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GSV").value = 4;
+    ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
 }
 function resetToLoggingDefaults() {
     zeroMessages();
-    ge("UBX_NMEA_GGA").value = 1;
-    ge("UBX_NMEA_GSA").value = 1;
-    ge("UBX_NMEA_GST").value = 1;
-    ge("UBX_NMEA_GSV").value = 4;
-    ge("UBX_NMEA_RMC").value = 1;
-    ge("UBX_RXM_RAWX").value = 1;
-    ge("UBX_RXM_SFRBX").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GGA").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GSA").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GST").value = 1;
+    ge("ubxMessageRate_UBX_NMEA_GSV").value = 4;
+    ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
+    ge("ubxMessageRate_UBX_RXM_RAWX").value = 1;
+    ge("ubxMessageRate_UBX_RXM_SFRBX").value = 1;
 }
 
 function resetToRTCMDefaults() {
-    ge("UBX_RTCM_1005Base").value = 1;
-    ge("UBX_RTCM_1074Base").value = 1;
-    ge("UBX_RTCM_1077Base").value = 0;
-    ge("UBX_RTCM_1084Base").value = 1;
-    ge("UBX_RTCM_1087Base").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1005").value = 1;
+    ge("ubxMessageRateBase_UBX_RTCM_1074").value = 1;
+    ge("ubxMessageRateBase_UBX_RTCM_1077").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1084").value = 1;
+    ge("ubxMessageRateBase_UBX_RTCM_1087").value = 0;
 
-    ge("UBX_RTCM_1094Base").value = 1;
-    ge("UBX_RTCM_1097Base").value = 0;
-    ge("UBX_RTCM_1124Base").value = 1;
-    ge("UBX_RTCM_1127Base").value = 0;
-    ge("UBX_RTCM_1230Base").value = 10;
+    ge("ubxMessageRateBase_UBX_RTCM_1094").value = 1;
+    ge("ubxMessageRateBase_UBX_RTCM_1097").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1124").value = 1;
+    ge("ubxMessageRateBase_UBX_RTCM_1127").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1230").value = 10;
 
-    ge("UBX_RTCM_4072_0Base").value = 0;
-    ge("UBX_RTCM_4072_1Base").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_4072_0").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
 }
 
 function resetToLowBandwidthRTCM() {
-    ge("UBX_RTCM_1005Base").value = 10;
-    ge("UBX_RTCM_1074Base").value = 2;
-    ge("UBX_RTCM_1077Base").value = 0;
-    ge("UBX_RTCM_1084Base").value = 2;
-    ge("UBX_RTCM_1087Base").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1005").value = 10;
+    ge("ubxMessageRateBase_UBX_RTCM_1074").value = 2;
+    ge("ubxMessageRateBase_UBX_RTCM_1077").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1084").value = 2;
+    ge("ubxMessageRateBase_UBX_RTCM_1087").value = 0;
 
-    ge("UBX_RTCM_1094Base").value = 2;
-    ge("UBX_RTCM_1097Base").value = 0;
-    ge("UBX_RTCM_1124Base").value = 2;
-    ge("UBX_RTCM_1127Base").value = 0;
-    ge("UBX_RTCM_1230Base").value = 10;
+    ge("ubxMessageRateBase_UBX_RTCM_1094").value = 2;
+    ge("ubxMessageRateBase_UBX_RTCM_1097").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1124").value = 2;
+    ge("ubxMessageRateBase_UBX_RTCM_1127").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_1230").value = 10;
 
-    ge("UBX_RTCM_4072_0Base").value = 0;
-    ge("UBX_RTCM_4072_1Base").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_4072_0").value = 0;
+    ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
 }
 
 function useECEFCoordinates() {
@@ -1248,11 +1256,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableEspNow").addEventListener("change", function () {
-        if (ge("enableEspNow").value == 0) {
-            hide("radioDetails");
-        }
-        else if (ge("enableEspNow").value == 1) {
+        if (ge("enableEspNow").checked == true) {
             show("radioDetails");
+        }
+        else {
+            hide("radioDetails");
         }
     });
 
@@ -1300,7 +1308,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     for (let y = 0; y < numCorrectionsSources; y++) {
-        var buttonName = "corrPrioButton" + String(y);
+        var buttonName = "corrPrioButton" + y;
         ge(buttonName).addEventListener("click", function () {
             corrPrioButtonClick(y);
         });
@@ -1311,9 +1319,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 function updateCorrectionsPriorities() {
     for (let x = 0; x < numCorrectionsSources; x++) {
         for (let y = 0; y < numCorrectionsSources; y++) {
-            if (correctionsSourcePriorities.y == x) {
-                var buttonName = "corrPrioButton" + String(x);
-                ge(buttonName).text = correctionsSourceNames[y];
+            if (correctionsSourcePriorities[y] == x) {
+                var buttonName = "corrPrioButton" + x;
+                ge(buttonName).textContent = correctionsSourceNames[y];
             }
         }
     }

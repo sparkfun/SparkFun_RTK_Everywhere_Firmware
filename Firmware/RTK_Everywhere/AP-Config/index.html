@@ -1569,42 +1569,43 @@
                     </div>
 
                     <div class="form-group mt-2">
-                        Corrections Source:
+                        Corrections Sources Priority:
                         <span class="tt" data-bs-placement="right"
                             title="Assign the priority of each corrections source. Click on a source to decrease its priority. Click the lowest to make it the highest. Changes are saved when 'Save Configuration' is pressed.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
+
+                    <div id="correctionsPriorityList">
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton0">0</button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton1">1</button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton2">2</button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton3">3</button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton4">4</button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton5">5</button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton6">6</button>
+                        </div>
+                    </div>
+
                     <div class="form-group row">
                         <p id="collapseCorrectionsPriorityConfigError" class="inlineError"></p>
                     </div>
 
-                    <div id="correctionsPriorityList">
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton0"></button>
-                        </div>
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton1"></button>
-                        </div>
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton2"></button>
-                        </div>
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton3"></button>
-                        </div>
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton4"></button>
-                        </div>
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton5"></button>
-                        </div>
-                        <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton6"></button>
-                        </div>
-                    </div>
-
-                    <div style="margin-top:20px;">
-                        <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
+                    <div style="margin-top:30px;" class="form-group row">
+                        <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary btn-lg btn-block"
                             onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
                     </div>
 
