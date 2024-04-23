@@ -93,8 +93,8 @@ jobs:
 
       - name: Get Libraries
         run: arduino-cli lib install --git-url
-          https://${{ secrets.GET_PRIVATE_PPL_LIBRARY }}@github.com/sparkfun/SparkFun_u-blox_PointPerfect_Library.git
-          https://${{ secrets.GET_PRIVATE_IM19_LIBRARY }}@github.com/sparkfun/SparkFun_IM19_IMU_Arduino_Library.git
+          https://github.com/sparkfun/SparkFun_u-blox_PointPerfect_Library.git
+          https://github.com/sparkfun/SparkFun_IM19_IMU_Arduino_Library.git
           https://github.com/sparkfun/SparkFun_Unicore_GNSS_Arduino_Library.git
           https://github.com/me-no-dev/ESPAsyncWebServer.git
           https://github.com/me-no-dev/AsyncTCP.git
