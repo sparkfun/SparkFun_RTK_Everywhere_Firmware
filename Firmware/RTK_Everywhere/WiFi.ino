@@ -154,13 +154,13 @@ void menuWiFi()
         else
         {
             // Restart WiFi if we are not in AP config mode
-            if (wifiIsConnected())
+            NETWORK_DATA *network = networkGet(NETWORK_TYPE_WIFI, false);
+            if (network)
             {
                 if (settings.debugWifiState == true)
                     systemPrintln("Menu caused restarting of WiFi");
-                WIFI_STOP();
-                wifiStart();
-                wifiConnectionAttempts = 0; // Reset the timeout
+                networkRestartNetwork(network);
+                networkStop(NETWORK_TYPE_WIFI);
             }
         }
     }
