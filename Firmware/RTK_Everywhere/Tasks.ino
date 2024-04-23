@@ -479,6 +479,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
+    // Determine where to send RTCM data
+    if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
+    {
+        // Pass data along to NTRIP Server, or ESP-NOW radio
+        processRTCM(parse->buffer, parse->length);
+    }
+
     // Determine if we are using the PPL
     if (gnssPlatform == PLATFORM_UM980)
     {
