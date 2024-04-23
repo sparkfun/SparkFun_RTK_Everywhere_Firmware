@@ -328,7 +328,7 @@ void ntripServerPrintStatus(int serverIndex)
 
         if (ntripServer->state == NTRIP_SERVER_CASTING)
             // Use ntripServer->timer since it gets reset after each successful data
-            // receiption from the NTRIP caster
+            // reception from the NTRIP caster
             milliseconds = ntripServer->timer - ntripServer->startTime;
         else
         {
@@ -780,7 +780,7 @@ void ntripServerUpdate(int serverIndex)
             systemPrintf("Connection to NTRIP Caster %d was lost\r\n", serverIndex);
             ntripServerRestart(serverIndex);
         }
-        else if ((millis() - ntripServer->timer) > (3 * 1000))
+        else if ((millis() - ntripServer->timer) > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
             systemPrintf("NTRIP Server %d breaking connection to caster due to lack of RTCM data!\r\n", serverIndex);
