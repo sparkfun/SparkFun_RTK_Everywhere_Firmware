@@ -573,7 +573,7 @@ unsigned long lastEspnowRssiUpdate;
 #endif // COMPILE_ESPNOW
 
 int espnowRSSI;
-const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
+// const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
 
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -790,7 +790,6 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.printDebugMessages = true;                                                                            \
         settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \

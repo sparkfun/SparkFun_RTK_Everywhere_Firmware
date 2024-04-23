@@ -369,6 +369,8 @@ typedef enum
 } ESPNOWState;
 volatile ESPNOWState espnowState = ESPNOW_OFF;
 
+const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
+
 typedef enum
 {
     BLUETOOTH_RADIO_SPP = 0,
@@ -1000,13 +1002,12 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
-typedef struct
+struct Settings
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
-    bool printDebugMessages = false;
+
     bool enableSD = true;
-    bool enableDisplay = true;
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int observationSeconds = 60;             // Default survey in time of 60 seconds
@@ -1105,7 +1106,9 @@ typedef struct
     bool enablePrintStates = true;
     bool enablePrintDuplicateStates = false;
     bool enablePrintRtcSync = false;
-    uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
+
+    uint8_t espnowPeers[ESPNOW_MAX_PEERS][6] = {0}; // Contains the MAC addresses (6 bytes) of paired units
+
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
@@ -1182,7 +1185,6 @@ typedef struct
     // MQTT Client (PointPerfect)
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
     bool debugMqttClientState = false; // Debug the MQTT state machine
-    bool useEuropeCorrections = false; // Use US corrections by default
 
     // NTP
     bool debugNtp = false;
@@ -1337,9 +1339,314 @@ typedef struct
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
 
     // Add new settings above <------------------------------------------------------------>
+    // Then also add to rtkSettingsEntries below
 
-} Settings;
-Settings settings;
+} settings;
+
+typedef enum {
+    _bool = 0,
+    _int,
+    _float,
+    _double,
+    _uint8_t,
+    _uint16_t,
+    _uint32_t,
+    _uint64_t,
+    _int8_t,
+    _int16_t,
+    _muxConnectionType_e,
+    _SystemState,
+    _pulseEdgeType_e,
+    _BluetoothRadioType_e,
+    _PeriodicDisplay_t,
+    _CoordinateInputType,
+    _charArray,
+    _IPString,
+    _ubxMessageRates,
+    _ubxConstellations,
+    _espnowPeers,
+    _ubxMessageRateBase,
+    _wifiNetwork,
+    _ntripServerCasterHost,
+    _ntripServerCasterPort,
+    _ntripServerCasterUser,
+    _ntripServerCasterUserPW,
+    _ntripServerMountPoint,
+    _ntripServerMountPointPW,
+    _um980MessageRatesNMEA,
+    _um980MessageRatesRTCMRover,
+    _um980MessageRatesRTCMBase,
+    _um980Constellations,
+    _correctionsSourcesPriority,
+    _regionalCorrectionTopics,
+    // Add new settings types above <---------------->
+    // (Maintain the enum of existing settings types!)
+} RTK_Settings_Types;
+
+typedef struct {
+    void *var;
+    const char *name;
+    const RTK_Settings_Types type;
+    const int qualifier;
+    const bool updateGNSSOnChange;
+    const bool inSettingsString;
+    const bool inCommands;
+} RTK_Settings_Entry;
+
+enum Settings_float_Precision {
+    noPrecision = 0,
+    point1float,
+    point2float,
+    point3float,
+    point4float,
+    point9float = 9,
+};
+
+const RTK_Settings_Entry rtkSettingsEntries[] = {
+    // Note: don't use "_" in the name - "_" is reserved for settings arrays like "ubxMessageRate_"
+    { & settings.enableSD, "enableSD", _bool, 0, false, true, true },
+    { & settings.maxLogTime_minutes, "maxLogTime", _int, 0, false, true, true },
+    { & settings.maxLogLength_minutes, "maxLogLength", _int, 0, false, true, true },
+    { & settings.observationSeconds, "observationSeconds", _int, 0, true, true, true },
+    { & settings.observationPositionAccuracy, "observationPositionAccuracy", _float, point2float, true, true, true },
+    { & settings.fixedBase, "fixedBase", _bool, 0, true, false, true },
+    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", _bool, 0, true, false, true },
+    { & settings.fixedEcefX, "fixedEcefX", _double, point3float, true, true, true },
+    { & settings.fixedEcefY, "fixedEcefY", _double, point3float, true, true, true },
+    { & settings.fixedEcefZ, "fixedEcefZ", _double, point3float, true, true, true },
+    { & settings.fixedLat, "fixedLat", _double, point9float, true, true, true },
+    { & settings.fixedLong, "fixedLong", _double, point9float, true, true, true },
+    { & settings.fixedAltitude, "fixedAltitude", _double, point4float, true, true, true },
+    { & settings.dataPortBaud, "dataPortBaud", _uint32_t, 0, true, true, true },
+    { & settings.radioPortBaud, "radioPortBaud", _uint32_t, 0, true, true, true },
+    { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float, point1float, true, true, true },
+    { & settings.measurementRate, "measurementRate", _uint16_t, 0, true, false, true },
+    { & settings.navigationRate, "navigationRate", _uint16_t, 0, true, false, true },
+    { & settings.debugGnss, "debugGnss", _bool, 0, false, true, true },
+    { & settings.enableHeapReport, "enableHeapReport", _bool, 0, false, true, true },
+    { & settings.enableTaskReports, "enableTaskReports", _bool, 0, false, true, true },
+    { & settings.dataPortChannel, "dataPortChannel", _muxConnectionType_e, 0, false, true, true },
+    { & settings.spiFrequency, "spiFrequency", _uint16_t, 0, false, true, true },
+    { & settings.enableLogging, "enableLogging", _bool, 0, false, true, true },
+    { & settings.enableARPLogging, "enableARPLogging", _bool, 0, false, true, true },
+    { & settings.ARPLoggingInterval_s, "ARPLoggingInterval", _uint16_t, 0, false, true, true },
+    { & settings.sppRxQueueSize, "sppRxQueueSize", _uint16_t, 0, false, true, true },
+    { & settings.sppTxQueueSize, "sppTxQueueSize", _uint16_t, 0, false, true, true },
+    { & settings.dynamicModel, "dynamicModel", _uint8_t, 0, true, true, true },
+    { & settings.lastState, "lastState", _SystemState, 0, true, false, true },
+    { & settings.enableResetDisplay, "enableResetDisplay", _bool, 0, false, true, true },
+    { & settings.resetCount, "resetCount", _int, 0, false, true, true },
+    { & settings.enableExternalPulse, "enableExternalPulse", _bool, 0, true, true, true },
+    { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse", _uint64_t, 0, true, true, true },
+    { & settings.externalPulseLength_us, "externalPulseLength", _uint64_t, 0, true, true, true },
+    { & settings.externalPulsePolarity, "externalPulsePolarity", _pulseEdgeType_e, 0, true, true, true },
+    { & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", _bool, 0, true, true, true },
+    { & settings.enableUART2UBXIn, "enableUART2UBXIn", _bool, 0, false, true, true },
+
+    { & settings.ubxMessageRates[0], "ubxMessageRate_", _ubxMessageRates, MAX_UBX_MSG, true, false, true },
+
+    { & settings.ubxConstellations[0], "ubxConstellation_", _ubxConstellations, MAX_CONSTELLATIONS, true, true, true },
+
+    { & settings.profileName, "profileName", _charArray, sizeof(settings.profileName), false, false, true },
+
+    { & settings.serialTimeoutGNSS, "serialTimeoutGNSS", _int16_t, 0, false, true, true },
+
+    { & settings.pointPerfectDeviceProfileToken, "pointPerfectDeviceProfileToken", _charArray, sizeof(settings.pointPerfectDeviceProfileToken), false, true, true },
+    { & settings.enablePointPerfectCorrections, "enablePointPerfectCorrections", _bool, 0, false, true, true },
+    { & settings.autoKeyRenewal, "autoKeyRenewal", _bool, 0, false, true, true },
+    { & settings.pointPerfectClientID, "pointPerfectClientID", _charArray, sizeof(settings.pointPerfectClientID), false, true, true },
+    { & settings.pointPerfectBrokerHost, "pointPerfectBrokerHost", _charArray, sizeof(settings.pointPerfectBrokerHost), false, true, true },
+    { & settings.pointPerfectKeyDistributionTopic, "pointPerfectKeyDistributionTopic", _charArray, sizeof(settings.pointPerfectKeyDistributionTopic), false, true, true },
+
+    { & settings.pointPerfectCurrentKey, "pointPerfectCurrentKey", _charArray, sizeof(settings.pointPerfectCurrentKey), false, true, true },
+    { & settings.pointPerfectCurrentKeyDuration, "pointPerfectCurrentKeyDuration", _uint64_t, 0, false, true, true },
+    { & settings.pointPerfectCurrentKeyStart, "pointPerfectCurrentKeyStart", _uint64_t, 0, false, true, true },
+
+    { & settings.pointPerfectNextKey, "pointPerfectNextKey", _charArray, sizeof(settings.pointPerfectNextKey), false, true, true },
+    { & settings.pointPerfectNextKeyDuration, "pointPerfectNextKeyDuration", _uint64_t, 0, false, true, true },
+    { & settings.pointPerfectNextKeyStart, "pointPerfectNextKeyStart", _uint64_t, 0, false, true, true },
+
+    { & settings.lastKeyAttempt, "lastKeyAttempt", _uint64_t, 0, false, true, true },
+    { & settings.updateGNSSSettings, "updateGNSSSettings", _bool, 0, false, true, true },
+
+    { & settings.debugPpCertificate, "debugPpCertificate", _bool, 0, false, false, true },
+
+    { & settings.timeZoneHours, "timeZoneHours", _int8_t, 0, false, true, true },
+    { & settings.timeZoneMinutes, "timeZoneMinutes", _int8_t, 0, false, true, true },
+    { & settings.timeZoneSeconds, "timeZoneSeconds", _int8_t, 0, false, true, true },
+
+    { & settings.enablePrintState, "enablePrintState", _bool, 0, false, true, true },
+    { & settings.enablePrintPosition, "enablePrintPosition", _bool, 0, false, true, true },
+    { & settings.enablePrintIdleTime, "enablePrintIdleTime", _bool, 0, false, true, true },
+    { & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", _bool, 0, false, true, true },
+    { & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", _bool, 0, false, true, true },
+    { & settings.enablePrintBadMessages, "enablePrintBadMessages", _bool, 0, false, true, true },
+    { & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages", _bool, 0, false, true, true },
+    { & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus", _bool, 0, false, true, true },
+    { & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets", _bool, 0, false, true, true },
+    { & settings.enablePrintStates, "enablePrintStates", _bool, 0, false, true, true },
+    { & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", _bool, 0, false, true, true },
+    { & settings.enablePrintRtcSync, "enablePrintRtcSync", _bool, 0, false, true, true },
+
+    { & settings.espnowPeers[0][0], "espnowPeer_", _espnowPeers, ESPNOW_MAX_PEERS, false, true, true },
+
+    { & settings.espnowPeerCount, "espnowPeerCount", _uint8_t, 0, false, true, true },
+    { & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", _bool, 0, false, false, true },
+    { & settings.bluetoothRadioType, "bluetoothRadioType", _BluetoothRadioType_e, 0, false, true, true },
+    { & settings.runLogTest, "runLogTest", _bool, 0, false, true, true }, // Not stored in NVM
+    { & settings.espnowBroadcast, "espnowBroadcast", _bool, 0, false, true, true },
+    { & settings.antennaHeight, "antennaHeight", _int16_t, 0, false, true, true },
+    { & settings.antennaReferencePoint, "antennaReferencePoint", _float, point2float, false, true, true },
+    { & settings.echoUserInput, "echoUserInput", _bool, 0, false, true, true },
+    { & settings.uartReceiveBufferSize, "uartReceiveBufferSize", _int, 0, false, true, true },
+    { & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", _int, 0, false, true, true },
+
+    { & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun", _bool, 0, false, true, true },
+    { & settings.enablePrintSDBuffers, "enablePrintSDBuffers", _bool, 0, false, true, true },
+    { & settings.periodicDisplay, "periodicDisplay", _PeriodicDisplay_t, 0, false, true, true },
+    { & settings.periodicDisplayInterval, "periodicDisplayInterval", _uint32_t, 0, false, true, true },
+
+    { & settings.rebootSeconds, "rebootSeconds", _uint32_t, 0, false, true, true },
+    { & settings.forceResetOnSDFail, "forceResetOnSDFail", _bool, 0, false, true, true },
+
+    { & settings.minElev, "minElev", _uint8_t, 0, true, true, true },
+
+    { & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", _ubxMessageRateBase, MAX_UBX_MSG_RTCM, true, false, true },
+
+    { & settings.coordinateInputType, "coordinateInputType", _CoordinateInputType, 0, false, true, true },
+    { & settings.lbandFixTimeout_seconds, "lbandFixTimeout", _uint16_t, 0, false, true, true },
+    { & settings.minCNO_F9P, "minCNOF9P", _int16_t, 0, true, false, true },
+    { & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", _uint16_t, 0, false, true, true },
+    { & settings.btReadTaskPriority, "btReadTaskPriority", _uint8_t, 0, false, true, true },
+    { & settings.gnssReadTaskPriority, "gnssReadTaskPriority", _uint8_t, 0, false, true, true },
+    { & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority", _uint8_t, 0, false, true, true },
+    { & settings.btReadTaskCore, "btReadTaskCore", _uint8_t, 0, false, true, true },
+    { & settings.gnssReadTaskCore, "gnssReadTaskCore", _uint8_t, 0, false, true, true },
+    { & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore", _uint8_t, 0, false, true, true },
+    { & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore", _uint8_t, 0, false, true, true },
+    { & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore", _uint8_t, 0, false, true, true },
+    { & settings.i2cInterruptsCore, "i2cInterruptsCore", _uint8_t, 0, false, true, true },
+    { & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout", _uint32_t, 0, false, true, true },
+    { & settings.disableSetupButton, "disableSetupButton", _bool, 0, false, true, true },
+
+    { & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", _bool, 0, false, true, true },
+    { & settings.ethernetDHCP, "ethernetDHCP", _bool, 0, false, true, true },
+    { & settings.ethernetIP, "ethernetIP", _IPString, 0, false, true, true },
+    { & settings.ethernetDNS, "ethernetDNS", _IPString, 0, false, true, true },
+    { & settings.ethernetGateway, "ethernetGateway", _IPString, 0, false, true, true },
+    { & settings.ethernetSubnet, "ethernetSubnet", _IPString, 0, false, true, true },
+    { & settings.httpPort, "httpPort", _uint16_t, 0, false, true, true },
+
+    { & settings.debugWifiState, "debugWifiState", _bool, 0, false, true, true },
+    { & settings.wifiConfigOverAP, "wifiConfigOverAP", _bool, 0, false, false, true }, // TODO: check drop downs
+
+    { & settings.wifiNetworks, "wifiNetwork_", _wifiNetwork, MAX_WIFI_NETWORKS, false, true, true },
+
+    { & settings.defaultNetworkType, "defaultNetworkType", _uint8_t, 0, false, true, true },
+    { & settings.debugNetworkLayer, "debugNetworkLayer", _bool, 0, false, true, true },
+    { & settings.enableNetworkFailover, "enableNetworkFailover", _bool, 0, false, true, true },
+    { & settings.printNetworkStatus, "printNetworkStatus", _bool, 0, false, true, true },
+
+    { & settings.mdnsEnable, "mdnsEnable", _bool, 0, false, true, true },
+
+    { & settings.debugMqttClientData, "debugMqttClientData", _bool, 0, false, true, true },
+    { & settings.debugMqttClientState, "debugMqttClientState", _bool, 0, false, true, true },
+
+    { & settings.debugNtp, "debugNtp", _bool, 0, false, true, true },
+    { & settings.ethernetNtpPort, "ethernetNtpPort", _uint16_t, 0, false, true, true },
+    { & settings.enableNTPFile, "enableNTPFile", _bool, 0, false, true, true },
+    { & settings.ntpPollExponent, "ntpPollExponent", _uint8_t, 0, false, true, true },
+    { & settings.ntpPrecision, "ntpPrecision", _int8_t, 0, false, true, true },
+    { & settings.ntpRootDelay, "ntpRootDelay", _uint32_t, 0, false, true, true },
+    { & settings.ntpRootDispersion, "ntpRootDispersion", _uint32_t, 0, false, true, true },
+    { & settings.ntpReferenceId, "ntpReferenceId", _charArray, sizeof(settings.ntpReferenceId), false, true, true },
+
+    { & settings.debugNtripClientRtcm, "debugNtripClientRtcm", _bool, 0, false, true, true },
+    { & settings.debugNtripClientState, "debugNtripClientState", _bool, 0, false, true, true },
+    { & settings.enableNtripClient, "enableNtripClient", _bool, 0, false, true, true },
+    { & settings.ntripClient_CasterHost, "ntripClientCasterHost", _charArray, sizeof(settings.ntripClient_CasterHost), false, true, true },
+    { & settings.ntripClient_CasterPort, "ntripClientCasterPort", _uint16_t, 0, false, true, true },
+    { & settings.ntripClient_CasterUser, "ntripClientCasterUser", _charArray, sizeof(settings.ntripClient_CasterUser), false, true, true },
+    { & settings.ntripClient_CasterUserPW, "ntripClientCasterUserPW", _charArray, sizeof(settings.ntripClient_CasterUserPW), false, true, true },
+    { & settings.ntripClient_MountPoint, "ntripClientMountPoint", _charArray, sizeof(settings.ntripClient_MountPoint), false, true, true },
+    { & settings.ntripClient_MountPointPW, "ntripClientMountPointPW", _charArray, sizeof(settings.ntripClient_MountPointPW), false, true, true },
+    { & settings.ntripClient_TransmitGGA, "ntripClientTransmitGGA", _bool, 0, false, true, true },
+
+    { & settings.debugNtripServerRtcm, "debugNtripServerRtcm", _bool, 0, false, true, true },
+    { & settings.debugNtripServerState, "debugNtripServerState", _bool, 0, false, true, true },
+    { & settings.enableNtripServer, "enableNtripServer", _bool, 0, false, true, true },
+
+    { & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", _ntripServerCasterHost, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", _ntripServerCasterPort, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", _ntripServerCasterUser, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_CasterUserPW[0], "ntripServerCasterUserPW_", _ntripServerCasterUserPW, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_", _ntripServerMountPoint, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_", _ntripServerMountPointPW, NTRIP_SERVER_MAX, false, true, true },
+
+    { & settings.debugPvtClient, "debugPvtClient", _bool, 0, false, true, true },
+    { & settings.enablePvtClient, "enablePvtClient", _bool, 0, false, true, true },
+    { & settings.pvtClientPort, "pvtClientPort", _uint16_t, 0, false, true, true },
+    { & settings.pvtClientHost, "pvtClientHost", _charArray, sizeof(settings.pvtClientHost), false, true, true },
+
+    { & settings.debugPvtServer, "debugPvtServer", _bool, 0, false, true, true },
+    { & settings.enablePvtServer, "enablePvtServer", _bool, 0, false, true, true },
+    { & settings.pvtServerPort, "pvtServerPort", _uint16_t, 0, false, true, true },
+
+    { & settings.debugPvtUdpServer, "debugPvtUdpServer", _bool, 0, false, true, true },
+    { & settings.enablePvtUdpServer, "enablePvtUdpServer", _bool, 0, false, true, true },
+    { & settings.pvtUdpServerPort, "pvtUdpServerPort", _uint16_t, 0, false, true, true },
+
+    { & settings.um980MessageRatesNMEA, "um980MessageRatesNMEA_", _um980MessageRatesNMEA, MAX_UM980_NMEA_MSG, false, false, true },
+    { & settings.um980MessageRatesRTCMRover, "um980MessageRatesRTCMRover_", _um980MessageRatesRTCMRover, MAX_UM980_RTCM_MSG, false, false, true },
+    { & settings.um980MessageRatesRTCMBase, "um980MessageRatesRTCMBase_", _um980MessageRatesRTCMBase, MAX_UM980_RTCM_MSG, false, false, true },
+    { & settings.um980Constellations, "um980Constellations_", _um980Constellations, MAX_UM980_CONSTELLATIONS, false, true, true },
+
+    { & settings.minCNO_um980, "minCNOum980", _int16_t, 0, false, false, true },
+    { & settings.enableTiltCompensation, "enableTiltCompensation", _bool, 0, false, true, true },
+    { & settings.tiltPoleLength, "tiltPoleLength", _float, point3float, false, true, true },
+    { & settings.enableImuDebug, "enableImuDebug", _bool, 0, false, true, true },
+
+    { & settings.debugFirmwareUpdate, "debugFirmwareUpdate", _bool, 0, false, true, true },
+    { & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", _bool, 0, false, true, true },
+    { & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", _uint32_t, 0, false, true, true },
+
+    { & settings.debugCorrections, "debugCorrections", _bool, 0, false, true, true },
+    { & settings.enableCaptivePortal, "enableCaptivePortal", _bool, 0, false, true, true },
+
+    { & settings.printBootTimes, "printBootTimes", _bool, 0, false, true, true },
+
+    { & settings.printPartitionTable, "printPartitionTable", _bool, 0, false, true, true },
+
+    { & settings.measurementScale, "measurementScale", _uint8_t, 0, false, true, true },
+
+    { & settings.debugWiFiConfig, "debugWiFiConfig", _bool, 0, false, true, true },
+    { & settings.enablePsram, "enablePsram", _bool, 0, false, true, true },
+    { & settings.printTaskStartStop, "printTaskStartStop", _bool, 0, false, true, true },
+    { & settings.psramMallocLevel, "psramMallocLevel", _uint16_t, 0, false, true, true },
+    { & settings.um980SurveyInStartingAccuracy, "um980SurveyInStartingAccuracy", _float, point1float, false, true, true },
+    { & settings.enableBeeper, "enableBeeper", _bool, 0, false, true, true },
+    { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t, 0, false, true, true },
+    { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool, 0, false, true, true },
+
+    { & settings.correctionsSourcesPriority, "correctionsPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM, false, true, true },
+
+    { & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", _int, 0, false, true, true },
+
+    { & settings.geographicRegion, "geographicRegion", _int, 0, false, true, true },
+
+    { & settings.regionalCorrectionTopics, "regionalCorrectionTopics_", _regionalCorrectionTopics, numRegionalAreas, false, true, true },
+
+    { & settings.debugEspNow, "debugEspNow", _bool, 0, false, true, true },
+    { & settings.enableEspNow, "enableEspNow", _bool, 0, false, true, true },
+    { & settings.wifiChannel, "wifiChannel", _uint8_t, 0, false, true, true },
+
+    // Add new settings above <------------------------------------------------------------>
+    /*
+    { & settings., "", , 0, false, true },
+    */
+};
+
+const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
 // Indicate which peripherals are present on a given platform
 struct struct_present

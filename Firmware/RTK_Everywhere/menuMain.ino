@@ -311,8 +311,8 @@ void menuUserProfiles()
                          profileNumber); // Update file name with new profileNumber
 
                 // We need to load these settings from file so that we can record a profile name change correctly
-                bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName, &settings);
-                bool responseSD = loadSystemSettingsFromFileSD(settingsFileName, &settings);
+                bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
+                bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
 
                 // If this is an empty/new profile slot, overwrite our current settings with defaults
                 if (responseLFS == false && responseSD == false)
@@ -361,8 +361,8 @@ void changeProfileNumber(byte newProfileNumber)
     setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
 
     // We need to load these settings from file so that we can record a profile name change correctly
-    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName, &settings);
-    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName, &settings);
+    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
+    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
 
     // If this is an empty/new profile slot, overwrite our current settings with defaults
     if (responseLFS == false && responseSD == false)

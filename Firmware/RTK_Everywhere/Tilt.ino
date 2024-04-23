@@ -36,7 +36,7 @@ void menuTilt()
         if (settings.enableTiltCompensation == true)
         {
             systemPrint("2) Pole Length: ");
-            systemPrintf("%0.2fm\r\n", settings.tiltPoleLength);
+            systemPrintf("%0.3fm\r\n", settings.tiltPoleLength);
         }
 
         systemPrintln("x) Exit");
@@ -123,7 +123,7 @@ void tiltUpdate()
             lastTiltCheck = millis();
 
             if (settings.tiltPoleLength < 0.5)
-                systemPrintf("Warning: Short pole length detected: %0.2f\r\n", settings.tiltPoleLength);
+                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.tiltPoleLength);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
@@ -160,7 +160,7 @@ void tiltUpdate()
             lastTiltCheck = millis();
 
             if (settings.tiltPoleLength < 0.5)
-                systemPrintf("Warning: Short pole length detected: %0.2f\r\n", settings.tiltPoleLength);
+                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.tiltPoleLength);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
