@@ -383,7 +383,7 @@ uint16_t ARPECEFH;
 
 const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
 bool lBandForceGetKeys; // Used to allow key update from display
-unsigned long rtcmLastPacketReceived;
+unsigned long rtcmLastPacketReceived; //Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -667,8 +667,7 @@ bool logIncreasing; // Goes true when log file is greater than lastLogSize or lo
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
 
 uint16_t rtcmPacketsSent; // Used to count RTCM packets sent via processRTCM()
-uint32_t rtcmBytesSent;
-uint32_t rtcmLastReceived;
+uint32_t rtcmLastPacketSent;  //Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
@@ -712,7 +711,6 @@ bool espnowIncomingRTCM;
 bool espnowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
-static RtcmTransportState rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
 uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
@@ -1421,13 +1419,6 @@ void rtcUpdate()
 // Internal ESP NOW radio - Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
 void updateRadio()
 {
-    // If we have not gotten new RTCM bytes for a period of time, assume the end of frame
-    if (millis() - rtcmLastReceived > 50 && rtcmBytesSent > 0)
-    {
-        rtcmBytesSent = 0;
-        rtcmPacketsSent++; // If not checking RTCM CRC, count based on timeout
-    }
-
 #ifdef COMPILE_ESPNOW
     if (settings.enableEspNow == true)
     {

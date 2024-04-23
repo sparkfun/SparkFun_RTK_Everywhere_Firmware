@@ -371,7 +371,7 @@ void stateUpdate()
 
         */
 
-        // User has set switch to base with fixed option enabled. Let's configure and try to get there.
+        // User has switched to base with fixed option enabled. Let's configure and try to get there.
         // If fixed base fails, we'll handle it here
         case (STATE_BASE_FIXED_NOT_STARTED): {
             RTK_MODE(RTK_MODE_BASE_FIXED);
@@ -402,8 +402,8 @@ void stateUpdate()
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
             {
-                //forceSystemStateUpdate = true; // Immediately go to this new state
-                changeState(lastSystemState);  // Return to the last system state
+                // forceSystemStateUpdate = true; // Immediately go to this new state
+                changeState(lastSystemState); // Return to the last system state
             }
         }
         break;
@@ -699,7 +699,7 @@ void stateUpdate()
         }
         break;
 
-        // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
+            // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
 
         case (STATE_KEYS_DAYS_REMAINING): {
             if (online.rtc == true)
@@ -1253,4 +1253,3 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     }
     addSetupButton(buttons, "Exit", STATE_NOT_SET);
 }
-

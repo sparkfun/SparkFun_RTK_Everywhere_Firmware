@@ -359,7 +359,7 @@ void ntripServerPrintStatus(int serverIndex)
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
-    static uint32_t zedBytesSent;
+    static uint32_t rtcmBytesSent;
 
     if (ntripServer->state == NTRIP_SERVER_CASTING)
     {
@@ -383,8 +383,8 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                 char timestamp[30];
                 strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
                 systemPrintf("    Tx%d RTCM: %s.%03ld, %d bytes sent\r\n", serverIndex, timestamp, rtc.getMillis(),
-                             zedBytesSent);
-                zedBytesSent = 0;
+                             rtcmBytesSent);
+                rtcmBytesSent = 0;
             }
             previousMilliseconds = currentMilliseconds;
         }
@@ -403,7 +403,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         {
             ntripServer->networkClient->write(incoming); // Send this byte to socket
             ntripServer->bytesSent++;
-            zedBytesSent++;
+            rtcmBytesSent++;
             ntripServer->timer = millis();
             netOutgoingRTCM = true;
         }
@@ -413,7 +413,6 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
     else if (ntripServer->state == NTRIP_SERVER_WAIT_GNSS_DATA)
     {
         ntripServerSetState(ntripServer, NTRIP_SERVER_CONNECTING);
-        rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
     }
 }
 

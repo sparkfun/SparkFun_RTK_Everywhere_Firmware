@@ -1,10 +1,20 @@
-
-
-// This function gets called from the SparkFun u-blox Arduino Library.
-// As each RTCM byte comes in you can specify what to do with it
-// Useful for passing the RTCM correction data to a radio, Ntrip broadcaster, etc.
-void DevUBLOXGNSS::processRTCM(uint8_t incoming)
+// This function gets called when an RTCM packet passes parser check in processUart1Message() task
+// Pass data along to NTRIP Server, or ESP-NOW radio
+void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
 {
+    // Give this byte to the various possible transmission methods
+    for (int x = 0; x < dataLength; x++)
+    {
+        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            ntripServerProcessRTCM(serverIndex, rtcmData[x]);
+    }
+
+    for (int x = 0; x < dataLength; x++)
+        espnowProcessRTCM(rtcmData[x]);
+
+    rtcmLastPacketSent = millis();
+    rtcmPacketsSent++;
+
     // Check for too many digits
     if (settings.enableResetDisplay == true)
     {
@@ -15,23 +25,5 @@ void DevUBLOXGNSS::processRTCM(uint8_t incoming)
     {
         if (rtcmPacketsSent > 999)
             rtcmPacketsSent = 1; // Trim to three digits to avoid log icon and increasing bar
-    }
-
-    // Determine if we should check this byte with the RTCM checker or simply pass it along
-    bool passAlongIncomingByte = true;
-
-    if (settings.enableRtcmMessageChecking == true)
-        passAlongIncomingByte &= checkRtcmMessage(incoming);
-
-    // Give this byte to the various possible transmission methods
-    if (passAlongIncomingByte)
-    {
-        rtcmLastReceived = millis();
-        rtcmBytesSent++;
-
-        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            ntripServerProcessRTCM(serverIndex, incoming);
-
-        espnowProcessRTCM(incoming);
     }
 }
