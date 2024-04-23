@@ -400,6 +400,25 @@ void networkDisplayIpAddress(uint8_t networkType)
 }
 
 //----------------------------------------
+// Display the network users
+//----------------------------------------
+void networkDisplayUsers(NETWORK_USER users)
+{
+    uint8_t userNumber = 0;
+    uint32_t mask;
+
+    while (users)
+    {
+        mask = 1 << userNumber;
+        if (users & mask)
+        {
+            users &= ~mask;
+            systemPrintf("    0x%08x: %s\r\n", mask, networkUserToString(userNumber));
+        }
+    }
+}
+
+//----------------------------------------
 // Get the network type
 //----------------------------------------
 NETWORK_DATA *networkGet(uint8_t networkType, bool updateRequestedNetwork)
@@ -713,7 +732,7 @@ void networkSetState(NETWORK_DATA *network, byte newState)
         // Display the network state
         systemPrint("Network State: ");
         if (newState != network->state)
-            systemPrintf("%s --> ", networkState[network->state]);
+            systemPrintf("%s --> ", networkStateToString(network->state));
         else
             systemPrint("*");
 
@@ -724,7 +743,7 @@ void networkSetState(NETWORK_DATA *network, byte newState)
             reportFatalError("Unknown network layer state");
         }
         else
-            systemPrintf("%s\r\n", networkState[newState]);
+            systemPrintf("%s\r\n", networkStateToString(newState));
     }
 
     // Validate the network state
@@ -786,6 +805,42 @@ void networkStart(uint8_t networkType)
             networkSetState(network, NETWORK_STATE_DELAY);
         }
     }
+}
+
+//----------------------------------------
+// Translate the network state into a string
+//----------------------------------------
+const char * networkStateToString(uint8_t state)
+{
+    if (state >= networkStateEntries)
+        return "Unknown";
+    return networkState[state];
+}
+
+//----------------------------------------
+// Display the network status
+//----------------------------------------
+void networkStatus(uint8_t networkType)
+{
+    NETWORK_DATA *network;
+
+    // Get the network
+    network = &networkData;
+
+    // Display the network status
+    systemPrintf("requestedNetwork: %d (%s)\r\n", network->requestedNetwork,
+                 networkTypeToString(network->requestedNetwork));
+    systemPrintf("type: %d (%s)\r\n", network->type, networkTypeToString(network->type));
+    systemPrintf("activeUsers: 0x%08x\r\n", network->activeUsers);
+    networkDisplayUsers(network->activeUsers);
+    systemPrintf("userOpens: 0x%08x\r\n", network->userOpens);
+    networkDisplayUsers(network->userOpens);
+    systemPrintf("connectionAttempt: %d\r\n", network->connectionAttempt);
+    systemPrintf("restart: %s\r\n", network->restart ? "true" : "false");
+    systemPrintf("shutdown: %s\r\n", network->shutdown ? "true" : "false");
+    systemPrintf("state: %d (%s)\r\n", network->state, networkStateToString(network->state));
+    systemPrintf("timeout: %d\r\n", network->timeout);
+    systemPrintf("timerStart: %d\r\n", network->timerStart);
 }
 
 //----------------------------------------
@@ -968,6 +1023,16 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
 }
 
 //----------------------------------------
+// Translate type into a string
+//----------------------------------------
+const char * networkTypeToString(uint8_t type)
+{
+    if (type >= networkNameEntries)
+        return "Unknown";
+    return networkName[type];
+}
+
+//----------------------------------------
 // Update the network device state
 //----------------------------------------
 void networkTypeUpdate(uint8_t networkType)
@@ -1016,17 +1081,39 @@ void networkTypeUpdate(uint8_t networkType)
         // Delay before starting the network
         else if ((millis() - network->timerStart) >= network->timeout)
         {
-            // Start the network
-            network->type = networkTranslateNetworkType(network->requestedNetwork, true);
+            // Determine the network type
+            uint8_t type = networkTranslateNetworkType(network->requestedNetwork, true);
+
+            // Verify that WiFi is configured properly
+            if (network->type == NETWORK_TYPE_WIFI)
+            {
+                // Verify that at least one SSID is available
+                if (!wifiNetworkCount())
+                {
+                    // Display the SSID error message
+                    systemPrintln("ERROR: Please enter at least one SSID before using WiFi");
+                    displayNoSSIDs(2000);
+
+                    // Restart the delay and try again
+                    network->timerStart = millis();
+                    network->timeout = NETWORK_CONNECTION_TIMEOUT;
+                    break;
+                }
+            }
+
+            // Display the network type change
+            network->type = type;
             if (settings.debugNetworkLayer && (network->type != network->requestedNetwork))
-                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n", networkName[network->requestedNetwork],
+                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n", networkTypeToString(network->requestedNetwork),
                              networkName[network->type]);
             if (settings.debugNetworkLayer)
                 systemPrintf("networkTypeUpdate, network->requestedNetwork: %s --> %s\r\n",
-                             networkName[network->requestedNetwork], networkName[network->type]);
+                             networkName[network->requestedNetwork], networkTypeToString(network->type));
             network->requestedNetwork = NETWORK_TYPE_ACTIVE;
             if (settings.debugNetworkLayer)
-                systemPrintf("Network starting %s\r\n", networkName[network->type]);
+                systemPrintf("Network starting %s\r\n", networkTypeToString(network->type));
+
+            // Start the network
             if (network->type == NETWORK_TYPE_WIFI)
                 wifiStart();
             network->timerStart = millis();
@@ -1267,7 +1354,19 @@ bool networkUserOpen(uint8_t user, uint8_t networkType)
     return false;
 }
 
+//----------------------------------------
+// Translate user into a string
+//----------------------------------------
+const char * networkUserToString(uint8_t userNumber)
+{
+    if (userNumber >= networkUserEntries)
+        return "Unknown";
+    return networkUser[userNumber];
+}
+
+//----------------------------------------
 // Verify the network layer tables
+//----------------------------------------
 void networkVerifyTables()
 {
     // Verify the table lengths
