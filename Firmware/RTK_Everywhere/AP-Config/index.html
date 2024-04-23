@@ -268,15 +268,17 @@
                         </div>
                     </div>
 
-                    <div id="dynamicModelDropdown">
-                        <label for="dynamicModel">Dynamic Model:</label>
-                        <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy. Default: Portable">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                        <br>
+                    <div class="form-group row" id="dynamicModelDropdown">
+                        <label for="dynamicModel" class="col-sm-4 col-6 col-form-label">Dynamic Model:
+                            <span class="tt" data-bs-placement="right"
+                                title="Adjusts the internal algorithm to match the expected application environment. This setting improves the receiver's interpretation of measurements and thus provides a more accurate position output. Setting the receiver to an unsuitable platform model for the given application environment is likely to result in a loss of receiver performance and position accuracy">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-4 col-6">
+                            <select name="dynamicModel" id="dynamicModel" class="form-dropdown mb-2">
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group row">
@@ -295,7 +297,7 @@
                     <div class="form-group row">
                         <label for="minCNO" class="col-sm-4 col-6 col-form-label">Min C/N0:
                             <span class="tt" data-bs-placement="right"
-                                title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 20dBHz for ZED-F9R.">
+                                title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 10dBHz for UM980.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
@@ -305,16 +307,18 @@
                         </div>
                     </div>
 
-                    <div id="constellationCheckBoxes">
-                        <label for="constellations">Constellations:</label>
+                    <div class="form-group mt-3" id="constellationCheckBoxes">
+                        <label for="gnssConstellations">Constellations:</label>
                         <span class="tt" data-bs-placement="right"
                             title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: GPS, SBAS, GLONASS, BeiDou, and Galileo.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
+                        <div id="gnssConstellations">
+                        </div>
+                        <div class="form-group row">
+                            <p id="gnssConstellationsError" class="inlineError"></p>
+                        </div>
                     </div>
-                    <div id="gnssConstellations"></div>
-                    </div>
-                    <p id="gnssConstellationsError" class="inlineError"></p>
 
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
@@ -358,9 +362,9 @@
 
                         <div class="form-group row">
                             <label for="ntripClientCasterUserPW"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                class="box-margin20 col-sm-4 col-6 col-form-label">Caster
                                 User PW:</label>
-                            <div class="col-sm-8 col-6">
+                            <div class="col-sm-7 col-5">
                                 <input type="text" class="form-control" id="ntripClientCasterUserPW">
                                 <p id="ntripClientCasterUserPWError" class="inlineError"></p>
                             </div>
@@ -772,65 +776,299 @@
                     </div>
 
                     <div id="ntripServerConfig" class="collapse mb-2">
-                        <div class="form-group row">
-                            <label for="ntripServerCasterHost"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
-                                Host:</label>
-                            <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServerCasterHost">
-                                <p id="ntripServerCasterHostError" class="inlineError"></p>
+
+                        <div>
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
+                                type="button" data-toggle="collapse" data-target="#ntripServerConfig0"
+                                aria-expanded="false" aria-controls="ntripServerConfig0">
+                                NTRIP Server 0 <i class="caret-icon bi icon-caret-down"></i>
+                            </button>
+                        </div>
+    
+                        <div class="collapse" id="ntripServerConfig0">
+                            <div class="card card-body" style="margin-top:5px;">
+    
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterHost_0"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Host:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterHost_0">
+                                        <p id="ntripServerCasterHost_0Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterPort_0"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Port:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="number" class="form-control" id="ntripServerCasterPort_0">
+                                        <p id="ntripServerCasterPort_0Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUser_0"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        User:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterUser_0">
+                                        <p id="ntripServerCasterUser_0Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUserPW_0"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Caster
+                                        User PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerCasterUserPW_0">
+                                        <p id="ntripServerCasterUserPW_0Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPoint_0"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                                        Point:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerMountPoint_0">
+                                        <p id="ntripServerMountPoint_0Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPointPW_0"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Mount
+                                        Point PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerMountPointPW_0">
+                                        <p id="ntripServerMountPointPW_0Error" class="inlineError"></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group row">
-                            <label for="ntripServerCasterPort"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
-                                Port:</label>
-                            <div class="col-sm-8 col-6">
-                                <input type="number" class="form-control" id="ntripServerCasterPort">
-                                <p id="ntripServerCasterPortError" class="inlineError"></p>
+                        <div>
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
+                                type="button" data-toggle="collapse" data-target="#ntripServerConfig1"
+                                aria-expanded="false" aria-controls="ntripServerConfig1">
+                                NTRIP Server 1 <i class="caret-icon bi icon-caret-down"></i>
+                            </button>
+                        </div>
+    
+                        <div class="collapse" id="ntripServerConfig1">
+                            <div class="card card-body" style="margin-top:5px;">
+    
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterHost_1"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Host:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterHost_1">
+                                        <p id="ntripServerCasterHost_1Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterPort_1"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Port:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="number" class="form-control" id="ntripServerCasterPort_1">
+                                        <p id="ntripServerCasterPort_1Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUser_1"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        User:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterUser_1">
+                                        <p id="ntripServerCasterUser_1Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUserPW_1"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Caster
+                                        User PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerCasterUserPW_1">
+                                        <p id="ntripServerCasterUserPW_1Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPoint_1"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                                        Point:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerMountPoint_1">
+                                        <p id="ntripServerMountPoint_1Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPointPW_1"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Mount
+                                        Point PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerMountPointPW_1">
+                                        <p id="ntripServerMountPointPW_1Error" class="inlineError"></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group row">
-                            <label for="ntripServerCasterUser"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
-                                User:</label>
-                            <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServerCasterUser">
-                                <p id="ntripServerCasterUserError" class="inlineError"></p>
+                        <div>
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
+                                type="button" data-toggle="collapse" data-target="#ntripServerConfig2"
+                                aria-expanded="false" aria-controls="ntripServerConfig2">
+                                NTRIP Server 2 <i class="caret-icon bi icon-caret-down"></i>
+                            </button>
+                        </div>
+    
+                        <div class="collapse" id="ntripServerConfig2">
+                            <div class="card card-body" style="margin-top:5px;">
+    
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterHost_2"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Host:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterHost_2">
+                                        <p id="ntripServerCasterHost_2Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterPort_2"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Port:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="number" class="form-control" id="ntripServerCasterPort_2">
+                                        <p id="ntripServerCasterPort_2Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUser_2"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        User:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterUser_2">
+                                        <p id="ntripServerCasterUser_2Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUserPW_2"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Caster
+                                        User PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerCasterUserPW_2">
+                                        <p id="ntripServerCasterUserPW_2Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPoint_2"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                                        Point:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerMountPoint_2">
+                                        <p id="ntripServerMountPoint_2Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPointPW_2"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Mount
+                                        Point PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerMountPointPW_2">
+                                        <p id="ntripServerMountPointPW_2Error" class="inlineError"></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group row">
-                            <label for="ntripServerCasterUserPW"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
-                                User PW:</label>
-                            <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServerCasterUserPW">
-                                <p id="ntripServerCasterUserPWError" class="inlineError"></p>
+                        <div>
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
+                                type="button" data-toggle="collapse" data-target="#ntripServerConfig3"
+                                aria-expanded="false" aria-controls="ntripServerConfig3">
+                                NTRIP Server 3 <i class="caret-icon bi icon-caret-down"></i>
+                            </button>
+                        </div>
+    
+                        <div class="collapse" id="ntripServerConfig3">
+                            <div class="card card-body" style="margin-top:5px;">
+    
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterHost_3"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Host:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterHost_3">
+                                        <p id="ntripServerCasterHost_3Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterPort_3"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        Port:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="number" class="form-control" id="ntripServerCasterPort_3">
+                                        <p id="ntripServerCasterPort_3Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUser_3"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                                        User:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerCasterUser_3">
+                                        <p id="ntripServerCasterUser_3Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerCasterUserPW_3"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Caster
+                                        User PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerCasterUserPW_3">
+                                        <p id="ntripServerCasterUserPW_3Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPoint_3"
+                                        class="box-margin20 col-sm-3 col-5 col-form-label">Mount
+                                        Point:</label>
+                                    <div class="col-sm-8 col-6">
+                                        <input type="text" class="form-control" id="ntripServerMountPoint_3">
+                                        <p id="ntripServerMountPoint_3Error" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="ntripServerMountPointPW_3"
+                                        class="box-margin20 col-sm-4 col-6 col-form-label">Mount
+                                        Point PW:</label>
+                                    <div class="col-sm-7 col-5">
+                                        <input type="text" class="form-control" id="ntripServerMountPointPW_3">
+                                        <p id="ntripServerMountPointPW_3Error" class="inlineError"></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-group row">
-                            <label for="ntripServerMountPoint" class="box-margin20 col-sm-3 col-5 col-form-label">Mount
-                                Point:</label>
-                            <div class="col-sm-8 col-6">
-                                <input type="text" class="form-control" id="ntripServerMountPoint">
-                                <p id="ntripServerMountPointError" class="inlineError"></p>
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <label for="ntripServerMountPointPW"
-                                class="box-margin20 col-sm-4 col-6 col-form-label">Mount
-                                Point
-                                PW:</label>
-                            <div class="col-sm-7 col-5">
-                                <input type="text" class="form-control" id="ntripServerMountPointPW">
-                                <p id="ntripServerMountPointPWError" class="inlineError"></p>
-                            </div>
-                        </div>
                     </div>
 
                     <div>
@@ -1242,14 +1480,11 @@
             <div class="collapse" id="collapseRadioConfig">
                 <div class="card card-body">
 
-                    <div id="radioTypeDropdown" class="mb-2">
-                        <label for="radioType">Radio: </label>
-                        <select name="radioType" id="radioType" class="form-dropdown">
-                            <option value="0">Off</option>
-                            <option value="1">ESP-Now</option>
-                        </select>
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableEspNow">ESP-Now </label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableEspNow">
                         <span class="tt" data-bs-placement="right"
-                            title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. However, Bluetooth SPP cannot be used at the same time; use Bluetooth BLE. Default: Radio Off">
+                            title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. However, Bluetooth SPP cannot be used at the same time; use Bluetooth BLE. Default: Off">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
@@ -1321,20 +1556,22 @@
                 <div class="card card-body">
 
                     <div class="form-group row">
-                        <label for="correctionsSourcesLifetime" class="box-margin40 col-sm-3 col-7 col-form-label">Corrections Source Lifetime:
+                        <label for="correctionsSourcesLifetime" class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
                             <span class="tt" data-bs-placement="right"
                                 title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
-                        <input type="number" class="form-control box-small" id="correctionsSourcesLifetime">
+                        <div class='col-sm-4 col-4'>
+                            <input type='number' class='form-control'id="correctionsSourcesLifetime">
+                        </div>
                         <p id="correctionsSourcesLifetimeError" class="inlineError"></p>
                     </div>
 
                     <div class="form-group mt-2">
                         Corrections Source:
                         <span class="tt" data-bs-placement="right"
-                            title="Assign a priority to each corrections source. Priorities must be contiguous, starting at zero with no repeats. Zero is the highest priority. Changes are saved when 'Save Configuration' is pressed.">
+                            title="Assign the priority of each corrections source. Click on a source to decrease its priority. Click the lowest to make it the highest. Changes are saved when 'Save Configuration' is pressed.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
@@ -1343,9 +1580,30 @@
                     </div>
 
                     <div id="correctionsPriorityList">
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton0"></button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton1"></button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton2"></button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton3"></button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton4"></button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton5"></button>
+                        </div>
+                        <div style="margin-top:5px;" class="form-group row">
+                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton6"></button>
+                        </div>
                     </div>
 
-                    <div style="margin-bottom:5px;">
+                    <div style="margin-top:20px;">
                         <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
                             onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
                     </div>
@@ -1510,7 +1768,8 @@
                         <select name="bluetoothRadioType" id="bluetoothRadioType" class="form-dropdown">
                             <option value="0">SPP</option>
                             <option value="1">BLE</option>
-                            <option value="2">Off</option>
+                            <option value="2">SPP & BLE</option>
+                            <option value="3">Off</option>
                         </select>
                         <span class="tt" data-bs-placement="right"
                             title="Communicate using Classic Bluetooth Serial Port Profile (SPP), Bluetooth Low-Energy (BLE), or turn Bluetooth off. Default: SPP as nearly all GIS applications use SPP.">
@@ -1644,45 +1903,6 @@
                         </div>
                     </div>
 
-                    <br>
-
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableTcpClientEthernet">TCP Client</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableTcpClientEthernet"
-                            onClick="tcpBoxesEthernet()">
-                        <span class="tt" data-bs-placement="right"
-                            title="If enabled, device will connect to Ethernet and push NMEA over the given TCP port.">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="tcpSettingsConfigEthernet">
-                        <div class="form-group row">
-                            <label for="ethernetTcpPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
-                                <span class="tt" data-bs-placement="right" title="TCP port to use. Default: 2947">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <div class="col-sm-5">
-                                <input type="number" class="form-control" id="ethernetTcpPort">
-                                <p id="ethernetTcpPortError" class="inlineError"></p>
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <label for="hostForTCPClient" class="box-margin20 col-sm-3 col-4 col-form-label">Host for
-                                TCP Client:
-                                <span class="tt" data-bs-placement="right"
-                                    title="The name or address of the host which the TCP client data will be pushed to.">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <div class="col-sm-5">
-                                <input type="text" class="form-control" id="hostForTCPClient" value="test">
-                                <p id="hostForTCPClientError" class="inlineError"></p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 

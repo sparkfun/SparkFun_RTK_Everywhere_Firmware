@@ -1199,7 +1199,6 @@ struct Settings
     // MQTT Client (PointPerfect)
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
     bool debugMqttClientState = false; // Debug the MQTT state machine
-    bool useEuropeCorrections = false; // Use US corrections by default
 
     // NTP
     bool debugNtp = false;
@@ -1530,7 +1529,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
 
     { & settings.coordinateInputType, "coordinateInputType", _CoordinateInputType, 0, false, true, true },
     { & settings.lbandFixTimeout_seconds, "lbandFixTimeout", _uint16_t, 0, false, true, true },
-    { & settings.minCNO_F9P, "minCNOF9P", _int16_t, 0, true, true, true },
+    { & settings.minCNO_F9P, "minCNOF9P", _int16_t, 0, true, false, true },
     { & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", _uint16_t, 0, false, true, true },
     { & settings.btReadTaskPriority, "btReadTaskPriority", _uint8_t, 0, false, true, true },
     { & settings.gnssReadTaskPriority, "gnssReadTaskPriority", _uint8_t, 0, false, true, true },
@@ -1616,7 +1615,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.um980MessageRatesRTCMBase, "um980MessageRatesRTCMBase_", _um980MessageRatesRTCMBase, MAX_UM980_RTCM_MSG, false, false, true },
     { & settings.um980Constellations, "um980Constellations_", _um980Constellations, MAX_UM980_CONSTELLATIONS, false, true, true },
 
-    { & settings.minCNO_um980, "minCNOum980", _int16_t, 0, false, true, true },
+    { & settings.minCNO_um980, "minCNOum980", _int16_t, 0, false, false, true },
     { & settings.enableTiltCompensation, "enableTiltCompensation", _bool, 0, false, true, true },
     { & settings.tiltPoleLength, "tiltPoleLength", _float, point3float, false, true, true },
     { & settings.enableImuDebug, "enableImuDebug", _bool, 0, false, true, true },

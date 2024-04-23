@@ -50,6 +50,10 @@ var sendDataTimeout;
 var checkNewFirmwareTimeout;
 var getNewFirmwareTimeout;
 
+const numCorrectionsSources = 7;
+var correctionsSourceNames = [];
+var correctionsSourcePriorities = [];
+
 const CoordinateTypes = {
     COORDINATE_INPUT_TYPE_DD: 0, //Default DD.ddddddddd
     COORDINATE_INPUT_TYPE_DDMM: 1, //DDMM.mmmmm
@@ -126,49 +130,51 @@ function parseIncoming(msg) {
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
 
-                ge("gnssConstellations").innerHTML = "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_GPS'>GPS</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GPS'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_GLONASS'>GLONASS</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GLONASS'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_Galileo'>Galileo</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_Galileo'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_BeiDou'>BeiDou</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_BeiDou'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='um980Constellations_QZSS'>QZSS</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_QZSS'>";
-                ge("gnssConstellations").innerHTML += "</div>";
+                var constellationChecks = "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='um980Constellations_GPS'>GPS </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GPS'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='um980Constellations_GLONASS'>GLONASS </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GLONASS'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='um980Constellations_Galileo'>Galileo </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_Galileo'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='um980Constellations_BeiDou'>BeiDou </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_BeiDou'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='um980Constellations_QZSS'>QZSS </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_QZSS'>";
+                constellationChecks += "</div>";
+                ge("gnssConstellations").innerHTML = constellationChecks;
             }
 
             if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
-                ge("gnssConstellations").innerHTML = "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_GPS'>GPS/QZSS</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GPS'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_SBAS'>SBAS</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_SBAS'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_Galileo'>Galileo</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_Galileo'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_BeiDou'>BeiDou</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_BeiDou'>";
-                ge("gnssConstellations").innerHTML += "</div>";
-                ge("gnssConstellations").innerHTML += "<div class='form-check box-margin20'>";
-                ge("gnssConstellations").innerHTML += "<label class='form-check-label' for='ubxConstellation_GLONASS'>GLONASS</label>";
-                ge("gnssConstellations").innerHTML += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GLONASS'>";
-                ge("gnssConstellations").innerHTML += "</div>";
+                var constellationChecks = "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='ubxConstellation_GPS'>GPS/QZSS </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GPS'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='ubxConstellation_SBAS'>SBAS </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_SBAS'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='ubxConstellation_Galileo'>Galileo </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_Galileo'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='ubxConstellation_BeiDou'>BeiDou </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_BeiDou'>";
+                constellationChecks += "</div>";
+                constellationChecks += "<div class='form-check mt-1'>";
+                constellationChecks += "<label class='form-check-label' for='ubxConstellation_GLONASS'>GLONASS </label>";
+                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GLONASS'>";
+                constellationChecks += "</div>";
+                ge("gnssConstellations").innerHTML = constellationChecks;
             }
 
         }
@@ -297,27 +303,42 @@ function parseIncoming(msg) {
         else if (id.includes("fmNext")) {
             sendFile();
         }
-        else if (id.includes("UBX_")) {
+        else if (id.includes("ubxMessageRate")) { // ubxMessageRate_UBX_NMEA_DTM ubxMessageRateBase_UBX_RTCM_1005
             var messageName = id;
             var messageRate = val;
             var messageNameLabel = "";
 
             var messageData = messageName.split('_');
-            if (messageData.length >= 3) {
-                var messageType = messageData[1]; //UBX_RTCM_1074 = RTCM
+            if (messageData.length >= 4) {
+                var messageType = messageData[2]; // ubxMessageRate_UBX_NMEA_DTM = NMEA
                 if (lastMessageType != messageType) {
                     lastMessageType = messageType;
                     messageText += "<hr>";
                 }
 
-                messageNameLabel = messageData[1] + "_" + messageData[2]; //RTCM_1074
-                if (messageData.length == 4) {
-                    messageNameLabel = messageData[1] + "_" + messageData[2] + "_" + messageData[3]; //RTCM_4072_1
+                messageNameLabel = messageData[2] + "_" + messageData[3]; // ubxMessageRate_UBX_RTCM_4072_0 = RTCM_4072
+                if (messageData.length == 5) {
+                    messageNameLabel = messageData[2] + "_" + messageData[3] + "_" + messageData[4]; // ubxMessageRate_UBX_RTCM_4072_0 = RTCM_4072_0
                 }
-
-                //Remove Base if seen
-                messageNameLabel = messageNameLabel.split('Base').join(''); //UBX_RTCM_1074Base
             }
+
+            messageText += "<div class='form-group row' id='msg" + messageName + "'>";
+            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
+            messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
+            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
+            messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
+            messageText += "</div></div>";
+        }
+        else if (id.includes("um980MessageRates")) {
+            // um980MessageRatesNMEA_GPDTM
+            // um980MessageRatesRTCMRover_RTCM1001
+            // um980MessageRatesRTCMBase_RTCM1001
+            var messageName = id;
+            var messageRate = val;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
 
             messageText += "<div class='form-group row' id='msg" + messageName + "'>";
             messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
@@ -329,14 +350,15 @@ function parseIncoming(msg) {
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
             var correctionPriority = val;
-            var correctionData = correctionName.split('.');
+            var correctionData = id.split('_');
             var correctionNameLabel = correctionData[1];
 
-            correctionText += "<div class='form-group row' id='cor" + correctionName + "'>";
-            correctionText += "<label for='" + correctionName + "' class='col-sm-4 col-6 col-form-label'>" + correctionNameLabel + ": </label>";
-            correctionText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
-            correctionText += " id='" + correctionName + "' value='" + correctionPriority + "'>";
-            correctionText += "</div></div>";
+            if (correctionsSourceNames.length < numCorrectionsSources) {
+                correctionsSourceNames.push(correctionNameLabel);
+                correctionsSourcePriorities.push(correctionPriority);
+            }
+            else
+                console.log("Too many corrections sources");
         }
         else if (id.includes("checkingNewFirmware")) {
             checkingNewFirmware();
@@ -368,14 +390,14 @@ function parseIncoming(msg) {
             try {
                 ge(id).checked = true;
             } catch (error) {
-                console.log("Issue with ID: " + id)
+                console.log("Issue with ID: " + id);
             }
         }
         else if (val == "false") {
             try {
                 ge(id).checked = false;
             } catch (error) {
-                console.log("Issue with ID: " + id)
+                console.log("Issue with ID: " + id);
             }
         }
 
@@ -384,7 +406,7 @@ function parseIncoming(msg) {
             try {
                 ge(id).value = val;
             } catch (error) {
-                console.log("Issue with ID: " + id)
+                console.log("Issue with ID: " + id);
             }
         }
     }
@@ -399,31 +421,28 @@ function parseIncoming(msg) {
 
         //Force element updates
         ge("measurementRateHz").dispatchEvent(new CustomEvent('change'));
+        ge("measurementRateSec").dispatchEvent(new CustomEvent('change'));
         ge("baseTypeSurveyIn").dispatchEvent(new CustomEvent('change'));
         ge("baseTypeFixed").dispatchEvent(new CustomEvent('change'));
         ge("fixedBaseCoordinateTypeECEF").dispatchEvent(new CustomEvent('change'));
         ge("fixedBaseCoordinateTypeGeo").dispatchEvent(new CustomEvent('change'));
-        ge("enableLogging").dispatchEvent(new CustomEvent('change'));
-        ge("enableNtripClient").dispatchEvent(new CustomEvent('change'));
         ge("enableNtripServer").dispatchEvent(new CustomEvent('change'));
+        ge("enableNtripClient").dispatchEvent(new CustomEvent('change'));
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
-        ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
         ge("enablePointPerfectCorrections").dispatchEvent(new CustomEvent('change'));
-        ge("radioType").dispatchEvent(new CustomEvent('change'));
+        ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
+        ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
         ge("antennaReferencePoint").dispatchEvent(new CustomEvent('change'));
-        // autoIMUmountAlignment is only used on Express Plus (ZED-F9R). It should not (currently) be here...
-        //ge("autoIMUmountAlignment").dispatchEvent(new CustomEvent('change'));
+        ge("enableLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
         tcpBoxes();
         udpBoxes();
-        tcpBoxesEthernet();
         dhcpEthernet();
         updateLatLong();
-
-        ge("correctionsPriorityList").innerHTML = correctionText;        
+        updateCorrectionsPriorities();    
     }
 }
 
@@ -570,9 +589,6 @@ function validateFields() {
         checkMessageValue(messageName);
     }
 
-    //Check all corrections priorities
-    checkCorrectionsPriorities();
-
     //Base Config
     if (ge("baseTypeSurveyIn").checked == true) {
         checkElementValue("observationSeconds", 60, 600, "Must be between 60 to 600", "collapseBaseConfig");
@@ -616,18 +632,36 @@ function validateFields() {
     }
 
     if (ge("enableNtripServer").checked == true) {
-        checkElementString("ntripServerCasterHost", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-        checkElementValue("ntripServerCasterPort", 1, 99999, "Must be 1 to 99999", "collapseBaseConfig");
-        checkElementString("ntripServerMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
-        checkElementString("ntripServerMountPointPW", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfig");
+        checkElementString("ntripServerCasterHost_0", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfigNTRIP");
+        checkElementValue("ntripServerCasterPort_0", 1, 99999, "Must be 1 to 99999", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPoint_0", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPointPW_0", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfigNTRIP");
     }
     else {
-        clearElement("ntripServerCasterHost", "rtk2go.com");
-        clearElement("ntripServerCasterPort", 2101);
-        clearElement("ntripServerCasterUser", "");
-        clearElement("ntripServerCasterUserPW", "");
-        clearElement("ntripServerMountPoint", "bldr_dwntwn2");
-        clearElement("ntripServerMountPointPW", "WR5wRo4H");
+        clearElement("ntripServerCasterHost_0", "rtk2go.com");
+        clearElement("ntripServerCasterPort_0", 2101);
+        clearElement("ntripServerCasterUser_0", "test@test.com");
+        clearElement("ntripServerCasterUserPW_0", "");
+        clearElement("ntripServerMountPoint_0", "bldr_dwntwn2");
+        clearElement("ntripServerMountPointPW_0", "WR5wRo4H");
+        clearElement("ntripServerCasterHost_1", "");
+        clearElement("ntripServerCasterPort_1", 0);
+        clearElement("ntripServerCasterUser_1", "");
+        clearElement("ntripServerCasterUserPW_1", "");
+        clearElement("ntripServerMountPoint_1", "");
+        clearElement("ntripServerMountPointPW_1", "");
+        clearElement("ntripServerCasterHost_2", "");
+        clearElement("ntripServerCasterPort_2", 0);
+        clearElement("ntripServerCasterUser_2", "");
+        clearElement("ntripServerCasterUserPW_2", "");
+        clearElement("ntripServerMountPoint_2", "");
+        clearElement("ntripServerMountPointPW_2", "");
+        clearElement("ntripServerCasterHost_3", "");
+        clearElement("ntripServerCasterPort_3", 0);
+        clearElement("ntripServerCasterUser_3", "");
+        clearElement("ntripServerCasterUserPW_3", "");
+        clearElement("ntripServerMountPoint_3", "");
+        clearElement("ntripServerMountPointPW_3", "");
     }
 
 
@@ -687,10 +721,6 @@ function validateFields() {
         checkElementIPAddress("ethernetSubnet", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementValue("httpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
         checkElementValue("ethernetNtpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
-        if (ge("enableTcpClientEthernet").checked == true) {
-            checkElementString("ethernetTcpPort", 1, 65535, "Must be 1 to 65535", "collapseEthernetConfig");
-            checkElementString("hostForTCPClient", 0, 50, "Must be 0 to 50 characters", "collapseEthernetConfig");
-        }
         //}
         //else {
         //    clearElement("ethernetIP", "192.168.0.123");
@@ -892,7 +922,13 @@ function checkElementString(id, min, max, errorText, collapseID) {
     value = ge(id).value;
     if ((value.length < min) || (value.length > max)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
-        ge(collapseID).classList.add('show');
+        if (collapseID == "collapseBaseConfigNTRIP") {
+            ge("collapseBaseConfig").classList.add('show');
+            ge("ntripServerConfig").classList.add('show');
+            ge("ntripServerConfig0").classList.add('show');
+        }
+        else
+            ge(collapseID).classList.add('show');
         errorCount++;
     }
     else
@@ -933,40 +969,6 @@ function checkCheckboxMutex(id1, id2, errorText, collapseID) {
     else {
         clearError(id1);
         clearError(id2);
-    }
-}
-
-function checkCorrectionsPriorities() {
-    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
-
-    var correctionsSources = document.querySelectorAll('input[id^=correctionsPriority]'); //match all ids starting with correctionsPriority
-    if (correctionsSources.length > 0) {
-        var correctionSeen = [];
-        for (let x = 0; x < correctionsSources.length; x++) {
-            correctionSeen.push(0);
-        }
-        for (let x = 0; x < correctionsSources.length; x++) {
-            for (let y = 0; y < correctionsSources.length; y++) {
-                var correctionName = correctionsSources[y].id;
-                if (ge(correctionName).value == x) {
-                    correctionSeen[x] = correctionSeen[x] + 1;
-                }
-            }
-        }
-        var sourcesValid = 1;
-        for (let x = 0; x < correctionsSources.length; x++) {
-            if (correctionSeen[x] != 1) {
-                sourcesValid = 0;
-            }
-        }
-        if (sourcesValid == 0) {
-            ge("collapseCorrectionsPriorityConfigError").innerHTML = "Error: priorities must be contiguous, starting at 0";
-            ge("collapseCorrectionsPriorityConfig").classList.add('show');
-            errorCount++;
-        }
-        else {
-            clearError("collapseCorrectionsPriorityConfig");
-        }
     }
 }
 
@@ -1245,11 +1247,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("radioType").addEventListener("change", function () {
-        if (ge("radioType").value == 0) {
+    ge("enableEspNow").addEventListener("change", function () {
+        if (ge("enableEspNow").value == 0) {
             hide("radioDetails");
         }
-        else if (ge("radioType").value == 1) {
+        else if (ge("enableEspNow").value == 1) {
             show("radioDetails");
         }
     });
@@ -1297,7 +1299,60 @@ document.addEventListener("DOMContentLoaded", (event) => {
         adjustHAE();
     });
 
+    for (let y = 0; y < numCorrectionsSources; y++) {
+        var buttonName = "corrPrioButton" + String(y);
+        ge(buttonName).addEventListener("click", function () {
+            corrPrioButtonClick(y);
+        });
+    }
+
 })
+
+function updateCorrectionsPriorities() {
+    for (let x = 0; x < numCorrectionsSources; x++) {
+        for (let y = 0; y < numCorrectionsSources; y++) {
+            if (correctionsSourcePriorities.y == x) {
+                var buttonName = "corrPrioButton" + String(x);
+                ge(buttonName).text = correctionsSourceNames[y];
+            }
+        }
+    }
+}
+
+function corrPrioButtonClick(corrButton) {
+    // Decrease priority - swap the selected correction source with the next lowest
+    // If already the lowest priority, make it highest
+    if (corrButton < (numCorrectionsSources - 1)) {
+        var makeMeHigher;
+        var makeMeLower;
+        for (let x = 0; x < numCorrectionsSources; x++)
+        {
+            if (correctionsSourcePriorities[x] == corrButton + 1)
+            {
+                makeMeHigher = x;
+            }
+            if (correctionsSourcePriorities[x] == corrButton)
+            {
+                makeMeLower = x;
+            }
+        }
+        correctionsSourcePriorities[makeMeLower] += 1; // Decrease
+        correctionsSourcePriorities[makeMeHigher] -= 1; // Increase
+    }
+    else {
+        for (let x = 0; x < numCorrectionsSources; x++)
+        {
+            if (correctionsSourcePriorities[x] == (numCorrectionsSources - 1)) {
+                correctionsSourcePriorities[x] = 0; // Increase
+            }
+            else {
+                correctionsSourcePriorities[x] += 1; // Decrease
+            }
+        }
+    }
+
+    updateCorrectionsPriorities();
+}
 
 function addECEF() {
     errorCount = 0;
@@ -1666,16 +1721,6 @@ function udpBoxes() {
     else {
         hide("udpSettingsConfig");
         ge("pvtUdpServerPort").value = 10110;
-    }
-}
-
-function tcpBoxesEthernet() {
-    if (ge("enableTcpClientEthernet").checked == true) {
-        show("tcpSettingsConfigEthernet");
-    }
-    else {
-        hide("tcpSettingsConfigEthernet");
-        //ge("ethernetTcpPort").value = 2947;
     }
 }
 

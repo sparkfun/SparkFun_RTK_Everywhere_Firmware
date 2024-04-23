@@ -485,10 +485,6 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile names at
                                     // location profileNumber
     }
-    else if (strcmp(settingName, "fixedBaseCoordinateType") == 0)
-    {
-        settings.fixedBaseCoordinateType ^= 1; // The logic of the base type (ECEF vs. LLH) is inverted
-    }
     else if (strcmp(settingName, "lastState") == 0)
     {
         // 0 = Rover, 1 = Base, 2 = NTP
@@ -498,13 +494,6 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         if (settingValue == 2)
             settings.lastState = STATE_NTPSERVER_NOT_STARTED;
     }
-    // else if (strcmp(settingName, "wifiConfigOverAP") == 0)
-    // {
-    //     if (settingValue == 1) // Drop downs come back as a value
-    //         settings.wifiConfigOverAP = true;
-    //     else
-    //         settings.wifiConfigOverAP = false;
-    // }
 
     if (knownSetting == false) // Special cases / exceptions
     {
@@ -563,6 +552,27 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             recordLineToLFS(stationCoordinateGeodeticFileName, settingValueStr);
             if (settings.debugWiFiConfig == true)
                 systemPrintf("%s recorded\r\n", settingValueStr);
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "minCNO") == 0)
+        {
+            // Note: this sends the Min CNO to the GNSS, as well as saving it in settings... Is this what we want? TODO
+            gnssSetMinCno(settingValue);
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "fixedHAEAPC") == 0)
+        {
+            // TODO: check this!!
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "baseTypeFixed") == 0)
+        {
+            settings.fixedBase = ((settingValue == 1) ? true : false);
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
+        {
+            settings.fixedBaseCoordinateType = ((settingValue == 1) ? COORD_TYPE_ECEF : COORD_TYPE_GEODETIC);
             knownSetting = true;
         }
 
@@ -787,12 +797,11 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         {
             knownSetting = true;
         }
-        else if (strcmp(settingName, "fixedHAE_APC") == 0)
+        else if (strcmp(settingName, "fixedHAEAPC") == 0)
         {
             knownSetting = true;
         }
     }
-
 
     // Last catch
     if (knownSetting == false)
@@ -1531,25 +1540,6 @@ void writeToString(char *settingValueStr, char *value)
 // The order of variables matches the order found in settings.h
 bool getSettingValue(const char *settingName, char *settingValueStr)
 {
-
-    // Exceptions:
-    if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
-    {
-        writeToString(
-            settingValueStr,
-            !settings.fixedBaseCoordinateType); // When ECEF is true, fixedBaseCoordinateType = 0 (COORD_TYPE_ECEF)
-
-        return (true);
-    }
-
-    char *ptr;
-    double settingValue = strtod(settingValueStr, &ptr);
-
-    if (strcmp(settingValueStr, "true") == 0)
-        settingValue = 1;
-    if (strcmp(settingValueStr, "false") == 0)
-        settingValue = 0;
-
     bool knownSetting = false;
 
     char truncatedName[51];
@@ -1926,10 +1916,80 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
 
     if (knownSetting == false)
     {
-        // Check global setting
-        if (strcmp(settingName, "enableRCFirmware") == 0)
+        // Unused variables - read to avoid errors
+        // TODO: check this! Is this really what we want?
+        if (strcmp(settingName, "fixedLatText") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "fixedLongText") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "measurementRateHz") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "stationGeodetic") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "minCNO") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "fixedHAEAPC") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "baseTypeFixed") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
+        {
+            knownSetting = true;
+        }
+        // Special actions
+        else if (strcmp(settingName, "enableRCFirmware") == 0)
         {
             writeToString(settingValueStr, enableRCFirmware);
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "firmwareFileName") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "factoryDefaultReset") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "exitAndReset") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "setProfile") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "resetProfile") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "forgetEspNowPeers") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "startNewLog") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "checkNewFirmware") == 0)
+        {
+            knownSetting = true;
+        }
+        else if (strcmp(settingName, "getNewFirmware") == 0)
+        {
             knownSetting = true;
         }
         // Unused variables - read to avoid errors
@@ -2244,6 +2304,36 @@ void printAvailableSettings()
         }
     }
 
+    // TODO: check this! Is this really what we want?
+    systemPrint("fixedLatText,char[],");
+    systemPrint("fixedLongText,char[],");
+    systemPrint("measurementRateHz,double,");
+    systemPrint("stationGeodetic,,"); // TODO
+    systemPrint("minCNO,uint8_t,");
+    systemPrint("fixedHAEAPC,double,");
+    systemPrint("baseTypeFixed,bool,");
+    systemPrint("fixedBaseCoordinateTypeECEF,bool,");
+    systemPrint("enableRCFirmware,bool,");
+    systemPrint("firmwareFileName,char[],");
+    systemPrint("factoryDefaultReset,,");
+    systemPrint("exitAndReset,,");
+    systemPrint("setProfile,uint8_t,");
+    systemPrint("resetProfile,uint8_t,");
+    systemPrint("forgetEspNowPeers,,");
+    systemPrint("startNewLog,,");
+    systemPrint("checkNewFirmware,,");
+    systemPrint("getNewFirmware,,");
+    systemPrint("measurementRateSec,double,");
+    systemPrint("baseTypeSurveyIn,bool,");
+    systemPrint("fixedBaseCoordinateTypeGeo,bool,");
+    systemPrint("saveToArduino,,");
+    systemPrint("enableFactoryDefaults,,");
+    systemPrint("enableFirmwareUpdate,,");
+    systemPrint("enableForgetRadios,,");
+    systemPrint("nicknameECEF,,");
+    systemPrint("nicknameGeodetic,,");
+    systemPrint("fileSelectAll,,");
+    systemPrint("fixedHAEAPC,,");
 
     systemPrintln();
 }
