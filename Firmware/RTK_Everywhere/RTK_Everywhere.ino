@@ -149,6 +149,11 @@ int pin_GnssUart_TX = PIN_UNDEFINED;
 int pin_GnssLBandUart_RX = PIN_UNDEFINED;
 int pin_GnssLBandUart_TX = PIN_UNDEFINED;
 
+int pin_Cellular_RX = PIN_UNDEFINED;
+int pin_Cellular_TX = PIN_UNDEFINED;
+int pin_Cellular_PWR_ON = PIN_UNDEFINED;
+int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
+
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
 int pin_GNSS_DR_Reset = PIN_UNDEFINED;
