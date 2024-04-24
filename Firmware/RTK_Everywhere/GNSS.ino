@@ -1263,3 +1263,19 @@ void gnssMenuConstellations()
         um980MenuConstellations();
     }
 }
+
+bool gnssIsBlocking()
+{
+    if (online.gnss == true)
+    {
+        if (gnssPlatform == PLATFORM_ZED)
+        {
+            return (false);
+        }
+        else if (gnssPlatform == PLATFORM_UM980)
+        {
+            return (um980IsBlocking());
+        }
+    }
+    return (false);
+}

@@ -221,6 +221,8 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
+#ifdef EVKv1point1        
+        // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.lband_neo = true;
         present.cellular_lara = true;
@@ -228,7 +230,75 @@ void beginBoard()
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.button_mode = true;
-        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        present.peripheralPowerControl = true;
+        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.antennaShortOpen = true;
+        present.timePulseInterrupt = true;
+        present.gnss_to_uart = true;
+        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
+        present.i2c1 = true;
+        present.display_i2c1 = true;
+        present.display_type = DISPLAY_128x64;
+        present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
+
+        // Pin Allocations:
+        // 35, D1  : Serial TX (CH340 RX)
+        // 34, D3  : Serial RX (CH340 TX)
+
+        // 25, D0  : Boot + Boot Button
+        pin_modeButton = 0;
+        // 24, D2  : Status LED
+        pin_baseStatusLED = 2;
+        // 29, D5  : GNSS TP via 74LVC4066 switch
+        pin_GNSS_TimePulse = 5;
+        // 14, D12 : I2C1 SDA via 74LVC4066 switch
+        pin_I2C1_SDA = 12;
+        // 23, D15 : I2C1 SCL via 74LVC4066 switch
+        pin_I2C1_SCL = 15;
+
+        // 26, D4  : microSD card select bar
+        pin_microSD_CS = 4;
+        // 16, D13 : LARA_TXDI
+        pin_Cellular_TX = 13;
+        // 13, D14 : LARA_RXDO
+        pin_Cellular_RX = 14;
+
+        // 30, D18 : SPI SCK --> Ethernet, microSD card
+        // 31, D19 : SPI POCI
+        // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
+        pin_I2C0_SDA = 21;
+        // 36, D22 : I2C0 SCL
+        pin_I2C0_SCL = 22;
+        // 37, D23 : SPI PICO
+        // 10, D25 : GNSS RX --> ZED UART1 TXO
+        pin_GnssUart_RX = 25;
+        // 11, D26 : LARA_PWR_ON
+        pin_Cellular_PWR_ON = 26;
+        // 12, D27 : Ethernet Chip Select
+        pin_Ethernet_CS = 27;
+        //  8, D32 : PWREN
+        pin_peripheralPowerControl = 32;
+        //  9, D33 : GNSS TX --> ZED UART1 RXI
+        pin_GnssUart_TX = 33;
+        //  6, A34 : LARA_NI
+        pin_Cellular_Network_Indicator = 34;
+        //  7, A35 : Board Detect (1.1V)
+        //  4, A36 : microSD card detect
+        pin_microSD_CardDetect = 36;
+        //  5, A39 : Ethernet Interrupt
+        pin_Ethernet_Interrupt = 39;
+#else
+        // EVK v1.0 - TODO: delete this once all five EVK v1.0's have been upgraded / replaced
+        present.psram_4mb = true;
+        present.lband_neo = true;
+        present.cellular_lara = true;
+        present.ethernet_ws5500 = true;
+        present.microSd = true;
+        present.microSdCardDetectLow = true;
+        present.button_mode = true;
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        present.peripheralPowerControl = true;
         present.laraPowerControl = true;       // Tertiary power controls the LARA
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
@@ -246,27 +316,30 @@ void beginBoard()
         pin_modeButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
-        // 29, D5  : ESP5 test point
-        // 14, D12 : I2C1 SDA
+        // 29, D5  : LARA_ON - not used
+        // 14, D12 : I2C1 SDA via 74LVC4066 switch
         pin_I2C1_SDA = 12;
-        // 23, D15 : I2C1 SCL --> OLED after switch
+        // 23, D15 : I2C1 SCL via 74LVC4066 switch
         pin_I2C1_SCL = 15;
 
         // 26, D4  : microSD card select bar
         pin_microSD_CS = 4;
         // 16, D13 : LARA_TXDI
+        pin_Cellular_TX = 13;
         // 13, D14 : LARA_RXDO
+        pin_Cellular_RX = 14;
 
         // 30, D18 : SPI SCK --> Ethernet, microSD card
         // 31, D19 : SPI POCI
-        // 33, D21 : I2C0 SDA
+        // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
         pin_I2C0_SDA = 21;
-        // 36, D22 : I2C0 SCL --> ZED, NEO, USB2514B, TP, I/O connector
+        // 36, D22 : I2C0 SCL
         pin_I2C0_SCL = 22;
         // 37, D23 : SPI PICO
-        // 10, D25 : TP/2
+        // 10, D25 : GNSS TP
         pin_GNSS_TimePulse = 25;
-        // 11, D26 : LARA_ON
+        // 11, D26 : LARA_PWR_ON
+        pin_Cellular_PWR_ON = 26;
         // 12, D27 : Ethernet Chip Select
         pin_Ethernet_CS = 27;
         //  8, D32 : PWREN
@@ -274,11 +347,12 @@ void beginBoard()
         //  9, D33 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 33;
         //  6, A34 : LARA_NI
+        pin_Cellular_Network_Indicator = 34;
         //  7, A35 : Board Detect (1.1V)
         //  4, A36 : microSD card detect
         pin_microSD_CardDetect = 36;
-        //  5, A39 : Unused analog pin - used to generate random values for SSL
-
+        //  5, A39 : Not used
+#endif
         // Select the I2C 0 data structure
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
@@ -300,10 +374,19 @@ void beginBoard()
         pinMode(pin_baseStatusLED, OUTPUT);
         baseStatusLedOff();
 
-        // Turn on power to the I2C_1 bus
+        DMW_if systemPrintf("pin_Cellular_Network_Indicator: %d\r\n", pin_Cellular_Network_Indicator);
+        pinMode(pin_Cellular_Network_Indicator, INPUT);
+
+        // In the fullness of time, pin_Cellular_PWR_ON will (probably) be controlled by the Cellular Library
+        DMW_if systemPrintf("pin_Cellular_PWR_ON: %d\r\n", pin_Cellular_PWR_ON);
+        digitalWrite(pin_Cellular_PWR_ON, LOW);
+        pinMode(pin_Cellular_PWR_ON, OUTPUT);
+        digitalWrite(pin_Cellular_PWR_ON, LOW);
+
+        // Turn on power to the peripherals
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
-        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub, LARA - if SPWR & TPWR jumpers have been changed
     }
 
     else if (productVariant == RTK_FACET_V2)
