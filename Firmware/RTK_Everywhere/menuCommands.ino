@@ -328,15 +328,22 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 case _wifiNetwork:
                     {
                         int network;
-                        if (sscanf(suffix, "%dSSID", &network) == 1)
+
+                        if (strstr(suffix, "SSID") != nullptr)
                         {
-                            strncpy(settings.wifiNetworks[network].ssid, settingValueStr, sizeof(settings.wifiNetworks[0].ssid));
-                            knownSetting = true;
+                            if (sscanf(suffix, "%dSSID", &network) == 1)
+                            {
+                                strncpy(settings.wifiNetworks[network].ssid, settingValueStr, sizeof(settings.wifiNetworks[0].ssid));
+                                knownSetting = true;
+                            }
                         }
-                        else if (sscanf(suffix, "%dPassword", &network) == 1)
+                        else if (strstr(suffix, "Password") != nullptr)
                         {
-                            strncpy(settings.wifiNetworks[network].password, settingValueStr, sizeof(settings.wifiNetworks[0].password));
-                            knownSetting = true;
+                            if (sscanf(suffix, "%dPassword", &network) == 1)
+                            {
+                                strncpy(settings.wifiNetworks[network].password, settingValueStr, sizeof(settings.wifiNetworks[0].password));
+                                knownSetting = true;
+                            }
                         }
                     }
                     break;
@@ -1763,15 +1770,22 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 case _wifiNetwork:
                     {
                         int network;
-                        if (sscanf(suffix, "%dSSID", &network) == 1)
+
+                        if (strstr(suffix, "SSID") != nullptr)
                         {
-                            writeToString(settingValueStr, settings.wifiNetworks[network].ssid);
-                            knownSetting = true;
+                            if (sscanf(suffix, "%dSSID", &network) == 1)
+                            {
+                                writeToString(settingValueStr, settings.wifiNetworks[network].ssid);
+                                knownSetting = true;
+                            }
                         }
-                        else if (sscanf(suffix, "%dPassword", &network) == 1)
+                        else if (strstr(suffix, "Password") != nullptr)
                         {
-                            writeToString(settingValueStr, settings.wifiNetworks[network].password);
-                            knownSetting = true;
+                            if (sscanf(suffix, "%dPassword", &network) == 1)
+                            {
+                                writeToString(settingValueStr, settings.wifiNetworks[network].password);
+                                knownSetting = true;
+                            }
                         }
                     }
                     break;
