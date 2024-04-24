@@ -376,7 +376,7 @@ void gnssReadTask(void *e)
         // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
         // If the Unicore library does not need lone access, then read from serial port
-        if (um980IsBlocking() == false)
+        if (gnssIsBlocking() == false)
         {
             // Determine if serial data is available
             while (serialGNSS->available())
