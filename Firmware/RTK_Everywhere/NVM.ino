@@ -66,9 +66,7 @@ void loadSettings()
     int resetCount = settings.resetCount;
     SystemState stateFromLFS = settings.lastState;
 
-    bool readFromSD = false;
-    if (loadSystemSettingsFromFileSD(settingsFileName) == true)
-        readFromSD = true;
+    loadSystemSettingsFromFileSD(settingsFileName);
 
     settings.resetCount = resetCount;
 
@@ -77,11 +75,9 @@ void loadSettings()
 
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
+    {
         snprintf(settings.profileName, sizeof(settings.profileName), "Profile%d", profileNumber + 1);
 
-    // Only re-record settings if SD was accessed
-    if (readFromSD == true)
-    {
         // Record these settings to LittleFS and SD file to be sure they are the same
         recordSystemSettings();
     }
@@ -593,6 +589,9 @@ void recordSystemSettingsToFile(File *settingsFile)
 // Don't update settings when searching.
 bool loadSystemSettingsFromFileSD(char *fileName, const char *findMe, char *found, int len)
 {
+    if ((findMe != nullptr) && (found != nullptr))
+        *found = 0; // If searching, set found to NULL
+
     bool gotSemaphore = false;
     bool status = false;
     bool wasSdCardOnline;
@@ -719,6 +718,9 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
 {
     // log_d("reading setting fileName: %s", fileName);
 
+    if ((findMe != nullptr) && (found != nullptr))
+        *found = 0; // If searching, set found to NULL
+
     File settingsFile = LittleFS.open(fileName, FILE_READ);
     if (!settingsFile)
     {
@@ -768,10 +770,19 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
             else
             {
                 // Check if line contains findMe. If it does, return the remainder of the line in found.
+                // Don't copy the \r or \n
                 const char *ptr = strstr(line, findMe);
                 if (ptr != nullptr)
                 {
-                    strncpy(found, ptr + strlen(findMe), len);
+                    ptr += strlen(findMe);
+                    for (size_t i = strlen(findMe); i < strlen(line); i++)
+                    {
+                        if ((line[i] == '\r') || (line[i] == '\n'))
+                        {
+                            line[i] = 0;
+                        }
+                    }
+                    strncpy(found, ptr, len);
                     break;
                 }
             }
@@ -1450,21 +1461,21 @@ void setProfileName(uint8_t ProfileNumber)
 // Looks at LittleFS first, then SD
 bool getProfileName(char *fileName, char *profileName, uint8_t profileNameLength)
 {
-    char profileNameLFS[50] = "";
+    char profileNameLFS[50];
     loadSystemSettingsFromFileLFS(fileName, "profileName=", profileNameLFS, sizeof(profileNameLFS));
-    char profileNameSD[50] = "";
+    char profileNameSD[50];
     loadSystemSettingsFromFileSD(fileName, "profileName=", profileNameSD, sizeof(profileNameSD));
 
     // Zero terminate the profile name
     *profileName = 0;
 
     // If we have a profile in both LFS and SD, SD wins
-    if (profileNameLFS != "")
+    if (strlen(profileNameLFS) > 0)
         strncpy(profileName, profileNameLFS, profileNameLength); // snprintf handles null terminator
-    if (profileNameSD != "")
+    if (strlen(profileNameSD) > 0)
         strncpy(profileName, profileNameSD, profileNameLength); // snprintf handles null terminator
 
-    return ((profileNameLFS != "") || (profileNameSD != ""));
+    return ((strlen(profileNameLFS) > 0) || (strlen(profileNameSD) > 0));
 }
 
 // Loads a given profile name.
