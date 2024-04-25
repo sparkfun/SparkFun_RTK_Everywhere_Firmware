@@ -53,10 +53,10 @@
 
 // If no token is available at compile time, mark this firmware as version 'd99.99'
 // TOKENS are passed in from compiler extra flags
-#ifndef POINTPERFECT_LBAND_PAID_TOKEN
+#ifndef POINTPERFECT_LBAND_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
-#endif // POINTPERFECT_LBAND_PAID_TOKEN
+#endif // POINTPERFECT_LBAND_TOKEN
 
 // Define the RTK board identifier:
 //  This is an int which is unique to this variant of the RTK hardware which allows us

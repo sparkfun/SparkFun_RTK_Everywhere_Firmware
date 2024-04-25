@@ -7,23 +7,17 @@
 // The PointPerfect token is provided at compile time via build flags
 #define DEVELOPMENT_TOKEN 0xAA, 0xBB, 0xCC, 0xDD, 0x00, 0x11, 0x22, 0x33, 0x0A, 0x0B, 0x0C, 0x0D, 0x00, 0x01, 0x02, 0x03
 
-#ifndef POINTPERFECT_LBAND_PAID_TOKEN
+#ifndef POINTPERFECT_LBAND_TOKEN
 #warning Using the DEVELOPMENT_TOKEN for point perfect!
-#define POINTPERFECT_LBAND_FREE_TOKEN DEVELOPMENT_TOKEN
-#define POINTPERFECT_LBAND_PAID_TOKEN DEVELOPMENT_TOKEN
-#define POINTPERFECT_IP_FREE_TOKEN DEVELOPMENT_TOKEN
-#define POINTPERFECT_IP_PAID_TOKEN DEVELOPMENT_TOKEN
-#define POINTPERFECT_LBAND_IP_FREE_TOKEN DEVELOPMENT_TOKEN
-#define POINTPERFECT_LBAND_IP_PAID_TOKEN DEVELOPMENT_TOKEN
-#endif // POINTPERFECT_LBAND_PAID_TOKEN
+#define POINTPERFECT_LBAND_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_IP_TOKEN DEVELOPMENT_TOKEN
+#define POINTPERFECT_LBAND_IP_TOKEN DEVELOPMENT_TOKEN
+#endif // POINTPERFECT_LBAND_TOKEN
 
-static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};                  // Token in HEX form
-static const uint8_t ppLbandPaidToken[16] = {POINTPERFECT_LBAND_PAID_TOKEN};      // Token in HEX form
-static const uint8_t ppLbandFreeToken[16] = {POINTPERFECT_LBAND_FREE_TOKEN};      // Token in HEX form
-static const uint8_t ppIpPaidToken[16] = {POINTPERFECT_IP_PAID_TOKEN};            // Token in HEX form
-static const uint8_t ppIpFreeToken[16] = {POINTPERFECT_IP_FREE_TOKEN};            // Token in HEX form
-static const uint8_t ppLbandIpPaidToken[16] = {POINTPERFECT_LBAND_IP_PAID_TOKEN}; // Token in HEX form
-static const uint8_t ppLbandIpFreeToken[16] = {POINTPERFECT_LBAND_IP_FREE_TOKEN}; // Token in HEX form
+static const uint8_t developmentToken[16] = {DEVELOPMENT_TOKEN};         // Token in HEX form
+static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Token in HEX form
+static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
+static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_WIFI
 static const char *pointPerfectAPI = "https://api.thingstream.io/ztp/pointperfect/credentials";
@@ -222,6 +216,9 @@ bool pointperfectProvisionDevice()
 #ifdef COMPILE_WIFI
     bool retVal = false;
 
+    uint8_t provisionAttempt = 0;
+    const uint8_t maxProvisionAttempts = 2;
+
     do
     {
         char hardwareID[15];
@@ -245,139 +242,144 @@ bool pointperfectProvisionDevice()
         char tokenString[37] = "\0";
         char tokenChar;
 
-        for (int attemptNumber = 0; attemptNumber < pointperfectGetMaxAttempts(); attemptNumber++)
+        // Determine if we use the SparkFun tokens or custom token
+        if (strlen(settings.pointPerfectDeviceProfileToken) == 0)
         {
-            // Determine if we use the SparkFun tokens or custom token
-            if (strlen(settings.pointPerfectDeviceProfileToken) == 0)
-            {
-                // Use the built-in SparkFun tokens
+            // Use the built-in SparkFun tokens
 
-                // Depending on how many times we've tried the ZTP interface, change the token
-                pointperfectGetToken(tokenString, attemptNumber);
+            // Depending on how many times we've tried the ZTP interface, change the token
+            pointperfectGetToken(tokenString);
 
-                if (memcmp(ppLbandPaidToken, developmentToken, sizeof(developmentToken)) == 0)
-                    systemPrintln("Warning: Using the development token!");
-
-                if (settings.debugCorrections == true)
-                {
-                    // Don't expose the SparkFun tokens
-                    tokenChar = tokenString[4];
-                    tokenString[4] = 0;
-                    systemPrintf("Using token: %s\r\n", tokenString);
-                    tokenString[4] = tokenChar;
-                }
-            }
-            else
-            {
-                // Use the user's custom token
-                strncpy(tokenString, settings.pointPerfectDeviceProfileToken, sizeof(tokenString));
-                systemPrintf("Using custom token: %s\r\n", tokenString);
-            }
-
-            // Build the givenName:   Name vxx.yy AABBCCDD1122
-            // Get ready for JSON
-            memset(givenName, 0, sizeof(givenName));
-            snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
-                     hardwareID);
-
-            // Verify the givenName
-            if (strlen(givenName) == 0)
-            {
-                systemPrint("Error: Unable to build the given name!");
-                break;
-            }
-            if (strlen(givenName) >= 50)
-            {
-                systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
-                break;
-            }
-
-            pointPerfectAPIPost["token"] = tokenString;
-            pointPerfectAPIPost["givenName"] = givenName;
-            pointPerfectAPIPost["hardwareId"] = hardwareID; // Appears as 'Sticker Ref' in ThingStream
-
-            const char *tag;
-            if (attemptNumber == 0)
-                tag = "freetrial"; // Tags must be all lower case
-            else if (attemptNumber == 1)
-                tag = "paidunit";
-            pointPerfectAPIPost["tags"][0] = tag;
-
-            systemPrintf("Connecting to: %s\r\n", pointPerfectAPI);
+            if (memcmp(ppLbandToken, developmentToken, sizeof(developmentToken)) == 0)
+                systemPrintln("Warning: Using the development token!");
 
             if (settings.debugCorrections == true)
             {
-                systemPrintln("{");
+                // Don't expose the SparkFun tokens
                 tokenChar = tokenString[4];
                 tokenString[4] = 0;
-                systemPrintf("  token: %s\r\n", tokenString);
+                systemPrintf("Using token: %s\r\n", tokenString);
                 tokenString[4] = tokenChar;
-                systemPrintf("  givenName: %s\r\n", givenName);
-                systemPrintf("  hardwareId: %s\r\n", hardwareID);
-                systemPrintln("  tags: [");
-                systemPrintf("    %s\r\n", tag);
-                systemPrintln("  ]");
-                systemPrintln("}");
             }
+        }
+        else
+        {
+            // Use the user's custom token
+            strncpy(tokenString, settings.pointPerfectDeviceProfileToken, sizeof(tokenString));
+            systemPrintf("Using custom token: %s\r\n", tokenString);
+        }
 
-            // Using this token and hardwareID, attempt to get keys
-            // Do not print feedback to user until we have success or exhausted known tokens
-            ZtpResponse ztpResponse = pointperfectTryZtpToken(pointPerfectAPIPost);
+        // Build the givenName:   Name vxx.yy AABBCCDD1122
+        // Get ready for JSON
+        memset(givenName, 0, sizeof(givenName));
+        snprintf(givenName, sizeof(givenName), "%s %s - %s", platformProvisionTable[productVariant], versionString,
+                 hardwareID);
 
-            if (ztpResponse == ZTP_SUCCESS)
-            {
-                systemPrintln("Device successfully provisioned. Keys obtained.");
+        // Verify the givenName
+        if (strlen(givenName) == 0)
+        {
+            systemPrint("Error: Unable to build the given name!");
+            break;
+        }
+        if (strlen(givenName) >= 50)
+        {
+            systemPrintf("Error: GivenName '%s' too long: %d bytes\r\n", givenName, strlen(givenName));
+            break;
+        }
 
-                recordSystemSettings();
-                retVal = true;
-                break;
-            }
-            else if (ztpResponse == ZTP_DEACTIVATED && attemptNumber == 1)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0],
-                         btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
-                         productVariant);
+        pointPerfectAPIPost["token"] = tokenString;
+        pointPerfectAPIPost["givenName"] = givenName;
+        pointPerfectAPIPost["hardwareId"] = hardwareID; // Appears as 'Sticker Ref' in ThingStream
 
-                systemPrintf("This device has been deactivated. Please contact "
-                             "support@sparkfun.com to renew the PointPerfect "
-                             "subscription. Please reference device ID: %s\r\n",
-                             hardwareID);
+        // const char *tag;
+        // tag = "paidunit";
+        // pointPerfectAPIPost["tags"][0] = tag;
 
-                displayAccountExpired(5000);
-            }
-            else if (ztpResponse == ZTP_NOT_WHITELISTED && attemptNumber == 1)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0],
-                         btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
-                         productVariant);
+        systemPrintf("Connecting to: %s\r\n", pointPerfectAPI);
 
-                systemPrintf(
-                    "This device is not whitelisted. Please contact "
-                    "support@sparkfun.com to get your subscription activated. Please reference device ID: %s\r\n",
-                    hardwareID);
+        if (settings.debugCorrections == true)
+        {
+            systemPrintln("{");
+            tokenChar = tokenString[4];
+            tokenString[4] = 0;
+            systemPrintf("  token: %s\r\n", tokenString);
+            tokenString[4] = tokenChar;
+            systemPrintf("  givenName: %s\r\n", givenName);
+            systemPrintf("  hardwareId: %s\r\n", hardwareID);
+            // systemPrintln("  tags: [");
+            // systemPrintf("    %s\r\n", tag);
+            // systemPrintln("  ]");
+            systemPrintln("}");
+        }
 
-                displayNotListed(5000);
-            }
-            else if (ztpResponse == ZTP_ALREADY_REGISTERED && attemptNumber == 1)
-            {
-                // Device is already registered to a different ZTP profile.
-                // Don't display anything. Move on to next attempt.
-            }
-            else if (ztpResponse == ZTP_RESPONSE_TIMEOUT && attemptNumber == 1)
-            {
-                // The WiFi failed to connect in a timely manner to the API.
-                // Don't display anything. Move on to next attempt.
-                // TODO - We need to retry once more using this hardware ID+token.
-            }
+        // Using this token and hardwareID, attempt to get keys
+        ZtpResponse ztpResponse = pointperfectTryZtpToken(pointPerfectAPIPost);
+
+        if (ztpResponse == ZTP_SUCCESS)
+        {
+            systemPrintln("Device successfully provisioned. Keys obtained.");
+
+            recordSystemSettings();
+            retVal = true;
+            break;
+        }
+        else if (ztpResponse == ZTP_DEACTIVATED)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            systemPrintf("This device has been deactivated. Please contact "
+                         "support@sparkfun.com or goto https://www.sparkfun.com/pointperfect to renew the PointPerfect "
+                         "subscription. Please reference device ID: %s\r\n",
+                         hardwareID);
+
+            displayAccountExpired(5000);
+        }
+        else if (ztpResponse == ZTP_NOT_WHITELISTED)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            systemPrintf("This device is not whitelisted. Please contact "
+                         "support@sparkfun.com or goto https://www.sparkfun.com/pointperfect to get your subscription "
+                         "activated. Please reference device ID: %s\r\n",
+                         hardwareID);
+
+            displayNotListed(5000);
+        }
+        else if (ztpResponse == ZTP_ALREADY_REGISTERED)
+        {
+            // Device is already registered to a different ZTP profile.
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            systemPrintf("This device is registered on a different profile. Please contact "
+                         "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
+                         hardwareID);
+        }
+        else if (ztpResponse == ZTP_RESPONSE_TIMEOUT)
+        {
+            // The WiFi failed to connect in a timely manner to the API.
+            provisionAttempt++;
+            if (provisionAttempt < maxProvisionAttempts)
+                systemPrintf("Provision server response timed out. Trying again.\r\n");
             else
-            {
-                // attemptNumber 0 has failed, or unknown error. Move on to next attempt.
-            }
-        } // Next token attempt
+                systemPrintf("Provision server response timed out. \r\n");
+        }
+        else
+        {
+            // Unknown error
+            provisionAttempt++;
+            if (provisionAttempt < maxProvisionAttempts)
+                systemPrintf("Unknown provisioning error. Trying again.\r\n");
+            else
+                systemPrintf("Unknown provisioning error.\r\n");
+        }
 
-    } while (0);
+    } while (provisionAttempt < maxProvisionAttempts);
 
     return (retVal);
 #else  // COMPILE_WIFI
@@ -387,68 +389,34 @@ bool pointperfectProvisionDevice()
 
 // Given a token buffer and an attempt number, decide which token to use
 // Decide which token to use for ZTP
-// There are four lists:
-//   L-Band annual
-//   L-Band free-month
-//   IP annual
-//   IP free-month
-void pointperfectGetToken(char *tokenString, int attemptNumber)
+// There are three lists:
+//   L-Band
+//   IP
+//   L-Band+IP
+void pointperfectGetToken(char *tokenString)
 {
     // Convert uint8_t array into string with dashes in spots
     // We must assume u-blox will not change the position of their dashes or length of their token
 
     if (productVariant == RTK_EVK)
     {
-        // If the hardware is EVK, use L-Band+IP
-        if (attemptNumber == 0)
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpFreeToken, sizeof(ppLbandIpFreeToken));
-        else
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpPaidToken, sizeof(ppLbandIpPaidToken));
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
     }
     else if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
     {
-        // If the hardware lacks L-Band capability, start with IP free token
-        if (attemptNumber == 0)
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpFreeToken, sizeof(ppIpFreeToken));
-        else
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpPaidToken, sizeof(ppIpPaidToken));
+        // If the hardware lacks L-Band capability, use IP token
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
     }
     else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
     {
-        // If the hardware is L-Band capable, start with L-Band free token first
-        if (attemptNumber == 0)
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandFreeToken, sizeof(ppLbandFreeToken));
-        else
-            pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandPaidToken, sizeof(ppLbandPaidToken));
+        // If the hardware is L-Band capable, use L-Band token
+        pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
     }
     else
     {
         systemPrintln("Unknown hardware for GetToken");
         return;
     }
-}
-
-// Based on the hardware present and the custom token string length,
-// return the max number of ZTP profile tokens to step through
-int pointperfectGetMaxAttempts()
-{
-    // If the user is using their custom profile token, attempt only once
-    if (strlen(settings.pointPerfectDeviceProfileToken) != 0)
-        return (1);
-
-    if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
-    {
-        // If the hardware is IP only, there are only two tokens to try
-        return (2);
-    }
-    else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
-    {
-        // If the hardware is L-Band centric, there are only two tokens to try
-        return (2);
-    }
-
-    systemPrintln("Unknown hardware for GetMaxAttempts");
-    return (1);
 }
 
 // Given a prepared JSON blob, pass to the PointPerfect API
