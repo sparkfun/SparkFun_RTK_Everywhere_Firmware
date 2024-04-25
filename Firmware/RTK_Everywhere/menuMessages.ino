@@ -722,7 +722,7 @@ void checkGNSSArrayDefaults()
 
         // Reset constellations to defaults
         for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            settings.um980Constellations[x] = true;
+            settings.um980Constellations[x] = 1;
     }
 
     if (settings.um980MessageRatesNMEA[0] == 254)
