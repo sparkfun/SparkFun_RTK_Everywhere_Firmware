@@ -824,6 +824,8 @@ void ntripServerValidateTables()
 {
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
+    if (NETWORK_USER_MAX > (sizeof(NETWORK_USER) * 8))
+        reportFatalError("Increase the NETWORK_USER type");
 }
 
 #endif // COMPILE_NETWORK
