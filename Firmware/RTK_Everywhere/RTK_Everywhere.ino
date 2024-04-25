@@ -53,10 +53,10 @@
 
 // If no token is available at compile time, mark this firmware as version 'd99.99'
 // TOKENS are passed in from compiler extra flags
-#ifndef POINTPERFECT_LBAND_PAID_TOKEN
+#ifndef POINTPERFECT_LBAND_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
-#endif // POINTPERFECT_LBAND_PAID_TOKEN
+#endif // POINTPERFECT_LBAND_TOKEN
 
 // Define the RTK board identifier:
 //  This is an int which is unique to this variant of the RTK hardware which allows us
@@ -395,7 +395,7 @@ unsigned long rtcmLastPacketReceived; //Time stamp of RTCM coming in (from BT, N
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.2
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
 #else
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
 #endif                                          // COMPILE_UM980
