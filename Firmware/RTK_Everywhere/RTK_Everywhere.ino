@@ -395,7 +395,7 @@ unsigned long rtcmLastPacketReceived; //Time stamp of RTCM coming in (from BT, N
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.2
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
 #else
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
 #endif                                          // COMPILE_UM980
