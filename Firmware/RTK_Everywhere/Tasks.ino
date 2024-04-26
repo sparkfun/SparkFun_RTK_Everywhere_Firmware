@@ -463,7 +463,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Determine if this message should be processed by the Unicore library
     // Pass NMEA to um980 before applying compensation
-    if (gnssPlatform == PLATFORM_UM980)
+    if (present.gnss_um980)
     {
         if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) ||
             (type == RTK_NMEA_PARSER_INDEX))
