@@ -87,9 +87,9 @@ void menuMain()
 #endif // COMPILE_WIFI
 
 #if COMPILE_NETWORK
-        systemPrintln("7) Configure Network");
+        systemPrintln("7) Configure TCP/UDP");
 #else  // COMPILE_NETWORK
-        systemPrintln("7) **Network Not Compiled**");
+        systemPrintln("7) **TCP/UDP Not Compiled**");
 #endif // COMPILE_NETWORK
 
 #ifdef COMPILE_ETHERNET
@@ -106,7 +106,7 @@ void menuMain()
             systemPrintln("n) Configure NTP");
 #endif // COMPILE_ETHERNET
 
-        systemPrintln("u) Configure User Profiles");
+        systemPrintln("p) Configure PointPerfect");
 
 #ifdef COMPILE_ESPNOW
         systemPrintln("r) Configure Radios");
@@ -114,12 +114,12 @@ void menuMain()
         systemPrintln("r) **ESP-Now Not Compiled**");
 #endif // COMPILE_ESPNOW
 
-        systemPrintln("p) Configure PointPerfect");
-
         systemPrintln("s) Configure System");
 
         if (present.imu_im19 == true)
             systemPrintln("t) Configure Tilt Compensation");
+
+        systemPrintln("u) Configure User Profiles");
 
         if (btPrintEcho)
             systemPrintln("b) Exit Bluetooth Echo mode");
@@ -143,7 +143,7 @@ void menuMain()
         else if (incoming == 6)
             menuWiFi();
         else if (incoming == 7)
-            menuNetwork();
+            menuTcpUdp();
         else if (incoming == 'e' && (present.ethernet_ws5500 == true))
             menuEthernet();
         else if (incoming == 'f')
