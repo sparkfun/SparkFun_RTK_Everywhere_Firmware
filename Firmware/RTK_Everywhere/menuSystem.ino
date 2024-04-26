@@ -428,7 +428,7 @@ void menuDebugHardware()
         systemPrint("12) Print Tilt/IMU Compensation Debugging: ");
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
-        if (gnssPlatform == PLATFORM_UM980)
+        if (present.gnss_um980)
             systemPrintln("13) UM980 Direct connect");
 
         systemPrint("14) PSRAM (");
@@ -503,7 +503,7 @@ void menuDebugHardware()
         {
             settings.enableImuCompensationDebug ^= 1;
         }
-        else if (incoming == 13 && gnssPlatform == PLATFORM_UM980)
+        else if (incoming == 13 && present.gnss_um980)
         {
             systemPrintln("Press ! to exit");
 

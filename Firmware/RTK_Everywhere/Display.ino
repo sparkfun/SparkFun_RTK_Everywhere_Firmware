@@ -2439,7 +2439,7 @@ void paintSystemTest()
             oled->print(" ");
             oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if ((gnssPlatform == PLATFORM_ZED) && (gnssFirmwareVersionInt < 130))
+            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 130))
                 oled->print("FAIL");
             else
                 oled->print("OK");

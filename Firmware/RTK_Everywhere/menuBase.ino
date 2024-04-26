@@ -90,7 +90,7 @@ void menuBase()
             systemPrint(settings.observationSeconds);
             systemPrintln(" seconds");
 
-            if (gnssPlatform == PLATFORM_ZED) // UM980 does not support survey in minimum deviation
+            if (present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
             {
                 systemPrint("3) Set required Mean 3D Standard Deviation: ");
                 systemPrint(settings.observationPositionAccuracy, 2);
@@ -236,7 +236,7 @@ void menuBase()
                           &settings.observationSeconds);
         }
         else if (settings.fixedBase == false && incoming == 3 &&
-                 gnssPlatform == PLATFORM_ZED) // UM980 does not support survey in minimum deviation
+                 present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
         {
             // Arbitrary 1m minimum
             getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
@@ -245,12 +245,12 @@ void menuBase()
         else if (settings.fixedBase == false && incoming == 4)
         {
             // Arbitrary 0.1m minimum
-            if (gnssPlatform == PLATFORM_ZED)
+            if (present.gnss_zedf9p)
             {
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
                               (double)maxSurveyInStartingAccuracy, &settings.zedSurveyInStartingAccuracy);
             }
-            else if (gnssPlatform == PLATFORM_UM980)
+            else if (present.gnss_um980)
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
                               (double)maxSurveyInStartingAccuracy, &settings.um980SurveyInStartingAccuracy);
         }

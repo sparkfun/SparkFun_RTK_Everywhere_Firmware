@@ -487,7 +487,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     }
 
     // Determine if we are using the PPL
-    if (gnssPlatform == PLATFORM_UM980)
+    if (present.gnss_um980)
     {
         // Determine if we want to use corrections, and are connected to the broker
         if (settings.enablePointPerfectCorrections && mqttClientIsConnected() == true)

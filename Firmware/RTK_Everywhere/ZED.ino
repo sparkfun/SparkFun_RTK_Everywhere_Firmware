@@ -1509,7 +1509,7 @@ void updateZEDCorrectionsSource(uint8_t source)
     if (!online.gnss)
         return;
 
-    if (gnssPlatform != PLATFORM_ZED)
+    if (!present.gnss_zedf9p)
         return;
 
     if (zedCorrectionsSource == source)
