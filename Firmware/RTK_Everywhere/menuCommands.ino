@@ -838,17 +838,17 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "rtkFirmwareVersion", apRtkFirmwareVersion);
 
     char apGNSSFirmwareVersion[80];
-    if (gnssPlatform == PLATFORM_ZED)
+    if (present.gnss_zedf9p)
     {
         snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "ZED-F9P Firmware: %s ID: %s",
                  gnssFirmwareVersion, gnssUniqueId);
     }
-    else if (gnssPlatform == PLATFORM_UM980)
+    else if (present.gnss_um980)
     {
         snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "UM980 Firmware: %s ID: %s", gnssFirmwareVersion,
                  gnssUniqueId);
     }
-    else if (gnssPlatform == PLATFORM_MOSAIC)
+    else if (present.gnss_mosaicX5)
     {
         // *** TODO ***
     }

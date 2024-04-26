@@ -405,7 +405,7 @@ unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, 
 
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-GnssPlatform gnssPlatform = PLATFORM_ZED;
+// Note: GnssPlatform gnssPlatform has been replaced by present.gnss_zedf9p etc.
 char gnssFirmwareVersion[20];
 int gnssFirmwareVersionInt;
 char gnssUniqueId[20]; // um980 ID is 16 digits

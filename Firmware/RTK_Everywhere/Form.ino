@@ -829,7 +829,7 @@ void createMessageList(String &returnText)
 {
     returnText = "";
 
-    if (gnssPlatform == PLATFORM_ZED)
+    if (present.gnss_zedf9p)
     {
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
         {
@@ -839,7 +839,7 @@ void createMessageList(String &returnText)
         }
     }
 
-    else if (gnssPlatform == PLATFORM_UM980)
+    else if (present.gnss_um980)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
         {
@@ -863,7 +863,7 @@ void createMessageListBase(String &returnText)
 {
     returnText = "";
 
-    if (gnssPlatform == PLATFORM_ZED)
+    if (present.gnss_zedf9p)
     {
         int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
 
@@ -875,7 +875,7 @@ void createMessageListBase(String &returnText)
         }
     }
 
-    else if (gnssPlatform == PLATFORM_UM980)
+    else if (present.gnss_um980)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {

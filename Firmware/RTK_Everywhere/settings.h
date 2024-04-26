@@ -126,25 +126,6 @@ const char * const platformProvisionTable[] =
 };
 const int platformProvisionTableEntries = sizeof (platformProvisionTable) / sizeof(platformProvisionTable[0]);
 
-// Different GNSS modules require different libraries and configuration
-typedef enum
-{
-    PLATFORM_ZED = 0b0001,
-    PLATFORM_UM980 = 0b0010,
-    PLATFORM_MOSAIC = 0b0011,
-} GnssPlatform;
-
-const GnssPlatform platformGnssTable[] =
-{
-    PLATFORM_ZED,   // EVK
-    PLATFORM_ZED,   // Facet v2
-    PLATFORM_MOSAIC,   // Facet mosaic
-    PLATFORM_UM980, // Torch
-    // Add new values just above this line
-    PLATFORM_ZED    // Unknown
-};
-const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
-
 // Corrections Priority
 typedef enum
 {
@@ -1659,6 +1640,10 @@ struct struct_present
     bool ethernet_ws5500 = false;
     bool radio_lora = false;
     bool gnss_to_uart = false;
+
+    bool gnss_um980 = false;
+    bool gnss_zedf9p = false;
+    bool gnss_mosaicX5 = false;
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second

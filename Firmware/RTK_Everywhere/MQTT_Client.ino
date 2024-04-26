@@ -306,7 +306,7 @@ void mqttClientReceiveMessage(int messageSize)
         if (mqttCount > 0)
         {
             // Correction data from PP can go direct to ZED module
-            if (gnssPlatform == PLATFORM_ZED)
+            if (present.gnss_zedf9p)
             {
                 // Only push SPARTN if the priority says we can
                 if (strstr(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) != nullptr)
@@ -342,7 +342,7 @@ void mqttClientReceiveMessage(int messageSize)
             }
 
             // For the UM980, we have to pass the data through the PPL first
-            else if (gnssPlatform == PLATFORM_UM980)
+            else if (present.gnss_um980)
             {
                 if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
                     systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);

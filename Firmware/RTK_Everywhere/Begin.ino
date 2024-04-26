@@ -131,6 +131,7 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         present.psram_2mb = true;
+        present.gnss_um980 = true;
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
@@ -224,6 +225,7 @@ void beginBoard()
 #ifdef EVKv1point1        
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
+        present.gnss_zedf9p = true;
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -291,6 +293,7 @@ void beginBoard()
 #else
         // EVK v1.0 - TODO: delete this once all five EVK v1.0's have been upgraded / replaced
         present.psram_4mb = true;
+        present.gnss_zedf9p = true;
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -392,6 +395,7 @@ void beginBoard()
     else if (productVariant == RTK_FACET_V2)
     {
         present.psram_4mb = true;
+        present.gnss_zedf9p = true;
         present.microSd = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
@@ -413,6 +417,7 @@ void beginBoard()
     else if (productVariant == RTK_FACET_MOSAIC)
     {
         present.psram_4mb = true;
+        present.gnss_mosaicX5 = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;

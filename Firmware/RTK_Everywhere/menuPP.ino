@@ -402,12 +402,12 @@ void pointperfectGetToken(char *tokenString)
     {
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
     }
-    else if (gnssPlatform != PLATFORM_MOSAIC && present.lband_neo == false)
+    else if (present.gnss_mosaicX5 == false && present.lband_neo == false)
     {
         // If the hardware lacks L-Band capability, use IP token
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
     }
-    else if (gnssPlatform == PLATFORM_MOSAIC || present.lband_neo == true)
+    else if (present.gnss_mosaicX5 == true || present.lband_neo == true)
     {
         // If the hardware is L-Band capable, use L-Band token
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
