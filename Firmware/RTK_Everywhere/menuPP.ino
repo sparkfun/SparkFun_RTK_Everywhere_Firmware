@@ -1591,8 +1591,8 @@ void updateLBand()
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        if (settings.debugCorrections == true)
-            systemPrintln("configureViaEthernet: skipping updateLBand");
+        //if (settings.debugCorrections == true)
+        //    systemPrintln("configureViaEthernet: skipping updateLBand");
         return;
     }
 
