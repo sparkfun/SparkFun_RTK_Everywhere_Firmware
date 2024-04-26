@@ -1157,11 +1157,13 @@ void createSettingsString(char *newSettings)
                 case _um980Constellations:
                     {
                         // Record UM980 Constellations
+                        // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web page
+                        // check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer will probably fail...)
                         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                         {
-                            char tempString[50]; // um980Constellations.GLONASS=1
-                            snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name, um980ConstellationCommands[x].textName,
-                                    settings.um980Constellations[x]);
+                            char tempString[50]; // um980Constellations.GLONASS=true
+                            snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name, um980ConstellationCommands[x].textName,
+                                    ((settings.um980Constellations[x] == 0) ? "false" : "true"));
                             stringRecord(newSettings, tempString);
                         }
                     }

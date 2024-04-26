@@ -74,7 +74,7 @@ var convertedCoordinate = 0.0;
 var coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
 
 function parseIncoming(msg) {
-    //console.log("incoming message: " + msg);
+    //console.log("Incoming message: " + msg);
 
     var data = msg.split(',');
     for (let x = 0; x < data.length - 1; x += 2) {
@@ -334,7 +334,7 @@ function parseIncoming(msg) {
             // um980MessageRatesRTCMRover_RTCM1001
             // um980MessageRatesRTCMBase_RTCM1001
             var messageName = id;
-            var messageRate = val;
+            var messageRate = parseFloat(val);
             var messageNameLabel = "";
 
             var messageData = messageName.split('_');
@@ -349,7 +349,7 @@ function parseIncoming(msg) {
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
-            var correctionPriority = val;
+            var correctionPriority = parseInt(val);
             var correctionData = correctionName.split('_');
             var correctionNameLabel = correctionData[1];
 
@@ -548,7 +548,6 @@ function validateFields() {
     collapseSection("collapseGNSSConfig", "gnssCaret");
     collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
     collapseSection("collapseBaseConfig", "baseCaret");
-    //collapseSection("collapseSensorConfig", "sensorCaret");
     collapseSection("collapsePPConfig", "pointPerfectCaret");
     collapseSection("collapsePortsConfig", "portsCaret");
     collapseSection("collapseRadioConfig", "radioCaret");
@@ -669,18 +668,15 @@ function validateFields() {
         clearElement("ntripServerMountPointPW_3", "");
     }
 
-
     //PointPerfect Config
-    if (platformPrefix == "Facet L-Band") {
-        if (ge("enablePointPerfectCorrections").checked == true) {
-            value = ge("pointPerfectDeviceProfileToken").value;
-            if (value.length > 0)
-                checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
-        }
-        else {
-            clearElement("pointPerfectDeviceProfileToken", "");
-            ge("autoKeyRenewal").checked = true;
-        }
+    if (ge("enablePointPerfectCorrections").checked == true) {
+        value = ge("pointPerfectDeviceProfileToken").value;
+        if (value.length > 0)
+            checkElementString("pointPerfectDeviceProfileToken", 36, 36, "Must be 36 characters", "collapsePPConfig");
+    }
+    else {
+        clearElement("pointPerfectDeviceProfileToken", "");
+        ge("autoKeyRenewal").checked = true;
     }
 
     //WiFi Config
@@ -989,10 +985,6 @@ function resetToFactoryDefaults() {
     websocket.send("factoryDefaultReset,1,");
 }
 
-function zeroElement(id) {
-    ge(id).value = 0;
-}
-
 function resetToCorrectionsPriorityDefaults() {
     for (let x = 0; x < correctionsSourcePriorities.length; x++) {
         correctionsSourcePriorities[x] = x;
@@ -1002,64 +994,138 @@ function resetToCorrectionsPriorityDefaults() {
 }
 
 function zeroMessages() {
-    //match all ids starting with ubxMessageRate (ubxMessageRate_ & ubxMessageRateBase_)
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate]');
+    //match all ids starting with ubxMessageRate_ (not ubxMessageRateBase_)
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
-        zeroElement(messageName);
+        ge(messageName).value = 0;
+    }
+    //match um980MessageRatesNMEA_
+    ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        ge(messageName).value = 0.00;
+    }
+    //match um980MessageRatesRTCMRover_
+    ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        ge(messageName).value = 0.00;
     }
 }
-function resetToNmeaDefaults() {
+
+function zeroBaseMessages() {
+    //match all ids starting with ubxMessageRateBase_ (not ubxMessageRate_)
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        ge(messageName).value = 0;
+    }
+    //match um980MessageRatesRTCMBase_
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        ge(messageName).value = 0.00;
+    }
+}
+
+function resetToSurveyingDefaults() {
     zeroMessages();
-    ge("ubxMessageRate_UBX_NMEA_GGA").value = 1;
-    ge("ubxMessageRate_UBX_NMEA_GSA").value = 1;
-    ge("ubxMessageRate_UBX_NMEA_GST").value = 1;
-    ge("ubxMessageRate_UBX_NMEA_GSV").value = 4;
-    ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+        ge("ubxMessageRate_UBX_NMEA_GGA").value = 1;
+        ge("ubxMessageRate_UBX_NMEA_GSA").value = 1;
+        ge("ubxMessageRate_UBX_NMEA_GST").value = 1;
+        ge("ubxMessageRate_UBX_NMEA_GSV").value = 4;
+        ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
+    }
+    else if (platformPrefix == "Torch") {
+        ge("um980MessageRatesNMEA_GPGGA").value = 0.5;
+        ge("um980MessageRatesNMEA_GPGSA").value = 0.5;
+        ge("um980MessageRatesNMEA_GPGST").value = 0.5;
+        ge("um980MessageRatesNMEA_GPGSV").value = 1.0;
+        ge("um980MessageRatesNMEA_GPRMC").value = 0.5;
+    }
 }
 function resetToLoggingDefaults() {
     zeroMessages();
-    ge("ubxMessageRate_UBX_NMEA_GGA").value = 1;
-    ge("ubxMessageRate_UBX_NMEA_GSA").value = 1;
-    ge("ubxMessageRate_UBX_NMEA_GST").value = 1;
-    ge("ubxMessageRate_UBX_NMEA_GSV").value = 4;
-    ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
-    ge("ubxMessageRate_UBX_RXM_RAWX").value = 1;
-    ge("ubxMessageRate_UBX_RXM_SFRBX").value = 1;
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+        ge("ubxMessageRate_UBX_NMEA_GGA").value = 1;
+        ge("ubxMessageRate_UBX_NMEA_GSA").value = 1;
+        ge("ubxMessageRate_UBX_NMEA_GST").value = 1;
+        ge("ubxMessageRate_UBX_NMEA_GSV").value = 4;
+        ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
+
+        ge("ubxMessageRate_UBX_RXM_RAWX").value = 1;
+        ge("ubxMessageRate_UBX_RXM_SFRBX").value = 1;
+    }
+    else if (platformPrefix == "Torch") {
+        ge("um980MessageRatesNMEA_GPGGA").value = 0.5;
+        ge("um980MessageRatesNMEA_GPGSA").value = 0.5;
+        ge("um980MessageRatesNMEA_GPGST").value = 0.5;
+        ge("um980MessageRatesNMEA_GPGSV").value = 1.0;
+        ge("um980MessageRatesNMEA_GPRMC").value = 0.5;
+
+        ge("um980MessageRatesRTCMRover_RTCM1019").value = 1.0;
+        ge("um980MessageRatesRTCMRover_RTCM1020").value = 1.0;
+        ge("um980MessageRatesRTCMRover_RTCM1042").value = 1.0;
+        ge("um980MessageRatesRTCMRover_RTCM1046").value = 1.0;
+    }
 }
 
 function resetToRTCMDefaults() {
-    ge("ubxMessageRateBase_UBX_RTCM_1005").value = 1;
-    ge("ubxMessageRateBase_UBX_RTCM_1074").value = 1;
-    ge("ubxMessageRateBase_UBX_RTCM_1077").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_1084").value = 1;
-    ge("ubxMessageRateBase_UBX_RTCM_1087").value = 0;
+    zeroBaseMessages();
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+        ge("ubxMessageRateBase_UBX_RTCM_1005").value = 1;
+        ge("ubxMessageRateBase_UBX_RTCM_1074").value = 1;
+        ge("ubxMessageRateBase_UBX_RTCM_1077").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_1084").value = 1;
+        ge("ubxMessageRateBase_UBX_RTCM_1087").value = 0;
 
-    ge("ubxMessageRateBase_UBX_RTCM_1094").value = 1;
-    ge("ubxMessageRateBase_UBX_RTCM_1097").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_1124").value = 1;
-    ge("ubxMessageRateBase_UBX_RTCM_1127").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_1230").value = 10;
+        ge("ubxMessageRateBase_UBX_RTCM_1094").value = 1;
+        ge("ubxMessageRateBase_UBX_RTCM_1097").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_1124").value = 1;
+        ge("ubxMessageRateBase_UBX_RTCM_1127").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_1230").value = 10;
 
-    ge("ubxMessageRateBase_UBX_RTCM_4072_0").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_4072_0").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
+    }
+    else if (platformPrefix == "Torch") {
+        ge("um980MessageRatesRTCMBase_RTCM1005").value = 1.0;
+        ge("um980MessageRatesRTCMBase_RTCM1033").value = 10.0;
+        ge("um980MessageRatesRTCMBase_RTCM1074").value = 1.0;
+        ge("um980MessageRatesRTCMBase_RTCM1084").value = 1.0;
+        ge("um980MessageRatesRTCMBase_RTCM1094").value = 1.0;
+        ge("um980MessageRatesRTCMBase_RTCM1124").value = 1.0;
+    }
 }
 
-function resetToLowBandwidthRTCM() {
-    ge("ubxMessageRateBase_UBX_RTCM_1005").value = 10;
-    ge("ubxMessageRateBase_UBX_RTCM_1074").value = 2;
-    ge("ubxMessageRateBase_UBX_RTCM_1077").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_1084").value = 2;
-    ge("ubxMessageRateBase_UBX_RTCM_1087").value = 0;
+function resetToRTCMLowBandwidth() {
+    zeroBaseMessages();
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+        ge("ubxMessageRateBase_UBX_RTCM_1005").value = 10;
+        ge("ubxMessageRateBase_UBX_RTCM_1074").value = 2;
+        ge("ubxMessageRateBase_UBX_RTCM_1077").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_1084").value = 2;
+        ge("ubxMessageRateBase_UBX_RTCM_1087").value = 0;
 
-    ge("ubxMessageRateBase_UBX_RTCM_1094").value = 2;
-    ge("ubxMessageRateBase_UBX_RTCM_1097").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_1124").value = 2;
-    ge("ubxMessageRateBase_UBX_RTCM_1127").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_1230").value = 10;
+        ge("ubxMessageRateBase_UBX_RTCM_1094").value = 2;
+        ge("ubxMessageRateBase_UBX_RTCM_1097").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_1124").value = 2;
+        ge("ubxMessageRateBase_UBX_RTCM_1127").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_1230").value = 10;
 
-    ge("ubxMessageRateBase_UBX_RTCM_4072_0").value = 0;
-    ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_4072_0").value = 0;
+        ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
+    }
+    else if (platformPrefix == "Torch") {
+        ge("um980MessageRatesRTCMBase_RTCM1005").value = 2.0;
+        ge("um980MessageRatesRTCMBase_RTCM1033").value = 10.0;
+        ge("um980MessageRatesRTCMBase_RTCM1074").value = 2.0;
+        ge("um980MessageRatesRTCMBase_RTCM1084").value = 2.0;
+        ge("um980MessageRatesRTCMBase_RTCM1094").value = 2.0;
+        ge("um980MessageRatesRTCMBase_RTCM1124").value = 2.0;
+    }
 }
 
 function useECEFCoordinates() {
@@ -1183,7 +1249,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if (platformPrefix == "Facet") {
+            if ((platformPrefix == "Facet mosaic") || (platformPrefix == "Facet v2")) {
                 ge("antennaReferencePoint").value = 61.4;
             }
             else if (platformPrefix == "Torch") {
@@ -1328,33 +1394,44 @@ function updateCorrectionsPriorities() {
 }
 
 function corrPrioButtonClick(corrButton) {
-    // Decrease priority - swap the selected correction source with the next lowest
-    // If already the lowest priority, make it highest
-    if (corrButton < (numCorrectionsSources - 1)) {
+    // Increase priority - swap the selected correction source with the next highest
+    if (corrButton > 0) {
         var makeMeHigher;
         var makeMeLower;
-        for (let x = 0; x < numCorrectionsSources; x++)
-        {
-            if (correctionsSourcePriorities[x] == corrButton + 1)
-            {
+        for (let x = 0; x < numCorrectionsSources; x++) {
+            if (correctionsSourcePriorities[x] == corrButton) {
                 makeMeHigher = x;
             }
-            if (correctionsSourcePriorities[x] == corrButton)
-            {
+            if (correctionsSourcePriorities[x] == (corrButton - 1)) {
                 makeMeLower = x;
             }
         }
-        correctionsSourcePriorities[makeMeLower] += 1; // Decrease
-        correctionsSourcePriorities[makeMeHigher] -= 1; // Increase
+        for (let x = 0; x < numCorrectionsSources; x++) {
+            if (x == makeMeHigher) {
+                correctionsSourcePriorities[x] -= 1; // Increase
+            }
+            if (x == makeMeLower) {
+                // Note: "correctionsSourcePriorities[x] += 1" only works correctly if
+                // correctionsSourcePriorities are int, not string. Use parseInt - see above
+                correctionsSourcePriorities[x] += 1; // Decrease
+            }
+        }
     }
+    // If already the highest priority, make it lowest
     else {
-        for (let x = 0; x < numCorrectionsSources; x++)
-        {
-            if (correctionsSourcePriorities[x] == (numCorrectionsSources - 1)) {
-                correctionsSourcePriorities[x] = 0; // Increase
+        var iAmHighest;
+        for (let x = 0; x < numCorrectionsSources; x++) {
+            if (correctionsSourcePriorities[x] == 0) { // 0 is Highest
+                iAmHighest = x;
+                break;
+            }
+        }
+        for (let x = 0; x < numCorrectionsSources; x++) {
+            if (x != iAmHighest) {
+                correctionsSourcePriorities[x] -= 1; // Increase
             }
             else {
-                correctionsSourcePriorities[x] += 1; // Decrease
+                correctionsSourcePriorities[x] = numCorrectionsSources - 1; // Lowest
             }
         }
     }
@@ -1777,7 +1854,7 @@ function checkNewFirmware() {
 
     settingCSV += "checkNewFirmware,1,";
 
-    console.log("firmware sending: " + settingCSV);
+    console.log("Firmware sending: " + settingCSV);
     websocket.send(settingCSV);
 
     checkNewFirmwareTimeout = setTimeout(checkNewFirmware, 2000);
@@ -1834,7 +1911,7 @@ function getNewFirmware() {
     }
     settingCSV += "getNewFirmware,1,";
 
-    console.log("firmware sending: " + settingCSV);
+    console.log("Firmware sending: " + settingCSV);
     websocket.send(settingCSV);
 
     getNewFirmwareTimeout = setTimeout(getNewFirmware, 2000);

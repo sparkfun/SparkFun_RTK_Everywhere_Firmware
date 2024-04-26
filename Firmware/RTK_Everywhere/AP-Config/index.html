@@ -418,13 +418,11 @@
 
                             <div style="margin-bottom:5px;">
                                 <button type="button" id="nmeaDefaults" class="btn btn-primary"
-                                    onClick="resetToNmeaDefaults()">Reset to Surveying
-                                    Defaults (NMEAx5)</button>
+                                    onClick="resetToSurveyingDefaults()">Reset to Surveying Defaults</button>
                             </div>
                             <div style="margin-bottom:5px;">
                                 <button type="button" id="loggingDefaults" class="btn btn-primary"
-                                    onClick="resetToLoggingDefaults()">Reset to Logging
-                                    Defaults (NMEAx5 + RXMx2)</button>
+                                    onClick="resetToLoggingDefaults()">Reset to Logging Defaults</button>
                             </div>
 
 
@@ -1087,12 +1085,10 @@
                         <div class="card card-body" style="margin-top:5px;">
 
                             <div style="margin-bottom:5px;">
-                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to
-                                    Defaults</button>
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to Defaults</button>
                             </div>
                             <div style="margin-bottom:5px;">
-                                <button type="button" class="btn btn-primary" onClick="resetToLowBandwidthRTCM()">Reset
-                                    to Low Bandwidth Link</button>
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMLowBandwidth()">Reset to Low Bandwidth Link</button>
                             </div>
 
                             <div id="messageListBase">
@@ -1571,32 +1567,32 @@
                     <div class="form-group mt-2">
                         Corrections Sources Priority:
                         <span class="tt" data-bs-placement="right"
-                            title="Assign the priority of each corrections source. Click on a source to decrease its priority. Click the lowest to make it the highest. Changes are saved when 'Save Configuration' is pressed.">
+                            title="Assign the priority of each corrections source. Click on a source to increase its priority. Click the highest to make it the lowest. Changes are saved when 'Save Configuration' is pressed.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
 
                     <div id="correctionsPriorityList">
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton0">0</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton0">0</button>
                         </div>
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton1">1</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton1">1</button>
                         </div>
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton2">2</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton2">2</button>
                         </div>
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton3">3</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton3">3</button>
                         </div>
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton4">4</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton4">4</button>
                         </div>
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton5">5</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton5">5</button>
                         </div>
                         <div style="margin-top:5px;" class="form-group row">
-                            <button type="button" class="btn btn-primary btn-lg btn-block" id="corrPrioButton6">6</button>
+                            <button type="button" class="btn btn-primary btn-block" id="corrPrioButton6">6</button>
                         </div>
                     </div>
 
@@ -1605,7 +1601,7 @@
                     </div>
 
                     <div style="margin-top:30px;" class="form-group row">
-                        <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary btn-lg btn-block"
+                        <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary btn-block"
                             onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
                     </div>
 
@@ -1788,8 +1784,7 @@
                     </div>
                     <div class="form-check">
                         <button type="button" id="factoryDefaults" class="btn btn-primary"
-                            onClick="resetToFactoryDefaults()" disabled>Reset to Factory
-                            Defaults</button>
+                            onClick="resetToFactoryDefaults()" disabled>Reset to Factory Defaults</button>
                         <p id="factoryDefaultsMsg" class="inlineSuccess"></p>
                     </div>
 
