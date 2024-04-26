@@ -21,9 +21,9 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+// #define COMPILE_BT       // Comment out to remove Bluetooth functionality
+// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
@@ -81,7 +81,7 @@
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
 #include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
-#include <WiFi.h>             //Built-in.
+#include <WiFi.h>         //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
@@ -276,9 +276,11 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 //            1         2         3         4         5         6         7         8         9         0         1 2
 //   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
 #define OTA_FIRMWARE_JSON_URL                                                                                          \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Firmware.json"
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
+    "RTK-Everywhere-Firmware.json"
 #define OTA_RC_FIRMWARE_JSON_URL                                                                                       \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-RC-Firmware.json"
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
+    "RTK-Everywhere-RC-Firmware.json"
 char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 
@@ -303,7 +305,7 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
 
-char neoFirmwareVersion[20];   // Output to system status menu.
+char neoFirmwareVersion[20]; // Output to system status menu.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called.
@@ -386,9 +388,9 @@ int64_t ARPECEFY;
 int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
-const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
-bool lBandForceGetKeys; // Used to allow key update from display
-unsigned long rtcmLastPacketReceived; //Time stamp of RTCM coming in (from BT, NTRIP, etc)
+const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/lon
+bool lBandForceGetKeys;               // Used to allow key update from display
+unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -671,14 +673,15 @@ uint64_t lastLogSize;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
 
-uint16_t rtcmPacketsSent; // Used to count RTCM packets sent via processRTCM()
-uint32_t rtcmLastPacketSent;  //Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
+uint16_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
+uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
 uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
-uint8_t setupSelectedButton = 0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
+uint8_t setupSelectedButton =
+    0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
 std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'butttons'
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
@@ -739,10 +742,10 @@ unsigned long um980BaseStartTimer; // Tracks how long the base averaging mode ha
 
 RtkMode_t rtkMode; // Mode of operation
 
-unsigned long beepLengthMs; // Number of ms to make noise
+unsigned long beepLengthMs;      // Number of ms to make noise
 unsigned long beepQuietLengthMs; // Number of ms to make reset between multiple beeps
-unsigned long beepNextEventMs; // Time at which to move the beeper to the next state
-unsigned long beepCount; // Number of beeps to do
+unsigned long beepNextEventMs;   // Time at which to move the beeper to the next state
+unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl;
 unsigned long lastGnssToPpl;
@@ -812,7 +815,7 @@ volatile bool deadManWalking;
         settings.enablePrintRtcSync = true;                                                                            \
         settings.enablePrintBufferOverrun = true;                                                                      \
         settings.enablePrintSDBuffers = true;                                                                          \
-        settings.periodicDisplay = (PeriodicDisplay_t)-1;                                                              \
+        settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
         settings.enablePrintEthernetDiag = true;                                                                       \
         settings.debugWifiState = true;                                                                                \
         settings.debugNetworkLayer = true;                                                                             \
@@ -821,9 +824,9 @@ volatile bool deadManWalking;
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
         settings.debugNtripServerState = true;                                                                         \
-        settings.debugPvtClient = true;                                                                                \
-        settings.debugPvtServer = true;                                                                                \
-        settings.debugPvtUdpServer = true;                                                                             \
+        settings.debugTcpClient = true;                                                                                \
+        settings.debugTcpServer = true;                                                                                \
+        settings.debugUdpServer = true;                                                                             \
         settings.printBootTimes = true;                                                                                \
     }
 
@@ -1394,9 +1397,9 @@ void rtcUpdate()
                 {
                     systemPrintln("No GNSS date/time available for system RTC.");
                 } // End timeValid
-            }     // End lastRTCAttempt
-        }         // End online.gnss
-    }             // End online.rtc
+            } // End lastRTCAttempt
+        } // End online.gnss
+    } // End online.rtc
 
     // Print TP time sync information here. Trying to do it in the ISR would be a bad idea...
     if (settings.enablePrintRtcSync == true)
@@ -1444,7 +1447,7 @@ void updateRadio()
 
                 if (!inMainMenu)
                 {
-                    if(settings.debugEspNow == true)
+                    if (settings.debugEspNow == true)
                         systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
                 }
                 espnowBytesSent = 0;
