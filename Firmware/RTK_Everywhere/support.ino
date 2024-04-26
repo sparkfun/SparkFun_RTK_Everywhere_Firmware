@@ -674,8 +674,8 @@ void verifyTables()
     ntripClientValidateTables();
     ntripServerValidateTables();
     otaVerifyTables();
-    pvtClientValidateTables();
-    pvtServerValidateTables();
+    tcpClientValidateTables();
+    tcpServerValidateTables();
     tasksValidateTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))

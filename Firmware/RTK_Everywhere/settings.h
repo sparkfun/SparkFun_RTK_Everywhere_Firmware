@@ -292,9 +292,9 @@ enum NetworkUsers
     NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
-    NETWORK_USER_PVT_CLIENT,            // PVT client
-    NETWORK_USER_PVT_SERVER,            // PVT server
-    NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
+    NETWORK_USER_TCP_CLIENT,            // TCP client
+    NETWORK_USER_TCP_SERVER,            // PTCP server
+    NETWORK_USER_UDP_SERVER,        // UDP server
 
     // Add new users above this line
     NETWORK_USER_NTRIP_SERVER,          // NTRIP server
@@ -559,16 +559,16 @@ enum PeriodDisplayValues
     PD_NTRIP_SERVER_DATA,       // 10
     PD_NTRIP_SERVER_STATE,      // 11
 
-    PD_PVT_CLIENT_DATA,         // 12
-    PD_PVT_CLIENT_STATE,        // 13
+    PD_TCP_CLIENT_DATA,         // 12
+    PD_TCP_CLIENT_STATE,        // 13
 
-    PD_PVT_SERVER_DATA,         // 14
-    PD_PVT_SERVER_STATE,        // 15
-    PD_PVT_SERVER_CLIENT_DATA,  // 16
+    PD_TCP_SERVER_DATA,         // 14
+    PD_TCP_SERVER_STATE,        // 15
+    PD_TCP_SERVER_CLIENT_DATA,  // 16
 
-    PD_PVT_UDP_SERVER_DATA,         // 17
-    PD_PVT_UDP_SERVER_STATE,        // 18
-    PD_PVT_UDP_SERVER_BROADCAST_DATA,  // 19
+    PD_UDP_SERVER_DATA,         // 17
+    PD_UDP_SERVER_STATE,        // 18
+    PD_UDP_SERVER_BROADCAST_DATA,  // 19
 
     PD_RING_BUFFER_MILLIS,      // 20
 
@@ -1261,20 +1261,20 @@ struct Settings
     };
 
     // TCP Client
-    bool debugPvtClient = false;
-    bool enablePvtClient = false;
-    uint16_t pvtClientPort = 2948; // PVT client port. 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
-    char pvtClientHost[50] = "";
+    bool debugTcpClient = false;
+    bool enableTcpClient = false;
+    uint16_t tcpClientPort = 2948; // TCP client port. 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
+    char tcpClientHost[50] = "";
 
     // TCP Server
-    bool debugPvtServer = false;
-    bool enablePvtServer = false;
-    uint16_t pvtServerPort = 2948; // PVT server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
+    bool debugTcpServer = false;
+    bool enableTcpServer = false;
+    uint16_t tcpServerPort = 2948; // TCP server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
 
     // UDP Server
-    bool debugPvtUdpServer = false;
-    bool enablePvtUdpServer = false;
-    uint16_t pvtUdpServerPort =
+    bool debugUdpServer = false;
+    bool enableUdpServer = false;
+    uint16_t udpServerPort =
         10110; //https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=nmea
 
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
@@ -1583,18 +1583,18 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_", _ntripServerMountPoint, NTRIP_SERVER_MAX, false, true, true },
     { & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_", _ntripServerMountPointPW, NTRIP_SERVER_MAX, false, true, true },
 
-    { & settings.debugPvtClient, "debugPvtClient", _bool, 0, false, true, true },
-    { & settings.enablePvtClient, "enablePvtClient", _bool, 0, false, true, true },
-    { & settings.pvtClientPort, "pvtClientPort", _uint16_t, 0, false, true, true },
-    { & settings.pvtClientHost, "pvtClientHost", _charArray, sizeof(settings.pvtClientHost), false, true, true },
+    { & settings.debugTcpClient, "debugTcpClient", _bool, 0, false, true, true },
+    { & settings.enableTcpClient, "enableTcpClient", _bool, 0, false, true, true },
+    { & settings.tcpClientPort, "tcpClientPort", _uint16_t, 0, false, true, true },
+    { & settings.tcpClientHost, "tcpClientHost", _charArray, sizeof(settings.tcpClientHost), false, true, true },
 
-    { & settings.debugPvtServer, "debugPvtServer", _bool, 0, false, true, true },
-    { & settings.enablePvtServer, "enablePvtServer", _bool, 0, false, true, true },
-    { & settings.pvtServerPort, "pvtServerPort", _uint16_t, 0, false, true, true },
+    { & settings.debugTcpServer, "debugTcpServer", _bool, 0, false, true, true },
+    { & settings.enableTcpServer, "enableTcpServer", _bool, 0, false, true, true },
+    { & settings.tcpServerPort, "tcpServerPort", _uint16_t, 0, false, true, true },
 
-    { & settings.debugPvtUdpServer, "debugPvtUdpServer", _bool, 0, false, true, true },
-    { & settings.enablePvtUdpServer, "enablePvtUdpServer", _bool, 0, false, true, true },
-    { & settings.pvtUdpServerPort, "pvtUdpServerPort", _uint16_t, 0, false, true, true },
+    { & settings.debugUdpServer, "debugUdpServer", _bool, 0, false, true, true },
+    { & settings.enableUdpServer, "enableUdpServer", _bool, 0, false, true, true },
+    { & settings.udpServerPort, "udpServerPort", _uint16_t, 0, false, true, true },
 
     { & settings.um980MessageRatesNMEA, "um980MessageRatesNMEA_", _um980MessageRatesNMEA, MAX_UM980_NMEA_MSG, false, false, true },
     { & settings.um980MessageRatesRTCMRover, "um980MessageRatesRTCMRover_", _um980MessageRatesRTCMRover, MAX_UM980_RTCM_MSG, false, false, true },
@@ -1716,9 +1716,9 @@ struct struct_online
     bool lband = false;
     bool lbandCorrections = false;
     bool i2c = false;
-    bool pvtClient = false;
-    bool pvtServer = false;
-    bool pvtUdpServer = false;
+    bool tcpClient = false;
+    bool tcpServer = false;
+    bool udpServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
     bool otaFirmwareUpdate = false;

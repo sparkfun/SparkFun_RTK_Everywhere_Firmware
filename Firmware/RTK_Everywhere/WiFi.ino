@@ -562,7 +562,7 @@ bool wifiConnect(unsigned long timeout)
 
     if (wifiResponse == WL_CONNECTED)
     {
-        if (settings.enablePvtClient == true || settings.enablePvtServer == true || settings.enablePvtUdpServer == true)
+        if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
         {
             if (settings.mdnsEnable == true)
             {
@@ -591,11 +591,11 @@ bool wifiIsNeeded()
 {
     if (settings.enablePointPerfectCorrections)
         return true;
-    if (settings.enablePvtClient == true)
+    if (settings.enableTcpClient == true)
         return true;
-    if (settings.enablePvtServer == true)
+    if (settings.enableTcpServer == true)
         return true;
-    if (settings.enablePvtUdpServer == true)
+    if (settings.enableUdpServer == true)
         return true;
     if (settings.enableAutoFirmwareUpdate)
         return true;

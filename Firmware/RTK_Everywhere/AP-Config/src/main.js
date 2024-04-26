@@ -688,13 +688,13 @@ function validateFields() {
     checkElementString("wifiNetwork_2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    if ((ge("enablePvtClient").checked  == true) || (ge("enablePvtServer").checked == true)) {
-        checkElementString("pvtServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+    if ((ge("enableTcpClient").checked  == true) || (ge("enableTcpServer").checked == true)) {
+        checkElementString("tcpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
-    if (ge("enablePvtUdpServer").checked == true) {
-        checkElementString("pvtUdpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+    if (ge("enableUdpServer").checked == true) {
+        checkElementString("udpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
-    checkCheckboxMutex("enablePvtClient", "enablePvtServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
+    checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -1790,22 +1790,22 @@ function abortHandler(event) {
 }
 
 function tcpBoxes() {
-    if ((ge("enablePvtServer").checked == true) || (ge("enablePvtClient").checked == true)) {
+    if ((ge("enableTcpServer").checked == true) || (ge("enableTcpClient").checked == true)) {
         show("tcpSettingsConfig");
     }
     else {
         hide("tcpSettingsConfig");
-        ge("pvtServerPort").value = 2947;
+        ge("tcpServerPort").value = 2947;
     }
 }
 
 function udpBoxes() {
-    if (ge("enablePvtUdpServer").checked == true) {
+    if (ge("enableUdpServer").checked == true) {
         show("udpSettingsConfig");
     }
     else {
         hide("udpSettingsConfig");
-        ge("pvtUdpServerPort").value = 10110;
+        ge("udpServerPort").value = 10110;
     }
 }
 

@@ -250,8 +250,8 @@ bool ethernetIsNeeded()
     if (settings.enableNtripClient == true && inRoverMode() == true)
         return true;
 
-    // Does PVT client or server need Ethernet?
-    if (settings.enablePvtClient || settings.enablePvtServer || settings.enablePvtUdpServer ||
+    // Does TCP client or server need Ethernet?
+    if (settings.enableTcpClient || settings.enableTcpServer || settings.enableUdpServer ||
         settings.enableAutoFirmwareUpdate)
         return true;
 

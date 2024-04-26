@@ -28,7 +28,7 @@ unsigned long zedPvtArrivalMillis = 0;
 bool pvtUpdated = false;
 
 // Below are the callbacks specific to the ZED-F9x
-// Once called, they update global variables that are then accesses via zedGetSatellitesInView() and the likes
+// Once called, they update global variables that are then accessed via zedGetSatellitesInView() and the likes
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  These are the callbacks that get regularly called, globals are updated
 void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)

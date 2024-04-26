@@ -614,17 +614,17 @@ void menuDebugNetwork()
         systemPrint("24) Debug caster --> NTRIP server GNSS messages: ");
         systemPrintf("%s\r\n", settings.debugNtripServerRtcm ? "Enabled" : "Disabled");
 
-        // PVT Client
-        systemPrint("25) Debug PVT client: ");
-        systemPrintf("%s\r\n", settings.debugPvtClient ? "Enabled" : "Disabled");
+        // TCP Client
+        systemPrint("25) Debug TCP client: ");
+        systemPrintf("%s\r\n", settings.debugTcpClient ? "Enabled" : "Disabled");
 
-        // PVT Server
-        systemPrint("26) Debug PVT server: ");
-        systemPrintf("%s\r\n", settings.debugPvtServer ? "Enabled" : "Disabled");
+        // TCP Server
+        systemPrint("26) Debug TCP server: ");
+        systemPrintf("%s\r\n", settings.debugTcpServer ? "Enabled" : "Disabled");
 
-        // PVT Server
-        systemPrint("27) Debug PVT UDP server: ");
-        systemPrintf("%s\r\n", settings.debugPvtUdpServer ? "Enabled" : "Disabled");
+        // UDP Server
+        systemPrint("27) Debug UDP server: ");
+        systemPrintf("%s\r\n", settings.debugUdpServer ? "Enabled" : "Disabled");
 
         // MQTT Client
         systemPrint("28) Debug MQTT client data: ");
@@ -661,11 +661,11 @@ void menuDebugNetwork()
         else if (incoming == 24)
             settings.debugNtripServerRtcm ^= 1;
         else if (incoming == 25)
-            settings.debugPvtClient ^= 1;
+            settings.debugTcpClient ^= 1;
         else if (incoming == 26)
-            settings.debugPvtServer ^= 1;
+            settings.debugTcpServer ^= 1;
         else if (incoming == 27)
-            settings.debugPvtUdpServer ^= 1;
+            settings.debugUdpServer ^= 1;
         else if (incoming == 28)
             settings.debugMqttClientData ^= 1;
         else if (incoming == 29)
@@ -1148,20 +1148,20 @@ void menuPeriodicPrint()
         systemPrint("46) NTRIP server state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NTRIP_SERVER_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("47) PVT client data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_CLIENT_DATA) ? "Enabled" : "Disabled");
+        systemPrint("47) TCP client data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_CLIENT_DATA) ? "Enabled" : "Disabled");
 
-        systemPrint("48) PVT client state: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_CLIENT_STATE) ? "Enabled" : "Disabled");
+        systemPrint("48) TCP client state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_CLIENT_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("49) PVT server client data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_CLIENT_DATA) ? "Enabled" : "Disabled");
+        systemPrint("49) TCP server client data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_SERVER_CLIENT_DATA) ? "Enabled" : "Disabled");
 
-        systemPrint("50) PVT server data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_DATA) ? "Enabled" : "Disabled");
+        systemPrint("50) TCP server data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_SERVER_DATA) ? "Enabled" : "Disabled");
 
-        systemPrint("51) PVT server state: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_STATE) ? "Enabled" : "Disabled");
+        systemPrint("51) TCP server state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_SERVER_STATE) ? "Enabled" : "Disabled");
 
         systemPrint("52) MQTT client data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_MQTT_CLIENT_DATA) ? "Enabled" : "Disabled");
@@ -1246,15 +1246,15 @@ void menuPeriodicPrint()
         else if (incoming == 46)
             PERIODIC_TOGGLE(PD_NTRIP_SERVER_STATE);
         else if (incoming == 47)
-            PERIODIC_TOGGLE(PD_PVT_CLIENT_DATA);
+            PERIODIC_TOGGLE(PD_TCP_CLIENT_DATA);
         else if (incoming == 48)
-            PERIODIC_TOGGLE(PD_PVT_CLIENT_STATE);
+            PERIODIC_TOGGLE(PD_TCP_CLIENT_STATE);
         else if (incoming == 49)
-            PERIODIC_TOGGLE(PD_PVT_SERVER_CLIENT_DATA);
+            PERIODIC_TOGGLE(PD_TCP_SERVER_CLIENT_DATA);
         else if (incoming == 50)
-            PERIODIC_TOGGLE(PD_PVT_SERVER_DATA);
+            PERIODIC_TOGGLE(PD_TCP_SERVER_DATA);
         else if (incoming == 51)
-            PERIODIC_TOGGLE(PD_PVT_SERVER_STATE);
+            PERIODIC_TOGGLE(PD_TCP_SERVER_STATE);
         else if (incoming == 52)
             PERIODIC_TOGGLE(PD_MQTT_CLIENT_DATA);
         else if (incoming == 53)
