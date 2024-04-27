@@ -536,6 +536,18 @@ function checkMessageValue(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsg");
 }
 
+function checkMessageValueBase(id) {
+    checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsgBase");
+}
+
+function checkMessageValueUM980(id) {
+    checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsg");
+}
+
+function checkMessageValueUM980Base(id) {
+    checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsgBase");
+}
+
 function collapseSection(section, caret) {
     ge(section).classList.remove('show');
     ge(caret).classList.remove('icon-caret-down');
@@ -549,13 +561,17 @@ function validateFields() {
     collapseSection("collapseGNSSConfig", "gnssCaret");
     collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
     collapseSection("collapseBaseConfig", "baseCaret");
+    collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
     collapseSection("collapsePPConfig", "pointPerfectCaret");
     collapseSection("collapsePortsConfig", "portsCaret");
+    collapseSection("collapseWiFiConfig", "wifiCaret");
+    collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
     collapseSection("collapseRadioConfig", "radioCaret");
+    collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
     collapseSection("collapseSystemConfig", "systemCaret");
     collapseSection("collapseEthernetConfig", "ethernetCaret");
     collapseSection("collapseNTPConfig", "ntpCaret");
-    collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+    collapseSection("collapseFileManager", "fileManagerCaret");
 
     errorCount = 0;
 
@@ -587,11 +603,34 @@ function validateFields() {
     }
 
     //Check all UBX message boxes
-    //match all ids starting with ubxMessageRate (ubxMessageRate_ & ubxMessageRateBase_)
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate]');
+    //match all ids starting with ubxMessageRate_
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
         checkMessageValue(messageName);
+    }
+    //match all ids starting with ubxMessageRateBase_
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueBase(messageName);
+    }
+
+    //Check all UM980 message boxes
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueUM980(messageName);
+    }
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueUM980(messageName);
+    }
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueUM980Base(messageName);
     }
 
     //Base Config
@@ -777,12 +816,16 @@ function changeProfile() {
         collapseSection("collapseGNSSConfig", "gnssCaret");
         collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
         collapseSection("collapseBaseConfig", "baseCaret");
+        collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
         collapseSection("collapsePPConfig", "pointPerfectCaret");
         collapseSection("collapsePortsConfig", "portsCaret");
+        collapseSection("collapseWiFiConfig", "wifiCaret");
+        collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
+        collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
         collapseSection("collapseSystemConfig", "systemCaret");
         collapseSection("collapseEthernetConfig", "ethernetCaret");
         collapseSection("collapseNTPConfig", "ntpCaret");
-        collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+        collapseSection("collapseFileManager", "fileManagerCaret");
     }
 }
 
@@ -909,6 +952,9 @@ function checkElementValue(id, min, max, errorText, collapseID) {
         ge(collapseID).classList.add('show');
         if (collapseID == "collapseGNSSConfigMsg") {
             ge("collapseGNSSConfig").classList.add('show');
+        }
+        if (collapseID == "collapseGNSSConfigMsgBase") {
+            ge("collapseBaseConfig").classList.add('show');
         }
         errorCount++;
     }
