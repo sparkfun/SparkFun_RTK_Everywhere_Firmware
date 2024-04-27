@@ -438,7 +438,8 @@ function parseIncoming(msg) {
 
         updateECEFList();
         updateGeodeticList();
-        tcpBoxes();
+        tcpClientBoxes();
+        tcpServerBoxes();
         udpBoxes();
         dhcpEthernet();
         updateLatLong();
@@ -688,13 +689,18 @@ function validateFields() {
     checkElementString("wifiNetwork_2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    if ((ge("enableTcpClient").checked  == true) || (ge("enableTcpServer").checked == true)) {
+    if (ge("enableTcpClient").checked  == true) {
+        checkElementString("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+    }
+    if (ge("enableTcpServer").checked == true) {
         checkElementString("tcpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
     if (ge("enableUdpServer").checked == true) {
         checkElementString("udpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
-    checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
+    //On Ethernet, TCP Client and Server can not be enabled at the same time
+    //But, on WiFi, they can be...
+    //checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -715,22 +721,11 @@ function validateFields() {
 
     //Ethernet
     if (platformPrefix == "EVK") {
-        //if (ge("ethernetDHCP").checked == false) {
         checkElementIPAddress("ethernetIP", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetDNS", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetGateway", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetSubnet", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
-        checkElementValue("httpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
         checkElementValue("ethernetNtpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
-        //}
-        //else {
-        //    clearElement("ethernetIP", "192.168.0.123");
-        //    clearElement("ethernetDNS", "192.168.4.100");
-        //    clearElement("ethernetGateway", "192.168.0.1");
-        //    clearElement("ethernetSubnet", "255.255.255.0");
-        //    clearElement("httpPort", 80);
-        //    clearElement("ethernetNtpPort", 123);
-        //}
     }
 
     //NTP
@@ -1789,13 +1784,23 @@ function abortHandler(event) {
     ge("uploadStatus").innerHTML = "Upload Aborted";
 }
 
-function tcpBoxes() {
-    if ((ge("enableTcpServer").checked == true) || (ge("enableTcpClient").checked == true)) {
-        show("tcpSettingsConfig");
+function tcpClientBoxes() {
+    if (ge("enableTcpClient").checked == true) {
+        show("tcpClientConfig");
     }
     else {
-        hide("tcpSettingsConfig");
-        ge("tcpServerPort").value = 2947;
+        hide("tcpClientConfig");
+        ge("tcpClientPort").value = 2948;
+    }
+}
+
+function tcpServerBoxes() {
+    if (ge("enableTcpServer").checked == true) {
+        show("tcpServerConfig");
+    }
+    else {
+        hide("tcpServerConfig");
+        ge("tcpServerPort").value = 2948;
     }
 }
 

@@ -1255,8 +1255,7 @@ struct Settings
     // UDP Server
     bool debugUdpServer = false;
     bool enableUdpServer = false;
-    uint16_t udpServerPort =
-        10110; //https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=nmea
+    uint16_t udpServerPort = 10110; // NMEA-0183 Navigational Data: https://tcp-udp-ports.com/port-10110.htm
 
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
