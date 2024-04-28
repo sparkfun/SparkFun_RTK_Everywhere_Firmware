@@ -320,6 +320,31 @@
                         </div>
                     </div>
 
+                    <div class="form-check mt-3" id="tiltCompensationSettings">
+                        <label class="form-check-label" for="enableTiltCompensation">Enable Tilt Compensation</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation" onClick="tiltCompensationBoxes()">
+                        <span class="tt" data-bs-placement="right"
+                            title="Use tilt compensation. Default: Enabled.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="poleLengthConfig">
+                        <div class="form-group row">
+                            <label for="tiltPoleLength"
+                                class="col-sm-4 col-6 col-form-label">Pole Length (m):
+                                <span class="tt" data-bs-placement="right"
+                                    title="Pole length for tilt compensation. Default: 1.8m">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="tiltPoleLength">
+                                <p id="tiltPoleLengthError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableNtripClient">

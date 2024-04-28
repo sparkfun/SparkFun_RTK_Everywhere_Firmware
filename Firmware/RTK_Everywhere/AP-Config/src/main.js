@@ -103,24 +103,28 @@ function parseIncoming(msg) {
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
+                hide("tiltCompensationSettings");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                hide("tiltCompensationSettings");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                hide("tiltCompensationSettings");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                show("tiltCompensationSettings");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -443,7 +447,8 @@ function parseIncoming(msg) {
         udpBoxes();
         dhcpEthernet();
         updateLatLong();
-        updateCorrectionsPriorities();    
+        updateCorrectionsPriorities();
+        tiltCompensationBoxes();   
     }
 }
 
@@ -1857,6 +1862,15 @@ function udpBoxes() {
     else {
         hide("udpSettingsConfig");
         ge("udpServerPort").value = 10110;
+    }
+}
+
+function tiltCompensationBoxes() {
+    if (ge("enableTiltCompensation").checked == true) {
+        show("poleLengthConfig");
+    }
+    else {
+        hide("poleLengthConfig");
     }
 }
 

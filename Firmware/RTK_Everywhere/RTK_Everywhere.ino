@@ -747,8 +747,8 @@ unsigned long beepQuietLengthMs; // Number of ms to make reset between multiple 
 unsigned long beepNextEventMs;   // Time at which to move the beeper to the next state
 unsigned long beepCount;         // Number of beeps to do
 
-unsigned long lastMqttToPpl;
-unsigned long lastGnssToPpl;
+unsigned long lastMqttToPpl = 0;
+unsigned long lastGnssToPpl = 0;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
