@@ -328,7 +328,7 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
         if (result != ePPL_Success)
         {
             if (settings.debugCorrections == true)
-                systemPrintf("ERROR processRXMPMP PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+                systemPrintf("ERROR processRXMPMP PPL_SendSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
         lastMqttToPpl = millis();
