@@ -104,6 +104,7 @@ function parseIncoming(msg) {
                 show("ethernetConfig");
                 show("ntpConfig");
                 hide("tiltCompensationSettings");
+                hide("portsConfig");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -111,6 +112,7 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 hide("tiltCompensationSettings");
+                show("portsConfig");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -118,6 +120,7 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 hide("tiltCompensationSettings");
+                show("portsConfig");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -125,6 +128,7 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("tiltCompensationSettings");
+                hide("portsConfig");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
