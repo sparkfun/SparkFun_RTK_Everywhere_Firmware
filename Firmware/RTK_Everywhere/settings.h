@@ -1605,7 +1605,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.psramMallocLevel, "psramMallocLevel", _uint16_t, 0, false, true, true },
     { & settings.um980SurveyInStartingAccuracy, "um980SurveyInStartingAccuracy", _float, point1float, false, true, true },
     { & settings.enableBeeper, "enableBeeper", _bool, 0, false, true, true },
-    { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t, 0, false, true, true },
+    { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t, 0, false, false, true },
     { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool, 0, false, true, true },
 
     { & settings.correctionsSourcesPriority, "correctionsPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM, false, true, true },

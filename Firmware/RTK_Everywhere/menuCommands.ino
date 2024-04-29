@@ -531,7 +531,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
 
         else if (strcmp(settingName, "measurementRateHz") == 0)
         {
-            settings.measurementRate = (int)(1000.0 / settingValue);
+            gnssSetRate((int)(1.0 / settingValue));
 
             // This is one of the first settings to be received. If seen, remove the station files.
             removeFile(stationCoordinateECEFFileName);
@@ -1209,7 +1209,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "fixedBaseCoordinateTypeGeo", true);
     }
 
-    stringRecord(newSettings, "measurementRateHz", 1000.0 / settings.measurementRate, 2); // 2 = decimals to print
+    stringRecord(newSettings, "measurementRateHz", 1.0 / gnssGetRateS(), 2); // 2 = decimals to print
 
     // System state at power on. Convert various system states to either Rover or Base or NTP.
     int lastState; // 0 = Rover, 1 = Base, 2 = NTP
