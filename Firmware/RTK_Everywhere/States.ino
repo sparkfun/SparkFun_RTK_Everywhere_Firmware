@@ -421,6 +421,7 @@ void stateUpdate()
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
 
+            WIFI_STOP(); //Notify the network layer that it should stop so we can take over control of WiFi
             bluetoothStop();
             espnowStop();
 
