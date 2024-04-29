@@ -171,7 +171,7 @@ void menuWiFi()
 // Display the WiFi IP address
 void wifiDisplayIpAddress()
 {
-    systemPrint("WiFi IP address: ");
+    systemPrintf("WiFi %s IP address: ", WiFi.SSID());
     systemPrint(WiFi.localIP());
     systemPrintf(" RSSI: %d\r\n", WiFi.RSSI());
 
