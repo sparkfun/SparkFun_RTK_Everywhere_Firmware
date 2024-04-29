@@ -901,8 +901,7 @@ void tickerBegin()
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
         ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED at startup
-        bluetoothLedTask.detach();                                                  // Turn off any previous task
-        bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        //Attach happens in bluetoothStart()
     }
 
     if (pin_gnssStatusLED != PIN_UNDEFINED)
