@@ -507,13 +507,12 @@ function sendData() {
 function showError(id, errorText) {
     ge(id + 'Error').innerHTML = '<br>Error: ' + errorText;
 }
-
 function clearError(id) {
     ge(id + 'Error').innerHTML = '';
 }
 
 function showSuccess(id, msg) {
-    ge(id + 'Success').innerHTML = '<br>Success: ' + msg;
+    ge(id + 'Success').innerHTML = '<br>' + msg;
 }
 function clearSuccess(id) {
     ge(id + 'Success').innerHTML = '';
@@ -1222,7 +1221,7 @@ function confirmDataReceipt() {
     //Determine which function sent the original data
     if (sendDataTimeout != null) {
         clearTimeout(sendDataTimeout);
-        showSuccess('saveBtn', "All Saved!");
+        showSuccess('saveBtn', "Success: All Saved");
     }
     else {
         console.log("Unknown owner of confirmDataReceipt");
