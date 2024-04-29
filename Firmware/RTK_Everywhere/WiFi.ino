@@ -171,7 +171,7 @@ void menuWiFi()
 // Display the WiFi IP address
 void wifiDisplayIpAddress()
 {
-    systemPrintf("WiFi %s IP address: ", WiFi.SSID());
+    systemPrintf("WiFi '%s' IP address: ", WiFi.SSID());
     systemPrint(WiFi.localIP());
     systemPrintf(" RSSI: %d\r\n", WiFi.RSSI());
 
@@ -253,12 +253,14 @@ bool wifiStartAP(bool forceAP)
         IPAddress subnet(255, 255, 255, 0);
 
         WiFi.softAPConfig(local_IP, gateway, subnet);
-        if (WiFi.softAP("RTK Config") == false) // Must be short enough to fit OLED Width
+
+        const char *softApSsid = "RTK Config";
+        if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
         {
             systemPrintln("WiFi AP failed to start");
             return (false);
         }
-        systemPrint("WiFi AP Started with IP: ");
+        systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
         systemPrintln(WiFi.softAPIP());
 
         // Start DNS Server
@@ -527,38 +529,17 @@ bool wifiConnect(unsigned long timeout)
 
     int wifiResponse = WL_DISCONNECTED;
 
-    // WiFi.begin() is much faster than wifiMulti (requires scan time)
-    // Use wifiMulti only if multiple credentials exist
-    if (wifiNetworkCount() == 1)
+    systemPrint("Connecting WiFi... ");
+    WiFiMulti wifiMulti;
+
+    // Load SSIDs
+    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
-        systemPrint("Connecting WiFi");
-
-        // Load SSID - may not be in spot 0
-        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-        {
-            if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            {
-                WiFi.begin(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
-                break;
-            }
-        }
-
-        wifiResponse = WiFi.waitForConnectResult();
+        if (strlen(settings.wifiNetworks[x].ssid) > 0)
+            wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
     }
-    else
-    {
-        systemPrint("Connecting WiFi... ");
-        WiFiMulti wifiMulti;
 
-        // Load SSIDs
-        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-        {
-            if (strlen(settings.wifiNetworks[x].ssid) > 0)
-                wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
-        }
-
-        wifiResponse = wifiMulti.run(timeout);
-    }
+    wifiResponse = wifiMulti.run(timeout);
 
     if (wifiResponse == WL_CONNECTED)
     {
@@ -706,6 +687,11 @@ IPAddress wifiGetIpAddress()
 int wifiGetRssi()
 {
     return WiFi.RSSI();
+}
+
+String wifiGetSsid()
+{
+    return WiFi.SSID();
 }
 
 #endif // COMPILE_WIFI
