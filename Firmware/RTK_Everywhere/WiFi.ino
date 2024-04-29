@@ -34,6 +34,7 @@
 //----------------------------------------
 
 int wifiConnectionAttempts; // Count the number of connection attempts between restarts
+bool mdnsIsRunning = false; // Ending mdns when it was not yet started causes it to fail to start
 
 #ifdef COMPILE_WIFI
 
@@ -255,7 +256,6 @@ bool wifiStartAP(bool forceAP)
         WiFi.softAPConfig(local_IP, gateway, subnet);
 
         const char *softApSsid = "RTK Config";
-
         if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
         {
             systemPrintln("WiFi AP failed to start");
@@ -432,8 +432,11 @@ void wifiStop()
     stopWebServer();
 
     // Stop the multicast domain name server
-    if (settings.mdnsEnable == true)
+    if (mdnsIsRunning == true && settings.mdnsEnable == true)
+    {
         MDNS.end();
+        mdnsIsRunning = false;
+    }
 
     // Stop the DNS server if we were using the captive portal
     if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
@@ -551,7 +554,10 @@ bool wifiConnect(unsigned long timeout)
                 if (MDNS.begin("rtk") == false) // This should make the device findable from 'rtk.local' in a browser
                     systemPrintln("Error setting up MDNS responder!");
                 else
+                {
                     MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+                    mdnsIsRunning = true;
+                }
             }
         }
 
