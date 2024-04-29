@@ -629,14 +629,14 @@ const int updatePplTaskStackSize = 3000;
 
 #endif // COMPILE_POINTPERFECT_LIBRARY
 
-bool pplNewRtcmNmea;
-bool pplNewSpartn;
+bool pplNewRtcmNmea = false;
+bool pplNewSpartn = false;
 uint8_t *pplRtcmBuffer;
 
-bool pplAttemptedStart;
-bool pplGnssOutput;
-bool pplMqttCorrections;
-long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
+bool pplAttemptedStart = false;
+bool pplGnssOutput = false;
+bool pplMqttCorrections = false;
+unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -747,8 +747,8 @@ unsigned long beepQuietLengthMs; // Number of ms to make reset between multiple 
 unsigned long beepNextEventMs;   // Time at which to move the beeper to the next state
 unsigned long beepCount;         // Number of beeps to do
 
-unsigned long lastMqttToPpl;
-unsigned long lastGnssToPpl;
+unsigned long lastMqttToPpl = 0;
+unsigned long lastGnssToPpl = 0;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times

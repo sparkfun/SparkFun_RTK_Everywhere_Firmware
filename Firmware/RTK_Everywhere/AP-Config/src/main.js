@@ -103,24 +103,28 @@ function parseIncoming(msg) {
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
+                hide("tiltCompensationSettings");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                hide("tiltCompensationSettings");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                hide("tiltCompensationSettings");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
+                show("tiltCompensationSettings");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -438,11 +442,13 @@ function parseIncoming(msg) {
 
         updateECEFList();
         updateGeodeticList();
-        tcpBoxes();
+        tcpClientBoxes();
+        tcpServerBoxes();
         udpBoxes();
         dhcpEthernet();
         updateLatLong();
-        updateCorrectionsPriorities();    
+        updateCorrectionsPriorities();
+        tiltCompensationBoxes();   
     }
 }
 
@@ -535,6 +541,18 @@ function checkMessageValue(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsg");
 }
 
+function checkMessageValueBase(id) {
+    checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsgBase");
+}
+
+function checkMessageValueUM980(id) {
+    checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsg");
+}
+
+function checkMessageValueUM980Base(id) {
+    checkElementValue(id, 0, 65, "Must be between 0 and 65", "collapseGNSSConfigMsgBase");
+}
+
 function collapseSection(section, caret) {
     ge(section).classList.remove('show');
     ge(caret).classList.remove('icon-caret-down');
@@ -548,13 +566,17 @@ function validateFields() {
     collapseSection("collapseGNSSConfig", "gnssCaret");
     collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
     collapseSection("collapseBaseConfig", "baseCaret");
+    collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
     collapseSection("collapsePPConfig", "pointPerfectCaret");
     collapseSection("collapsePortsConfig", "portsCaret");
+    collapseSection("collapseWiFiConfig", "wifiCaret");
+    collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
     collapseSection("collapseRadioConfig", "radioCaret");
+    collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
     collapseSection("collapseSystemConfig", "systemCaret");
     collapseSection("collapseEthernetConfig", "ethernetCaret");
     collapseSection("collapseNTPConfig", "ntpCaret");
-    collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+    collapseSection("collapseFileManager", "fileManagerCaret");
 
     errorCount = 0;
 
@@ -586,11 +608,34 @@ function validateFields() {
     }
 
     //Check all UBX message boxes
-    //match all ids starting with ubxMessageRate (ubxMessageRate_ & ubxMessageRateBase_)
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate]');
+    //match all ids starting with ubxMessageRate_
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
         checkMessageValue(messageName);
+    }
+    //match all ids starting with ubxMessageRateBase_
+    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueBase(messageName);
+    }
+
+    //Check all UM980 message boxes
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueUM980(messageName);
+    }
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueUM980(messageName);
+    }
+    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
+    for (let x = 0; x < ubxMessages.length; x++) {
+        var messageName = ubxMessages[x].id;
+        checkMessageValueUM980Base(messageName);
     }
 
     //Base Config
@@ -688,13 +733,18 @@ function validateFields() {
     checkElementString("wifiNetwork_2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    if ((ge("enableTcpClient").checked  == true) || (ge("enableTcpServer").checked == true)) {
+    if (ge("enableTcpClient").checked  == true) {
+        checkElementString("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+    }
+    if (ge("enableTcpServer").checked == true) {
         checkElementString("tcpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
     if (ge("enableUdpServer").checked == true) {
         checkElementString("udpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
-    checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
+    //On Ethernet, TCP Client and Server can not be enabled at the same time
+    //But, on WiFi, they can be...
+    //checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -715,22 +765,11 @@ function validateFields() {
 
     //Ethernet
     if (platformPrefix == "EVK") {
-        //if (ge("ethernetDHCP").checked == false) {
         checkElementIPAddress("ethernetIP", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetDNS", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetGateway", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
         checkElementIPAddress("ethernetSubnet", "Must be nnn.nnn.nnn.nnn", "collapseEthernetConfig");
-        checkElementValue("httpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
         checkElementValue("ethernetNtpPort", 0, 65535, "Must be 0 to 65535", "collapseEthernetConfig");
-        //}
-        //else {
-        //    clearElement("ethernetIP", "192.168.0.123");
-        //    clearElement("ethernetDNS", "192.168.4.100");
-        //    clearElement("ethernetGateway", "192.168.0.1");
-        //    clearElement("ethernetSubnet", "255.255.255.0");
-        //    clearElement("httpPort", 80);
-        //    clearElement("ethernetNtpPort", 123);
-        //}
     }
 
     //NTP
@@ -782,12 +821,16 @@ function changeProfile() {
         collapseSection("collapseGNSSConfig", "gnssCaret");
         collapseSection("collapseGNSSConfigMsg", "gnssMsgCaret");
         collapseSection("collapseBaseConfig", "baseCaret");
+        collapseSection("collapseGNSSConfigMsgBase", "baseMsgCaret");
         collapseSection("collapsePPConfig", "pointPerfectCaret");
         collapseSection("collapsePortsConfig", "portsCaret");
+        collapseSection("collapseWiFiConfig", "wifiCaret");
+        collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
+        collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
         collapseSection("collapseSystemConfig", "systemCaret");
         collapseSection("collapseEthernetConfig", "ethernetCaret");
         collapseSection("collapseNTPConfig", "ntpCaret");
-        collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+        collapseSection("collapseFileManager", "fileManagerCaret");
     }
 }
 
@@ -914,6 +957,9 @@ function checkElementValue(id, min, max, errorText, collapseID) {
         ge(collapseID).classList.add('show');
         if (collapseID == "collapseGNSSConfigMsg") {
             ge("collapseGNSSConfig").classList.add('show');
+        }
+        if (collapseID == "collapseGNSSConfigMsgBase") {
+            ge("collapseBaseConfig").classList.add('show');
         }
         errorCount++;
     }
@@ -1789,13 +1835,23 @@ function abortHandler(event) {
     ge("uploadStatus").innerHTML = "Upload Aborted";
 }
 
-function tcpBoxes() {
-    if ((ge("enableTcpServer").checked == true) || (ge("enableTcpClient").checked == true)) {
-        show("tcpSettingsConfig");
+function tcpClientBoxes() {
+    if (ge("enableTcpClient").checked == true) {
+        show("tcpClientConfig");
     }
     else {
-        hide("tcpSettingsConfig");
-        ge("tcpServerPort").value = 2947;
+        hide("tcpClientConfig");
+        ge("tcpClientPort").value = 2948;
+    }
+}
+
+function tcpServerBoxes() {
+    if (ge("enableTcpServer").checked == true) {
+        show("tcpServerConfig");
+    }
+    else {
+        hide("tcpServerConfig");
+        ge("tcpServerPort").value = 2948;
     }
 }
 
@@ -1806,6 +1862,15 @@ function udpBoxes() {
     else {
         hide("udpSettingsConfig");
         ge("udpServerPort").value = 10110;
+    }
+}
+
+function tiltCompensationBoxes() {
+    if (ge("enableTiltCompensation").checked == true) {
+        show("poleLengthConfig");
+    }
+    else {
+        hide("poleLengthConfig");
     }
 }
 

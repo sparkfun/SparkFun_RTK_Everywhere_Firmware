@@ -214,7 +214,7 @@ void menuTcpUdp()
         systemPrintf("1) TCP Client: %s\r\n", settings.enableTcpClient ? "Enabled" : "Disabled");
         if (settings.enableTcpClient)
         {
-            systemPrintf("2) TCP Client Host: %s\r\n", settings.tcpClientHost);
+            systemPrintf("2) Host for TCP Client: %s\r\n", settings.tcpClientHost);
             systemPrintf("3) TCP Client Port: %ld\r\n", settings.tcpClientPort);
         }
 

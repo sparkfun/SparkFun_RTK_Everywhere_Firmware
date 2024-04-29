@@ -45,160 +45,210 @@ void menuMain()
         return;
     }
 
-    while (1)
+    if (configureViaEthernet)
     {
-        systemPrintln();
-        char versionString[21];
-        getFirmwareVersion(versionString, sizeof(versionString), true);
-        systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
-
-#ifdef COMPILE_BT
-
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-            systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-            systemPrint("** Bluetooth SPP broadcasting as: ");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-            systemPrint("** Bluetooth Low-Energy broadcasting as: ");
-        systemPrint(deviceName);
-        systemPrintln(" **");
-#else  // COMPILE_BT
-        systemPrintln("** Bluetooth Not Compiled **");
-#endif // COMPILE_BT
-
-        systemPrintln("Menu: Main");
-
-        systemPrintln("1) Configure GNSS Receiver");
-
-        systemPrintln("2) Configure GNSS Messages");
-
-        systemPrintln("3) Configure Base");
-
-        if (productVariant != RTK_TORCH) // Torch does not have external ports
-            systemPrintln("4) Configure Ports");
-
-        if (productVariant != RTK_TORCH) // Torch does not have logging
-            systemPrintln("5) Configure Logging");
-
-#ifdef COMPILE_WIFI
-        systemPrintln("6) Configure WiFi");
-#else  // COMPILE_WIFI
-        systemPrintln("6) **WiFi Not Compiled**");
-#endif // COMPILE_WIFI
-
-#if COMPILE_NETWORK
-        systemPrintln("7) Configure TCP/UDP");
-#else  // COMPILE_NETWORK
-        systemPrintln("7) **TCP/UDP Not Compiled**");
-#endif // COMPILE_NETWORK
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-            systemPrintln("e) Configure Ethernet");
-#endif // COMPILE_ETHERNET
-
-        systemPrintln("f) Firmware Update");
-
-        systemPrintln("i) Configure Corrections Priorities");
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-            systemPrintln("n) Configure NTP");
-#endif // COMPILE_ETHERNET
-
-        systemPrintln("p) Configure PointPerfect");
-
-#ifdef COMPILE_ESPNOW
-        systemPrintln("r) Configure Radios");
-#else  // COMPILE_ESPNOW
-        systemPrintln("r) **ESP-Now Not Compiled**");
-#endif // COMPILE_ESPNOW
-
-        systemPrintln("s) Configure System");
-
-        if (present.imu_im19 == true)
-            systemPrintln("t) Configure Tilt Compensation");
-
-        systemPrintln("u) Configure User Profiles");
-
-        if (btPrintEcho)
-            systemPrintln("b) Exit Bluetooth Echo mode");
-
-        systemPrintln("+) Enter Command line mode");
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming == 1)
-            menuGNSS();
-        else if (incoming == 2)
-            gnssMenuMessages();
-        else if (incoming == 3)
-            menuBase();
-        else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
-            menuPorts();
-        else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
-            menuLog();
-        else if (incoming == 6)
-            menuWiFi();
-        else if (incoming == 7)
-            menuTcpUdp();
-        else if (incoming == 'e' && (present.ethernet_ws5500 == true))
-            menuEthernet();
-        else if (incoming == 'f')
-            menuFirmware();
-        else if (incoming == 'i')
-            menuCorrectionsPriorities();
-        else if (incoming == 'n' && (present.ethernet_ws5500 == true))
-            menuNTP();
-        else if (incoming == 'u')
-            menuUserProfiles();
-        else if (incoming == 'p')
-            menuPointPerfect();
-#ifdef COMPILE_ESPNOW
-        else if (incoming == 'r')
-            menuRadio();
-#endif // COMPILE_ESPNOW
-        else if (incoming == 's')
-            menuSystem();
-        else if (incoming == 't' && (present.imu_im19 == true))
-            menuTilt();
-        else if (incoming == 'b' && btPrintEcho == true)
+        while (1)
         {
-            printEndpoint = PRINT_ENDPOINT_SERIAL;
-            systemPrintln("BT device has exited echo mode");
-            btPrintEcho = false;
-            break; // Exit config menu
+            systemPrintln();
+            char versionString[21];
+            getFirmwareVersion(versionString, sizeof(versionString), true);
+            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+
+            systemPrintln("\r\n** Configure Via Ethernet Mode **\r\n");
+
+            systemPrintln("Menu: Main");
+
+            systemPrintln("r) Restart Base");
+
+            systemPrintln("x) Exit");
+
+            byte incoming = getUserInputCharacterNumber();
+
+            if (incoming == 'r')
+            {
+                displayConfigViaEthNotStarted(1000);
+
+                ethernetWebServerStopESP32W5500();
+
+                settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
+                settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
+                recordSystemSettings();
+
+                ESP.restart();
+            }
+            else if (incoming == 'x')
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+                break;
+            else
+                printUnknown(incoming);
         }
-        else if (incoming == '+')
-            menuCommands();
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
     }
 
-    // Reboot as base only if currently operating as a base station
-    if (restartBase && inBaseMode() == true)
+    else
     {
-        restartBase = false;
-        requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
+        while (1)
+        {
+            systemPrintln();
+            char versionString[21];
+            getFirmwareVersion(versionString, sizeof(versionString), true);
+            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+
+    #ifdef COMPILE_BT
+
+            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+                systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+                systemPrint("** Bluetooth SPP broadcasting as: ");
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+                systemPrint("** Bluetooth Low-Energy broadcasting as: ");
+            systemPrint(deviceName);
+            systemPrintln(" **");
+    #else  // COMPILE_BT
+            systemPrintln("** Bluetooth Not Compiled **");
+    #endif // COMPILE_BT
+
+            systemPrintln("Menu: Main");
+
+            systemPrintln("1) Configure GNSS Receiver");
+
+            systemPrintln("2) Configure GNSS Messages");
+
+            systemPrintln("3) Configure Base");
+
+            if (productVariant != RTK_TORCH) // Torch does not have external ports
+                systemPrintln("4) Configure Ports");
+
+            if (productVariant != RTK_TORCH) // Torch does not have logging
+                systemPrintln("5) Configure Logging");
+
+    #ifdef COMPILE_WIFI
+            systemPrintln("6) Configure WiFi");
+    #else  // COMPILE_WIFI
+            systemPrintln("6) **WiFi Not Compiled**");
+    #endif // COMPILE_WIFI
+
+    #if COMPILE_NETWORK
+            systemPrintln("7) Configure TCP/UDP");
+    #else  // COMPILE_NETWORK
+            systemPrintln("7) **TCP/UDP Not Compiled**");
+    #endif // COMPILE_NETWORK
+
+    #ifdef COMPILE_ETHERNET
+            if (present.ethernet_ws5500 == true)
+                systemPrintln("e) Configure Ethernet");
+    #endif // COMPILE_ETHERNET
+
+            systemPrintln("f) Firmware Update");
+
+            systemPrintln("i) Configure Corrections Priorities");
+
+    #ifdef COMPILE_ETHERNET
+            if (present.ethernet_ws5500 == true)
+                systemPrintln("n) Configure NTP");
+    #endif // COMPILE_ETHERNET
+
+            systemPrintln("p) Configure PointPerfect");
+
+    #ifdef COMPILE_ESPNOW
+            systemPrintln("r) Configure Radios");
+    #else  // COMPILE_ESPNOW
+            systemPrintln("r) **ESP-Now Not Compiled**");
+    #endif // COMPILE_ESPNOW
+
+            systemPrintln("s) Configure System");
+
+            if (present.imu_im19 == true)
+                systemPrintln("t) Configure Tilt Compensation");
+
+            systemPrintln("u) Configure User Profiles");
+
+            if (btPrintEcho)
+                systemPrintln("b) Exit Bluetooth Echo mode");
+
+            systemPrintln("+) Enter Command line mode");
+
+            systemPrintln("x) Exit");
+
+            byte incoming = getUserInputCharacterNumber();
+
+            if (incoming == 1)
+                menuGNSS();
+            else if (incoming == 2)
+                gnssMenuMessages();
+            else if (incoming == 3)
+                menuBase();
+            else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
+                menuPorts();
+            else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
+                menuLog();
+            else if (incoming == 6)
+                menuWiFi();
+            else if (incoming == 7)
+                menuTcpUdp();
+            else if (incoming == 'e' && (present.ethernet_ws5500 == true))
+                menuEthernet();
+            else if (incoming == 'f')
+                menuFirmware();
+            else if (incoming == 'i')
+                menuCorrectionsPriorities();
+            else if (incoming == 'n' && (present.ethernet_ws5500 == true))
+                menuNTP();
+            else if (incoming == 'u')
+                menuUserProfiles();
+            else if (incoming == 'p')
+                menuPointPerfect();
+    #ifdef COMPILE_ESPNOW
+            else if (incoming == 'r')
+                menuRadio();
+    #endif // COMPILE_ESPNOW
+            else if (incoming == 's')
+                menuSystem();
+            else if (incoming == 't' && (present.imu_im19 == true))
+                menuTilt();
+            else if (incoming == 'b' && btPrintEcho == true)
+            {
+                printEndpoint = PRINT_ENDPOINT_SERIAL;
+                systemPrintln("BT device has exited echo mode");
+                btPrintEcho = false;
+                break; // Exit config menu
+            }
+            else if (incoming == '+')
+                menuCommands();
+            else if (incoming == 'x')
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+                break;
+            else
+                printUnknown(incoming);
+        }
     }
 
-    if (restartRover == true)
+    if (!configureViaEthernet)
     {
-        restartRover = false;
-        requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
+
+        // Reboot as base only if currently operating as a base station
+        if (restartBase && inBaseMode() == true)
+        {
+            restartBase = false;
+            requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
+        }
+
+        if (restartRover == true)
+        {
+            restartRover = false;
+            requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
+        }
+
+        gnssSaveConfiguration();
+
+        recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
+
     }
-
-    gnssSaveConfiguration();
-
-    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     if (settings.debugGnss == true)
     {

@@ -320,6 +320,33 @@
                         </div>
                     </div>
 
+                    <div id="tiltCompensationSettings">
+                        <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableTiltCompensation">Enable Tilt Compensation</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation" onClick="tiltCompensationBoxes()">
+                            <span class="tt" data-bs-placement="right"
+                                title="Use tilt compensation. Default: Enabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="poleLengthConfig">
+                            <div class="form-group row">
+                                <label for="tiltPoleLength"
+                                    class="col-sm-4 col-6 col-form-label">Pole Length (m):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Pole length for tilt compensation. Default: 1.8m">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="tiltPoleLength">
+                                    <p id="tiltPoleLengthError" class="inlineError"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableNtripClient">
@@ -1073,7 +1100,7 @@
                         <button onClick="getMessageListBase()" class="btn btn-md btn-outline-primary mt-3 toggle-btn"
                             type="button" data-toggle="collapse" data-target="#collapseGNSSConfigMsgBase"
                             aria-expanded="false" aria-controls="collapseGNSSConfigMsgBase">
-                            RTCM Rates <i class="caret-icon bi icon-caret-down"></i>
+                            RTCM Rates <i id="baseMsgCaret" class="caret-icon bi icon-caret-down"></i>
                         </button>
                         <span class="tt" data-bs-placement="right"
                             title="RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1230. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.">
@@ -1384,14 +1411,65 @@
                         </div>
                     </div>
 
+                    <div id="wifiConfigTypeDropdown" class="mt-3">
+                        <label for="wifiConfigOverAP">Configure Mode: </label>
+                        <select name="wifiConfigType" id="wifiConfigOverAP" class="form-dropdown">
+                            <option value="1">AP</option>
+                            <option value="0">WiFi</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="In AP mode, the device will broadcast as an access point called RTK-Config. In WiFi mode, the device will connect to local WiFi and be configurable on the displayed IP address.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- --------- TCP / UDP Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
+                    data-target="#collapseTCPUDPConfig" aria-expanded="false" aria-controls="collapseTCPUDPConfig">
+                    TCP / UDP Configuration <i id="tcpUdpCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseTCPUDPConfig">
+                <div class="card card-body">
+
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableTcpClient">TCP Client</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableTcpClient"
-                            onClick="tcpBoxes()">
+                            onClick="tcpClientBoxes()">
                         <span class="tt" data-bs-placement="right"
-                            title="If enabled, device will connect to WiFi and push NMEA over the given TCP port.">
+                            title="If enabled, device will connect to WiFi and push NMEA to the given TCP server over the given port.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
+                    </div>
+                    <div id="tcpClientConfig">
+                        <div class="form-group row">
+                            <label for="tcpClientPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
+                                <span class="tt" data-bs-placement="right" title="TCP port to use. Default: 2948">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-8 col-7">
+                                <input type="text" class="form-control" id="tcpClientPort">
+                                <p id="tcpClientPortError" class="inlineError"></p>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="tcpClientHost" class="box-margin20 col-sm-3 col-4 col-form-label">Host for
+                                TCP Client:
+                                <span class="tt" data-bs-placement="right"
+                                    title="The name or address of the host which the TCP client data will be pushed to.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-8 col-7">
+                                <input type="text" class="form-control" id="tcpClientHost" value="test">
+                                <p id="tcpClientHostError" class="inlineError"></p>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group row">
                         <p id="enableTcpClientError" class="inlineError"></p>
@@ -1400,20 +1478,16 @@
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableTcpServer">TCP Server</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableTcpServer"
-                            onClick="tcpBoxes()">
+                            onClick="tcpServerBoxes()">
                         <span class="tt" data-bs-placement="right"
-                            title="If enabled, device will allow inbound TCP connections and push NMEA when a client is connected.">
+                            title="If enabled, device will allow inbound TCP connections and push NMEA over the given port when a client is connected.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
-                    <div class="form-group row">
-                        <p id="enableTcpServerError" class="inlineError"></p>
-                    </div>
-
-                    <div id="tcpSettingsConfig">
+                    <div id="tcpServerConfig">
                         <div class="form-group row">
                             <label for="tcpServerPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
-                                <span class="tt" data-bs-placement="right" title="TCP port to use. Default: 2947">
+                                <span class="tt" data-bs-placement="right" title="TCP port to use. Default: 2948">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
@@ -1423,20 +1497,19 @@
                             </div>
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <p id="enableTcpServerError" class="inlineError"></p>
+                    </div>
 
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableUdpServer">UDP Server</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableUdpServer"
                             onClick="udpBoxes()">
                         <span class="tt" data-bs-placement="right"
-                            title="If enabled, device will broadcast NMEA sentences over UPD">
+                            title="If enabled, device will broadcast NMEA sentences over UDP">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
-                    <div class="form-group row">
-                        <p id="enableUdpServerError" class="inlineError"></p>
-                    </div>
-
                     <div id="udpSettingsConfig">
                         <div class="form-group row">
                             <label for="udpServerPort" class="box-margin20 col-sm-3 col-4 col-form-label">Port:
@@ -1450,17 +1523,8 @@
                             </div>
                         </div>
                     </div>
-
-                    <div id="wifiConfigTypeDropdown" class="mt-3">
-                        <label for="wifiConfigOverAP">Configure Mode: </label>
-                        <select name="wifiConfigType" id="wifiConfigOverAP" class="form-dropdown">
-                            <option value="1">AP</option>
-                            <option value="0">WiFi</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="In AP mode, the device will broadcast as an access point called RTK-Config. In WiFi mode, the device will connect to local WiFi and be configurable on the displayed IP address.">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
+                    <div class="form-group row">
+                        <p id="enableUdpServerError" class="inlineError"></p>
                     </div>
 
                 </div>
@@ -1876,17 +1940,6 @@
 
                     <br>
 
-                    <div class="form-group row">
-                        <label for="httpPort" class="col-5 col-form-label">Ethernet HTTP Port:
-                            <span class="tt" data-bs-placement="right" title="Ethernet HTTP Port. Default is 80">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-5">
-                            <input type="number" class="form-control" id="httpPort">
-                            <p id="httpPortError" class="inlineError"></p>
-                        </div>
-                    </div>
                     <div class="form-group row">
                         <label for="ethernetNtpPort" class="col-5 col-form-label">Ethernet NTP Port:
                             <span class="tt" data-bs-placement="right" title="Ethernet NTP Port. Default is 123">

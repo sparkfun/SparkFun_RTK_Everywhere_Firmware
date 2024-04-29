@@ -393,13 +393,13 @@ bool um980EnableRTCMRover()
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1019", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
         if (rtcm1020Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1020", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
         if (rtcm1042Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1042", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
         if (rtcm1046Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1046", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
     }
 
     return (response);
