@@ -389,7 +389,7 @@ void networkDisplayIpAddress(uint8_t networkType)
         {
             strcpy(ipAddress, networkGetIpAddress(networkType).toString().c_str());
             if (network->type == NETWORK_TYPE_WIFI)
-                systemPrintf("%s IP address: %s, RSSI: %d\r\n", networkName[network->type], ipAddress, wifiGetRssi());
+                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], ipAddress, wifiGetSsid(), wifiGetRssi());
             else
                 systemPrintf("%s IP address: %s\r\n", networkName[network->type], ipAddress);
 

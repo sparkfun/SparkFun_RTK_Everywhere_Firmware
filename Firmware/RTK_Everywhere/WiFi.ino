@@ -171,7 +171,7 @@ void menuWiFi()
 // Display the WiFi IP address
 void wifiDisplayIpAddress()
 {
-    systemPrintf("WiFi %s IP address: ", WiFi.SSID());
+    systemPrintf("WiFi '%s' IP address: ", WiFi.SSID());
     systemPrint(WiFi.localIP());
     systemPrintf(" RSSI: %d\r\n", WiFi.RSSI());
 
@@ -253,12 +253,15 @@ bool wifiStartAP(bool forceAP)
         IPAddress subnet(255, 255, 255, 0);
 
         WiFi.softAPConfig(local_IP, gateway, subnet);
-        if (WiFi.softAP("RTK Config") == false) // Must be short enough to fit OLED Width
+
+        const char *softApSsid = "RTK Config";
+
+        if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
         {
             systemPrintln("WiFi AP failed to start");
             return (false);
         }
-        systemPrint("WiFi AP Started with IP: ");
+        systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
         systemPrintln(WiFi.softAPIP());
 
         // Start DNS Server
@@ -706,6 +709,11 @@ IPAddress wifiGetIpAddress()
 int wifiGetRssi()
 {
     return WiFi.RSSI();
+}
+
+String wifiGetSsid()
+{
+    return WiFi.SSID();
 }
 
 #endif // COMPILE_WIFI
