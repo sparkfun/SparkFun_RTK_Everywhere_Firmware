@@ -2,7 +2,9 @@
 // Update rate, constellations, etc
 void menuGNSS()
 {
-    restartRover = false; // If user modifies any NTRIP settings, we need to restart the rover
+    // If user modifies any NTRIP settings etc., we need to restart the rover with "restartRover = true;""
+    // But, don't set "restartRover = false;" here as that may prevent a restart requested by menuPointPerfect
+    // for example...
 
     while (1)
     {

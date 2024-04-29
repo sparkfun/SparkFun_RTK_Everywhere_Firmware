@@ -1485,6 +1485,7 @@ void menuPointPerfect()
         if (incoming == 1)
         {
             settings.enablePointPerfectCorrections ^= 1;
+            restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
         }
 
         else if (incoming == 2 && pointPerfectIsEnabled())

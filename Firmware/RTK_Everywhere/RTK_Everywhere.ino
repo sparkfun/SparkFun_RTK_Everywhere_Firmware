@@ -695,7 +695,7 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 bool firstPowerOn = true;  // After boot, apply new settings to ZED if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover;         // If the user modifies any NTRIP Client settings, we need to restart the rover
+bool restartRover;         // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
