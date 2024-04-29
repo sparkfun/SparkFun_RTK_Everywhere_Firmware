@@ -1115,22 +1115,8 @@ void handleGnssDataTask(void *e)
 // This is only called if ticker task is started so no pin tests are done
 void tickerBluetoothLedUpdate()
 {
-    // Blink on/off while we wait for BT connection
-    if (bluetoothGetState() == BT_NOTCONNECTED)
-    {
-        if (btFadeLevel == 0)
-            btFadeLevel = 255;
-        else
-            btFadeLevel = 0;
-        ledcWrite(ledBtChannel, btFadeLevel);
-    }
-
-    // Solid LED if BT Connected
-    else if (bluetoothGetState() == BT_CONNECTED)
-        ledcWrite(ledBtChannel, 255);
-
-    // Pulse LED while no BT and we wait for WiFi connection
-    else if (wifiState == WIFI_STATE_CONNECTING || wifiState == WIFI_STATE_CONNECTED)
+    // If we are in WiFi config mode, fade LED
+    if (inWiFiConfigMode() == true)
     {
         // Fade in/out the BT LED during WiFi AP mode
         btFadeLevel += pwmFadeAmount;
@@ -1144,6 +1130,18 @@ void tickerBluetoothLedUpdate()
 
         ledcWrite(ledBtChannel, btFadeLevel);
     }
+    // Blink on/off while we wait for BT connection
+    else if (bluetoothGetState() == BT_NOTCONNECTED)
+    {
+        if (btFadeLevel == 0)
+            btFadeLevel = 255;
+        else
+            btFadeLevel = 0;
+        ledcWrite(ledBtChannel, btFadeLevel);
+    }
+    // Solid LED if BT Connected
+    else if (bluetoothGetState() == BT_CONNECTED)
+        ledcWrite(ledBtChannel, 255);
     else
         ledcWrite(ledBtChannel, 0);
 }
