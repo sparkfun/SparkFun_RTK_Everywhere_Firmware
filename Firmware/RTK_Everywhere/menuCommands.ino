@@ -531,7 +531,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
 
         else if (strcmp(settingName, "measurementRateHz") == 0)
         {
-            gnssSetRate((int)(1.0 / settingValue));
+            gnssSetRate(1.0 / settingValue);
 
             // This is one of the first settings to be received. If seen, remove the station files.
             removeFile(stationCoordinateECEFFileName);

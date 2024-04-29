@@ -564,7 +564,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response == true)
     {
-        int msBetweenSolutions = secondsBetweenSolutions * 1000;
+        uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
         settings.um980MeasurementRateMs = msBetweenSolutions;
     }
     else
@@ -579,7 +579,7 @@ bool um980SetRate(double secondsBetweenSolutions)
 // Returns the seconds between measurements
 double um980GetRateS()
 {
-    return (settings.um980MeasurementRateMs / 1000.0);
+    return (((double)settings.um980MeasurementRateMs) / 1000.0);
 }
 
 // Send data directly from ESP GNSS UART1 to UM980 UART3
