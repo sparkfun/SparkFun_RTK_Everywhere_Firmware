@@ -1038,7 +1038,11 @@ const char * networkTypeToString(uint8_t type)
 void networkTypeUpdate(uint8_t networkType)
 {
     if(inWiFiConfigMode())
-        return; //Avoid network layer while in Browser Config Mode
+    {
+        //Avoid the full network layer while in Browser Config Mode
+        wifiUpdate();
+        return; 
+    }
 
     char errorMsg[64];
     NETWORK_DATA *network;
