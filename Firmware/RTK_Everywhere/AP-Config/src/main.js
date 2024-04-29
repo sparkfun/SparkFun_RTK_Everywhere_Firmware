@@ -105,6 +105,7 @@ function parseIncoming(msg) {
                 show("ntpConfig");
                 hide("tiltCompensationSettings");
                 hide("portsConfig");
+                show("logToSDCard");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -113,6 +114,7 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 hide("tiltCompensationSettings");
                 show("portsConfig");
+                show("logToSDCard");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -121,6 +123,7 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 hide("tiltCompensationSettings");
                 show("portsConfig");
+                show("logToSDCard");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -129,6 +132,7 @@ function parseIncoming(msg) {
                 hide("ntpConfig");
                 show("tiltCompensationSettings");
                 hide("portsConfig");
+                hide("logToSDCard");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');

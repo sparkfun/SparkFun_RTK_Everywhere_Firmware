@@ -1746,80 +1746,82 @@
                         </span>
                     </div>
 
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableLogging">Log to SD Card</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableLogging">
-                        <span class="tt" data-bs-placement="right"
-                            title="If a microSD card is detected, all messages will be logged. Default: Enabled">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="enableLoggingDetails" class="collapse mb-2">
-
-                        <div class="form-group row">
-                            <label for="maxLogTime" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
-                                Time (min):
-                                <span class="tt" data-bs-placement="right"
-                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <input type="number" class="form-control box-small" id="maxLogTime">
-                            <p id="maxLogTimeError" class="inlineError"></p>
-                        </div>
-
-                        <div class="form-group row">
-                            <label for="maxLogLength" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
-                                Length (min):<span class="tt" data-bs-placement="right"
-                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-
-                            <input type="number" class="form-control box-small" id="maxLogLength">
-                            <p id="maxLogLengthError" class="inlineError"></p>
-                        </div>
-
-                        <div id="logFile" class="row">
-                            <div class="mb-2">
-                                <label for="logFile" class="form-group box-margin20">Log file name: <span
-                                        id="logFileName" style="display:inline;">SFE_Log.ubx</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group row">
-                            <div style="margin-bottom:5px;">
-                                <button type="button" id="startNewLog" class="btn btn-primary box-margin20"
-                                    onClick="startNewLog()">Start New Log</button>
-                                <span class="tt" data-bs-placement="right"
-                                    title="Closes the current log and starts a new one.">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="form-check mt-1 box-margin20">
-                            <label class="form-check-label" for="enableARPLogging">Enable ARP Logging</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableARPLogging" unchecked>
+                    <div id="logToSDCard">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableLogging">Log to SD Card</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableLogging">
                             <span class="tt" data-bs-placement="right"
-                                title="If enabled, the Antenna Reference Position from RTCM 1005/1006 will be added to the log.">
+                                title="If a microSD card is detected, all messages will be logged. Default: Enabled">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
 
-                        <div id="enableARPLoggingDetails" class="collapse mb-2">
+                        <div id="enableLoggingDetails" class="collapse mb-2">
+
                             <div class="form-group row">
-                                <label for="ARPLoggingInterval" class="box-margin40 col-sm-3 col-7 col-form-label">ARP
-                                    Logging Interval (s):
+                                <label for="maxLogTime" class="box-margin40 col-sm-3 col-7 col-form-label">Max Logging
+                                    Time (min):
                                     <span class="tt" data-bs-placement="right"
-                                        title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds.">
+                                        title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
-                                <input type="number" class="form-control box-small" id="ARPLoggingInterval">
-                                <p id="ARPLoggingIntervalError" class="inlineError"></p>
+                                <input type="number" class="form-control box-small" id="maxLogTime">
+                                <p id="maxLogTimeError" class="inlineError"></p>
+                            </div>
+
+                            <div class="form-group row">
+                                <label for="maxLogLength" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
+                                    File Length (min):<span class="tt" data-bs-placement="right"
+                                        title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+
+                                <input type="number" class="form-control box-small" id="maxLogLength">
+                                <p id="maxLogLengthError" class="inlineError"></p>
+                            </div>
+
+                            <div id="logFile" class="row">
+                                <div class="mb-2">
+                                    <label for="logFile" class="form-group box-margin20">Log file name: <span
+                                            id="logFileName" style="display:inline;">SFE_Log.ubx</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div style="margin-bottom:5px;">
+                                    <button type="button" id="startNewLog" class="btn btn-primary box-margin20"
+                                        onClick="startNewLog()">Start New Log</button>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Closes the current log and starts a new one.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-check mt-1 box-margin20">
+                                <label class="form-check-label" for="enableARPLogging">Enable ARP Logging</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableARPLogging" unchecked>
+                                <span class="tt" data-bs-placement="right"
+                                    title="If enabled, the Antenna Reference Position from RTCM 1005/1006 will be added to the log.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="enableARPLoggingDetails" class="collapse mb-2">
+                                <div class="form-group row">
+                                    <label for="ARPLoggingInterval" class="box-margin40 col-sm-3 col-7 col-form-label">ARP
+                                        Logging Interval (s):
+                                        <span class="tt" data-bs-placement="right"
+                                            title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds.">
+                                            <span class="icon-info-circle text-primary ms-2"></span>
+                                        </span>
+                                    </label>
+                                    <input type="number" class="form-control box-small" id="ARPLoggingInterval">
+                                    <p id="ARPLoggingIntervalError" class="inlineError"></p>
+                                </div>
                             </div>
                         </div>
                     </div>
