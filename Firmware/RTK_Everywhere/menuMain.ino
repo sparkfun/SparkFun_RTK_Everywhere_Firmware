@@ -232,13 +232,13 @@ void menuMain()
     {
 
         // Reboot as base only if currently operating as a base station
-        if (restartBase && inBaseMode() == true)
+        if (restartBase == true && inBaseMode() == true)
         {
             restartBase = false;
             requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
         }
 
-        if (restartRover == true)
+        if (restartRover == true && inRoverMode() == true)
         {
             restartRover = false;
             requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
