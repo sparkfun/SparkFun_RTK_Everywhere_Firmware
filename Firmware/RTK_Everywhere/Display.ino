@@ -2060,6 +2060,10 @@ void displayWiFiConfig()
         else if (WiFi.getMode() == WIFI_AP)
             snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
 
+        // If we are in AP+STA mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP_STA)
+            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+
         else
             snprintf(mySSID, sizeof(mySSID), "%s", "Error");
     }
@@ -2093,7 +2097,7 @@ void displayWiFiConfig()
 
 #ifdef COMPILE_AP
     IPAddress myIpAddress;
-    if (WiFi.getMode() == WIFI_AP)
+    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
         myIpAddress = WiFi.softAPIP();
     else
         myIpAddress = WiFi.localIP();
