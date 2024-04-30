@@ -104,6 +104,8 @@ function parseIncoming(msg) {
                 show("ethernetConfig");
                 show("ntpConfig");
                 hide("tiltCompensationSettings");
+                hide("portsConfig");
+                show("logToSDCard");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -111,6 +113,8 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 hide("tiltCompensationSettings");
+                show("portsConfig");
+                show("logToSDCard");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -118,6 +122,8 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 hide("tiltCompensationSettings");
+                show("portsConfig");
+                show("logToSDCard");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -125,6 +131,8 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("tiltCompensationSettings");
+                hide("portsConfig");
+                hide("logToSDCard");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -499,13 +507,12 @@ function sendData() {
 function showError(id, errorText) {
     ge(id + 'Error').innerHTML = '<br>Error: ' + errorText;
 }
-
 function clearError(id) {
     ge(id + 'Error').innerHTML = '';
 }
 
 function showSuccess(id, msg) {
-    ge(id + 'Success').innerHTML = '<br>Success: ' + msg;
+    ge(id + 'Success').innerHTML = '<br>' + msg;
 }
 function clearSuccess(id) {
     ge(id + 'Success').innerHTML = '';
@@ -1214,7 +1221,7 @@ function confirmDataReceipt() {
     //Determine which function sent the original data
     if (sendDataTimeout != null) {
         clearTimeout(sendDataTimeout);
-        showSuccess('saveBtn', "All Saved!");
+        showSuccess('saveBtn', "Success: All Saved");
     }
     else {
         console.log("Unknown owner of confirmDataReceipt");
