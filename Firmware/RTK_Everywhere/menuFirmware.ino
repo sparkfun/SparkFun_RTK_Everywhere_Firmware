@@ -103,34 +103,29 @@ void menuFirmware()
 
                 bool previouslyConnected = wifiIsConnected();
 
-                // Attempt to connect to local WiFi
-                if (wifiConnect(10000) == true)
+                // Get firmware version from server
+                // otaCheckVersion will call wifiConnect if needed
+                if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
                 {
-                    // Get firmware version from server
-                    if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
+                    // We got a version number, now determine if it's newer or not
+                    char currentVersion[21];
+                    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                    if (isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true ||
+                        FIRMWARE_VERSION_MAJOR == 99 || settings.debugFirmwareUpdate == true)
                     {
-                        // We got a version number, now determine if it's newer or not
-                        char currentVersion[21];
-                        getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                        if (isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true ||
-                            FIRMWARE_VERSION_MAJOR == 99 || settings.debugFirmwareUpdate == true)
-                        {
-                            systemPrintln("New version detected");
-                            newOTAFirmwareAvailable = true;
-                        }
-                        else
-                        {
-                            systemPrintln("No new firmware available");
-                        }
+                        systemPrintln("New version detected");
+                        newOTAFirmwareAvailable = true;
                     }
                     else
                     {
-                        // Failed to get version number
-                        systemPrintln("Failed to get version number from server.");
+                        systemPrintln("No new firmware available");
                     }
                 }
                 else
-                    systemPrintln("Firmware update failed to connect to WiFi.");
+                {
+                    // Failed to get version number
+                    systemPrintln("Failed to get version number from server.");
+                }
 
                 if (previouslyConnected == false)
                     WIFI_STOP();
