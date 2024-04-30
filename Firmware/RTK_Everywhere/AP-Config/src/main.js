@@ -688,10 +688,10 @@ function validateFields() {
     }
 
     if (ge("enableNtripServer").checked == true) {
-        checkElementString("ntripServerCasterHost_0", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerCasterHost_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
         checkElementValue("ntripServerCasterPort_0", 1, 99999, "Must be 1 to 99999", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPoint_0", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPointPW_0", 1, 30, "Must be 1 to 30 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPoint_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPointPW_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
     }
     else {
         clearElement("ntripServerCasterHost_0", "rtk2go.com");
@@ -732,14 +732,14 @@ function validateFields() {
     }
 
     //WiFi Config
-    checkElementString("wifiNetwork_0SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_0Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_1SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_1Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_2SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_2Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_3SSID", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
-    checkElementString("wifiNetwork_3Password", 0, 50, "Must be 0 to 50 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_0SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_0Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_1SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_1Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_2SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_2Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_3SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+    checkElementString("wifiNetwork_3Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     if (ge("enableTcpClient").checked  == true) {
         checkElementString("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
@@ -1009,7 +1009,7 @@ function checkElementIPAddress(id, errorText, collapseID) {
 
 function checkElementCasterUser(id, badUserName, errorText, collapseID) {
     if (ge("ntripClientCasterHost").value.toLowerCase() == "rtk2go.com") {
-        checkElementString(id, 1, 50, errorText, collapseID);
+        checkElementString(id, 1, 49, errorText, collapseID);
     }
     else
         clearError(id);
