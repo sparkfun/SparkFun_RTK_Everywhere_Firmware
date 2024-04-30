@@ -154,6 +154,8 @@ typedef struct {
 
 std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
 
+correctionsSource pplCorrectionsSource; // Record which source is feeding the PPL
+
 void clearRegisteredCorrectionsSources()
 {
     registeredCorrectionsSources.clear();
