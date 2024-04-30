@@ -1932,9 +1932,21 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
 
     if (knownSetting == false)
     {
+        //Report deviceID over CLI - Useful for label generation
+        if (strcmp(settingName, "deviceId") == 0)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                    btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
+                    productVariant);
+
+            writeToString(settingValueStr, hardwareID);
+            knownSetting = true;
+        }
+
         // Unused variables - read to avoid errors
         // TODO: check this! Is this really what we want?
-        if (strcmp(settingName, "fixedLatText") == 0)
+        else if (strcmp(settingName, "fixedLatText") == 0)
         {
             knownSetting = true;
         }
@@ -2319,6 +2331,8 @@ void printAvailableSettings()
             }
         }
     }
+
+    systemPrint("deviceId,char[18],");
 
     // TODO: check this! Is this really what we want?
     systemPrint("fixedLatText,char[],");
