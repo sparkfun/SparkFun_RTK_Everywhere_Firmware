@@ -836,7 +836,7 @@ void ntripClientUpdate()
                             if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
-                                systemPrintf("NTRIP Client received %d RTCM bytes, pushed to ZED\r\n", rtcmCount);
+                                systemPrintf("NTRIP Client received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
                             }
                         }
                         else
@@ -844,7 +844,7 @@ void ntripClientUpdate()
                             if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
-                                systemPrintf("NTRIP Client received %d RTCM bytes, NOT pushed to ZED due to priority\r\n", rtcmCount);
+                                systemPrintf("NTRIP Client received %d RTCM bytes, NOT pushed to GNSS due to priority\r\n", rtcmCount);
                             }
                         }
                     }

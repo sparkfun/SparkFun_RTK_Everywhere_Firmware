@@ -1,4 +1,4 @@
-// Connect to ZED module and identify particulars
+// Connect to GNSS and identify particulars
 void gnssBegin()
 {
     if (present.gnss_zedf9p)
