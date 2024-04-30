@@ -388,8 +388,8 @@ void wifiUpdate()
         break;
     }
 
-    // Process DNS when we are in AP mode for captive portal
-    if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
+    // Process DNS when we are in AP mode or AP+STA mode for captive portal
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
     {
         dnsServer.processNextRequest();
     }
@@ -435,7 +435,7 @@ void wifiStop()
         MDNS.end();
 
     // Stop the DNS server if we were using the captive portal
-    if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
 
     // Stop the other network clients and then WiFi
@@ -486,16 +486,40 @@ bool wifiIsConnected()
 // Attempts a connection to all provided SSIDs
 // Returns true if successful
 // Gives up if no SSID detected or connection times out
+// If useAPSTAMode is true, do an extra check and go from WIFI_AP mode to WIFI_AP_STA mode
 bool wifiConnect(unsigned long timeout)
+{
+    return wifiConnect(timeout, false, nullptr);
+}
+bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 {
     if (wifiIsConnected())
         return (true); // Nothing to do
 
     displayWiFiConnect();
 
-    // Before we can issue esp_wifi_() commands WiFi must be started
-    if (WiFi.getMode() != WIFI_STA)
-        WiFi.mode(WIFI_STA);
+    // If otaUpdate or otaCheckVersion wants to use WIFI_AP_STA mode
+    if (useAPSTAMode && (wasInAPmode != nullptr))
+    {
+        *wasInAPmode = (WiFi.getMode() == WIFI_AP);
+
+        if (*wasInAPmode)
+        {
+            systemPrintln("wifiConnect: changing from WIFI_AP to WIFI_AP_STA");
+            WiFi.mode(WIFI_AP_STA); // Change mode from WIFI_AP to WIFI_AP_STA
+        }
+        else
+        {
+            systemPrintln("wifiConnect: was not in WIFI_AP mode. Going to WIFI_STA");
+            WiFi.mode(WIFI_STA); // Must have been off - or already in STA mode?
+        }
+    }
+    else
+    {
+        // Before we can issue esp_wifi_() commands WiFi must be started
+        if (WiFi.getMode() != WIFI_STA)
+            WiFi.mode(WIFI_STA);
+    }
 
     // Verify that the necessary protocols are set
     uint8_t protocols = 0;

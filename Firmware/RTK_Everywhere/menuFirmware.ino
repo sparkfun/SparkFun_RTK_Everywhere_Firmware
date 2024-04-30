@@ -103,34 +103,29 @@ void menuFirmware()
 
                 bool previouslyConnected = wifiIsConnected();
 
-                // Attempt to connect to local WiFi
-                if (wifiConnect(10000) == true)
+                // Get firmware version from server
+                // otaCheckVersion will call wifiConnect if needed
+                if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
                 {
-                    // Get firmware version from server
-                    if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
+                    // We got a version number, now determine if it's newer or not
+                    char currentVersion[21];
+                    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                    if (isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true ||
+                        FIRMWARE_VERSION_MAJOR == 99 || settings.debugFirmwareUpdate == true)
                     {
-                        // We got a version number, now determine if it's newer or not
-                        char currentVersion[21];
-                        getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                        if (isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true ||
-                            FIRMWARE_VERSION_MAJOR == 99 || settings.debugFirmwareUpdate == true)
-                        {
-                            systemPrintln("New version detected");
-                            newOTAFirmwareAvailable = true;
-                        }
-                        else
-                        {
-                            systemPrintln("No new firmware available");
-                        }
+                        systemPrintln("New version detected");
+                        newOTAFirmwareAvailable = true;
                     }
                     else
                     {
-                        // Failed to get version number
-                        systemPrintln("Failed to get version number from server.");
+                        systemPrintln("No new firmware available");
                     }
                 }
                 else
-                    systemPrintln("Firmware update failed to connect to WiFi.");
+                {
+                    // Failed to get version number
+                    systemPrintln("Failed to get version number from server.");
+                }
 
                 if (previouslyConnected == false)
                     WIFI_STOP();
@@ -165,14 +160,9 @@ void menuFirmware()
 
         else if ((incoming == 'u') && newOTAFirmwareAvailable)
         {
-            bool previouslyConnected = wifiIsConnected();
-
-            otaUpdate();
+            otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
             // We get here if WiFi failed or the server was not available
-
-            if (previouslyConnected == false)
-                WIFI_STOP();
         }
 
         else if (incoming == 'x')
@@ -481,7 +471,9 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 #ifdef COMPILE_WIFI
     bool previouslyConnected = wifiIsConnected();
 
-    if (wifiConnect(10000) == true)
+    bool wasInAPmode;
+
+    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
     {
         char versionString[21];
         getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -516,6 +508,11 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
     {
         systemPrintln("WiFi not available.");
     }
+
+    // If we were in WIFI_AP mode, return to WIFI_AP mode
+    // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
+    if (wasInAPmode)
+        WiFi.mode(WIFI_AP);
 
     if (systemState != STATE_WIFI_CONFIG)
     {
@@ -578,8 +575,14 @@ void otaUpdate()
 #ifdef COMPILE_WIFI
     bool previouslyConnected = wifiIsConnected();
 
-    if (wifiConnect(10000) == true)
+    bool wasInAPmode;
+
+    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
         overTheAirUpdate();
+
+    // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
+    if (wasInAPmode)
+        WiFi.mode(WIFI_AP);
 
     // Update failed. If WiFi was originally off, turn it off again
     if (previouslyConnected == false)
