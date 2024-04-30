@@ -160,14 +160,9 @@ void menuFirmware()
 
         else if ((incoming == 'u') && newOTAFirmwareAvailable)
         {
-            bool previouslyConnected = wifiIsConnected();
-
-            otaUpdate();
+            otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
             // We get here if WiFi failed or the server was not available
-
-            if (previouslyConnected == false)
-                WIFI_STOP();
         }
 
         else if (incoming == 'x')
@@ -476,7 +471,9 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 #ifdef COMPILE_WIFI
     bool previouslyConnected = wifiIsConnected();
 
-    if (wifiConnect(10000) == true)
+    bool wasInAPmode;
+
+    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
     {
         char versionString[21];
         getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -511,6 +508,11 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
     {
         systemPrintln("WiFi not available.");
     }
+
+    // If we were in WIFI_AP mode, return to WIFI_AP mode
+    // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
+    if (wasInAPmode)
+        WiFi.mode(WIFI_AP);
 
     if (systemState != STATE_WIFI_CONFIG)
     {
@@ -573,8 +575,14 @@ void otaUpdate()
 #ifdef COMPILE_WIFI
     bool previouslyConnected = wifiIsConnected();
 
-    if (wifiConnect(10000) == true)
+    bool wasInAPmode;
+
+    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
         overTheAirUpdate();
+
+    // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
+    if (wasInAPmode)
+        WiFi.mode(WIFI_AP);
 
     // Update failed. If WiFi was originally off, turn it off again
     if (previouslyConnected == false)
