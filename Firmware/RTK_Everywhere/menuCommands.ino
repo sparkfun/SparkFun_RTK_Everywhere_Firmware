@@ -719,6 +719,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             char newVersionCSV[100];
 
             // Get firmware version from server
+            // otaCheckVersion will call wifiConnect if needed
             if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
             {
                 // We got a version number, now determine if it's newer or not
@@ -756,7 +757,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
             apConfigFirmwareUpdateInProcess = true;
-            otaUpdate();
+            otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
             // We get here if WiFi failed to connect
             sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
