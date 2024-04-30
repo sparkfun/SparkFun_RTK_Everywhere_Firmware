@@ -347,7 +347,7 @@ void mqttClientReceiveMessage(int messageSize)
                 if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
                     systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
 
-                if (online.ppl == false)
+                if (online.ppl == false && settings.debugMqttClientData == true)
                     systemPrintln("Warning: PPL is offline");
 
                 sendSpartnToPpl(mqttData, mqttCount);
