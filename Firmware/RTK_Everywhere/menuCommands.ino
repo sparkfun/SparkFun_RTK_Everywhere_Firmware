@@ -719,6 +719,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             char newVersionCSV[100];
 
             // Get firmware version from server
+            // otaCheckVersion will call wifiConnect if needed
             if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
             {
                 // We got a version number, now determine if it's newer or not
