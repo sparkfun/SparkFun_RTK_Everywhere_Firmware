@@ -388,8 +388,8 @@ void wifiUpdate()
         break;
     }
 
-    // Process DNS when we are in AP mode for captive portal
-    if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
+    // Process DNS when we are in AP mode or AP+STA mode for captive portal
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
     {
         dnsServer.processNextRequest();
     }
@@ -435,7 +435,7 @@ void wifiStop()
         MDNS.end();
 
     // Stop the DNS server if we were using the captive portal
-    if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
 
     // Stop the other network clients and then WiFi
