@@ -22,7 +22,7 @@ Are you using [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmwa
 
     *Figure 1*
 
-3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until the two front LEDs illuminate (Figure 2). 
+3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2). 
 
     [![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
 
@@ -70,7 +70,7 @@ The software options for Apple iOS are much more limited because Apple products 
 
     *Figure 1*
 
-3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until the two front LEDs illuminate (Figure 2). 
+3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2). 
 
     [![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
 
@@ -124,7 +124,7 @@ You can set up your own correction source. This is done with a 2nd GNSS receiver
 
 ## PointPerfect Corrections
 
-One of the great features of the RTK Torch is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/pointperfect) with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.
+One of the great features of the RTK Torch is that it has the ability to get corrections from PointPerfect over WiFi. No need for NTRIP credentials! [Contact SparkFun](https://www.sparkfun.com/rtk_torch_registration) with your device ID, pay a small monthly fee of $8 per month (as of this writing) and your device will obtain credentials and start receiving corrections anywhere there is coverage.
 
 [![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
 
@@ -156,7 +156,7 @@ If you decide to use a service that provides NTRIP (as opposed to PointPerfect) 
 
 Assuming you are outside, as soon as corrections are sent to the device, the bubble in SW Maps will turn Orange (RTK Float). Once RTK Fix is achieved (usually under 30 seconds) the bubble will turn Green and the HPA will be below 20mm (Figure 2). You can now take positional readings with millimeter accuracy!
 
-![Double crosshair indicating RTK Fix](</img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png>)
+![Double crosshair indicating RTK Fix](<img/SWMaps/SparkFun Torch - SW Maps GNSS Status RTK Fix HPA Small.png>)
 
 *Figure 2*
 
