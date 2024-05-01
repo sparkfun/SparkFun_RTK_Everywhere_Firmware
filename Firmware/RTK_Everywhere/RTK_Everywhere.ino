@@ -53,10 +53,10 @@
 
 // If no token is available at compile time, mark this firmware as version 'd99.99'
 // TOKENS are passed in from compiler extra flags
-#ifndef POINTPERFECT_LBAND_PAID_TOKEN
+#ifndef POINTPERFECT_LBAND_TOKEN
 #define FIRMWARE_VERSION_MAJOR 99
 #define FIRMWARE_VERSION_MINOR 99
-#endif // POINTPERFECT_LBAND_PAID_TOKEN
+#endif // POINTPERFECT_LBAND_TOKEN
 
 // Define the RTK board identifier:
 //  This is an int which is unique to this variant of the RTK hardware which allows us
@@ -81,8 +81,7 @@
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
 #include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
-#include <PubSubClient.h> //http://librarymanager/All#PubSubClient_MQTT_Lightweight by Nick O'Leary v2.8.0 Used for MQTT obtaining of keys
-#include <WiFi.h>             //Built-in.
+#include <WiFi.h>         //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
@@ -149,6 +148,11 @@ int pin_GnssUart_TX = PIN_UNDEFINED;
 
 int pin_GnssLBandUart_RX = PIN_UNDEFINED;
 int pin_GnssLBandUart_TX = PIN_UNDEFINED;
+
+int pin_Cellular_RX = PIN_UNDEFINED;
+int pin_Cellular_TX = PIN_UNDEFINED;
+int pin_Cellular_PWR_ON = PIN_UNDEFINED;
+int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
 
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
@@ -272,9 +276,11 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 //            1         2         3         4         5         6         7         8         9         0         1 2
 //   12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
 #define OTA_FIRMWARE_JSON_URL                                                                                          \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-Firmware.json"
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
+    "RTK-Everywhere-Firmware.json"
 #define OTA_RC_FIRMWARE_JSON_URL                                                                                       \
-    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/RTK-Everywhere-RC-Firmware.json"
+    "https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/main/"                       \
+    "RTK-Everywhere-RC-Firmware.json"
 char otaFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 
@@ -299,11 +305,7 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
 
-char zedFirmwareVersion[20];   // The string looks like 'HPG 1.12'. Output to system status menu and settings file.
-char neoFirmwareVersion[20];   // Output to system status menu.
-uint8_t zedFirmwareVersionInt; // Controls which features (constellations) can be configured (v1.12 doesn't support
-                               // SBAS). Note: will fail above 2.55!
-char zedUniqueId[11];          // Output to system status menu and log file.
+char neoFirmwareVersion[20]; // Output to system status menu.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
 // waitForResponse. Also prevents pushRawData from being called.
@@ -386,17 +388,16 @@ int64_t ARPECEFY;
 int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
-const byte haeNumberOfDecimals = 8; // Used for printing and transmitting lat/lon
-bool lBandCommunicationEnabled;
-bool lBandForceGetKeys; // Used to allow key update from display
-unsigned long rtcmLastPacketReceived;
+const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/lon
+bool lBandForceGetKeys;               // Used to allow key update from display
+unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.2
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
 #else
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
 #endif                                          // COMPILE_UM980
@@ -404,7 +405,10 @@ unsigned long rtcmLastPacketReceived;
 
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-GnssPlatform gnssPlatform = PLATFORM_ZED;
+// Note: GnssPlatform gnssPlatform has been replaced by present.gnss_zedf9p etc.
+char gnssFirmwareVersion[20];
+int gnssFirmwareVersionInt;
+char gnssUniqueId[20]; // um980 ID is 16 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Battery fuel gauge and PWM LEDs
@@ -576,7 +580,7 @@ unsigned long lastEspnowRssiUpdate;
 #endif // COMPILE_ESPNOW
 
 int espnowRSSI;
-const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
+// const uint8_t ESPNOW_MAX_PEERS = 5 is defined in settings.h
 
 // Ethernet
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -625,14 +629,15 @@ const int updatePplTaskStackSize = 3000;
 
 #endif // COMPILE_POINTPERFECT_LIBRARY
 
-bool pplNewRtcmNmea;
-bool pplNewSpartn;
+bool pplNewRtcmNmea = false;
+bool pplNewSpartn = false;
 uint8_t *pplRtcmBuffer;
 
-bool pplAttemptedStart;
-bool pplGnssOutput;
-bool pplMqttCorrections;
-long pplKeyExpirationMs; // Milliseconds until the current PPL key expires
+bool pplAttemptedStart = false;
+bool pplGnssOutput = false;
+bool pplMqttCorrections = false;
+bool pplLBandCorrections = false; // Raw L-Band - e.g. from mosaic X5
+unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -669,15 +674,15 @@ uint64_t lastLogSize;
 bool logIncreasing; // Goes true when log file is greater than lastLogSize or logPosition changes
 bool reuseLastLog;  // Goes true if we have a reset due to software (rather than POR)
 
-uint16_t rtcmPacketsSent; // Used to count RTCM packets sent via processRTCM()
-uint32_t rtcmBytesSent;
-uint32_t rtcmLastReceived;
+uint16_t rtcmPacketsSent;    // Used to count RTCM packets sent via processRTCM()
+uint32_t rtcmLastPacketSent; // Time stamp of RTCM going out (to NTRIP Server, ESP-NOW, etc)
 
 uint32_t maxSurveyInWait_s = 60L * 15L; // Re-start survey-in after X seconds
 
 uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
-uint8_t setupSelectedButton = 0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
+uint8_t setupSelectedButton =
+    0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
 std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'butttons'
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
@@ -688,10 +693,10 @@ uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
-bool firstPowerOn = true;  // After boot, apply new settings to ZED if the user switches between base or rover
+bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover;         // If the user modifies any NTRIP Client settings, we need to restart the rover
+bool restartRover;         // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
@@ -701,6 +706,8 @@ uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
+
+uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
@@ -713,10 +720,13 @@ bool espnowIncomingRTCM;
 bool espnowOutgoingRTCM;
 volatile bool mqttClientDataReceived; // Flag for display
 
-static RtcmTransportState rtcmParsingState = RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3;
 uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
+
+// Corrections Priorities Support
+std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
@@ -737,16 +747,18 @@ unsigned long um980BaseStartTimer; // Tracks how long the base averaging mode ha
 
 RtkMode_t rtkMode; // Mode of operation
 
-unsigned long beepLengthMs; // Number of ms to make noise
+unsigned long beepLengthMs;      // Number of ms to make noise
 unsigned long beepQuietLengthMs; // Number of ms to make reset between multiple beeps
-unsigned long beepNextEventMs; // Time at which to move the beeper to the next state
-unsigned long beepCount; // Number of beeps to do
+unsigned long beepNextEventMs;   // Time at which to move the beeper to the next state
+unsigned long beepCount;         // Number of beeps to do
 
+unsigned long lastMqttToPpl = 0;
+unsigned long lastGnssToPpl = 0;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 35
+#define MAX_BOOT_TIME_ENTRIES 39
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -791,7 +803,6 @@ volatile bool deadManWalking;
         deadManWalking = true;                                                                                         \
                                                                                                                        \
         /* Output as much as possible to identify the location of the failure */                                       \
-        settings.printDebugMessages = true;                                                                            \
         settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
@@ -809,7 +820,7 @@ volatile bool deadManWalking;
         settings.enablePrintRtcSync = true;                                                                            \
         settings.enablePrintBufferOverrun = true;                                                                      \
         settings.enablePrintSDBuffers = true;                                                                          \
-        settings.periodicDisplay = (PeriodicDisplay_t)-1;                                                              \
+        settings.periodicDisplay = (PeriodicDisplay_t) - 1;                                                            \
         settings.enablePrintEthernetDiag = true;                                                                       \
         settings.debugWifiState = true;                                                                                \
         settings.debugNetworkLayer = true;                                                                             \
@@ -818,9 +829,9 @@ volatile bool deadManWalking;
         settings.debugNtripClientState = true;                                                                         \
         settings.debugNtripServerRtcm = true;                                                                          \
         settings.debugNtripServerState = true;                                                                         \
-        settings.debugPvtClient = true;                                                                                \
-        settings.debugPvtServer = true;                                                                                \
-        settings.debugPvtUdpServer = true;                                                                             \
+        settings.debugTcpClient = true;                                                                                \
+        settings.debugTcpServer = true;                                                                                \
+        settings.debugUdpServer = true;                                                                             \
         settings.printBootTimes = true;                                                                                \
     }
 
@@ -934,6 +945,9 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
+    DMW_b("initializeCorrectionsPriorities");
+    initializeCorrectionsPriorities(); // Initialize (clear) the registeredCorrectionsSources vector
+
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
     {
@@ -949,6 +963,10 @@ void setup()
 
     DMW_b("beginFS");
     beginFS(); // Load NVM settings
+
+    DMW_b("checkConfigureViaEthernet");
+    configureViaEthernet =
+        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     // At this point product variants are known, except early RTK products that lacked ID resistors
     DMW_b("loadSettingsPartial");
@@ -971,10 +989,6 @@ void setup()
     beginDisplay(i2cDisplay); // Start display to be able to display any errors
 
     beginVersion(); // Assemble platform name. Requires settings/LFS.
-
-    DMW_b("checkConfigureViaEthernet");
-    configureViaEthernet =
-        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
@@ -1008,6 +1022,9 @@ void setup()
 
     DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
+
+    DMW_b("beginCharger");
+    beginCharger(); // Configure battery charger
 
     DMW_b("gnssConfigure");
     gnssConfigure(); // Requires settings. Configure ZED module
@@ -1162,6 +1179,9 @@ void loop()
 
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();
+
+    DMW_c("updateCorrectionsPriorities");
+    updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }
@@ -1382,9 +1402,9 @@ void rtcUpdate()
                 {
                     systemPrintln("No GNSS date/time available for system RTC.");
                 } // End timeValid
-            }     // End lastRTCAttempt
-        }         // End online.gnss
-    }             // End online.rtc
+            } // End lastRTCAttempt
+        } // End online.gnss
+    } // End online.rtc
 
     // Print TP time sync information here. Trying to do it in the ISR would be a bad idea...
     if (settings.enablePrintRtcSync == true)
@@ -1412,15 +1432,8 @@ void rtcUpdate()
 // Internal ESP NOW radio - Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
 void updateRadio()
 {
-    // If we have not gotten new RTCM bytes for a period of time, assume the end of frame
-    if (millis() - rtcmLastReceived > 50 && rtcmBytesSent > 0)
-    {
-        rtcmBytesSent = 0;
-        rtcmPacketsSent++; // If not checking RTCM CRC, count based on timeout
-    }
-
 #ifdef COMPILE_ESPNOW
-    if (settings.radioType == RADIO_ESPNOW)
+    if (settings.enableEspNow == true)
     {
         if (espnowState == ESPNOW_PAIRED)
         {
@@ -1438,7 +1451,10 @@ void updateRadio()
                 }
 
                 if (!inMainMenu)
-                    log_d("ESPNOW transmitted %d RTCM bytes", espnowBytesSent + espnowOutgoingSpot);
+                {
+                    if (settings.debugEspNow == true)
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                }
                 espnowBytesSent = 0;
                 espnowOutgoingSpot = 0; // Reset
             }

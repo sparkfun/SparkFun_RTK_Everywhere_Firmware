@@ -2,7 +2,9 @@
 // Update rate, constellations, etc
 void menuGNSS()
 {
-    restartRover = false; // If user modifies any NTRIP settings, we need to restart the rover
+    // If user modifies any NTRIP settings etc., we need to restart the rover with "restartRover = true;""
+    // But, don't set "restartRover = false;" here as that may prevent a restart requested by menuPointPerfect
+    // for example...
 
     while (1)
     {
@@ -15,10 +17,10 @@ void menuGNSS()
         systemPrint("2) Set measurement rate in seconds between measurements: ");
         systemPrintln(gnssGetRateS(), 5);
 
-        systemPrintln("\tNote: The measurement rate is overridden to 1Hz when in Base mode.");
+        systemPrintln("        Note: The measurement rate is overridden to 1Hz when in Base mode.");
 
         systemPrint("3) Set dynamic model: ");
-        if (gnssPlatform == PLATFORM_ZED)
+        if (present.gnss_zedf9p)
         {
             switch (settings.dynamicModel)
             {
@@ -63,7 +65,7 @@ void menuGNSS()
                 break;
             }
         }
-        else if (gnssPlatform == PLATFORM_UM980)
+        else if (present.gnss_um980)
         {
             switch (settings.dynamicModel)
             {
@@ -142,12 +144,12 @@ void menuGNSS()
             float minRate = 1.0;
             float maxRate = 1.0;
 
-            if (gnssPlatform == PLATFORM_ZED)
+            if (present.gnss_zedf9p)
             {
                 minRate = 0.05;   // 20Hz
                 maxRate = 8255.0; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
             }
-            else if (gnssPlatform == PLATFORM_UM980)
+            else if (present.gnss_um980)
             {
                 minRate = 0.05; // 20Hz
                 maxRate = 65.0; // Found experimentally
@@ -161,7 +163,7 @@ void menuGNSS()
         }
         else if (incoming == 3)
         {
-            if (gnssPlatform == PLATFORM_ZED)
+            if (present.gnss_zedf9p)
             {
                 systemPrintln("Enter the dynamic model to use: ");
                 systemPrintln("1) Portable");
@@ -174,7 +176,7 @@ void menuGNSS()
                 systemPrintln("8) Airborne 4g");
                 systemPrintln("9) Wrist");
             }
-            else if (gnssPlatform == PLATFORM_UM980)
+            else if (present.gnss_um980)
             {
                 systemPrintln("Enter the dynamic model to use: ");
                 systemPrintln("1) Survey");
@@ -185,7 +187,7 @@ void menuGNSS()
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (gnssPlatform == PLATFORM_ZED)
+                if (present.gnss_zedf9p)
                 {
                     uint8_t maxModel = DYN_MODEL_WRIST;
 
@@ -201,7 +203,7 @@ void menuGNSS()
                         gnssSetModel(settings.dynamicModel);
                     }
                 }
-                else if (gnssPlatform == PLATFORM_UM980)
+                else if (present.gnss_um980)
                 {
                     if (dynamicModel < 1 || dynamicModel > 3)
                         systemPrintln("Error: Dynamic model out of range");

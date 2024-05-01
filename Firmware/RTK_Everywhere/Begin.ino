@@ -133,13 +133,14 @@ void beginBoard()
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.radio_lora = true;
-        present.battery_bq40z50 = true;
+        present.fuelgauge_bq40z50 = true;
+        present.charger_mp2762a = true;
         present.encryption_atecc608a = true;
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
         present.antennaReferencePoint_mm = 102.0;
-        present.needsExternalPpl = true; // Used the PointPerfect Library
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -221,6 +222,8 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
+#ifdef EVKv1point1        
+        // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.lband_neo = true;
@@ -229,7 +232,76 @@ void beginBoard()
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.button_mode = true;
-        present.peripheralPowerControl = true; // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub,
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        present.peripheralPowerControl = true;
+        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.antennaShortOpen = true;
+        present.timePulseInterrupt = true;
+        present.gnss_to_uart = true;
+        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
+        present.i2c1 = true;
+        present.display_i2c1 = true;
+        present.display_type = DISPLAY_128x64;
+        present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
+
+        // Pin Allocations:
+        // 35, D1  : Serial TX (CH340 RX)
+        // 34, D3  : Serial RX (CH340 TX)
+
+        // 25, D0  : Boot + Boot Button
+        pin_modeButton = 0;
+        // 24, D2  : Status LED
+        pin_baseStatusLED = 2;
+        // 29, D5  : GNSS TP via 74LVC4066 switch
+        pin_GNSS_TimePulse = 5;
+        // 14, D12 : I2C1 SDA via 74LVC4066 switch
+        pin_I2C1_SDA = 12;
+        // 23, D15 : I2C1 SCL via 74LVC4066 switch
+        pin_I2C1_SCL = 15;
+
+        // 26, D4  : microSD card select bar
+        pin_microSD_CS = 4;
+        // 16, D13 : LARA_TXDI
+        pin_Cellular_TX = 13;
+        // 13, D14 : LARA_RXDO
+        pin_Cellular_RX = 14;
+
+        // 30, D18 : SPI SCK --> Ethernet, microSD card
+        // 31, D19 : SPI POCI
+        // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
+        pin_I2C0_SDA = 21;
+        // 36, D22 : I2C0 SCL
+        pin_I2C0_SCL = 22;
+        // 37, D23 : SPI PICO
+        // 10, D25 : GNSS RX --> ZED UART1 TXO
+        pin_GnssUart_RX = 25;
+        // 11, D26 : LARA_PWR_ON
+        pin_Cellular_PWR_ON = 26;
+        // 12, D27 : Ethernet Chip Select
+        pin_Ethernet_CS = 27;
+        //  8, D32 : PWREN
+        pin_peripheralPowerControl = 32;
+        //  9, D33 : GNSS TX --> ZED UART1 RXI
+        pin_GnssUart_TX = 33;
+        //  6, A34 : LARA_NI
+        pin_Cellular_Network_Indicator = 34;
+        //  7, A35 : Board Detect (1.1V)
+        //  4, A36 : microSD card detect
+        pin_microSD_CardDetect = 36;
+        //  5, A39 : Ethernet Interrupt
+        pin_Ethernet_Interrupt = 39;
+#else
+        // EVK v1.0 - TODO: delete this once all five EVK v1.0's have been upgraded / replaced
+        present.psram_4mb = true;
+        present.gnss_zedf9p = true;
+        present.lband_neo = true;
+        present.cellular_lara = true;
+        present.ethernet_ws5500 = true;
+        present.microSd = true;
+        present.microSdCardDetectLow = true;
+        present.button_mode = true;
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        present.peripheralPowerControl = true;
         present.laraPowerControl = true;       // Tertiary power controls the LARA
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
@@ -247,27 +319,30 @@ void beginBoard()
         pin_modeButton = 0;
         // 24, D2  : Status LED
         pin_baseStatusLED = 2;
-        // 29, D5  : ESP5 test point
-        // 14, D12 : I2C1 SDA
+        // 29, D5  : LARA_ON - not used
+        // 14, D12 : I2C1 SDA via 74LVC4066 switch
         pin_I2C1_SDA = 12;
-        // 23, D15 : I2C1 SCL --> OLED after switch
+        // 23, D15 : I2C1 SCL via 74LVC4066 switch
         pin_I2C1_SCL = 15;
 
         // 26, D4  : microSD card select bar
         pin_microSD_CS = 4;
         // 16, D13 : LARA_TXDI
+        pin_Cellular_TX = 13;
         // 13, D14 : LARA_RXDO
+        pin_Cellular_RX = 14;
 
         // 30, D18 : SPI SCK --> Ethernet, microSD card
         // 31, D19 : SPI POCI
-        // 33, D21 : I2C0 SDA
+        // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
         pin_I2C0_SDA = 21;
-        // 36, D22 : I2C0 SCL --> ZED, NEO, USB2514B, TP, I/O connector
+        // 36, D22 : I2C0 SCL
         pin_I2C0_SCL = 22;
         // 37, D23 : SPI PICO
-        // 10, D25 : TP/2
+        // 10, D25 : GNSS TP
         pin_GNSS_TimePulse = 25;
-        // 11, D26 : LARA_ON
+        // 11, D26 : LARA_PWR_ON
+        pin_Cellular_PWR_ON = 26;
         // 12, D27 : Ethernet Chip Select
         pin_Ethernet_CS = 27;
         //  8, D32 : PWREN
@@ -275,11 +350,12 @@ void beginBoard()
         //  9, D33 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 33;
         //  6, A34 : LARA_NI
+        pin_Cellular_Network_Indicator = 34;
         //  7, A35 : Board Detect (1.1V)
         //  4, A36 : microSD card detect
         pin_microSD_CardDetect = 36;
-        //  5, A39 : Unused analog pin - used to generate random values for SSL
-
+        //  5, A39 : Not used
+#endif
         // Select the I2C 0 data structure
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
@@ -301,10 +377,19 @@ void beginBoard()
         pinMode(pin_baseStatusLED, OUTPUT);
         baseStatusLedOff();
 
-        // Turn on power to the I2C_1 bus
+        DMW_if systemPrintf("pin_Cellular_Network_Indicator: %d\r\n", pin_Cellular_Network_Indicator);
+        pinMode(pin_Cellular_Network_Indicator, INPUT);
+
+        // In the fullness of time, pin_Cellular_PWR_ON will (probably) be controlled by the Cellular Library
+        DMW_if systemPrintf("pin_Cellular_PWR_ON: %d\r\n", pin_Cellular_PWR_ON);
+        digitalWrite(pin_Cellular_PWR_ON, LOW);
+        pinMode(pin_Cellular_PWR_ON, OUTPUT);
+        digitalWrite(pin_Cellular_PWR_ON, LOW);
+
+        // Turn on power to the peripherals
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
-        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub, LARA - if SPWR & TPWR jumpers have been changed
     }
 
     else if (productVariant == RTK_FACET_V2)
@@ -315,7 +400,7 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.button_powerLow = true; // Button is pressed when low
-        present.battery_max17048 = true;
+        present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
 
@@ -332,13 +417,13 @@ void beginBoard()
     else if (productVariant == RTK_FACET_MOSAIC)
     {
         present.psram_4mb = true;
-        present.gnss_mosaic = true;
+        present.gnss_mosaicX5 = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
-        present.battery_max17048 = true;
+        present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
 
@@ -376,6 +461,12 @@ void beginVersion()
     char versionString[21];
     getFirmwareVersion(versionString, sizeof(versionString), true);
     systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+
+#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
+    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
+    esp_base_mac_addr_set(developerMacAddress);
+    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
+#endif
 
     // Get unit MAC address
     esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
@@ -453,6 +544,14 @@ void beginSD()
 {
     if (present.microSd == false)
         return;
+
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginSD");
+        return;
+    }
 
     bool gotSemaphore;
 
@@ -619,6 +718,14 @@ void beginGnssUart()
     if (present.gnss_to_uart == false)
         return;
 
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginGnssUart");
+        return;
+    }
+
     size_t length;
     TaskHandle_t taskHandle;
 
@@ -723,7 +830,8 @@ bool checkConfigureViaEthernet()
 
     if (LittleFS.exists("/configureViaEthernet.txt"))
     {
-        log_d("LittleFS configureViaEthernet.txt exists");
+        if (settings.debugNetworkLayer)
+            systemPrintln("LittleFS configureViaEthernet.txt exists");
         LittleFS.remove("/configureViaEthernet.txt");
         return true;
     }
@@ -740,7 +848,8 @@ bool forceConfigureViaEthernet()
 
     if (LittleFS.exists("/configureViaEthernet.txt"))
     {
-        log_d("LittleFS configureViaEthernet.txt already exists");
+        if (settings.debugNetworkLayer)
+            systemPrintln("LittleFS configureViaEthernet.txt already exists");
         return true;
     }
 
@@ -750,7 +859,8 @@ bool forceConfigureViaEthernet()
     if (LittleFS.exists("/configureViaEthernet.txt"))
         return true;
 
-    log_d("Unable to create configureViaEthernet.txt on LittleFS");
+    if (settings.debugNetworkLayer)
+        systemPrintln("Unable to create configureViaEthernet.txt on LittleFS");
     return false;
 }
 
@@ -760,7 +870,8 @@ void beginInterrupts()
     // Skip if going into configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        log_d("configureViaEthernet: skipping beginInterrupts");
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginInterrupts");
         return;
     }
 
@@ -790,8 +901,7 @@ void tickerBegin()
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
         ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED at startup
-        bluetoothLedTask.detach();                                                  // Turn off any previous task
-        bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        //Attach happens in bluetoothStart()
     }
 
     if (pin_gnssStatusLED != PIN_UNDEFINED)
@@ -819,7 +929,7 @@ void tickerBegin()
     }
 }
 
-//Stop any ticker tasks and PWM control
+// Stop any ticker tasks and PWM control
 void tickerStop()
 {
     bluetoothLedTask.detach();
@@ -834,7 +944,7 @@ void tickerStop()
 // Configure the battery fuel gauge
 void beginFuelGauge()
 {
-    if (present.battery_max17048 == true)
+    if (present.fuelgauge_max17048 == true)
     {
         // Set up the MAX17048 LiPo fuel gauge
         if (lipo.begin(*i2c_0) == false)
@@ -843,7 +953,7 @@ void beginFuelGauge()
             return;
         }
 
-        online.battery = true;
+        online.batteryFuelGauge = true;
 
         // Always use hibernate mode
         if (lipo.getHIBRTActThr() < 0xFF)
@@ -869,7 +979,7 @@ void beginFuelGauge()
         }
     }
 #ifdef COMPILE_BQ40Z50
-    else if (present.battery_bq40z50 == true)
+    else if (present.fuelgauge_bq40z50 == true)
     {
         if (bq40z50Battery == nullptr)
             bq40z50Battery = new BQ40Z50;
@@ -888,7 +998,7 @@ void beginFuelGauge()
             return;
         }
 
-        online.battery = true;
+        online.batteryFuelGauge = true;
 
         systemPrintln("Fuel gauge configuration complete");
 
@@ -915,6 +1025,34 @@ void beginFuelGauge()
         }
     }
 #endif // COMPILE_BQ40Z50
+}
+
+// Configure the battery charger IC
+void beginCharger()
+{
+    if (present.charger_mp2762a == true)
+    {
+        // Set pre-charge defaults for the MP2762A
+        // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
+        if (mp2762Begin(i2c_0) == true)
+        {
+            // Resetting registers to defaults
+            mp2762registerReset();
+
+            // Setting FastCharge to 6.6V
+            mp2762setFastChargeVoltageMv(6600);
+
+            // Setting precharge current to 880mA
+            mp2762setPrechargeCurrentMa(880);
+
+            systemPrintln("Charger configuration complete");
+            online.batteryCharger = true;
+        }
+        else
+        {
+            systemPrintln("MP2762A charger failed to initialize");
+        }
+    }
 }
 
 void beginButtons()
@@ -994,8 +1132,17 @@ void beginSystemState()
     else if (productVariant == RTK_EVK)
     {
         firstRoverStart = false; // Screen should have been tested when it was made ;-)
+
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
+
+        // Begin process for getting new keys if corrections are enabled
+        // Because this is the only way to set online.lbandCorrections to true via
+        // STATE_KEYS_LBAND_CONFIGURE -> gnssApplyPointPerfectKeys -> zedApplyPointPerfectKeys
+        // TODO: we need to rethink this. We need correction keys for both ip and Lb.
+        // We should really restructure things so we use online.corrections...
+        if (settings.enablePointPerfectCorrections)
+            systemState = STATE_KEYS_STARTED;
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -1011,9 +1158,10 @@ void beginSystemState()
         // Do not allow user to enter test screen during first rover start because there is no screen
         firstRoverStart = false;
 
-        systemState = STATE_ROVER_NOT_STARTED;
+        // Return to either Base or Rover Not Started. The last state previous to power down.
+        systemState = settings.lastState;
 
-        if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+        if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
     }
     else
@@ -1239,18 +1387,13 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     return true;
 }
 
-// Depending on radio selection, begin hardware
+// Depending on radio settings, begin hardware
 void radioStart()
 {
-    if (settings.radioType == RADIO_EXTERNAL)
-    {
-        espnowStop();
-
-        // Nothing to start. UART2 of ZED is connected to external Radio port and is configured at
-        // gnssConfigure()
-    }
-    else if (settings.radioType == RADIO_ESPNOW)
+    if (settings.enableEspNow == true)
         espnowStart();
+    else
+        espnowStop();
 }
 
 // Start task to determine SD card size
@@ -1282,7 +1425,18 @@ void deleteSDSizeCheckTask()
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+// Corrections Priorities Housekeeping
+void initializeCorrectionsPriorities()
+{
+    clearRegisteredCorrectionsSources(); // Clear (initialize) the vector of corrections sources. Probably redundant...?
+}
 
+void updateCorrectionsPriorities()
+{
+    checkRegisteredCorrectionsSources(); // Delete any expired corrections sources
+}
+
+// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
 // TODO: find a better home for this
 void checkArrayDefaults()

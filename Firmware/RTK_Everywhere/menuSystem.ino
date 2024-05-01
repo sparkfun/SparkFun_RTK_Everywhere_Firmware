@@ -7,7 +7,6 @@ void menuSystem()
         systemPrintln("System Status");
 
         printTimeStamp();
-        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         beginI2C();
         if (online.i2c == false)
@@ -36,10 +35,10 @@ void menuSystem()
                 systemPrintln("Offline");
         }
 
-        if (present.battery_bq40z50 || present.battery_max17048)
+        if (present.fuelgauge_bq40z50 || present.fuelgauge_max17048)
         {
             systemPrint("Fuel Gauge: ");
-            if (online.battery == true)
+            if (online.batteryFuelGauge == true)
             {
                 systemPrint("Online - ");
 
@@ -77,7 +76,8 @@ void menuSystem()
             if (lbandCorrectionsReceived == false)
                 systemPrint(" Failed");
 
-            systemPrintf(" / Eb/N0[dB] (>9 is good): %0.2f", lBandEBNO);
+            if (zedCorrectionsSource == 1) // Only print for L-Band
+                systemPrintf(" / Eb/N0[dB] (>9 is good): %0.2f", lBandEBNO);
 
             systemPrint(" - ");
 
@@ -160,6 +160,7 @@ void menuSystem()
         systemPrintln("Menu: System");
         // Separate the menu from the status
         systemPrintln("-----  Mode Switch  -----");
+        systemPrintf("Mode: %s\r\n", stateToRtkMode(systemState));
 
         // Support mode switching
         systemPrintln("B) Switch to Base mode");
@@ -215,6 +216,8 @@ void menuSystem()
         systemPrintln("p) Configure periodic print messages");
 
         systemPrintln("r) Reset all settings to default");
+
+        systemPrintf("u) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
 
         systemPrintf("z) Set time zone offset: %02d:%02d:%02d\r\n", settings.timeZoneHours, settings.timeZoneMinutes,
                      settings.timeZoneSeconds);
@@ -280,6 +283,12 @@ void menuSystem()
             }
             else
                 systemPrintln("Reset aborted");
+        }
+        else if (incoming == 'u')
+        {
+            settings.measurementScale += 1;
+            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+                settings.measurementScale = 0;
         }
         else if (incoming == 'z')
         {
@@ -419,7 +428,7 @@ void menuDebugHardware()
         systemPrint("12) Print Tilt/IMU Compensation Debugging: ");
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
-        if (present.gnss_um980 == true)
+        if (present.gnss_um980)
             systemPrintln("13) UM980 Direct connect");
 
         systemPrint("14) PSRAM (");
@@ -436,6 +445,9 @@ void menuDebugHardware()
         }
         systemPrint("): ");
         systemPrintf("%s\r\n", settings.enablePsram ? "Enabled" : "Disabled");
+
+        systemPrint("15) Print ESP-Now Debugging: ");
+        systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
 
         systemPrintln("e) Erase LittleFS");
 
@@ -491,7 +503,7 @@ void menuDebugHardware()
         {
             settings.enableImuCompensationDebug ^= 1;
         }
-        else if (incoming == 13 && present.gnss_um980 == true)
+        else if (incoming == 13 && present.gnss_um980)
         {
             systemPrintln("Press ! to exit");
 
@@ -517,6 +529,10 @@ void menuDebugHardware()
         else if (incoming == 14)
         {
             settings.enablePsram ^= 1;
+        }
+        else if (incoming == 15)
+        {
+            settings.debugEspNow ^= 1;
         }
         else if (incoming == 'e')
         {
@@ -598,17 +614,17 @@ void menuDebugNetwork()
         systemPrint("24) Debug caster --> NTRIP server GNSS messages: ");
         systemPrintf("%s\r\n", settings.debugNtripServerRtcm ? "Enabled" : "Disabled");
 
-        // PVT Client
-        systemPrint("25) Debug PVT client: ");
-        systemPrintf("%s\r\n", settings.debugPvtClient ? "Enabled" : "Disabled");
+        // TCP Client
+        systemPrint("25) Debug TCP client: ");
+        systemPrintf("%s\r\n", settings.debugTcpClient ? "Enabled" : "Disabled");
 
-        // PVT Server
-        systemPrint("26) Debug PVT server: ");
-        systemPrintf("%s\r\n", settings.debugPvtServer ? "Enabled" : "Disabled");
+        // TCP Server
+        systemPrint("26) Debug TCP server: ");
+        systemPrintf("%s\r\n", settings.debugTcpServer ? "Enabled" : "Disabled");
 
-        // PVT Server
-        systemPrint("27) Debug PVT UDP server: ");
-        systemPrintf("%s\r\n", settings.debugPvtUdpServer ? "Enabled" : "Disabled");
+        // UDP Server
+        systemPrint("27) Debug UDP server: ");
+        systemPrintf("%s\r\n", settings.debugUdpServer ? "Enabled" : "Disabled");
 
         // MQTT Client
         systemPrint("28) Debug MQTT client data: ");
@@ -645,11 +661,11 @@ void menuDebugNetwork()
         else if (incoming == 24)
             settings.debugNtripServerRtcm ^= 1;
         else if (incoming == 25)
-            settings.debugPvtClient ^= 1;
+            settings.debugTcpClient ^= 1;
         else if (incoming == 26)
-            settings.debugPvtServer ^= 1;
+            settings.debugTcpServer ^= 1;
         else if (incoming == 27)
-            settings.debugPvtUdpServer ^= 1;
+            settings.debugUdpServer ^= 1;
         else if (incoming == 28)
             settings.debugMqttClientData ^= 1;
         else if (incoming == 29)
@@ -900,15 +916,6 @@ void menuOperation()
         // ZED
         systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
-        systemPrint("11) Use I2C for L-Band Corrections: ");
-        systemPrintf("%s\r\n", settings.useI2cForLbandCorrections ? "Enabled" : "Disabled");
-
-        systemPrintf("12) RTCM timeout before L-Band override (seconds): %d\r\n",
-                     settings.rtcmTimeoutBeforeUsingLBand_s);
-
-        // Measurement scale
-        systemPrintf("13) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
-
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
         systemPrintln(settings.bluetoothInterruptsCore);
@@ -1008,23 +1015,6 @@ void menuOperation()
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
-        }
-        else if (incoming == 11)
-        {
-            settings.useI2cForLbandCorrectionsConfigured =
-                true; // Record that the user has manually modified the settings.
-            settings.useI2cForLbandCorrections ^= 1;
-        }
-        else if (incoming == 12)
-        {
-            getNewSetting("Enter the number of seconds before L-Band is used once RTCM is absent", 1, 255,
-                          &settings.rtcmTimeoutBeforeUsingLBand_s);
-        }
-        else if (incoming == 13)
-        {
-            settings.measurementScale += 1;
-            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
-                settings.measurementScale = 0;
         }
 
         else if (incoming == 30)
@@ -1158,20 +1148,20 @@ void menuPeriodicPrint()
         systemPrint("46) NTRIP server state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NTRIP_SERVER_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("47) PVT client data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_CLIENT_DATA) ? "Enabled" : "Disabled");
+        systemPrint("47) TCP client data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_CLIENT_DATA) ? "Enabled" : "Disabled");
 
-        systemPrint("48) PVT client state: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_CLIENT_STATE) ? "Enabled" : "Disabled");
+        systemPrint("48) TCP client state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_CLIENT_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("49) PVT server client data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_CLIENT_DATA) ? "Enabled" : "Disabled");
+        systemPrint("49) TCP server client data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_SERVER_CLIENT_DATA) ? "Enabled" : "Disabled");
 
-        systemPrint("50) PVT server data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_DATA) ? "Enabled" : "Disabled");
+        systemPrint("50) TCP server data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_SERVER_DATA) ? "Enabled" : "Disabled");
 
-        systemPrint("51) PVT server state: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PVT_SERVER_STATE) ? "Enabled" : "Disabled");
+        systemPrint("51) TCP server state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TCP_SERVER_STATE) ? "Enabled" : "Disabled");
 
         systemPrint("52) MQTT client data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_MQTT_CLIENT_DATA) ? "Enabled" : "Disabled");
@@ -1256,15 +1246,15 @@ void menuPeriodicPrint()
         else if (incoming == 46)
             PERIODIC_TOGGLE(PD_NTRIP_SERVER_STATE);
         else if (incoming == 47)
-            PERIODIC_TOGGLE(PD_PVT_CLIENT_DATA);
+            PERIODIC_TOGGLE(PD_TCP_CLIENT_DATA);
         else if (incoming == 48)
-            PERIODIC_TOGGLE(PD_PVT_CLIENT_STATE);
+            PERIODIC_TOGGLE(PD_TCP_CLIENT_STATE);
         else if (incoming == 49)
-            PERIODIC_TOGGLE(PD_PVT_SERVER_CLIENT_DATA);
+            PERIODIC_TOGGLE(PD_TCP_SERVER_CLIENT_DATA);
         else if (incoming == 50)
-            PERIODIC_TOGGLE(PD_PVT_SERVER_DATA);
+            PERIODIC_TOGGLE(PD_TCP_SERVER_DATA);
         else if (incoming == 51)
-            PERIODIC_TOGGLE(PD_PVT_SERVER_STATE);
+            PERIODIC_TOGGLE(PD_TCP_SERVER_STATE);
         else if (incoming == 52)
             PERIODIC_TOGGLE(PD_MQTT_CLIENT_DATA);
         else if (incoming == 53)

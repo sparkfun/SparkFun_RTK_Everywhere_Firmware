@@ -64,23 +64,52 @@ void beepOff()
         digitalWrite(pin_beeper, LOW);
 }
 
-// Update Battery level LEDs every 5s
+// Update battery levels every 5 seconds
+// Update battery charger as needed
 void updateBattery()
 {
-    if (online.battery == true)
+    if (online.batteryFuelGauge == true)
     {
-        static unsigned long lastBattUpdate = 0;
-        if (millis() - lastBattUpdate > 5000)
+        static unsigned long lastBatteryFuelGaugeUpdate = 0;
+        if (millis() - lastBatteryFuelGaugeUpdate > 5000)
         {
-            lastBattUpdate = millis();
+            lastBatteryFuelGaugeUpdate = millis();
 
             checkBatteryLevels();
 
-            if (present.battery_bq40z50 == true)
+            if (present.fuelgauge_bq40z50 == true)
             {
                 // Turn on green battery LED if battery is above 50%
                 if (batteryLevelPercent > 50)
                     batteryStatusLedOn();
+            }
+        }
+    }
+
+    if (online.batteryCharger == true)
+    {
+        static unsigned long lastBatteryChargerUpdate = 0;
+        if (millis() - lastBatteryChargerUpdate > 5000)
+        {
+            lastBatteryChargerUpdate = millis();
+
+            // If the power cable is attached, and charging has stopped, and we are below 7V, then re-enable trickle charge
+            // This is likely because the 1-hour trickle charge limit has been reached
+            // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
+
+            if (isUsbAttached() == true)
+            {
+                if (mp2762getChargeStatus() == 0b00)
+                {
+                    float packVoltage = mp2762getBatteryVoltageMv() / 1000.0;
+                    if (packVoltage < 7.0)
+                    {
+                        systemPrintf(
+                            "Pack voltage is %0.2f, below 7V and not charging. Resetting MP2762 safety timer.\r\n",
+                            packVoltage);
+                        mp2762resetSafetyTimer();
+                    }
+                }
             }
         }
     }
@@ -90,11 +119,11 @@ void updateBattery()
 // And outputs a serial message to USB
 void checkBatteryLevels()
 {
-    if (online.battery == false)
+    if (online.batteryFuelGauge == false)
         return;
 
     // Get the battery voltage, level and charge rate
-    if (present.battery_max17048 == true)
+    if (present.fuelgauge_max17048 == true)
     {
         batteryLevelPercent = lipo.getSOC();
         batteryVoltage = lipo.getVoltage();
@@ -102,7 +131,7 @@ void checkBatteryLevels()
     }
 
 #ifdef COMPILE_BQ40Z50
-    else if (present.battery_bq40z50 == true)
+    else if (present.fuelgauge_bq40z50 == true)
     {
         batteryLevelPercent = bq40z50Battery->getRelativeStateOfCharge();
         batteryVoltage = (bq40z50Battery->getVoltageMv() / 1000.0);
@@ -286,7 +315,7 @@ bool messageSupported(int messageNumber)
 {
     bool messageSupported = false;
 
-    if (zedFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
+    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
         messageSupported = true;
 
     return (messageSupported);
@@ -310,7 +339,7 @@ bool commandSupported(const uint32_t key)
     }
     else
     {
-        if (zedFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
+        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
             commandSupported = true;
     }
     return (commandSupported);
@@ -755,18 +784,32 @@ void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
 }
 
 // Return true if a USB cable is detected
-bool isCharging()
+bool isUsbAttached()
 {
     if (pin_powerAdapterDetect != PIN_UNDEFINED)
     {
-        // Pin goes low when wall adapter is detected
-        if (digitalRead(pin_powerAdapterDetect) == HIGH)
-            return false;
+        if (pin_powerAdapterDetect != PIN_UNDEFINED)
+            // Pin goes low when wall adapter is detected
+            if (digitalRead(pin_powerAdapterDetect) == HIGH)
+                return false;
         return true;
     }
-    else if (present.battery_max17048 == true && online.battery == true)
+    return false;
+}
+
+// Return true if charger is actively charging
+bool isCharging()
+{
+    if (present.fuelgauge_max17048 == true && online.batteryFuelGauge == true)
     {
         if (batteryChargingPercentPerHour >= -0.01)
+            return true;
+        return false;
+    }
+    else if (present.charger_mp2762a == true && online.batteryCharger == true)
+    {
+        // 0b00 - Not charging, 01 - trickle or precharge, 10 - fast charge, 11 - charge termination
+        if (mp2762getChargeStatus() == 0b01 || mp2762getChargeStatus() == 0b10)
             return true;
         return false;
     }

@@ -178,9 +178,9 @@ const char *const networkUser[] = {
     "NTP Server",
     "NTRIP Client",
     "OTA Firmware Update",
-    "PVT Client",
-    "PVT Server",
-    "PVT UDP Server",
+    "TCP Client",
+    "TCP Server",
+    "UDP Server",
     "NTRIP Server 0",
     "NTRIP Server 1",
     "NTRIP Server 2",
@@ -196,41 +196,41 @@ static NETWORK_DATA networkData = {NETWORK_TYPE_ACTIVE, NETWORK_TYPE_ACTIVE};
 static uint32_t networkLastIpAddressDisplayMillis[NETWORK_TYPE_MAX];
 
 //----------------------------------------
-// Menu to get the common network settings
+// Menu for configuring TCP/UDP interfaces
 //----------------------------------------
-void menuNetwork()
+void menuTcpUdp()
 {
     while (1)
     {
         systemPrintln();
-        systemPrintln("Menu: Network");
+        systemPrintln("Menu: TCP/UDP");
         systemPrintln();
 
         //------------------------------
-        // Display the PVT client menu items
+        // Display the TCP client items
         //------------------------------
 
         // Display the menu
-        systemPrintf("1) PVT Client: %s\r\n", settings.enablePvtClient ? "Enabled" : "Disabled");
-        if (settings.enablePvtClient)
+        systemPrintf("1) TCP Client: %s\r\n", settings.enableTcpClient ? "Enabled" : "Disabled");
+        if (settings.enableTcpClient)
         {
-            systemPrintf("2) PVT Client Host: %s\r\n", settings.pvtClientHost);
-            systemPrintf("3) PVT Client Port: %ld\r\n", settings.pvtClientPort);
+            systemPrintf("2) Host for TCP Client: %s\r\n", settings.tcpClientHost);
+            systemPrintf("3) TCP Client Port: %ld\r\n", settings.tcpClientPort);
         }
 
         //------------------------------
-        // Display the PVT server menu items
+        // Display the TCP server menu items
         //------------------------------
 
-        systemPrintf("4) PVT Server: %s\r\n", settings.enablePvtServer ? "Enabled" : "Disabled");
+        systemPrintf("4) TCP Server: %s\r\n", settings.enableTcpServer ? "Enabled" : "Disabled");
 
-        if (settings.enablePvtServer)
-            systemPrintf("5) PVT Server Port: %ld\r\n", settings.pvtServerPort);
+        if (settings.enableTcpServer)
+            systemPrintf("5) TCP Server Port: %ld\r\n", settings.tcpServerPort);
 
-        systemPrintf("6) PVT UDP Server: %s\r\n", settings.enablePvtUdpServer ? "Enabled" : "Disabled");
+        systemPrintf("6) UDP Server: %s\r\n", settings.enableUdpServer ? "Enabled" : "Disabled");
 
-        if (settings.enablePvtUdpServer)
-            systemPrintf("7) PVT UDP Server Port: %ld\r\n", settings.pvtUdpServerPort);
+        if (settings.enableUdpServer)
+            systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
         if (present.ethernet_ws5500 == true)
         {
@@ -254,67 +254,67 @@ void menuNetwork()
         byte incoming = getUserInputCharacterNumber();
 
         //------------------------------
-        // Get the PVT client parameters
+        // Get the TCP client parameters
         //------------------------------
 
-        // Toggle PVT client enable
+        // Toggle TCP client enable
         if (incoming == 1)
-            settings.enablePvtClient ^= 1;
+            settings.enableTcpClient ^= 1;
 
-        // Get the PVT client host
-        else if ((incoming == 2) && settings.enablePvtClient)
+        // Get the TCP client host
+        else if ((incoming == 2) && settings.enableTcpClient)
         {
-            char hostname[sizeof(settings.pvtClientHost)];
+            char hostname[sizeof(settings.tcpClientHost)];
 
-            systemPrint("Enter PVT client host name / address: ");
+            systemPrint("Enter TCP client hostname / address: ");
 
-            // Get the host name or IP address
+            // Get the hostname or IP address
             memset(hostname, 0, sizeof(hostname));
             getUserInputString(hostname, sizeof(hostname) - 1);
-            strcpy(settings.pvtClientHost, hostname);
+            strcpy(settings.tcpClientHost, hostname);
 
             // Remove any http:// or https:// prefix from host name
             // strtok modifies string to be parsed so we create a copy
-            strncpy(hostname, settings.pvtClientHost, sizeof(hostname) - 1);
+            strncpy(hostname, settings.tcpClientHost, sizeof(hostname) - 1);
             char *token = strtok(hostname, "//");
             if (token != nullptr)
             {
                 token = strtok(nullptr, "//"); // Advance to data after //
                 if (token != nullptr)
-                    strcpy(settings.pvtClientHost, token);
+                    strcpy(settings.tcpClientHost, token);
             }
         }
 
-        // Get the PVT client port number
-        else if ((incoming == 3) && settings.enablePvtClient)
+        // Get the TCP client port number
+        else if ((incoming == 3) && settings.enableTcpClient)
         {
-            getNewSetting("Enter the PVT client port number to use", 0, 65535, &settings.pvtClientPort);
+            getNewSetting("Enter the TCP client port number to use", 0, 65535, &settings.tcpClientPort);
         }
 
         //------------------------------
-        // Get the PVT server parameters
+        // Get the TCP server parameters
         //------------------------------
 
         else if (incoming == 4)
-            // Toggle WiFi NEMA server
-            settings.enablePvtServer ^= 1;
+            // Toggle TCP server
+            settings.enableTcpServer ^= 1;
 
         else if (incoming == 5)
         {
-            getNewSetting("Enter the TCP port to use", 0, 65535, &settings.pvtServerPort);
+            getNewSetting("Enter the TCP port to use", 0, 65535, &settings.tcpServerPort);
         }
 
         //------------------------------
-        // Get the PVT UDP server parameters
+        // Get the UDP server parameters
         //------------------------------
 
         else if (incoming == 6)
-            // Toggle WiFi UDP NEMA server
-            settings.enablePvtUdpServer ^= 1;
+            // Toggle UDP server
+            settings.enableUdpServer ^= 1;
 
-        else if (incoming == 7 && settings.enablePvtUdpServer)
+        else if (incoming == 7 && settings.enableUdpServer)
         {
-            getNewSetting("Enter the UDP port to use", 0, 65535, &settings.pvtUdpServerPort);
+            getNewSetting("Enter the UDP port to use", 0, 65535, &settings.udpServerPort);
         }
 
         //------------------------------
@@ -389,12 +389,31 @@ void networkDisplayIpAddress(uint8_t networkType)
         {
             strcpy(ipAddress, networkGetIpAddress(networkType).toString().c_str());
             if (network->type == NETWORK_TYPE_WIFI)
-                systemPrintf("%s IP address: %s, RSSI: %d\r\n", networkName[network->type], ipAddress, wifiGetRssi());
+                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], wifiGetSsid(), ipAddress, wifiGetRssi());
             else
                 systemPrintf("%s IP address: %s\r\n", networkName[network->type], ipAddress);
 
             // The address was just displayed
             networkLastIpAddressDisplayMillis[networkType] = millis();
+        }
+    }
+}
+
+//----------------------------------------
+// Display the network users
+//----------------------------------------
+void networkDisplayUsers(NETWORK_USER users)
+{
+    uint8_t userNumber = 0;
+    uint32_t mask;
+
+    while (users)
+    {
+        mask = 1 << userNumber;
+        if (users & mask)
+        {
+            users &= ~mask;
+            systemPrintf("    0x%08x: %s\r\n", mask, networkUserToString(userNumber));
         }
     }
 }
@@ -713,7 +732,7 @@ void networkSetState(NETWORK_DATA *network, byte newState)
         // Display the network state
         systemPrint("Network State: ");
         if (newState != network->state)
-            systemPrintf("%s --> ", networkState[network->state]);
+            systemPrintf("%s --> ", networkStateToString(network->state));
         else
             systemPrint("*");
 
@@ -724,7 +743,7 @@ void networkSetState(NETWORK_DATA *network, byte newState)
             reportFatalError("Unknown network layer state");
         }
         else
-            systemPrintf("%s\r\n", networkState[newState]);
+            systemPrintf("%s\r\n", networkStateToString(newState));
     }
 
     // Validate the network state
@@ -786,6 +805,42 @@ void networkStart(uint8_t networkType)
             networkSetState(network, NETWORK_STATE_DELAY);
         }
     }
+}
+
+//----------------------------------------
+// Translate the network state into a string
+//----------------------------------------
+const char * networkStateToString(uint8_t state)
+{
+    if (state >= networkStateEntries)
+        return "Unknown";
+    return networkState[state];
+}
+
+//----------------------------------------
+// Display the network status
+//----------------------------------------
+void networkStatus(uint8_t networkType)
+{
+    NETWORK_DATA *network;
+
+    // Get the network
+    network = &networkData;
+
+    // Display the network status
+    systemPrintf("requestedNetwork: %d (%s)\r\n", network->requestedNetwork,
+                 networkTypeToString(network->requestedNetwork));
+    systemPrintf("type: %d (%s)\r\n", network->type, networkTypeToString(network->type));
+    systemPrintf("activeUsers: 0x%08x\r\n", network->activeUsers);
+    networkDisplayUsers(network->activeUsers);
+    systemPrintf("userOpens: 0x%08x\r\n", network->userOpens);
+    networkDisplayUsers(network->userOpens);
+    systemPrintf("connectionAttempt: %d\r\n", network->connectionAttempt);
+    systemPrintf("restart: %s\r\n", network->restart ? "true" : "false");
+    systemPrintf("shutdown: %s\r\n", network->shutdown ? "true" : "false");
+    systemPrintf("state: %d (%s)\r\n", network->state, networkStateToString(network->state));
+    systemPrintf("timeout: %d\r\n", network->timeout);
+    systemPrintf("timerStart: %d\r\n", network->timerStart);
 }
 
 //----------------------------------------
@@ -869,22 +924,22 @@ void networkStop(uint8_t networkType)
                     otaAutoUpdateStop();
                     break;
 
-                case NETWORK_USER_PVT_CLIENT:
+                case NETWORK_USER_TCP_CLIENT:
                     if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping PVT client");
-                    pvtClientStop();
+                        systemPrintln("Network layer stopping TCP client");
+                    tcpClientStop();
                     break;
 
-                case NETWORK_USER_PVT_SERVER:
+                case NETWORK_USER_TCP_SERVER:
                     if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping PVT server");
-                    pvtServerStop();
+                        systemPrintln("Network layer stopping TCP server");
+                    tcpServerStop();
                     break;
 
-                case NETWORK_USER_PVT_UDP_SERVER:
+                case NETWORK_USER_UDP_SERVER:
                     if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping PVT UDP server");
-                    pvtUdpServerStop();
+                        systemPrintln("Network layer stopping UDP server");
+                    udpServerStop();
                     break;
                 }
             }
@@ -968,10 +1023,27 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
 }
 
 //----------------------------------------
+// Translate type into a string
+//----------------------------------------
+const char * networkTypeToString(uint8_t type)
+{
+    if (type >= networkNameEntries)
+        return "Unknown";
+    return networkName[type];
+}
+
+//----------------------------------------
 // Update the network device state
 //----------------------------------------
 void networkTypeUpdate(uint8_t networkType)
 {
+    if(inWiFiConfigMode())
+    {
+        //Avoid the full network layer while in Browser Config Mode
+        wifiUpdate();
+        return; 
+    }
+
     char errorMsg[64];
     NETWORK_DATA *network;
 
@@ -1016,17 +1088,39 @@ void networkTypeUpdate(uint8_t networkType)
         // Delay before starting the network
         else if ((millis() - network->timerStart) >= network->timeout)
         {
-            // Start the network
-            network->type = networkTranslateNetworkType(network->requestedNetwork, true);
+            // Determine the network type
+            uint8_t type = networkTranslateNetworkType(network->requestedNetwork, true);
+
+            // Verify that WiFi is configured properly
+            if (network->type == NETWORK_TYPE_WIFI)
+            {
+                // Verify that at least one SSID is available
+                if (!wifiNetworkCount())
+                {
+                    // Display the SSID error message
+                    systemPrintln("ERROR: Please enter at least one SSID before using WiFi");
+                    displayNoSSIDs(2000);
+
+                    // Restart the delay and try again
+                    network->timerStart = millis();
+                    network->timeout = NETWORK_CONNECTION_TIMEOUT;
+                    break;
+                }
+            }
+
+            // Display the network type change
+            network->type = type;
             if (settings.debugNetworkLayer && (network->type != network->requestedNetwork))
-                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n", networkName[network->requestedNetwork],
+                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n", networkTypeToString(network->requestedNetwork),
                              networkName[network->type]);
             if (settings.debugNetworkLayer)
                 systemPrintf("networkTypeUpdate, network->requestedNetwork: %s --> %s\r\n",
-                             networkName[network->requestedNetwork], networkName[network->type]);
+                             networkName[network->requestedNetwork], networkTypeToString(network->type));
             network->requestedNetwork = NETWORK_TYPE_ACTIVE;
             if (settings.debugNetworkLayer)
-                systemPrintf("Network starting %s\r\n", networkName[network->type]);
+                systemPrintf("Network starting %s\r\n", networkTypeToString(network->type));
+
+            // Start the network
             if (network->type == NETWORK_TYPE_WIFI)
                 wifiStart();
             network->timerStart = millis();
@@ -1143,12 +1237,12 @@ void networkUpdate()
     ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
     DMW_c("ntripServerUpdate");
     ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
-    DMW_c("pvtClientUpdate");
-    pvtClientUpdate(); // Turn on the PVT client as needed
-    DMW_c("pvtServerUpdate");
-    pvtServerUpdate(); // Turn on the PVT server as needed
-    DMW_c("pvtUdpServerUpdate");
-    pvtUdpServerUpdate(); // Turn on the PVT UDP server as needed
+    DMW_c("tcpClientUpdate");
+    tcpClientUpdate(); // Turn on the TCP client as needed
+    DMW_c("tcpServerUpdate");
+    tcpServerUpdate(); // Turn on the TCP server as needed
+    DMW_c("udpServerUpdate");
+    udpServerUpdate(); // Turn on the UDP server as needed
 
     // Display the IP addresses
     DMW_c("networkPeriodicallyDisplayIpAddress");
@@ -1267,7 +1361,19 @@ bool networkUserOpen(uint8_t user, uint8_t networkType)
     return false;
 }
 
+//----------------------------------------
+// Translate user into a string
+//----------------------------------------
+const char * networkUserToString(uint8_t userNumber)
+{
+    if (userNumber >= networkUserEntries)
+        return "Unknown";
+    return networkUser[userNumber];
+}
+
+//----------------------------------------
 // Verify the network layer tables
+//----------------------------------------
 void networkVerifyTables()
 {
     // Verify the table lengths

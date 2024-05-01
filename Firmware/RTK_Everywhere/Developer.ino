@@ -1,6 +1,4 @@
 /*
-pvtServer.ino
-
   The code in this module is only compiled when features are disabled in developer
   mode (ENABLE_DEVELOPER defined).
 */
@@ -16,9 +14,6 @@ void ethernetBegin() {}
 IPAddress ethernetGetIpAddress() {return IPAddress((uint32_t)0);}
 void ethernetUpdate() {}
 void ethernetVerifyTables() {}
-
-void ethernetPvtClientSendData(uint8_t *data, uint16_t length) {}
-void ethernetPvtClientUpdate() {}
 
 void ethernetWebServerStartESP32W5500() {}
 void ethernetWebServerStopESP32W5500() {}
@@ -41,7 +36,7 @@ void ntpServerStop() {}
 // Network layer
 //----------------------------------------
 
-void menuNetwork() {systemPrint("**Network not compiled**");}
+void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkUpdate() {}
 void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
@@ -72,24 +67,24 @@ bool ntripServerIsCasting(int serverIndex) {
 }
 
 //----------------------------------------
-// PVT client
+// TCP client
 //----------------------------------------
 
-int32_t pvtClientSendData(uint16_t dataHead) {return 0;}
-void pvtClientUpdate() {}
-void pvtClientValidateTables() {}
-void pvtClientZeroTail() {}
-void discardPvtClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t tcpClientSendData(uint16_t dataHead) {return 0;}
+void tcpClientUpdate() {}
+void tcpClientValidateTables() {}
+void tcpClientZeroTail() {}
+void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
-// PVT UDP server
+// UDP server
 //----------------------------------------
 
-int32_t pvtUdpServerSendData(uint16_t dataHead) {return 0;}
-void pvtUdpServerStop() {}
-void pvtUdpServerUpdate() {}
-void pvtUdpServerZeroTail() {}
-void discardPvtUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t udpServerSendData(uint16_t dataHead) {return 0;}
+void udpServerStop() {}
+void udpServerUpdate() {}
+void udpServerZeroTail() {}
+void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 #endif // COMPILE_NETWORK
 
@@ -138,15 +133,15 @@ void sendStringToWebsocket(char* stringToSend) {}
 #ifndef COMPILE_WIFI
 
 //----------------------------------------
-// PVT server
+// TCP server
 //----------------------------------------
 
-int32_t pvtServerSendData(uint16_t dataHead) {return 0;}
-void pvtServerStop() {}
-void pvtServerUpdate() {}
-void pvtServerZeroTail() {}
-void pvtServerValidateTables() {}
-void discardPvtServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
+void tcpServerStop() {}
+void tcpServerUpdate() {}
+void tcpServerZeroTail() {}
+void tcpServerValidateTables() {}
+void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
 // WiFi
@@ -157,6 +152,7 @@ bool wifiConnect(unsigned long timeout) {return false;}
 IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
 int wifiGetRssi() {return -999;}
+String wifiGetSsid() {return "**WiFi Not compiled**";}
 bool wifiIsConnected() {return false;}
 bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}

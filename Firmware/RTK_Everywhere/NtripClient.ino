@@ -91,7 +91,7 @@ NtripClient.ino
 
                                NTRIP_CLIENT_OFF
                                        |   ^
-                      ntripClientStart |   | ntripClientShutdown()
+                      ntripClientStart |   | ntripClientForceShutdown()
                                        v   |
                                NTRIP_CLIENT_ON <--------------.
                                        |                      |
@@ -197,6 +197,8 @@ static uint32_t ntripClientStartTime; // For calculating uptime
 
 // Throttle GGA transmission to Caster to 1 report every 5 seconds
 unsigned long lastGGAPush;
+
+bool ntripClientForcedShutdown = false; // NTRIP Client was turned off due to an error. Don't allow restart.
 
 //----------------------------------------
 // NTRIP Client Routines
@@ -474,9 +476,10 @@ void ntripClientSetState(uint8_t newState)
 }
 
 // Shutdown the NTRIP client
-void ntripClientShutdown()
+void ntripClientForceShutdown()
 {
     ntripClientStop(true);
+    ntripClientForcedShutdown = true; // NTRIP Client was turned off due to an error. Don't allow restart.
 }
 
 // Start the NTRIP client
@@ -525,7 +528,6 @@ void ntripClientStop(bool shutdown)
     if (shutdown)
     {
         ntripClientSetState(NTRIP_CLIENT_OFF);
-        settings.enableNtripClient = false;
         ntripClientConnectionAttempts = 0;
         ntripClientConnectionAttemptTimeout = 0;
     }
@@ -555,7 +557,8 @@ void ntripClientUpdate()
     switch (ntripClientState)
     {
     case NTRIP_CLIENT_OFF:
-        if (EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
+        // Don't allow the client to restart if a forced shutdown occured
+        if (ntripClientForcedShutdown == false && EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
             ntripClientStart();
         break;
 
@@ -581,7 +584,7 @@ void ntripClientUpdate()
             {
                 // Failed to allocate the ntripClient structure
                 systemPrintln("ERROR: Failed to allocate the ntripClient structure!");
-                ntripClientShutdown();
+                ntripClientForceShutdown();
             }
             else
             {
@@ -681,7 +684,7 @@ void ntripClientUpdate()
                                  settings.ntripClient_MountPoint, response);
 
                     // Stop NTRIP client operations
-                    ntripClientShutdown();
+                    ntripClientForceShutdown();
                 }
                 else
                 {
@@ -733,7 +736,7 @@ void ntripClientUpdate()
                              response);
 
                 // Stop NTRIP client operations
-                ntripClientShutdown();
+                ntripClientForceShutdown();
             }
             // Other errors returned by the caster
             else
@@ -741,7 +744,7 @@ void ntripClientUpdate()
                 systemPrintf("NTRIP Client connected but caster responded with problem: %s\r\n", response);
 
                 // Stop NTRIP client operations
-                ntripClientShutdown();
+                ntripClientForceShutdown();
             }
         }
         break;
@@ -822,14 +825,27 @@ void ntripClientUpdate()
                         // L-Band.
                         rtcmLastPacketReceived = millis();
 
-                        // Push RTCM to GNSS module over I2C / SPI
-                        gnssPushRawData(rtcmData, rtcmCount);
                         netIncomingRTCM = true;
 
-                        if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
+                        updateCorrectionsLastSeen(CORR_TCP);
+                        if (isHighestRegisteredCorrectionsSource(CORR_TCP))
                         {
-                            PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
-                            systemPrintf("NTRIP Client received %d RTCM bytes, pushed to ZED\r\n", rtcmCount);
+                            // Push RTCM to GNSS module over I2C / SPI
+                            gnssPushRawData(rtcmData, rtcmCount);
+
+                            if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
+                            {
+                                PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
+                                systemPrintf("NTRIP Client received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
+                            }
+                        }
+                        else
+                        {
+                            if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) && (!inMainMenu))
+                            {
+                                PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
+                                systemPrintf("NTRIP Client received %d RTCM bytes, NOT pushed to GNSS due to priority\r\n", rtcmCount);
+                            }
                         }
                     }
                 }

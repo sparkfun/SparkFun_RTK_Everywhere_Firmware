@@ -154,12 +154,13 @@ void menuWiFi()
         else
         {
             // Restart WiFi if we are not in AP config mode
-            if (wifiIsConnected())
+            NETWORK_DATA *network = networkGet(NETWORK_TYPE_WIFI, false);
+            if (network)
             {
-                log_d("Menu caused restarting of WiFi");
-                WIFI_STOP();
-                wifiStart();
-                wifiConnectionAttempts = 0; // Reset the timeout
+                if (settings.debugWifiState == true)
+                    systemPrintln("Menu caused restarting of WiFi");
+                networkRestartNetwork(network);
+                networkStop(NETWORK_TYPE_WIFI);
             }
         }
     }
@@ -170,7 +171,7 @@ void menuWiFi()
 // Display the WiFi IP address
 void wifiDisplayIpAddress()
 {
-    systemPrint("WiFi IP address: ");
+    systemPrintf("WiFi '%s' IP address: ", WiFi.SSID());
     systemPrint(WiFi.localIP());
     systemPrintf(" RSSI: %d\r\n", WiFi.RSSI());
 
@@ -242,19 +243,24 @@ bool wifiStartAP(bool forceAP)
         if (response != ESP_OK)
             systemPrintf("wifiStartAP: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
         else
-            log_d("WiFi protocols set");
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi protocols set");
+        }
 
         IPAddress local_IP(192, 168, 4, 1);
         IPAddress gateway(192, 168, 4, 1);
         IPAddress subnet(255, 255, 255, 0);
 
         WiFi.softAPConfig(local_IP, gateway, subnet);
-        if (WiFi.softAP("RTK Config") == false) // Must be short enough to fit OLED Width
+
+        const char *softApSsid = "RTK Config";
+        if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
         {
             systemPrintln("WiFi AP failed to start");
             return (false);
         }
-        systemPrint("WiFi AP Started with IP: ");
+        systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
         systemPrintln(WiFi.softAPIP());
 
         // Start DNS Server
@@ -265,7 +271,8 @@ bool wifiStartAP(bool forceAP)
         }
         else
         {
-            log_d("DNS Server started");
+            if (settings.debugWifiState == true)
+                systemPrintln("DNS Server started");
         }
     }
     else
@@ -307,7 +314,8 @@ void wifiUpdate()
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        // log_d("configureViaEthernet: skipping wifiUpdate");
+        // if(settings.debugWifiState == true)
+        //     systemPrintln("configureViaEthernet: skipping wifiUpdate");
         return;
     }
 
@@ -337,6 +345,7 @@ void wifiUpdate()
 
             if (wifiConnect(10000) == true) // Attempt to connect to any SSID on settings list
             {
+                // Restart ESPNow if it was previously on
                 if (espnowState > ESPNOW_OFF)
                     espnowStart();
 
@@ -379,8 +388,8 @@ void wifiUpdate()
         break;
     }
 
-    // Process DNS when we are in AP mode for captive portal
-    if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
+    // Process DNS when we are in AP mode or AP+STA mode for captive portal
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
     {
         dnsServer.processNextRequest();
     }
@@ -406,7 +415,8 @@ void wifiStart()
     if (wifiState > WIFI_STATE_OFF)
         return; // We're in the midst of connecting
 
-    log_d("Starting WiFi");
+    if (settings.debugWifiState == true)
+        systemPrintln("Starting WiFi");
 
     wifiSetState(WIFI_STATE_CONNECTING); // This starts the state machine running
 
@@ -425,7 +435,7 @@ void wifiStop()
         MDNS.end();
 
     // Stop the DNS server if we were using the captive portal
-    if (WiFi.getMode() == WIFI_AP && settings.enableCaptivePortal)
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
 
     // Stop the other network clients and then WiFi
@@ -440,7 +450,7 @@ void wifiShutdown()
 
     wifiConnectionAttempts = 0; // Reset the timeout
 
-    // If ESP-Now is active, change protocol to only Long Range and re-start WiFi
+    // If ESP-Now is active, change protocol to only Long Range
     if (espnowState > ESPNOW_OFF)
     {
         if (WiFi.getMode() != WIFI_STA)
@@ -452,12 +462,16 @@ void wifiShutdown()
         if (response != ESP_OK)
             systemPrintf("wifiShutdown: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
         else
-            log_d("WiFi disabled, ESP-Now left in place");
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi disabled, ESP-Now left in place");
+        }
     }
     else
     {
         WiFi.mode(WIFI_OFF);
-        log_d("WiFi Stopped");
+        if (settings.debugWifiState == true)
+            systemPrintln("WiFi Stopped");
     }
 
     // Display the heap state
@@ -472,16 +486,40 @@ bool wifiIsConnected()
 // Attempts a connection to all provided SSIDs
 // Returns true if successful
 // Gives up if no SSID detected or connection times out
+// If useAPSTAMode is true, do an extra check and go from WIFI_AP mode to WIFI_AP_STA mode
 bool wifiConnect(unsigned long timeout)
+{
+    return wifiConnect(timeout, false, nullptr);
+}
+bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 {
     if (wifiIsConnected())
         return (true); // Nothing to do
 
     displayWiFiConnect();
 
-    // Before we can issue esp_wifi_() commands WiFi must be started
-    if (WiFi.getMode() != WIFI_STA)
-        WiFi.mode(WIFI_STA);
+    // If otaUpdate or otaCheckVersion wants to use WIFI_AP_STA mode
+    if (useAPSTAMode && (wasInAPmode != nullptr))
+    {
+        *wasInAPmode = (WiFi.getMode() == WIFI_AP);
+
+        if (*wasInAPmode)
+        {
+            systemPrintln("wifiConnect: changing from WIFI_AP to WIFI_AP_STA");
+            WiFi.mode(WIFI_AP_STA); // Change mode from WIFI_AP to WIFI_AP_STA
+        }
+        else
+        {
+            systemPrintln("wifiConnect: was not in WIFI_AP mode. Going to WIFI_STA");
+            WiFi.mode(WIFI_STA); // Must have been off - or already in STA mode?
+        }
+    }
+    else
+    {
+        // Before we can issue esp_wifi_() commands WiFi must be started
+        if (WiFi.getMode() != WIFI_STA)
+            WiFi.mode(WIFI_STA);
+    }
 
     // Verify that the necessary protocols are set
     uint8_t protocols = 0;
@@ -513,6 +551,9 @@ bool wifiConnect(unsigned long timeout)
         }
     }
 
+    int wifiResponse = WL_DISCONNECTED;
+
+    systemPrint("Connecting WiFi... ");
     WiFiMulti wifiMulti;
 
     // Load SSIDs
@@ -522,16 +563,15 @@ bool wifiConnect(unsigned long timeout)
             wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
     }
 
-    systemPrint("Connecting WiFi... ");
+    wifiResponse = wifiMulti.run(timeout);
 
-    int wifiResponse = wifiMulti.run(timeout);
     if (wifiResponse == WL_CONNECTED)
     {
-        if (settings.enablePvtClient == true || settings.enablePvtServer == true || settings.enablePvtUdpServer == true)
+        if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
         {
             if (settings.mdnsEnable == true)
             {
-                if (MDNS.begin("rtk") == false) // This should make the module findable from 'rtk.local' in browser
+                if (MDNS.begin("rtk") == false) // This should make the device findable from 'rtk.local' in a browser
                     systemPrintln("Error setting up MDNS responder!");
                 else
                     MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
@@ -554,13 +594,13 @@ bool wifiConnect(unsigned long timeout)
 // This function is used to turn WiFi off if nothing needs it.
 bool wifiIsNeeded()
 {
-    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+    if (settings.enablePointPerfectCorrections)
         return true;
-    if (settings.enablePvtClient == true)
+    if (settings.enableTcpClient == true)
         return true;
-    if (settings.enablePvtServer == true)
+    if (settings.enableTcpServer == true)
         return true;
-    if (settings.enablePvtUdpServer == true)
+    if (settings.enableUdpServer == true)
         return true;
     if (settings.enableAutoFirmwareUpdate)
         return true;
@@ -671,6 +711,11 @@ IPAddress wifiGetIpAddress()
 int wifiGetRssi()
 {
     return WiFi.RSSI();
+}
+
+String wifiGetSsid()
+{
+    return WiFi.SSID();
 }
 
 #endif // COMPILE_WIFI

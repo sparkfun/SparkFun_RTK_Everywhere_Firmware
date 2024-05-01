@@ -28,7 +28,7 @@ unsigned long zedPvtArrivalMillis = 0;
 bool pvtUpdated = false;
 
 // Below are the callbacks specific to the ZED-F9x
-// Once called, they update global variables that are then accesses via zedGetSatellitesInView() and the likes
+// Once called, they update global variables that are then accessed via zedGetSatellitesInView() and the likes
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  These are the callbacks that get regularly called, globals are updated
 void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
@@ -124,12 +124,7 @@ void zedBegin()
     if (theGNSS == nullptr)
         theGNSS = new SFE_UBLOX_GNSS_SUPER_DERIVED();
 
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginGNSS");
-        return;
-    }
+    // Note: we don't need to skip this for configureViaEthernet because the ZED is on I2C only - not SPI
 
     if (theGNSS->begin(*i2c_0) == false)
     {
@@ -155,11 +150,10 @@ void zedBegin()
     if (theGNSS->getModuleInfo(1100) == true) // Try to get the module info
     {
         // Reconstruct the firmware version
-        snprintf(zedFirmwareVersion, sizeof(zedFirmwareVersion), "%s %d.%02d", theGNSS->getFirmwareType(),
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s %d.%02d", theGNSS->getFirmwareType(),
                  theGNSS->getFirmwareVersionHigh(), theGNSS->getFirmwareVersionLow());
 
-        // Construct the firmware version as uint8_t. Note: will fail above 2.55!
-        zedFirmwareVersionInt = (theGNSS->getFirmwareVersionHigh() * 100) + theGNSS->getFirmwareVersionLow();
+        gnssFirmwareVersionInt = (theGNSS->getFirmwareVersionHigh() * 100) + theGNSS->getFirmwareVersionLow();
 
         // Check this is known firmware
         //"1.20" - Mostly for F9R HPS 1.20, but also F9P HPG v1.20
@@ -171,14 +165,14 @@ void zedBegin()
         bool knownFirmware = false;
         for (uint8_t i = 0; i < (sizeof(knownFirmwareVersions) / sizeof(uint8_t)); i++)
         {
-            if (zedFirmwareVersionInt == knownFirmwareVersions[i])
+            if (gnssFirmwareVersionInt == knownFirmwareVersions[i])
                 knownFirmware = true;
         }
 
         if (!knownFirmware)
         {
-            systemPrintf("Unknown firmware version: %s\r\n", zedFirmwareVersion);
-            zedFirmwareVersionInt = 99; // 0.99 invalid firmware version
+            systemPrintf("Unknown firmware version: %s\r\n", gnssFirmwareVersion);
+            gnssFirmwareVersionInt = 99; // 0.99 invalid firmware version
         }
 
         // Determine if we have a ZED-F9P or an ZED-F9R
@@ -209,7 +203,7 @@ void zedBegin()
     UBX_SEC_UNIQID_data_t chipID;
     if (theGNSS->getUniqueChipId(&chipID))
     {
-        snprintf(zedUniqueId, sizeof(zedUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
+        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", theGNSS->getUniqueChipIdStr(&chipID));
     }
 
     systemPrintln("GNSS ZED online");
@@ -222,13 +216,6 @@ void zedBegin()
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 bool zedConfigure()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping configureGNSS");
-        return (false);
-    }
-
     if (online.gnss == false)
         return (false);
 
@@ -832,13 +819,6 @@ bool zedFixedBaseStart()
 // Setup TM2 time stamp input as need
 bool zedBeginExternalEvent()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginExternalTriggers");
-        return (false);
-    }
-
     if (online.gnss == false)
         return (false);
 
@@ -868,13 +848,6 @@ bool zedBeginExternalEvent()
 // Setup the timepulse output on the PPS pin for external triggering
 bool zedBeginPPS()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        log_d("configureViaEthernet: skipping beginExternalTriggers");
-        return (false);
-    }
-
     if (online.gnss == false)
         return (false);
 
@@ -920,6 +893,48 @@ bool zedBeginPPS()
 // Enable data output from the NEO
 bool zedEnableLBandCommunication()
 {
+/*
+    Paul's Notes on (NEO-D9S) L-Band:
+
+    Torch will receive PointPerfect SPARTN via IP, run it through the PPL, and feed RTCM to the UM980. No L-Band...
+
+    The EVK has ZED-F9P and NEO-D9S. But there are two versions of the PCB:
+    v1.1 PCB :
+        Both ZED and NEO are on the i2c_0 I2C bus (the OLED is on i2c_1)
+        ZED UART1 is connected to the ESP32 (pins 25 and 33) only
+        ZED UART2 is connected to the I/O connector only
+        NEO UART1 is connected to test points only
+        NEO UART2 is not connected
+    v1.0 PCB (the one we are currently using for code development) :
+        Both ZED and NEO are on the i2c_0 I2C bus
+        ZED UART1 is connected to NEO UART1 only - not to ESP32 (Big mistake! Makes BT and Logging much more complicated...)
+        ZED UART2 is connected to the I/O connector only
+        NEO UART2 is not connected
+
+    Facet v2 hasn't been built yet. The v2.01 PCB probably won't get built as it needs the new soft power switch.
+    When v2.10 (?) gets built :
+        Both ZED and NEO are on the I2C bus
+        ZED UART1 is connected to the ESP32 (pins 14 and 13) and also to the DATA connector via the Mux (output only)
+        ZED UART2 is connected to the RADIO connector only
+        NEO UART1 is not connected
+        NEO UART2 TX is connected to ESP32 pin 4. If the ESP32 has a UART spare - and it probably does - the PMP data
+          can go over this connection and avoid having double-PMP traffic on I2C. Neat huh?!
+
+    Facet mosaic v1.0 PCB has been built, but needs the new soft power switch and some other minor mods.
+        X5 COM1 is connected to the ESP32 (pins 13 and 14) - RTCM from PPL, NMEA and RTCM to PPL and Bluetooth
+        X5 COM2 is connected to the RADIO connector only
+        X5 COM3 is connected to the DATA connector via the Mux (I/O)
+        X5 COM4 is connected to the ESP32 (pins 4 and 25) - raw L-Band to PPL, control from ESP32 to X5 ?
+
+    So, what does all of this mean?
+    EVK v1.0 supports direct NEO to ZED UART communication, but V1.1 will not. There is no point in supporting it here.
+    Facet v2 can pipe NEO UART PMP data to the ZED (over I2C or maybe UART), but the hardware doesn't exist yet so there
+    is no point in adding that feature yet... TODO.
+    So, right now, we should assume NEO PMP data will arrive via I2C, and will get pushed to the ZED via I2C if the
+    corrections priority permits.
+    Deleting: useI2cForLbandCorrections, useI2cForLbandCorrectionsConfigured and rtcmTimeoutBeforeUsingLBand_s
+*/    
+
     bool response = true;
 
 #ifdef COMPILE_L_BAND
@@ -929,37 +944,26 @@ bool zedEnableLBandCommunication()
 
     if (present.lband_neo == true)
     {
-        // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
-        // to the ZED. If the user has explicitly disabled I2C corrections, enable a UART connection.
-        if (settings.useI2cForLbandCorrections == true)
-        {
-            response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
+        response &= i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback to push raw PMP over I2C
 
-            i2cLBand.setRXMPMPmessageCallbackPtr(&pushRXMPMP); // Enable PMP callback to push raw PMP over I2C
+        response &= i2cLBand.newCfgValset();
 
-            response &= i2cLBand.newCfgValset();
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
+        response &=
+            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
 
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
-        }
-        else // Setup ZED to NEO serial communication
-        {
-            response &= theGNSS->setVal32(UBLOX_CFG_UART2INPROT_UBX, true); // Configure ZED for UBX input on UART2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 0); // Disable UBX output on NEO's UART1
+        
+        response &=
+            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
 
-            i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback to push raw PMP over I2C
+        // TODO: change this as needed for Facet v2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
 
-            response &= i2cLBand.newCfgValset();
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP on NEO's I2C port
+        // TODO: change this as needed for Facet v2
+        response &=
+            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
 
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 1);         // Enable UBX output on UART2
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 1); // Output UBX-RXM-PMP on UART2
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud); // Match baudrate with ZED
-        }
+        response &= i2cLBand.sendCfgValset();
     }
     else
     {
@@ -967,7 +971,44 @@ bool zedEnableLBandCommunication()
         return (false);
     }
 
-    response &= i2cLBand.sendCfgValset();
+#endif
+
+    return (response);
+}
+
+// Disable data output from the NEO
+bool zedDisableLBandCommunication()
+{
+    bool response = true;
+
+#ifdef COMPILE_L_BAND
+
+    response &= theGNSS->setRXMCORcallbackPtr(
+        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
+
+    response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
+
+    if (present.lband_neo == true)
+    {
+        response &= i2cLBand.newCfgValset();
+
+        response &=
+            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
+
+        // TODO: change this as needed for Facet v2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
+
+        // TODO: change this as needed for Facet v2
+        response &=
+            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
+
+        response &= i2cLBand.sendCfgValset();
+    }
+    else
+    {
+        systemPrintln("zedEnableLBandCorrections: Unknown platform");
+        return (false);
+    }
 
 #endif
 
@@ -1167,7 +1208,7 @@ uint16_t zedFixAgeMilliseconds()
 // Print the module type and firmware version
 void zedPrintInfo()
 {
-    systemPrintf("ZED-F9P firmware: %s\r\n", zedFirmwareVersion);
+    systemPrintf("ZED-F9P firmware: %s\r\n", gnssFirmwareVersion);
 }
 
 void zedFactoryReset()
@@ -1319,7 +1360,7 @@ bool zedSetConstellations(bool sendCompleteBatch)
 
     // v1.12 ZED-F9P firmware does not allow for SBAS control
     // Also, if we can't identify the version (99), skip SBAS enable
-    if ((zedFirmwareVersionInt == 112) || (zedFirmwareVersionInt == 99))
+    if ((gnssFirmwareVersionInt == 112) || (gnssFirmwareVersionInt == 99))
     {
         // Skip
     }
@@ -1382,45 +1423,6 @@ uint16_t zedExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
     return (1);
 }
 
-// Disable data output from the NEO
-bool zedDisableLBandCommunication()
-{
-    bool response = true;
-
-#ifdef COMPILE_L_BAND
-    response &= i2cLBand.setRXMPMPmessageCallbackPtr(nullptr); // Disable PMP callback no matter the platform
-    response &= theGNSS->setRXMCORcallbackPtr(
-        nullptr); // Disable callback to check if the PMP data is being decrypted successfully
-
-    if (present.lband_neo == true)
-    {
-        // Older versions of the Facet L-Band had solder jumpers that could be closed to directly connect the NEO
-        // to the ZED. Check if the user has explicitly set I2C corrections.
-        if (settings.useI2cForLbandCorrections == true)
-        {
-            response &= i2cLBand.newCfgValset();
-            response &=
-                i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 0); // Disable UBX-RXM-PMP from NEO's I2C port
-        }
-        else // Setup ZED to NEO serial communication
-        {
-            response &= i2cLBand.newCfgValset();
-            response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
-        }
-    }
-    else
-    {
-        systemPrintln("zedEnableLBandCorrections: Unknown platform");
-        return (false);
-    }
-
-    response &= i2cLBand.sendCfgValset();
-
-#endif
-
-    return (response);
-}
-
 // Query GNSS for current leap seconds
 uint8_t zedGetLeapSeconds()
 {
@@ -1429,68 +1431,102 @@ uint8_t zedGetLeapSeconds()
     return (leapSeconds);
 }
 
-// If we have decryption keys, and L-Band is online, configure module
+// If we have decryption keys, configure module
+// Note: don't check online.lband here. We could be using ip corrections
 void zedApplyPointPerfectKeys()
 {
-    if (online.lband == true)
+    if (online.gnss == false)
     {
-        if (online.gnss == false)
+        if (settings.debugCorrections == true)
+            systemPrintln("ZED-F9P not available");
+        return;
+    }
+
+    // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
+    if (gnssFirmwareVersionInt < 130)
+    {
+        systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
+                        "Please upgrade your ZED firmware: "
+                        "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
+        return;
+    }
+
+    if (strlen(settings.pointPerfectNextKey) > 0)
+    {
+        const uint8_t currentKeyLengthBytes = 16;
+        const uint8_t nextKeyLengthBytes = 16;
+
+        uint16_t currentKeyGPSWeek;
+        uint32_t currentKeyGPSToW;
+        long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
+        epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
+
+        uint16_t nextKeyGPSWeek;
+        uint32_t nextKeyGPSToW;
+        epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
+        epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
+
+        // If we are on a L-Band-only or L-Band+IP, set the SOURCE to 1 (L-Band)
+        // Else set the SOURCE to 0 (IP)
+        // If we are on L-Band+IP and IP corrections start to arrive, the corrections
+        // priority code will change SOURCE to match
+        if (strstr(settings.pointPerfectKeyDistributionTopic, "/Lb") != nullptr)
         {
-            if (settings.debugCorrections == true)
-                systemPrintln("ZED-F9P not available");
-            return;
-        }
-
-        // NEO-D9S encrypted PMP messages are only supported on ZED-F9P firmware v1.30 and above
-        if (zedFirmwareVersionInt < 130)
-        {
-            systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
-                          "Please upgrade your ZED firmware: "
-                          "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
-            return;
-        }
-
-        if (strlen(settings.pointPerfectNextKey) > 0)
-        {
-            const uint8_t currentKeyLengthBytes = 16;
-            const uint8_t nextKeyLengthBytes = 16;
-
-            uint16_t currentKeyGPSWeek;
-            uint32_t currentKeyGPSToW;
-            long long epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectCurrentKeyStart);
-            epochToWeekToW(epoch, &currentKeyGPSWeek, &currentKeyGPSToW);
-
-            uint16_t nextKeyGPSWeek;
-            uint32_t nextKeyGPSToW;
-            epoch = thingstreamEpochToGPSEpoch(settings.pointPerfectNextKeyStart);
-            epochToWeekToW(epoch, &nextKeyGPSWeek, &nextKeyGPSToW);
-
-            theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, 1); // use LBAND PMP message
-
-            theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
-
-            theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                             3); // Set the differential mode - ambiguities are fixed whenever possible
-
-            bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                          settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                          nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
-
-            if (response == false)
-                systemPrintln("setDynamicSPARTNKeys failed");
-            else
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("PointPerfect keys applied");
-                online.lbandCorrections = true;
-            }
+            updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
         }
         else
         {
+            updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+        }
+
+        theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
+
+        theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
+                            3); // Set the differential mode - ambiguities are fixed whenever possible
+
+        bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
+                                                        settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                        nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+
+        if (response == false)
+            systemPrintln("setDynamicSPARTNKeys failed");
+        else
+        {
             if (settings.debugCorrections == true)
-                systemPrintln("No PointPerfect keys available");
+                systemPrintln("PointPerfect keys applied");
+            online.lbandCorrections = true;
         }
     }
+    else
+    {
+        if (settings.debugCorrections == true)
+            systemPrintln("No PointPerfect keys available");
+    }
+}
+
+void updateZEDCorrectionsSource(uint8_t source)
+{
+    if (!online.gnss)
+        return;
+
+    if (!present.gnss_zedf9p)
+        return;
+
+    if (zedCorrectionsSource == source)
+        return;
+
+    // This is important. Retry if needed
+    int retries = 0;
+    while ((!theGNSS->setVal8(UBLOX_CFG_SPARTN_USE_SOURCE, source)) && (retries < 3))
+        retries++;
+    if (retries < 3)
+    {
+        zedCorrectionsSource = source;
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("ZED UBLOX_CFG_SPARTN_USE_SOURCE changed to %d\r\n", source);
+    }
+    else
+        systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
 }
 
 uint8_t zedGetActiveMessageCount()

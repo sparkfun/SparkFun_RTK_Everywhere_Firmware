@@ -19,7 +19,7 @@ void menuLog()
             stringHumanReadableSize(freeSpace, sdFreeSpace);
             freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
 
-            char myString[60];
+            char myString[70];
             snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
             systemPrintln(myString);
 
@@ -435,12 +435,12 @@ void beginLogging(const char *customFileName)
 
                 // ZED-F9P firmware: HPG 1.30
                 createNMEASentence(CUSTOM_NMEA_TYPE_ZED_VERSION, nmeaMessage, sizeof(nmeaMessage),
-                                   zedFirmwareVersion); // textID, buffer, sizeOfBuffer, text
+                                   gnssFirmwareVersion); // textID, buffer, sizeOfBuffer, text
                 ubxFile->println(nmeaMessage);
 
                 // ZED-F9 unique chip ID
                 createNMEASentence(CUSTOM_NMEA_TYPE_ZED_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
-                                   zedUniqueId); // textID, buffer, sizeOfBuffer, text
+                                   gnssUniqueId); // textID, buffer, sizeOfBuffer, text
                 ubxFile->println(nmeaMessage);
 
                 // Device BT MAC. See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/346
@@ -452,7 +452,7 @@ void beginLogging(const char *customFileName)
 
                 // Record today's time/date into log. This is in case a log is restarted. See issue 440:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/440
-                char currentDate[sizeof("230101,120101")];
+                char currentDate[80]; // 80 is just to keep the compiler happy...
                 snprintf(currentDate, sizeof(currentDate), "%02d%02d%02d,%02d%02d%02d", rtc.getYear() - 2000,
                          rtc.getMonth() + 1, rtc.getDay(), // ESP32Time returns month:0-11
                          rtc.getHour(true), rtc.getMinute(),
@@ -722,7 +722,7 @@ void checkGNSSArrayDefaults()
 
         // Reset constellations to defaults
         for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            settings.um980Constellations[x] = true;
+            settings.um980Constellations[x] = 1;
     }
 
     if (settings.um980MessageRatesNMEA[0] == 254)
@@ -784,7 +784,7 @@ void setLoggingType()
 void setLogTestFrequencyMessages(int rate, int messages)
 {
     // Set measurement frequency
-    gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate,
+    gnssSetRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate,
                              // and GSV message
 
     // Set messages

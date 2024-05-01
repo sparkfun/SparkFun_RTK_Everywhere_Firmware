@@ -73,10 +73,10 @@ typedef uint8_t RtkMode_t;
 //Used as part of device ID and whitelists. Do not reorder.
 typedef enum
 {
-    RTK_EVK = 0,
-    RTK_FACET_V2,
-    RTK_FACET_MOSAIC,
-    RTK_TORCH,
+    RTK_EVK = 0, // 0x00
+    RTK_FACET_V2 = 1, // 0x01
+    RTK_FACET_MOSAIC = 2, // 0x02
+    RTK_TORCH = 3, // 0x03
     // Add new values just above this line
     RTK_UNKNOWN
 } ProductVariant;
@@ -130,35 +130,34 @@ const int platformProvisionTableEntries = sizeof (platformProvisionTable) / size
 typedef enum
 {
     // Change the order of these to set the default priority. First (0) is highest
-    CORR_BLUETOOTH = 0,
-    CORR_WIFI_IP,
-    CORR_WIFI_TCP,
-    CORR_ETHERNET_IP,
-    CORR_ETHERNET_TCP,
-    CORR_LBAND,
-    CORR_CELLULAR,
-    CORR_RADIO_EXT,
-    CORR_RADIO_LORA,
-    CORR_ESPNOW,
+    CORR_BLUETOOTH = 0, // Added - Tasks.ino (sendGnssBuffer)
+    CORR_IP, // Added - MQTT_Client.ino
+    CORR_TCP, // Added - NtripClient.ino
+    CORR_LBAND, // Added - menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_RADIO_EXT, // TODO: this needs a meeting. Data goes direct from RADIO connector to ZED - or X5. How to disable / enable it? Via port protocol?
+    CORR_RADIO_LORA, // TODO: this needs a meeting. UM980 only? Does data go direct from LoRa to UM980?
+    CORR_ESPNOW, // Added - ESPNOW.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
 
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
-    // These must match correctionsSources above
+    // These must match correctionsSource above
     "Bluetooth",
-    "WiFi IP (PointPerfect/MQTT)",
-    "WiFi TCP (NTRIP)",
-    "Ethernet IP (PointPerfect/MQTT)",
-    "Ethernet TCP (NTRIP Client)",
+    "IP (PointPerfect/MQTT)",
+    "TCP (NTRIP)",
     "L-Band",
-    "Cellular",
     "External Radio",
     "LoRa Radio",
     "ESP-Now",
     // Add new correction sources just above this line
 };
+
+typedef struct {
+    correctionsSource source;
+    unsigned long lastSeen;
+} registeredCorrectionsSource;
 
 // Setup Buttons
 typedef struct
@@ -190,25 +189,6 @@ typedef enum
 
 const uint8_t DisplayWidth[DISPLAY_MAX_NONE] = { 64, 128 }; // We could get these from the oled, but this is const
 const uint8_t DisplayHeight[DISPLAY_MAX_NONE] = { 48, 64 };
-
-// Different GNSS modules require different libraries and configuration
-typedef enum
-{
-    PLATFORM_ZED = 0b0001,
-    PLATFORM_UM980 = 0b0010,
-    PLATFORM_MOSAIC = 0b0011,
-} GnssPlatform;
-
-const GnssPlatform platformGnssTable[] =
-{
-    PLATFORM_ZED,   // EVK
-    PLATFORM_ZED,   // Facet v2
-    PLATFORM_MOSAIC,   // Facet mosaic
-    PLATFORM_UM980, // Torch
-    // Add new values just above this line
-    PLATFORM_ZED    // Unknown
-};
-const int platformGnssTableEntries = sizeof (platformGnssTable) / sizeof(platformGnssTable[0]);
 
 typedef enum
 {
@@ -298,9 +278,9 @@ enum NetworkUsers
     NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
-    NETWORK_USER_PVT_CLIENT,            // PVT client
-    NETWORK_USER_PVT_SERVER,            // PVT server
-    NETWORK_USER_PVT_UDP_SERVER,        // PVT UDP server
+    NETWORK_USER_TCP_CLIENT,            // TCP client
+    NETWORK_USER_TCP_SERVER,            // PTCP server
+    NETWORK_USER_UDP_SERVER,        // UDP server
 
     // Add new users above this line
     NETWORK_USER_NTRIP_SERVER,          // NTRIP server
@@ -375,25 +355,7 @@ typedef enum
 } ESPNOWState;
 volatile ESPNOWState espnowState = ESPNOW_OFF;
 
-typedef enum
-{
-    RTCM_TRANSPORT_STATE_WAIT_FOR_PREAMBLE_D3 = 0,
-    RTCM_TRANSPORT_STATE_READ_LENGTH_1,
-    RTCM_TRANSPORT_STATE_READ_LENGTH_2,
-    RTCM_TRANSPORT_STATE_READ_MESSAGE_1,
-    RTCM_TRANSPORT_STATE_READ_MESSAGE_2,
-    RTCM_TRANSPORT_STATE_READ_DATA,
-    RTCM_TRANSPORT_STATE_READ_CRC_1,
-    RTCM_TRANSPORT_STATE_READ_CRC_2,
-    RTCM_TRANSPORT_STATE_READ_CRC_3,
-    RTCM_TRANSPORT_STATE_CHECK_CRC
-} RtcmTransportState;
-
-typedef enum
-{
-    RADIO_EXTERNAL = 0,
-    RADIO_ESPNOW,
-} RadioType_e;
+const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
 
 typedef enum
 {
@@ -539,16 +501,6 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
 
-// All units should be able to obtain corrections over IP
-// Only units with an lband receiver can obtain LBand corrections
-typedef enum
-{
-    POINTPERFECT_CORRECTIONS_DISABLED = 0,
-    POINTPERFECT_CORRECTIONS_IP,
-    POINTPERFECT_CORRECTIONS_LBAND,
-    POINTPERFECT_CORRECTIONS_LBAND_IP,
-} PointPerfect_Corrections_Source;
-
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
 typedef enum
@@ -593,16 +545,16 @@ enum PeriodDisplayValues
     PD_NTRIP_SERVER_DATA,       // 10
     PD_NTRIP_SERVER_STATE,      // 11
 
-    PD_PVT_CLIENT_DATA,         // 12
-    PD_PVT_CLIENT_STATE,        // 13
+    PD_TCP_CLIENT_DATA,         // 12
+    PD_TCP_CLIENT_STATE,        // 13
 
-    PD_PVT_SERVER_DATA,         // 14
-    PD_PVT_SERVER_STATE,        // 15
-    PD_PVT_SERVER_CLIENT_DATA,  // 16
+    PD_TCP_SERVER_DATA,         // 14
+    PD_TCP_SERVER_STATE,        // 15
+    PD_TCP_SERVER_CLIENT_DATA,  // 16
 
-    PD_PVT_UDP_SERVER_DATA,         // 17
-    PD_PVT_UDP_SERVER_STATE,        // 18
-    PD_PVT_UDP_SERVER_BROADCAST_DATA,  // 19
+    PD_UDP_SERVER_DATA,         // 17
+    PD_UDP_SERVER_STATE,        // 18
+    PD_UDP_SERVER_BROADCAST_DATA,  // 19
 
     PD_RING_BUFFER_MILLIS,      // 20
 
@@ -999,15 +951,49 @@ enum OtaState
 
 #endif  // COMPILE_OTA_AUTO
 
+// Regional Support
+// Some regions have both L-Band and IP. More just have IP.
+// Do we want the user to be able to specify which region they are in?
+// Or do we want to figure it out based on position?
+// If we define a simple 'square' area for each region, we can do both.
+// Note: the best way to obtain the L-Band frequencies would be from the MQTT /pp/frequencies/Lb topic.
+//       But it is easier to record them here, in case we don't have access to MQTT...
+// Note: the key distribution topic is provided during ZTP. We don't need to record it here.
+
+typedef struct
+{
+    const double latNorth; // Degrees
+    const double latSouth; // Degrees
+    const double lonEast; // Degrees
+    const double lonWest; // Degrees
+} Regional_Area;
+
+typedef struct
+{
+    const char *name; // As defined in the ZTP subscriptions description: EU, US, KR, AU, Japan
+    const char *topicRegion; // As used in the corrections topic path
+    const Regional_Area area;
+    const uint32_t frequency; // L-Band frequency, Hz, if supported. 0 if not supported
+} Regional_Information;
+
+const Regional_Information Regional_Information_Table[] = 
+{
+    { "US", "us", { 50.0,  25.0, -60.0, -125.0}, 1556290000 },
+    { "EU", "eu", { 72.0,  36.0,  32.0,  -11.0}, 1545260000 },
+    { "AU", "au", {-25.0, -45.0, 154.0,  113.0}, 0 },
+    { "KR", "kr", { 39.0,  34.0, 129.5,  125.0}, 0 },
+    { "Japan", "jp", { 46.0,  31.0, 146.0,  129.5}, 0 },
+};
+const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
-typedef struct
+struct Settings
 {
     int sizeOfSettings = 0;             // sizeOfSettings **must** be the first entry and must be int
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
-    bool printDebugMessages = false;
+
     bool enableSD = true;
-    bool enableDisplay = true;
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int observationSeconds = 60;             // Default survey in time of 60 seconds
@@ -1069,11 +1055,11 @@ typedef struct
 
     // Point Perfect
     char pointPerfectDeviceProfileToken[40] = "";
-    PointPerfect_Corrections_Source pointPerfectCorrectionsSource = POINTPERFECT_CORRECTIONS_DISABLED;
+    bool enablePointPerfectCorrections = false; // Things are better now. We could default to true. Also change line 940 in index.html
     bool autoKeyRenewal = true; // Attempt to get keys if we get under 28 days from the expiration date
     char pointPerfectClientID[50] = ""; // Obtained during ZTP
     char pointPerfectBrokerHost[50] = ""; // pp.services.u-blox.com
-    char pointPerfectLBandTopic[20] = ""; // /pp/key/Lb
+    char pointPerfectKeyDistributionTopic[20] = ""; // /pp/ubx/0236/ip or /pp/ubx/0236/Lb - from ZTP
 
     char pointPerfectCurrentKey[33] = ""; // 32 hexadecimal digits = 128 bits = 16 Bytes
     uint64_t pointPerfectCurrentKeyDuration = 0;
@@ -1085,7 +1071,6 @@ typedef struct
 
     uint64_t lastKeyAttempt = 0;     // Epoch time of last attempt at obtaining keys
     bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
-    uint32_t LBandFreq = 1556290000; // Default to US band
 
     bool debugPpCertificate = false; // Debug Point Perfect certificate management
 
@@ -1107,13 +1092,14 @@ typedef struct
     bool enablePrintStates = true;
     bool enablePrintDuplicateStates = false;
     bool enablePrintRtcSync = false;
-    RadioType_e radioType = RADIO_EXTERNAL;
-    uint8_t espnowPeers[5][6] = {0}; // Max of 5 peers. Contains the MAC addresses (6 bytes) of paired units
+
+    uint8_t espnowPeers[ESPNOW_MAX_PEERS][6] = {0}; // Contains the MAC addresses (6 bytes) of paired units
+
     uint8_t espnowPeerCount = 0;
     bool enableRtcmMessageChecking = false;
     BluetoothRadioType_e bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
     bool runLogTest = false;           // When set to true, device will create a series of test logs
-    bool espnowBroadcast = true;       // When true, overrides peers and sends all data via broadcast
+    bool espnowBroadcast = false;       // When true, overrides peers and sends all data via broadcast
     int16_t antennaHeight = 0;         // in mm
     float antennaReferencePoint = 0.0; // in mm
     bool echoUserInput = true;
@@ -1153,8 +1139,6 @@ typedef struct
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint32_t shutdownNoChargeTimeout_s = 0; // If > 0, shut down unit after timeout if not charging
     bool disableSetupButton = false;                  // By default, allow setup through the overlay button(s)
-    bool useI2cForLbandCorrections = true; //Set to false to stop I2C callback. Corrections will require direct ZED to NEO UART2 connections.
-    bool useI2cForLbandCorrectionsConfigured = false; //If a user sets useI2cForLbandCorrections, this goes true.
 
     // Ethernet
     bool enablePrintEthernetDiag = false;
@@ -1187,7 +1171,6 @@ typedef struct
     // MQTT Client (PointPerfect)
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
     bool debugMqttClientState = false; // Debug the MQTT state machine
-    bool useEuropeCorrections = false; // Use US corrections by default
 
     // NTP
     bool debugNtp = false;
@@ -1220,7 +1203,6 @@ typedef struct
     bool debugNtripServerRtcm = false;
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
-    bool ntripServer_StartAtSurveyIn = false;       // true = Start WiFi instead of Bluetooth at Survey-In
     char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
     {
         "rtk2go.com",
@@ -1265,21 +1247,20 @@ typedef struct
     };
 
     // TCP Client
-    bool debugPvtClient = false;
-    bool enablePvtClient = false;
-    uint16_t pvtClientPort = 2948; // PVT client port. 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
-    char pvtClientHost[50] = "";
+    bool debugTcpClient = false;
+    bool enableTcpClient = false;
+    uint16_t tcpClientPort = 2948; // TCP client port. 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
+    char tcpClientHost[50] = "";
 
     // TCP Server
-    bool debugPvtServer = false;
-    bool enablePvtServer = false;
-    uint16_t pvtServerPort = 2948; // PVT server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
+    bool debugTcpServer = false;
+    bool enableTcpServer = false;
+    uint16_t tcpServerPort = 2948; // TCP server port, 2948 is GPS Daemon: http://tcp-udp-ports.com/port-2948.htm
 
     // UDP Server
-    bool debugPvtUdpServer = false;
-    bool enablePvtUdpServer = false;
-    uint16_t pvtUdpServerPort =
-        10110; //https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=nmea
+    bool debugUdpServer = false;
+    bool enableUdpServer = false;
+    uint16_t udpServerPort = 10110; // NMEA-0183 Navigational Data: https://tcp-udp-ports.com/port-10110.htm
 
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
@@ -1292,7 +1273,6 @@ typedef struct
     int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
-    uint8_t rtcmTimeoutBeforeUsingLBand_s = 10; //If 10s have passed without RTCM, enable PMP corrections over L-Band if available
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
 
     // Automatic Firmware Update
@@ -1322,11 +1302,336 @@ typedef struct
     bool enableImuCompensationDebug = false;
 
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
+    int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
+
+    int geographicRegion = 0; // Default to US - first entry in Regional_Information_Table
+
+    // The correction topics are provided during ZTP (pointperfectTryZtpToken)
+    // For IP-only plans, these will be /pp/ip/us, /pp/ip/eu, etc.
+    // For L-Band+IP plans, these will be /pp/Lb/us, /pp/Lb/eu, etc.
+    // L-Band-only plans have no correction topics
+    char regionalCorrectionTopics[numRegionalAreas][10] =
+    {
+        "",
+        "",
+        "",
+        "",
+        "",
+    };
+
+    bool debugEspNow = false;
+    bool enableEspNow = false;
+    uint8_t wifiChannel = 1; //Valid channels are 1 to 14
 
     // Add new settings above <------------------------------------------------------------>
+    // Then also add to rtkSettingsEntries below
 
-} Settings;
-Settings settings;
+} settings;
+
+typedef enum {
+    _bool = 0,
+    _int,
+    _float,
+    _double,
+    _uint8_t,
+    _uint16_t,
+    _uint32_t,
+    _uint64_t,
+    _int8_t,
+    _int16_t,
+    _muxConnectionType_e,
+    _SystemState,
+    _pulseEdgeType_e,
+    _BluetoothRadioType_e,
+    _PeriodicDisplay_t,
+    _CoordinateInputType,
+    _charArray,
+    _IPString,
+    _ubxMessageRates,
+    _ubxConstellations,
+    _espnowPeers,
+    _ubxMessageRateBase,
+    _wifiNetwork,
+    _ntripServerCasterHost,
+    _ntripServerCasterPort,
+    _ntripServerCasterUser,
+    _ntripServerCasterUserPW,
+    _ntripServerMountPoint,
+    _ntripServerMountPointPW,
+    _um980MessageRatesNMEA,
+    _um980MessageRatesRTCMRover,
+    _um980MessageRatesRTCMBase,
+    _um980Constellations,
+    _correctionsSourcesPriority,
+    _regionalCorrectionTopics,
+    // Add new settings types above <---------------->
+    // (Maintain the enum of existing settings types!)
+} RTK_Settings_Types;
+
+typedef struct {
+    void *var;
+    const char *name;
+    const RTK_Settings_Types type;
+    const int qualifier;
+    const bool updateGNSSOnChange;
+    const bool inSettingsString;
+    const bool inCommands;
+} RTK_Settings_Entry;
+
+enum Settings_float_Precision {
+    noPrecision = 0,
+    point1float,
+    point2float,
+    point3float,
+    point4float,
+    point9float = 9,
+};
+
+const RTK_Settings_Entry rtkSettingsEntries[] = {
+    // Note: don't use "_" in the name - "_" is reserved for settings arrays like "ubxMessageRate_"
+    { & settings.enableSD, "enableSD", _bool, 0, false, true, true },
+    { & settings.maxLogTime_minutes, "maxLogTime", _int, 0, false, true, true },
+    { & settings.maxLogLength_minutes, "maxLogLength", _int, 0, false, true, true },
+    { & settings.observationSeconds, "observationSeconds", _int, 0, true, true, true },
+    { & settings.observationPositionAccuracy, "observationPositionAccuracy", _float, point2float, true, true, true },
+    { & settings.fixedBase, "fixedBase", _bool, 0, true, false, true },
+    { & settings.fixedBaseCoordinateType, "fixedBaseCoordinateType", _bool, 0, true, false, true },
+    { & settings.fixedEcefX, "fixedEcefX", _double, point3float, true, true, true },
+    { & settings.fixedEcefY, "fixedEcefY", _double, point3float, true, true, true },
+    { & settings.fixedEcefZ, "fixedEcefZ", _double, point3float, true, true, true },
+    { & settings.fixedLat, "fixedLat", _double, point9float, true, true, true },
+    { & settings.fixedLong, "fixedLong", _double, point9float, true, true, true },
+    { & settings.fixedAltitude, "fixedAltitude", _double, point4float, true, true, true },
+    { & settings.dataPortBaud, "dataPortBaud", _uint32_t, 0, true, true, true },
+    { & settings.radioPortBaud, "radioPortBaud", _uint32_t, 0, true, true, true },
+    { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float, point1float, true, true, true },
+    { & settings.measurementRate, "measurementRate", _uint16_t, 0, true, false, true },
+    { & settings.navigationRate, "navigationRate", _uint16_t, 0, true, false, true },
+    { & settings.debugGnss, "debugGnss", _bool, 0, false, true, true },
+    { & settings.enableHeapReport, "enableHeapReport", _bool, 0, false, true, true },
+    { & settings.enableTaskReports, "enableTaskReports", _bool, 0, false, true, true },
+    { & settings.dataPortChannel, "dataPortChannel", _muxConnectionType_e, 0, false, true, true },
+    { & settings.spiFrequency, "spiFrequency", _uint16_t, 0, false, true, true },
+    { & settings.enableLogging, "enableLogging", _bool, 0, false, true, true },
+    { & settings.enableARPLogging, "enableARPLogging", _bool, 0, false, true, true },
+    { & settings.ARPLoggingInterval_s, "ARPLoggingInterval", _uint16_t, 0, false, true, true },
+    { & settings.sppRxQueueSize, "sppRxQueueSize", _uint16_t, 0, false, true, true },
+    { & settings.sppTxQueueSize, "sppTxQueueSize", _uint16_t, 0, false, true, true },
+    { & settings.dynamicModel, "dynamicModel", _uint8_t, 0, true, true, true },
+    { & settings.lastState, "lastState", _SystemState, 0, true, false, true },
+    { & settings.enableResetDisplay, "enableResetDisplay", _bool, 0, false, true, true },
+    { & settings.resetCount, "resetCount", _int, 0, false, true, true },
+    { & settings.enableExternalPulse, "enableExternalPulse", _bool, 0, true, true, true },
+    { & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse", _uint64_t, 0, true, true, true },
+    { & settings.externalPulseLength_us, "externalPulseLength", _uint64_t, 0, true, true, true },
+    { & settings.externalPulsePolarity, "externalPulsePolarity", _pulseEdgeType_e, 0, true, true, true },
+    { & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging", _bool, 0, true, true, true },
+    { & settings.enableUART2UBXIn, "enableUART2UBXIn", _bool, 0, false, true, true },
+
+    { & settings.ubxMessageRates[0], "ubxMessageRate_", _ubxMessageRates, MAX_UBX_MSG, true, false, true },
+
+    { & settings.ubxConstellations[0], "ubxConstellation_", _ubxConstellations, MAX_CONSTELLATIONS, true, true, true },
+
+    { & settings.profileName, "profileName", _charArray, sizeof(settings.profileName), false, false, true },
+
+    { & settings.serialTimeoutGNSS, "serialTimeoutGNSS", _int16_t, 0, false, true, true },
+
+    { & settings.pointPerfectDeviceProfileToken, "pointPerfectDeviceProfileToken", _charArray, sizeof(settings.pointPerfectDeviceProfileToken), false, true, true },
+    { & settings.enablePointPerfectCorrections, "enablePointPerfectCorrections", _bool, 0, false, true, true },
+    { & settings.autoKeyRenewal, "autoKeyRenewal", _bool, 0, false, true, true },
+    { & settings.pointPerfectClientID, "pointPerfectClientID", _charArray, sizeof(settings.pointPerfectClientID), false, true, true },
+    { & settings.pointPerfectBrokerHost, "pointPerfectBrokerHost", _charArray, sizeof(settings.pointPerfectBrokerHost), false, true, true },
+    { & settings.pointPerfectKeyDistributionTopic, "pointPerfectKeyDistributionTopic", _charArray, sizeof(settings.pointPerfectKeyDistributionTopic), false, true, true },
+
+    { & settings.pointPerfectCurrentKey, "pointPerfectCurrentKey", _charArray, sizeof(settings.pointPerfectCurrentKey), false, true, true },
+    { & settings.pointPerfectCurrentKeyDuration, "pointPerfectCurrentKeyDuration", _uint64_t, 0, false, true, true },
+    { & settings.pointPerfectCurrentKeyStart, "pointPerfectCurrentKeyStart", _uint64_t, 0, false, true, true },
+
+    { & settings.pointPerfectNextKey, "pointPerfectNextKey", _charArray, sizeof(settings.pointPerfectNextKey), false, true, true },
+    { & settings.pointPerfectNextKeyDuration, "pointPerfectNextKeyDuration", _uint64_t, 0, false, true, true },
+    { & settings.pointPerfectNextKeyStart, "pointPerfectNextKeyStart", _uint64_t, 0, false, true, true },
+
+    { & settings.lastKeyAttempt, "lastKeyAttempt", _uint64_t, 0, false, true, true },
+    { & settings.updateGNSSSettings, "updateGNSSSettings", _bool, 0, false, true, true },
+
+    { & settings.debugPpCertificate, "debugPpCertificate", _bool, 0, false, false, true },
+
+    { & settings.timeZoneHours, "timeZoneHours", _int8_t, 0, false, true, true },
+    { & settings.timeZoneMinutes, "timeZoneMinutes", _int8_t, 0, false, true, true },
+    { & settings.timeZoneSeconds, "timeZoneSeconds", _int8_t, 0, false, true, true },
+
+    { & settings.enablePrintState, "enablePrintState", _bool, 0, false, true, true },
+    { & settings.enablePrintPosition, "enablePrintPosition", _bool, 0, false, true, true },
+    { & settings.enablePrintIdleTime, "enablePrintIdleTime", _bool, 0, false, true, true },
+    { & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages", _bool, 0, false, true, true },
+    { & settings.enablePrintRoverAccuracy, "enablePrintRoverAccuracy", _bool, 0, false, true, true },
+    { & settings.enablePrintBadMessages, "enablePrintBadMessages", _bool, 0, false, true, true },
+    { & settings.enablePrintLogFileMessages, "enablePrintLogFileMessages", _bool, 0, false, true, true },
+    { & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus", _bool, 0, false, true, true },
+    { & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets", _bool, 0, false, true, true },
+    { & settings.enablePrintStates, "enablePrintStates", _bool, 0, false, true, true },
+    { & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates", _bool, 0, false, true, true },
+    { & settings.enablePrintRtcSync, "enablePrintRtcSync", _bool, 0, false, true, true },
+
+    { & settings.espnowPeers[0][0], "espnowPeer_", _espnowPeers, ESPNOW_MAX_PEERS, false, true, true },
+
+    { & settings.espnowPeerCount, "espnowPeerCount", _uint8_t, 0, false, true, true },
+    { & settings.enableRtcmMessageChecking, "enableRtcmMessageChecking", _bool, 0, false, false, true },
+    { & settings.bluetoothRadioType, "bluetoothRadioType", _BluetoothRadioType_e, 0, false, true, true },
+    { & settings.runLogTest, "runLogTest", _bool, 0, false, true, true }, // Not stored in NVM
+    { & settings.espnowBroadcast, "espnowBroadcast", _bool, 0, false, true, true },
+    { & settings.antennaHeight, "antennaHeight", _int16_t, 0, false, true, true },
+    { & settings.antennaReferencePoint, "antennaReferencePoint", _float, point2float, false, true, true },
+    { & settings.echoUserInput, "echoUserInput", _bool, 0, false, true, true },
+    { & settings.uartReceiveBufferSize, "uartReceiveBufferSize", _int, 0, false, true, true },
+    { & settings.gnssHandlerBufferSize, "gnssHandlerBufferSize", _int, 0, false, true, true },
+
+    { & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun", _bool, 0, false, true, true },
+    { & settings.enablePrintSDBuffers, "enablePrintSDBuffers", _bool, 0, false, true, true },
+    { & settings.periodicDisplay, "periodicDisplay", _PeriodicDisplay_t, 0, false, true, true },
+    { & settings.periodicDisplayInterval, "periodicDisplayInterval", _uint32_t, 0, false, true, true },
+
+    { & settings.rebootSeconds, "rebootSeconds", _uint32_t, 0, false, true, true },
+    { & settings.forceResetOnSDFail, "forceResetOnSDFail", _bool, 0, false, true, true },
+
+    { & settings.minElev, "minElev", _uint8_t, 0, true, true, true },
+
+    { & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_", _ubxMessageRateBase, MAX_UBX_MSG_RTCM, true, false, true },
+
+    { & settings.coordinateInputType, "coordinateInputType", _CoordinateInputType, 0, false, true, true },
+    { & settings.lbandFixTimeout_seconds, "lbandFixTimeout", _uint16_t, 0, false, true, true },
+    { & settings.minCNO_F9P, "minCNOF9P", _int16_t, 0, true, false, true },
+    { & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", _uint16_t, 0, false, true, true },
+    { & settings.btReadTaskPriority, "btReadTaskPriority", _uint8_t, 0, false, true, true },
+    { & settings.gnssReadTaskPriority, "gnssReadTaskPriority", _uint8_t, 0, false, true, true },
+    { & settings.handleGnssDataTaskPriority, "handleGnssDataTaskPriority", _uint8_t, 0, false, true, true },
+    { & settings.btReadTaskCore, "btReadTaskCore", _uint8_t, 0, false, true, true },
+    { & settings.gnssReadTaskCore, "gnssReadTaskCore", _uint8_t, 0, false, true, true },
+    { & settings.handleGnssDataTaskCore, "handleGnssDataTaskCore", _uint8_t, 0, false, true, true },
+    { & settings.gnssUartInterruptsCore, "gnssUartInterruptsCore", _uint8_t, 0, false, true, true },
+    { & settings.bluetoothInterruptsCore, "bluetoothInterruptsCore", _uint8_t, 0, false, true, true },
+    { & settings.i2cInterruptsCore, "i2cInterruptsCore", _uint8_t, 0, false, true, true },
+    { & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout", _uint32_t, 0, false, true, true },
+    { & settings.disableSetupButton, "disableSetupButton", _bool, 0, false, true, true },
+
+    { & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag", _bool, 0, false, true, true },
+    { & settings.ethernetDHCP, "ethernetDHCP", _bool, 0, false, true, true },
+    { & settings.ethernetIP, "ethernetIP", _IPString, 0, false, true, true },
+    { & settings.ethernetDNS, "ethernetDNS", _IPString, 0, false, true, true },
+    { & settings.ethernetGateway, "ethernetGateway", _IPString, 0, false, true, true },
+    { & settings.ethernetSubnet, "ethernetSubnet", _IPString, 0, false, true, true },
+    { & settings.httpPort, "httpPort", _uint16_t, 0, false, true, true },
+
+    { & settings.debugWifiState, "debugWifiState", _bool, 0, false, true, true },
+    { & settings.wifiConfigOverAP, "wifiConfigOverAP", _bool, 0, false, false, true }, // TODO: check drop downs
+
+    { & settings.wifiNetworks, "wifiNetwork_", _wifiNetwork, MAX_WIFI_NETWORKS, false, true, true },
+
+    { & settings.defaultNetworkType, "defaultNetworkType", _uint8_t, 0, false, true, true },
+    { & settings.debugNetworkLayer, "debugNetworkLayer", _bool, 0, false, true, true },
+    { & settings.enableNetworkFailover, "enableNetworkFailover", _bool, 0, false, true, true },
+    { & settings.printNetworkStatus, "printNetworkStatus", _bool, 0, false, true, true },
+
+    { & settings.mdnsEnable, "mdnsEnable", _bool, 0, false, true, true },
+
+    { & settings.debugMqttClientData, "debugMqttClientData", _bool, 0, false, true, true },
+    { & settings.debugMqttClientState, "debugMqttClientState", _bool, 0, false, true, true },
+
+    { & settings.debugNtp, "debugNtp", _bool, 0, false, true, true },
+    { & settings.ethernetNtpPort, "ethernetNtpPort", _uint16_t, 0, false, true, true },
+    { & settings.enableNTPFile, "enableNTPFile", _bool, 0, false, true, true },
+    { & settings.ntpPollExponent, "ntpPollExponent", _uint8_t, 0, false, true, true },
+    { & settings.ntpPrecision, "ntpPrecision", _int8_t, 0, false, true, true },
+    { & settings.ntpRootDelay, "ntpRootDelay", _uint32_t, 0, false, true, true },
+    { & settings.ntpRootDispersion, "ntpRootDispersion", _uint32_t, 0, false, true, true },
+    { & settings.ntpReferenceId, "ntpReferenceId", _charArray, sizeof(settings.ntpReferenceId), false, true, true },
+
+    { & settings.debugNtripClientRtcm, "debugNtripClientRtcm", _bool, 0, false, true, true },
+    { & settings.debugNtripClientState, "debugNtripClientState", _bool, 0, false, true, true },
+    { & settings.enableNtripClient, "enableNtripClient", _bool, 0, false, true, true },
+    { & settings.ntripClient_CasterHost, "ntripClientCasterHost", _charArray, sizeof(settings.ntripClient_CasterHost), false, true, true },
+    { & settings.ntripClient_CasterPort, "ntripClientCasterPort", _uint16_t, 0, false, true, true },
+    { & settings.ntripClient_CasterUser, "ntripClientCasterUser", _charArray, sizeof(settings.ntripClient_CasterUser), false, true, true },
+    { & settings.ntripClient_CasterUserPW, "ntripClientCasterUserPW", _charArray, sizeof(settings.ntripClient_CasterUserPW), false, true, true },
+    { & settings.ntripClient_MountPoint, "ntripClientMountPoint", _charArray, sizeof(settings.ntripClient_MountPoint), false, true, true },
+    { & settings.ntripClient_MountPointPW, "ntripClientMountPointPW", _charArray, sizeof(settings.ntripClient_MountPointPW), false, true, true },
+    { & settings.ntripClient_TransmitGGA, "ntripClientTransmitGGA", _bool, 0, false, true, true },
+
+    { & settings.debugNtripServerRtcm, "debugNtripServerRtcm", _bool, 0, false, true, true },
+    { & settings.debugNtripServerState, "debugNtripServerState", _bool, 0, false, true, true },
+    { & settings.enableNtripServer, "enableNtripServer", _bool, 0, false, true, true },
+
+    { & settings.ntripServer_CasterHost[0], "ntripServerCasterHost_", _ntripServerCasterHost, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_CasterPort[0], "ntripServerCasterPort_", _ntripServerCasterPort, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_CasterUser[0], "ntripServerCasterUser_", _ntripServerCasterUser, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_CasterUserPW[0], "ntripServerCasterUserPW_", _ntripServerCasterUserPW, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_MountPoint[0], "ntripServerMountPoint_", _ntripServerMountPoint, NTRIP_SERVER_MAX, false, true, true },
+    { & settings.ntripServer_MountPointPW[0], "ntripServerMountPointPW_", _ntripServerMountPointPW, NTRIP_SERVER_MAX, false, true, true },
+
+    { & settings.debugTcpClient, "debugTcpClient", _bool, 0, false, true, true },
+    { & settings.enableTcpClient, "enableTcpClient", _bool, 0, false, true, true },
+    { & settings.tcpClientPort, "tcpClientPort", _uint16_t, 0, false, true, true },
+    { & settings.tcpClientHost, "tcpClientHost", _charArray, sizeof(settings.tcpClientHost), false, true, true },
+
+    { & settings.debugTcpServer, "debugTcpServer", _bool, 0, false, true, true },
+    { & settings.enableTcpServer, "enableTcpServer", _bool, 0, false, true, true },
+    { & settings.tcpServerPort, "tcpServerPort", _uint16_t, 0, false, true, true },
+
+    { & settings.debugUdpServer, "debugUdpServer", _bool, 0, false, true, true },
+    { & settings.enableUdpServer, "enableUdpServer", _bool, 0, false, true, true },
+    { & settings.udpServerPort, "udpServerPort", _uint16_t, 0, false, true, true },
+
+    { & settings.um980MessageRatesNMEA, "um980MessageRatesNMEA_", _um980MessageRatesNMEA, MAX_UM980_NMEA_MSG, false, false, true },
+    { & settings.um980MessageRatesRTCMRover, "um980MessageRatesRTCMRover_", _um980MessageRatesRTCMRover, MAX_UM980_RTCM_MSG, false, false, true },
+    { & settings.um980MessageRatesRTCMBase, "um980MessageRatesRTCMBase_", _um980MessageRatesRTCMBase, MAX_UM980_RTCM_MSG, false, false, true },
+    { & settings.um980Constellations, "um980Constellations_", _um980Constellations, MAX_UM980_CONSTELLATIONS, false, true, true },
+
+    { & settings.minCNO_um980, "minCNOum980", _int16_t, 0, false, false, true },
+    { & settings.enableTiltCompensation, "enableTiltCompensation", _bool, 0, false, true, true },
+    { & settings.tiltPoleLength, "tiltPoleLength", _float, point3float, false, true, true },
+    { & settings.enableImuDebug, "enableImuDebug", _bool, 0, false, true, true },
+
+    { & settings.debugFirmwareUpdate, "debugFirmwareUpdate", _bool, 0, false, true, true },
+    { & settings.enableAutoFirmwareUpdate, "enableAutoFirmwareUpdate", _bool, 0, false, true, true },
+    { & settings.autoFirmwareCheckMinutes, "autoFirmwareCheckMinutes", _uint32_t, 0, false, true, true },
+
+    { & settings.debugCorrections, "debugCorrections", _bool, 0, false, true, true },
+    { & settings.enableCaptivePortal, "enableCaptivePortal", _bool, 0, false, true, true },
+
+    { & settings.printBootTimes, "printBootTimes", _bool, 0, false, true, true },
+
+    { & settings.printPartitionTable, "printPartitionTable", _bool, 0, false, true, true },
+
+    { & settings.measurementScale, "measurementScale", _uint8_t, 0, false, true, true },
+
+    { & settings.debugWiFiConfig, "debugWiFiConfig", _bool, 0, false, true, true },
+    { & settings.enablePsram, "enablePsram", _bool, 0, false, true, true },
+    { & settings.printTaskStartStop, "printTaskStartStop", _bool, 0, false, true, true },
+    { & settings.psramMallocLevel, "psramMallocLevel", _uint16_t, 0, false, true, true },
+    { & settings.um980SurveyInStartingAccuracy, "um980SurveyInStartingAccuracy", _float, point1float, false, true, true },
+    { & settings.enableBeeper, "enableBeeper", _bool, 0, false, true, true },
+    { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t, 0, false, false, true },
+    { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool, 0, false, true, true },
+
+    { & settings.correctionsSourcesPriority, "correctionsPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM, false, true, true },
+
+    { & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime", _int, 0, false, true, true },
+
+    { & settings.geographicRegion, "geographicRegion", _int, 0, false, true, true },
+
+    { & settings.regionalCorrectionTopics, "regionalCorrectionTopics_", _regionalCorrectionTopics, numRegionalAreas, false, true, true },
+
+    { & settings.debugEspNow, "debugEspNow", _bool, 0, false, true, true },
+    { & settings.enableEspNow, "enableEspNow", _bool, 0, false, true, true },
+    { & settings.wifiChannel, "wifiChannel", _uint8_t, 0, false, true, true },
+
+    // Add new settings above <------------------------------------------------------------>
+    /*
+    { & settings., "", , 0, false, true },
+    */
+};
+
+const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
 // Indicate which peripherals are present on a given platform
 struct struct_present
@@ -1334,16 +1639,15 @@ struct struct_present
     bool psram_2mb = false;
     bool psram_4mb = false;
 
-    bool gnss_zedf9p = false;
-    bool gnss_zedf9r = false;
-    bool gnss_um980 = false;
-    bool gnss_mosaic = false;
-
     bool lband_neo = false;
     bool cellular_lara = false;
     bool ethernet_ws5500 = false;
     bool radio_lora = false;
     bool gnss_to_uart = false;
+
+    bool gnss_um980 = false;
+    bool gnss_zedf9p = false;
+    bool gnss_mosaicX5 = false;
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second
@@ -1364,8 +1668,9 @@ struct struct_present
     bool display_i2c1 = false;
     DisplayType display_type = DISPLAY_MAX_NONE;
 
-    bool battery_max17048 = false;
-    bool battery_bq40z50 = false;
+    bool fuelgauge_max17048 = false;
+    bool fuelgauge_bq40z50 = false;
+    bool charger_mp2762a = false;
 
     bool beeper = false;
     bool encryption_atecc608a = false;
@@ -1394,15 +1699,15 @@ struct struct_online
     bool serialOutput = false;
     bool fs = false;
     bool rtc = false;
-    bool battery = false;
+    bool batteryFuelGauge = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
     bool lband = false;
     bool lbandCorrections = false;
     bool i2c = false;
-    bool pvtClient = false;
-    bool pvtServer = false;
-    bool pvtUdpServer = false;
+    bool tcpClient = false;
+    bool tcpServer = false;
+    bool udpServer = false;
     ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
     bool otaFirmwareUpdate = false;
@@ -1420,11 +1725,8 @@ struct struct_online
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
     bool ppl = false;
+    bool batteryCharger = false;
 } online;
-
-// Corrections priority
-std::vector<correctionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
-void registerCorrectionsSource(correctionsSource newSource) { registeredCorrectionsSources.push_back(newSource); }
 
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API

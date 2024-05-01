@@ -196,7 +196,7 @@ void displayUpdate()
             oled->erase();
 
             std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
-            iconPropertyList.clear();
+            iconPropertyList.clear(); // Redundant?
 
             switch (systemState)
             {
@@ -459,11 +459,9 @@ void displayUpdate()
                 blinkState = 0b00000001;
             for (auto it = iconPropertyList.begin(); it != iconPropertyList.end(); it = std::next(it))
             {
-                iconPropertyBlinking theIcon = *it;
-
-                if ((theIcon.duty & blinkState) > 0)
-                    displayBitmap(theIcon.icon.xPos, theIcon.icon.yPos, theIcon.icon.width, theIcon.icon.height,
-                                  (const uint8_t *)theIcon.icon.bitmap);
+                if ((it->duty & blinkState) > 0)
+                    displayBitmap(it->icon.xPos, it->icon.yPos, it->icon.width, it->icon.height,
+                                  (const uint8_t *)it->icon.bitmap);
             }
 
             oled->display(); // Push internal buffer to display
@@ -739,6 +737,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
+                prop.icon.bitmap = nullptr;
                 // Based on RSSI, select icon
                 if (espnowRSSI >= -40)
                     prop.icon = ESPNowSymbol3128x64;
@@ -746,9 +745,11 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon = ESPNowSymbol2128x64;
                 else if (espnowRSSI >= -80)
                     prop.icon = ESPNowSymbol1128x64;
-                else // if (espnowRSSI > -255)
+                else if (espnowRSSI > -255)
                     prop.icon = ESPNowSymbol0128x64;
-                iconList->push_back(prop);
+                // Don't display a symbol if RSSI == -255
+                if (prop.icon.bitmap != nullptr)
+                    iconList->push_back(prop);
             }
 
             if (bluetoothGetState() == BT_CONNECTED)
@@ -958,8 +959,8 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 prop.icon = ESPNowSymbol2Left64x48;
             else if (espnowRSSI >= -80)
                 prop.icon = ESPNowSymbol1Left64x48;
-            else // if (espnowRSSI > -255)
-                prop.icon = ESPNowSymbol0Left64x48;
+            else //if (espnowRSSI > -255)
+                prop.icon = ESPNowSymbol0Left64x48; // Always show the synbol because we've got incoming or outgoing data
             iconList->push_back(prop);
 
             // Share the spot. Determine if we need to indicate Up, or Down
@@ -982,6 +983,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         {
             iconPropertyBlinking prop;
             prop.duty = 0b11111111;
+            prop.icon.bitmap = nullptr;
             // TODO: check this. Surely we want to indicate the correct signal level with no incoming RTCM?
             if (espnowIncomingRTCM == true)
             {
@@ -992,14 +994,16 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                     prop.icon = ESPNowSymbol2Left64x48;
                 else if (espnowRSSI >= -80)
                     prop.icon = ESPNowSymbol1Left64x48;
-                else // if (espnowRSSI > -255)
+                else if (espnowRSSI > -255)
                     prop.icon = ESPNowSymbol0Left64x48;
+                // Don't display a symbol if RSSI == -255
             }
             else // ESP radio is active, but not receiving RTCM
             {
                 prop.icon = ESPNowSymbol3Left64x48; // Full symbol
             }
-            iconList->push_back(prop);
+            if (prop.icon.bitmap != nullptr)
+                iconList->push_back(prop);
         }
     }
     else // We are not paired, blink icon
@@ -1451,7 +1455,7 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
 
 void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (online.battery) // Product has a battery
+    if (online.batteryFuelGauge) // Product has a battery
         paintBatteryLevel(iconList);
     else // if (present.ethernet_ws5500 == true)
     {
@@ -2056,6 +2060,10 @@ void displayWiFiConfig()
         else if (WiFi.getMode() == WIFI_AP)
             snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
 
+        // If we are in AP+STA mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP_STA)
+            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+
         else
             snprintf(mySSID, sizeof(mySSID), "%s", "Error");
     }
@@ -2089,7 +2097,7 @@ void displayWiFiConfig()
 
 #ifdef COMPILE_AP
     IPAddress myIpAddress;
-    if (WiFi.getMode() == WIFI_AP)
+    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
         myIpAddress = WiFi.softAPIP();
     else
         myIpAddress = WiFi.localIP();
@@ -2324,11 +2332,11 @@ void paintSystemTest()
             else
                 oled->print("FAIL");
 
-            if (present.battery_max17048 || present.battery_bq40z50)
+            if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50)
             {
                 oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
                 oled->print("Batt:");
-                if (online.battery == true)
+                if (online.batteryFuelGauge == true)
                     oled->print("OK");
                 else
                     oled->print("FAIL");
@@ -2430,12 +2438,12 @@ void paintSystemTest()
             oled->setFont(QW_FONT_5X7); // Set font to smallest
 
             oled->setCursor(xOffset, yOffset); // x, y
-            oled->print("ZED Firm:");
+            oled->print("GNSS Firm:");
             oled->setCursor(xOffset, yOffset + (1 * charHeight)); // x, y
-            oled->print("  ");
-            oled->print(zedFirmwareVersionInt);
+            oled->print(" ");
+            oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if (zedFirmwareVersionInt < 130)
+            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 130))
                 oled->print("FAIL");
             else
                 oled->print("OK");
@@ -2464,21 +2472,19 @@ void paintDisplaySetup()
 
     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
     {
-        setupButton theButton = *it;
-
         if (thisIsButton >= setupSelectedButton) // Should we display this button based on the global setupSelectedButton?
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                if (theButton.newState == STATE_PROFILE)
+                if (it->newState == STATE_PROFILE)
                 {
                     int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                     char miniProfileName[nameWidth] = {0};
-                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", theButton.newProfile, theButton.name); // Prefix with index #
+                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile, it->name); // Prefix with index #
                     printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 }
                 else
-                    printTextCenter(theButton.name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                    printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
         }
@@ -2494,11 +2500,9 @@ void paintDisplaySetup()
     {
         for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
         {
-            setupButton theButton = *it;
-
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
-                printTextCenter(theButton.name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
+                printTextCenter(it->name, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 printedButtons++;
             }
 
@@ -2995,34 +2999,38 @@ void displayConfigViaEthernet()
 
         printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
         yPos += 8;
+        if (present.display_type == DISPLAY_128x64)
+            yPos += 4;
 
-        char ipAddress[40];
+        char ipAddress[16];
         IPAddress localIP = ETH.localIP();
-        snprintf(ipAddress, sizeof(ipAddress), "          %d.%d.%d.%d          ", localIP[0], localIP[1], localIP[2],
-                 localIP[3]);
+        snprintf(ipAddress, sizeof(ipAddress), "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
 
-        static uint8_t ipAddressPosition = 0;
+        int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
 
-        // Print ten characters of IP address
-        char printThis[12];
-
-        // Check if the IP address is <= 10 chars and will fit without scrolling
-        if (strlen(ipAddress) <= 28)
-            ipAddressPosition = 9;
-        else if (strlen(ipAddress) <= 30)
-            ipAddressPosition = 10;
-
-        snprintf(printThis, sizeof(printThis), "%c%c%c%c%c%c%c%c%c%c", ipAddress[ipAddressPosition + 0],
-                 ipAddress[ipAddressPosition + 1], ipAddress[ipAddressPosition + 2], ipAddress[ipAddressPosition + 3],
-                 ipAddress[ipAddressPosition + 4], ipAddress[ipAddressPosition + 5], ipAddress[ipAddressPosition + 6],
-                 ipAddress[ipAddressPosition + 7], ipAddress[ipAddressPosition + 8], ipAddress[ipAddressPosition + 9]);
-
-        oled->setCursor(0, yPos);
-        oled->print(printThis);
-
-        ipAddressPosition++;                        // Increment the print position
-        if (ipAddress[ipAddressPosition + 10] == 0) // Wrap
-            ipAddressPosition = 0;
+        // If we can print the full IP address without shuttling
+        if (strlen(ipAddress) <= displayWidthChars)
+        {
+            printTextCenter(ipAddress, yPos, QW_FONT_5X7, 1, false);
+        }
+        else
+        {
+            // Print as many characters as we can. Shuttle back and forth to display all.
+            static int startPos = 0;
+            char printThis[displayWidthChars + 1];
+            int extras = strlen(ipAddress) - displayWidthChars;
+            int shuttle[2 * extras];
+            int x;
+            for (x = 0; x <= extras; x++)
+                shuttle[x] = x;
+            for (int y = extras - 1; y > 0; y--)
+                shuttle[x++] = y;
+            if (startPos >= (2 * extras))
+                startPos = 0;
+            snprintf(printThis, sizeof(printThis), &ipAddress[shuttle[startPos]]);
+            startPos++;
+            printTextCenter(printThis, yPos, QW_FONT_5X7, 1, false);
+        }
 
         oled->display();
     }

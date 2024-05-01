@@ -45,160 +45,210 @@ void menuMain()
         return;
     }
 
-    while (1)
+    if (configureViaEthernet)
     {
-        systemPrintln();
-        char versionString[21];
-        getFirmwareVersion(versionString, sizeof(versionString), true);
-        systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
-
-#ifdef COMPILE_BT
-
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-            systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-            systemPrint("** Bluetooth SPP broadcasting as: ");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-            systemPrint("** Bluetooth Low-Energy broadcasting as: ");
-        systemPrint(deviceName);
-        systemPrintln(" **");
-#else  // COMPILE_BT
-        systemPrintln("** Bluetooth Not Compiled **");
-#endif // COMPILE_BT
-
-        systemPrintln("Menu: Main");
-
-        systemPrintln("1) Configure GNSS Receiver");
-
-        systemPrintln("2) Configure GNSS Messages");
-
-        systemPrintln("3) Configure Base");
-
-        if (productVariant != RTK_TORCH) // Torch does not have external ports
-            systemPrintln("4) Configure Ports");
-
-        if (productVariant != RTK_TORCH) // Torch does not have logging
-            systemPrintln("5) Configure Logging");
-
-#ifdef COMPILE_WIFI
-        systemPrintln("6) Configure WiFi");
-#else  // COMPILE_WIFI
-        systemPrintln("6) **WiFi Not Compiled**");
-#endif // COMPILE_WIFI
-
-#if COMPILE_NETWORK
-        systemPrintln("7) Configure Network");
-#else  // COMPILE_NETWORK
-        systemPrintln("7) **Network Not Compiled**");
-#endif // COMPILE_NETWORK
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-            systemPrintln("e) Configure Ethernet");
-#endif // COMPILE_ETHERNET
-
-        systemPrintln("f) Firmware Update");
-
-        systemPrintln("i) Configure Corrections Priorities");
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-            systemPrintln("n) Configure NTP");
-#endif // COMPILE_ETHERNET
-
-        systemPrintln("u) Configure User Profiles");
-
-#ifdef COMPILE_ESPNOW
-        systemPrintln("r) Configure Radios");
-#else  // COMPILE_ESPNOW
-        systemPrintln("r) **ESP-Now Not Compiled**");
-#endif // COMPILE_ESPNOW
-
-        systemPrintln("p) Configure PointPerfect");
-
-        systemPrintln("s) Configure System");
-
-        if (present.imu_im19 == true)
-            systemPrintln("t) Configure Tilt Compensation");
-
-        if (btPrintEcho)
-            systemPrintln("b) Exit Bluetooth Echo mode");
-
-        systemPrintln("+) Enter Command line mode");
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming == 1)
-            menuGNSS();
-        else if (incoming == 2)
-            gnssMenuMessages();
-        else if (incoming == 3)
-            menuBase();
-        else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
-            menuPorts();
-        else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
-            menuLog();
-        else if (incoming == 6)
-            menuWiFi();
-        else if (incoming == 7)
-            menuNetwork();
-        else if (incoming == 'e' && (present.ethernet_ws5500 == true))
-            menuEthernet();
-        else if (incoming == 'f')
-            menuFirmware();
-        else if (incoming == 'i')
-            menuCorrectionsPriorities();
-        else if (incoming == 'n' && (present.ethernet_ws5500 == true))
-            menuNTP();
-        else if (incoming == 'u')
-            menuUserProfiles();
-        else if (incoming == 'p')
-            menuPointPerfect();
-#ifdef COMPILE_ESPNOW
-        else if (incoming == 'r')
-            menuRadio();
-#endif // COMPILE_ESPNOW
-        else if (incoming == 's')
-            menuSystem();
-        else if (incoming == 't' && (present.imu_im19 == true))
-            menuTilt();
-        else if (incoming == 'b')
+        while (1)
         {
-            printEndpoint = PRINT_ENDPOINT_SERIAL;
-            systemPrintln("BT device has exited echo mode");
-            btPrintEcho = false;
-            break; // Exit config menu
+            systemPrintln();
+            char versionString[21];
+            getFirmwareVersion(versionString, sizeof(versionString), true);
+            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+
+            systemPrintln("\r\n** Configure Via Ethernet Mode **\r\n");
+
+            systemPrintln("Menu: Main");
+
+            systemPrintln("r) Restart Base");
+
+            systemPrintln("x) Exit");
+
+            byte incoming = getUserInputCharacterNumber();
+
+            if (incoming == 'r')
+            {
+                displayConfigViaEthNotStarted(1000);
+
+                ethernetWebServerStopESP32W5500();
+
+                settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
+                settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
+                recordSystemSettings();
+
+                ESP.restart();
+            }
+            else if (incoming == 'x')
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+                break;
+            else
+                printUnknown(incoming);
         }
-        else if (incoming == '+')
-            menuCommands();
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
     }
 
-    // Reboot as base only if currently operating as a base station
-    if (restartBase && inBaseMode() == true)
+    else
     {
-        restartBase = false;
-        requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
+        while (1)
+        {
+            systemPrintln();
+            char versionString[21];
+            getFirmwareVersion(versionString, sizeof(versionString), true);
+            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+
+    #ifdef COMPILE_BT
+
+            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+                systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+                systemPrint("** Bluetooth SPP broadcasting as: ");
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+                systemPrint("** Bluetooth Low-Energy broadcasting as: ");
+            systemPrint(deviceName);
+            systemPrintln(" **");
+    #else  // COMPILE_BT
+            systemPrintln("** Bluetooth Not Compiled **");
+    #endif // COMPILE_BT
+
+            systemPrintln("Menu: Main");
+
+            systemPrintln("1) Configure GNSS Receiver");
+
+            systemPrintln("2) Configure GNSS Messages");
+
+            systemPrintln("3) Configure Base");
+
+            if (productVariant != RTK_TORCH) // Torch does not have external ports
+                systemPrintln("4) Configure Ports");
+
+            if (productVariant != RTK_TORCH) // Torch does not have logging
+                systemPrintln("5) Configure Logging");
+
+    #ifdef COMPILE_WIFI
+            systemPrintln("6) Configure WiFi");
+    #else  // COMPILE_WIFI
+            systemPrintln("6) **WiFi Not Compiled**");
+    #endif // COMPILE_WIFI
+
+    #if COMPILE_NETWORK
+            systemPrintln("7) Configure TCP/UDP");
+    #else  // COMPILE_NETWORK
+            systemPrintln("7) **TCP/UDP Not Compiled**");
+    #endif // COMPILE_NETWORK
+
+    #ifdef COMPILE_ETHERNET
+            if (present.ethernet_ws5500 == true)
+                systemPrintln("e) Configure Ethernet");
+    #endif // COMPILE_ETHERNET
+
+            systemPrintln("f) Firmware Update");
+
+            systemPrintln("i) Configure Corrections Priorities");
+
+    #ifdef COMPILE_ETHERNET
+            if (present.ethernet_ws5500 == true)
+                systemPrintln("n) Configure NTP");
+    #endif // COMPILE_ETHERNET
+
+            systemPrintln("p) Configure PointPerfect");
+
+    #ifdef COMPILE_ESPNOW
+            systemPrintln("r) Configure Radios");
+    #else  // COMPILE_ESPNOW
+            systemPrintln("r) **ESP-Now Not Compiled**");
+    #endif // COMPILE_ESPNOW
+
+            systemPrintln("s) Configure System");
+
+            if (present.imu_im19 == true)
+                systemPrintln("t) Configure Tilt Compensation");
+
+            systemPrintln("u) Configure User Profiles");
+
+            if (btPrintEcho)
+                systemPrintln("b) Exit Bluetooth Echo mode");
+
+            systemPrintln("+) Enter Command line mode");
+
+            systemPrintln("x) Exit");
+
+            byte incoming = getUserInputCharacterNumber();
+
+            if (incoming == 1)
+                menuGNSS();
+            else if (incoming == 2)
+                gnssMenuMessages();
+            else if (incoming == 3)
+                menuBase();
+            else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
+                menuPorts();
+            else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
+                menuLog();
+            else if (incoming == 6)
+                menuWiFi();
+            else if (incoming == 7)
+                menuTcpUdp();
+            else if (incoming == 'e' && (present.ethernet_ws5500 == true))
+                menuEthernet();
+            else if (incoming == 'f')
+                menuFirmware();
+            else if (incoming == 'i')
+                menuCorrectionsPriorities();
+            else if (incoming == 'n' && (present.ethernet_ws5500 == true))
+                menuNTP();
+            else if (incoming == 'u')
+                menuUserProfiles();
+            else if (incoming == 'p')
+                menuPointPerfect();
+    #ifdef COMPILE_ESPNOW
+            else if (incoming == 'r')
+                menuRadio();
+    #endif // COMPILE_ESPNOW
+            else if (incoming == 's')
+                menuSystem();
+            else if (incoming == 't' && (present.imu_im19 == true))
+                menuTilt();
+            else if (incoming == 'b' && btPrintEcho == true)
+            {
+                printEndpoint = PRINT_ENDPOINT_SERIAL;
+                systemPrintln("BT device has exited echo mode");
+                btPrintEcho = false;
+                break; // Exit config menu
+            }
+            else if (incoming == '+')
+                menuCommands();
+            else if (incoming == 'x')
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+                break;
+            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+                break;
+            else
+                printUnknown(incoming);
+        }
     }
 
-    if (restartRover == true)
+    if (!configureViaEthernet)
     {
-        restartRover = false;
-        requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
+
+        // Reboot as base only if currently operating as a base station
+        if (restartBase == true && inBaseMode() == true)
+        {
+            restartBase = false;
+            requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
+        }
+
+        if (restartRover == true && inRoverMode() == true)
+        {
+            restartRover = false;
+            requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
+        }
+
+        gnssSaveConfiguration();
+
+        recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
+
     }
-
-    gnssSaveConfiguration();
-
-    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     if (settings.debugGnss == true)
     {
@@ -311,8 +361,8 @@ void menuUserProfiles()
                          profileNumber); // Update file name with new profileNumber
 
                 // We need to load these settings from file so that we can record a profile name change correctly
-                bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName, &settings);
-                bool responseSD = loadSystemSettingsFromFileSD(settingsFileName, &settings);
+                bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
+                bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
 
                 // If this is an empty/new profile slot, overwrite our current settings with defaults
                 if (responseLFS == false && responseSD == false)
@@ -361,8 +411,8 @@ void changeProfileNumber(byte newProfileNumber)
     setSettingsFileName(); // Load the settings file name into memory (enabled profile name delete)
 
     // We need to load these settings from file so that we can record a profile name change correctly
-    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName, &settings);
-    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName, &settings);
+    bool responseLFS = loadSystemSettingsFromFileLFS(settingsFileName);
+    bool responseSD = loadSystemSettingsFromFileSD(settingsFileName);
 
     // If this is an empty/new profile slot, overwrite our current settings with defaults
     if (responseLFS == false && responseSD == false)
@@ -428,13 +478,10 @@ void menuRadio()
         systemPrintln();
         systemPrintln("Menu: Radios");
 
-        systemPrint("1) Select Radio Type: ");
-        if (settings.radioType == RADIO_EXTERNAL)
-            systemPrintln("External only");
-        else if (settings.radioType == RADIO_ESPNOW)
-            systemPrintln("Internal ESP-Now");
+        systemPrint("1) ESP-NOW Radio: ");
+        systemPrintf("%s\r\n", settings.enableEspNow ? "Enabled" : "Disabled");
 
-        if (settings.radioType == RADIO_ESPNOW)
+        if (settings.enableEspNow == true)
         {
             // Pretty print the MAC of all radios
             systemPrint("  Radio MAC: ");
@@ -458,11 +505,14 @@ void menuRadio()
 
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
-            if (ENABLE_DEVELOPER)
+
+            systemPrintf("4) Current channel: %d\r\n", espnowGetChannel());
+
+            if (settings.debugEspNow == true)
             {
-                systemPrintln("4) Add dummy radio");
-                systemPrintln("5) Send dummy data");
-                systemPrintln("6) Broadcast dummy data");
+                systemPrintln("5) Add dummy radio");
+                systemPrintln("6) Send dummy data");
+                systemPrintln("7) Broadcast dummy data");
             }
         }
 
@@ -472,16 +522,19 @@ void menuRadio()
 
         if (incoming == 1)
         {
-            if (settings.radioType == RADIO_EXTERNAL)
-                settings.radioType = RADIO_ESPNOW;
-            else if (settings.radioType == RADIO_ESPNOW)
-                settings.radioType = RADIO_EXTERNAL;
+            settings.enableEspNow ^= 1;
+
+            //Start ESP-NOW so that getChannel runs correctly
+            if(settings.enableEspNow == true)
+                espnowStart();
+            else
+                espnowStop();
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 2)
+        else if (settings.enableEspNow == true && incoming == 2)
         {
             espnowStaticPairing();
         }
-        else if (settings.radioType == RADIO_ESPNOW && incoming == 3)
+        else if (settings.enableEspNow == true && incoming == 3)
         {
             systemPrintln("\r\nForgetting all paired radios. Press 'y' to confirm:");
             byte bContinue = getUserInputCharacterNumber();
@@ -496,8 +549,24 @@ void menuRadio()
                 systemPrintln("Radios forgotten");
             }
         }
-        else if (ENABLE_DEVELOPER && settings.radioType == RADIO_ESPNOW && incoming == 4)
+        else if (settings.enableEspNow == true && incoming == 4)
         {
+            if (wifiIsConnected() == false)
+            {
+                if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
+                                  &settings.wifiChannel) == INPUT_RESPONSE_VALID)
+                    espnowSetChannel(settings.wifiChannel);
+            }
+            else
+            {
+                systemPrintln("ESP-NOW channel can't be modified while WiFi is connected.");
+            }
+        }
+        else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
+        {
+            if (espnowState == ESPNOW_OFF)
+                espnowStart();
+
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
             if (esp_now_is_peer_exist(peer1) == true)
                 log_d("Peer already exists");
@@ -515,16 +584,22 @@ void menuRadio()
 
             espnowSetState(ESPNOW_PAIRED);
         }
-        else if (ENABLE_DEVELOPER && settings.radioType == RADIO_ESPNOW && incoming == 5)
+        else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
+            if (espnowState == ESPNOW_OFF)
+                espnowStart();
+
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
         }
-        else if (ENABLE_DEVELOPER && settings.radioType == RADIO_ESPNOW && incoming == 6)
+        else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
+            if (espnowState == ESPNOW_OFF)
+                espnowStart();
+
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "

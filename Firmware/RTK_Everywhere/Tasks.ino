@@ -26,11 +26,11 @@ Tasks.ino
                                     | handleGnssDataTask
                                     |
                                     v
-            .---------------+-------+-------+---------------+
-            |               |               |               |
-            |               |               |               |
-            v               v               v               v
-        Bluetooth      PVT Client      PVT Server        SD Card
+            .---------------+-------+--------+---------------+
+            |               |                |               |
+            |               |                |               |
+            v               v                v               v
+        Bluetooth      TCP Client     TCP/UDP Server      SD Card
 
 ------------------------------------------------------------------------------*/
 
@@ -52,16 +52,16 @@ Tasks.ino
 enum RingBufferConsumers
 {
     RBC_BLUETOOTH = 0,
-    RBC_PVT_CLIENT,
-    RBC_PVT_SERVER,
+    RBC_TCP_CLIENT,
+    RBC_TCP_SERVER,
     RBC_SD_CARD,
-    RBC_PVT_UDP_SERVER,
+    RBC_UDP_SERVER,
     // Insert new consumers here
     RBC_MAX
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth", "PVT Client", "PVT Server", "SD Card", "PVT UDP Server",
+    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -137,7 +137,7 @@ void btReadTask(void *e)
             systemPrintln("btReadTask running");
         }
 
-        // Receive RTCM corrections or UBX config messages over bluetooth and pass them along to ZED
+        // Receive RTCM corrections or UBX config messages over bluetooth and pass them along to GNSS
         rxBytes = 0;
         if (bluetoothGetState() == BT_CONNECTED)
         {
@@ -259,25 +259,34 @@ void addToGnssBuffer(uint8_t incoming)
     }
 }
 
-// Push the buffered data in bulk to the GNSS over I2C
-bool sendGnssBuffer()
+// Push the buffered data in bulk to the GNSS
+void sendGnssBuffer()
 {
-    bool response = gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead);
-
-    if (response == true)
+    updateCorrectionsLastSeen(CORR_BLUETOOTH);
+    if (isHighestRegisteredCorrectionsSource(CORR_BLUETOOTH))
+    {
+        if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
+        {
+            if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
+            {
+                PERIODIC_CLEAR(PD_ZED_DATA_TX);
+                systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
+            }
+            // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
+        }
+    }
+    else
     {
         if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
         {
             PERIODIC_CLEAR(PD_ZED_DATA_TX);
-            systemPrintf("GNSS TX: Sending %d bytes from I2C\r\n", bluetoothOutgoingToGnssHead);
+            systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
         }
-        // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
     }
 
     // No matter the response, wrap the head and reset the timer
     bluetoothOutgoingToGnssHead = 0;
     lastGnssSend = millis();
-    return (response);
 }
 
 // Normally a delay(1) will feed the WDT but if we don't want to wait that long, this feeds the WDT without delay
@@ -367,7 +376,7 @@ void gnssReadTask(void *e)
         // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
         // If the Unicore library does not need lone access, then read from serial port
-        if (um980IsBlocking() == false)
+        if (gnssIsBlocking() == false)
         {
             // Determine if serial data is available
             while (serialGNSS->available())
@@ -400,7 +409,7 @@ void gnssReadTask(void *e)
 
 // Call back from within parser, for end of message
 // Process a complete message incoming from parser
-// If we get a complete NMEA/UBX/RTCM message, pass on to SD/BT/PVT interfaces
+// If we get a complete NMEA/UBX/RTCM message, pass on to SD/BT/TCP/UDP interfaces
 void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     int32_t bytesToCopy;
@@ -454,11 +463,14 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Determine if this message should be processed by the Unicore library
     // Pass NMEA to um980 before applying compensation
-    if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) ||
-        (type == RTK_NMEA_PARSER_INDEX))
+    if (present.gnss_um980)
     {
-        // Give this data to the library to update its internal variables
-        um980UnicoreHandler(parse->buffer, parse->length);
+        if ((type == RTK_UNICORE_BINARY_PARSER_INDEX) || (type == RTK_UNICORE_HASH_PARSER_INDEX) ||
+            (type == RTK_NMEA_PARSER_INDEX))
+        {
+            // Give this data to the library to update its internal variables
+            um980UnicoreHandler(parse->buffer, parse->length);
+        }
     }
 
     if (tiltIsCorrecting() == true)
@@ -470,11 +482,18 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
+    // Determine where to send RTCM data
+    if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
+    {
+        // Pass data along to NTRIP Server, or ESP-NOW radio
+        processRTCM(parse->buffer, parse->length);
+    }
+
     // Determine if we are using the PPL
     if (present.gnss_um980)
     {
         // Determine if we want to use corrections, and are connected to the broker
-        if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP && mqttClientIsConnected() == true)
+        if (settings.enablePointPerfectCorrections && mqttClientIsConnected() == true)
         {
             bool passToPpl = false;
 
@@ -730,9 +749,9 @@ void updateRingBufferTails(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
     // Trim any long or medium tails
     discardRingBufferBytes(&btRingBufferTail, previousTail, newTail);
     discardRingBufferBytes(&sdRingBufferTail, previousTail, newTail);
-    discardPvtClientBytes(previousTail, newTail);
-    discardPvtServerBytes(previousTail, newTail);
-    discardPvtUdpServerBytes(previousTail, newTail);
+    discardTcpClientBytes(previousTail, newTail);
+    discardTcpServerBytes(previousTail, newTail);
+    discardUdpServerBytes(previousTail, newTail);
 }
 
 // Remove previous messages from the ring buffer
@@ -793,9 +812,9 @@ void handleGnssDataTask(void *e)
 
     // Initialize the tails
     btRingBufferTail = 0;
-    pvtClientZeroTail();
-    pvtServerZeroTail();
-    pvtUdpServerZeroTail();
+    tcpClientZeroTail();
+    tcpServerZeroTail();
+    udpServerZeroTail();
     sdRingBufferTail = 0;
 
     // Verify that the task is still running
@@ -886,47 +905,47 @@ void handleGnssDataTask(void *e)
         startMillis = millis();
 
         // Update space available for use in UART task
-        bytesToSend = pvtClientSendData(dataHead);
+        bytesToSend = tcpClientSendData(dataHead);
         if (usedSpace < bytesToSend)
         {
             usedSpace = bytesToSend;
-            slowConsumer = "PVT client";
+            slowConsumer = "TCP client";
         }
 
         // Remember the maximum transfer time
         deltaMillis = millis() - startMillis;
-        if (maxMillis[RBC_PVT_CLIENT] < deltaMillis)
-            maxMillis[RBC_PVT_CLIENT] = deltaMillis;
+        if (maxMillis[RBC_TCP_CLIENT] < deltaMillis)
+            maxMillis[RBC_TCP_CLIENT] = deltaMillis;
 
         startMillis = millis();
 
         // Update space available for use in UART task
-        bytesToSend = pvtServerSendData(dataHead);
+        bytesToSend = tcpServerSendData(dataHead);
         if (usedSpace < bytesToSend)
         {
             usedSpace = bytesToSend;
-            slowConsumer = "PVT server";
+            slowConsumer = "TCP server";
         }
 
         // Remember the maximum transfer time
         deltaMillis = millis() - startMillis;
-        if (maxMillis[RBC_PVT_SERVER] < deltaMillis)
-            maxMillis[RBC_PVT_SERVER] = deltaMillis;
+        if (maxMillis[RBC_TCP_SERVER] < deltaMillis)
+            maxMillis[RBC_TCP_SERVER] = deltaMillis;
 
         startMillis = millis();
 
         // Update space available for use in UART task
-        bytesToSend = pvtUdpServerSendData(dataHead);
+        bytesToSend = udpServerSendData(dataHead);
         if (usedSpace < bytesToSend)
         {
             usedSpace = bytesToSend;
-            slowConsumer = "PVT UDP server";
+            slowConsumer = "UDP server";
         }
 
         // Remember the maximum transfer time
         deltaMillis = millis() - startMillis;
-        if (maxMillis[RBC_PVT_UDP_SERVER] < deltaMillis)
-            maxMillis[RBC_PVT_UDP_SERVER] = deltaMillis;
+        if (maxMillis[RBC_UDP_SERVER] < deltaMillis)
+            maxMillis[RBC_UDP_SERVER] = deltaMillis;
 
         //----------------------------------------------------------------------
         // Log data to the SD card
@@ -1096,22 +1115,8 @@ void handleGnssDataTask(void *e)
 // This is only called if ticker task is started so no pin tests are done
 void tickerBluetoothLedUpdate()
 {
-    // Blink on/off while we wait for BT connection
-    if (bluetoothGetState() == BT_NOTCONNECTED)
-    {
-        if (btFadeLevel == 0)
-            btFadeLevel = 255;
-        else
-            btFadeLevel = 0;
-        ledcWrite(ledBtChannel, btFadeLevel);
-    }
-
-    // Solid LED if BT Connected
-    else if (bluetoothGetState() == BT_CONNECTED)
-        ledcWrite(ledBtChannel, 255);
-
-    // Pulse LED while no BT and we wait for WiFi connection
-    else if (wifiState == WIFI_STATE_CONNECTING || wifiState == WIFI_STATE_CONNECTED)
+    // If we are in WiFi config mode, fade LED
+    if (inWiFiConfigMode() == true)
     {
         // Fade in/out the BT LED during WiFi AP mode
         btFadeLevel += pwmFadeAmount;
@@ -1125,6 +1130,18 @@ void tickerBluetoothLedUpdate()
 
         ledcWrite(ledBtChannel, btFadeLevel);
     }
+    // Blink on/off while we wait for BT connection
+    else if (bluetoothGetState() == BT_NOTCONNECTED)
+    {
+        if (btFadeLevel == 0)
+            btFadeLevel = 255;
+        else
+            btFadeLevel = 0;
+        ledcWrite(ledBtChannel, btFadeLevel);
+    }
+    // Solid LED if BT Connected
+    else if (bluetoothGetState() == BT_CONNECTED)
+        ledcWrite(ledBtChannel, 255);
     else
         ledcWrite(ledBtChannel, 0);
 }
@@ -1305,8 +1322,6 @@ void tickerBeepUpdate()
 // Monitor momentary buttons
 void buttonCheckTask(void *e)
 {
-    uint8_t index;
-
     // Record the time of the most recent two button releases
     // This allows us to detect single and double presses
     unsigned long doubleTapInterval = 500; // User must press and release twice within this to create a double tap
@@ -1428,7 +1443,8 @@ void buttonCheckTask(void *e)
                     // Announce powering down
                     beepMultiple(3, 100, 50); // Number of beeps, length of beep ms, length of quiet ms
 
-                    delay(500); //We will be shutting off during this delay but this prevents another beepMultiple() from firing
+                    delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
+                                // from firing
                 }
             }
         } // End productVariant == Torch
@@ -1553,17 +1569,15 @@ void buttonCheckTask(void *e)
                     {
                         if (thisIsButton == setupSelectedButton)
                         {
-                            setupButton theButton = *it;
-
-                            if (theButton.newState == STATE_PROFILE)
+                            if (it->newState == STATE_PROFILE)
                             {
-                                displayProfile = theButton.newProfile; // paintProfile needs the unit
+                                displayProfile = it->newProfile; // paintProfile needs the unit
                                 requestChangeState(STATE_PROFILE);
                             }
-                            else if (theButton.newState == STATE_NOT_SET) // Exit
+                            else if (it->newState == STATE_NOT_SET) // Exit
                                 requestChangeState(lastSystemState);
                             else
-                                requestChangeState(theButton.newState);
+                                requestChangeState(it->newState);
 
                             break;
                         }

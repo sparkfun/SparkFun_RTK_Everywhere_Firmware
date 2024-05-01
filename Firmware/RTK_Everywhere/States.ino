@@ -98,8 +98,6 @@ void stateUpdate()
 
             // Configure for rover mode
             displayRoverStart(0);
-
-            // If we are survey'd in, but switch is rover then disable survey
             if (gnssConfigureRover() == false)
             {
                 systemPrintln("Rover config failed");
@@ -373,7 +371,7 @@ void stateUpdate()
 
         */
 
-        // User has set switch to base with fixed option enabled. Let's configure and try to get there.
+        // User has switched to base with fixed option enabled. Let's configure and try to get there.
         // If fixed base fails, we'll handle it here
         case (STATE_BASE_FIXED_NOT_STARTED): {
             RTK_MODE(RTK_MODE_BASE_FIXED);
@@ -404,8 +402,8 @@ void stateUpdate()
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
             {
-                //forceSystemStateUpdate = true; // Immediately go to this new state
-                changeState(lastSystemState);  // Return to the last system state
+                // forceSystemStateUpdate = true; // Immediately go to this new state
+                changeState(lastSystemState); // Return to the last system state
             }
         }
         break;
@@ -423,6 +421,7 @@ void stateUpdate()
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
 
+            WIFI_STOP(); //Notify the network layer that it should stop so we can take over control of WiFi
             bluetoothStop();
             espnowStop();
 
@@ -518,7 +517,7 @@ void stateUpdate()
             forceSystemStateUpdate = true; // Immediately go to this new state
 
             // If user has turned off PointPerfect, skip everything
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_DISABLED)
+            if (!settings.enablePointPerfectCorrections)
             {
                 changeState(settings.lastState); // Go to either rover or base
             }
@@ -533,7 +532,7 @@ void stateUpdate()
             // If we don't have keys, begin zero touch provisioning
             else if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
             {
-                log_d("L_Band Keys starting WiFi");
+                log_d("PointPerfect Keys starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -701,7 +700,7 @@ void stateUpdate()
         }
         break;
 
-        // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
+            // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
 
         case (STATE_KEYS_DAYS_REMAINING): {
             if (online.rtc == true)
@@ -1232,7 +1231,7 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     {
         addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
     }
-    if (settings.pointPerfectCorrectionsSource != POINTPERFECT_CORRECTIONS_DISABLED)
+    if (settings.enablePointPerfectCorrections)
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_NEEDED);
     }
@@ -1255,4 +1254,3 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     }
     addSetupButton(buttons, "Exit", STATE_NOT_SET);
 }
-

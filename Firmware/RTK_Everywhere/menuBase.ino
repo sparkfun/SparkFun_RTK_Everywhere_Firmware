@@ -17,8 +17,7 @@ static const float maxSurveyInStartingAccuracy = 10.0;
 // Set the ECEF coordinates for a known location
 void menuBase()
 {
-    int value;
-    int ntripServerOptionOffset = 10; // NTRIP Server menus start at this value
+    int ntripServerOptionOffset = 9; // NTRIP Server menus start at this value
 
     while (1)
     {
@@ -91,7 +90,7 @@ void menuBase()
             systemPrint(settings.observationSeconds);
             systemPrintln(" seconds");
 
-            if (present.gnss_zedf9p == true) // UM980 does not support survey in minimum deviation
+            if (present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
             {
                 systemPrint("3) Set required Mean 3D Standard Deviation: ");
                 systemPrint(settings.observationPositionAccuracy, 2);
@@ -104,13 +103,7 @@ void menuBase()
 
         systemPrintln("7) Set RTCM Message Rates");
 
-        if (settings.fixedBase == false) // Survey-in
-        {
-            systemPrint("8) Select survey-in radio: ");
-            systemPrintf("%s\r\n", settings.ntripServer_StartAtSurveyIn ? "WiFi" : "Bluetooth");
-        }
-
-        systemPrint("9) Toggle NTRIP Server: ");
+        systemPrint("8) Toggle NTRIP Server: ");
         if (settings.enableNtripServer == true)
             systemPrintln("Enabled");
         else
@@ -243,7 +236,7 @@ void menuBase()
                           &settings.observationSeconds);
         }
         else if (settings.fixedBase == false && incoming == 3 &&
-                 present.gnss_zedf9p == true) // UM980 does not support survey in minimum deviation
+                 present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
         {
             // Arbitrary 1m minimum
             getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
@@ -252,12 +245,12 @@ void menuBase()
         else if (settings.fixedBase == false && incoming == 4)
         {
             // Arbitrary 0.1m minimum
-            if (present.gnss_zedf9p == true)
+            if (present.gnss_zedf9p)
             {
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
                               (double)maxSurveyInStartingAccuracy, &settings.zedSurveyInStartingAccuracy);
             }
-            else if (present.gnss_um980 == true)
+            else if (present.gnss_um980)
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
                               (double)maxSurveyInStartingAccuracy, &settings.um980SurveyInStartingAccuracy);
         }
@@ -266,13 +259,8 @@ void menuBase()
         {
             menuMessagesBaseRTCM(); // Set rates for RTCM during Base mode
         }
-        else if (settings.fixedBase == false && incoming == 8)
-        {
-            settings.ntripServer_StartAtSurveyIn ^= 1;
-            restartBase = true;
-        }
 
-        else if (incoming == 9)
+        else if (incoming == 8)
         {
             settings.enableNtripServer ^= 1;
             restartBase = true;

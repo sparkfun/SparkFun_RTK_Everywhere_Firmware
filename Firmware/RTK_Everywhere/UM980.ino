@@ -58,6 +58,15 @@ void um980Begin()
     // Check firmware version and print info
     um980PrintInfo();
 
+    // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
+    snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", um980->getVersion());
+
+    // getVersion returns the "Build" "7923". I think we probably need the "R4.10" which preceeds Build? TODO
+    if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
+        gnssFirmwareVersionInt = 99;
+
+    snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", um980->getID());
+
     online.gnss = true;
 }
 
@@ -316,7 +325,7 @@ bool um980EnableNMEA()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
             {
                 // Mark PPL requied messages as enabled if rate > 0
                 if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
@@ -327,7 +336,7 @@ bool um980EnableNMEA()
         }
     }
 
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    if (settings.enablePointPerfectCorrections)
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
@@ -365,7 +374,7 @@ bool um980EnableRTCMRover()
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+            if (settings.enablePointPerfectCorrections)
             {
                 // Mark PPL required messages as enabled if rate > 0
                 if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
@@ -380,17 +389,17 @@ bool um980EnableRTCMRover()
         }
     }
 
-    if (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP)
+    if (settings.enablePointPerfectCorrections)
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1019", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1019", "COM3", 1);
         if (rtcm1020Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1020", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1020", "COM3", 1);
         if (rtcm1042Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1042", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1042", "COM3", 1);
         if (rtcm1046Enabled == false)
-            response &= um980->setNMEAPortMessage("RTCM1046", "COM3", 1);
+            response &= um980->setRTCMPortMessage("RTCM1046", "COM3", 1);
     }
 
     return (response);
@@ -555,7 +564,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response == true)
     {
-        int msBetweenSolutions = secondsBetweenSolutions * 1000;
+        uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
         settings.um980MeasurementRateMs = msBetweenSolutions;
     }
     else
@@ -570,7 +579,7 @@ bool um980SetRate(double secondsBetweenSolutions)
 // Returns the seconds between measurements
 double um980GetRateS()
 {
-    return (settings.um980MeasurementRateMs / 1000.0);
+    return (((double)settings.um980MeasurementRateMs) / 1000.0);
 }
 
 // Send data directly from ESP GNSS UART1 to UM980 UART3

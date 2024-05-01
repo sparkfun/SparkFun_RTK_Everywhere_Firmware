@@ -33,15 +33,33 @@ void updatePplTask(void *e)
             {
                 if (rtcmLength > 0)
                 {
-                    if (settings.debugCorrections == true)
-                        systemPrintln("Received RTCM from PPL. Pushing to the GNSS.");
+                    updateCorrectionsLastSeen(pplCorrectionsSource);
+                    if (isHighestRegisteredCorrectionsSource(pplCorrectionsSource))
+                    {
+                        // Set ZED SOURCE to 1 (L-Band) if needed
+                        // Note: this is almost certainly redundant. It would only be used if we
+                        // believe the PPL can do a better job generating corrections than the
+                        // ZED can internally using SPARTN direct.
+                        updateZEDCorrectionsSource(1);
 
-                    gnssPushRawData(pplRtcmBuffer, rtcmLength);
+                        gnssPushRawData(pplRtcmBuffer, rtcmLength);
+
+                        if (settings.debugCorrections == true && !inMainMenu)
+                            systemPrintf("Received %d RTCM bytes from PPL. Pushing to the GNSS.\r\n", rtcmLength);
+                        else if (!inMainMenu)
+                            systemPrintln("PointPerfect corrections sent to GNSS.");
+                    }
+                    else
+                    {
+                        if (settings.debugCorrections == true && !inMainMenu)
+                            systemPrintf("Received %d RTCM bytes from PPL. NOT pushed to the GNSS due to priority.\r\n",
+                                         rtcmLength);
+                    }
                 }
             }
             else
             {
-                if (settings.debugCorrections == true)
+                if (settings.debugCorrections == true && !inMainMenu)
                     systemPrintf("PPL_GetRTCMOutput Result: %s\r\n", PPLReturnStatusToStr(result));
             }
         }
@@ -106,7 +124,7 @@ void beginPPL()
     if (getUsablePplKey(pointPerfectKey, sizeof(pointPerfectKey)) == false)
     {
         if (settings.debugCorrections == true)
-            systemPrintln("Unable to get usable key");
+            systemPrintln("Unable to get usable PPL key");
         return;
     }
 
@@ -175,8 +193,7 @@ void beginPPL()
 // restart the PPL when new keys need to be applied
 void updatePPL()
 {
-    if (online.ppl == false && ((settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_IP) ||
-                                (settings.pointPerfectCorrectionsSource == POINTPERFECT_CORRECTIONS_LBAND_IP)))
+    if (online.ppl == false && (settings.enablePointPerfectCorrections))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected. Don't restart the PPL if we've already tried
@@ -188,6 +205,23 @@ void updatePPL()
                 pplAttemptedStart = true;
 
                 beginPPL(); // Initialize PointPerfect Library
+            }
+        }
+    }
+    else if (online.ppl == true)
+    {
+        if (settings.debugCorrections == true)
+        {
+            static unsigned long pplReport = 0;
+            if (millis() - pplReport > 5000)
+            {
+                pplReport = millis();
+                
+                // Report which data source may be fouling the RTCM generation from the PPL
+                if ((millis() - lastMqttToPpl) > 5000)
+                    systemPrintln("PPL MQTT Data is stale");
+                if ((millis() - lastGnssToPpl) > 5000)
+                    systemPrintln("PPL GNSS Data is stale");
             }
         }
     }
@@ -273,6 +307,7 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
                 systemPrintf("PPL_SendRcvrData Result: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
+        lastGnssToPpl = millis();
         return true;
     }
     else
@@ -283,24 +318,51 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
     return false;
 }
 
-// Send Spartn packets from PointPerfect (either IP or L-Band) to PPL
+// Send Spartn packets from PointPerfect to PPL
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
 {
     if (online.ppl == true)
     {
+        pplCorrectionsSource = CORR_IP;
 
         ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
         if (result != ePPL_Success)
         {
             if (settings.debugCorrections == true)
-                systemPrintf("ERROR processRXMPMP PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+                systemPrintf("ERROR PPL_SendSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
+        lastMqttToPpl = millis();
         return true;
     }
     else
     {
         pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
+    }
+
+    return false;
+}
+
+// Send raw L-Band Spartn packets from mosaic X5 to PPL
+bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
+{
+    if (online.ppl == true)
+    {
+        pplCorrectionsSource = CORR_LBAND;
+
+        ePPL_ReturnStatus result = PPL_SendAuxSpartn(buffer, numDataBytes);
+        if (result != ePPL_Success)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+            return false;
+        }
+        lastMqttToPpl = millis();
+        return true;
+    }
+    else
+    {
+        pplLBandCorrections = true; // Notify updatePPL() that L-Band is online
     }
 
     return false;
