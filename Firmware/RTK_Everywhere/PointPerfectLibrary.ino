@@ -33,8 +33,8 @@ void updatePplTask(void *e)
             {
                 if (rtcmLength > 0)
                 {
-                    updateCorrectionsLastSeen(CORR_LBAND);
-                    if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
+                    updateCorrectionsLastSeen(pplCorrectionsSource);
+                    if (isHighestRegisteredCorrectionsSource(pplCorrectionsSource))
                     {
                         // Set ZED SOURCE to 1 (L-Band) if needed
                         // Note: this is almost certainly redundant. It would only be used if we
@@ -318,17 +318,18 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
     return false;
 }
 
-// Send Spartn packets from PointPerfect (either IP or L-Band) to PPL
+// Send Spartn packets from PointPerfect to PPL
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
 {
     if (online.ppl == true)
     {
+        pplCorrectionsSource = CORR_IP;
 
         ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
         if (result != ePPL_Success)
         {
             if (settings.debugCorrections == true)
-                systemPrintf("ERROR processRXMPMP PPL_SendSpartn: %s\r\n", PPLReturnStatusToStr(result));
+                systemPrintf("ERROR PPL_SendSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
         lastMqttToPpl = millis();
@@ -337,6 +338,31 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
     else
     {
         pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
+    }
+
+    return false;
+}
+
+// Send raw L-Band Spartn packets from mosaic X5 to PPL
+bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
+{
+    if (online.ppl == true)
+    {
+        pplCorrectionsSource = CORR_LBAND;
+
+        ePPL_ReturnStatus result = PPL_SendAuxSpartn(buffer, numDataBytes);
+        if (result != ePPL_Success)
+        {
+            if (settings.debugCorrections == true)
+                systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
+            return false;
+        }
+        lastMqttToPpl = millis();
+        return true;
+    }
+    else
+    {
+        pplLBandCorrections = true; // Notify updatePPL() that L-Band is online
     }
 
     return false;

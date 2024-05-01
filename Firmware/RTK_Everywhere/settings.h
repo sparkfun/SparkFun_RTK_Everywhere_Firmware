@@ -154,6 +154,11 @@ const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
     // Add new correction sources just above this line
 };
 
+typedef struct {
+    correctionsSource source;
+    unsigned long lastSeen;
+} registeredCorrectionsSource;
+
 // Setup Buttons
 typedef struct
 {

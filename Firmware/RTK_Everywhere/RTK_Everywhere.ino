@@ -636,6 +636,7 @@ uint8_t *pplRtcmBuffer;
 bool pplAttemptedStart = false;
 bool pplGnssOutput = false;
 bool pplMqttCorrections = false;
+bool pplLBandCorrections = false; // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -692,7 +693,7 @@ uint32_t triggerTowMsR;    // Global copy - Time Of Week of rising edge (ms)
 uint32_t triggerTowSubMsR; // Global copy - Millisecond fraction of Time Of Week of rising edge in nanoseconds
 uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 
-bool firstPowerOn = true;  // After boot, apply new settings to ZED if the user switches between base or rover
+bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
 bool restartRover;         // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
@@ -722,6 +723,10 @@ volatile bool mqttClientDataReceived; // Flag for display
 uint16_t failedParserMessages_UBX;
 uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
+
+// Corrections Priorities Support
+std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.

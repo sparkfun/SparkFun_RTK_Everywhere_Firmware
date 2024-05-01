@@ -147,13 +147,6 @@ void initializeCorrectionPriorities()
 
 // Corrections Priorities Support
 
-typedef struct {
-    correctionsSource source;
-    unsigned long lastSeen;
-} registeredCorrectionsSource;
-
-std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
-
 void clearRegisteredCorrectionsSources()
 {
     registeredCorrectionsSources.clear();
@@ -197,6 +190,12 @@ bool isHighestRegisteredCorrectionsSource(correctionsSource theSource)
 // Update when this corrections source was lastSeen. (Re)register it if required.
 void updateCorrectionsLastSeen(correctionsSource theSource)
 {
+    if (theSource >= CORR_NUM)
+    {
+        systemPrintln("ERROR : updateCorrectionsLastSeen invalid corrections source");
+        return;
+    }
+
     if (!isAResisteredCorrectionsSource(theSource))
     {
         registerCorrectionsSource(theSource);

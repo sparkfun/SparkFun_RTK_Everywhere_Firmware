@@ -137,7 +137,7 @@ void btReadTask(void *e)
             systemPrintln("btReadTask running");
         }
 
-        // Receive RTCM corrections or UBX config messages over bluetooth and pass them along to ZED
+        // Receive RTCM corrections or UBX config messages over bluetooth and pass them along to GNSS
         rxBytes = 0;
         if (bluetoothGetState() == BT_CONNECTED)
         {
