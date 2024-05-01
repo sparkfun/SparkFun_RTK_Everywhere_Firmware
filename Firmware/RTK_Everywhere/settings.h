@@ -1213,9 +1213,9 @@ struct Settings
     uint16_t ntripServer_CasterPort[NTRIP_SERVER_MAX] =
     {
         2101,
-        0,
-        0,
-        0,
+        2101,
+        2101,
+        2101,
     };
     char ntripServer_CasterUser[NTRIP_SERVER_MAX][50] =
     {
