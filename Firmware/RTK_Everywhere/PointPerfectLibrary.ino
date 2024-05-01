@@ -224,6 +224,13 @@ void updatePPL()
                     systemPrintln("PPL GNSS Data is stale");
             }
         }
+
+        if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        {
+            rtkTimeToFixMs = millis();
+            if (settings.debugCorrections == true)
+                systemPrintf("Time to first PPL RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+        }
     }
 
     // The PPL is fed during updatePplTask()
