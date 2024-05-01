@@ -207,11 +207,11 @@ void menuBase()
                                 if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                                     settings.fixedAltitude = fixedAltitude;
                             } // idInput on fixedLong
-                        }     // getString for fixedLong
-                    }         // idInput on fixedLat
-                }             // getString for fixedLat
-            }                 // COORD_TYPE_GEODETIC
-        }                     // Fixed base and '3'
+                        } // getString for fixedLong
+                    } // idInput on fixedLat
+                } // getString for fixedLat
+            } // COORD_TYPE_GEODETIC
+        } // Fixed base and '3'
 
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 4)
         {
@@ -267,7 +267,8 @@ void menuBase()
         }
 
         // NTRIP Server entries
-        else if ((settings.enableNtripServer == true) && (incoming >= ntripServerOptionOffset) && incoming < (ntripServerOptionOffset + 4 * NTRIP_SERVER_MAX))
+        else if ((settings.enableNtripServer == true) && (incoming >= ntripServerOptionOffset) &&
+                 incoming < (ntripServerOptionOffset + 4 * NTRIP_SERVER_MAX))
         {
             // Down adjust user's selection
             incoming -= ntripServerOptionOffset;
@@ -276,7 +277,7 @@ void menuBase()
 
             if (incoming == 0)
             {
-                systemPrintf("Enter new Caster Address for Server %d: ", serverNumber + 1);
+                systemPrintf("Enter Caster Address for Server %d: ", serverNumber + 1);
                 if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0],
                                        sizeof(settings.ntripServer_CasterHost[serverNumber]) == INPUT_RESPONSE_VALID))
                     restartBase = true;
@@ -285,21 +286,33 @@ void menuBase()
             {
                 // Arbitrary 99k max port #
                 char tempString[100];
-                sprintf(tempString, "Enter new Caster Port for Server %d", serverNumber + 1);
+                if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
+                    sprintf(tempString, "Enter Caster Port for %s", settings.ntripServer_CasterHost[serverNumber]);
+                else
+                    sprintf(tempString, "Enter Caster Port for Server %d", serverNumber + 1);
+
                 if (getNewSetting(tempString, 1, 99999, &settings.ntripServer_CasterPort[serverNumber]) ==
                     INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 2)
             {
-                systemPrintf("Enter new Mount Point for Server %d: ", serverNumber + 1);
+                if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
+                    systemPrintf("Enter Mount Point for %s: ", settings.ntripServer_CasterHost[serverNumber]);
+                else
+                    systemPrintf("Enter Mount Point for Server %d: ", serverNumber + 1);
+
                 if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0],
                                        sizeof(settings.ntripServer_MountPoint[serverNumber])) == INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 3)
             {
-                systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint);
+                if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
+                    systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint[serverNumber]);
+                else
+                    systemPrintf("Enter password for Mount Point for Server %d: ", serverNumber + 1);
+
                 if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0],
                                        sizeof(settings.ntripServer_MountPointPW[serverNumber])) == INPUT_RESPONSE_VALID)
                     restartBase = true;
