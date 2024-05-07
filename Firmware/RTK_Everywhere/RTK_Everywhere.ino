@@ -461,6 +461,13 @@ float batteryChargingPercentPerHour;
 // USB serial port and PC.
 volatile bool forwardGnssDataToUsbSerial;
 
+// Timeout between + characters to enter the +++ sequence while
+// forwardGnssDataToUsbSerial is true.  When sequence is properly entered
+// forwardGnssDataToUsbSerial is set to false and menuMain is displayed.
+// If the timeout between characters occurs or an invalid character is
+// entered then no changes are made and the +++ sequence must be re-entered.
+#define PLUS_PLUS_PLUS_TIMEOUT      (2 * 1000)  // Milliseconds
+
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
 #include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
