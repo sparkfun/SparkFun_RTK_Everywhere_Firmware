@@ -28,6 +28,9 @@ void terminalUpdate()
 // Display the main menu configuration options
 void menuMain()
 {
+    // Redirect menu output, status and debug messages to the USB serial port
+    forwardGnssDataToUsbSerial = false;
+
     inMainMenu = true;
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
@@ -259,6 +262,9 @@ void menuMain()
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system
     inMainMenu = false;
+
+    // Change the USB serial output behavior if necessary
+    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 }
 
 // Change system wide settings based on current user profile
