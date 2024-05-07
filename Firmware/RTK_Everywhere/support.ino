@@ -19,15 +19,26 @@ int systemRead()
 // Output a buffer of the specified length to the serial port
 void systemWrite(const uint8_t *buffer, uint16_t length)
 {
-    if (printEndpoint == PRINT_ENDPOINT_ALL)
-    {
-        Serial.write(buffer, length);
+    // Output data to bluetooth if necessary
+    if ((printEndpoint == PRINT_ENDPOINT_ALL)
+        || (printEndpoint == PRINT_ENDPOINT_BLUETOOTH))
         bluetoothWrite(buffer, length);
-    }
-    else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH)
-        bluetoothWrite(buffer, length);
-    else
+
+    // Output data to USB serial if necessary
+    if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH)
+        && (!forwardGnssDataToUsbSerial))
         Serial.write(buffer, length);
+}
+
+// Forward GNSS data to the USB serial port
+size_t systemWriteGnssDataToUsbSerial(const uint8_t *buffer, uint16_t length)
+{
+    // Determine if status and debug messages are being output to USB serial
+    if (!forwardGnssDataToUsbSerial)
+        return length;
+
+    // Output GNSS data to USB serial
+    return Serial.write(buffer, length);
 }
 
 // Ensure all serial output has been transmitted, FIFOs are empty

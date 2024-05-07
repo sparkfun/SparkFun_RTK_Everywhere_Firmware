@@ -56,12 +56,13 @@ enum RingBufferConsumers
     RBC_TCP_SERVER,
     RBC_SD_CARD,
     RBC_UDP_SERVER,
+    RBC_USB_SERIAL,
     // Insert new consumers here
     RBC_MAX
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server",
+    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -101,6 +102,7 @@ unsigned long lastGnssSend; // Timestamp of the last time we sent RTCM to GNSS
 // Ring buffer tails
 static RING_BUFFER_OFFSET btRingBufferTail; // BT Tail advances as it is sent over BT
 static RING_BUFFER_OFFSET sdRingBufferTail; // SD Tail advances as it is recorded to SD
+static RING_BUFFER_OFFSET usbRingBufferTail; // USB Tail advances as it is sent over USB serial
 
 // Ring buffer offsets
 static uint16_t rbOffsetHead;
@@ -894,6 +896,58 @@ void handleGnssDataTask(void *e)
                 {
                     usedSpace = bytesToSend;
                     slowConsumer = "Bluetooth";
+                }
+            }
+        }
+
+        //----------------------------------------------------------------------
+        // Send data over USB serial
+        //----------------------------------------------------------------------
+
+        startMillis = millis();
+
+        // Determine USB serial connection state
+        if (!forwardGnssDataToUsbSerial)
+            // Discard the data
+            usbRingBufferTail = dataHead;
+        else
+        {
+            // Determine the amount of USB serial data in the buffer
+            bytesToSend = dataHead - usbRingBufferTail;
+            if (bytesToSend < 0)
+                bytesToSend += settings.gnssHandlerBufferSize;
+            if (bytesToSend > 0)
+            {
+                // Reduce bytes to send if we have more to send then the end of
+                // the buffer, we'll wrap next loop
+                if ((usbRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
+                    bytesToSend = settings.gnssHandlerBufferSize - usbRingBufferTail;
+
+                // Send data over USB serial to the PC
+                bytesToSend = systemWriteGnssDataToUsbSerial(&ringBuffer[usbRingBufferTail], bytesToSend);
+
+                // Account for the data that was sent
+                if (bytesToSend > 0)
+                {
+                    // Account for the sent or dropped data
+                    usbRingBufferTail += bytesToSend;
+                    if (usbRingBufferTail >= settings.gnssHandlerBufferSize)
+                        usbRingBufferTail -= settings.gnssHandlerBufferSize;
+
+                    // Remember the maximum transfer time
+                    deltaMillis = millis() - startMillis;
+                    if (maxMillis[RBC_USB_SERIAL] < deltaMillis)
+                        maxMillis[RBC_USB_SERIAL] = deltaMillis;
+                }
+
+                // Determine the amount of data that remains in the buffer
+                bytesToSend = dataHead - usbRingBufferTail;
+                if (bytesToSend < 0)
+                    bytesToSend += settings.gnssHandlerBufferSize;
+                if (usedSpace < bytesToSend)
+                {
+                    usedSpace = bytesToSend;
+                    slowConsumer = "USB Serial";
                 }
             }
         }
