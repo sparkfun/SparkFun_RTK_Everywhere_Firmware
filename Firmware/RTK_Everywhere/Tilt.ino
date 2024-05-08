@@ -343,7 +343,7 @@ void beginTilt()
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
-    float arp_m = present.antennaReferencePoint_mm / 1000.0;
+    float arp_m = present.antennaReferencePoint_mm / 1000.0; //Convert mm to m. antennaReferencePoint_mm assigned in begin()
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp_m);
     result &= tiltSensor->sendCommand(clubVector);

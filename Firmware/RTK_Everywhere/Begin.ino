@@ -139,7 +139,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaReferencePoint_mm = 102.0;
+        present.antennaReferencePoint_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
 
 #ifdef COMPILE_IM19_IMU
