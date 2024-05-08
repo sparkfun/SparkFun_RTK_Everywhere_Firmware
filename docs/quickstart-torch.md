@@ -137,6 +137,10 @@ Steps to use PointPerfect:
 
 8. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
 
+![SW Maps showing accuracy](<img/SWMaps/SparkFun Torch - SW Maps PointPerfect Fix Accuracy.png>)
+
+*SW Maps showing positional accuracy*
+
 After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
 
 ## NTRIP Example
