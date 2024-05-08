@@ -1150,9 +1150,6 @@ void tickerBluetoothLedUpdate()
 void tickerGnssLedUpdate()
 {
     static uint8_t ledCallCounter = 0; // Used to calculate a 50% or 10% on rate for blinking
-    // static int gnssFadeLevel = 0;      // Used to fade LED when needed
-    // static int gnssPwmFadeAmount = 255 / gnssTaskUpdatesHz; // Fade in/out with 20 steps, as limited by the ticker
-    // rate of 20Hz
 
     ledCallCounter++;
     ledCallCounter %= gnssTaskUpdatesHz; // Wrap to X calls per 1 second
@@ -1170,52 +1167,6 @@ void tickerGnssLedUpdate()
         {
             ledcWrite(ledGnssChannel, 0);
         }
-
-        // // Solid during tilt corrected RTK fix
-        // if (tiltIsCorrecting() == true)
-        // {
-        //     ledcWrite(ledGnssChannel, 255);
-        // }
-        // else
-        // {
-        //     ledcWrite(ledGnssChannel, 0);
-        // }
-
-        // Fade on/off during RTK Fix
-        // else if (gnssIsRTKFix() == true)
-        // {
-        //     // Fade in/out the GNSS LED during RTK Fix
-        //     gnssFadeLevel += gnssPwmFadeAmount;
-        //     if (gnssFadeLevel <= 0 || gnssFadeLevel >= 255)
-        //         gnssPwmFadeAmount *= -1;
-
-        //     if (gnssFadeLevel > 255)
-        //         gnssFadeLevel = 255;
-        //     if (gnssFadeLevel < 0)
-        //         gnssFadeLevel = 0;
-
-        //     ledcWrite(ledGnssChannel, gnssFadeLevel);
-        // }
-
-        // // Blink 2Hz 50% during RTK float
-        // else if (gnssIsRTKFloat() == true)
-        // {
-        //     if (ledCallCounter <= (gnssTaskUpdatesHz / 2))
-        //         ledcWrite(ledGnssChannel, 255);
-        //     else
-        //         ledcWrite(ledGnssChannel, 0);
-        // }
-
-        // // Blink a short PPS when GNSS 3D fixed
-        // else if (gnssIsFixed() == true)
-        // {
-        //     if (ledCallCounter == (gnssTaskUpdatesHz / 10))
-        //     {
-        //         ledcWrite(ledGnssChannel, 255);
-        //     }
-        //     else
-        //         ledcWrite(ledGnssChannel, 0);
-        // }
     }
 }
 
