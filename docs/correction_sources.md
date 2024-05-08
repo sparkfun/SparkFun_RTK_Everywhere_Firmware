@@ -2,10 +2,6 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
-![RTK Corrections Priorities Menu](<img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png>)
-
-*RTK Corrections Priorities Menu*
-
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
 ## Commercial Reference Networks

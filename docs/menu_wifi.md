@@ -18,9 +18,9 @@ WiFi is used for the following features:
 * Device Configuration (WiFi mode only)
 * PointPerfect (Access keys and IP-based corrections)
 
-## Configure Mode: AP vs WiFi
+## Configure device via WiFi Access Point of connect to WiFi
 
-By default, the device will become an Access Point when the user enters Config mode. This is handy for in-field device configuration. Alternatively, changing this setting to 'WiFi' will cause the device to connect to local WiFi. 
+By default, when a user enters the WiFi config mode (either by using the external button or with the [System Mode Switch](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_system/#mode-switch)), the device will stop what it is doing and enter WiFi Config mode. If this setting is set to `AP` then the RTK device will broadcast as an access point with the name *RTK Config*. If this setting is set to `WiFi`, then the device will attempt to connect to that WiFi network. The `AP` setting is best for in-field configuration, and the `WiFi` setting is handy for configuration from a laptop or desktop on the same WiFi network.
 
 ![Configuring RTK device over local WiFi](img/WiFi%20Config/SparkFun%20RTK%20AP%20Main%20Page%20over%20Local%20WiFi.png)
 
@@ -32,7 +32,7 @@ On devices that have a display, when the device enters WiFi config mode it will 
 
 ## Captive Portal
 
-If captive portal is enabled, when a user connects to the Access Point the user will automatically be directed towards the correct page. This works with most, but not all phones.
+If **Captive Portal** is enabled, when a user connects to the Access Point the user will automatically be directed towards the correct page. This works with most, but not all phones.
 
 ## MDNS
 
