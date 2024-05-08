@@ -108,34 +108,34 @@ The PointPerfect IP service is available for various areas of the globe includin
 
 Steps to use PointPerfect:
 
-1) [Register](https://www.sparkfun.com/rtk_torch_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
+1. [Register](https://www.sparkfun.com/rtk_torch_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
     
-2) Power on the RTK Torch by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.
-3) Put the RTK Torch into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.
+2. Power on the RTK Torch by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.
+3. Put the RTK Torch into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.
 
     ![SparkFun RTK WiFi Configuration Interface](<img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png>)
 
     *SparkFun RTK WiFi Configuration Interface*
 
-4) From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
+4. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
 
     ![WiFi Menu containing one network](<img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png>)
 
     *WiFi Menu containing one network*
 
-6) Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
+6. Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
 
     ![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK WiFi Config - PointPerfect Menu.png>)
 
     *PointPerfect Configuration Menu*
 
-7) Under the *PointPerfect Configuration* menu, **Enable PointPefect Corrections**.
+7. Under the *PointPerfect Configuration* menu, **Enable PointPefect Corrections**.
 
     ![Saving and All Saved notifications](<img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png>)
 
     *Saving... then All Saved*
 
-8) Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
+8. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
 
 After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
 
