@@ -6,6 +6,12 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
 *Configuring PointPerfect settings over serial*
 
+![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK WiFi Config - PointPerfect Menu.png>)
+
+*PointPerfect Configuration Menu*
+
+## Coverage
+
 [![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
 
 *PointPerfect Coverage map including L-Band and IP delivery methods*

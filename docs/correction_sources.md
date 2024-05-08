@@ -44,7 +44,7 @@ Not all companies providing correction services use the same type of corrections
 
 *State Wide Network of Continuously Operating Reference Stations (CORS)*
 
-Observation Space Representation (OSR) is the classic type of corrections network. This is a collection of base stations located across a geographic area. Corrections coming from this type of network provide the highest RTK accuracy (14mm or less is common when located within 10km of a base station) with the minimum convergence time (the time you have to wait before the GNSS receiver can achieve RTK Fix). Normal convergence time for an OSR is a few seconds. However, because a CORS has to be placed every few 10km, these type of networks are expensive to install and maintain. An OSR network is prone to holes or gaps in the network where a base station is not sufficiently close to maintain RTK Fix. Imagine an autonomous semi-trailer truck driving down a highway; an OSR network is extremely difficult to setup that has full coverage needed for highly kinetic applications.
+**Observation Space Representation** (OSR) is the classic type of corrections network. This is a collection of base stations located at regular intervals across a geographic area. Corrections coming from this type of network provide the highest RTK accuracy (14mm or less is common when located within 10km of a base station) with the minimum convergence time (the time you have to wait before the GNSS receiver can achieve RTK Fix). Normal convergence time for an OSR is a few seconds. However, because a CORS has to be placed every few 10km, these type of networks are expensive to install and maintain. An OSR network is prone to holes or gaps in the network where a base station is not sufficiently close to maintain RTK Fix. Imagine an autonomous semi-trailer truck driving across hundreds or thousands of miles; an OSR network is extremely difficult to set up that maintains the full coverage needed for highly kinetic applications.
 
 [PointOne Nav](https://app.pointonenav.com/trial?src=sparkfun), and [Skylark Nx RTK](https://www.swiftnav.com/products/skylark) are examples of an OSR.
 
@@ -52,8 +52,6 @@ Observation Space Representation (OSR) is the classic type of corrections networ
 
 *PointPerfect Coverage map including L-Band and IP delivery methods*
 
-State Space Representation (SSR) covers huge areas, sometimes entire continents. SSR combines the readings from a handful of base stations and creates a model for the region. This model extrapolates the needed corrections for a given area. These corrections are 'good enough' for many applications. Because SSR requires far fewer base stations, they are often a much lower-cost service. The RTK Fix accuracy is lower (20mm is possible but 40mm is common), and the convergence time increases considerably. Convergence time for an SSR can be 180 seconds or more.
+**State Space Representation** (SSR) covers huge areas, sometimes entire continents. SSR combines the readings from a handful of base stations and creates a model for the region. This model extrapolates the needed corrections for a given area. These corrections are 'good enough' for many applications. Because SSR requires far fewer base stations, they are often a much lower-cost service. The RTK Fix accuracy is lower (20mm is possible but 30-60mm is common), and the convergence time increases considerably. Convergence time for an SSR can be 180 seconds or more.
 
 The [PointPerfect](https://www.u-blox.com/en/pointperfect-service-coverage) and [Skylark Cx](https://www.swiftnav.com/products/skylark) are examples of an SSR. 
-
-

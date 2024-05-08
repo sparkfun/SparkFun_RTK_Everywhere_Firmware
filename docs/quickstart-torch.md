@@ -94,33 +94,7 @@ You can now use your RTK device to measure points with good (meter) accuracy. If
 
 To get millimeter accuracy we need to provide the RTK unit with correction values. Corrections, often called RTCM, help the RTK unit refine its position calculations. RTCM (Radio Technical Commission for Maritime Services) can be obtained from a variety of sources but they fall into three buckets: Commercial, Public, and Civilian Reference Stations.
 
-**Commercial Reference Networks**
-
-These companies set up a large number of reference stations that cover entire regions and countries, but charge a monthly fee. They are often easy to use but can be expensive.
-
-* [PointPerfect](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/quickstart-torch/#pointperfect-corrections) ($8/month) - US, EU, as well as parts of Australia, Brazil, and South Korea.
-* [PointOneNav](https://app.pointonenav.com/trial?src=sparkfun) ($50/month) - US, EU, Australia, South Korea
-* [Skylark](https://www.swiftnav.com/skylark) ($29 to $69/month) - US, EU, Japan, Australia
-* [SensorCloud RTK](https://rtk.sensorcloud.com/pricing/) ($100/month) partial US, EU
-* [Premium Positioning](https://www.premium-positioning.com) (~$315/month) partial EU
-* [KeyNetGPS](https://www.keypre.com/KeynetGPS) ($375/month) North Eastern US
-* [Hexagon/Leica](https://hxgnsmartnet.com/en-US) ($500/month) - partial US, EU
-
-**Public Reference Stations**
-
-![Wisconsin network of CORS](<img/Corrections/SparkFun NTRIP 7 - Wisconsin Map.png>) 
-
-*State Wide Network of Continuously Operating Reference Stations (CORS)*
-
-Be sure to check if your state or country provides corrections for free. Many do! Currently, there are 21 states in the USA that provide this for free as a department of transportation service. Search ‘Wisconsin CORS’ as an example. Similarly, in France, check out [CentipedeRTK](https://docs.centipede.fr/). There are several public networks across the globe, be sure to google around!
-
-**Civilian Reference Stations**
-
-![SparkFun Base Station Enclosure](img/Corrections/Roof_Enclosure.jpg)
-
-*The base station at SparkFun*
-
-You can set up your own correction source. This is done with a 2nd GNSS receiver that is stationary, often called a Base Station. There is just the one-time upfront cost of the Base Station hardware. See the [Creating a Permanent Base](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/permanent_base/) document for more information.
+See [Corrections Sources](correction_sources.md) for a breakdown of the options and the pros and cons of each. For this quickstart, we'll be showing two examples: using PointPerfect for $8 a month (a little less accurate but nation-wide coverage) and PointOne Nav for $50 a month (maximum accuracy, gaps in the coverage area).
 
 ## PointPerfect Corrections
 
@@ -132,9 +106,38 @@ One of the great features of the RTK Torch is that it has the ability to get cor
 
 The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the RTK Torch is compatible with any area that has *IP Coverage* (it is not compatible with L-Band coverage).
 
-See the [PointPerfect Menu](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/) for more information about this service.
+Steps to use PointPerfect:
 
-Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
+1) [Register](https://www.sparkfun.com/rtk_torch_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
+    
+2) Power on the RTK Torch by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.
+3) Put the RTK Torch into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.
+
+    ![SparkFun RTK WiFi Configuration Interface](<img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png>)
+
+    *SparkFun RTK WiFi Configuration Interface*
+
+4) From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
+
+    ![WiFi Menu containing one network](<img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png>)
+
+    *WiFi Menu containing one network*
+
+6) Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
+
+    ![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK WiFi Config - PointPerfect Menu.png>)
+
+    *PointPerfect Configuration Menu*
+
+7) Under the *PointPerfect Configuration* menu, **Enable PointPefect Corrections**.
+
+    ![Saving and All Saved notifications](<img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png>)
+
+    *Saving... then All Saved*
+
+8) Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
+
+After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
 
 ## NTRIP Example
 
