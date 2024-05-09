@@ -177,6 +177,7 @@ void tiltUpdate() {}
 void tiltStop() {}
 void tiltSensorFactoryReset() {}
 bool tiltIsCorrecting() {return(false);}
+void tiltRequestStop() {}
 
 #endif  // COMPILE_IM19_IMU
 
