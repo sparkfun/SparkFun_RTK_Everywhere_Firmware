@@ -1335,7 +1335,7 @@ void buttonCheckTask(void *e)
             // The user button only exits tilt mode
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
-                tiltStop();
+                tiltRequestStop(); //Don't force the hardware off here as it may be in use in another task
             }
 
             else if (doubleTap)
