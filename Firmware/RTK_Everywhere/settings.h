@@ -1686,7 +1686,7 @@ struct struct_present
 
     bool needsExternalPpl = false;
 
-    float antennaReferencePoint_mm = 0.0;
+    float antennaReferencePoint_mm = 0.0; //Used to setup tilt compensation
 } present;
 
 // Monitor which devices on the device are on or offline.

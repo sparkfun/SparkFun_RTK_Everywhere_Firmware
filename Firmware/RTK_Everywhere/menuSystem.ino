@@ -505,23 +505,48 @@ void menuDebugHardware()
         }
         else if (incoming == 13 && present.gnss_um980)
         {
-            systemPrintln("Press ! to exit");
+            // Stop all UART tasks
+            tasksStopGnssUart();
+
+            systemPrintln("Entering UM980 direct connect at 115200bps for firmware update and configuration. Use "
+                          "UPrecise to update "
+                          "the firmware. Power cycle RTK Torch to "
+                          "return to normal operation.");
+
+            // Make sure ESP-UART1 is connected to UM980
+            digitalWrite(pin_muxA, LOW);
+
+            // UPrecise needs to query the device before entering bootload mode
+            // Wait for UPrecise to send bootloader trigger (character T followed by character @) before resetting UM980
+            bool inBootMode = false;
 
             // Echo everything to/from UM980
             while (1)
             {
-                while (serialGNSS->available())
+                // Data coming from UM980 to external USB
+                if (serialGNSS->available())
                     systemWrite(serialGNSS->read());
 
+                // Data coming from external USB to UM980
                 if (systemAvailable())
                 {
                     byte incoming = systemRead();
-                    if (incoming == '!')
-                        break;
-                    else if (incoming == '1')
-                        serialGNSS->println("mask");
-                    else if (incoming == '2')
-                        serialGNSS->println("config");
+                    serialGNSS->write(incoming);
+
+                    // Detect bootload sequence
+                    if (inBootMode == false && incoming == 'T')
+                    {
+                        byte nextIncoming = Serial.peek();
+                        if (nextIncoming == '@')
+                        {
+                            // Reset UM980
+                            um980Reset();
+                            delay(25);
+                            um980Boot();
+
+                            inBootMode = true;
+                        }
+                    }
                 }
             }
         }
