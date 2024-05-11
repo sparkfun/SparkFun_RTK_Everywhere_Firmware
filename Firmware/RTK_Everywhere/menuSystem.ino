@@ -156,6 +156,13 @@ void menuSystem()
         systemPrintf("Filtered by parser: %d NMEA / %d RTCM / %d UBX\r\n", failedParserMessages_NMEA,
                      failedParserMessages_RTCM, failedParserMessages_UBX);
 
+        // Display the USB serial output status
+        menuSystemDisplayUsbSerialOutput(settings.enableGnssToUsbSerial);
+
+        //---------------------------
+        // Start of menu
+        //---------------------------
+
         systemPrintln();
         systemPrintln("Menu: System");
         // Separate the menu from the status
@@ -211,7 +218,7 @@ void menuSystem()
 
         systemPrintln("n) Debug network");
 
-        systemPrintln("o) Configure RTK operation");
+        systemPrintln("o) Configure operation");
 
         systemPrintln("p) Configure periodic print messages");
 
@@ -429,7 +436,7 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
         if (present.gnss_um980)
-            systemPrintln("13) UM980 Direct connect");
+            systemPrintln("13) UM980 direct connect");
 
         systemPrint("14) PSRAM (");
         if (ESP.getPsramSize() == 0)
@@ -939,7 +946,11 @@ void menuOperation()
         systemPrintln(settings.uartReceiveBufferSize);
 
         // ZED
-        systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
+        if(present.gnss_zedf9p)
+            systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
+
+        // USB Serial
+        systemPrintln("11) Output GNSS data to USB serial");
 
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
@@ -1032,7 +1043,7 @@ void menuOperation()
                 ESP.restart();
             }
         }
-        else if (incoming == 10)
+        else if (incoming == 10 && present.gnss_zedf9p)
         {
             bool response = gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
@@ -1040,6 +1051,12 @@ void menuOperation()
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
+        }
+
+        else if (incoming == 11)
+        {
+            settings.enableGnssToUsbSerial ^= 1;
+            menuSystemDisplayUsbSerialOutput(settings.enableGnssToUsbSerial);
         }
 
         else if (incoming == 30)
@@ -1092,6 +1109,15 @@ void menuOperation()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Display the USB serial output
+void menuSystemDisplayUsbSerialOutput(bool gnssData)
+{
+    if (gnssData)
+        systemPrintln("USB Serial output is GNSS data");
+    else
+        systemPrintln("USB Serial output is status and debug messages");
 }
 
 // Toggle periodic print message enables

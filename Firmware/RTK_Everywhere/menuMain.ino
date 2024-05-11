@@ -11,6 +11,7 @@ void terminalUpdate()
         periodicDisplay = settings.periodicDisplay;
     }
 
+    // Check for USB serial input
     if (systemAvailable())
     {
         byte incoming = systemRead();
@@ -21,13 +22,49 @@ void terminalUpdate()
             printCurrentConditionsNMEA();
         }
         else
+        {
+            // When outputting GNSS data to USB serial, check for +++
+            if (forwardGnssDataToUsbSerial)
+            {
+                static uint32_t plusTimeout;
+                static uint8_t plusCount;
+
+                // Reset plusCount on timeout
+                if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
+                    plusCount = 0;
+
+                // Check for + input
+                if (incoming != '+')
+                {
+                    // Must start over looking for +++
+                    plusCount = 0;
+                    return;
+                }
+                else
+                {
+                    // + entered, check for the +++ sequence
+                    plusCount++;
+                    if (plusCount < 3)
+                    {
+                        // Restart the timeout
+                        plusTimeout = millis();
+                        return;
+                    }
+
+                    // +++ was entered, display the main menu
+                }
+            }
             menuMain(); // Present user menu
+        }
     }
 }
 
 // Display the main menu configuration options
 void menuMain()
 {
+    // Redirect menu output, status and debug messages to the USB serial port
+    forwardGnssDataToUsbSerial = false;
+
     inMainMenu = true;
     displaySerialConfig(); // Display 'Serial Config' while user is configuring
 
@@ -259,6 +296,9 @@ void menuMain()
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system
     inMainMenu = false;
+
+    // Change the USB serial output behavior if necessary
+    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 }
 
 // Change system wide settings based on current user profile

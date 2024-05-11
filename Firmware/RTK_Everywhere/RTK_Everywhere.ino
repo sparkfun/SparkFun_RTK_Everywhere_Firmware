@@ -445,6 +445,29 @@ float batteryChargingPercentPerHour;
 #include "bluetoothSelect.h"
 #endif // COMPILE_BT
 
+// This value controls the data that is output from the USB serial port
+// to the host PC.  By default (false) status and debug messages are output
+// to the USB serial port.  When this value is set to true then the status
+// and debug messages are discarded and only GNSS data is output to USB
+// serial.
+//
+// Switching from status and debug messages to GNSS output is done in two
+// places, at the end of setup and at the end of maenuMain.  In both of
+// these places the new value comes from settings.enableGnssToUsbSerial.
+// Upon boot status and debug messages are output at least until the end
+// of setup.  Upon entry into menuMain, this value is set false to again
+// output menu output, status and debug messages to be output.  At the end
+// of setup the value is updated and if enabled GNSS data is sent to the
+// USB serial port and PC.
+volatile bool forwardGnssDataToUsbSerial;
+
+// Timeout between + characters to enter the +++ sequence while
+// forwardGnssDataToUsbSerial is true.  When sequence is properly entered
+// forwardGnssDataToUsbSerial is set to false and menuMain is displayed.
+// If the timeout between characters occurs or an invalid character is
+// entered then no changes are made and the +++ sequence must be re-entered.
+#define PLUS_PLUS_PLUS_TIMEOUT      (2 * 1000)  // Milliseconds
+
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
 #include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
@@ -1113,6 +1136,10 @@ void setup()
         systemPrintf("%8d mSec: Total boot time\r\n", bootTime[bootTimeIndex]);
         systemPrintln();
     }
+
+    // If necessary, switch to sending GNSS data out the USB serial port
+    // to the PC
+    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 }
 
 void loop()
