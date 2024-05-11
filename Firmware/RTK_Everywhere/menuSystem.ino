@@ -218,7 +218,7 @@ void menuSystem()
 
         systemPrintln("n) Debug network");
 
-        systemPrintln("o) Configure RTK operation");
+        systemPrintln("o) Configure operation");
 
         systemPrintln("p) Configure periodic print messages");
 
@@ -436,7 +436,7 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enableImuCompensationDebug ? "Enabled" : "Disabled");
 
         if (present.gnss_um980)
-            systemPrintln("13) UM980 Direct connect");
+            systemPrintln("13) UM980 direct connect");
 
         systemPrint("14) PSRAM (");
         if (ESP.getPsramSize() == 0)
@@ -921,7 +921,8 @@ void menuOperation()
         systemPrintln(settings.uartReceiveBufferSize);
 
         // ZED
-        systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
+        if(present.gnss_zedf9p)
+            systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
         // USB Serial
         systemPrintln("11) Output GNSS data to USB serial");
@@ -1017,7 +1018,7 @@ void menuOperation()
                 ESP.restart();
             }
         }
-        else if (incoming == 10)
+        else if (incoming == 10 && present.gnss_zedf9p)
         {
             bool response = gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
