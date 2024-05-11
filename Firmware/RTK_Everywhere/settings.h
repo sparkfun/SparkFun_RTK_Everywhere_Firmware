@@ -1322,6 +1322,7 @@ struct Settings
     bool debugEspNow = false;
     bool enableEspNow = false;
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
+    bool enableGalileoHas = true; // Allow E6 corrections if possible
 
     // Add new settings above <------------------------------------------------------------>
     // Then also add to rtkSettingsEntries below
@@ -1624,6 +1625,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.debugEspNow, "debugEspNow", _bool, 0, false, true, true },
     { & settings.enableEspNow, "enableEspNow", _bool, 0, false, true, true },
     { & settings.wifiChannel, "wifiChannel", _uint8_t, 0, false, true, true },
+    { & settings.enableGalileoHas, "enableGalileoHas", _bool, 0, false, true, true },
 
     // Add new settings above <------------------------------------------------------------>
     /*
@@ -1687,6 +1689,7 @@ struct struct_present
     bool needsExternalPpl = false;
 
     float antennaReferencePoint_mm = 0.0; //Used to setup tilt compensation
+    bool galileoHasCapable = false;
 } present;
 
 // Monitor which devices on the device are on or offline.

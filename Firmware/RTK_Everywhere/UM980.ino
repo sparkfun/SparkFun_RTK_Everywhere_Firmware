@@ -141,8 +141,65 @@ bool um980ConfigureOnce()
 
     response &= um980SetConstellations();
 
-    // response &= um980->sendCommand("CONFIG SIGNALGROUP 2"); //Enable L1C
-    // SIGNALGROUP causes the UM980 to automatically save and reset
+    if (um980->isConfigurationPresent("CONFIG SIGNALGROUP 2") == false)
+    {
+        if (um980->sendCommand("CONFIG SIGNALGROUP 2") == false)
+            systemPrintln("Signal group 2 command failed");
+        else
+        {
+            systemPrintln("Enabling additional reception on UM980. This can take a few seconds.");
+
+            while (1)
+            {
+                delay(1000); // Wait for device to reboot
+                if (um980->isConnected() == true)
+                    break;
+                else
+                    systemPrintln("UM980 rebooting");
+            }
+
+            systemPrintln("UM980 has completed reboot.");
+        }
+    }
+
+    // Enable E6 and PPP if enabled and possible
+    if (settings.enableGalileoHas == true)
+    {
+        // E6 reception requires version 11833 or greater
+        int um980Version = String(um980->getVersion()).toInt(); // Convert the string response to a value
+        if (um980Version >= 11833)
+        {
+            if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
+            {
+                if (um980->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
+                    systemPrintln("E6 service enabled");
+                else
+                    systemPrintln("E6 service config error");
+
+                if (um980->sendCommand("CONFIG PPP DATUM WGS84") == true)
+                    systemPrintln("WGS84 Datum applied");
+                else
+                    systemPrintln("WGS84 Datum error");
+            }
+        }
+        else
+        {
+            systemPrintf("Current UM980 firmware: v%d. Galileo E6 reception requires 11833 or newer. Please update the "
+                         "firmware on your UM980 to allow for HAS operation.\r\n",
+                         um980Version);
+        }
+    }
+    else
+    {
+        // Turn off HAS/E6
+        if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
+        {
+            if (um980->sendCommand("CONFIG PPP DISABLE") == true)
+                systemPrintln("E6 service disabled");
+            else
+                systemPrintln("E6 service config error");
+        }
+    }
 
     if (response == true)
     {
@@ -1059,6 +1116,12 @@ void um980MenuConstellations()
             systemPrintln();
         }
 
+        if (present.galileoHasCapable)
+        {
+            systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_UM980_CONSTELLATIONS + 1,
+                         settings.enableGalileoHas ? "Enabled" : "Disabled");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -1068,6 +1131,10 @@ void um980MenuConstellations()
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.um980Constellations[incoming] ^= 1;
+        }
+        else if (incoming == MAX_CONSTELLATIONS && present.galileoHasCapable)
+        {
+            settings.enableGalileoHas ^= 1;
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
