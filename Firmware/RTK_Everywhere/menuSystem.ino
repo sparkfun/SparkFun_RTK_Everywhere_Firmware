@@ -156,9 +156,6 @@ void menuSystem()
         systemPrintf("Filtered by parser: %d NMEA / %d RTCM / %d UBX\r\n", failedParserMessages_NMEA,
                      failedParserMessages_RTCM, failedParserMessages_UBX);
 
-        // Display the USB serial output status
-        menuSystemDisplayUsbSerialOutput(settings.enableGnssToUsbSerial);
-
         //---------------------------
         // Start of menu
         //---------------------------
@@ -949,9 +946,6 @@ void menuOperation()
         if(present.gnss_zedf9p)
             systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
-        // USB Serial
-        systemPrintln("11) Output GNSS data to USB serial");
-
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
         systemPrintln(settings.bluetoothInterruptsCore);
@@ -1053,12 +1047,6 @@ void menuOperation()
                 systemPrintln(F("USB messages successfully enabled"));
         }
 
-        else if (incoming == 11)
-        {
-            settings.enableGnssToUsbSerial ^= 1;
-            menuSystemDisplayUsbSerialOutput(settings.enableGnssToUsbSerial);
-        }
-
         else if (incoming == 30)
         {
             getNewSetting("Not yet implemented! - Enter Core used for Bluetooth Interrupts", 0, 1,
@@ -1109,15 +1097,6 @@ void menuOperation()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
-}
-
-// Display the USB serial output
-void menuSystemDisplayUsbSerialOutput(bool gnssData)
-{
-    if (gnssData)
-        systemPrintln("USB Serial output is GNSS data");
-    else
-        systemPrintln("USB Serial output is status and debug messages");
 }
 
 // Toggle periodic print message enables

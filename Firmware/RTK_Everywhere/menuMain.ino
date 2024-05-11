@@ -155,8 +155,7 @@ void menuMain()
 
             systemPrintln("3) Configure Base");
 
-            if (productVariant != RTK_TORCH) // Torch does not have external ports
-                systemPrintln("4) Configure Ports");
+            systemPrintln("4) Configure Ports");
 
             if (productVariant != RTK_TORCH) // Torch does not have logging
                 systemPrintln("5) Configure Logging");
@@ -217,7 +216,7 @@ void menuMain()
                 gnssMenuMessages();
             else if (incoming == 3)
                 menuBase();
-            else if (incoming == 4 && productVariant != RTK_TORCH) // Torch does not have external ports
+            else if (incoming == 4)
                 menuPorts();
             else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
                 menuLog();
