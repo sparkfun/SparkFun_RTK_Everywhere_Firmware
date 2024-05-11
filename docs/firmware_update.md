@@ -101,7 +101,6 @@ If your RTK 'freezes' after the update, press ```Reset ESP32``` to get it going 
 
 Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
 
-
 On devices that support it, the firmware can be loaded from an SD card.
 
 ![Firmware update menu](<img/Terminal/SparkFun_RTK_Firmware_Update-ProgressBar.jpg>)
@@ -241,6 +240,45 @@ This binary file can be found in the [NEO Firmware](https://github.com/sparkfun/
 * v1.04 Initial release.
 
 As of writing, no additional releases of the NEO-D9S firmware have been made.
+
+## Updating UM980 Firmware
+
+1. Download the latest UM980 firmware. As of writing, the UM980 firmware is [v11833](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/UM980_R4.10Build11833.pkg). See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware.
+
+2. Download and install [UPrecise](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe). UPrecise is the software created by Unicore to configure and view output from Unicore GNSS modules. v2 of the software can be downloaded [here](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe) but newer versions may be available.
+
+    ![Serial Configuration via Arduino Serial Terminal](<img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Direct Connect.png>)
+
+    *Serial Configuration via Arduino Serial Terminal* 
+
+3. Put the device into passthrough mode. From the main menu navigate to System 's'->Hardware 'h'->UM980 Direct Connect '13'. This will put the device into a pass-through mode, but with special character monitoring that allows the UM980 to be reset when bootloading is detected. Close the terminal connection so that UPrecise can connect to the COM port. **Note:** Some terminals cause the ESP32 to reset when closing the port. This reset causes the UM980 pass-through mode to exit. TeraTerm is known to cause this issue. To enter pass-through mode we recommend using the Arudino terminal.
+
+    ![Connect button and connection settings in UPrecise](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Connect.png>)
+
+    *Connect button and connection settings in UPrecise*
+
+4. Select the COM port and set the baud rate to 115200, then press 'Connect'
+
+    ![Receiver Upgrade Button](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Receiver Upgrade.png>)
+
+    *Receiver Upgrade Button*
+
+5. Once connected, press the **Receiver Upgrade** button.
+
+    ![Firmware selection window](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Firmware Selection.png>)
+
+    *Firmware selection window*
+
+6. Select the latest firmware file that was previously downloaded (See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware). Then press Start.
+
+    ![Firmware update process](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Firmware Upload.png>)
+
+    *Firmware update process*
+
+7. The update process can take multiple minutes. Once completed, close UPrecise, and power cycle the RTK Torch.
+
+8. Upon power-up, the firmware will be updated.
+
 
 ## Compiling Source
 
