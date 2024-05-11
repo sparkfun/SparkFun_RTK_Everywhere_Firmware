@@ -172,9 +172,9 @@ bool um980ConfigureOnce()
             if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
             {
                 if (um980->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
-                    systemPrintln("E6 service enabled");
+                    systemPrintln("Galileo E6 service enabled");
                 else
-                    systemPrintln("E6 service config error");
+                    systemPrintln("Galileo E6 service config error");
 
                 if (um980->sendCommand("CONFIG PPP DATUM WGS84") == true)
                     systemPrintln("WGS84 Datum applied");
@@ -195,9 +195,11 @@ bool um980ConfigureOnce()
         if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
         {
             if (um980->sendCommand("CONFIG PPP DISABLE") == true)
-                systemPrintln("E6 service disabled");
+            {
+                //systemPrintln("Galileo E6 service disabled");
+            }
             else
-                systemPrintln("E6 service config error");
+                systemPrintln("Galileo E6 service config error");
         }
     }
 
@@ -1126,13 +1128,13 @@ void um980MenuConstellations()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
+        if (incoming >= 1 && incoming <= MAX_UM980_CONSTELLATIONS)
         {
             incoming--; // Align choice to constellation array of 0 to 5
 
             settings.um980Constellations[incoming] ^= 1;
         }
-        else if (incoming == MAX_CONSTELLATIONS && present.galileoHasCapable)
+        else if ((incoming == MAX_UM980_CONSTELLATIONS + 1) && present.galileoHasCapable)
         {
             settings.enableGalileoHas ^= 1;
         }
