@@ -72,7 +72,7 @@ typedef enum
     TILT_STARTED,
     TILT_INITIALIZED,
     TILT_CORRECTING,
-
+    TILT_REQUEST_STOP,
 } TiltState;
 TiltState tiltState = TILT_DISABLED;
 
@@ -141,7 +141,7 @@ void tiltUpdate()
             // Check to see if tilt compensation is active
             if (tiltSensor->isCorrecting())
             {
-                beepMultiple(2, 500, 500); //Number of beeps, length of beep ms, length of quiet ms
+                beepMultiple(2, 500, 500); // Number of beeps, length of beep ms, length of quiet ms
 
                 lastTiltBeepMs = millis();
 
@@ -206,6 +206,10 @@ void tiltUpdate()
             beepDurationMs(250);
         }
 
+        break;
+
+    case TILT_REQUEST_STOP:
+        tiltStop(); // Changes state to TILT_OFFILINE
         break;
     }
 }
@@ -343,7 +347,8 @@ void beginTilt()
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
-    float arp_m = present.antennaReferencePoint_mm / 1000.0;
+    float arp_m =
+        present.antennaReferencePoint_mm / 1000.0; // Convert mm to m. antennaReferencePoint_mm assigned in begin()
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp_m);
     result &= tiltSensor->sendCommand(clubVector);
@@ -369,9 +374,9 @@ void beginTilt()
 
     // Enable magnetic field mode
     // 'it is recommended to use the magnetic field initialization mode to speed up the initialization process'
-    result &= tiltSensor->sendCommand("AHRS=ENABLE"); 
+    result &= tiltSensor->sendCommand("AHRS=ENABLE");
 
-    result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE"); 
+    result &= tiltSensor->sendCommand("MAG_AUTO_SAVE=ENABLE");
 
     if (result == true)
     {
@@ -388,17 +393,35 @@ void beginTilt()
 
 void tiltStop()
 {
-    // Free the resources
-    delete tiltSensor;
-    tiltSensor = nullptr;
+    // Gracefully stop the UART before freeing resources
+    while (SerialForTilt->available())
+        SerialForTilt->read();
 
-    delete SerialForTilt;
-    SerialForTilt = nullptr;
+    SerialForTilt->end();
+
+    // Free the resources
+    if (tiltSensor != nullptr)
+    {
+        delete tiltSensor;
+        tiltSensor = nullptr;
+    }
+
+    if (SerialForTilt != nullptr)
+    {
+        delete SerialForTilt;
+        SerialForTilt = nullptr;
+    }
 
     if (tiltState == TILT_CORRECTING)
         beepDurationMs(1000); // Indicate we are going offline
 
     tiltState = TILT_OFFLINE;
+}
+
+// Called by other tasks. Prevents stopping serial port while within a library transaction.
+void tiltRequestStop()
+{
+    tiltState = TILT_REQUEST_STOP;
 }
 
 bool tiltIsCorrecting()
