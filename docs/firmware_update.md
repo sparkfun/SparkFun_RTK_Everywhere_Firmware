@@ -277,8 +277,11 @@ As of writing, no additional releases of the NEO-D9S firmware have been made.
 
 7. The update process can take multiple minutes. Once completed, close UPrecise, and power cycle the RTK Torch.
 
-8. Upon power-up, the firmware will be updated.
+    ![UM980 Firmware version shown in System Menu](<img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Firmware.png>)
 
+    *UM980 Firmware version shown in System Menu*
+
+8. Upon power-up, the firmware will be updated. Open the System Menu to confirm the firmware version.
 
 ## Compiling Source
 
