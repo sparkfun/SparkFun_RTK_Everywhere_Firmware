@@ -1,4 +1,4 @@
-# Updating RTK Firmware
+# Update Firmware
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) 
 
