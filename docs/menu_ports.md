@@ -1,6 +1,6 @@
 # Ports Menu
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) 
 
 ![Setting the baud rate of the ports](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg>)
 
@@ -10,11 +10,29 @@ Torch: ![Feature Not Supported](img/Icons/RedDot.png)
 
 *Baud rate configuration of Radio and Data ports*
 
+## Output GNSS Data over USB
+
+![Set output to GNSS data over USB Serial](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output.png>)
+
+*Set output to GNSS data over USB Serial*
+
+Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB). 
+
+![Example NMEA output over USB](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output Example.png>)
+
+*Example NMEA output over USB*
+
+To exit this mode, press **+++** to open the configuration menu.
+
 ## Radio Port
+
+Available on devices that have an external **RADIO** port. 
 
 By default, the **Radio** port is set to 57600bps to match the [Serial Telemetry Radios](https://www.sparkfun.com/products/19032) that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.
 
 ## Mux Channel
+
+Available on devices that have a built-in multiplexer on the **DATA** port.
 
 The **Data** port on the RTK Facet, Express, and Express Plus is very flexible. Internally the **Data** connector is connected to a digital mux allowing one of four software-selectable setups. By default, the Data port will be connected to the UART1 of the ZED-F9P and output any messages via serial.
 
