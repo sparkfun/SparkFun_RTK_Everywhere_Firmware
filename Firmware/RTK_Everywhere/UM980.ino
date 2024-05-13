@@ -184,8 +184,8 @@ bool um980ConfigureOnce()
         }
         else
         {
-            systemPrintf("Current UM980 firmware: v%d. Galileo E6 reception requires 11833 or newer. Please update the "
-                         "firmware on your UM980 to allow for HAS operation.\r\n",
+            systemPrintf("Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
+                         "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
                          um980Version);
         }
     }
