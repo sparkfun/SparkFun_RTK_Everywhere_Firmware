@@ -1212,8 +1212,8 @@ void tickerGnssLedUpdate()
     {
         // Update the GNSS LED according to our state
 
-        // Solid once RTK Fix is achieved
-        if (gnssIsRTKFix() == true)
+        // Solid once RTK Fix is achieved, or PPP converges
+        if (gnssIsRTKFix() == true || gnssIsPppConverged())
         {
             ledcWrite(ledGnssChannel, 255);
         }
