@@ -1,8 +1,8 @@
 # Disassembly / Repair
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Partially Supported](img/Icons/YellowDot.png)
 
-The RTK product line is fully open-source hardware. This allows users to view schematics, code, and repair manuals. This section documents how to safely disassemble the RTK Facet and [Reference Station](#reference-station).
+The RTK product line is fully open-source hardware. This allows users to view schematics, code, and repair manuals. This section documents how to safely disassemble the RTK Facet and Torch.
 
 Repair Parts:
 
@@ -42,7 +42,9 @@ Tools Needed:
 * [U.FL Puller](https://www.sparkfun.com/products/20687) - *Recommended*
 * [Wire Cutters](https://www.sparkfun.com/products/10447) - *Recommended*
 
-## Opening Facet
+## Facet
+
+### Opening Enclosure
 
 ![Remove the protective silicone boot](img/Repair/SparkFun-RTK-Repair-1.jpg)
 
@@ -82,7 +84,7 @@ The battery and vertical PCBs are held in place using a retention PCB. Remove th
 
 Set the retention PCB to the side.
 
-## Removing Antenna Connection
+### Removing Antenna Connection
 
 ![Removing the antenna connection](img/Repair/SparkFun-RTK-Repair-8.jpg)
 
@@ -96,7 +98,7 @@ Using the U.FL removal tool, slide the tool onto the U.FL connector and gently p
 
 The U.FL connector will disconnect. The antenna can now be set to the side.
 
-## Opening Backflip Connectors
+### Opening Backflip Connectors
 
 ![Flipping connector](img/Repair/SparkFun-RTK-Repair-10.jpg)
 
@@ -108,7 +110,7 @@ As shown above, remove the FPC connecting to the 4th connector on the main board
 
 The main board is attached to the battery and the connector board. Lift the mainboard and connector board together, bringing the battery with the assembly.
 
-## Removing the Battery
+### Removing the Battery
 
 ![Removing the JST connector](img/Repair/SparkFun-RTK-Repair-14.jpg)
 
@@ -118,7 +120,7 @@ The battery is plugged into the mainboard using a JST connector. These are very 
 
 Once removed, the battery can be set aside.
 
-## Removing the Front Overlay
+### Removing the Front Overlay
 
 ![Disconnecting overlay](img/Repair/SparkFun-RTK-Repair-15.jpg)
 
@@ -128,7 +130,7 @@ The front overlay (the sticker with the Power button) is connected to the displa
 
 Gently peel off the adhesive overlay from the front face. This cannot be saved.
 
-## Inserting New Display Board
+### Inserting New Display Board
 
 ![New display board in place](img/Repair/SparkFun-RTK-Repair-17.jpg)
 
@@ -148,7 +150,7 @@ Be sure to flip up the arm on the overlay connector before trying to insert the 
 
 Using tweezers, and holding the FPC by the cable stiffener, insert the overlay FPC into the display board. 
 
-## Closing The Backflip Connector
+### Closing The Backflip Connector
 
 ![Closing the arm on an FPC](img/Repair/SparkFun-RTK-Repair-21.jpg)
 
@@ -158,7 +160,7 @@ Use the nose of the tweezers to press the arm down, securing the FPC in place.
 
 If you haven't already done so, move the brown FPC from the original display board over to the new display board. Be sure to open the connector before inserting the FPC, and then press down on the arm to secure it in place.
 
-## Reinstalling Main Board
+### Reinstalling Main Board
 
 ![Returning boards into place](img/Repair/SparkFun-RTK-Repair-23.jpg)
 
@@ -168,7 +170,7 @@ Slide the main board and connector boards back into place along with the battery
 
 Reconnect the display board to the main board. Be sure to close the arm on the main board to secure the FPC in place. 
 
-## Testing the Overlay
+### Testing the Overlay
 
 ![Internal Power Button](img/Repair/SparkFun-RTK-Repair-24.jpg)
 
@@ -186,7 +188,7 @@ If the external overlay button is not working, but the internal button is, remov
 
 If the external button is working, proceed with re-assembling the unit.
 
-## Reassembly
+### Reassembly
 
 Confirm that all FPC armatures are in the down and locked position.
 
@@ -218,35 +220,31 @@ Replace the silicone boot around the device.
 
 Power on the RTK Facet and take outside to confirm SIV reaches above ~20 satellites and HPA is below ~1.0m.
 
-## Reference Station
+## Torch
 
-Taking the Reference Station apart is really easy:
+### Opening Enclosure
 
-* Disconnect all cables
+The RTK Torch can be opened by removing four Phillips head screws located on the bottom of the enclosure.
 
-* Unplug the green 10-way 3.5mm I/O connector
-    * This makes it easy to remove the main PCB from the enclosure
-    * The connector is a firm fit. You may need to rock it from side to side as you unplug it
-  
-* Unscrew the four screws holding the front panel in place
-    * We recommend removing the front panel first, so you can unplug the OLED display
-  
-* Remove the front panel
+![Antenna covered removed from the RTK Torch](img/Repair/GPS-24672-RTK-Torch-Internal2.jpg)
 
-![Image of the Reference Station with the front panel removed](img/Repair/Ref_Station_Disassembly.png)
+*Antenna covered removed from the RTK Torch*
 
-* Unplug the OLED Qwiic cable
+### Removing Antenna Stackup
 
-* Slide out the main PCB
+Once the antenna cover is removed, remove the three Phillips holding the antenna in place. 
 
-## Surveyor
+With the screws removed, gently and very carefully pull up on the upper PCB antenna. There is an MMCX connector that will pop loose, along with a U.FL connection. Pulling too hard may damage the connectors, the PCB antennas, or both.
 
-Disassembly of the RTK Surveyor is achieved by removing two Philips head screws and gently lifting the cover.
+### Removing Mainboard
 
-![Internal Surveyor Switches](img/Repair/RTK_Surveyor_Internal_-_NMEA_Switches.jpg)
+![The RTK Torch mainboard](img/Repair/GPS-24672-RTK-Torch-Internal1.jpg)
 
-Within the RTK Surveyor, two internal slide switches control the flow of NMEA data over Bluetooth and should be in the position shown above. If these switches get moved, the device will fail to correctly push NMEA data over Bluetooth. Placing a bit of tape over the top of the switches can help keep them in place.
+*The RTK Torch mainboard*
 
+With the mainboard removed, three Phillips head screws hold the mainboard in place. Remove these screws and the mainboard will be released. Remove the battery connector from the bottom side of the mainboard to free it.
 
+### Remoing Battery
 
+The lower 7.2V LiPo battery pack is held in place by a metal retaining plate. Remove the Phillips head screws to release the battery.
 

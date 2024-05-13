@@ -84,32 +84,13 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 * **r** - Reset all settings to default including a factory reset of the GNSS receiver. This can be helpful if the unit has been configured into an unknown or problematic state. See [Factory Reset](menu_system.md#factory-reset).
 
+* **u** - Change between metric and Imperial units. This only modifies the units shown on serial status messages and on the display (if available), it does not change NMEA output.
+
 * **z** - A local timezone in hours, minutes and seconds may be set by pressing 'z'. The timezone values change the RTC clock setting and the file system's timestamps for new files.
 
 * **~** - If desired, the external button(s) can be disabled to prevent accidental mode changes.
 
 **Note:** Bluetooth SPP cannot operate concurrently with ESP-Now radio transmissions. Therefore, if you plan to use the ESP-Now radio system to connect RTK products, the BLE protocol must be used to communicate over Bluetooth to data collectors. Alternatively, ESP-Now works concurrently with WiFi so connecting to a data collector over WiFi can be used.
-
-
-## SD Settings
-
-On devices that have an SD socket, additional options will be shown to control logging.
-
-### Log to SD
-
-If a microSD card is detected, all messages will be logged. 
-
-### Max Log Time
-
-Once the max log time is achieved, logging will cease. This is useful for limiting long-term, overnight, static surveys to a certain length of time. Default: 1440 minutes (24 hours). Limit: 1 to 2880 minutes.
-
-### Max Log Length
-
-Every 'max long length' amount of time the current log will be closed and a new log will be started. This is known as cyclic logging and is convenient on *very* long surveys (ie, months or years) to prevent logs from getting too unwieldy and helps limit the risk of log corruption. This will continue until the unit is powered down or the *max logging time* is reached.
-
-### Start New Log
-
-Pressing the 'Start New Log' button will close the current log. A new log will be opened immediately and the file name will be shown. This can be helpful in the field when a certain set of coordinates or feature marks need to be recorded in close proximity to one another. By dividing up the logs, the work can be more easily identified.
 
 ## Factory Reset
 

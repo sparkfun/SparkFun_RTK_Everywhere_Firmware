@@ -1,6 +1,6 @@
 # Accuracy Verification
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Facet in the field](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%2016%20Facet%20in%20the%20Field.jpg)
 
@@ -25,17 +25,17 @@ The process goes like this:
 
 *RTK Fix Mode*
 
-Before we can consider doing anything in the field, we need to get really comfortable using the RTK product. Verify you can get your device into RTK Fix mode. This includes setting up a permanent base and/or using a service like Skylark to provide the correction data to the RTK product. Before planning a trip to the field get used to using the RTK product in Rover mode with NTRIP corrections being passed over Bluetooth to your device.
+Before we can consider doing anything in the field, we need to get really comfortable using the RTK product. Verify you can get your device into RTK Fix mode. This includes setting up a [permanent base](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/permanent_base/) and/or using a service like [PointOne Nav](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#pointone-nav) to provide the correction data to the RTK product. Before planning a trip to the field get used to using the RTK product in Rover mode with NTRIP corrections being passed in to the device.
 
 ## Locate GPS Monument
 
-[![A common metal surveyor's mark](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%2017%20Surveyor%20Monument.jpg)](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%2017%20Surveyor%20Monument - Big.jpg)
+[![A common metal surveyor's mark](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%2017%20Surveyor%20Monument.jpg)](<img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%2017%20Surveyor%20Monument - Big.jpg>)
 
 *A common metal surveyor's mark*
 
 Locate a GPS monument. These are the little metal caps, placed by surveyors, embedded into the sidewalk and roads around populated areas. While monuments are fairly common, we need a monument whose location is precisely known.
 
-![Boulder has a large number of monuments](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%201%20Boulder%20Sites.jpg)
+![Boulder has a large number of monuments](<img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%201%20Boulder%20Sites.jpg>)
 
 *Boulder has a large number of monuments*
 

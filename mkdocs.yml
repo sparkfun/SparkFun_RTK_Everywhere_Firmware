@@ -141,15 +141,16 @@ nav:
       - menu_messages.md
       - menu_base.md
       - menu_wifi.md
-      - menu_network.md
+      - menu_tcp_udp.md
       - menu_firmware.md
-      - menu_userprofiles.md
-      - menu_radios.md
-      - menu_ports.md
-      - menu_data_logging.md
+      - menu_corrections_priorities.md
       - menu_pointperfect.md
+      - menu_radios.md
       - menu_system.md
       - menu_tilt.md
+      - menu_userprofiles.md
+      - menu_data_logging.md
+      - menu_ports.md
       - menu_ethernet.md
       - menu_ntp.md
   - Hardware:

@@ -1,6 +1,6 @@
-# Updating RTK Firmware
+# Update Firmware
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png) 
 
 The device has two primary firmwares:
 
@@ -9,7 +9,7 @@ The device has two primary firmwares:
 
 The device firmware is displayed in a variety of places:
 
-* Power On
+* Power On (if a display is supported)
 * Serial Config Menu
 * WiFi Config
 
@@ -34,7 +34,7 @@ The firmware is shown at the top of the WiFi config page.
 From time to time SparkFun will release new firmware for the RTK product line to add and improve functionality. For most users, firmware can be upgraded over WiFi using the OTA method.
 
 * [OTA Method](firmware_update.md#updating-firmware-over-the-air): Connect over WiFi to SparkFun to download the latest firmware *over-the-air*. This can be done using the serial menu or while in WiFi AP Config Mode. Requires a local WiFi network.
-* [GUI Method](firmware_update.md#updating-firmware-using-windows-gui): Use the [Windows, Linux, MacOS or Python GUI](https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader) and a USB cable. (The Python package has been tested on Raspberry Pi)
+* [GUI Method](firmware_update.md#updating-using-windows-gui): Use the [Windows, Linux, MacOS or Python GUI](https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader) and a USB cable. (The Python package has been tested on Raspberry Pi)
 * [SD Method](firmware_update.md#updating-firmware-from-the-sd-card): Load the firmware on an SD card, then use a serial terminal with the *Firmware Upgrade* menu
 * [WiFi Method](firmware_update.md#updating-firmware-from-wifi): Load the firmware over WiFi when the device is in WiFi AP Config Mode
 * [CLI Method](firmware_update.md#updating-firmware-from-cli): Use the command line *batch_program.bat*
@@ -44,6 +44,7 @@ The OTA method is generally recommended. For more information see [here](firmwar
 Remember, all SparkFun RTK devices are open source hardware meaning you have total access to the [firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware) and [hardware](https://github.com/sparkfun/SparkFun_RTK_Facet). Be sure to check out each repo for the latest firmware and hardware information.
 
 ## Updating Firmware Over-The-Air
+
 ![Updating Firmware from WiFi config page](<img/WiFi Config/RTK-Firmware-Update-OTA.gif>)
 
 *Updating the firmware via WiFi config page*
@@ -52,13 +53,13 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 
 *Updating the firmware via Firmware serial menu*
 
-Introduced with version 3.0, firmware can be updated by pressing a button in the System Configuration section of the WiFi Config page, or over the Firmware menu of the serial interface. This makes checking and upgrading a unit very easy.
+Firmware can be updated in the System Configuration section of the WiFi Config page, or over the Firmware menu of the serial interface. This makes checking and upgrading a unit very easy.
 
-Additionally, users may opt into checking for Beta firmware. This is the latest firmware that may have new features and is meant for testing. Beta firmware is not recommended for units deployed into the field as it may not be stable.
+Additionally, users may opt to check for Beta firmware. This is the latest firmware that may have new features and is meant for testing. Beta firmware is not recommended for units deployed into the field as it may not be stable.
 
 If you have a device with firmware lower than v3.0, you will need to use the [GUI](firmware_update.md#updating-firmware-using-the-uploader-gui) or a method listed below to get to v3.x.
 
-With version 3.10 automatic release firmware update is supported over WiFi.  Enabling this feature is done using the serial firmware menu.  The polling period is speified in minutes and defaults to once a day.  The automatic firmware update only checks for and installs the current SparkFun released firmware versions over top of any:
+Automatic release firmware update is supported over WiFi. Enabling this feature is done using the serial firmware menu. The polling period is specified in minutes and defaults to once a day. The automatic firmware update only checks for and installs the current SparkFun released firmware versions over top of any:
 
 * Older released versions (continual upgrade)
 * Beta firmware versions (newer or older, restore to released version)
@@ -97,6 +98,8 @@ Once complete, the device will reset and power down.
 If your RTK 'freezes' after the update, press ```Reset ESP32``` to get it going again.
 
 ## Updating Firmware From the SD Card
+
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
 
 On devices that support it, the firmware can be loaded from an SD card.
 
@@ -170,21 +173,19 @@ Upon completion, your RTK device will reset.
 
 ## Updating u-blox Firmware
 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+
 The following products contain the following u-blox receivers:
 
-* RTK Surveyor: ZED-F9P
-* RTK Express: ZED-F9P
-* RTK Express Plus: ZED-F9R
-* RTK Facet: ZED-F9P
-* RTK Facet L-Band: ZED-F9P and NEO-D9S
+* RTK EVK: ZED-F9P
 
-The firmware loaded onto the ZED-F9P, ZED-F9R, and NEO-D9S receivers is written by u-blox and can vary depending on the manufacture date. The RTK Firmware (that runs on the ESP32) is designed to flexibly work with any u-blox firmware. Upgrading the ZED-F9x/NEO-D9S is a good thing to consider but is not crucial to the use of RTK products.
+The firmware loaded onto the ZED-F9P and NEO-D9S receivers is written by u-blox and can vary depending on the manufacture date. The RTK Firmware (that runs on the ESP32) is designed to flexibly work with any u-blox firmware. Upgrading the ZED-F9x/NEO-D9S is a good thing to consider but is not crucial to the use of RTK products.
 
 Not sure what firmware is loaded onto your RTK product? Open the [System Menu](menu_system.md) to display the module's current firmware version.
 
 The firmware on u-blox devices can be updated using a [Windows-based GUI](firmware_update.md#updating-using-windows-gui) or [u-center](firmware_update.md#updating-using-u-center). A CLI method is also possible using the `ubxfwupdate.exe` tool provided with u-center. Additionally, u-blox offers the source for the ubxfwupdate tool that is written in C. It is currently released only under an NDA so contact your local u-blox Field Applications Engineer if you need a different method.
 
-## Updating Using Windows GUI
+### Update Using Windows GUI
 
 ![SparkFun u-blox firmware update tool](img/SparkFun%20RTK%20Facet%20L-Band%20u-blox%20Firmware%20Update%20GUI.png)
 
@@ -210,7 +211,7 @@ The SparkFun RTK u-blox Firmware Update Tool will only run on Windows as it reli
 
 Once complete, the u-blox module will restart.
 
-### Updating Using u-center
+### Update Using u-center
 
 If you're familiar with u-center a tutorial with step-by-step instructions for locating the firmware version as well as changing the firmware can be found in [How to Upgrade Firmware of a u-blox Receiver](https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver/all).
 
@@ -222,23 +223,13 @@ Most of these binaries can be found in the [ZED Firmware/ZED-F9P](https://github
 
 All field testing and device-specific performance parameters were obtained with ZED-F9P v1.30.
 
-* v1.12 has the benefit of working with SBAS and an operational RTK status signal (the LED illuminates correctly). See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG112_RN_%28UBX-19026698%29.pdf).
-
-* v1.13 has a few RTK and receiver performance improvements but introduces a bug that causes the RTK Status LED to fail when SBAS is enabled. See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG113_RN_%28UBX-20019211%29.pdf).
+* v1.32 has a few SPARTN protocol-specific improvements. See [release notes](https://www.u-blox.com/sites/default/files/documents/ZED-F9P-FW100-HPG132_RN_UBX-22004887.pdf). This firmware is required for use with the NEO-D9S and the decryption of PMP messages.
 
 * v1.30 has a few RTK and receiver performance improvements, I<sup>2</sup>C communication improvements, and most importantly support for SPARTN PMP packets. See [release notes](https://www.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG130_RN_UBX-21047459.pdf).
 
-* v1.32 has a few SPARTN protocol-specific improvements. See [release notes](https://www.u-blox.com/sites/default/files/documents/ZED-F9P-FW100-HPG132_RN_UBX-22004887.pdf). This firmware is required for use with the NEO-D9S and the decryption of PMP messages.
+* v1.13 has a few RTK and receiver performance improvements but introduces a bug that causes the RTK Status LED to fail when SBAS is enabled. See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG113_RN_%28UBX-20019211%29.pdf).
 
-### ZED-F9R Firmware Changes
-
-This module is used in the Express Plus. It contains an internal IMU and additional algorithms to support high-precision location fixes using dead reckoning. The ZED-F9R is not capable of operating in base mode.
-
-Most of these binaries can be found in the [ZED Firmware/ZED-F9R](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/ZED%20Firmware/ZED-F9R) folder.
-
-* v1.00 Initial release.
-
-* v1.21 SPARTN support as well as adding E-scooter and robotic lawnmower dynamic models. See [release notes](https://www.u-blox.com/sites/default/files/ZED-F9R-02B_FW1.00HPS1.21_RN_UBX-21035491_1.3.pdf).
+* v1.12 has the benefit of working with SBAS and an operational RTK status signal (the LED illuminates correctly). See [release notes](https://content.u-blox.com/sites/default/files/ZED-F9P-FW100-HPG112_RN_%28UBX-19026698%29.pdf).
 
 ### NEO-D9S Firmware Changes
 
@@ -250,31 +241,81 @@ This binary file can be found in the [NEO Firmware](https://github.com/sparkfun/
 
 As of writing, no additional releases of the NEO-D9S firmware have been made.
 
+## Updating UM980 Firmware
+
+1. Download the latest UM980 firmware. As of writing, the UM980 firmware is [v11833](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/UM980_R4.10Build11833.pkg). See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware.
+
+2. Download and install [UPrecise](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe). UPrecise is the software created by Unicore to configure and view output from Unicore GNSS modules. v2 of the software can be downloaded [here](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe) but newer versions may be available.
+
+    ![Serial Configuration via Arduino Serial Terminal](<img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Direct Connect.png>)
+
+    *Serial Configuration via Arduino Serial Terminal* 
+
+3. Put the device into passthrough mode. From the main menu navigate to System 's'->Hardware 'h'->UM980 Direct Connect '13'. This will put the device into a pass-through mode, but with special character monitoring that allows the UM980 to be reset when bootloading is detected. Close the terminal connection so that UPrecise can connect to the COM port. **Note:** Some terminals cause the ESP32 to reset when closing the port. This reset causes the UM980 pass-through mode to exit. TeraTerm is known to cause this issue. To enter pass-through mode we recommend using the Arudino terminal.
+
+    ![Connect button and connection settings in UPrecise](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Connect.png>)
+
+    *Connect button and connection settings in UPrecise*
+
+4. Select the COM port and set the baud rate to 115200, then press 'Connect'
+
+    ![Receiver Upgrade Button](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Receiver Upgrade.png>)
+
+    *Receiver Upgrade Button*
+
+5. Once connected, press the **Receiver Upgrade** button.
+
+    ![Firmware selection window](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Firmware Selection.png>)
+
+    *Firmware selection window*
+
+6. Select the latest firmware file that was previously downloaded (See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware). Then press Start.
+
+    ![Firmware update process](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Firmware Upload.png>)
+
+    *Firmware update process*
+
+7. The update process can take multiple minutes. Once completed, close UPrecise, and power cycle the RTK Torch.
+
+    ![UM980 Firmware version shown in System Menu](<img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Firmware.png>)
+
+    *UM980 Firmware version shown in System Menu*
+
+8. Upon power-up, the firmware will be updated. Open the System Menu to confirm the firmware version.
+
 ## Compiling Source
 
 ### Windows
 
-The SparkFun RTK Everywhere Firmware is compiled using Arduino (currently v1.8.15). To compile:
+The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v0.35.3](https://github.com/arduino/arduino-cli/releases)). To compile:
 
-1. Install [Arduino](https://www.arduino.cc/en/software).
+1. Install [Arduino CLI](https://github.com/arduino/arduino-cli/releases).
 
-2. Install ESP32 for Arduino. [Here](https://learn.sparkfun.com/tutorials/esp32-thing-hookup-guide#installing-via-arduino-ide-boards-manager) are some good instructions for installing it via the Arduino Boards Manager. **Note**: Use v2.0.2 of the core. **Note:** We use the 'ESP32 Dev Module' for pin numbering. Select the correct board under Tools->Board->ESP32 Arduino->ESP32 Dev Module.
+2. Install the ESP32 core for Arduino:
 
-3. Change the Partition table. Replace
+        arduino-cli core install esp32:esp32@2.0.11
 
-    ```C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.2\tools\partitions\app3M_fat9M_16MB.csv```
+**Note**: Use v2.0.11 of the core. 
 
-    with the app3M_fat9M_16MB.csv [file](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/app3M_fat9M_16MB.csv?raw=true) found in the [Firmware folder](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/tree/main/Firmware). This will increase the program partition from a maximum of 1.9MB to 3MB.
+**Note:** We use the 'ESP32 Dev Module' for pin numbering. 
 
-4. From the Arduino IDE, set the core settings from the **Tools** menu:
+3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72).
 
-    A. Set the 'Partition Scheme' to *16M Flash (3MB APP/9MB FATFS)*. This will use the 'app3M_fat9M_16MB.csv' updated partition table.
+4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv)file.
 
-    B. Set the 'Flash Size' to 16MB (128mbit)
+5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look seomthing like
 
-5. Obtain all the [required libraries](firmware_update.md#required-libraries).
+        C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.11\tools\partitions\RTKEverywhere.csv
 
-Once compiled, firmware can be uploaded directly to a unit when the RTK unit is on and the correct COM port is selected under the Arduino IDE Tools->Port menu.
+    This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash.
+
+
+6. Compile using the following command
+        arduino-cli --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled, compile 'Firmware/RTK_Everywhere' --build-property build.partitions=RTKEverywhere;
+
+7. Once compiled, upload to the device using the following command where `[COM_PORT]` is the COM port on which the RTK device is located (ie `COM42`).
+
+        arduino-cli upload -p [COM_PORT] --fqbn esp32:esp32:esp32:UploadSpeed=512000,FlashSize=16M 'Firmware/RTK_Everywhere'
 
 If you are seeing the error:
 
@@ -282,55 +323,7 @@ If you are seeing the error:
 
 You have not replaced the partition file correctly. See the 'Change Partition table' step inside the [Windows instructions](firmware_update.md#windows_1).
 
-**Note:** There are a variety of compile guards (COMPILE_WIFI, COMPILE_AP, etc) at the top of RTK_Surveyor.ino that can be commented out to remove them from compilation. This will greatly reduce the firmware size and allow for faster development of functions that do not rely on these features (serial menus, system configuration, logging, etc).
-
-#### Required Libraries
-
-**Note:** You should click on the link next to each of the #includes at the top of RTK_Surveyor.ino within the Arduino IDE to open the library manager and download them. Getting them directly from Github also works but may not be 'official' releases.
-
-Using the library manager in the Arduino IDE, for each of the libraries below:
-
-    1. Locate the library by typing the libary name into the search box
-
-    2. Click on the library
-
-    3. Select the version listed in the compile-rtk-firmware.yml file for the [main](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-firmware.yml) or the [release_candidate](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/release_candidate/.github/workflows/compile-rtk-firmware.yml) branch
-
-    4. Click on the Install button in the lower right
-
-The RTK firmware requires the following libraries:
-
-    * [Arduino JSON](https://github.com/bblanchon/ArduinoJson)
-
-    * [ESP32Time](https://github.com/fbiego/ESP32Time)
-
-    * [ESP32 BleSerial](https://github.com/avinabmalla/ESP32_BleSerial)
-
-    * [ESP32-OTA-Pull](https://github.com/mikalhart/ESP32-OTA-Pull)
-
-    * Ethernet
-
-    * [JC_Button](https://github.com/JChristensen/JC_Button)
-
-    * [PubSub Client for MQTT](https://github.com/knolleary/pubsubclient)
-
-    * [SdFat](https://github.com/greiman/SdFat)
-
-    * [SparkFun LIS2DH12 Arduino Library](https://github.com/sparkfun/SparkFun_LIS2DH12_Arduino_Library)
-
-    * [SparkFun MAX1704x Fuel Gauge Arduino Library](https://github.com/sparkfun/SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library)
-
-    * [SparkFun u-blox GNSS v3](https://github.com/sparkfun/SparkFun_u-blox_GNSS_v3)
-
-    * [SparkFun_WebServer_ESP32_W5500](https://github.com/SparkFun/SparkFun_WebServer_ESP32_W5500)
-
-The following libraries are only available via GitHub:
-
-    * [AsyncTCP](https://github.com/me-no-dev/AsyncTCP) (not available via library manager)
-
-    * [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) (not available via library manager)
-
-    * [SparkFun Micro OLED Breakout](https://github.com/sparkfun/SparkFun_Micro_OLED_Arduino_Library)
+**Note:** There are a variety of compile guards (COMPILE_WIFI, COMPILE_AP, etc) at the top of RTK_Everywhere.ino that can be commented out to remove them from compilation. This will greatly reduce the firmware size and allow for faster development of functions that do not rely on these features (serial menus, system configuration, logging, etc).
 
 ### Ubuntu 20.04
 
@@ -592,7 +585,3 @@ Execute the following commands to create the build environment for the SparkFun 
 
 40. cd ~/SparkFun/RTK/
 41. cp  Firmware/app3M_fat9M_16MB.csv  ~/.arduino15/packages/esp32/hardware/esp32/2.0.2/tools/partitions/app3M_fat9M_16MB.csv
-
-### Arduino CLI
-
-The firmware can be compiled using [Arduino CLI](https://github.com/arduino/arduino-cli). This makes compilation fairly platform independent and flexible. All release candidates and firmware releases are compiled using Arduino CLI using a github action. You can see the source of the action [here](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-release.yml), and use it as a starting point for Arduino CLI compilation.

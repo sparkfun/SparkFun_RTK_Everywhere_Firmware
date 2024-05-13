@@ -1,20 +1,38 @@
 # Ports Menu
 
-Surveyor: ![Feature Partially Supported](img/Icons/YellowDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Partially Supported](img/Icons/YellowDot.png)
+Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) 
 
-![Setting the baud rate of the ports](img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg)
+![Setting the baud rate of the ports](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg>)
 
 *Setting the baud rates of the two available external ports*
 
-![Baud rate configuration of Radio and Data ports](img/Terminal/SparkFun_RTK_Express_-_Ports_Menu.jpg)
+![Baud rate configuration of Radio and Data ports](<img/Terminal/SparkFun_RTK_Express_-_Ports_Menu.jpg>)
 
 *Baud rate configuration of Radio and Data ports*
 
+## Output GNSS Data over USB
+
+![Set output to GNSS data over USB Serial](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output.png>)
+
+*Set output to GNSS data over USB Serial*
+
+Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB). 
+
+![Example NMEA output over USB](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output Example.png>)
+
+*Example NMEA output over USB*
+
+To exit this mode, press **+++** to open the configuration menu.
+
 ## Radio Port
+
+Available on devices that have an external **RADIO** port. 
 
 By default, the **Radio** port is set to 57600bps to match the [Serial Telemetry Radios](https://www.sparkfun.com/products/19032) that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.
 
 ## Mux Channel
+
+Available on devices that have a built-in multiplexer on the **DATA** port.
 
 The **Data** port on the RTK Facet, Express, and Express Plus is very flexible. Internally the **Data** connector is connected to a digital mux allowing one of four software-selectable setups. By default, the Data port will be connected to the UART1 of the ZED-F9P and output any messages via serial.
 
@@ -36,15 +54,9 @@ If you must run the data port at lower than 460800bps, and you need to enable a 
 
 Most applications do not need to plug anything into the **Data** port. Most users will get their NMEA position data over Bluetooth. However, this port can be useful for sending position data to an embedded microcontroller or single-board computer. The pinout is 3.3V / TX / RX / GND. **3.3V** is provided by this connector to power a remote device if needed. While the port is capable of sourcing up to 600mA, we do not recommend more than 300mA. This port should not be connected to a power source.
 
-### Wheel Ticks
-
-![Wheel/Direction Encoder drop down](img/WiFi Config/SparkFun%20RTK%20Ports%20Menu%20Mux%20Config.png)
-
-*On the RTK Express Plus only.* This dropdown is made available if users wish to connect wheel ticks and a direction encoder as inputs to the ZED-F9R. This aids the Sensor Fusion engine for IMU based location fixes when installed in an automobile. Signals must be limited to 3.3V.
-
 ### Pulse Per Second
 
-![Configuring the External Pulse and External Events](img/WiFi Config/SparkFun%20RTK%20Ports%20PPS%20Config.png)
+![Configuring the External Pulse and External Events](<img/WiFi Config/SparkFun%20RTK%20Ports%20PPS%20Config.png>)
 
 *Configuring the External Pulse and External Events over WiFi*
 
@@ -66,57 +78,4 @@ For PPS, only the Black and Green wires are needed. If you need to provide 3.3V 
 * **Black** - GND
 
 Similarly, the RX pin of the DATA port can be used for event logging. See [External Event Logging](menu_ports.md#external-event-logging) for more information.
-
-### External Event Logging
-
-![Three RTK Express with External Triggers](img/RTK%20Express%20with%20External%20Microphones.png)
-
-*Three RTK Expresses wired with external microphones*
-
-The external triggering system is a powerful feature enabling a variety of scientific applications. Above is three RTK Expresses wired with external microphones used in a 'popped balloon' audio triangulation experiment.
-
-The ZED-F9P has the ability to mark a detected event with +/-30 *nanosecond accuracy*. When enabled, an event on the RX pin (a low-to-high or high-to-low transition) on the DATA port, will trigger a message in the log with a very accurate timestamp. 
-
-* **Red** - 3.3V
-* **Green** - TX (output from the RTK device)
-* **Orange** - RX (input into the RTK device)
-* **Black** - GND
-
-![Wires connected to a SparkFun USB C to Serial adapter](img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg)
-
-For event logging, only the Black and Orange wires are needed. If you need to provide 3.3V to your system, the red wire can supply up to 600mA but we do not recommend sourcing more than 300mA.
-
-![Configuring the External Pulse and External Events](img/WiFi Config/SparkFun%20RTK%20Ports%20PPS%20Config.png)
-
-*Configuring the External Pulse and External Events over WiFi*
-
-Be sure to select 'Enable External Event Logging' through the ports menu.
-
-Events within the log have the following format:
-
-> $GNTXT,numberOfSentences,sentenceNumber,CUSTOM_NMEA_TYPE_EVENT,triggerCount,towMsR,towSubMsR,accEst*CRC
-
-For example: 
-
-    $GNTXT,01,01,02,5,494326906,136292,31*74
-
-Where
-
-* $GNTXT: Custom NMEA text message
-* 01: numberOfSentences in this report
-* 01: sentenceNumber
-* 02: sentenceType - Externally triggered events are type 0x02
-* 5: triggerCount
-* 494326906: towMsR - Time Of Week of rising edge (ms)
-* 136292: towSubMsR - Millisecond fraction of Time Of Week of rising edge (ns)
-* 31: accEst - Accuracy estimate (ns)
-* 74: NMEA CRC
-
-The event timestamps can be analyzed to precisely coordinate or triangulate a past event. In the case of the three RTK Expresses with microphones, the three units' locations were known with RTK 14mm accuracy. The air temperature was taken to obtain the speed of sound. From these data points, we can solve for the location of a sound such as a popped balloon.
-
-## Surveyor Data Port
-
-By default, the Data port is set to 460800bps and can be configured from 4800bps to 921600bps. 
-
-Note: The Data port does not output NMEA by default. The unit must be opened and the *Serial NMEA Connection* switch must be moved to 'Ext Connector'. See [Hardware Overview - Advanced Features](https://learn.sparkfun.com/tutorials/sparkfun-rtk-surveyor-hookup-guide/all#hardware-overview---advanced-features) for the location of the switch.
 

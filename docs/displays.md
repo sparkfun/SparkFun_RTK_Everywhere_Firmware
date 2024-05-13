@@ -1,8 +1,8 @@
 # Displays
 
-Surveyor: ![Feature Partially Supported](img/Icons/YellowDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png)
 
-The RTK Facet, Facet L-Band, Express, and Express Plus utilize a 0.96" high-contrast OLED display. While small, it packs various situational data that can be helpful in the field. We will walk you through each display.
+A variety of RTK devices utilize a 0.96" or 1.3" high-contrast OLED display. While small, the display packs various situational data that can be helpful in the field. This section describes each possible display state.
 
 ## Power On/Off
 
@@ -80,6 +80,8 @@ Note: During NTRIP transmission WiFi is turned on and Bluetooth is turned off. Y
 
 ## L-Band
 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+
 L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 
 ![Display showing 14 days until L-Band Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
@@ -94,9 +96,11 @@ The unit will display various messages to aid the user in obtaining keys as need
 
 Upon successful reception and decryption of L-Band corrections, the satellite dish icon will increase to a three-pronged icon. As the unit's fix increases the cross-hair will indicate a basic 3D solution, a double blinking cross-hair will indicate a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution.
 
-## Reference Station
+## Antenna Detection
 
-The Reference Station is able to detect an open circuit or a short circuit on the GNSS antenna connection.
+Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+
+On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection.
 
 ![Reference Station indicating antenna open circuit](img/Displays/Antenna_Open.png)
 
@@ -106,12 +110,6 @@ The Reference Station is able to detect an open circuit or a short circuit on th
 
 *Reference Station with a GNSS antenna cable fault (short circuit)*
 
-When the Reference Station is in Network Time Protocol (NTP) mode, the display also shows a clock symbol - as shown above.
-The value next to the clock symbol is the Time Accuracy Estimate (tAcc) from the UBX-NAV-PVT message.
+When and ethernet-equipped RTK device is in Network Time Protocol (NTP) mode, the display also shows a clock symbol - as shown above. The value next to the clock symbol is the Time Accuracy Estimate (tAcc) from the UBX-NAV-PVT message.
 
-Note: tAcc is the time accuracy estimate for the navigation position solution. The timing accuracy of the TP pulse is significantly better than this.
-We show the tAcc as we believe it is more meaningful than the TIM-TP time pulse quantization error (qErr) - which is generally zero.
-
-## Adding a Display to the RTK Surveyor
-
-While the RTK Surveyor works very well using only LEDs, it is possible to add an external display. The [SparkFun Micro OLED Breakout (Qwiic)](https://www.sparkfun.com/products/14532) can be attached to the Qwiic connector on the end of the Surveyor. At power on, the display will be automatically detected and used.
+Note: tAcc is the time accuracy estimate for the navigation position solution. The timing accuracy of the TP pulse is significantly better than this. We show the tAcc as we believe it is more meaningful than the TIM-TP time pulse quantization error (qErr) - which is generally zero.

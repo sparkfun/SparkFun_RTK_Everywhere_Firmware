@@ -1,12 +1,12 @@
 # Network Time Protocol Menu
 
-Surveyor: ![Feature Not Supported](img/Icons/RedDot.png) / Express: ![Feature Not Supported](img/Icons/RedDot.png) / Express Plus: ![Feature Not Supported](img/Icons/RedDot.png) / Facet: ![Feature Not Supported](img/Icons/RedDot.png) / Facet L-Band: ![Feature Not Supported](img/Icons/RedDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
 
-The Reference Station can act as an Ethernet Network Time Protocol (NTP) server.
+Ethernet-equipped RTK devices can act as an Ethernet Network Time Protocol (NTP) server.
 
 Network Time Protocol has been around since 1985. It is a simple way for computers to synchronize their clocks with each other, allowing the network latency (delay) to be subtracted:
 
-* A client sends a NTP request (packet) to the chosen or designated server
+* A client sends an NTP request (packet) to the chosen or designated server
     * The request contains the client's current clock time - for identification
 
 * The server logs the time the client's request arrived and then sends a reply containing:
@@ -29,17 +29,17 @@ This exchange is repeated typically five times, before the client synchronizes i
 
 Having your own NTP server on your network allows tighter clock synchronization as the network latency is minimized.
 
-The Reference Station can be placed into its dedicated NTP mode, by pressing the **MODE** button until NTP is highlighted in the display and pausing there.
+Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by pressing the **MODE** button until NTP is highlighted in the display and pausing there.
 
-![Animation of selecting NTP mode](img/Displays/SparkFun RTK - NTP Select.gif)
+![Animation of selecting NTP mode](<img/Displays/SparkFun RTK - NTP Select.gif>)
 
 *Selecting NTP mode*
 
-The Reference Station will first synchronize its Real Time Clock (RTC) using the very accurate time provided by the u-blox GNSS module. The module's Time Pulse (Pulse-Per-Second) signal is connected to the ESP32 as an interrupt. The ESP32's RTC is synchronized to Universal Time Coordinate (UTC) on the rising edge of the TP signal using the time contained in the UBX-TIM-TP message.
+Ethernet-equipped RTK devices will first synchronize its Real Time Clock (RTC) using the very accurate time provided by the u-blox GNSS module. The module's Time Pulse (Pulse-Per-Second) signal is connected to the ESP32 as an interrupt. The ESP32's RTC is synchronized to Universal Time Coordinate (UTC) on the rising edge of the TP signal using the time contained in the UBX-TIM-TP message.
 
 The WIZnet W5500 interrupt signal is also connected to the ESP32, allowing the ESP32 to accurately log when each NTP request arrives.
 
-The Reference Station will respond to each NTP request within a few 10s of milliseconds.
+The RTK device will respond to each NTP request within a few 10s of milliseconds.
 
 If desired, you can log all NTP requests to a file on the microSD card, and/or print them as diagnostic messages. The log and messages contain the NTP timing information and the IP Address and port of the Client.
 
@@ -65,7 +65,7 @@ NTP uses its own epoch - midnight January 1st, 1900. This is different than the 
 
 ### NTP on Windows
 
-If you want to synchronize your Windows PC to a Reference Station NTP Server, here's how to do it:
+If you want to synchronize your Windows PC to a RTK device running as an NTP Server, here's how to do it:
 
 * Install [Meinberg NTP](https://www.meinbergglobal.com/english/sw/ntp.htm) - this replaces the Windows built-in Time Service
 
@@ -83,7 +83,7 @@ If you want to synchronize your Windows PC to a Reference Station NTP Server, he
 [![Meinberg NTP configuration](img/NTP/NTP_Config_1_small.png)](img/NTP/NTP_Config_1.png)
 
 * Comment the lines in *ntp.conf* which name the pool.ntp servers
-* Add an extra *server* line and include the IP Address for your Reference Station. It helps to give your Reference Station a fixed IP Address first - see [Menu Ethernet](menu_ethernet.md)
+* Add an extra *server* line and include the IP Address for your RTK device. It helps to give your RTK device a fixed IP Address first - see [Menu Ethernet](menu_ethernet.md)
 * Save the file
 
 [![Meinberg NTP configuration](img/NTP/NTP_Config_2_small.png)](img/NTP/NTP_Config_2.png)
@@ -102,5 +102,5 @@ If you want to synchronize your Windows PC to a Reference Station NTP Server, he
 
 ![Meinberg NTP configuration](img/NTP/NTP_Config_5.png)
 
-If enabled, your Windows PC NTP requests will be printed and logged by the reference station. See [above](#logged-ntp-requests).
+If enabled, your Windows PC NTP requests will be printed and logged by the RTK device. See [above](#logged-ntp-requests).
 

@@ -1,12 +1,8 @@
 # Data Logging Menu
 
-Surveyor: ![Feature Supported](img/Icons/GreenDot.png) / Express: ![Feature Supported](img/Icons/GreenDot.png) / Express Plus: ![Feature Supported](img/Icons/GreenDot.png) / Facet: ![Feature Supported](img/Icons/GreenDot.png) / Facet L-Band: ![Feature Supported](img/Icons/GreenDot.png) / Reference Station: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/RedDot.png) 
 
-## WiFi Interface
-
-Please see the System Menu [WiFi Interface](menu_system.md#wifi-interface).
-
-## Serial Interface
+**Note:** Not all devices support external SD (ie, RTK Torch). This section applies only to devices that support an external SD card, and have one inserted.
 
 ![RTK Data Logging Configuration Menu](img/Terminal/SparkFun%20RTK%20Logging%20Menu.png)
 
