@@ -377,6 +377,10 @@ void printReports()
                     systemPrint("RTK Fix");
                 else if (gnssIsRTKFloat() == true)
                     systemPrint("RTK Float");
+                else if (gnssIsPppConverged() == true)
+                    systemPrint("PPP Converged");
+                else if (gnssIsPppConverging() == true)
+                    systemPrint("PPP Converging");
                 else if (gnssIsDgpsFixed() == true)
                     systemPrint("DGPS Fix");
                 else if (gnssIsFixed() == true)
