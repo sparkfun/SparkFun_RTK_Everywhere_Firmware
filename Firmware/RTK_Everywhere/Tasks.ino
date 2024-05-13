@@ -177,8 +177,8 @@ void btReadTask(void *e)
                     btAppCommandCharsReceived++;
                     if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
                     {
+                        systemPrintln("Device has entered config mode over Bluetooth");
                         printEndpoint = PRINT_ENDPOINT_ALL;
-                        systemPrintln("App has entered config mode");
                         btPrintEcho = true;
                         runCommandMode = true;
 
@@ -187,7 +187,7 @@ void btReadTask(void *e)
                     }
                 }
 
-                else // This is just a character in the stream, ignore
+                else // This character is not a command character, pass along to GNSS
                 {
                     // Pass any escape characters that turned out to not be a complete escape sequence
                     while (btEscapeCharsReceived-- > 0)
