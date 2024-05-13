@@ -230,6 +230,8 @@ bool pointperfectProvisionDevice()
         // Override ID with testing ID
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", whitelistID[0], whitelistID[1],
                  whitelistID[2], whitelistID[3], whitelistID[4], whitelistID[5], productVariant);
+
+        systemPrintf("Using whitelist hardware ID: %s\r\n", hardwareID);
 #endif // WHITELISTED_ID
 
         // Given name must be between 1 and 50 characters
