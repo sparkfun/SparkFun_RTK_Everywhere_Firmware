@@ -5,6 +5,9 @@
 int pin_UART1_TX = 4;
 int pin_UART1_RX = 13;
 
+const uint16_t bufferLen = 1024;
+char cmdBuffer[bufferLen];
+
 void setup()
 {
   Serial.begin(115200);
@@ -12,85 +15,82 @@ void setup()
   Serial.println();
   Serial.println("SparkFun Command Line Interface Tests");
 
-  const uint16_t bufferLen = 1024;
-  char cmdBuffer[bufferLen];
-
   sprintf(cmdBuffer, "$CMD*4A"); //Bad command
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPCMD*AA"); //Bad checksum
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPCMD*49"); //Valid command
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPGET,elvMask,15*1A"); //Bad command
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET*55"); //Bad command
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET,rando*0F"); //Unknown setting
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET,elvMask*32"); //Valid command
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPSET,elvMask*26"); //Incorrect number of arguments
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,rando,15*33"); //Unknown setting
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,elvMask,0.77*14"); //Valid
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPEXE*5B"); //Incorrect number of arguments
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,rando*01"); //Unknown command
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,EXIT*77"); //Valid
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,APPLY*23"); //Valid
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,SAVE*76"); //Valid
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,REBOOT*76"); //Valid
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
-
+  commandParser();
+  
   sprintf(cmdBuffer, "$SPEXE,LIST*75"); //Valid
   Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 }
 
-void commandParser(char *cmdBuffer)
+void commandParser()
 {
   //Verify command structure
   if (commandValid(cmdBuffer) == false)
@@ -100,10 +100,10 @@ void commandParser(char *cmdBuffer)
   }
 
   //Remove $
-  cmdBuffer = &cmdBuffer[1];
+  char *command = cmdBuffer + 1;
 
   //Remove * and CRC
-  cmdBuffer[strlen(cmdBuffer) - 3] = '\0';
+  command[strlen(command) - 3] = '\0';
 
   const uint16_t bufferLen = 1024;
   const int MAX_TOKENS = 10;
@@ -113,7 +113,7 @@ void commandParser(char *cmdBuffer)
   char *tokens[MAX_TOKENS];
   const char *delimiter = ",";
   int tokenCount = 0;
-  tokens[tokenCount] = strtok(cmdBuffer, delimiter);
+  tokens[tokenCount] = strtok(command, delimiter);
 
   while (tokens[tokenCount] != nullptr && tokenCount < MAX_TOKENS)
   {
@@ -139,7 +139,7 @@ void commandParser(char *cmdBuffer)
       if (getSettingValue(field, valueBuffer) == true)
         commandSendValueResponse(tokens[0], field, valueBuffer); //Send structured response
       else
-        commandSendErrorResponse(tokens[0], "Unknown setting");
+        commandSendErrorResponse(tokens[0], field, "Unknown setting");
     }
   }
   else if (strcmp(tokens[0], "SPSET") == 0)
@@ -153,7 +153,7 @@ void commandParser(char *cmdBuffer)
       if (updateSettingWithValue(field, value) == true)
         commandSendValueOkResponse(tokens[0], field, value);
       else
-        commandSendErrorResponse(tokens[0], "Unknown setting");
+        commandSendErrorResponse(tokens[0], field, "Unknown setting");
     }
   }
   else if (strcmp(tokens[0], "SPEXE") == 0)
@@ -185,7 +185,7 @@ void commandParser(char *cmdBuffer)
       else if (strcmp(tokens[1], "LIST") == 0)
       {
         Serial.println(); //TODO remove, just needed for pretty printing
-        
+
         //Respond with list of variables
         commandSendExecuteListResponse("observationSeconds", "int", "10");
         commandSendExecuteListResponse("observationPositionAccuracy", "float", "0.5");
@@ -193,7 +193,7 @@ void commandParser(char *cmdBuffer)
         commandSendExecuteOkResponse(tokens[0], tokens[1]);
       }
       else
-        commandSendErrorResponse(tokens[0], "Unknown command");
+        commandSendErrorResponse(tokens[0], tokens[1], "Unknown command");
     }
   }
   else
@@ -259,6 +259,16 @@ void commandSendValueOkResponse(char *command, char *settingName, char *valueBuf
   //Create string between $ and * for checksum calculation
   char innerBuffer[200];
   sprintf(innerBuffer, "%s,%s,%s,OK", command, settingName, valueBuffer);
+  commandSendResponse(innerBuffer);
+}
+
+//Given a command, send structured ERROR response
+//Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
+void commandSendErrorResponse(char *command, char *field1, char *errorVerbose)
+{
+  //Create string between $ and * for checksum calculation
+  char innerBuffer[200];
+  snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, field1, errorVerbose);
   commandSendResponse(innerBuffer);
 }
 
