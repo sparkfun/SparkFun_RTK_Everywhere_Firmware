@@ -1,95 +1,250 @@
-const uint16_t bufferLen = 1024;
-char cmdBuffer[bufferLen];
-char valueBuffer[bufferLen];
-const int MAX_TOKENS = 10;
-
 void menuCommands()
 {
+    char cmdBuffer[200];
+    char responseBuffer[200];
+    char valueBuffer[100];
+    const int MAX_TOKENS = 10;
+    char *tokens[MAX_TOKENS];
+    const char *delimiter = ",";
+
     systemPrintln("COMMAND MODE");
     while (1)
     {
-        InputResponse response = getUserInputString(cmdBuffer, bufferLen, false); // Turn off echo
+        InputResponse response = getUserInputString(cmdBuffer, sizeof(cmdBuffer), false); // Turn off echo
 
         if (response != INPUT_RESPONSE_VALID)
             continue;
 
-        char *tokens[MAX_TOKENS];
-        const char *delimiter = "|";
+        Serial.printf("command: %s\r\n", cmdBuffer);
+
+        // Verify command structure
+        if (commandValid(cmdBuffer) == false)
+        {
+            commandSendErrorResponse("SP", "Bad command structure");
+            continue;
+        }
+
+        // Remove $
+        char *command = cmdBuffer + 1;
+
+        // Remove * and CRC
+        command[strlen(command) - 3] = '\0';
+
         int tokenCount = 0;
-        tokens[tokenCount] = strtok(cmdBuffer, delimiter);
+        tokens[tokenCount] = strtok(command, delimiter);
 
         while (tokens[tokenCount] != nullptr && tokenCount < MAX_TOKENS)
         {
             tokenCount++;
             tokens[tokenCount] = strtok(nullptr, delimiter);
         }
-        if (tokenCount == 0)
-            continue;
 
-        if (strcmp(tokens[0], "SET") == 0)
+        if (tokenCount == 0)
         {
-            auto field = tokens[1];
-            if (tokens[2] == nullptr)
-            {
-                if (updateSettingWithValue(field, "") == true)
-                    systemPrintln("OK");
-                else
-                    systemPrintln("ERROR");
-            }
+            commandSendErrorResponse(tokens[0], "Incorrect number of arguments");
+            continue;
+        }
+
+        // Valid commands: CMD, GET, SET, EXE,
+        if (strcmp(tokens[0], "SPCMD") == 0)
+        {
+            commandSendOkResponse(tokens[0]);
+        }
+        else if (strcmp(tokens[0], "SPGET") == 0)
+        {
+            if (tokenCount != 2)
+                commandSendErrorResponse(tokens[0], "Incorrect number of arguments");
             else
             {
+                auto field = tokens[1];
+                if (getSettingValue(field, valueBuffer) == true)
+                    commandSendValueResponse(tokens[0], field, valueBuffer); // Send structured response
+                else
+                    commandSendErrorResponse(tokens[0], field, "Unknown setting");
+            }
+        }
+        else if (strcmp(tokens[0], "SPSET") == 0)
+        {
+            if (tokenCount != 3)
+                commandSendErrorResponse(tokens[0],
+                                         "Incorrect number of arguments"); // Incorrect number of arguments
+            else
+            {
+                auto field = tokens[1];
                 auto value = tokens[2];
                 if (updateSettingWithValue(field, value) == true)
-                    systemPrintln("OK");
+                    commandSendValueOkResponse(tokens[0], field, value);
                 else
-                    systemPrintln("ERROR");
+                    commandSendErrorResponse(tokens[0], field, "Unknown setting");
             }
         }
-        else if (strcmp(tokens[0], "GET") == 0)
+        else if (strcmp(tokens[0], "SPEXE") == 0)
         {
-            auto field = tokens[1];
-            if (getSettingValue(field, valueBuffer) == true)
-            {
-                systemPrint(">");
-                systemPrintln(valueBuffer);
-            }
+            if (tokenCount != 2)
+                commandSendErrorResponse(tokens[0],
+                                         "Incorrect number of arguments"); // Incorrect number of arguments
             else
             {
-                systemPrintln("ERROR"); // Machine interface expects a structured response, not verbose.
+                if (strcmp(tokens[1], "EXIT") == 0)
+                {
+                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                    break; // Exit while(1) loop
+                }
+                else if (strcmp(tokens[1], "APPLY") == 0)
+                {
+                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                    // Do an apply...
+                }
+                else if (strcmp(tokens[1], "SAVE") == 0)
+                {
+                    recordSystemSettings();
+                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                }
+                else if (strcmp(tokens[1], "REBOOT") == 0)
+                {
+                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                    delay(50); // Allow for final print
+                    ESP.restart();
+                }
+                else if (strcmp(tokens[1], "LIST") == 0)
+                {
+                    // Respond with a list of variables, types, and current value
+                    printAvailableSettings();
+
+                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                }
+                else
+                    commandSendErrorResponse(tokens[0], tokens[1], "Unknown command");
             }
         }
-        else if (strcmp(tokens[0], "CMD") == 0)
-        {
-            systemPrintln("OK");
-        }
-        else if (strcmp(tokens[0], "EXIT") == 0)
-        {
-            systemPrintln("OK");
-            printEndpoint = PRINT_ENDPOINT_SERIAL;
-            btPrintEcho = false;
-            return;
-        }
-        else if (strcmp(tokens[0], "APPLY") == 0)
-        {
-            systemPrintln("OK");
-            recordSystemSettings();
-            ESP.restart();
-            return;
-        }
-        else if (strcmp(tokens[0], "LIST") == 0)
-        {
-            systemPrintln("OK");
-            printAvailableSettings();
-            return;
-        }
-
         else
         {
-            systemPrintln("ERROR");
+            commandSendErrorResponse(tokens[0], "Unknown command");
         }
-    }
+    } // while(1)
 
     btPrintEcho = false;
+}
+
+// Given a command, send structured OK response
+// Ex: SPCMD = "$SPCMD,OK*61"
+void commandSendOkResponse(char *command)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "%s,OK", command);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, send response sentence with OK and checksum and <CR><LR>
+// Ex: SPEXE,EXIT =
+void commandSendExecuteOkResponse(char *command, char *settingName)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "%s,%s,OK", command, settingName);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, send response sentence with OK and checksum and <CR><LR>
+// Ex: observationPositionAccuracy,float,0.5 =
+void commandSendExecuteListResponse(const char *settingName, char *settingType, char *settingValue)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "SPLST,%s,%s,%s", settingName, settingType, settingValue);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, and a value, send response sentence with checksum and <CR><LR>
+// Ex: SPGET,elvMask,0.25 = "$SPGET,elvMask,0.25*07"
+void commandSendValueResponse(char *command, char *settingName, char *valueBuffer)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "%s,%s,%s", command, settingName, valueBuffer);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, and a value, send response sentence with OK and checksum and <CR><LR>
+// Ex: SPSET,elvMask,0.77 = "$SPSET,elvMask,0.77,OK*3C"
+void commandSendValueOkResponse(char *command, char *settingName, char *valueBuffer)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "%s,%s,%s,OK", command, settingName, valueBuffer);
+    commandSendResponse(innerBuffer);
+}
+
+//Given a command, send structured ERROR response
+//Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
+void commandSendErrorResponse(char *command, char *field1, char *errorVerbose)
+{
+  //Create string between $ and * for checksum calculation
+  char innerBuffer[200];
+  snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, field1, errorVerbose);
+  commandSendResponse(innerBuffer);
+}
+// Given a command, send structured ERROR response
+// Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
+void commandSendErrorResponse(char *command, char *errorVerbose)
+{
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,ERROR,%s", command, errorVerbose);
+    commandSendResponse(innerBuffer);
+}
+
+// Given an inner buffer, send response sentence with checksum and <CR><LR>
+// Ex: "SPGET,0.25" = "$SPGET,0.25*33"
+void commandSendResponse(char *innerBuffer)
+{
+    char responseBuffer[200];
+
+    uint8_t calculatedChecksum = 0; // XOR chars between '$' and '*'
+    for (int x = 0; x < strlen(innerBuffer); x++)
+        calculatedChecksum = calculatedChecksum ^ innerBuffer[x];
+
+    sprintf(responseBuffer, "$%s*%02X\r\n", innerBuffer, calculatedChecksum);
+
+    systemPrint(responseBuffer);
+}
+
+// Checks structure of command and checksum
+// If valid, returns true
+// $SPCMD*49
+// $SPGET,elvMask,15*1A
+// getUserInputString() has removed any trailing <CR><LF> to the command
+bool commandValid(char *commandString)
+{
+    // Check $/*
+    if (commandString[0] != '$')
+        return (false);
+
+    if (commandString[strlen(commandString) - 3] != '*')
+        return (false);
+
+    // Check checksum is HEX
+    char checksumMSN = commandString[strlen(commandString) - 2];
+    char checksumLSN = commandString[strlen(commandString) - 1];
+    if (isxdigit(checksumMSN) == false || isxdigit(checksumLSN) == false)
+        return (false);
+
+    // Convert checksum from ASCII to int
+    char checksumChar[3] = {'\0'};
+    checksumChar[0] = checksumMSN;
+    checksumChar[1] = checksumLSN;
+    uint8_t checksum = strtol(checksumChar, NULL, 16);
+
+    // From: http://engineeringnotes.blogspot.com/2015/02/generate-crc-for-nmea-strings-arduino.html
+    uint8_t calculatedChecksum = 0; // XOR chars between '$' and '*'
+    for (int x = 1; x < strlen(commandString) - 3; x++)
+        calculatedChecksum = calculatedChecksum ^ commandString[x];
+
+    if (checksum != calculatedChecksum)
+        return (false);
+
+    return (true);
 }
 
 // Given a settingName, and string value, update a given setting
@@ -1991,10 +2146,12 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
     return (knownSetting);
 }
 
-// List available settings and their type in CSV
+// List available settings, their type in CSV, and value
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
 void printAvailableSettings()
 {
+    char valueBuffer[100];
+
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
         if (rtkSettingsEntries[i].inCommands)
@@ -2004,15 +2161,18 @@ void printAvailableSettings()
             default:
                 break;
             case _bool: {
-                systemPrintf("%s,bool,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "bool", valueBuffer);
             }
             break;
             case _int: {
-                systemPrintf("%s,int,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int", valueBuffer);
             }
             break;
             case _float: {
-                systemPrintf("%s,float,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "float", valueBuffer);
             }
             break;
             case _double: {
