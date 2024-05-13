@@ -199,13 +199,14 @@ libraries:
 	echo ----------------------------------
 	~/Arduino/arduino-cli lib list
 
-partition:	../app3M_fat9M_16MB.csv
+partition:	../RTKEverywhere.csv
 	ESP_PATH=/home/$$USER/.arduino15/packages/esp32/hardware/esp32/*
 	for file in $$ESP_PATH; do \
 		ESP_VERSION_PATH=$${file}; \
 	done
 	ESP_VERSION=$$(basename $$ESP_VERSION_PATH)
 	cp $< ~/.arduino15/packages/esp32/hardware/esp32/$$ESP_VERSION/tools/partitions/app3M_fat9M_16MB.csv
+	cp $< ~/.arduino15/packages/esp32/hardware/esp32/$$ESP_VERSION/tools/partitions/
 
 ../RTK_Everywhere/form.h:	makefile  ../RTK_Everywhere/*  ../RTK_Everywhere/AP-Config/* ../RTK_Everywhere/AP-Config/src/* ../RTK_Everywhere/AP-Config/src/fonts/*
 	python index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h

@@ -56,12 +56,13 @@ enum RingBufferConsumers
     RBC_TCP_SERVER,
     RBC_SD_CARD,
     RBC_UDP_SERVER,
+    RBC_USB_SERIAL,
     // Insert new consumers here
     RBC_MAX
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server",
+    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -101,6 +102,7 @@ unsigned long lastGnssSend; // Timestamp of the last time we sent RTCM to GNSS
 // Ring buffer tails
 static RING_BUFFER_OFFSET btRingBufferTail; // BT Tail advances as it is sent over BT
 static RING_BUFFER_OFFSET sdRingBufferTail; // SD Tail advances as it is recorded to SD
+static RING_BUFFER_OFFSET usbRingBufferTail; // USB Tail advances as it is sent over USB serial
 
 // Ring buffer offsets
 static uint16_t rbOffsetHead;
@@ -899,6 +901,58 @@ void handleGnssDataTask(void *e)
         }
 
         //----------------------------------------------------------------------
+        // Send data over USB serial
+        //----------------------------------------------------------------------
+
+        startMillis = millis();
+
+        // Determine USB serial connection state
+        if (!forwardGnssDataToUsbSerial)
+            // Discard the data
+            usbRingBufferTail = dataHead;
+        else
+        {
+            // Determine the amount of USB serial data in the buffer
+            bytesToSend = dataHead - usbRingBufferTail;
+            if (bytesToSend < 0)
+                bytesToSend += settings.gnssHandlerBufferSize;
+            if (bytesToSend > 0)
+            {
+                // Reduce bytes to send if we have more to send then the end of
+                // the buffer, we'll wrap next loop
+                if ((usbRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
+                    bytesToSend = settings.gnssHandlerBufferSize - usbRingBufferTail;
+
+                // Send data over USB serial to the PC
+                bytesToSend = systemWriteGnssDataToUsbSerial(&ringBuffer[usbRingBufferTail], bytesToSend);
+
+                // Account for the data that was sent
+                if (bytesToSend > 0)
+                {
+                    // Account for the sent or dropped data
+                    usbRingBufferTail += bytesToSend;
+                    if (usbRingBufferTail >= settings.gnssHandlerBufferSize)
+                        usbRingBufferTail -= settings.gnssHandlerBufferSize;
+
+                    // Remember the maximum transfer time
+                    deltaMillis = millis() - startMillis;
+                    if (maxMillis[RBC_USB_SERIAL] < deltaMillis)
+                        maxMillis[RBC_USB_SERIAL] = deltaMillis;
+                }
+
+                // Determine the amount of data that remains in the buffer
+                bytesToSend = dataHead - usbRingBufferTail;
+                if (bytesToSend < 0)
+                    bytesToSend += settings.gnssHandlerBufferSize;
+                if (usedSpace < bytesToSend)
+                {
+                    usedSpace = bytesToSend;
+                    slowConsumer = "USB Serial";
+                }
+            }
+        }
+
+        //----------------------------------------------------------------------
         // Send data to the network clients
         //----------------------------------------------------------------------
 
@@ -1150,9 +1204,6 @@ void tickerBluetoothLedUpdate()
 void tickerGnssLedUpdate()
 {
     static uint8_t ledCallCounter = 0; // Used to calculate a 50% or 10% on rate for blinking
-    // static int gnssFadeLevel = 0;      // Used to fade LED when needed
-    // static int gnssPwmFadeAmount = 255 / gnssTaskUpdatesHz; // Fade in/out with 20 steps, as limited by the ticker
-    // rate of 20Hz
 
     ledCallCounter++;
     ledCallCounter %= gnssTaskUpdatesHz; // Wrap to X calls per 1 second
@@ -1161,8 +1212,8 @@ void tickerGnssLedUpdate()
     {
         // Update the GNSS LED according to our state
 
-        // Solid once RTK Fix is achieved
-        if (gnssIsRTKFix() == true)
+        // Solid once RTK Fix is achieved, or PPP converges
+        if (gnssIsRTKFix() == true || gnssIsPppConverged())
         {
             ledcWrite(ledGnssChannel, 255);
         }
@@ -1170,52 +1221,6 @@ void tickerGnssLedUpdate()
         {
             ledcWrite(ledGnssChannel, 0);
         }
-
-        // // Solid during tilt corrected RTK fix
-        // if (tiltIsCorrecting() == true)
-        // {
-        //     ledcWrite(ledGnssChannel, 255);
-        // }
-        // else
-        // {
-        //     ledcWrite(ledGnssChannel, 0);
-        // }
-
-        // Fade on/off during RTK Fix
-        // else if (gnssIsRTKFix() == true)
-        // {
-        //     // Fade in/out the GNSS LED during RTK Fix
-        //     gnssFadeLevel += gnssPwmFadeAmount;
-        //     if (gnssFadeLevel <= 0 || gnssFadeLevel >= 255)
-        //         gnssPwmFadeAmount *= -1;
-
-        //     if (gnssFadeLevel > 255)
-        //         gnssFadeLevel = 255;
-        //     if (gnssFadeLevel < 0)
-        //         gnssFadeLevel = 0;
-
-        //     ledcWrite(ledGnssChannel, gnssFadeLevel);
-        // }
-
-        // // Blink 2Hz 50% during RTK float
-        // else if (gnssIsRTKFloat() == true)
-        // {
-        //     if (ledCallCounter <= (gnssTaskUpdatesHz / 2))
-        //         ledcWrite(ledGnssChannel, 255);
-        //     else
-        //         ledcWrite(ledGnssChannel, 0);
-        // }
-
-        // // Blink a short PPS when GNSS 3D fixed
-        // else if (gnssIsFixed() == true)
-        // {
-        //     if (ledCallCounter == (gnssTaskUpdatesHz / 10))
-        //     {
-        //         ledcWrite(ledGnssChannel, 255);
-        //     }
-        //     else
-        //         ledcWrite(ledGnssChannel, 0);
-        // }
     }
 }
 
@@ -1384,7 +1389,7 @@ void buttonCheckTask(void *e)
             // The user button only exits tilt mode
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
-                tiltStop();
+                tiltRequestStop(); //Don't force the hardware off here as it may be in use in another task
             }
 
             else if (doubleTap)

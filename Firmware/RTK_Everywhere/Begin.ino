@@ -139,8 +139,9 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaReferencePoint_mm = 102.0;
+        present.antennaReferencePoint_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.galileoHasCapable = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -159,6 +160,7 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
+        pin_muxA = 18; //Controls U12 switch between ESP UART1 to UM980 or LoRa
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
@@ -207,6 +209,9 @@ void beginBoard()
 
         pinMode(pin_usbSelect, OUTPUT);
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
+
+        pinMode(pin_muxA, OUTPUT);
+        digitalWrite(pin_muxA, LOW); // Keep ESP UART1 connected to UM980
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
 
@@ -783,7 +788,7 @@ void pinGnssUartTask(void *pvParameters)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
     serialGNSS->setRxBufferSize(
-        settings.uartReceiveBufferSize); // TODO: work out if we can reduce or skip this when using SPI GNSS
+        settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)

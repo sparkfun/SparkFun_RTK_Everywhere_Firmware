@@ -1,9 +1,50 @@
 void menuPorts()
 {
     if (present.portDataMux == true)
+    {
+        //RTK Facet mosaic, Facet v2
         menuPortsMultiplexed();
+    }
+    else if (productVariant == RTK_TORCH)
+    {
+        //RTK Torch
+        menuPortsUsb();
+    }
     else
+    {
+        //RTK EVK
         menuPortsNoMux();
+    }
+}
+
+// Configure a single port interface (USB only)
+void menuPortsUsb()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Ports");
+
+        systemPrintf("1) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+            settings.enableGnssToUsbSerial ^= 1;
+
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
 }
 
 // Set the baud rates for the radio and data ports

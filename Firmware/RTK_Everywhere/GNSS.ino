@@ -741,6 +741,40 @@ bool gnssIsRTKFloat()
     return (false);
 }
 
+bool gnssIsPppConverging()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return (false);
+        }
+        else if (present.gnss_um980)
+        {
+            if (um980GetPositionType() == 68) // 68 = PPP solution converging
+                return (true);
+        }
+    }
+    return (false);
+}
+
+bool gnssIsPppConverged()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return (false);
+        }
+        else if (present.gnss_um980)
+        {
+            if (um980GetPositionType() == 69) // 69 = Precision Point Positioning
+                return (true);
+        }
+    }
+    return (false);
+}
+
 float gnssGetHorizontalAccuracy()
 {
     if (online.gnss == true)
