@@ -237,7 +237,6 @@ void     um980BaseRtcmDefault(){}
 void     um980BaseRtcmLowDataRate(){}
 char *   um980GetRtcmDefaultString() {return ("Not compiled");}
 char *   um980GetRtcmLowDataRateString() {return ("Not compiled");}
-float    um980GetSurveyInStartingAccuracy() {return(0.0);}
 void     um980MenuConstellations(){}
 double   um980GetRateS() {return(0.0);}
 void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}

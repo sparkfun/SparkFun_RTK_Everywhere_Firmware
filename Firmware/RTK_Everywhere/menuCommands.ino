@@ -2470,7 +2470,7 @@ void printAvailableSettings()
         }
     }
 
-    // Commands formed specifically for Man-Machine-Interface
+    // Below are commands formed specifically for the Man-Machine-Interface
 
     // Device ID - used in PointPerfect
     char hardwareID[15];

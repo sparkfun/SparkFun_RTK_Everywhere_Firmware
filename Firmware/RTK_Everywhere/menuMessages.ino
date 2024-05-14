@@ -752,6 +752,24 @@ void checkGNSSArrayDefaults()
             settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
     }
 
+    //If defaults were applied, also default the non-array settings for this particular GNSS receiver
+    if(defaultsApplied == true)
+    {
+        if(present.gnss_um980)
+        {
+            settings.minCNO = 10; //Default 10 degrees
+            settings.surveyInStartingAccuracy = 2.0; //Default 2m
+            settings.measurementRateMs = 500; //Default 2Hz.
+        }
+        else if(present.gnss_zedf9p)
+        {
+            settings.minCNO = 6; //Default 6 degrees
+            settings.surveyInStartingAccuracy = 1.0; //Default 1m
+            settings.measurementRateMs = 250; //Default 4Hz.
+        }
+
+    }
+
     if (defaultsApplied == true)
         recordSystemSettings();
 }
@@ -759,7 +777,7 @@ void checkGNSSArrayDefaults()
 // Determine logging type
 // If user is logging basic 5 sentences, this is 'S'tandard logging
 // If user is logging 7 PPP sentences, this is 'P'PP logging
-// If user has other setences turned on, it's custom logging
+// If user has other sentences turned on, it's custom logging
 // This controls the type of icon displayed
 void setLoggingType()
 {
@@ -784,7 +802,7 @@ void setLoggingType()
 void setLogTestFrequencyMessages(int rate, int messages)
 {
     // Set measurement frequency
-    gnssSetRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate,
+    gnssSetRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRateMs, settings.navigationRate,
                              // and GSV message
 
     // Set messages

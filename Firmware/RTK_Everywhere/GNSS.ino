@@ -431,31 +431,19 @@ void gnssSetMinCno(uint8_t cnoValue)
         if (present.gnss_zedf9p)
         {
             zedSetMinCno(cnoValue);
-
-            // Update the setting
-            settings.minCNO_F9P = cnoValue;
+            settings.minCNO = cnoValue; // Update the setting
         }
         else if (present.gnss_um980)
         {
             um980SetMinCNO(cnoValue);
-            settings.minCNO_um980 = cnoValue; // Update the setting
+            settings.minCNO = cnoValue; // Update the setting
         }
     }
 }
 
 uint8_t gnssGetMinCno()
 {
-    if (present.gnss_zedf9p)
-    {
-        return (settings.minCNO_F9P);
-    }
-    else if (present.gnss_um980)
-    {
-        return (settings.minCNO_um980);
-    }
-
-    // Select a default
-    return (settings.minCNO_F9P);
+    return (settings.minCNO);
 }
 
 double gnssGetLatitude()
@@ -1272,15 +1260,8 @@ char *gnssGetRtcmLowDataRateString()
 
 float gnssGetSurveyInStartingAccuracy()
 {
-    if (present.gnss_zedf9p)
-    {
-        return (zedGetSurveyInStartingAccuracy());
-    }
-    else if (present.gnss_um980)
-    {
-        return (um980GetSurveyInStartingAccuracy());
-    }
-    return (0);
+
+    return (settings.surveyInStartingAccuracy);
 }
 
 void gnssMenuConstellations()

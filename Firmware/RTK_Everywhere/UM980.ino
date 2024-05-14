@@ -137,7 +137,7 @@ bool um980ConfigureOnce()
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
 
-    response &= um980SetMinCNO(settings.minCNO_um980);
+    response &= um980SetMinCNO(settings.minCNO);
 
     response &= um980SetConstellations();
 
@@ -588,9 +588,9 @@ void um980FactoryReset()
 // the GNSS messages can be set. For example, 0.5 is 2Hz, 0.2 is 5Hz.
 // We assume, if the user wants to set the 'rate' to 5Hz, they want all
 // messages set to that rate.
-// All NMEA/RTCM for a rover will be based on the measurementRate setting
+// All NMEA/RTCM for a rover will be based on the measurementRateMs setting
 // ie, if a message != 0, then it will be output at the measurementRate.
-// All RTCM for a base will be based on a measurementRate of 1 with messages
+// All RTCM for a base will be based on a measurementRateMs of 1000 with messages
 // that can be reported more slowly than that (ie 1 per 10 seconds).
 bool um980SetRate(double secondsBetweenSolutions)
 {
@@ -624,7 +624,7 @@ bool um980SetRate(double secondsBetweenSolutions)
     if (response == true)
     {
         uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
-        settings.um980MeasurementRateMs = msBetweenSolutions;
+        settings.measurementRateMs = msBetweenSolutions;
     }
     else
     {
@@ -638,7 +638,7 @@ bool um980SetRate(double secondsBetweenSolutions)
 // Returns the seconds between measurements
 double um980GetRateS()
 {
-    return (((double)settings.um980MeasurementRateMs) / 1000.0);
+    return (((double)settings.measurementRateMs) / 1000.0);
 }
 
 // Send data directly from ESP GNSS UART1 to UM980 UART3
@@ -1093,11 +1093,6 @@ uint8_t um980GetMessageNumberByName(const char *msgName)
 
     systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
     return (0);
-}
-
-float um980GetSurveyInStartingAccuracy()
-{
-    return (settings.um980SurveyInStartingAccuracy);
 }
 
 // Controls the constellations that are used to generate a fix and logged

@@ -245,14 +245,9 @@ void menuBase()
         else if (settings.fixedBase == false && incoming == 4)
         {
             // Arbitrary 0.1m minimum
-            if (present.gnss_zedf9p)
-            {
+
                 getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.zedSurveyInStartingAccuracy);
-            }
-            else if (present.gnss_um980)
-                getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.um980SurveyInStartingAccuracy);
+                              (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
         }
 
         else if (incoming == 7)

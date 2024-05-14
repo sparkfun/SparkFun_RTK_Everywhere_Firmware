@@ -1009,8 +1009,8 @@ struct Settings
     uint32_t dataPortBaud =
         (115200 * 2); // Default to 230400bps. This limits GNSS fixes at 4Hz but allows SD buffer to be reduced to 6k.
     uint32_t radioPortBaud = 57600;       // Default to 57600bps to support connection to SiK1000 type telemetry radios
-    float zedSurveyInStartingAccuracy = 1.0; // Wait for this horizontal positional accuracy in meters before starting survey in
-    uint16_t measurementRate = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
+    float surveyInStartingAccuracy = 1.0; // Wait for this horizontal positional accuracy in meters before starting survey in
+    uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
     bool debugGnss = false;                          // Turn on to display GNSS library debug messages
@@ -1123,7 +1123,7 @@ struct Settings
 
     CoordinateInputType coordinateInputType = COORDINATE_INPUT_TYPE_DD; // Default DD.ddddddddd
     uint16_t lbandFixTimeout_seconds = 180; // Number of seconds of no L-Band fix before resetting ZED
-    int16_t minCNO_F9P = 6;                 // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
+    int16_t minCNO = 6;                 // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
     uint8_t btReadTaskPriority = 1; // Read from BT SPP and Write to GNSS. 3 being the highest, and 0 being the lowest
     uint8_t gnssReadTaskPriority =
@@ -1270,7 +1270,6 @@ struct Settings
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
-    int16_t minCNO_um980 = 10;                // Minimum satellite signal level for navigation.
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
@@ -1296,9 +1295,7 @@ struct Settings
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
-    float um980SurveyInStartingAccuracy = 2.0; // Wait for this horizontal positional accuracy in meters before starting survey in
     bool enableBeeper = true; // Some platforms have an audible notification
-    uint16_t um980MeasurementRateMs = 500; // Elapsed ms between GNSS measurements. 50ms to 65535ms. Default 2Hz.
     bool enableImuCompensationDebug = false;
 
     int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
@@ -1407,8 +1404,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.fixedAltitude, "fixedAltitude", _double, point4float, true, true, true },
     { & settings.dataPortBaud, "dataPortBaud", _uint32_t, 0, true, true, true },
     { & settings.radioPortBaud, "radioPortBaud", _uint32_t, 0, true, true, true },
-    { & settings.zedSurveyInStartingAccuracy, "zedSurveyInStartingAccuracy", _float, point1float, true, true, true },
-    { & settings.measurementRate, "measurementRate", _uint16_t, 0, true, false, true },
+    { & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy", _float, point1float, true, true, true },
+    { & settings.measurementRateMs, "measurementRateMs", _uint16_t, 0, true, false, true },
     { & settings.navigationRate, "navigationRate", _uint16_t, 0, true, false, true },
     { & settings.debugGnss, "debugGnss", _bool, 0, false, true, true },
     { & settings.enableHeapReport, "enableHeapReport", _bool, 0, false, true, true },
@@ -1503,7 +1500,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
 
     { & settings.coordinateInputType, "coordinateInputType", _CoordinateInputType, 0, false, true, true },
     { & settings.lbandFixTimeout_seconds, "lbandFixTimeout", _uint16_t, 0, false, true, true },
-    { & settings.minCNO_F9P, "minCNOF9P", _int16_t, 0, true, false, true },
+    { & settings.minCNO, "minCNO", _int16_t, 0, true, false, true },
     { & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold", _uint16_t, 0, false, true, true },
     { & settings.btReadTaskPriority, "btReadTaskPriority", _uint8_t, 0, false, true, true },
     { & settings.gnssReadTaskPriority, "gnssReadTaskPriority", _uint8_t, 0, false, true, true },
@@ -1589,7 +1586,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.um980MessageRatesRTCMBase, "um980MessageRatesRTCMBase_", _um980MessageRatesRTCMBase, MAX_UM980_RTCM_MSG, false, false, true },
     { & settings.um980Constellations, "um980Constellations_", _um980Constellations, MAX_UM980_CONSTELLATIONS, false, true, true },
 
-    { & settings.minCNO_um980, "minCNOum980", _int16_t, 0, false, false, true },
     { & settings.enableTiltCompensation, "enableTiltCompensation", _bool, 0, false, true, true },
     { & settings.tiltPoleLength, "tiltPoleLength", _float, point3float, false, true, true },
     { & settings.enableImuDebug, "enableImuDebug", _bool, 0, false, true, true },
@@ -1611,9 +1607,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enablePsram, "enablePsram", _bool, 0, false, true, true },
     { & settings.printTaskStartStop, "printTaskStartStop", _bool, 0, false, true, true },
     { & settings.psramMallocLevel, "psramMallocLevel", _uint16_t, 0, false, true, true },
-    { & settings.um980SurveyInStartingAccuracy, "um980SurveyInStartingAccuracy", _float, point1float, false, true, true },
     { & settings.enableBeeper, "enableBeeper", _bool, 0, false, true, true },
-    { & settings.um980MeasurementRateMs, "um980MeasurementRateMs", _uint16_t, 0, false, false, true },
     { & settings.enableImuCompensationDebug, "enableImuCompensationDebug", _bool, 0, false, true, true },
 
     { & settings.correctionsSourcesPriority, "correctionsPriority_", _correctionsSourcesPriority, correctionsSource::CORR_NUM, false, true, true },

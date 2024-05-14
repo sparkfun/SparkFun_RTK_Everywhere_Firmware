@@ -353,7 +353,7 @@ bool zedConfigure()
     {
         response &=
             theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
-                                  settings.minCNO_F9P); // Set minimum satellite signal level for navigation - default 6
+                                  settings.minCNO); // Set minimum satellite signal level for navigation - default 6
     }
 
     if (commandSupported(UBLOX_CFG_NAV2_OUT_ENABLED) == true)
@@ -477,7 +477,7 @@ bool zedConfigureRover()
 
         // Set output rate
         response &= theGNSS->newCfgValset();
-        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, settings.measurementRate);
+        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, settings.measurementRateMs);
         response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, settings.navigationRate);
 
         // Survey mode is only available on ZED-F9P modules
@@ -1015,10 +1015,10 @@ bool zedDisableLBandCommunication()
     return (response);
 }
 
-// Given the number of seconds between desired solution reports, determine measurementRate and navigationRate
-// measurementRate > 25 & <= 65535
+// Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
+// measurementRateS > 25 & <= 65535
 // navigationRate >= 1 && <= 127
-// We give preference to limiting a measurementRate to 30s or below due to reported problems with measRates above 30.
+// We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 bool zedSetRate(double secondsBetweenSolutions)
 {
     uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
@@ -1074,7 +1074,7 @@ bool zedSetRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response == true)
     {
-        settings.measurementRate = measRate;
+        settings.measurementRateMs = measRate;
         settings.navigationRate = navRate;
     }
     else
@@ -1090,7 +1090,7 @@ bool zedSetRate(double secondsBetweenSolutions)
 double zedGetRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
-    float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+    float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
     double measurementRateS = 1.0 / measurementFrequency; // 1 / 4Hz = 0.25s
 
     return (measurementRateS);
@@ -1243,7 +1243,7 @@ void zedEnableGgaForNtrip()
     theGNSS->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 1);
     theGNSS->setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
 
-    float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+    float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
     if (measurementFrequency < 0.2)
         measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
     log_d("Adjusting GGA setting to %f", measurementFrequency);
@@ -1594,7 +1594,7 @@ void zedMenuMessages()
             setMessageRateByName("UBX_NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
             setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
@@ -1610,7 +1610,7 @@ void zedMenuMessages()
             setMessageRateByName("UBX_NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
             setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
@@ -1698,11 +1698,6 @@ char *zedGetRtcmDefaultString()
 char *zedGetRtcmLowDataRateString()
 {
     return ((char *)"1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
-}
-
-float zedGetSurveyInStartingAccuracy()
-{
-    return (settings.zedSurveyInStartingAccuracy);
 }
 
 // Controls the constellations that are used to generate a fix and logged
