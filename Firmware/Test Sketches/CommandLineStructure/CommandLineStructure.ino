@@ -37,7 +37,7 @@ void setup()
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
   commandParser();
 
-  sprintf(cmdBuffer, "$SPGET,rando*0F"); //Unknown setting
+  sprintf(cmdBuffer, "$SPGET,maxHeight*0F"); //Unknown setting
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
   commandParser();
 
@@ -51,7 +51,7 @@ void setup()
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
   commandParser();
 
-  sprintf(cmdBuffer, "$SPSET,rando,15*33"); //Unknown setting
+  sprintf(cmdBuffer, "$SPSET,maxHeight,15*33"); //Unknown setting
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
   commandParser();
 
@@ -65,7 +65,7 @@ void setup()
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
   commandParser();
 
-  sprintf(cmdBuffer, "$SPEXE,rando*01"); //Unknown command
+  sprintf(cmdBuffer, "$SPEXE,maxHeight*01"); //Unknown command
   Serial.printf("command: %s (BAD) - ", cmdBuffer);
   commandParser();
 
@@ -262,28 +262,29 @@ void commandSendValueOkResponse(char *command, char *settingName, char *valueBuf
   commandSendResponse(innerBuffer);
 }
 
-//Given a command, send structured ERROR response
-//Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
-void commandSendErrorResponse(char *command, char *field1, char *errorVerbose)
+// Given a command, send structured ERROR response
+// Response format: $SPxET,[setting name],,ERROR,[Verbose error description]*FF<CR><LF>
+// Ex: SPGET,maxHeight,'Unknown setting' = "$SPGET,maxHeight,,ERROR,Unknown setting*58"
+void commandSendErrorResponse(char *command, char *settingName, char *errorVerbose)
 {
-  //Create string between $ and * for checksum calculation
-  char innerBuffer[200];
-  snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, field1, errorVerbose);
-  commandSendResponse(innerBuffer);
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,,ERROR,%s", command, settingName, errorVerbose);
+    commandSendResponse(innerBuffer);
 }
-
-//Given a command, send structured ERROR response
-//Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
+// Given a command, send structured ERROR response
+// Response format: $SPxET,,,ERROR,[Verbose error description]*FF<CR><LF>
+// Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
 void commandSendErrorResponse(char *command, char *errorVerbose)
 {
-  //Create string between $ and * for checksum calculation
-  char innerBuffer[200];
-  snprintf(innerBuffer, sizeof(innerBuffer), "%s,ERROR,%s", command, errorVerbose);
-  commandSendResponse(innerBuffer);
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,,,ERROR,%s", command, errorVerbose);
+    commandSendResponse(innerBuffer);
 }
 
 //Given an inner buffer, send response sentence with checksum and <CR><LR>
-//Ex: "SPGET,0.25" = "$SPGET,0.25*33"
+//Ex: SPGET,elvMask,0.25 = $SPGET,elvMask,0.25*07
 void commandSendResponse(char *innerBuffer)
 {
   char responseBuffer[200];
