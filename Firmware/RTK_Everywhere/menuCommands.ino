@@ -176,14 +176,14 @@ void commandSendValueOkResponse(char *command, char *settingName, char *valueBuf
     commandSendResponse(innerBuffer);
 }
 
-//Given a command, send structured ERROR response
-//Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
+// Given a command, send structured ERROR response
+// Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
 void commandSendErrorResponse(char *command, char *field1, char *errorVerbose)
 {
-  //Create string between $ and * for checksum calculation
-  char innerBuffer[200];
-  snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, field1, errorVerbose);
-  commandSendResponse(innerBuffer);
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,ERROR,%s", command, field1, errorVerbose);
+    commandSendResponse(innerBuffer);
 }
 // Given a command, send structured ERROR response
 // Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
@@ -2176,70 +2176,91 @@ void printAvailableSettings()
             }
             break;
             case _double: {
-                systemPrintf("%s,double,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "double", valueBuffer);
             }
             break;
             case _uint8_t: {
-                systemPrintf("%s,uint8_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint8_t", valueBuffer);
             }
             break;
             case _uint16_t: {
-                systemPrintf("%s,uint16_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint16_t", valueBuffer);
             }
             break;
             case _uint32_t: {
-                systemPrintf("%s,uint32_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint32_t", valueBuffer);
             }
             break;
             case _uint64_t: {
-                systemPrintf("%s,uint64_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint64_t", valueBuffer);
             }
             break;
             case _int8_t: {
-                systemPrintf("%s,int8_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int8_t", valueBuffer);
             }
             break;
             case _int16_t: {
-                systemPrintf("%s,int16_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int16_t", valueBuffer);
             }
             break;
             case _muxConnectionType_e: {
-                systemPrintf("%s,muxConnectionType_e,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "muxConnectionType_e", valueBuffer);
             }
             break;
             case _SystemState: {
-                systemPrintf("%s,SystemState,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "SystemState", valueBuffer);
             }
             break;
             case _pulseEdgeType_e: {
-                systemPrintf("%s,pulseEdgeType_e,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "pulseEdgeType_e", valueBuffer);
             }
             break;
             case _BluetoothRadioType_e: {
-                systemPrintf("%s,BluetoothRadioType_e,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "BluetoothRadioType_e", valueBuffer);
             }
             break;
             case _PeriodicDisplay_t: {
-                systemPrintf("%s,PeriodicDisplay_t,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "PeriodicDisplay_t", valueBuffer);
             }
             break;
             case _CoordinateInputType: {
-                systemPrintf("%s,CoordinateInputType,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "CoordinateInputType", valueBuffer);
             }
             break;
             case _charArray: {
-                systemPrintf("%s,char[%d],", rtkSettingsEntries[i].name, rtkSettingsEntries[i].qualifier);
+                char temp[50];
+                sprintf(temp, "char[%d]", rtkSettingsEntries[i].qualifier);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, temp, valueBuffer);
             }
             break;
             case _IPString: {
-                systemPrintf("%s,IPAddress,", rtkSettingsEntries[i].name);
+                getSettingValue(rtkSettingsEntries[i].name, valueBuffer);
+                commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", valueBuffer);
             }
             break;
             case _ubxMessageRates: {
                 // Record message settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,uint8_t,", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "uint8_t", valueBuffer);
                 }
             }
             break;
@@ -2247,7 +2268,11 @@ void printAvailableSettings()
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,bool,", rtkSettingsEntries[i].name, settings.ubxConstellations[x].textName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, settings.ubxConstellations[x].textName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "bool", valueBuffer);
                 }
             }
             break;
@@ -2255,7 +2280,14 @@ void printAvailableSettings()
                 // Record ESP-Now peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,uint8_t[%d],", rtkSettingsEntries[i].name, x, sizeof(settings.espnowPeers[0]));
+                    char settingType[100];
+                    sprintf(settingType, "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
+
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
@@ -2265,8 +2297,12 @@ void printAvailableSettings()
 
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,uint8_t,", rtkSettingsEntries[i].name,
-                                 ubxMessages[firstRTCMRecord + x].msgTextName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name,
+                            ubxMessages[firstRTCMRecord + x].msgTextName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "uint8_t", valueBuffer);
                 }
             }
             break;
@@ -2274,57 +2310,95 @@ void printAvailableSettings()
                 // Record WiFi credential table
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%dSSID,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.wifiNetworks[0].ssid));
-                    systemPrintf("%s%dPassword,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.wifiNetworks[0].password));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.wifiNetworks[0].ssid));
+                    char settingName[100];
+                    sprintf(settingName, "%s%dSSID", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
+
+                    sprintf(settingType, "char[%d]", sizeof(settings.wifiNetworks[0].password));
+                    sprintf(settingName, "%s%dPassword", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
             case _ntripServerCasterHost: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.ntripServer_CasterHost[x]));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
             case _ntripServerCasterPort: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,uint16_t,", rtkSettingsEntries[i].name, x);
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "uint16_t", valueBuffer);
                 }
             }
             break;
             case _ntripServerCasterUser: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.ntripServer_CasterUser[x]));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
             case _ntripServerCasterUserPW: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.ntripServer_CasterUserPW[x]));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
             case _ntripServerMountPoint: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.ntripServer_MountPoint[x]));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
             case _ntripServerMountPointPW: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%d,char[%d],", rtkSettingsEntries[i].name, x,
-                                 sizeof(settings.ntripServer_MountPointPW[x]));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, x);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
@@ -2332,7 +2406,11 @@ void printAvailableSettings()
                 // Record UM980 NMEA rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,float,", rtkSettingsEntries[i].name, umMessagesNMEA[x].msgTextName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, umMessagesNMEA[x].msgTextName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "float", valueBuffer);
                 }
             }
             break;
@@ -2340,7 +2418,11 @@ void printAvailableSettings()
                 // Record UM980 Rover RTCM rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,float,", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "float", valueBuffer);
                 }
             }
             break;
@@ -2348,7 +2430,11 @@ void printAvailableSettings()
                 // Record UM980 Base RTCM rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,float,", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, umMessagesRTCM[x].msgTextName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "float", valueBuffer);
                 }
             }
             break;
@@ -2356,7 +2442,11 @@ void printAvailableSettings()
                 // Record UM980 Constellations
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,uint8_t,", rtkSettingsEntries[i].name, um980ConstellationCommands[x].textName);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, um980ConstellationCommands[x].textName);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "uint8_t", valueBuffer);
                 }
             }
             break;
@@ -2364,15 +2454,24 @@ void printAvailableSettings()
                 // Record corrections priorities
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    systemPrintf("%s%s,int,", rtkSettingsEntries[i].name, correctionsSourceNames[x]);
+                    char settingName[100];
+                    sprintf(settingName, "%s%s", rtkSettingsEntries[i].name, correctionsSourceNames[x]);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, "int", valueBuffer);
                 }
             }
             break;
             case _regionalCorrectionTopics: {
                 for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
                 {
-                    systemPrintf("%s%d,char[%d],", rtkSettingsEntries[i].name, r,
-                                 sizeof(settings.regionalCorrectionTopics[0]));
+                    char settingType[100];
+                    sprintf(settingType, "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
+                    char settingName[100];
+                    sprintf(settingName, "%s%d", rtkSettingsEntries[i].name, r);
+
+                    getSettingValue(settingName, valueBuffer);
+                    commandSendExecuteListResponse(settingName, settingType, valueBuffer);
                 }
             }
             break;
@@ -2380,38 +2479,44 @@ void printAvailableSettings()
         }
     }
 
-    systemPrint("deviceId,char[18],");
+    char hardwareID[15];
+    snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+    char settingType[100];
+    sprintf(settingType, "char[%d]", sizeof(hardwareID));
+    commandSendExecuteListResponse("deviceId", settingType, hardwareID);
 
     // TODO: check this! Is this really what we want?
-    systemPrint("fixedLatText,char[],");
-    systemPrint("fixedLongText,char[],");
-    systemPrint("measurementRateHz,double,");
-    systemPrint("stationGeodetic,,"); // TODO
-    systemPrint("minCNO,uint8_t,");
-    systemPrint("fixedHAEAPC,double,");
-    systemPrint("baseTypeFixed,bool,");
-    systemPrint("fixedBaseCoordinateTypeECEF,bool,");
-    systemPrint("enableRCFirmware,bool,");
-    systemPrint("firmwareFileName,char[],");
-    systemPrint("factoryDefaultReset,,");
-    systemPrint("exitAndReset,,");
-    systemPrint("setProfile,uint8_t,");
-    systemPrint("resetProfile,uint8_t,");
-    systemPrint("forgetEspNowPeers,,");
-    systemPrint("startNewLog,,");
-    systemPrint("checkNewFirmware,,");
-    systemPrint("getNewFirmware,,");
-    systemPrint("measurementRateSec,double,");
-    systemPrint("baseTypeSurveyIn,bool,");
-    systemPrint("fixedBaseCoordinateTypeGeo,bool,");
-    systemPrint("saveToArduino,,");
-    systemPrint("enableFactoryDefaults,,");
-    systemPrint("enableFirmwareUpdate,,");
-    systemPrint("enableForgetRadios,,");
-    systemPrint("nicknameECEF,,");
-    systemPrint("nicknameGeodetic,,");
-    systemPrint("fileSelectAll,,");
-    systemPrint("fixedHAEAPC,,");
+    // systemPrint("fixedLatText,char[],");
+    // systemPrint("fixedLongText,char[],");
+    // systemPrint("measurementRateHz,double,");
+    // systemPrint("stationGeodetic,,"); // TODO
+    // systemPrint("minCNO,uint8_t,");
+    // systemPrint("fixedHAEAPC,double,");
+    // systemPrint("baseTypeFixed,bool,");
+    // systemPrint("fixedBaseCoordinateTypeECEF,bool,");
+    // systemPrint("enableRCFirmware,bool,");
+    // systemPrint("firmwareFileName,char[],");
+    // systemPrint("factoryDefaultReset,,");
+    // systemPrint("exitAndReset,,");
+    // systemPrint("setProfile,uint8_t,");
+    // systemPrint("resetProfile,uint8_t,");
+    // systemPrint("forgetEspNowPeers,,");
+    // systemPrint("startNewLog,,");
+    // systemPrint("checkNewFirmware,,");
+    // systemPrint("getNewFirmware,,");
+    // systemPrint("measurementRateSec,double,");
+    // systemPrint("baseTypeSurveyIn,bool,");
+    // systemPrint("fixedBaseCoordinateTypeGeo,bool,");
+    // systemPrint("saveToArduino,,");
+    // systemPrint("enableFactoryDefaults,,");
+    // systemPrint("enableFirmwareUpdate,,");
+    // systemPrint("enableForgetRadios,,");
+    // systemPrint("nicknameECEF,,");
+    // systemPrint("nicknameGeodetic,,");
+    // systemPrint("fileSelectAll,,");
+    // systemPrint("fixedHAEAPC,,");
 
     systemPrintln();
 }
