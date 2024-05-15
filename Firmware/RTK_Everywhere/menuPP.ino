@@ -1396,7 +1396,7 @@ void menuPointPerfect()
         systemPrintln("Menu: PointPerfect Corrections");
 
         if (settings.debugCorrections == true)
-            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, lbandRestarts);
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, floatLockRestarts);
 
         if (settings.debugCorrections == true)
             systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
@@ -1617,7 +1617,7 @@ void updateLBand()
                 lbandLastReport = millis();
 
                 if (settings.debugCorrections == true)
-                    systemPrintf("ZED restarts: %d Time remaining before L-Band forced restart: %ds\r\n", lbandRestarts,
+                    systemPrintf("ZED restarts: %d Time remaining before L-Band forced restart: %ds\r\n", floatLockRestarts,
                                  settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
             }
 
@@ -1625,7 +1625,7 @@ void updateLBand()
             {
                 if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * 1000L))
                 {
-                    lbandRestarts++;
+                    floatLockRestarts++;
 
                     lbandTimeFloatStarted =
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
@@ -1634,7 +1634,7 @@ void updateLBand()
                     theGNSS->softwareResetGNSSOnly();
 
                     if (settings.debugCorrections == true)
-                        systemPrintf("Restarting ZED. Number of L-Band restarts: %d\r\n", lbandRestarts);
+                        systemPrintf("Restarting ZED. Number of L-Band restarts: %d\r\n", floatLockRestarts);
                 }
             }
         }

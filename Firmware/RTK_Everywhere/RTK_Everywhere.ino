@@ -758,7 +758,7 @@ correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is fee
 bool configureViaEthernet;
 
 unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
-int lbandRestarts;
+int floatLockRestarts;
 unsigned long rtkTimeToFixMs;
 unsigned long lbandLastReport;
 
