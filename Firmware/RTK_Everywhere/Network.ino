@@ -352,9 +352,9 @@ void menuTcpUdp()
 //----------------------------------------
 // Allocate a network client
 //----------------------------------------
-NetworkClient *networkClient(uint8_t user, bool useSSL)
+RTKNetworkClient *networkClient(uint8_t user, bool useSSL)
 {
-    NetworkClient *client;
+    RTKNetworkClient *client;
     int type;
 
     type = networkGetType(user);

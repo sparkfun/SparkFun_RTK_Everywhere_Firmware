@@ -90,7 +90,7 @@ const RtkMode_t udpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 //----------------------------------------
 
 // UDP server
-static NetworkUDP *udpServer = nullptr;
+static RTKNetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
@@ -231,7 +231,7 @@ bool udpServerStart()
         systemPrintln("UDP server starting");
 
     // Start the UDP server
-    udpServer = new NetworkUDP(NETWORK_USER_UDP_SERVER);
+    udpServer = new RTKNetworkUDP(NETWORK_USER_UDP_SERVER);
     if (!udpServer)
         return false;
 

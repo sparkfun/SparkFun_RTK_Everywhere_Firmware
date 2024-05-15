@@ -3,7 +3,7 @@
 
 extern uint8_t networkGetType(uint8_t user);
 
-class NetworkUDP : public UDP
+class RTKNetworkUDP : public UDP
 {
   protected:
 
@@ -16,14 +16,14 @@ class NetworkUDP : public UDP
     //------------------------------
     // Create the network client
     //------------------------------
-    NetworkUDP(UDP * udp, uint8_t networkType)
+    RTKNetworkUDP(UDP * udp, uint8_t networkType)
     {
         _friendClass = true;
         _networkType = networkType;
         _udp = udp;
     }
 
-    NetworkUDP(uint8_t user)
+    RTKNetworkUDP(uint8_t user)
     {
         _friendClass = false;
         _networkType = networkGetType(user);
@@ -42,7 +42,7 @@ class NetworkUDP : public UDP
     //------------------------------
     // Delete the network client
     //------------------------------
-    ~NetworkUDP()
+    ~RTKNetworkUDP()
     {
         if (_udp)
         {
@@ -260,7 +260,7 @@ class NetworkUDP : public UDP
 };
 
 #ifdef  COMPILE_ETHERNET
-class NetworkEthernetUdp : public NetworkUDP
+class NetworkEthernetUdp : public RTKNetworkUDP
 {
   private:
 
@@ -270,19 +270,19 @@ class NetworkEthernetUdp : public NetworkUDP
 
     NetworkEthernetUdp(EthernetUDP& udp) :
         _udp{udp},
-        NetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
+        RTKNetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
     {
     }
 
     ~NetworkEthernetUdp()
     {
-        this->~NetworkUDP();
+        this->~RTKNetworkUDP();
     }
 };
 #endif  // COMPILE_ETHERNET
 
 #ifdef  COMPILE_WIFI
-class NetworkWiFiUdp : public NetworkUDP
+class NetworkWiFiUdp : public RTKNetworkUDP
 {
   private:
 
@@ -292,13 +292,13 @@ class NetworkWiFiUdp : public NetworkUDP
 
     NetworkWiFiUdp(WiFiUDP& udp) :
         _udp{udp},
-        NetworkUDP(&_udp, NETWORK_TYPE_WIFI)
+        RTKNetworkUDP(&_udp, NETWORK_TYPE_WIFI)
     {
     }
 
     ~NetworkWiFiUdp()
     {
-        this->~NetworkUDP();
+        this->~RTKNetworkUDP();
     }
 };
 #endif  // COMPILE_WIFI
