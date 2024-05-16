@@ -132,10 +132,13 @@ void beginPPL()
     reportHeapNow(false);
 
     // PPL_MAX_RTCM_BUFFER is 3345 bytes so we create it on the heap
-    if (online.psram == true)
-        pplRtcmBuffer = (uint8_t *)ps_malloc(PPL_MAX_RTCM_BUFFER);
-    else
-        pplRtcmBuffer = (uint8_t *)malloc(PPL_MAX_RTCM_BUFFER);
+    if (pplRtcmBuffer == nullptr)
+    {
+        if (online.psram == true)
+            pplRtcmBuffer = (uint8_t *)ps_malloc(PPL_MAX_RTCM_BUFFER);
+        else
+            pplRtcmBuffer = (uint8_t *)malloc(PPL_MAX_RTCM_BUFFER);
+    }
 
     if (!pplRtcmBuffer)
     {
@@ -189,11 +192,41 @@ void beginPPL()
     reportHeapNow(false);
 }
 
+// Stop PPL task and release resources
+void stopPPL()
+{
+    // Stop task if running
+    if (task.gnssReadTaskRunning)
+        task.gnssReadTaskStopRequest = true;
+
+    if (pplRtcmBuffer != nullptr)
+    {
+        free(pplRtcmBuffer);
+        pplRtcmBuffer = nullptr;
+    }
+
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.gnssReadTaskRunning);
+
+    online.ppl = false;
+}
+
 // Start the PPL if needed
 // Because the key for the PPL expires every ~28 days, we use updatePPL to first apply keys, and
 // restart the PPL when new keys need to be applied
 void updatePPL()
 {
+    static unsigned long pplTimeFloatStarted; // Monitors when the PPL got first RTK Float.
+
+    // During float lock, the PPL has been seen to drop to 3D fix for a few seconds before changing back to
+    // RTK float. pplTime3dFixStarted is used as a sort of hysteresis detection.
+    // If (millis() - pplTime3dFixStarted > 5000) then we are truly out of RTK Float and pplTimeFloatStarted should
+    // be reset. If we are in RTK Float, reset pplTime3dFixStarted to zero.
+
+    static unsigned long pplTime3dFixStarted;
+
     if (online.ppl == false && (settings.enablePointPerfectCorrections))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
@@ -211,13 +244,17 @@ void updatePPL()
     }
     else if (online.ppl == true)
     {
+
         if (settings.debugCorrections == true)
         {
             static unsigned long pplReport = 0;
             if (millis() - pplReport > 5000)
             {
                 pplReport = millis();
-                
+
+                systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                             floatLockRestarts, settings.pplFixTimeoutS - ((millis() - pplTimeFloatStarted) / 1000));
+
                 // Report which data source may be fouling the RTCM generation from the PPL
                 if ((millis() - lastMqttToPpl) > 5000)
                     systemPrintln("PPL MQTT Data is stale");
@@ -226,11 +263,49 @@ void updatePPL()
             }
         }
 
-        if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        if (systemState == STATE_ROVER_RTK_FLOAT)
         {
+            if (pplTime3dFixStarted != 0)
+                pplTime3dFixStarted = 0; // Reset pplTimeFixStarted
+
+            if (settings.pplFixTimeoutS > 0)
+            {
+                // If we don't get an RTK fix within Timeout, restart the PPL
+                if ((millis() - pplTimeFloatStarted) > (settings.pplFixTimeoutS * 1000L))
+                {
+                    floatLockRestarts++;
+
+                    pplTimeFloatStarted = millis(); // Restart timer for PPL monitoring.
+
+                    stopPPL(); //Stop PPL and mark it offline. It will auto-restart at the next update().
+                    pplAttemptedStart = false; //Reset to allow restart
+
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Restarting PPL. Number of Float lock restarts: %d\r\n", floatLockRestarts);
+                }
+            }
+        }
+        else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        {
+            if (pplTime3dFixStarted != 0)
+                pplTime3dFixStarted = 0; // Reset pplTimeFixStarted
+
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
                 systemPrintf("Time to first PPL RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+        }
+        else
+        {
+            // We are not in RTK Float or RTK Fix
+            if (pplTime3dFixStarted == 0)
+                pplTime3dFixStarted = millis();
+
+            // If (millis() - pplTime3dFixStarted > 5000) then we are truly out of RTK Float and pplTimeFloatStarted
+            // should be reset. If we are in RTK Float, reset pplTime3dFixStarted to zero.
+            if (millis() - pplTime3dFixStarted > 5000)
+            {
+                pplTimeFloatStarted = 0;
+            }
         }
     }
 
