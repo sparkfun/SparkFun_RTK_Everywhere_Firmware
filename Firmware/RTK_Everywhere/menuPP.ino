@@ -1592,6 +1592,7 @@ bool pointPerfectIsEnabled()
 void updateLBand()
 {
     static unsigned long lbandLastReport;
+    static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
 
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
