@@ -4,12 +4,13 @@
 void updatePplTask(void *e)
 {
     // Start notification
-    online.updatePplTaskRunning = true;
+    task.updatePplTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("updatePplTask started");
 
-    // Verify that the task is still running
-    while (online.updatePplTaskRunning)
+    // Run task until a request is raised
+    task.updatePplTaskStopRequest = false;
+    while (task.updatePplTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_UPDATE_PPL))
@@ -93,7 +94,7 @@ void updatePplTask(void *e)
                 }
             }
 
-            online.updatePplTaskRunning = false; // Stop task either because new key failed or we need to apply new key
+            break; // Stop task either because new key failed or we need to apply new key
         }
 
         feedWdt();
@@ -103,7 +104,7 @@ void updatePplTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task updatePplTask stopped");
-    online.updatePplTaskRunning = false;
+    task.updatePplTaskRunning = false;
     vTaskDelete(NULL);
 }
 
@@ -174,7 +175,7 @@ void beginPPL()
         TaskHandle_t taskHandle;
 
         // Starts task for feeding NMEA+RTCM to PPL
-        if (online.updatePplTaskRunning == false)
+        if (task.updatePplTaskRunning == false)
             xTaskCreate(updatePplTask,
                         "UpdatePpl",            // Just for humans
                         updatePplTaskStackSize, // Stack Size

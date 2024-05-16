@@ -755,7 +755,7 @@ void beginGnssUart()
     {
         ringBuffer = (uint8_t *)&rbOffsetArray[rbOffsetEntries];
         rbOffsetArray[0] = 0;
-        if (!online.gnssUartPinned)
+        if (task.gnssUartPinnedTaskRunning == false)
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
                 "GnssUartStart", // Just for humans
@@ -765,7 +765,7 @@ void beginGnssUart()
                 &taskHandle, // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-        while (!online.gnssUartPinned) // Wait for task to run once
+        while (task.gnssUartPinnedTaskRunning == true) // Wait for task to run once
             delay(1);
     }
 }
@@ -774,6 +774,8 @@ void beginGnssUart()
 // https://github.com/espressif/arduino-esp32/issues/3386
 void pinGnssUartTask(void *pvParameters)
 {
+    task.gnssUartPinnedTaskRunning = true;
+
     // Start notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
@@ -806,7 +808,7 @@ void pinGnssUartTask(void *pvParameters)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask stopped");
-    online.gnssUartPinned = true;
+    task.gnssUartPinnedTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
@@ -1100,7 +1102,7 @@ void beginButtons()
     userBtn->begin();
 
     // Starts task for monitoring button presses
-    if (!online.buttonCheckTaskRunning)
+    if (!task.buttonCheckTaskRunning)
         xTaskCreate(buttonCheckTask,
                     "BtnCheck",          // Just for humans
                     buttonTaskStackSize, // Stack Size
@@ -1236,7 +1238,7 @@ void beginI2C()
         while (millis() < i2cPowerUpDelay)
             ;
 
-    if (!online.i2cPinned)
+    if (task.i2cPinnedTaskRunning == false)
         xTaskCreatePinnedToCore(
             pinI2CTask,
             "I2CStart",  // Just for humans
@@ -1247,13 +1249,15 @@ void beginI2C()
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
     // Wait for task to run once
-    while (!online.i2cPinned)
+    while (task.i2cPinnedTaskRunning == true)
         delay(1);
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
+    task.i2cPinnedTaskRunning = true;
+
     // Start notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask started");
@@ -1285,7 +1289,7 @@ void pinI2CTask(void *pvParameters)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask stopped");
-    online.i2cPinned = true;
+    task.i2cPinnedTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 

@@ -1713,8 +1713,15 @@ struct struct_online
     bool bluetooth = false;
     bool mqttClient = false;
     bool psram = false;
-    volatile bool gnssUartPinned = false;
-    volatile bool i2cPinned = false;
+    bool ppl = false;
+    bool batteryCharger = false;
+} online;
+
+// Monitor which tasks are running.
+struct struct_tasks
+{
+    volatile bool gnssUartPinnedTaskRunning = false;
+    volatile bool i2cPinnedTaskRunning = false;
     volatile bool btReadTaskRunning = false;
     volatile bool buttonCheckTaskRunning = false;
     volatile bool gnssReadTaskRunning = false;
@@ -1723,9 +1730,15 @@ struct struct_online
     volatile bool idleTask1Running = false;
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
-    bool ppl = false;
-    bool batteryCharger = false;
-} online;
+
+    bool i2cPinnedTaskStopRequest = false;
+    bool btReadTaskStopRequest = false;
+    bool buttonCheckTaskStopRequest = false;
+    bool gnssReadTaskStopRequest = false;
+    bool handleGnssDataTaskStopRequest = false;
+    bool sdSizeCheckTaskStopRequest = false;
+    bool updatePplTaskStopRequest = false;
+} task;
 
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API
