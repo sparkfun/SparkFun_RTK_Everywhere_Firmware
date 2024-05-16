@@ -355,8 +355,11 @@ void bluetoothStart()
 
         systemPrintln(deviceName);
 
-        bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
-        bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        if (pin_bluetoothStatusLED != PIN_UNDEFINED)
+        {
+            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
+            bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        }
 
         bluetoothState = BT_NOTCONNECTED;
         reportHeapNow(false);
