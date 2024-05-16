@@ -1591,11 +1591,13 @@ bool pointPerfectIsEnabled()
 // Process any new L-Band from I2C
 void updateLBand()
 {
+    static unsigned long lbandLastReport;
+
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        //if (settings.debugCorrections == true)
-        //    systemPrintln("configureViaEthernet: skipping updateLBand");
+        // if (settings.debugCorrections == true)
+        //     systemPrintln("configureViaEthernet: skipping updateLBand");
         return;
     }
 
@@ -1617,7 +1619,8 @@ void updateLBand()
                 lbandLastReport = millis();
 
                 if (settings.debugCorrections == true)
-                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n", floatLockRestarts,
+                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                                 floatLockRestarts,
                                  settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
             }
 

@@ -760,7 +760,6 @@ bool configureViaEthernet;
 unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
 int floatLockRestarts;
 unsigned long rtkTimeToFixMs;
-unsigned long lbandLastReport;
 
 volatile PeriodicDisplay_t periodicDisplay;
 
