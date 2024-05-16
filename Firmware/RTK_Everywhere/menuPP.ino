@@ -1617,7 +1617,7 @@ void updateLBand()
                 lbandLastReport = millis();
 
                 if (settings.debugCorrections == true)
-                    systemPrintf("ZED restarts: %d Time remaining before L-Band forced restart: %ds\r\n", floatLockRestarts,
+                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n", floatLockRestarts,
                                  settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
             }
 
@@ -1634,7 +1634,7 @@ void updateLBand()
                     theGNSS->softwareResetGNSSOnly();
 
                     if (settings.debugCorrections == true)
-                        systemPrintf("Restarting ZED. Number of L-Band restarts: %d\r\n", floatLockRestarts);
+                        systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
                 }
             }
         }
