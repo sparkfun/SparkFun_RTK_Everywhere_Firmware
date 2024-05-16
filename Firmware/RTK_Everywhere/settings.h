@@ -1731,7 +1731,6 @@ struct struct_tasks
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
 
-    bool i2cPinnedTaskStopRequest = false;
     bool btReadTaskStopRequest = false;
     bool buttonCheckTaskStopRequest = false;
     bool gnssReadTaskStopRequest = false;

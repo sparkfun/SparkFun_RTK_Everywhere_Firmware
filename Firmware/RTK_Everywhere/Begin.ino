@@ -160,7 +160,7 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
-        pin_muxA = 18; //Controls U12 switch between ESP UART1 to UM980 or LoRa
+        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 or LoRa
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
@@ -227,7 +227,7 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
-#ifdef EVKv1point1        
+#ifdef EVKv1point1
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
@@ -237,9 +237,10 @@ void beginBoard()
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.button_mode = true;
-        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been
+        // changed
         present.peripheralPowerControl = true;
-        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.laraPowerControl = true; // Tertiary power controls the LARA
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
         present.gnss_to_uart = true;
@@ -305,9 +306,10 @@ void beginBoard()
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.button_mode = true;
-        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been
+        // changed
         present.peripheralPowerControl = true;
-        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.laraPowerControl = true; // Tertiary power controls the LARA
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
         present.i2c0BusSpeed_400 = true; // Run bus at higher speed
@@ -394,7 +396,8 @@ void beginBoard()
         // Turn on power to the peripherals
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
-        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub, LARA - if SPWR & TPWR jumpers have been changed
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub, LARA - if SPWR & TPWR jumpers have been
+                         // changed
     }
 
     else if (productVariant == RTK_FACET_V2)
@@ -741,10 +744,13 @@ void beginGnssUart()
     length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
 
-    if (online.psram == true)
-        rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
-    else
-        rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
+    if (rbOffsetArray == nullptr)
+    {
+        if (online.psram == true)
+            rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
+        else
+            rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
+    }
 
     if (!rbOffsetArray)
     {
@@ -755,7 +761,11 @@ void beginGnssUart()
     {
         ringBuffer = (uint8_t *)&rbOffsetArray[rbOffsetEntries];
         rbOffsetArray[0] = 0;
+
         if (task.gnssUartPinnedTaskRunning == false)
+        {
+            task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start here and check for completion.
+
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
                 "GnssUartStart", // Just for humans
@@ -764,8 +774,9 @@ void beginGnssUart()
                 0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                 &taskHandle, // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
+        }
 
-        while (task.gnssUartPinnedTaskRunning == true) // Wait for task to run once
+        while (task.gnssUartPinnedTaskRunning == true) // Wait for task to complete run
             delay(1);
     }
 }
@@ -774,8 +785,6 @@ void beginGnssUart()
 // https://github.com/espressif/arduino-esp32/issues/3386
 void pinGnssUartTask(void *pvParameters)
 {
-    task.gnssUartPinnedTaskRunning = true;
-
     // Start notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
@@ -789,8 +798,7 @@ void pinGnssUartTask(void *pvParameters)
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
-    serialGNSS->setRxBufferSize(
-        settings.uartReceiveBufferSize);
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
@@ -907,8 +915,8 @@ void tickerBegin()
     {
         ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
         ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
-        ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED at startup
-        //Attach happens in bluetoothStart()
+        ledcWrite(ledBtChannel, 255); // Turn on BT LED at startup
+        // Attach happens in bluetoothStart()
     }
 
     if (pin_gnssStatusLED != PIN_UNDEFINED)
@@ -1239,6 +1247,7 @@ void beginI2C()
             ;
 
     if (task.i2cPinnedTaskRunning == false)
+    {
         xTaskCreatePinnedToCore(
             pinI2CTask,
             "I2CStart",  // Just for humans
@@ -1248,7 +1257,12 @@ void beginI2C()
             &taskHandle, // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-    // Wait for task to run once
+        // Wait for task to start running
+        while (task.i2cPinnedTaskRunning == false)
+            delay(1);
+    }
+
+    // Wait for task to complete run
     while (task.i2cPinnedTaskRunning == true)
         delay(1);
 }
