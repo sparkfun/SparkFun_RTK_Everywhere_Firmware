@@ -1613,8 +1613,11 @@ void updateLBand()
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (systemState == STATE_ROVER_RTK_FLOAT)
+        if (gnssIsRTKFloat())
         {
+            if (lbandTimeFloatStarted == 0)
+                lbandTimeFloatStarted = millis();
+
             if (millis() - lbandLastReport > 1000)
             {
                 lbandLastReport = millis();
@@ -1644,9 +1647,16 @@ void updateLBand()
         }
         else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
         {
+            lbandTimeFloatStarted = 0; //Restart timer in case we drop from RTK Fix
+
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
                 systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+        }
+        else
+        {
+            // We are not in float or fix, so restart timer
+            lbandTimeFloatStarted = 0;
         }
     }
 

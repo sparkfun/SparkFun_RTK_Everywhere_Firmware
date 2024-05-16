@@ -138,11 +138,7 @@ void stateUpdate()
 
         case (STATE_ROVER_FIX): {
             if (gnssIsRTKFloat())
-            {
-                // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
-                lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
-            }
             else if (gnssIsRTKFix())
                 changeState(STATE_ROVER_RTK_FIX);
         }
@@ -160,11 +156,7 @@ void stateUpdate()
             if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
             if (gnssIsRTKFloat())
-            {
-                // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
-                lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
-            }
         }
         break;
 
