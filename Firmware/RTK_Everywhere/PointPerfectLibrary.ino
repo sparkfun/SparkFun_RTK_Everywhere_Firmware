@@ -218,6 +218,8 @@ void stopPPL()
 // restart the PPL when new keys need to be applied
 void updatePPL()
 {
+    static unsigned long pplReport = 0;
+
     static unsigned long pplTimeFloatStarted; // Monitors when the PPL got first RTK Float.
 
     // During float lock, the PPL has been seen to drop to 3D fix for a few seconds before changing back to
@@ -227,7 +229,7 @@ void updatePPL()
 
     static unsigned long pplTime3dFixStarted;
 
-    if (online.ppl == false && (settings.enablePointPerfectCorrections))
+    if (online.ppl == false && settings.enablePointPerfectCorrections && gnssIsFixed())
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected. Don't restart the PPL if we've already tried
@@ -244,16 +246,18 @@ void updatePPL()
     }
     else if (online.ppl == true)
     {
-
         if (settings.debugCorrections == true)
         {
-            static unsigned long pplReport = 0;
             if (millis() - pplReport > 5000)
             {
                 pplReport = millis();
 
-                systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
-                             floatLockRestarts, settings.pplFixTimeoutS - ((millis() - pplTimeFloatStarted) / 1000));
+                if (systemState == STATE_ROVER_RTK_FLOAT && pplTimeFloatStarted > 0)
+                {
+                    systemPrintf("GNSS restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                                 floatLockRestarts,
+                                 settings.pplFixTimeoutS - ((millis() - pplTimeFloatStarted) / 1000));
+                }
 
                 // Report which data source may be fouling the RTCM generation from the PPL
                 if ((millis() - lastMqttToPpl) > 5000)
@@ -268,6 +272,9 @@ void updatePPL()
             if (pplTime3dFixStarted != 0)
                 pplTime3dFixStarted = 0; // Reset pplTimeFixStarted
 
+            if(pplTimeFloatStarted == 0)
+                pplTimeFloatStarted = millis();
+
             if (settings.pplFixTimeoutS > 0)
             {
                 // If we don't get an RTK fix within Timeout, restart the PPL
@@ -277,8 +284,8 @@ void updatePPL()
 
                     pplTimeFloatStarted = millis(); // Restart timer for PPL monitoring.
 
-                    stopPPL(); //Stop PPL and mark it offline. It will auto-restart at the next update().
-                    pplAttemptedStart = false; //Reset to allow restart
+                    stopPPL(); // Stop PPL and mark it offline. It will auto-restart at the next update().
+                    pplAttemptedStart = false; // Reset to allow restart
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting PPL. Number of Float lock restarts: %d\r\n", floatLockRestarts);
@@ -289,6 +296,9 @@ void updatePPL()
         {
             if (pplTime3dFixStarted != 0)
                 pplTime3dFixStarted = 0; // Reset pplTimeFixStarted
+
+            if(pplTimeFloatStarted != 0)
+                pplTimeFloatStarted = 0; //Reset pplTimeFloatStarted
 
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
