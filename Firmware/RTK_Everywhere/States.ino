@@ -626,14 +626,15 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_WIFI_STARTED): {
+                wifiMaxConnectionAttempts =
+                    wifiOriginalMaxConnectionAttempts; // Revert setting
+
             if (wifiIsConnected())
                 changeState(STATE_KEYS_WIFI_CONNECTED);
             else
             {
                 wifiShutdown(); // Turn off WiFi
 
-                wifiMaxConnectionAttempts =
-                    wifiOriginalMaxConnectionAttempts; // Override setting to 2 attemps during keys
                 changeState(STATE_KEYS_WIFI_TIMEOUT);
             }
         }
