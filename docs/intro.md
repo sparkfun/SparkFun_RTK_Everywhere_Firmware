@@ -6,4 +6,5 @@ Which device are you using?
 
 [![RTK Torch](img/SparkFun_RTK_Torch.png)](quickstart-torch.md)
 
-[RTK Torch Quick Start](quickstart-torch.md)
+* [RTK Torch Quick Start](quickstart-torch.md)
+* [RTK Torch Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/)
