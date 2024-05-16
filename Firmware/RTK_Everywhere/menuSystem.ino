@@ -946,6 +946,13 @@ void menuOperation()
         if(present.gnss_zedf9p)
             systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
+        // PPL Float Lock timeout
+        systemPrint("11) Set PPL RTK Fix Timeout (seconds): ");
+        if (settings.pplFixTimeoutS > 0)
+            systemPrintln(settings.pplFixTimeoutS);
+        else
+            systemPrintln("Disabled - no resets");
+
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
         systemPrintln(settings.bluetoothInterruptsCore);
@@ -1045,6 +1052,11 @@ void menuOperation()
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
+        }
+        else if (incoming == 11)
+        {
+            getNewSetting("Enter number of seconds in RTK float using PPL, before reset", 0, 3600,
+                          &settings.pplFixTimeoutS); // Arbitrary 60 minute limit
         }
 
         else if (incoming == 30)

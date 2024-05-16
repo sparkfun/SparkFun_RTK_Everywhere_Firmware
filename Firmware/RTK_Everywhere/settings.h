@@ -1318,6 +1318,7 @@ struct Settings
     bool enableGalileoHas = true; // Allow E6 corrections if possible
 
     bool enableGnssToUsbSerial = false;
+    uint16_t pplFixTimeoutS = 180; // Number of seconds of no RTK fix when using PPL before resetting GNSS
 
     // Add new settings above <------------------------------------------------------------>
     // Then also add to rtkSettingsEntries below
@@ -1620,6 +1621,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enableGalileoHas, "enableGalileoHas", _bool, 0, false, true, true },
 
     { & settings.enableGnssToUsbSerial, "enableGnssToUsbSerial", _bool, 0, false, true, true },
+    { & settings.pplFixTimeoutS, "pplFixTimeoutS", _uint16_t, 0, false, true, true },
 
     // Add new settings above <------------------------------------------------------------>
     /*
