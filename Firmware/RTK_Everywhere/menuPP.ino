@@ -1431,13 +1431,12 @@ void menuPointPerfect()
         //     We also receive the full list of regional correction topics: /pp/ip/us , /pp/ip/eu , etc.
         //     We need to subscribe to our regional correction topic and push the data to the PPL
         //     RTCM from the PPL is pushed to the UM980
-        //   For L-Band-only - e.g. EVK or Facet mosaic or Facet v2 L-Band
+        //   For L-Band-only - e.g. Facet mosaic or Facet v2 L-Band
         //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
         //     There are no regional correction topics for L-Band-only
-        //     EVK pushes the keys to the ZED and pushes PMP from the NEO to the ZED
+        //     Facet v2 L-Band pushes the keys to the ZED and pushes PMP from the NEO to the ZED
         //     Facet mosaic pushes the current key and raw L-Band to the PPL, then pushes RTCM to the X5
-        //     Facet v2 L-Band does the same as EVK
-        //   For a future L-Band+IP product:
+        //   For L-Band+IP - e.g. EVK:
         //     During ZTP Provisioning, we receive the UBX-format key distribution topic /pp/ubx/0236/Lb
         //     We also receive the full list of regional correction topics: /pp/Lb/us , /pp/Lb/eu , etc.
         //     We can subscribe to the topic and push IP data to the ZED - using UBLOX_CFG_SPARTN_USE_SOURCE 0
