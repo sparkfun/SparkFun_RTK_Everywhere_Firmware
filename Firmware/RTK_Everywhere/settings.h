@@ -77,7 +77,7 @@ typedef enum
     RTK_FACET_V2 = 1, // 0x01
     RTK_FACET_MOSAIC = 2, // 0x02
     RTK_TORCH = 3, // 0x03
-    // Add new values just above this line
+    // Add new values above this line
     RTK_UNKNOWN
 } ProductVariant;
 ProductVariant productVariant = RTK_UNKNOWN;
@@ -174,7 +174,7 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED,    // Facet v2
     STATE_ROVER_NOT_STARTED,    // Facet mosaic
     STATE_ROVER_NOT_STARTED,    // Torch
-    // Add new values just above this line
+    // Add new values above this line
     STATE_ROVER_NOT_STARTED     // Unknown
 };
 const int platformPreviousStateTableEntries = sizeof (platformPreviousStateTable) / sizeof(platformPreviousStateTable[0]);
@@ -183,7 +183,7 @@ typedef enum
 {
     DISPLAY_64x48,
     DISPLAY_128x64,
-    // <-- Insert any future displays here
+    // Add new displays above this line
     DISPLAY_MAX_NONE // This represents the maximum numbers of display and also "no display"
 } DisplayType;
 
@@ -403,7 +403,7 @@ typedef enum
     ETH_STARTED_START_DHCP,
     ETH_CONNECTED,
     ETH_CAN_NOT_BEGIN,
-    // Add new states here
+    // Add new states above this line
     ETH_MAX_STATE
 } ethernetStatus_e;
 
@@ -483,7 +483,6 @@ typedef enum
     FUNCTION_LOG_CLOSURE,
     FUNCTION_PRINT_FILE_LIST,
     FUNCTION_NTPEVENT,
-
 } SemaphoreFunction;
 
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
@@ -599,7 +598,6 @@ const char * const measurementScaleName[] =
     "meters",
     "feet and inches",
 };
-
 const int measurementScaleNameEntries = sizeof(measurementScaleName) / sizeof(measurementScaleName[0]);
 
 const char * const measurementScaleUnits[] =
@@ -607,7 +605,6 @@ const char * const measurementScaleUnits[] =
     "m",
     "ft",
 };
-
 const int measurementScaleUnitsEntries = sizeof(measurementScaleUnits) / sizeof(measurementScaleUnits[0]);
 
 // These are the allowable messages to broadcast and log (if enabled)
@@ -887,7 +884,6 @@ const ubxMsg ubxMessages[] = {
     {UBLOX_CFG_MSGOUT_UBX_TIM_TM2_UART1, UBX_TIM_TM2, UBX_CLASS_TIM, 0, "UBX_TIM_TM2", 0, 112, 120},
     {UBLOX_CFG_MSGOUT_UBX_TIM_TP_UART1, UBX_TIM_TP, UBX_CLASS_TIM, 0, "UBX_TIM_TP", 0, 112, 120},
     {UBLOX_CFG_MSGOUT_UBX_TIM_VRFY_UART1, UBX_TIM_VRFY, UBX_CLASS_TIM, 0, "UBX_TIM_VRFY", 0, 112, 120},
-
 };
 
 #define MAX_UBX_MSG (sizeof(ubxMessages) / sizeof(ubxMsg))
