@@ -377,43 +377,43 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 knownSetting = true;
             }
             break;
-            case _muxConnectionType_e: {
+            case tMuxConn: {
                 muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
                 *ptr = (muxConnectionType_e)settingValue;
                 knownSetting = true;
             }
             break;
-            case _SystemState: {
+            case tSysState: {
                 SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
                 *ptr = (SystemState)settingValue;
                 knownSetting = true;
             }
             break;
-            case _pulseEdgeType_e: {
+            case tPulseEdg: {
                 pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
                 *ptr = (pulseEdgeType_e)settingValue;
                 knownSetting = true;
             }
             break;
-            case _BluetoothRadioType_e: {
+            case tBtRadio: {
                 BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
                 *ptr = (BluetoothRadioType_e)settingValue;
                 knownSetting = true;
             }
             break;
-            case _PeriodicDisplay_t: {
+            case tPerDisp: {
                 PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
                 *ptr = (PeriodicDisplay_t)settingValue;
                 knownSetting = true;
             }
             break;
-            case _CoordinateInputType: {
+            case tCoordInp: {
                 CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
                 *ptr = (CoordinateInputType)settingValue;
                 knownSetting = true;
             }
             break;
-            case _charArray: {
+            case tCharArry: {
                 char *ptr = (char *)rtkSettingsEntries[i].var;
                 strncpy(ptr, settingValueStr, rtkSettingsEntries[i].qualifier);
                 // strncpy pads with zeros. No need to add them here for ntpReferenceId
@@ -427,7 +427,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 knownSetting = true;
             }
             break;
-            case _ubxMessageRates: {
+            case tUbxMsgRt: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
@@ -440,7 +440,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ubxConstellations: {
+            case tUbxConst: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
@@ -453,7 +453,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _espnowPeers: {
+            case tEspNowPr: {
                 int suffixNum;
                 if (sscanf(suffix, "%d", &suffixNum) == 1)
                 {
@@ -468,7 +468,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ubxMessageRateBase: {
+            case tUbMsgRtb: {
                 int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
 
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -483,7 +483,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _wifiNetwork: {
+            case tWiFiNet: {
                 int network;
 
                 if (strstr(suffix, "SSID") != nullptr)
@@ -506,7 +506,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ntripServerCasterHost: {
+            case tNSCHost: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -516,7 +516,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ntripServerCasterPort: {
+            case tNSCPort: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -525,7 +525,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ntripServerCasterUser: {
+            case tNSCUser: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -535,7 +535,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ntripServerCasterUserPW: {
+            case tNSCUsrPw: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -545,7 +545,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ntripServerMountPoint: {
+            case tNSMtPt: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -555,7 +555,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _ntripServerMountPointPW: {
+            case tNSMtPtPw: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -565,7 +565,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _um980MessageRatesNMEA: {
+            case tUmMRNmea: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
@@ -578,7 +578,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _um980MessageRatesRTCMRover: {
+            case tUmMRRvRT: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
@@ -591,7 +591,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _um980MessageRatesRTCMBase: {
+            case tUmMRBaRT: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
@@ -604,7 +604,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _um980Constellations: {
+            case tUmConst: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
@@ -617,7 +617,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _correctionsSourcesPriority: {
+            case tCorrSPri: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == correctionsSourceNames[x][0]) && (strcmp(suffix, correctionsSourceNames[x]) == 0))
@@ -629,7 +629,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 }
             }
             break;
-            case _regionalCorrectionTopics: {
+            case tRegCorTp: {
                 int region;
                 if (sscanf(suffix, "%d", &region) == 1)
                 {
@@ -1075,37 +1075,37 @@ void createSettingsString(char *newSettings)
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _muxConnectionType_e: {
+            case tMuxConn: {
                 muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _SystemState: {
+            case tSysState: {
                 SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _pulseEdgeType_e: {
+            case tPulseEdg: {
                 pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _BluetoothRadioType_e: {
+            case tBtRadio: {
                 BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _PeriodicDisplay_t: {
+            case tPerDisp: {
                 PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _CoordinateInputType: {
+            case tCoordInp: {
                 CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
-            case _charArray: {
+            case tCharArry: {
                 char *ptr = (char *)rtkSettingsEntries[i].var;
                 stringRecord(newSettings, rtkSettingsEntries[i].name, ptr);
             }
@@ -1115,7 +1115,7 @@ void createSettingsString(char *newSettings)
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (char *)ptr->toString().c_str());
             }
             break;
-            case _ubxMessageRates: {
+            case tUbxMsgRt: {
                 // Record message settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1126,7 +1126,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ubxConstellations: {
+            case tUbxConst: {
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1138,7 +1138,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _espnowPeers: {
+            case tEspNowPr: {
                 // Record ESP-Now peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1151,7 +1151,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ubxMessageRateBase: {
+            case tUbMsgRtb: {
                 // Record message settings
 
                 int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
@@ -1165,7 +1165,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _wifiNetwork: {
+            case tWiFiNet: {
                 // Record WiFi credential table
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1180,7 +1180,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ntripServerCasterHost: {
+            case tNSCHost: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1190,7 +1190,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ntripServerCasterPort: {
+            case tNSCPort: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1200,7 +1200,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ntripServerCasterUser: {
+            case tNSCUser: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1210,7 +1210,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ntripServerCasterUserPW: {
+            case tNSCUsrPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1220,7 +1220,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ntripServerMountPoint: {
+            case tNSMtPt: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1230,7 +1230,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _ntripServerMountPointPW: {
+            case tNSMtPtPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
@@ -1240,7 +1240,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _um980MessageRatesNMEA: {
+            case tUmMRNmea: {
                 // Record UM980 NMEA rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1251,7 +1251,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _um980MessageRatesRTCMRover: {
+            case tUmMRRvRT: {
                 // Record UM980 Rover RTCM rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1262,7 +1262,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _um980MessageRatesRTCMBase: {
+            case tUmMRBaRT: {
                 // Record UM980 Base RTCM rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1273,7 +1273,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _um980Constellations: {
+            case tUmConst: {
                 // Record UM980 Constellations
                 // um980Constellations are uint8_t, but here we have to convert to bool (true / false) so the web page
                 // check boxes are populated correctly. (We can't make it bool, otherwise the 254 initializer will
@@ -1288,7 +1288,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _correctionsSourcesPriority: {
+            case tCorrSPri: {
                 // Record corrections priorities
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1299,7 +1299,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case _regionalCorrectionTopics: {
+            case tRegCorTp: {
                 for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
                 {
                     char tempString[50];
@@ -1771,43 +1771,43 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 knownSetting = true;
             }
             break;
-            case _muxConnectionType_e: {
+            case tMuxConn: {
                 muxConnectionType_e *ptr = (muxConnectionType_e *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _SystemState: {
+            case tSysState: {
                 SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _pulseEdgeType_e: {
+            case tPulseEdg: {
                 pulseEdgeType_e *ptr = (pulseEdgeType_e *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _BluetoothRadioType_e: {
+            case tBtRadio: {
                 BluetoothRadioType_e *ptr = (BluetoothRadioType_e *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _PeriodicDisplay_t: {
+            case tPerDisp: {
                 PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _CoordinateInputType: {
+            case tCoordInp: {
                 CoordinateInputType *ptr = (CoordinateInputType *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, (int)*ptr);
                 knownSetting = true;
             }
             break;
-            case _charArray: {
+            case tCharArry: {
                 char *ptr = (char *)rtkSettingsEntries[i].var;
                 writeToString(settingValueStr, ptr);
                 knownSetting = true;
@@ -1819,7 +1819,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 knownSetting = true;
             }
             break;
-            case _ubxMessageRates: {
+            case tUbxMsgRt: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
@@ -1832,7 +1832,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ubxConstellations: {
+            case tUbxConst: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == settings.ubxConstellations[x].textName[0]) &&
@@ -1845,7 +1845,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _espnowPeers: {
+            case tEspNowPr: {
                 int suffixNum;
                 if (sscanf(suffix, "%d", &suffixNum) == 1)
                 {
@@ -1859,7 +1859,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ubxMessageRateBase: {
+            case tUbMsgRtb: {
                 int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
 
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1874,7 +1874,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _wifiNetwork: {
+            case tWiFiNet: {
                 int network;
 
                 if (strstr(suffix, "SSID") != nullptr)
@@ -1895,7 +1895,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ntripServerCasterHost: {
+            case tNSCHost: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -1904,7 +1904,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ntripServerCasterPort: {
+            case tNSCPort: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -1913,7 +1913,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ntripServerCasterUser: {
+            case tNSCUser: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -1922,7 +1922,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ntripServerCasterUserPW: {
+            case tNSCUsrPw: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -1931,7 +1931,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ntripServerMountPoint: {
+            case tNSMtPt: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -1940,7 +1940,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _ntripServerMountPointPW: {
+            case tNSMtPtPw: {
                 int server;
                 if (sscanf(suffix, "%d", &server) == 1)
                 {
@@ -1949,7 +1949,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _um980MessageRatesNMEA: {
+            case tUmMRNmea: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == umMessagesNMEA[x].msgTextName[0]) &&
@@ -1962,7 +1962,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _um980MessageRatesRTCMRover: {
+            case tUmMRRvRT: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
@@ -1975,7 +1975,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _um980MessageRatesRTCMBase: {
+            case tUmMRBaRT: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == umMessagesRTCM[x].msgTextName[0]) &&
@@ -1988,7 +1988,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _um980Constellations: {
+            case tUmConst: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == um980ConstellationCommands[x].textName[0]) &&
@@ -2001,7 +2001,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _correctionsSourcesPriority: {
+            case tCorrSPri: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     if ((suffix[0] == correctionsSourceNames[x][0]) && (strcmp(suffix, correctionsSourceNames[x]) == 0))
@@ -2013,7 +2013,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 }
             }
             break;
-            case _regionalCorrectionTopics: {
+            case tRegCorTp: {
                 int region;
                 if (sscanf(suffix, "%d", &region) == 1)
                 {
@@ -2237,37 +2237,37 @@ void printAvailableSettings()
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int16_t", settingValue);
             }
             break;
-            case _muxConnectionType_e: {
+            case tMuxConn: {
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "muxConnectionType_e", settingValue);
             }
             break;
-            case _SystemState: {
+            case tSysState: {
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "SystemState", settingValue);
             }
             break;
-            case _pulseEdgeType_e: {
+            case tPulseEdg: {
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "pulseEdgeType_e", settingValue);
             }
             break;
-            case _BluetoothRadioType_e: {
+            case tBtRadio: {
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "BluetoothRadioType_e", settingValue);
             }
             break;
-            case _PeriodicDisplay_t: {
+            case tPerDisp: {
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "PeriodicDisplay_t", settingValue);
             }
             break;
-            case _CoordinateInputType: {
+            case tCoordInp: {
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "CoordinateInputType", settingValue);
             }
             break;
-            case _charArray: {
+            case tCharArry: {
                 snprintf(settingType, sizeof(settingType), "char[%d]", rtkSettingsEntries[i].qualifier);
                 getSettingValue(rtkSettingsEntries[i].name, settingValue);
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, settingType, settingValue);
@@ -2278,7 +2278,7 @@ void printAvailableSettings()
                 commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
             }
             break;
-            case _ubxMessageRates: {
+            case tUbxMsgRt: {
                 // Record message settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2290,7 +2290,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ubxConstellations: {
+            case tUbxConst: {
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2302,7 +2302,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _espnowPeers: {
+            case tEspNowPr: {
                 // Record ESP-Now peer MAC addresses
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2314,7 +2314,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ubxMessageRateBase: {
+            case tUbMsgRtb: {
                 // Record message settings
                 int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
 
@@ -2328,7 +2328,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _wifiNetwork: {
+            case tWiFiNet: {
                 // Record WiFi credential table
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2346,7 +2346,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ntripServerCasterHost: {
+            case tNSCHost: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
@@ -2357,7 +2357,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ntripServerCasterPort: {
+            case tNSCPort: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
@@ -2367,7 +2367,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ntripServerCasterUser: {
+            case tNSCUser: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
@@ -2378,7 +2378,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ntripServerCasterUserPW: {
+            case tNSCUsrPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     snprintf(settingType, sizeof(settingType), "char[%d]",
@@ -2390,7 +2390,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ntripServerMountPoint: {
+            case tNSMtPt: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
@@ -2401,7 +2401,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _ntripServerMountPointPW: {
+            case tNSMtPtPw: {
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     snprintf(settingType, sizeof(settingType), "char[%d]",
@@ -2413,7 +2413,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _um980MessageRatesNMEA: {
+            case tUmMRNmea: {
                 // Record UM980 NMEA rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2425,7 +2425,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _um980MessageRatesRTCMRover: {
+            case tUmMRRvRT: {
                 // Record UM980 Rover RTCM rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2437,7 +2437,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _um980MessageRatesRTCMBase: {
+            case tUmMRBaRT: {
                 // Record UM980 Base RTCM rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2449,7 +2449,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _um980Constellations: {
+            case tUmConst: {
                 // Record UM980 Constellations
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2461,7 +2461,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _correctionsSourcesPriority: {
+            case tCorrSPri: {
                 // Record corrections priorities
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2473,7 +2473,7 @@ void printAvailableSettings()
                 }
             }
             break;
-            case _regionalCorrectionTopics: {
+            case tRegCorTp: {
                 for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
                 {
                     snprintf(settingType, sizeof(settingType), "char[%d]",
