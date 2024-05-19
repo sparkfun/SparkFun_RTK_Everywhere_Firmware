@@ -869,11 +869,7 @@ bool parseLine(char *str)
     // log_d("settingName: %s - value: %s - d: %0.9f", settingName, settingString, d);
 
     // Exceptions:
-    // runLogTest not stored in NVM
-    if (strcmp(settingName, "runLogTest") == 0)
-        knownSetting = true;
-
-    else if (strcmp(settingName, "sizeOfSettings") == 0)
+    if (strcmp(settingName, "sizeOfSettings") == 0)
     {
         // We may want to cause a factory reset from the settings file rather than the menu
         // If user sets sizeOfSettings to -1 in config file, RTK device will factory reset
@@ -891,27 +887,25 @@ bool parseLine(char *str)
         knownSetting = true;
     }
 
-    else if (strcmp(settingName, "rtkIdentifier") == 0)
+    // Handle unknown settings
+    // Do nothing. Just read it to avoid 'Unknown setting' error
+    else
     {
-        knownSetting = true;
-    } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "rtkFirmwareVersion") == 0)
-    {
-        knownSetting = true;
-    } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "gnssFirmwareVersion") == 0)
-    {
-        knownSetting = true;
-    } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "gnssUniqueId") == 0)
-    {
-        knownSetting = true;
-    } // Do nothing. Just read it to avoid 'Unknown setting' error
-    else if (strcmp(settingName, "neoFirmwareVersion") == 0)
-    {
-        knownSetting = true;
-    } // Do nothing. Just read it to avoid 'Unknown setting' error
+        const char * table[] =
+        {
+            "gnssFirmwareVersion",
+            "gnssUniqueId",
+            "neoFirmwareVersion",
+            "rtkFirmwareVersion",
+            "rtkIdentifier",
+            "runLogTest",
+        };
+        const int tableEntries = sizeof(table) / sizeof(table[0]);
 
+        knownSetting = commandCheckForUnknownVariable(settingName,
+                                                      table,
+                                                      tableEntries);
+    }
 
     if (knownSetting == false)
     {
