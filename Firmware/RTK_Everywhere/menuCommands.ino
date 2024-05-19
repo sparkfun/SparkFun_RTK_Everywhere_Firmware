@@ -267,6 +267,24 @@ bool commandValid(char *commandString)
     return (true);
 }
 
+// Check for unknown variables
+bool commandCheckForUnknownVariable(const char * settingName,
+                                    const char ** entry,
+                                    int tableEntries)
+{
+    const char ** tableEnd;
+
+    // Walk table of unused variables - read to avoid errors
+    tableEnd = &entry[tableEntries];
+    while (entry < tableEnd)
+    {
+        // Determine if the settingName is found in the table
+        if (strcmp(settingName, *entry++) == 0)
+            return true;
+    }
+    return false;
+}
+
 // Given a settingName, and string value, update a given setting
 bool updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
@@ -921,51 +939,29 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             knownSetting = true;
         }
 
-        // Unused variables - read to avoid errors
-        else if (strcmp(settingName, "measurementRateSec") == 0)
+    // Unused variables - read to avoid errors
+    else
+    {
+        const char * table[] =
         {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "baseTypeSurveyIn") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedBaseCoordinateTypeGeo") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "saveToArduino") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "enableFactoryDefaults") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "enableFirmwareUpdate") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "enableForgetRadios") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "nicknameECEF") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "nicknameGeodetic") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fileSelectAll") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedHAEAPC") == 0)
-        {
-            knownSetting = true;
-        }
+            "baseTypeSurveyIn",
+            "enableFactoryDefaults",
+            "enableFirmwareUpdate",
+            "enableForgetRadios",
+            "fileSelectAll",
+            "fixedBaseCoordinateTypeGeo",
+            "fixedHAEAPC",
+            "measurementRateSec",
+            "nicknameECEF",
+            "nicknameGeodetic",
+            "saveToArduino",
+        };
+        const int tableEntries = sizeof(table) / sizeof(table[0]);
+
+        knownSetting = commandCheckForUnknownVariable(settingName,
+                                                      table,
+                                                      tableEntries);
+    }
     }
 
     // Last catch
@@ -2039,127 +2035,52 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             knownSetting = true;
         }
 
-        // Unused variables - read to avoid errors
-        // TODO: check this! Is this really what we want?
-        else if (strcmp(settingName, "fixedLatText") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedLongText") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "measurementRateHz") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "stationGeodetic") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "minCNO") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedHAEAPC") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "baseTypeFixed") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedBaseCoordinateTypeECEF") == 0)
-        {
-            knownSetting = true;
-        }
         // Special actions
         else if (strcmp(settingName, "enableRCFirmware") == 0)
         {
             writeToString(settingValueStr, enableRCFirmware);
             knownSetting = true;
         }
-        else if (strcmp(settingName, "firmwareFileName") == 0)
+    // Unused variables - read to avoid errors
+    // TODO: check this! Is this really what we want?
+    else
+    {
+        const char * table[] =
         {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "factoryDefaultReset") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "exitAndReset") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "setProfile") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "resetProfile") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "forgetEspNowPeers") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "startNewLog") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "checkNewFirmware") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "getNewFirmware") == 0)
-        {
-            knownSetting = true;
-        }
-        // Unused variables - read to avoid errors
-        else if (strcmp(settingName, "measurementRateSec") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "baseTypeSurveyIn") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedBaseCoordinateTypeGeo") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "saveToArduino") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "enableFactoryDefaults") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "enableFirmwareUpdate") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "enableForgetRadios") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "nicknameECEF") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "nicknameGeodetic") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fileSelectAll") == 0)
-        {
-            knownSetting = true;
-        }
-        else if (strcmp(settingName, "fixedHAEAPC") == 0)
-        {
-            knownSetting = true;
-        }
+            "baseTypeFixed",
+            "baseTypeSurveyIn",
+            "checkNewFirmware",
+            "enableFactoryDefaults",
+            "enableFirmwareUpdate",
+            "enableForgetRadios",
+            "exitAndReset",
+            "factoryDefaultReset",
+            "fileSelectAll",
+            "firmwareFileName",
+            "fixedBaseCoordinateTypeECEF",
+            "fixedBaseCoordinateTypeGeo",
+            "fixedHAEAPC",
+            "fixedLatText",
+            "fixedLongText",
+            "forgetEspNowPeers",
+            "getNewFirmware",
+            "measurementRateHz",
+            "measurementRateSec",
+            "minCNO",
+            "nicknameECEF",
+            "nicknameGeodetic",
+            "resetProfile",
+            "saveToArduino",
+            "setProfile",
+            "startNewLog",
+            "stationGeodetic",
+        };
+        const int tableEntries = sizeof(table) / sizeof(table[0]);
+
+        knownSetting = commandCheckForUnknownVariable(settingName,
+                                                      table,
+                                                      tableEntries);
+    }
     }
 
     if (knownSetting == false)
