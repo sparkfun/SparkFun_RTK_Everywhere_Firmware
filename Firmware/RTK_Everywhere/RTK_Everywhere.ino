@@ -832,7 +832,6 @@ volatile bool deadManWalking;
         settings.enablePrintIdleTime = true;                                                                           \
         settings.enablePrintBatteryMessages = true;                                                                    \
         settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintBadMessages = true;                                                                        \
         settings.enablePrintLogFileMessages = true;                                                                    \
         settings.enablePrintLogFileStatus = true;                                                                      \
         settings.enablePrintRingBufferOffsets = true;                                                                  \
