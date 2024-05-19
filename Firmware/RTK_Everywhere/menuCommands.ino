@@ -15,6 +15,12 @@ void menuCommands()
         if (response != INPUT_RESPONSE_VALID)
             continue;
 
+        if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
+        {
+            systemPrintln("Exiting COMMAND MODE");
+            break; // Exit while(1) loop
+        }
+
         if (strcmp(cmdBuffer, "list") == 0)
         {
             printAvailableSettings();
