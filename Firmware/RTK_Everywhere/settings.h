@@ -1405,8 +1405,6 @@ typedef struct
 
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
-    // Note: don't use "_" in the name - "_" is reserved for settings arrays like "ubxMessageRate_"
-
 //                      F
 //                      a
 //    u  i  i           c
