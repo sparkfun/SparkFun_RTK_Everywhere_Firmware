@@ -267,6 +267,92 @@ bool commandValid(char *commandString)
     return (true);
 }
 
+// Split a settingName into a truncatedName and a suffix
+void commandSplitName(const char * settingName,
+                      char * truncatedName,
+                      int truncatedNameLen,
+                      char * suffix,
+                      int suffixLen)
+{
+    // The settingName contains an underscore at the split point, search
+    // for the underscore, the truncatedName is on the left including
+    // the underscore and the suffix is on the right.
+    const char *underscore = strstr(settingName, "_");
+    if (underscore != nullptr)
+    {
+        // Underscore found, so truncate
+        int length = (underscore - settingName) / sizeof(char);
+        length++; // Include the underscore
+        if (length >= truncatedNameLen)
+            length = truncatedNameLen - 1;
+        strncpy(truncatedName, settingName, length);
+        truncatedName[length] = 0; // Manually NULL-terminate because length < strlen(settingName)
+        strncpy(suffix, &settingName[length], suffixLen - 1);
+        suffix[suffixLen - 1] = 0;
+    }
+    else
+    {
+        strncpy(truncatedName, settingName, truncatedNameLen - 1);
+        suffix[0] = 0;
+    }
+}
+
+// Lookup up setting name
+int commandLookupSettingName(const char * settingName,
+                             char * truncatedName,
+                             int truncatedNameLen,
+                             char * suffix,
+                             int suffixLen)
+{
+    const char * command;
+
+    // Loop through the valid command entries
+    for (int i = 0; i < commandCount; i++)
+    {
+        // Verify that this command does not get split
+        if ((commandIndex[i] >= 0)
+            && (!rtkSettingsEntries[commandIndex[i]].useSuffix))
+        {
+            command = commandGetName(0, commandIndex[i]);
+
+            // For speed, compare the first letter, then the whole string
+            if ((command[0] == settingName[0])
+                && (strcmp(command, settingName) == 0))
+            {
+                return commandIndex[i];
+            }
+        }
+    }
+
+    // Split a settingName into a truncatedName and a suffix
+    commandSplitName(settingName, truncatedName, truncatedNameLen,
+                     suffix, suffixLen);
+
+    // Loop through the settings entries
+    // TODO: make this faster
+    // E.g. by storing the previous value of i and starting there.
+    // Most of the time, the match will be i+1.
+    for (int i = 0; i < commandCount; i++)
+    {
+        // Verify that this command gets split
+        if ((commandIndex[i] >= 0)
+            && rtkSettingsEntries[commandIndex[i]].useSuffix)
+        {
+            command = commandGetName(0, commandIndex[i]);
+
+            // For speed, compare the first letter, then the whole string
+            if ((command[0] == truncatedName[0])
+                && (strcmp(command, truncatedName) == 0))
+            {
+                return commandIndex[i];
+            }
+        }
+    }
+
+    // Command not found
+    return COMMAND_UNKNOWN;
+}
+
 // Check for unknown variables
 bool commandCheckForUnknownVariable(const char * settingName,
                                     const char ** entry,
