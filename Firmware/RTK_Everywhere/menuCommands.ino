@@ -2487,6 +2487,29 @@ const char * commandGetName(int stringIndex, int rtkIndex)
     return "deviceId";
 }
 
+// Determine if the command is available on this platform
+bool commandAvailableOnPlatform(int i)
+{
+    do
+    {
+        // Determine if this command is supported by the command processor
+        if (rtkSettingsEntries[i].inCommands)
+        {
+            // Verify that the command is available on the platform
+            if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
+                break;
+            if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
+                break;
+            if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
+                break;
+            if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
+                break;
+        }
+        return false;
+    } while (0);
+    return true;
+}
+
 // Allocate and fill the commandIndex table
 bool commandIndexFill()
 {
@@ -2501,6 +2524,7 @@ bool commandIndexFill()
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
     {
+        if (commandAvailableOnPlatform(i))
             commandCount += 1;
     }
     commandCount += COMMAND_UNKNOWN - 1;
@@ -2518,6 +2542,7 @@ bool commandIndexFill()
     // Initialize commandIndex with index values into rtkSettingsEntries
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
+        if (commandAvailableOnPlatform(i))
             commandIndex[commandCount++] = i;
 
     // Add the man-machine interface commands to the list
