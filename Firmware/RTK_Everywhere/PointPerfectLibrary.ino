@@ -196,8 +196,8 @@ void beginPPL()
 void stopPPL()
 {
     // Stop task if running
-    if (task.gnssReadTaskRunning)
-        task.gnssReadTaskStopRequest = true;
+    if (task.updatePplTaskRunning)
+        task.updatePplTaskStopRequest = true;
 
     if (pplRtcmBuffer != nullptr)
     {
@@ -208,7 +208,7 @@ void stopPPL()
     // Wait for task to stop running
     do
         delay(10);
-    while (task.gnssReadTaskRunning);
+    while (task.updatePplTaskRunning);
 
     online.ppl = false;
 }
