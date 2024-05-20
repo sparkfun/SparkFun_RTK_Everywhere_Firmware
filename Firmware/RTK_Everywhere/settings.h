@@ -579,9 +579,9 @@ enum PeriodDisplayValues
 
 #define PERIODIC_MASK(x) (1ull << x)
 #define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_CLEAR(x) periodicDisplay &= ~PERIODIC_MASK(x)
+#define PERIODIC_CLEAR(x) periodicDisplay = periodicDisplay & ~PERIODIC_MASK(x)
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_TOGGLE(x) settings.periodicDisplay ^= PERIODIC_MASK(x)
+#define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
 #define INCHES_IN_A_METER       39.37009424
 
