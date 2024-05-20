@@ -938,9 +938,9 @@ void tickerStop()
     gnssLedTask.detach();
     batteryLedTask.detach();
 
-    ledcDetachPin(pin_bluetoothStatusLED);
-    ledcDetachPin(pin_gnssStatusLED);
-    ledcDetachPin(pin_batteryStatusLED);
+    ledcDetach(pin_bluetoothStatusLED);
+    ledcDetach(pin_gnssStatusLED);
+    ledcDetach(pin_batteryStatusLED);
 }
 
 // Configure the battery fuel gauge
