@@ -100,19 +100,15 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         }
         createSettingsString(settingsCSV);
 
-        webserver = new AsyncWebServer(httpPort);
+        webserver = new WebServer(httpPort);
+        // TODO: webserver = new WebServer(WiFi.localIP(), httpPort);
+        // TODO: webserver = new WebServer(ETH.localIP(), httpPort);
+
         if (!webserver)
         {
             systemPrintln("ERROR: Failed to allocate webserver");
             break;
         }
-        websocket = new AsyncWebSocket("/ws");
-        if (!websocket)
-        {
-            systemPrintln("ERROR: Failed to allocate websocket");
-            break;
-        }
-
         if (settings.enableCaptivePortal == true)
             webserver->addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // only when requested from AP
 
@@ -141,7 +137,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
         // * /file allows the download or deletion of a file
 
-        webserver->onNotFound(notFound);
+        webserver->onNotFound(notFound(webserver));
 
         webserver->onFileUpload(
             handleUpload); // Run handleUpload function when any file is uploaded. Must be before server.on() calls.
@@ -341,7 +337,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         });
 
         // Handler for file manager
-        webserver->on("/file", HTTP_GET, [](AsyncWebServerRequest *request) { handleFileManager(request); });
+        webserver->on("/file", HTTP_GET, [](WebServer *request) { handleFileManager(request); });
 
         webserver->begin();
 
@@ -365,12 +361,6 @@ void stopWebServer()
         webserver = nullptr;
     }
 
-    if (websocket != nullptr)
-    {
-        delete websocket;
-        websocket = nullptr;
-    }
-
     if (settingsCSV != nullptr)
     {
         free(settingsCSV);
@@ -388,7 +378,7 @@ void stopWebServer()
     reportHeapNow(false);
 }
 
-void notFound(AsyncWebServerRequest *request)
+void notFound(WebServer *request)
 {
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
     systemPrintln(logmessage);
@@ -396,7 +386,7 @@ void notFound(AsyncWebServerRequest *request)
 }
 
 // Handler for firmware file downloads
-static void handleFileManager(AsyncWebServerRequest *request)
+static void handleFileManager(WebServer *request)
 {
     // This section does not tolerate semaphore transactions
     String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
@@ -961,7 +951,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 
 void sendStringToWebsocket(char *stringToSend)
 {
-    websocket->textAll(stringToSend);
+    webserver->sendContent(stringToSend);
 }
 
 #endif // COMPILE_AP
