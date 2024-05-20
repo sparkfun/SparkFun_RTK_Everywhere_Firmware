@@ -354,20 +354,21 @@ void ethernetVerifyTables()
 void ethernetWebServerStartESP32W5500()
 {
     // Configure the W5500
-    // To be called before ETH.begin()
-    ESP32_W5500_onEvent();
+    // TODO
 
     // start the ethernet connection and the server:
     // Use DHCP dynamic IP
     // bool begin(int POCI_GPIO, int PICO_GPIO, int SCLK_GPIO, int CS_GPIO, int INT_GPIO, int SPI_CLOCK_MHZ,
     //            int SPI_HOST, uint8_t *W5500_Mac = W5500_Default_Mac, bool installIsrService = true);
-    ETH.begin(pin_POCI, pin_PICO, pin_SCK, pin_Ethernet_CS, pin_Ethernet_Interrupt, 25, SPI3_HOST, ethernetMACAddress);
+    // Old version: ETH.begin(pin_POCI, pin_PICO, pin_SCK, pin_Ethernet_CS, pin_Ethernet_Interrupt, 25, SPI3_HOST, ethernetMACAddress);
+    ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
 
     if (!settings.ethernetDHCP)
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
 
-    if (ETH.linkUp())
-        ESP32_W5500_waitForConnect();
+    // TODO
+    //if (ETH.linkUp())
+    //    ESP32_W5500_waitForConnect();
 }
 
 // Stop the Ethernet web server
