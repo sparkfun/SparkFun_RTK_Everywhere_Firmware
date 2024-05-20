@@ -759,8 +759,13 @@ bool checkPrivateKeyValidity(char *privateKey, int privateKeySize)
     mbedtls_pk_context pk;
     mbedtls_pk_init(&pk);
 
-    int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0);
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+
+    int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_pk_free(&pk);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    
     if (result_code < 0)
     {
         if (settings.debugPpCertificate)
