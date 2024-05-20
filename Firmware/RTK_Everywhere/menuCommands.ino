@@ -132,7 +132,7 @@ void menuCommands()
 
 // Given a command, send structured OK response
 // Ex: SPCMD = "$SPCMD,OK*61"
-void commandSendOkResponse(char *command)
+void commandSendOkResponse(const char *command)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -142,7 +142,7 @@ void commandSendOkResponse(char *command)
 
 // Given a command, send response sentence with OK and checksum and <CR><LR>
 // Ex: SPEXE,EXIT =
-void commandSendExecuteOkResponse(char *command, char *settingName)
+void commandSendExecuteOkResponse(const char *command, const char *settingName)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -152,7 +152,7 @@ void commandSendExecuteOkResponse(char *command, char *settingName)
 
 // Given a command, send response sentence with OK and checksum and <CR><LR>
 // Ex: observationPositionAccuracy,float,0.5 =
-void commandSendExecuteListResponse(const char *settingName, char *settingType, char *settingValue)
+void commandSendExecuteListResponse(const char *settingName, const char *settingType, const char *settingValue)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -162,7 +162,7 @@ void commandSendExecuteListResponse(const char *settingName, char *settingType, 
 
 // Given a command, and a value, send response sentence with checksum and <CR><LR>
 // Ex: SPGET,elvMask,0.25 = "$SPGET,elvMask,0.25*07"
-void commandSendValueResponse(char *command, char *settingName, char *valueBuffer)
+void commandSendValueResponse(const char *command, const char *settingName, const char *valueBuffer)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -172,7 +172,7 @@ void commandSendValueResponse(char *command, char *settingName, char *valueBuffe
 
 // Given a command, and a value, send response sentence with OK and checksum and <CR><LR>
 // Ex: SPSET,elvMask,0.77 = "$SPSET,elvMask,0.77,OK*3C"
-void commandSendValueOkResponse(char *command, char *settingName, char *valueBuffer)
+void commandSendValueOkResponse(const char *command, const char *settingName, const char *valueBuffer)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -183,7 +183,7 @@ void commandSendValueOkResponse(char *command, char *settingName, char *valueBuf
 // Given a command, send structured ERROR response
 // Response format: $SPxET,[setting name],,ERROR,[Verbose error description]*FF<CR><LF>
 // Ex: SPGET,maxHeight,'Unknown setting' = "$SPGET,maxHeight,,ERROR,Unknown setting*58"
-void commandSendErrorResponse(char *command, char *settingName, char *errorVerbose)
+void commandSendErrorResponse(const char *command, const char *settingName, const char *errorVerbose)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -193,7 +193,7 @@ void commandSendErrorResponse(char *command, char *settingName, char *errorVerbo
 // Given a command, send structured ERROR response
 // Response format: $SPxET,,,ERROR,[Verbose error description]*FF<CR><LF>
 // Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
-void commandSendErrorResponse(char *command, char *errorVerbose)
+void commandSendErrorResponse(const char *command, const char *errorVerbose)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
@@ -203,7 +203,7 @@ void commandSendErrorResponse(char *command, char *errorVerbose)
 
 // Given an inner buffer, send response sentence with checksum and <CR><LR>
 // Ex: SPGET,elvMask,0.25 = $SPGET,elvMask,0.25*07
-void commandSendResponse(char *innerBuffer)
+void commandSendResponse(const char *innerBuffer)
 {
     char responseBuffer[200];
 
