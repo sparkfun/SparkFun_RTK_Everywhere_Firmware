@@ -78,7 +78,7 @@ class BluetoothSerial: public Stream
         void discoverClear();
         BTScanResults* getScanResults();
         
-        std::map<int, std::string> getChannels(const BTAddress &remoteAddress);
+        std::map<int, String> getChannels(const BTAddress &remoteAddress);
 
         const int INQ_TIME = 1280;   // Inquire Time unit 1280 ms
         const int MIN_INQ_TIME = (ESP_BT_GAP_MIN_INQ_LEN * INQ_TIME);

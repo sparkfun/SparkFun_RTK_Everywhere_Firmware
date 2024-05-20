@@ -26,7 +26,7 @@ BTAdvertisedDeviceSet::BTAdvertisedDeviceSet() {
 
 BTAddress   BTAdvertisedDeviceSet::getAddress()    { return m_address; }
 uint32_t    BTAdvertisedDeviceSet::getCOD() const       { return m_cod; }
-std::string BTAdvertisedDeviceSet::getName() const      { return m_name; }
+String BTAdvertisedDeviceSet::getName() const      { return m_name; }
 int8_t      BTAdvertisedDeviceSet::getRSSI() const	    { return m_rssi; }
 
 
@@ -38,8 +38,8 @@ bool        BTAdvertisedDeviceSet::haveRSSI() const { return m_haveRSSI; }
  * @brief Create a string representation of this device.
  * @return A string representation of this device.
  */
-std::string BTAdvertisedDeviceSet::toString() {
-	std::string res = "Name: " + getName() + ", Address: " + std::string(getAddress().toString().c_str(), getAddress().toString().length());
+String BTAdvertisedDeviceSet::toString() {
+	String res = "Name: " + getName() + ", Address: " + String(getAddress().toString().c_str(), getAddress().toString().length());
 	if (haveCOD()) {
 		char val[6];
 		snprintf(val, sizeof(val), "%d", getCOD());
@@ -65,7 +65,7 @@ void BTAdvertisedDeviceSet::setCOD(uint32_t cod) {
 	m_haveCOD = true;
 }
 
-void BTAdvertisedDeviceSet::setName(std::string name) {
+void BTAdvertisedDeviceSet::setName(String name) {
     m_name     = name;
 	m_haveName = true;
 }
