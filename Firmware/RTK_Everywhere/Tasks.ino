@@ -704,12 +704,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         else
             systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
         updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
-        availableHandlerSpace += discardedBytes;
+        availableHandlerSpace = availableHandlerSpace + discardedBytes;
     }
 
     // Add another message to the ring buffer
     // Account for this message
-    availableHandlerSpace -= bytesToCopy;
+    availableHandlerSpace = availableHandlerSpace - bytesToCopy;
 
     // Fill the buffer to the end and then start at the beginning
     if ((dataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
@@ -721,9 +721,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Copy the data into the ring buffer
     memcpy(&ringBuffer[dataHead], parse->buffer, bytesToCopy);
-    dataHead += bytesToCopy;
+    dataHead = dataHead + bytesToCopy;
     if (dataHead >= settings.gnssHandlerBufferSize)
-        dataHead -= settings.gnssHandlerBufferSize;
+        dataHead = dataHead - settings.gnssHandlerBufferSize;
 
     // Determine the remaining bytes
     remainingBytes = parse->length - bytesToCopy;
@@ -731,9 +731,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Copy the remaining bytes into the beginning of the ring buffer
         memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
-        dataHead += remainingBytes;
+        dataHead = dataHead + remainingBytes;
         if (dataHead >= settings.gnssHandlerBufferSize)
-            dataHead -= settings.gnssHandlerBufferSize;
+            dataHead = dataHead - settings.gnssHandlerBufferSize;
     }
 
     // Add the head offset to the offset array
