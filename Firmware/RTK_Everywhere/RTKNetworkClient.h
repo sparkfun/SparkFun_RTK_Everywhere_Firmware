@@ -384,9 +384,9 @@ class NetworkSecureWiFiClient : public RTKNetworkClient
         }
     */
 
-    int setTimeout(uint32_t seconds)
+    void setTimeout(uint32_t seconds)
     {
-        return _client.setTimeout(seconds);
+        _client.setTimeout(seconds);
     }
 
     int fd() const
