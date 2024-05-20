@@ -421,13 +421,8 @@ SFE_MAX1704X lipo(MAX1704X_MAX17048);
 BQ40Z50 *bq40z50Battery;
 #endif // COMPILE_BQ40Z50
 
-// RTK LED PWM properties
+// RTK LED PWM (LEDC) properties
 const int pwmFreq = 5000;
-const int ledRedChannel = 0;
-const int ledGreenChannel = 1;
-const int ledBtChannel = 2;
-const int ledGnssChannel = 3;
-const int ledBatteryChannel = 4;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;

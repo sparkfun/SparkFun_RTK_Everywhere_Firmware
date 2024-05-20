@@ -1182,7 +1182,7 @@ void tickerBluetoothLedUpdate()
         if (btFadeLevel < 0)
             btFadeLevel = 0;
 
-        ledcWrite(ledBtChannel, btFadeLevel);
+        ledcWrite(pin_bluetoothStatusLED, btFadeLevel);
     }
     // Blink on/off while we wait for BT connection
     else if (bluetoothGetState() == BT_NOTCONNECTED)
@@ -1191,13 +1191,13 @@ void tickerBluetoothLedUpdate()
             btFadeLevel = 255;
         else
             btFadeLevel = 0;
-        ledcWrite(ledBtChannel, btFadeLevel);
+        ledcWrite(pin_bluetoothStatusLED, btFadeLevel);
     }
     // Solid LED if BT Connected
     else if (bluetoothGetState() == BT_CONNECTED)
-        ledcWrite(ledBtChannel, 255);
+        ledcWrite(pin_bluetoothStatusLED, 255);
     else
-        ledcWrite(ledBtChannel, 0);
+        ledcWrite(pin_bluetoothStatusLED, 0);
 }
 
 // Control GNSS LED on variants
@@ -1215,11 +1215,11 @@ void tickerGnssLedUpdate()
         // Solid once RTK Fix is achieved, or PPP converges
         if (gnssIsRTKFix() == true || gnssIsPppConverged())
         {
-            ledcWrite(ledGnssChannel, 255);
+            ledcWrite(pin_gnssStatusLED, 255);
         }
         else
         {
-            ledcWrite(ledGnssChannel, 0);
+            ledcWrite(pin_gnssStatusLED, 0);
         }
     }
 }
@@ -1239,15 +1239,15 @@ void tickerBatteryLedUpdate()
         // Solid LED when fuel level is above 50%
         if (batteryLevelPercent > 50)
         {
-            ledcWrite(ledBatteryChannel, 255);
+            ledcWrite(pin_batteryStatusLED, 255);
         }
         // Blink a short blink to indicate battery is depleting
         else
         {
             if (batteryCallCounter == (batteryTaskUpdatesHz / 10)) // On for 1/10th of a second
-                ledcWrite(ledBatteryChannel, 255);
+                ledcWrite(pin_batteryStatusLED, 255);
             else
-                ledcWrite(ledBatteryChannel, 0);
+                ledcWrite(pin_batteryStatusLED, 0);
         }
     }
 }
