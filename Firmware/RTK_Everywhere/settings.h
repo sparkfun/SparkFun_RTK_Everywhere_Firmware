@@ -1318,6 +1318,7 @@ struct Settings
     bool enableGalileoHas = true; // Allow E6 corrections if possible
 
     bool enableGnssToUsbSerial = false;
+    uint16_t pplFixTimeoutS = 180; // Number of seconds of no RTK fix when using PPL before resetting GNSS
 
     // Add new settings above <------------------------------------------------------------>
     // Then also add to rtkSettingsEntries below
@@ -1620,6 +1621,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
     { & settings.enableGalileoHas, "enableGalileoHas", _bool, 0, false, true, true },
 
     { & settings.enableGnssToUsbSerial, "enableGnssToUsbSerial", _bool, 0, false, true, true },
+    { & settings.pplFixTimeoutS, "pplFixTimeoutS", _uint16_t, 0, false, true, true },
 
     // Add new settings above <------------------------------------------------------------>
     /*
@@ -1711,8 +1713,15 @@ struct struct_online
     bool bluetooth = false;
     bool mqttClient = false;
     bool psram = false;
-    volatile bool gnssUartPinned = false;
-    volatile bool i2cPinned = false;
+    bool ppl = false;
+    bool batteryCharger = false;
+} online;
+
+// Monitor which tasks are running.
+struct struct_tasks
+{
+    volatile bool gnssUartPinnedTaskRunning = false;
+    volatile bool i2cPinnedTaskRunning = false;
     volatile bool btReadTaskRunning = false;
     volatile bool buttonCheckTaskRunning = false;
     volatile bool gnssReadTaskRunning = false;
@@ -1721,9 +1730,14 @@ struct struct_online
     volatile bool idleTask1Running = false;
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
-    bool ppl = false;
-    bool batteryCharger = false;
-} online;
+
+    bool btReadTaskStopRequest = false;
+    bool buttonCheckTaskStopRequest = false;
+    bool gnssReadTaskStopRequest = false;
+    bool handleGnssDataTaskStopRequest = false;
+    bool sdSizeCheckTaskStopRequest = false;
+    bool updatePplTaskStopRequest = false;
+} task;
 
 #ifdef COMPILE_WIFI
 // AWS certificate for PointPerfect API

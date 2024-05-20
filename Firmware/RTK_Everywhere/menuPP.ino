@@ -1396,7 +1396,7 @@ void menuPointPerfect()
         systemPrintln("Menu: PointPerfect Corrections");
 
         if (settings.debugCorrections == true)
-            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, lbandRestarts);
+            systemPrintf("Time to first RTK Fix: %ds Restarts: %d\r\n", rtkTimeToFixMs / 1000, floatLockRestarts);
 
         if (settings.debugCorrections == true)
             systemPrintf("settings.pointPerfectKeyDistributionTopic: %s\r\n",
@@ -1590,11 +1590,14 @@ bool pointPerfectIsEnabled()
 // Process any new L-Band from I2C
 void updateLBand()
 {
+    static unsigned long lbandLastReport;
+    static unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
+
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
     {
-        //if (settings.debugCorrections == true)
-        //    systemPrintln("configureViaEthernet: skipping updateLBand");
+        // if (settings.debugCorrections == true)
+        //     systemPrintln("configureViaEthernet: skipping updateLBand");
         return;
     }
 
@@ -1609,14 +1612,18 @@ void updateLBand()
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (systemState == STATE_ROVER_RTK_FLOAT)
+        if (gnssIsRTKFloat())
         {
+            if (lbandTimeFloatStarted == 0)
+                lbandTimeFloatStarted = millis();
+
             if (millis() - lbandLastReport > 1000)
             {
                 lbandLastReport = millis();
 
                 if (settings.debugCorrections == true)
-                    systemPrintf("ZED restarts: %d Time remaining before L-Band forced restart: %ds\r\n", lbandRestarts,
+                    systemPrintf("ZED restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                                 floatLockRestarts,
                                  settings.lbandFixTimeout_seconds - ((millis() - lbandTimeFloatStarted) / 1000));
             }
 
@@ -1624,7 +1631,7 @@ void updateLBand()
             {
                 if ((millis() - lbandTimeFloatStarted) > (settings.lbandFixTimeout_seconds * 1000L))
                 {
-                    lbandRestarts++;
+                    floatLockRestarts++;
 
                     lbandTimeFloatStarted =
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
@@ -1633,15 +1640,22 @@ void updateLBand()
                     theGNSS->softwareResetGNSSOnly();
 
                     if (settings.debugCorrections == true)
-                        systemPrintf("Restarting ZED. Number of L-Band restarts: %d\r\n", lbandRestarts);
+                        systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
                 }
             }
         }
         else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
         {
+            lbandTimeFloatStarted = 0; //Restart timer in case we drop from RTK Fix
+
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)
                 systemPrintf("Time to first RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+        }
+        else
+        {
+            // We are not in float or fix, so restart timer
+            lbandTimeFloatStarted = 0;
         }
     }
 

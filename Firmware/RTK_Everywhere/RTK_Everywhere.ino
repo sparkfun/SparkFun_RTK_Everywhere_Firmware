@@ -757,10 +757,8 @@ correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is fee
 //  This is to allow SparkFun_WebServer_ESP32_W5500 to have _exclusive_ access to WiFi, SPI and Interrupts.
 bool configureViaEthernet;
 
-unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
-int lbandRestarts;
+int floatLockRestarts;
 unsigned long rtkTimeToFixMs;
-unsigned long lbandLastReport;
 
 volatile PeriodicDisplay_t periodicDisplay;
 
