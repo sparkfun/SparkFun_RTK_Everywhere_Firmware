@@ -222,10 +222,8 @@ void updatePPL()
 
     static unsigned long pplTimeFloatStarted; // Monitors when the PPL got first RTK Float.
 
-    // During float lock, the PPL has been seen to drop to 3D fix for a few seconds before changing back to
-    // RTK float. pplTime3dFixStarted is used as a sort of hysteresis detection.
-    // If (millis() - pplTime3dFixStarted > 5000) then we are truly out of RTK Float and pplTimeFloatStarted should
-    // be reset. If we are in RTK Float, reset pplTime3dFixStarted to zero.
+    // During float lock, the PPL has been seen to drop to 3D fix so once pplTimeFloatStarted
+    // is started, we do not reset it unless a 3D fix is lost.
 
     static unsigned long pplTime3dFixStarted;
 
@@ -252,7 +250,7 @@ void updatePPL()
             {
                 pplReport = millis();
 
-                if (systemState == STATE_ROVER_RTK_FLOAT && pplTimeFloatStarted > 0)
+                if (gnssIsRTKFloat() && pplTimeFloatStarted > 0)
                 {
                     systemPrintf("GNSS restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
                                  floatLockRestarts,
@@ -267,12 +265,9 @@ void updatePPL()
             }
         }
 
-        if (systemState == STATE_ROVER_RTK_FLOAT)
+        if (gnssIsRTKFloat())
         {
-            if (pplTime3dFixStarted != 0)
-                pplTime3dFixStarted = 0; // Reset pplTimeFixStarted
-
-            if(pplTimeFloatStarted == 0)
+            if (pplTimeFloatStarted == 0)
                 pplTimeFloatStarted = millis();
 
             if (settings.pplFixTimeoutS > 0)
@@ -292,30 +287,28 @@ void updatePPL()
                 }
             }
         }
-        else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        else if (gnssIsRTKFix())
         {
-            if (pplTime3dFixStarted != 0)
-                pplTime3dFixStarted = 0; // Reset pplTimeFixStarted
+            if (pplTimeFloatStarted != 0)
+                pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted
 
-            if(pplTimeFloatStarted != 0)
-                pplTimeFloatStarted = 0; //Reset pplTimeFloatStarted
+            if (rtkTimeToFixMs == 0)
+                rtkTimeToFixMs = millis();
 
-            rtkTimeToFixMs = millis();
-            if (settings.debugCorrections == true)
-                systemPrintf("Time to first PPL RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+            if (millis() - pplReport > 5000)
+            {
+                pplReport = millis();
+
+                if (settings.debugCorrections == true)
+                    systemPrintf("Time to first PPL RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+            }
         }
         else
         {
             // We are not in RTK Float or RTK Fix
-            if (pplTime3dFixStarted == 0)
-                pplTime3dFixStarted = millis();
 
-            // If (millis() - pplTime3dFixStarted > 5000) then we are truly out of RTK Float and pplTimeFloatStarted
-            // should be reset. If we are in RTK Float, reset pplTime3dFixStarted to zero.
-            if (millis() - pplTime3dFixStarted > 5000)
-            {
-                pplTimeFloatStarted = 0;
-            }
+            if (gnssIsFixed() == false)
+                pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted if we loose a 3D fix entirely
         }
     }
 
