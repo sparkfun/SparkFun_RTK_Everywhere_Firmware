@@ -76,7 +76,7 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
-static derivedEthernetUDP *ntpServer; // This will be instantiated when we know the NTP port
+static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
 static volatile uint8_t
     ntpSockIndex; // The W5500 socket index for NTP - so we can enable and read the correct interrupt
@@ -844,17 +844,18 @@ void ntpServerUpdate()
         // Attempt to start the NTP server
         else
         {
-            ntpServer = new derivedEthernetUDP;
+            ntpServer = new NetworkUDP;
             if (!ntpServer)
                 // Insufficient memory to start the NTP server
                 ntpServerStop();
             else
             {
                 // Start the NTP server
-                ntpServer->begin(settings.ethernetNtpPort);
-                ntpSockIndex = ntpServer->getSockIndex(); // Get the socket index
-                w5500ClearSocketInterrupts();             // Clear all interrupts
-                w5500EnableSocketInterrupt(ntpSockIndex); // Enable the RECV interrupt for the desired socket index
+                // TODO
+                //ntpServer->begin(settings.ethernetNtpPort);
+                //ntpSockIndex = ntpServer->getSockIndex(); // Get the socket index
+                //w5500ClearSocketInterrupts();             // Clear all interrupts
+                //w5500EnableSocketInterrupt(ntpSockIndex); // Enable the RECV interrupt for the desired socket index
                 online.ethernetNTPServer = true;
                 if (!inMainMenu)
                     reportHeapNow(settings.debugNtp);

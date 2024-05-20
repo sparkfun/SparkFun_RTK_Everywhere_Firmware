@@ -27,7 +27,7 @@ class RTKNetworkClient : public Client
         _networkType = networkGetType(user);
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            _client = new EthernetClient;
+            _client = new NetworkClient;
         else
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
@@ -161,7 +161,7 @@ class RTKNetworkClient : public Client
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetClient *)_client)->remoteIP();
+            return ((NetworkClient *)_client)->remoteIP();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -178,7 +178,7 @@ class RTKNetworkClient : public Client
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetClient *)_client)->remotePort();
+            return ((NetworkClient *)_client)->remotePort();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -243,14 +243,14 @@ class RTKNetworkClient : public Client
 class NetworkEthernetClient : public RTKNetworkClient
 {
   private:
-    EthernetClient _ethernetClient;
+    NetworkClient _ethernetClient;
 
   public:
     NetworkEthernetClient() : RTKNetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
     {
     }
 
-    NetworkEthernetClient(EthernetClient &client)
+    NetworkEthernetClient(NetworkClient &client)
         : _ethernetClient{client}, RTKNetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
     {
     }

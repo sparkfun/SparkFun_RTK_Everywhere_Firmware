@@ -555,7 +555,7 @@ void overTheAirUpdate()
         {
 #ifdef COMPILE_AP
             // Tell AP page to display reset info
-            websocket->textAll("confirmReset,1,");
+            sendStringToWebsocket((char *)"confirmReset,1,");
 #endif // COMPILE_AP
         }
         ESP.restart();
@@ -623,7 +623,7 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 #ifdef COMPILE_AP
             char myProgress[50];
             snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
-            websocket->textAll(myProgress);
+            sendStringToWebsocket((char *)myProgress);
 #endif // COMPILE_AP
         }
 

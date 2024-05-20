@@ -29,7 +29,7 @@ class RTKNetworkUDP : public UDP
         _networkType = networkGetType(user);
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            _udp = new EthernetUDP;
+            _udp = new NetworkUDP;
         else
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
@@ -223,7 +223,7 @@ class RTKNetworkUDP : public UDP
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetUDP *)_udp)->remoteIP();
+            return ((NetworkUDP *)_udp)->remoteIP();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -240,7 +240,7 @@ class RTKNetworkUDP : public UDP
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetUDP *)_udp)->remotePort();
+            return ((NetworkUDP *)_udp)->remotePort();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -264,11 +264,11 @@ class NetworkEthernetUdp : public RTKNetworkUDP
 {
   private:
 
-    EthernetUDP _udp;
+    NetworkUDP _udp;
 
   public:
 
-    NetworkEthernetUdp(EthernetUDP& udp) :
+    NetworkEthernetUdp(NetworkUDP& udp) :
         _udp{udp},
         RTKNetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
     {

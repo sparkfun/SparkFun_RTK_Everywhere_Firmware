@@ -76,9 +76,11 @@
 //#include <string.h>
 #include <string>
 
+#include <NetworkClient.h>
+#include <NetworkUdp.h>
+
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>
-#include <Ethernet.h>                       // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
 #endif                                      // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
@@ -559,11 +561,10 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
-#include "ESPAsyncWebServer.h" //Get from: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
+#include "WebServer.h"
 #include "form.h"
 
-AsyncWebServer *webserver;
-AsyncWebSocket *websocket;
+WebServer *webserver;
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
@@ -615,18 +616,20 @@ IPAddress ethernetDNS;
 IPAddress ethernetGateway;
 IPAddress ethernetSubnetMask;
 
-class derivedEthernetUDP : public EthernetUDP
-{
-  public:
-    uint8_t getSockIndex()
-    {
-        return sockindex; // sockindex is protected in EthernetUDP. A derived class can access it.
-    }
-};
+// TODO
+// class derivedEthernetUDP : public EthernetUDP
+// {
+//   public:
+//     uint8_t getSockIndex()
+//     {
+//         return sockindex; // sockindex is protected in EthernetUDP. A derived class can access it.
+//     }
+// };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
 #endif // COMPILE_ETHERNET
 
+static bool eth_connected = false;
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

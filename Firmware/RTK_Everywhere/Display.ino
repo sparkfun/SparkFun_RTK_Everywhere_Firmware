@@ -1801,7 +1801,7 @@ void paintIPAddress()
     char ipAddress[32];
     snprintf(ipAddress, sizeof(ipAddress), "       %d.%d.%d.%d       ",
 #ifdef COMPILE_ETHERNET
-             Ethernet.localIP()[0], Ethernet.localIP()[1], Ethernet.localIP()[2], Ethernet.localIP()[3]);
+             ETH.localIP()[0], ETH.localIP()[1], ETH.localIP()[2], ETH.localIP()[3]);
 #else  // COMPILE_ETHERNET
              0, 0, 0, 0);
 #endif // COMPILE_ETHERNET

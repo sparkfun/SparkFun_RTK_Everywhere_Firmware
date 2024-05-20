@@ -98,8 +98,8 @@ void menuSystem()
 #ifdef COMPILE_ETHERNET
         if (present.ethernet_ws5500 == true)
         {
-            systemPrint("Ethernet cable: ");
-            if (Ethernet.linkStatus() == LinkON)
+            systemPrint("Ethernet: ");
+            if (eth_connected)
                 systemPrintln("connected");
             else
                 systemPrintln("disconnected");
@@ -107,7 +107,7 @@ void menuSystem()
             systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
                          ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
             systemPrint("Ethernet IP Address: ");
-            systemPrintln(Ethernet.localIP());
+            systemPrintln(ETH.localIP());
             if (!settings.ethernetDHCP)
             {
                 systemPrint("Ethernet DNS: ");

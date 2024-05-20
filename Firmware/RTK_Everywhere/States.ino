@@ -474,7 +474,7 @@ void stateUpdate()
                     createDynamicDataString(settingsCSV);
 
                     // log_d("Sending coordinates: %s", settingsCSV);
-                    websocket->textAll(settingsCSV);
+                    sendStringToWebsocket((char *)settingsCSV);
                 }
             }
 #endif // COMPILE_AP
@@ -947,7 +947,7 @@ void stateUpdate()
                     createDynamicDataString(settingsCSV);
 
                     // log_d("Sending coordinates: %s", settingsCSV);
-                    websocket->textAll(settingsCSV);
+                    sendStringToWebsocket((char *)settingsCSV);
                 }
             }
 #endif // COMPILE_AP
