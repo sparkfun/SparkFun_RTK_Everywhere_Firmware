@@ -2513,7 +2513,11 @@ const char * commandGetName(int stringIndex, int rtkIndex)
 bool commandIndexFill()
 {
     int i;
+    const char * iCommandName;
+    int j;
+    const char * jCommandName;
     int length;
+    int16_t temp;
 
     // Count the commands
     commandCount = 0;
@@ -2541,6 +2545,29 @@ bool commandIndexFill()
     // Add the man-machine interface commands to the list
     for (i = 1; i < COMMAND_UNKNOWN; i++)
         commandIndex[commandCount++] = -i;
+
+    // Sort the commands
+    for (i = 0; i < commandCount - 1; i++)
+    {
+        iCommandName = commandGetName(0, commandIndex[i]);
+        for (j = i + 1; j < commandCount; j++)
+        {
+            jCommandName = commandGetName(1, commandIndex[j]);
+
+            //Determine if the commands are out of order
+            if (strncasecmp(iCommandName, jCommandName, strlen(iCommandName) + 1) > 0)
+            {
+                // Out of order, switch the two entries
+                temp = commandIndex[i];
+                commandIndex[i] = commandIndex[j];
+                commandIndex[j] = temp;
+
+                // Get the updated names
+                iCommandName = commandGetName(0, commandIndex[i]);
+                jCommandName = commandGetName(1, commandIndex[j]);
+            }
+        }
+    }
     return true;
 }
 
