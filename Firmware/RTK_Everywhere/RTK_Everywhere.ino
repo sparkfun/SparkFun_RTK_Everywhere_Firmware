@@ -71,6 +71,11 @@
 
 #define NTRIP_SERVER_MAX 4
 
+#include <Arduino.h>
+#include <stdlib.h>
+//#include <string.h>
+#include <string>
+
 #ifdef COMPILE_ETHERNET
 #include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
 #include <Ethernet.h>                       // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
