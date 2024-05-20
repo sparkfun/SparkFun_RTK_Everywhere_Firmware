@@ -218,7 +218,7 @@ bool     um980IsValidTime() {return false;}
 void     um980PrintInfo() {}
 int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
 bool     um980SaveConfiguration() {}
-void     um980SetBaudRateCOM3(uint32_t baudRate) {}
+bool     um980SetBaudRateCOM3(uint32_t baudRate) {}
 bool     um980SetConstellations() {return false;}
 void     um980SetMinCNO(uint8_t cnoValue) {}
 void     um980SetMinElevation(uint8_t elevationDegrees) {}
