@@ -1,38 +1,43 @@
 // Given a settingName, and string value, update a given setting
-bool updateSettingWithValue(const char *settingName, const char *settingValueStr)
+GetSettingValueResponse updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
-  char *ptr;
-  double settingValue = strtod(settingValueStr, &ptr);
-
   bool knownSetting = false;
-
-  if (strcmp(settingValueStr, "true") == 0)
-    settingValue = 1;
-  if (strcmp(settingValueStr, "false") == 0)
-    settingValue = 0;
+  bool settingIsString = false;
 
   if (strcmp(settingName, "elvMask") == 0)
   {
     //settings.elvMask = value
     knownSetting = true;
   }
+  else if (strcmp(settingName, "ntripClientCasterUserPW") == 0)
+  {
+    //Serial.printf("New password: '%s'\r\n", settingValueStr);
+    settingIsString = true;
+    knownSetting = true;
+  }
 
-  return (knownSetting);
+  if (knownSetting == true && settingIsString == true)
+    return (GET_SETTING_KNOWN_STRING);
+  else if (knownSetting == true)
+    return (GET_SETTING_KNOWN);
+
+  return (GET_SETTING_UNKNOWN);
 }
 
 bool getSettingValue(const char *settingName, char *settingValueStr)
 {
   bool knownSetting = false;
 
-  char truncatedName[51];
-  char suffix[51];
-
   if (strcmp(settingName, "elvMask") == 0)
   {
     sprintf(settingValueStr, "%0.2f", 0.25);
     knownSetting = true;
   }
+  else if (strcmp(settingName, "ntripClientCasterUserPW") == 0)
+  {
+    sprintf(settingValueStr, "%s", (char*)"\"my,long wifi password with a comma to push 50 char\"");
+    knownSetting = true;
+  }
 
   return (knownSetting);
-
 }

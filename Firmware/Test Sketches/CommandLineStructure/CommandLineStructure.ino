@@ -2,126 +2,192 @@
   Demonstration of the command line interface as specified by Avinan Malla
 */
 
-int pin_UART1_TX = 4;
-int pin_UART1_RX = 13;
-
-const uint16_t bufferLen = 1024;
-char cmdBuffer[bufferLen];
+typedef enum
+{
+  GET_SETTING_UNKNOWN = 0,
+  GET_SETTING_KNOWN,
+  GET_SETTING_KNOWN_STRING,
+} GetSettingValueResponse;
 
 void setup()
 {
   Serial.begin(115200);
+  while (!Serial);
   delay(250);
   Serial.println();
   Serial.println("SparkFun Command Line Interface Tests");
 
+  const uint16_t bufferLen = 1024;
+  char cmdBuffer[bufferLen];
+
   sprintf(cmdBuffer, "$CMD*4A"); //Bad command
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Unknown command) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPCMD*AA"); //Bad checksum
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Bad checksum) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPCMD*49"); //Valid command
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   Serial.println();
 
-  sprintf(cmdBuffer, "$SPGET,elvMask,15*1A"); //Bad command
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  sprintf(cmdBuffer, "$SPGET,elvMask,15*1A"); //Too many arguments
+  Serial.printf("command: %s (Too many arguments) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPGET*55"); //Bad command
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Missing command) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
-  sprintf(cmdBuffer, "$SPGET,maxHeight*0F"); //Unknown setting
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  sprintf(cmdBuffer, "$SPGET,maxHeight*32"); //Unknown setting
+  Serial.printf("command: %s (Unknown setting) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPGET,elvMask*32"); //Valid command
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPSET,elvMask*26"); //Incorrect number of arguments
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Wrong number of arguments) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
-  sprintf(cmdBuffer, "$SPSET,maxHeight,15*33"); //Unknown setting
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  sprintf(cmdBuffer, "$SPSET,maxHeight,15*0E"); //Unknown setting
+  Serial.printf("command: %s (Unknown setting) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"casterPW*3A"); //Missing closing quote
+  Serial.printf("command: %s (Missing quote) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPSET,elvMask,0.77*14"); //Valid
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"my,long wifi password with a comma to push 50 char\"*07"); //Valid, with internal commas
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"my password with a \\\" in it\"*01"); //Valid, with quotes
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPEXE*5B"); //Incorrect number of arguments
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Wrong number of arguments) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
-  sprintf(cmdBuffer, "$SPEXE,maxHeight*01"); //Unknown command
-  Serial.printf("command: %s (BAD) - ", cmdBuffer);
-  commandParser();
+  sprintf(cmdBuffer, "$SPEXE,maxHeight*3C"); //Unknown command
+  Serial.printf("command: %s (Unknown command) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPEXE,EXIT*77"); //Valid
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPEXE,APPLY*23"); //Valid
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPEXE,SAVE*76"); //Valid
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 
   sprintf(cmdBuffer, "$SPEXE,REBOOT*76"); //Valid
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
-  
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
   sprintf(cmdBuffer, "$SPEXE,LIST*75"); //Valid
-  Serial.printf("command: %s (GOOD) - ", cmdBuffer);
-  commandParser();
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
 }
 
-void commandParser()
+void commandParser(char *cmdBuffer)
 {
   //Verify command structure
   if (commandValid(cmdBuffer) == false)
   {
-    commandSendErrorResponse("SP", "Bad command structure");
+    commandSendErrorResponse((char*)"SP", (char*)"Bad command structure or checksum");
     return;
   }
 
   //Remove $
-  char *command = cmdBuffer + 1;
+  cmdBuffer = &cmdBuffer[1];
 
-  //Remove * and CRC
-  command[strlen(command) - 3] = '\0';
+  //Change * to , and null terminate on the first CRC character
+  cmdBuffer[strlen(cmdBuffer) - 3] = ',';
+  cmdBuffer[strlen(cmdBuffer) - 2] = '\0';
 
-  const uint16_t bufferLen = 1024;
   const int MAX_TOKENS = 10;
   char valueBuffer[100];
-  char responseBuffer[200];
 
   char *tokens[MAX_TOKENS];
-  const char *delimiter = ",";
   int tokenCount = 0;
-  tokens[tokenCount] = strtok(command, delimiter);
+  int originalLength = strlen(cmdBuffer);
 
-  while (tokens[tokenCount] != nullptr && tokenCount < MAX_TOKENS)
+  //We can't use strtok because there may be ',' inside of settings (ie, wifi password: "hello,world")
+
+  tokens[tokenCount++] = &cmdBuffer[0]; //Point at first token
+
+  bool inQuote = false;
+  bool inEscape = false;
+  for (int spot = 0; spot < originalLength ; spot++)
   {
-    tokenCount++;
-    tokens[tokenCount] = strtok(nullptr, delimiter);
+    if (cmdBuffer[spot] == ',' && inQuote == false)
+    {
+      if (spot < (originalLength - 1))
+      {
+        cmdBuffer[spot++] = '\0';
+        tokens[tokenCount++] = &cmdBuffer[spot];
+      }
+      else
+        cmdBuffer[spot] = '\0';
+
+      if (inEscape == true)
+        inEscape = false;
+    }
+
+    //Handle escape chacters and quotes
+    if (cmdBuffer[spot] == '\\' && inEscape == false)
+    {
+      //Ignore next character from quote checks
+      inEscape = true;
+    }
+    else if (cmdBuffer[spot] == '\"' && inEscape == true)
+      inEscape = false;
+    else if (cmdBuffer[spot] == '\"' && inQuote == false && inEscape == false)
+      inQuote = true;
+    else if (cmdBuffer[spot] == '\"' && inQuote == true)
+      inQuote = false;
   }
-  //  if (tokenCount == 0)
-  //    continue;
+
+  if (inQuote == true)
+  {
+    commandSendErrorResponse((char*)"SP", (char*)"Unclosed quote");
+    return;
+  }
+
+  //Trim surrounding quotes from any token
+  for (int x = 0 ; x < tokenCount ; x++)
+  {
+    //Remove leading "
+    if (tokens[x][0] == '"')
+      tokens[x] = &tokens[x][1];
+
+    //Remove trailing "
+    if (tokens[x][strlen(tokens[x]) - 1] == '"')
+      tokens[x][strlen(tokens[x]) - 1] = '\0';
+  }
+
+  //  Serial.printf("Token count: %d\r\n", tokenCount);
+  //  Serial.printf("Token[0]: %s\r\n", tokens[0]);
+  //  Serial.printf("Token[1]: %s\r\n", tokens[1]);
+  //  Serial.println();
 
   //Valid commands: CMD, GET, SET, EXE,
 
@@ -132,34 +198,38 @@ void commandParser()
   else if (strcmp(tokens[0], "SPGET") == 0)
   {
     if (tokenCount != 2)
-      commandSendErrorResponse(tokens[0], "Incorrect number of arguments");
+      commandSendErrorResponse(tokens[0], (char*)"Incorrect number of arguments");
     else
     {
       auto field = tokens[1];
       if (getSettingValue(field, valueBuffer) == true)
         commandSendValueResponse(tokens[0], field, valueBuffer); //Send structured response
       else
-        commandSendErrorResponse(tokens[0], field, "Unknown setting");
+        commandSendErrorResponse(tokens[0], (char*)"Unknown setting");
     }
   }
   else if (strcmp(tokens[0], "SPSET") == 0)
   {
     if (tokenCount != 3)
-      commandSendErrorResponse(tokens[0], "Incorrect number of arguments"); //Incorrect number of arguments
+      commandSendErrorResponse(tokens[0], (char*)"Incorrect number of arguments"); //Incorrect number of arguments
     else
     {
       auto field = tokens[1];
       auto value = tokens[2];
-      if (updateSettingWithValue(field, value) == true)
-        commandSendValueOkResponse(tokens[0], field, value);
+
+      GetSettingValueResponse response = updateSettingWithValue(field, value);
+      if (response == GET_SETTING_KNOWN)
+        commandSendValueOkResponse(tokens[0], field, value); //Just respond with the setting (not quotes needed)
+      else if (response == GET_SETTING_KNOWN_STRING)
+        commandSendStringOkResponse(tokens[0], field, value); //Wrap the string setting in quotes in the response
       else
-        commandSendErrorResponse(tokens[0], field, "Unknown setting");
+        commandSendErrorResponse(tokens[0], (char*)"Unknown setting");
     }
   }
   else if (strcmp(tokens[0], "SPEXE") == 0)
   {
     if (tokenCount != 2)
-      commandSendErrorResponse(tokens[0], "Incorrect number of arguments"); //Incorrect number of arguments
+      commandSendErrorResponse(tokens[0], (char*)"Incorrect number of arguments"); //Incorrect number of arguments
     else
     {
       if (strcmp(tokens[1], "EXIT") == 0)
@@ -187,18 +257,18 @@ void commandParser()
         Serial.println(); //TODO remove, just needed for pretty printing
 
         //Respond with list of variables
-        commandSendExecuteListResponse("observationSeconds", "int", "10");
-        commandSendExecuteListResponse("observationPositionAccuracy", "float", "0.5");
+        commandSendExecuteListResponse((char*)"observationSeconds", (char*)"int", (char*)"10");
+        commandSendExecuteListResponse((char*)"observationPositionAccuracy", (char*)"float", (char*)"0.5");
 
         commandSendExecuteOkResponse(tokens[0], tokens[1]);
       }
       else
-        commandSendErrorResponse(tokens[0], tokens[1], "Unknown command");
+        commandSendErrorResponse(tokens[0], (char*)"Unknown command");
     }
   }
   else
   {
-    commandSendErrorResponse(tokens[0], "Unknown command");
+    commandSendErrorResponse(tokens[0], (char*)"Unknown command");
   }
 }
 
@@ -262,29 +332,28 @@ void commandSendValueOkResponse(char *command, char *settingName, char *valueBuf
   commandSendResponse(innerBuffer);
 }
 
-// Given a command, send structured ERROR response
-// Response format: $SPxET,[setting name],,ERROR,[Verbose error description]*FF<CR><LF>
-// Ex: SPGET,maxHeight,'Unknown setting' = "$SPGET,maxHeight,,ERROR,Unknown setting*58"
-void commandSendErrorResponse(char *command, char *settingName, char *errorVerbose)
+//Given a command, and a value, send response sentence with OK and checksum and <CR><LR>
+//Ex: SPSET,ntripClientCasterUserPW,thePassword = $SPSET,ntripClientCasterUserPW,"thePassword",OK*2F
+void commandSendStringOkResponse(char *command, char *settingName, char *valueBuffer)
 {
-    // Create string between $ and * for checksum calculation
-    char innerBuffer[200];
-    snprintf(innerBuffer, sizeof(innerBuffer), "%s,%s,,ERROR,%s", command, settingName, errorVerbose);
-    commandSendResponse(innerBuffer);
+  //Create string between $ and * for checksum calculation
+  char innerBuffer[200];
+  sprintf(innerBuffer, "%s,%s,\"%s\",OK", command, settingName, valueBuffer);
+  commandSendResponse(innerBuffer);
 }
-// Given a command, send structured ERROR response
-// Response format: $SPxET,,,ERROR,[Verbose error description]*FF<CR><LF>
-// Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
+
+//Given a command, send structured ERROR response
+//Ex: SPGET, 'Incorrect number of arguments' = "$SPGET,ERROR,Incorrect number of arguments*1E"
 void commandSendErrorResponse(char *command, char *errorVerbose)
 {
-    // Create string between $ and * for checksum calculation
-    char innerBuffer[200];
-    snprintf(innerBuffer, sizeof(innerBuffer), "%s,,,ERROR,%s", command, errorVerbose);
-    commandSendResponse(innerBuffer);
+  //Create string between $ and * for checksum calculation
+  char innerBuffer[200];
+  snprintf(innerBuffer, sizeof(innerBuffer), "%s,ERROR,%s", command, errorVerbose);
+  commandSendResponse(innerBuffer);
 }
 
 //Given an inner buffer, send response sentence with checksum and <CR><LR>
-//Ex: SPGET,elvMask,0.25 = $SPGET,elvMask,0.25*07
+//Ex: "SPGET,0.25" = "$SPGET,0.25*33"
 void commandSendResponse(char *innerBuffer)
 {
   char responseBuffer[200];
