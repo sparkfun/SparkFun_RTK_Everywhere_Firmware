@@ -1,6 +1,7 @@
 void menuCommands()
 {
     char cmdBuffer[200];
+    char * command;
     char responseBuffer[200];
     char valueBuffer[100];
     const int MAX_TOKENS = 10;
@@ -21,24 +22,31 @@ void menuCommands()
             break; // Exit while(1) loop
         }
 
-        if (strcmp(cmdBuffer, "list") == 0)
+        else if (strcmp(cmdBuffer, "list") == 0)
         {
             printAvailableSettings();
             continue;
         }
 
+        // Allow command input via serial menu
+        else if (cmdBuffer[0] != '$')
+            command = cmdBuffer;
+
         // Verify command structure
-        else if (commandValid(cmdBuffer) == false)
+        else
         {
-            commandSendErrorResponse("SP", "Bad command structure");
-            continue;
+            if (commandValid(cmdBuffer) == false)
+            {
+                commandSendErrorResponse("SP", "Bad command structure");
+                continue;
+            }
+
+            // Remove $
+            command = cmdBuffer + 1;
+
+            // Remove * and CRC
+            command[strlen(command) - 3] = '\0';
         }
-
-        // Remove $
-        char *command = cmdBuffer + 1;
-
-        // Remove * and CRC
-        command[strlen(command) - 3] = '\0';
 
         int tokenCount = 0;
         tokens[tokenCount] = strtok(command, delimiter);
