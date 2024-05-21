@@ -127,7 +127,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 }
 void stopWebServer() {}
 bool parseIncomingSettings() {return false;}
-void sendStringToWebsocket(char* stringToSend) {}
+void sendStringToWebsocket(const char* stringToSend) {}
 
 #endif  // COMPILE_AP
 #ifndef COMPILE_WIFI

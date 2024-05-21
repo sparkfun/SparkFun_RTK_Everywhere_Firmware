@@ -244,8 +244,7 @@ typedef enum LoggingType
 } LoggingType;
 LoggingType loggingType;
 
-SdFile *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
-bool managerFileOpen;
+SdFile managerTempFile; // File used for uploading or downloading in the file manager section of AP config
 
 TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
@@ -561,9 +560,12 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
-#include "WebServer.h"
+#include <DNSServer.h>
+#include <WebServer.h>
 #include "form.h"
 
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+DNSServer *dnsserver;
 WebServer *webserver;
 
 #endif // COMPILE_AP

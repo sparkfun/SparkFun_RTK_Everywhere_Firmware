@@ -755,7 +755,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             if (settings.debugWiFiConfig == true)
                 systemPrintln("Sending reset confirmation");
 
-            sendStringToWebsocket((char *)"confirmReset,1,");
+            sendStringToWebsocket("confirmReset,1,");
             delay(500); // Allow for delivery
 
             if (configureViaEthernet)
@@ -856,7 +856,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             if (settings.debugWiFiConfig == true)
                 systemPrintln("Checking for new OTA Pull firmware");
 
-            sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
+            sendStringToWebsocket("checkingNewFirmware,1,"); // Tell the config page we received their request
 
             char reportedVersion[20];
             char newVersionCSV[100];
@@ -897,13 +897,13 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             if (settings.debugWiFiConfig == true)
                 systemPrintln("Getting new OTA Pull firmware");
 
-            sendStringToWebsocket((char *)"gettingNewFirmware,1,");
+            sendStringToWebsocket("gettingNewFirmware,1,");
 
             apConfigFirmwareUpdateInProcess = true;
             otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
             // We get here if WiFi failed to connect
-            sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
+            sendStringToWebsocket("gettingNewFirmware,ERROR,");
             knownSetting = true;
         }
 

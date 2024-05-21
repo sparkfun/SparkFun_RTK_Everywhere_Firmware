@@ -11,6 +11,7 @@ Form.ino
 
 bool websocketConnected = false;
 
+/*
 class CaptiveRequestHandler : public AsyncWebHandler
 {
   public:
@@ -53,6 +54,25 @@ class CaptiveRequestHandler : public AsyncWebHandler
         request->send(response);
     }
 };
+*/
+
+
+void responsePortal()
+{
+    String logmessage = "Captive Portal Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
+    systemPrintln(logmessage);
+    String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
+    response += "<div class='container'>";
+    response += "<div align='center' class='col-sm-12'><img src='http://";
+    response += WiFi.softAPIP().toString();
+    response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
+    response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
+    response += WiFi.softAPIP().toString();
+    response += "/'>here</a></h3></div>";
+    response += "</div></body></html>";
+    webserver->send(200, "text/html", response);
+}
+
 
 // Start webserver in AP mode
 bool startWebServer(bool startWiFi = true, int httpPort = 80)
@@ -100,6 +120,13 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         }
         createSettingsString(settingsCSV);
 
+        // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+        if (settings.enableCaptivePortal == true)
+        {
+            dnsserver = new DNSServer;
+            dnsserver->start();
+        }
+
         webserver = new WebServer(httpPort);
         // TODO: webserver = new WebServer(WiFi.localIP(), httpPort);
         // TODO: webserver = new WebServer(ETH.localIP(), httpPort);
@@ -109,11 +136,16 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             systemPrintln("ERROR: Failed to allocate webserver");
             break;
         }
-        if (settings.enableCaptivePortal == true)
-            webserver->addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER); // only when requested from AP
 
-        websocket->onEvent(onWsEvent);
-        webserver->addHandler(websocket);
+        if (settings.enableCaptivePortal == true)
+        {
+            webserver->on("/hotspot-detect.html", responsePortal);
+            webserver->on("/library/test/success.html", responsePortal);
+            webserver->on("/generate_204", responsePortal);
+            webserver->on("/ncsi.txt", responsePortal);
+            webserver->on("/check_network_status.txt", responsePortal);
+            webserver->on("/portal", responsePortal);
+        }
 
         // * index.html (not gz'd)
         // * favicon.ico
@@ -137,207 +169,153 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
         // * /file allows the download or deletion of a file
 
-        webserver->onNotFound(notFound(webserver));
+        webserver->onNotFound(notFound);
 
         webserver->onFileUpload(
             handleUpload); // Run handleUpload function when any file is uploaded. Must be before server.on() calls.
 
-        webserver->on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/html", index_html, sizeof(index_html));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/html", (const char *)index_html, sizeof(index_html));
         });
 
-        webserver->on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/plain", favicon_ico, sizeof(favicon_ico));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/favicon.ico", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico));
         });
 
-        webserver->on("/src/bootstrap.bundle.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response = request->beginResponse_P(200, "text/javascript", bootstrap_bundle_min_js,
-                                                                        sizeof(bootstrap_bundle_min_js));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/bootstrap.bundle.min.js", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js, sizeof(bootstrap_bundle_min_js));
         });
 
-        webserver->on("/src/bootstrap.min.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/css", bootstrap_min_css, sizeof(bootstrap_min_css));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/bootstrap.min.css", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css));
         });
 
-        webserver->on("/src/bootstrap.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/javascript", bootstrap_min_js, sizeof(bootstrap_min_js));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/bootstrap.min.js", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js));
         });
 
-        webserver->on("/src/jquery-3.6.0.min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/javascript", jquery_js, sizeof(jquery_js));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/jquery-3.6.0.min.js", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js));
         });
 
-        webserver->on("/src/main.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/javascript", main_js, sizeof(main_js));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/main.js", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js));
         });
 
-        webserver->on("/src/rtk-setup.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response;
+        webserver->on("/src/rtk-setup.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
             if (productVariant == RTK_EVK)
-                response = request->beginResponse_P(200, "image/png", rtkSetup_png, sizeof(rtkSetup_png));
+                webserver->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
             else
-                response = request->beginResponse_P(200, "image/png", rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+                webserver->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
         });
 
         // Battery icons
-        webserver->on("/src/BatteryBlank.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", batteryBlank_png, sizeof(batteryBlank_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/BatteryBlank.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png));
         });
-        webserver->on("/src/Battery0.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery0_png, sizeof(battery0_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery0.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png));
         });
-        webserver->on("/src/Battery1.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery1_png, sizeof(battery1_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery1.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png));
         });
-        webserver->on("/src/Battery2.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery2_png, sizeof(battery2_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery2.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png));
         });
-        webserver->on("/src/Battery3.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery3_png, sizeof(battery3_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery3.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png));
         });
 
-        webserver->on("/src/Battery0_Charging.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery0_Charging_png, sizeof(battery0_Charging_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery0_Charging.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png));
         });
-        webserver->on("/src/Battery1_Charging.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery1_Charging_png, sizeof(battery1_Charging_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery1_Charging.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png));
         });
-        webserver->on("/src/Battery2_Charging.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery2_Charging_png, sizeof(battery2_Charging_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery2_Charging.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png));
         });
-        webserver->on("/src/Battery3_Charging.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "image/png", battery3_Charging_png, sizeof(battery3_Charging_png));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/Battery3_Charging.png", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png));
         });
 
-        webserver->on("/src/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response = request->beginResponse_P(200, "text/css", style_css, sizeof(style_css));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/style.css", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/css", (const char *)style_css, sizeof(style_css));
         });
 
-        webserver->on("/src/fonts/icomoon.eot", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/plain", icomoon_eot, sizeof(icomoon_eot));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/fonts/icomoon.eot", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot));
         });
 
-        webserver->on("/src/fonts/icomoon.svg", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/plain", icomoon_svg, sizeof(icomoon_svg));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/fonts/icomoon.svg", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg));
         });
 
-        webserver->on("/src/fonts/icomoon.ttf", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/plain", icomoon_ttf, sizeof(icomoon_ttf));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/fonts/icomoon.ttf", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf));
         });
 
-        webserver->on("/src/fonts/icomoon.woof", HTTP_GET, [](AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response =
-                request->beginResponse_P(200, "text/plain", icomoon_woof, sizeof(icomoon_woof));
-            response->addHeader("Content-Encoding", "gzip");
-            request->send(response);
+        webserver->on("/src/fonts/icomoon.woof", HTTP_GET, []() {
+            webserver->sendHeader("Content-Encoding", "gzip");
+            webserver->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
         });
 
         // Handler for the /upload form POST
         webserver->on(
-            "/upload", HTTP_POST, [](AsyncWebServerRequest *request) { request->send(200); }, handleFirmwareFileUpload);
+            "/upload", HTTP_POST, handleFirmwareFileUpload);
 
         // Handler for file manager
-        webserver->on("/listfiles", HTTP_GET, [](AsyncWebServerRequest *request) {
-            String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+        webserver->on("/listfiles", HTTP_GET, []() {
+            String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
             systemPrintln(logmessage);
             String files;
             getFileList(files);
-            request->send(200, "text/plain", files);
+            webserver->send(200, "text/plain", files);
         });
-
-        /*
-        // Handler for corrections priorities list
-        webserver->on("/listCorrections", HTTP_GET, [](AsyncWebServerRequest *request) {
-            String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
-            systemPrintln(logmessage);
-            String corrections;
-            createCorrectionsList(corrections);
-            request->send(200, "text/plain", corrections);
-        });
-        */
 
         // Handler for supported messages list
-        webserver->on("/listMessages", HTTP_GET, [](AsyncWebServerRequest *request) {
-            String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+        webserver->on("/listMessages", HTTP_GET, []() {
+            String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
             systemPrintln(logmessage);
             String messages;
             createMessageList(messages);
             systemPrintln(messages);
-            request->send(200, "text/plain", messages);
+            webserver->send(200, "text/plain", messages);
         });
 
         // Handler for supported RTCM/Base messages list
-        webserver->on("/listMessagesBase", HTTP_GET, [](AsyncWebServerRequest *request) {
-            String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+        webserver->on("/listMessagesBase", HTTP_GET, []() {
+            String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
             systemPrintln(logmessage);
             String messageList;
             createMessageListBase(messageList);
             systemPrintln(messageList);
-            request->send(200, "text/plain", messageList);
+            webserver->send(200, "text/plain", messageList);
         });
 
         // Handler for file manager
-        webserver->on("/file", HTTP_GET, [](WebServer *request) { handleFileManager(request); });
+        webserver->on("/file", HTTP_GET, handleFileManager);
 
         webserver->begin();
 
@@ -356,7 +334,7 @@ void stopWebServer()
 {
     if (webserver != nullptr)
     {
-        webserver->end();
+        webserver->close();
         free(webserver);
         webserver = nullptr;
     }
@@ -378,29 +356,29 @@ void stopWebServer()
     reportHeapNow(false);
 }
 
-void notFound(WebServer *request)
+void notFound()
 {
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
     systemPrintln(logmessage);
-    request->send(404, "text/plain", "Not found");
+    webserver->send(404, "text/plain", "Not found");
 }
 
 // Handler for firmware file downloads
-static void handleFileManager(WebServer *request)
+static void handleFileManager()
 {
     // This section does not tolerate semaphore transactions
-    String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
+    String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
 
-    if (request->hasParam("name") && request->hasParam("action"))
+    if (webserver->hasArg("name") && webserver->hasArg("action"))
     {
-        const char *fileName = request->getParam("name")->value().c_str();
-        const char *fileAction = request->getParam("action")->value().c_str();
+        String fileName = webserver->arg("name");
+        String fileAction = webserver->arg("action");
 
-        logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url() +
-                     "?name=" + String(fileName) + "&action=" + String(fileAction);
+        logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri() +
+                     "?name=" + fileName + "&action=" + fileAction;
 
         char slashFileName[60];
-        snprintf(slashFileName, sizeof(slashFileName), "/%s", request->getParam("name")->value().c_str());
+        snprintf(slashFileName, sizeof(slashFileName), "/%s", webserver->arg("name"));
 
         bool fileExists;
         fileExists = sd->exists(slashFileName);
@@ -408,100 +386,66 @@ static void handleFileManager(WebServer *request)
         if (fileExists == false)
         {
             systemPrintln(logmessage + " ERROR: file does not exist");
-            request->send(400, "text/plain", "ERROR: file does not exist");
+            webserver->send(400, "text/plain", "ERROR: file does not exist");
         }
         else
         {
             systemPrintln(logmessage + " file exists");
 
-            if (strcmp(fileAction, "download") == 0)
+            if (fileAction == "download")
             {
                 logmessage += " downloaded";
 
-                if (managerFileOpen == false)
+                if (managerTempFile.open(slashFileName, O_READ) != true)
                 {
-                    // Allocate the managerTempFile
-                    if (!managerTempFile)
-                    {
-                        managerTempFile = new SdFile;
-                        if (!managerTempFile)
-                        {
-                            systemPrintln("Failed to allocate managerTempFile!");
-                            return;
-                        }
-                    }
-
-                    if (managerTempFile->open(slashFileName, O_READ) == true)
-                        managerFileOpen = true;
-                    else
-                        systemPrintln("Error: File Manager failed to open file");
-                }
-                else
-                {
-                    // File is already in use. Wait your turn.
-                    request->send(202, "text/plain", "ERROR: File already downloading");
+                    systemPrintln("Error: File Manager failed to open file");
+                    return;
                 }
 
-                int dataAvailable;
-                dataAvailable = managerTempFile->size() - managerTempFile->position();
+                webserver->sendHeader("Cache-Control", "no-cache");
+                webserver->sendHeader("Content-Disposition", "attachment; filename=" + fileName);
+                webserver->sendHeader("Access-Control-Allow-Origin", "*");
 
-                AsyncWebServerResponse *response = request->beginResponse(
-                    "text/plain", dataAvailable, [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
-                        uint32_t bytes = 0;
-                        uint32_t availableBytes;
-                        availableBytes = managerTempFile->available();
+                // TODO: webserver->streamFile(managerTempFile, "application/octet-stream");
 
-                        if (availableBytes > maxLen)
-                        {
-                            bytes = managerTempFile->read(buffer, maxLen);
-                        }
-                        else
-                        {
-                            bytes = managerTempFile->read(buffer, availableBytes);
-                            managerTempFile->close();
+                managerTempFile.close();
 
-                            managerFileOpen = false;
-
-                            websocket->textAll("fmNext,1,"); // Tell browser to send next file if needed
-                        }
-
-                        return bytes;
-                    });
-
-                response->addHeader("Cache-Control", "no-cache");
-                response->addHeader("Content-Disposition", "attachment; filename=" + String(fileName));
-                response->addHeader("Access-Control-Allow-Origin", "*");
-                request->send(response);
+                // TODO: websocket->textAll("fmNext,1,"); // Tell browser to send next file if needed
             }
-            else if (strcmp(fileAction, "delete") == 0)
+            else if (fileAction == "delete")
             {
                 logmessage += " deleted";
                 sd->remove(slashFileName);
-                request->send(200, "text/plain", "Deleted File: " + String(fileName));
+                webserver->send(200, "text/plain", "Deleted File: " + fileName);
             }
             else
             {
                 logmessage += " ERROR: invalid action param supplied";
-                request->send(400, "text/plain", "ERROR: invalid action param supplied");
+                webserver->send(400, "text/plain", "ERROR: invalid action param supplied");
             }
             systemPrintln(logmessage);
         }
     }
     else
     {
-        request->send(400, "text/plain", "ERROR: name and action params required");
+        webserver->send(400, "text/plain", "ERROR: name and action params required");
     }
 }
 
 // Handler for firmware file upload
-static void handleFirmwareFileUpload(AsyncWebServerRequest *request, String fileName, size_t index, uint8_t *data,
-                                     size_t len, bool final)
+static void handleFirmwareFileUpload()
 {
-    if (!index)
+    String fileName = "";
+
+    HTTPUpload &upload = webserver->upload();
+
+    if (upload.status == UPLOAD_FILE_START)
     {
         // Check file name against valid firmware names
         const char *BIN_EXT = "bin";
         const char *BIN_HEADER = "RTK_Everywhere_Firmware";
+
+        fileName = upload.filename;
 
         int fnameLen = fileName.length();
         char fname[fnameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
@@ -518,30 +462,36 @@ static void handleFirmwareFileUpload(AsyncWebServerRequest *request, String file
                 if (!Update.begin(UPDATE_SIZE_UNKNOWN))
                 {
                     Update.printError(Serial);
-                    return request->send(400, "text/plain", "OTA could not begin");
+                    webserver->send(400, "text/plain", "OTA could not begin");
+                    return;
                 }
             }
             else
             {
                 systemPrintf("Unknown: %s\r\n", fname);
-                return request->send(400, "text/html", "<b>Error:</b> Unknown file type");
+                webserver->send(400, "text/html", "<b>Error:</b> Unknown file type");
+                return;
             }
         }
         else
         {
             systemPrintf("Unknown: %s\r\n", fname);
-            return request->send(400, "text/html", "<b>Error:</b> Unknown file type");
+            webserver->send(400, "text/html", "<b>Error:</b> Unknown file type");
+            return;
         }
     }
 
     // Write chunked data to the free sketch space
-    if (len)
+    else if (upload.status == UPLOAD_FILE_WRITE)
     {
-        if (Update.write(data, len) != len)
-            return request->send(400, "text/plain", "OTA could not begin");
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
+        {
+            webserver->send(400, "text/plain", "OTA could not begin");
+            return;
+        }
         else
         {
-            binBytesSent += len;
+            binBytesSent = upload.currentSize;
 
             // Send an update to browser every 100k
             if (binBytesSent - binBytesLastUpdate > 100000)
@@ -558,21 +508,22 @@ static void handleFirmwareFileUpload(AsyncWebServerRequest *request, String file
                              bytesSentMsg); // Convert to "firmwareUploadMsg,11214 bytes sent,"
 
                 systemPrintf("msg: %s\r\n", statusMsg);
-                websocket->textAll(statusMsg);
+                sendStringToWebsocket(statusMsg);
             }
         }
     }
 
-    if (final)
+    else if (upload.status == UPLOAD_FILE_END)
     {
         if (!Update.end(true))
         {
             Update.printError(Serial);
-            return request->send(400, "text/plain", "Could not end OTA");
+            webserver->send(400, "text/plain", "Could not end OTA");
+            return;
         }
         else
         {
-            websocket->textAll("firmwareUploadComplete,1,");
+            sendStringToWebsocket("firmwareUploadComplete,1,");
             systemPrintln("Firmware update complete. Restarting");
             delay(500);
             ESP.restart();
@@ -580,6 +531,7 @@ static void handleFirmwareFileUpload(AsyncWebServerRequest *request, String file
     }
 }
 
+/*
 // Events triggered by web sockets
 void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
                size_t len)
@@ -619,6 +571,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
             systemPrintf("onWsEvent: unrecognised AwsEventType %d\r\n", type);
     }
 }
+*/
 
 // Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
 void createDynamicDataString(char *settingsCSV)
@@ -729,7 +682,7 @@ bool parseIncomingSettings()
         // Confirm receipt
         if (settings.debugWiFiConfig == true)
             systemPrintln("Sending receipt confirmation of settings");
-        websocket->textAll("confirmDataReceipt,1,");
+        sendStringToWebsocket("confirmDataReceipt,1,");
     }
 
     return (true);
@@ -879,35 +832,35 @@ void createMessageListBase(String &returnText)
 }
 
 // Handles uploading of user files to SD
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
+void handleUpload()
 {
-    String logmessage = "";
+    if (webserver->uri() != "/edit") {
+        return;
+    }
 
-    if (!index)
+    String logmessage = "";
+    String filename = "";
+
+    HTTPUpload &upload = webserver->upload();
+
+    if (upload.status == UPLOAD_FILE_START)
     {
-        logmessage = "Upload Start: " + String(filename);
+        filename = upload.filename;
+
+        logmessage = "Upload Start: " + filename;
 
         int fileNameLen = filename.length();
         char tempFileName[fileNameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
         filename.toCharArray(&tempFileName[1], fileNameLen + 1);
         tempFileName[fileNameLen + 1] = '\0'; // Terminate array
 
-        // Allocate the managerTempFile
-        if (!managerTempFile)
-        {
-            managerTempFile = new SdFile;
-            if (!managerTempFile)
-            {
-                systemPrintln("Failed to allocate managerTempFile!");
-                return;
-            }
-        }
         // Attempt to gain access to the SD card
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
 
-            managerTempFile->open(tempFileName, O_CREAT | O_APPEND | O_WRITE);
+            managerTempFile.open(tempFileName, O_CREAT | O_APPEND | O_WRITE);
 
             xSemaphoreGive(sdCardSemaphore);
         }
@@ -915,41 +868,44 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
         systemPrintln(logmessage);
     }
 
-    if (len)
+    else if (upload.status == UPLOAD_FILE_WRITE)
     {
         // Attempt to gain access to the SD card
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD2);
 
-            managerTempFile->write(data, len); // stream the incoming chunk to the opened file
+            managerTempFile.write(upload.buf, upload.currentSize); // stream the incoming chunk to the opened file
 
             xSemaphoreGive(sdCardSemaphore);
         }
     }
 
-    if (final)
+    else if (upload.status == UPLOAD_FILE_END)
     {
-        logmessage = "Upload Complete: " + String(filename) + ",size: " + String(index + len);
+        logmessage = "Upload Complete: " + filename + ",size: " + String(upload.totalSize);
 
         // Attempt to gain access to the SD card
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD3);
 
-            sdUpdateFileCreateTimestamp(managerTempFile); // Update the file create time & date
+            sdUpdateFileCreateTimestamp(&managerTempFile); // Update the file create time & date
 
-            managerTempFile->close();
+            managerTempFile.close();
 
             xSemaphoreGive(sdCardSemaphore);
         }
 
         systemPrintln(logmessage);
-        request->redirect("/");
+
+        // Redirect to "/"
+        webserver->sendHeader("Location", "/");
+        webserver->send(302);
     }
 }
 
-void sendStringToWebsocket(char *stringToSend)
+void sendStringToWebsocket(const char *stringToSend)
 {
     webserver->sendContent(stringToSend);
 }
