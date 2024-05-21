@@ -574,6 +574,8 @@ enum PeriodDisplayValues
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
+
+    PD_TASK_UPDATE_WEBSERVER,   // 34
     // Add new values before this line
 };
 
@@ -1721,6 +1723,7 @@ struct struct_online
     volatile bool idleTask1Running = false;
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
+    volatile bool updateWebServerTaskRunning = false;
     bool ppl = false;
     bool batteryCharger = false;
 } online;

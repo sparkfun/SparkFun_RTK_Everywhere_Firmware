@@ -11,8 +11,9 @@ Form.ino
 
 bool websocketConnected = false;
 
-/*
-class CaptiveRequestHandler : public AsyncWebHandler
+// ===== Request Handler class used to answer more complex requests =====
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
+class CaptiveRequestHandler : public RequestHandler
 {
   public:
     // https://en.wikipedia.org/wiki/Captive_portal
@@ -20,58 +21,39 @@ class CaptiveRequestHandler : public AsyncWebHandler
                       "/check_network_status.txt"};
     CaptiveRequestHandler()
     {
+        systemPrintln("CaptiveRequestHandler is registered");
     }
     virtual ~CaptiveRequestHandler()
     {
     }
 
-    bool canHandle(AsyncWebServerRequest *request)
-    {
-        for (int i = 0; i < 5; i++)
+    bool canHandle(HTTPMethod requestMethod, String uri) override {
+        for (int i = 0; i < sizeof(urls); i++)
         {
-            if (request->url().equals(urls[i]))
+            if (uri == urls[i])
                 return true;
         }
         return false;
     }
 
-    // Provide a custom small site for redirecting the user to the config site
-    // HTTP redirect does not work and the relative links on the default config site do not work, because the phone is
-    // requesting a different server
-    void handleRequest(AsyncWebServerRequest *request)
+    bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri) override
     {
-        String logmessage = "Captive Portal Client:" + request->client()->remoteIP().toString() + " " + request->url();
+        String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
         systemPrintln(logmessage);
-        AsyncResponseStream *response = request->beginResponseStream("text/html");
-        response->print("<!DOCTYPE html><html><head><title>RTK Config</title></head><body>");
-        response->print("<div class='container'>");
-        response->printf("<div align='center' class='col-sm-12'><img src='http://%s/src/rtk-setup.png' alt='SparkFun "
-                         "RTK WiFi Setup'></div>",
-                         WiFi.softAPIP().toString().c_str());
-        response->printf("<div align='center'><h3>Configure your RTK receiver <a href='http://%s/'>here</a></h3></div>",
-                         WiFi.softAPIP().toString().c_str());
-        response->print("</div></body></html>");
-        request->send(response);
+        String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
+        response += "<div class='container'>";
+        response += "<div align='center' class='col-sm-12'><img src='http://";
+        response += WiFi.softAPIP().toString();
+        response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
+        response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
+        response += WiFi.softAPIP().toString();
+        response += "/'>here</a></h3></div>";
+        response += "</div></body></html>";
+        server.send(200, "text/html", response);
+
+        return true;
     }
 };
-*/
-
-
-void responsePortal()
-{
-    String logmessage = "Captive Portal Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-    systemPrintln(logmessage);
-    String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
-    response += "<div class='container'>";
-    response += "<div align='center' class='col-sm-12'><img src='http://";
-    response += WiFi.softAPIP().toString();
-    response += "/src/rtk-setup.png' alt='SparkFun RTK WiFi Setup'></div>";
-    response += "<div align='center'><h3>Configure your RTK receiver <a href='http://";
-    response += WiFi.softAPIP().toString();
-    response += "/'>here</a></h3></div>";
-    response += "</div></body></html>";
-    webserver->send(200, "text/html", response);
-}
 
 
 // Start webserver in AP mode
@@ -139,13 +121,10 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         if (settings.enableCaptivePortal == true)
         {
-            webserver->on("/hotspot-detect.html", responsePortal);
-            webserver->on("/library/test/success.html", responsePortal);
-            webserver->on("/generate_204", responsePortal);
-            webserver->on("/ncsi.txt", responsePortal);
-            webserver->on("/check_network_status.txt", responsePortal);
-            webserver->on("/portal", responsePortal);
+            webserver->addHandler(new CaptiveRequestHandler());
         }
+
+        webserver->on("/ws", onWsEvent); // websocket
 
         // * index.html (not gz'd)
         // * favicon.ico
@@ -319,6 +298,15 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         webserver->begin();
 
+        // Starts task for feeding NMEA+RTCM to PPL
+        if (online.updatePplTaskRunning == false)
+            xTaskCreate(updateWebServerTask,
+                        "UpdateWebServer",            // Just for humans
+                        updateWebServerTaskStackSize, // Stack Size
+                        nullptr,                // Task input parameter
+                        updateWebServerTaskPriority,
+                        &updatePplTaskHandle); // Task handle
+
         if (settings.debugWiFiConfig == true)
             systemPrintln("Web Server Started");
         reportHeapNow(false);
@@ -330,8 +318,40 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
     return false;
 }
 
+void updateWebServerTask(void *e)
+{
+    // Start notification
+    online.updateWebServerTaskRunning = true;
+    if (settings.printTaskStartStop)
+        systemPrintln("Task updateWebServerTask started");
+
+    // Verify that the task is still running
+    while (online.updateWebServerTaskRunning)
+    {
+        // Display an alive message
+        if (PERIODIC_DISPLAY(PD_TASK_UPDATE_WEBSERVER))
+        {
+            PERIODIC_CLEAR(PD_TASK_UPDATE_WEBSERVER);
+            systemPrintln("updateWebServerTask running");
+        }
+
+        webserver->handleClient();
+
+        feedWdt();
+        taskYIELD();
+    }
+
+    // Stop notification
+    if (settings.printTaskStartStop)
+        systemPrintln("Task updateWebServerTask stopped");
+    online.updateWebServerTaskRunning = false;
+    vTaskDelete(NULL);
+}
+
 void stopWebServer()
 {
+    online.updatePplTaskRunning = false;
+
     if (webserver != nullptr)
     {
         webserver->close();
@@ -529,6 +549,11 @@ static void handleFirmwareFileUpload()
             ESP.restart();
         }
     }
+}
+
+void onWsEvent()
+{
+    
 }
 
 /*

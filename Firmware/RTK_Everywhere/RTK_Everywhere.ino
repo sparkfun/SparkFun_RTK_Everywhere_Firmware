@@ -568,6 +568,10 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 DNSServer *dnsserver;
 WebServer *webserver;
 
+TaskHandle_t webserverTaskHandle;
+const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
+const int updateWebServerTaskStackSize = 3000;
+
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
 
