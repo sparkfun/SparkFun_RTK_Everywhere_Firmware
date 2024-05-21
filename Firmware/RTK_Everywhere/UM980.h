@@ -22,7 +22,11 @@ typedef struct
 // Available constellations: GPS, BDS, GLO, GAL, QZSS
 // SBAS and IRNSS don't seem to be supported
 const um980ConstellationCommand um980ConstellationCommands[] = {
-    {"GPS", "GPS"}, {"GLONASS", "GLO"}, {"Galileo", "GAL"}, {"BeiDou", "BDS"}, {"QZSS", "QZSS"},
+    {"BeiDou", "BDS"},
+    {"Galileo", "GAL"},
+    {"GLONASS", "GLO"},
+    {"GPS", "GPS"},
+    {"QZSS", "QZSS"},
 };
 
 #define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands) / sizeof(um980ConstellationCommand))
