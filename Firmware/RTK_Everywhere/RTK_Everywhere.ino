@@ -775,11 +775,15 @@ unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl = 0;
 unsigned long lastGnssToPpl = 0;
+
+// Command processing
+int commandCount;
+int16_t * commandIndex;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 39
+#define MAX_BOOT_TIME_ENTRIES 40
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -832,7 +836,6 @@ volatile bool deadManWalking;
         settings.enablePrintIdleTime = true;                                                                           \
         settings.enablePrintBatteryMessages = true;                                                                    \
         settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintBadMessages = true;                                                                        \
         settings.enablePrintLogFileMessages = true;                                                                    \
         settings.enablePrintLogFileStatus = true;                                                                      \
         settings.enablePrintRingBufferOffsets = true;                                                                  \
@@ -979,11 +982,15 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
+    DMW_b("commandIndexFill");
+    if (!commandIndexFill()) // Initialize the command table index
+        reportFatalError("Failed to allocate and fill the commandIndex!");
+
     DMW_b("beginBoard");
     beginBoard(); // Set all pin numbers and pin initial states
 
     DMW_b("beginFS");
-    beginFS(); // Load NVM settings
+    beginFS(); // Start the LittleFS file system in the spiffs partition
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =

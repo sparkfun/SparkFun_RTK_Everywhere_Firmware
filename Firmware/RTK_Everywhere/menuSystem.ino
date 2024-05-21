@@ -417,9 +417,6 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enablePrintSDBuffers ? "Enabled" : "Disabled");
 
         // GNSS
-        systemPrint("8) Print messages with bad checksums or CRCs: ");
-        systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
-
         systemPrint("9) Print GNSS Debugging: ");
         systemPrintf("%s\r\n", settings.debugGnss ? "Enabled" : "Disabled");
 
@@ -484,8 +481,6 @@ void menuDebugHardware()
         }
         else if (incoming == 7)
             settings.enablePrintSDBuffers ^= 1;
-        else if (incoming == 8)
-            settings.enablePrintBadMessages ^= 1;
         else if (incoming == 9)
         {
             settings.debugGnss ^= 1;
