@@ -509,6 +509,13 @@ void menuDebugHardware()
         }
         else if (incoming == 13 && present.gnss_um980)
         {
+            // Note: We cannot increase the bootloading speed beyond 115200 because
+            //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
+            //  This is workable, but the next time the RTK Torch resets, it assumes communication at 115200bps
+            //  This fails and communication is broken. We could program in some logic that attempts comm at 460800
+            //  then reconfigures the UM980 to 115200bps, then resets, but autobaud detection in the UM980 library is
+            //  not yet supported.
+
             // Stop all UART tasks
             tasksStopGnssUart();
 
@@ -943,7 +950,7 @@ void menuOperation()
         systemPrintln(settings.uartReceiveBufferSize);
 
         // ZED
-        if(present.gnss_zedf9p)
+        if (present.gnss_zedf9p)
             systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
 
         // PPL Float Lock timeout
