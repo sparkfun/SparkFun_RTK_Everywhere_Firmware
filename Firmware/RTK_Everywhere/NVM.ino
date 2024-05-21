@@ -7,7 +7,7 @@
     Records all settings to the selected file (LFS or SD) as setting=value\r\n
     Uses standard settingsFile->printf to do the printing / writing
     Settings Refactor: Done
-  
+
   parseLine();
     In this file NVM.ino
     Splits a line from a settings file (setting=value\r\n) into settingName plus string / double value
@@ -16,11 +16,11 @@
     Settings Refactor: Done
     Note: there is a _lot_ of commonality between this and updateSettingWithValue. It should be
           possible to update parseLine so it calls updateSettingWithValue to do the actual updating.
-  
+
   createSettingsString();
     In menuCommands.ino
     Generates a CSV string of all settings and their values - if they are inSettingsString
-    Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile), 
+    Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile),
     Calls the stringRecord methods - also in menuCommands.ino
     Settings Refactor: Done
     Note: there is a _lot_ of commonality between this and recordSystemSettingsToFile. It may be
@@ -253,49 +253,19 @@ void recordSystemSettingsToFile(File *settingsFile)
             case _float:
                 {
                     float *ptr = (float *)rtkSettingsEntries[i].var;
-                    switch (rtkSettingsEntries[i].qualifier)
-                    {
-                        case point1float:
-                            settingsFile->printf("%s=%0.1f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        default:
-                        case point2float:
-                            settingsFile->printf("%s=%0.2f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        case point3float:
-                            settingsFile->printf("%s=%0.3f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        case point4float:
-                            settingsFile->printf("%s=%0.4f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        case point9float:
-                            settingsFile->printf("%s=%0.9f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                    }
+                    settingsFile->printf("%s=%0.*f\r\n",
+                                         rtkSettingsEntries[i].name,
+                                         rtkSettingsEntries[i].qualifier,
+                                         *ptr);
                 }
                 break;
             case _double:
                 {
                     double *ptr = (double *)rtkSettingsEntries[i].var;
-                    switch (rtkSettingsEntries[i].qualifier)
-                    {
-                        case point1float:
-                            settingsFile->printf("%s=%0.1f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        default:
-                        case point2float:
-                            settingsFile->printf("%s=%0.2f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        case point3float:
-                            settingsFile->printf("%s=%0.3f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        case point4float:
-                            settingsFile->printf("%s=%0.4f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                        case point9float:
-                            settingsFile->printf("%s=%0.9f\r\n", rtkSettingsEntries[i].name, *ptr);
-                            break;
-                    }
+                    settingsFile->printf("%s=%0.*f\r\n",
+                                         rtkSettingsEntries[i].name,
+                                         rtkSettingsEntries[i].qualifier,
+                                         *ptr);
                 }
                 break;
             case _uint8_t:

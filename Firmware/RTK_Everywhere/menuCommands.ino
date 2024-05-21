@@ -1651,9 +1651,14 @@ void writeToString(char *settingValueStr, uint32_t value)
 {
     sprintf(settingValueStr, "%" PRIu32, value);
 }
+
 void writeToString(char *settingValueStr, double value)
 {
     sprintf(settingValueStr, "%f", value);
+}
+void writeToString(char *settingValueStr, double value, int decimalPoints)
+{
+    sprintf(settingValueStr, "%0.*f", decimalPoints, value);
 }
 
 void writeToString(char *settingValueStr, char *value)
@@ -1720,13 +1725,13 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             break;
             case _float: {
                 float *ptr = (float *)rtkSettingsEntries[i].var;
-                writeToString(settingValueStr, (double)*ptr);
+                writeToString(settingValueStr, (double)*ptr, rtkSettingsEntries[i].qualifier);
                 knownSetting = true;
             }
             break;
             case _double: {
                 double *ptr = (double *)rtkSettingsEntries[i].var;
-                writeToString(settingValueStr, *ptr);
+                writeToString(settingValueStr, *ptr, rtkSettingsEntries[i].qualifier);
                 knownSetting = true;
             }
             break;
