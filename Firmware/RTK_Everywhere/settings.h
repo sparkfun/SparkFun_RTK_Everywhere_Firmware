@@ -519,6 +519,14 @@ typedef enum
     COORDINATE_INPUT_TYPE_INVALID_UNKNOWN,
 } CoordinateInputType;
 
+// Responses for updateSettingWithValue() and getSettingValue() used in the CLI
+typedef enum
+{
+    SETTING_UNKNOWN = 0,
+    SETTING_KNOWN,
+    SETTING_KNOWN_STRING,
+} SettingValueResponse;
+
 #define UBX_ID_NOT_AVAILABLE 0xFF
 
 // Define the periodic display values
@@ -1425,8 +1433,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Antenna
     { 0, 1, 1, 0, 1, 1, 1, 1, _int16_t,  0, & settings.antennaHeight, "antennaHeight",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _float,    2, & settings.antennaReferencePoint, "antennaReferencePoint" },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enableARPLogging, "enableARPLogging",  },
+    { 0, 1, 1, 0, 1, 1, 1, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval",  },
+    { 0, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging",  },
 
     // Base operation
     { 0, 1, 1, 0, 1, 1, 1, 1, tCoordInp, 0, & settings.coordinateInputType, "coordinateInputType",  },
@@ -1443,8 +1451,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 0, 1, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
 
     // Battery
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout",  },
+    { 0, 1, 1, 0, 0, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
+    { 0, 1, 1, 0, 0, 1, 1, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout",  },
 
 //                      F
 //                      a
@@ -1460,7 +1468,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  t  s  x  k  2  c  h  Type    Qual  Variable                  Name
 
     // Beeper
-    { 0, 1, 1, 0, 0, 0, 1, 1, _bool,     0, & settings.enableBeeper, "enableBeeper",  },
+    { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableBeeper, "enableBeeper",  },
 
     // Bluetooth
     { 0, 1, 1, 0, 1, 1, 1, 1, tBtRadio,  0, & settings.bluetoothRadioType, "bluetoothRadioType",  },
@@ -1484,6 +1492,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    N  n  n  f  E     a  r
 //    S  g  d  i  v  V  i  c
 //    S  t  s  x  k  2  c  h  Type    Qual  Variable                  Name
+
+    // Data Port Multiplexer
+    { 0, 1, 1, 0, 0, 1, 1, 0, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel",  },
 
     // Display
     { 0, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableResetDisplay, "enableResetDisplay",  },
@@ -1525,8 +1536,15 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.serialGNSSRxFullThreshold, "serialGNSSRxFullThreshold",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _int,      0, & settings.uartReceiveBufferSize, "uartReceiveBufferSize",  },
 
+    // GNSS Receiver
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.debugGnss, "debugGnss",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition",  },
+    { 1, 0, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs",  },
+    { 1, 0, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.updateGNSSSettings, "updateGNSSSettings",  },
+
     // Hardware
-    { 1, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.spiFrequency, "spiFrequency",  },
 
 //                      F
@@ -1672,19 +1690,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  d  i  v  V  i  c
 //    S  t  s  x  k  2  c  h  Type    Qual  Variable                  Name
 
-    // Pulse
-    { 1, 1, 1, 0, 1, 0, 0, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse",  },
-    { 1, 1, 1, 0, 1, 0, 0, 0, _uint64_t, 0, & settings.externalPulseLength_us, "externalPulseLength",  },
-    { 1, 1, 1, 0, 1, 0, 0, 0, tPulseEdg, 0, & settings.externalPulsePolarity, "externalPulsePolarity",  },
-    { 1, 1, 1, 0, 1, 0, 0, 0, _uint64_t, 0, & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse",  },
-
-    // Radio
-    { 0, 1, 1, 0, 1, 1, 1, 1, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.debugGnss, "debugGnss",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintPosition, "enablePrintPosition",  },
-    { 1, 0, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.measurementRateMs, "measurementRateMs",  },
-    { 1, 0, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.navigationRate, "navigationRate",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.updateGNSSSettings, "updateGNSSSettings",  },
+    // Pulse Per Second
+    { 1, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, _uint64_t, 0, & settings.externalPulseLength_us, "externalPulseLength",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, tPulseEdg, 0, & settings.externalPulsePolarity, "externalPulsePolarity",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, _uint64_t, 0, & settings.externalPulseTimeBetweenPulse_us, "externalPulseTimeBetweenPulse",  },
 
     // Ring Buffer
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintRingBufferOffsets, "enablePrintRingBufferOffsets",  },
@@ -1739,7 +1749,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  t  s  x  k  2  c  h  Type    Qual  Variable                  Name
 
     // Setup Button
-    { 0, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
 
     // State
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates",  },
@@ -1776,8 +1786,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  d  i  v  V  i  c
 //    S  t  s  x  k  2  c  h  Type    Qual  Variable                  Name
 
-    // UBX (SX1276)
-    { 0, 1, 1, 0, 1, 1, 0, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2In",  },
+    // ublox GNSS Receiver
+    { 0, 1, 1, 0, 1, 1, 0, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
     { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_CONSTELLATIONS, & settings.ubxConstellations[0], "Constellation_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "MessageRate_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "MessageRateBase_",  },
@@ -1800,7 +1810,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  d  i  v  V  i  c
 //    S  t  s  x  k  2  c  h  Type    Qual  Variable                  Name
 
-    // UM980
+    // UM980 GNSS Receiver
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
