@@ -4,10 +4,10 @@
 
 typedef enum
 {
-  GET_SETTING_UNKNOWN = 0,
-  GET_SETTING_KNOWN,
-  GET_SETTING_KNOWN_STRING,
-} GetSettingValueResponse;
+  SETTING_UNKNOWN = 0,
+  SETTING_KNOWN,
+  SETTING_KNOWN_STRING,
+} SettingValueResponse;
 
 void setup()
 {
@@ -50,6 +50,11 @@ void setup()
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
   commandParser(cmdBuffer);
 
+  sprintf(cmdBuffer, "$SPGET,ntripClientCasterUserPW*35"); //Valid command, response with escaped quote
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
+
   Serial.println();
 
   sprintf(cmdBuffer, "$SPSET,elvMask*26"); //Incorrect number of arguments
@@ -68,11 +73,19 @@ void setup()
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
   commandParser(cmdBuffer);
 
-  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"my,long wifi password with a comma to push 50 char\"*07"); //Valid, with internal commas
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"MyPass\"*08"); //Valid string
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
   commandParser(cmdBuffer);
 
-  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"my password with a \\\" in it\"*01"); //Valid, with quotes
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"complex,password\"*5E"); //Valid string with an internal comma
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"pwWith\\\"quote\"*2C"); //Valid string with an escaped quote
+  Serial.printf("command: %s (Valid) - ", cmdBuffer);
+  commandParser(cmdBuffer);
+
+  sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"a55G\\\"e,e#\"*5A"); //Valid string with an internal escaped quote, and internal comma
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
   commandParser(cmdBuffer);
 
@@ -146,13 +159,16 @@ void commandParser(char *cmdBuffer)
         tokens[tokenCount++] = &cmdBuffer[spot];
       }
       else
+      {
+        //We are at the end of the string, just terminate the last token
         cmdBuffer[spot] = '\0';
+      }
 
       if (inEscape == true)
         inEscape = false;
     }
 
-    //Handle escape chacters and quotes
+    //Handle escaped quotes
     if (cmdBuffer[spot] == '\\' && inEscape == false)
     {
       //Ignore next character from quote checks
@@ -184,6 +200,17 @@ void commandParser(char *cmdBuffer)
       tokens[x][strlen(tokens[x]) - 1] = '\0';
   }
 
+  //Remove escape characters from within tokens
+  //https://stackoverflow.com/questions/53134028/remove-all-from-a-string-in-c
+  for (int x = 0 ; x < tokenCount ; x++)
+  {
+    int k = 0;
+    for (int i = 0; tokens[x][i] != '\0'; ++i)
+      if (tokens[x][i] != '\\')
+        tokens[x][k++] = tokens[x][i];
+    tokens[x][k] = '\0';
+  }
+
   //  Serial.printf("Token count: %d\r\n", tokenCount);
   //  Serial.printf("Token[0]: %s\r\n", tokens[0]);
   //  Serial.printf("Token[1]: %s\r\n", tokens[1]);
@@ -202,8 +229,13 @@ void commandParser(char *cmdBuffer)
     else
     {
       auto field = tokens[1];
-      if (getSettingValue(field, valueBuffer) == true)
+
+      SettingValueResponse response = getSettingValue(field, valueBuffer);
+
+      if (response == SETTING_KNOWN)
         commandSendValueResponse(tokens[0], field, valueBuffer); //Send structured response
+      else if (response == SETTING_KNOWN_STRING)
+        commandSendStringResponse(tokens[0], field, valueBuffer); //Wrap the string setting in quotes in the response, no OK
       else
         commandSendErrorResponse(tokens[0], (char*)"Unknown setting");
     }
@@ -217,11 +249,11 @@ void commandParser(char *cmdBuffer)
       auto field = tokens[1];
       auto value = tokens[2];
 
-      GetSettingValueResponse response = updateSettingWithValue(field, value);
-      if (response == GET_SETTING_KNOWN)
+      SettingValueResponse response = updateSettingWithValue(field, value);
+      if (response == SETTING_KNOWN)
         commandSendValueOkResponse(tokens[0], field, value); //Just respond with the setting (not quotes needed)
-      else if (response == GET_SETTING_KNOWN_STRING)
-        commandSendStringOkResponse(tokens[0], field, value); //Wrap the string setting in quotes in the response
+      else if (response == SETTING_KNOWN_STRING)
+        commandSendStringOkResponse(tokens[0], field, value); //Wrap the string setting in quotes in the response, add OK
       else
         commandSendErrorResponse(tokens[0], (char*)"Unknown setting");
     }
@@ -336,9 +368,43 @@ void commandSendValueOkResponse(char *command, char *settingName, char *valueBuf
 //Ex: SPSET,ntripClientCasterUserPW,thePassword = $SPSET,ntripClientCasterUserPW,"thePassword",OK*2F
 void commandSendStringOkResponse(char *command, char *settingName, char *valueBuffer)
 {
+  //Add escapes for any quotes in valueBuffer
+  //https://stackoverflow.com/a/26114476
+  const char *escapeChar = "\"";
+  char escapedValueBuffer[100];
+  size_t bp = 0;
+
+  for (size_t sp = 0; valueBuffer[sp]; sp++) {
+    if (strchr(escapeChar, valueBuffer[sp])) escapedValueBuffer[bp++] = '\\';
+    escapedValueBuffer[bp++] = valueBuffer[sp];
+  }
+  escapedValueBuffer[bp] = 0;
+
   //Create string between $ and * for checksum calculation
   char innerBuffer[200];
-  sprintf(innerBuffer, "%s,%s,\"%s\",OK", command, settingName, valueBuffer);
+  sprintf(innerBuffer, "%s,%s,\"%s\",OK", command, settingName, escapedValueBuffer);
+  commandSendResponse(innerBuffer);
+}
+
+//Given a command, and a value, send response sentence with checksum and <CR><LR>
+//Ex: $SPGET,ntripClientCasterUserPW*35 = $SPSET,ntripClientCasterUserPW,"thePassword",OK*2F
+void commandSendStringResponse(char *command, char *settingName, char *valueBuffer)
+{
+  //Add escapes for any quotes in valueBuffer
+  //https://stackoverflow.com/a/26114476
+  const char *escapeChar = "\"";
+  char escapedValueBuffer[100];
+  size_t bp = 0;
+
+  for (size_t sp = 0; valueBuffer[sp]; sp++) {
+    if (strchr(escapeChar, valueBuffer[sp])) escapedValueBuffer[bp++] = '\\';
+    escapedValueBuffer[bp++] = valueBuffer[sp];
+  }
+  escapedValueBuffer[bp] = 0;
+
+  //Create string between $ and * for checksum calculation
+  char innerBuffer[200];
+  sprintf(innerBuffer, "%s,%s,\"%s\"", command, settingName, escapedValueBuffer);
   commandSendResponse(innerBuffer);
 }
 

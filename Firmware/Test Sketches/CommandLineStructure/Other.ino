@@ -1,5 +1,5 @@
 // Given a settingName, and string value, update a given setting
-GetSettingValueResponse updateSettingWithValue(const char *settingName, const char *settingValueStr)
+SettingValueResponse updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
   bool knownSetting = false;
   bool settingIsString = false;
@@ -17,16 +17,17 @@ GetSettingValueResponse updateSettingWithValue(const char *settingName, const ch
   }
 
   if (knownSetting == true && settingIsString == true)
-    return (GET_SETTING_KNOWN_STRING);
+    return (SETTING_KNOWN_STRING);
   else if (knownSetting == true)
-    return (GET_SETTING_KNOWN);
+    return (SETTING_KNOWN);
 
-  return (GET_SETTING_UNKNOWN);
+  return (SETTING_UNKNOWN);
 }
 
-bool getSettingValue(const char *settingName, char *settingValueStr)
+SettingValueResponse getSettingValue(const char *settingName, char *settingValueStr)
 {
   bool knownSetting = false;
+  bool settingIsString = false;
 
   if (strcmp(settingName, "elvMask") == 0)
   {
@@ -35,9 +36,15 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
   }
   else if (strcmp(settingName, "ntripClientCasterUserPW") == 0)
   {
-    sprintf(settingValueStr, "%s", (char*)"\"my,long wifi password with a comma to push 50 char\"");
+    sprintf(settingValueStr, "%s", (char*)"pwWith\"quote");
+    settingIsString = true;
     knownSetting = true;
   }
 
-  return (knownSetting);
+  if (knownSetting == true && settingIsString == true)
+    return (SETTING_KNOWN_STRING);
+  else if (knownSetting == true)
+    return (SETTING_KNOWN);
+
+  return (SETTING_UNKNOWN);
 }
