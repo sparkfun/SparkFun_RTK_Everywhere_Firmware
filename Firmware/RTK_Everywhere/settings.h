@@ -519,6 +519,14 @@ typedef enum
     COORDINATE_INPUT_TYPE_INVALID_UNKNOWN,
 } CoordinateInputType;
 
+// Responses for updateSettingWithValue() and getSettingValue() used in the CLI
+typedef enum
+{
+    SETTING_UNKNOWN = 0,
+    SETTING_KNOWN,
+    SETTING_KNOWN_STRING,
+} SettingValueResponse;
+
 #define UBX_ID_NOT_AVAILABLE 0xFF
 
 // Define the periodic display values

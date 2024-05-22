@@ -1,7 +1,7 @@
 void menuCommands()
 {
     char cmdBuffer[200];
-    char * command;
+    char *command;
     char responseBuffer[200];
     char valueBuffer[100];
     const int MAX_TOKENS = 10;
@@ -37,7 +37,7 @@ void menuCommands()
         {
             if (commandValid(cmdBuffer) == false)
             {
-                commandSendErrorResponse("SP", "Bad command structure");
+                commandSendErrorResponse("SP", "Bad command structure or checksum");
                 continue;
             }
 
@@ -48,19 +48,83 @@ void menuCommands()
             command[strlen(command) - 3] = '\0';
         }
 
-        int tokenCount = 0;
-        tokens[tokenCount] = strtok(command, delimiter);
+        // Change * to , and null terminate on the first CRC character
+        cmdBuffer[strlen(cmdBuffer) - 3] = ',';
+        cmdBuffer[strlen(cmdBuffer) - 2] = '\0';
 
-        while (tokens[tokenCount] != nullptr && tokenCount < MAX_TOKENS)
+        const int MAX_TOKENS = 10;
+        char valueBuffer[100];
+
+        char *tokens[MAX_TOKENS];
+        int tokenCount = 0;
+        int originalLength = strlen(cmdBuffer);
+
+        // We can't use strtok because there may be ',' inside of settings (ie, wifi password: "hello,world")
+
+        tokens[tokenCount++] = &cmdBuffer[0]; // Point at first token
+
+        bool inQuote = false;
+        bool inEscape = false;
+        for (int spot = 0; spot < originalLength; spot++)
         {
-            tokenCount++;
-            tokens[tokenCount] = strtok(nullptr, delimiter);
+            if (cmdBuffer[spot] == ',' && inQuote == false)
+            {
+                if (spot < (originalLength - 1))
+                {
+                    cmdBuffer[spot++] = '\0';
+                    tokens[tokenCount++] = &cmdBuffer[spot];
+                }
+                else
+                {
+                    // We are at the end of the string, just terminate the last token
+                    cmdBuffer[spot] = '\0';
+                }
+
+                if (inEscape == true)
+                    inEscape = false;
+            }
+
+            // Handle escaped quotes
+            if (cmdBuffer[spot] == '\\' && inEscape == false)
+            {
+                // Ignore next character from quote checks
+                inEscape = true;
+            }
+            else if (cmdBuffer[spot] == '\"' && inEscape == true)
+                inEscape = false;
+            else if (cmdBuffer[spot] == '\"' && inQuote == false && inEscape == false)
+                inQuote = true;
+            else if (cmdBuffer[spot] == '\"' && inQuote == true)
+                inQuote = false;
         }
 
-        if (tokenCount == 0)
+        if (inQuote == true)
         {
-            commandSendErrorResponse(tokens[0], "Incorrect number of arguments");
-            continue;
+            commandSendErrorResponse((char *)"SP", (char *)"Unclosed quote");
+            return;
+        }
+
+        // Trim surrounding quotes from any token
+        for (int x = 0; x < tokenCount; x++)
+        {
+            // Remove leading "
+            if (tokens[x][0] == '"')
+                tokens[x] = &tokens[x][1];
+
+            // Remove trailing "
+            if (tokens[x][strlen(tokens[x]) - 1] == '"')
+                tokens[x][strlen(tokens[x]) - 1] = '\0';
+        }
+
+        // Remove escape characters from within tokens
+        // https://stackoverflow.com/questions/53134028/remove-all-from-a-string-in-c
+        for (int x = 0; x < tokenCount; x++)
+        {
+            int k = 0;
+            for (int i = 0; tokens[x][i] != '\0'; ++i)
+                if (tokens[x][i] != '\\')
+                    tokens[x][k++] = tokens[x][i];
+            tokens[x][k] = '\0';
         }
 
         // Valid commands: CMD, GET, SET, EXE,
@@ -75,10 +139,16 @@ void menuCommands()
             else
             {
                 auto field = tokens[1];
-                if (getSettingValue(field, valueBuffer) == true)
+
+                SettingValueResponse response = getSettingValue(field, valueBuffer);
+
+                if (response == SETTING_KNOWN)
                     commandSendValueResponse(tokens[0], field, valueBuffer); // Send structured response
+                else if (response == SETTING_KNOWN_STRING)
+                    commandSendStringResponse(tokens[0], field,
+                                              valueBuffer); // Wrap the string setting in quotes in the response, no OK
                 else
-                    commandSendErrorResponse(tokens[0], field, "Unknown setting");
+                    commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
             }
         }
         else if (strcmp(tokens[0], "SPSET") == 0)
@@ -90,10 +160,16 @@ void menuCommands()
             {
                 auto field = tokens[1];
                 auto value = tokens[2];
-                if (updateSettingWithValue(field, value) == true)
-                    commandSendValueOkResponse(tokens[0], field, value);
+
+                SettingValueResponse response = updateSettingWithValue(field, value);
+                if (response == SETTING_KNOWN)
+                    commandSendValueOkResponse(tokens[0], field,
+                                               value); // Just respond with the setting (not quotes needed)
+                else if (response == SETTING_KNOWN_STRING)
+                    commandSendStringOkResponse(tokens[0], field,
+                                                value); // Wrap the string setting in quotes in the response, add OK
                 else
-                    commandSendErrorResponse(tokens[0], field, "Unknown setting");
+                    commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
             }
         }
         else if (strcmp(tokens[0], "SPEXE") == 0)
@@ -164,13 +240,83 @@ void commandSendExecuteOkResponse(char *command, char *settingName)
     commandSendResponse(innerBuffer);
 }
 
+// Given a command, and a value, send response sentence with OK and checksum and <CR><LR>
+// Ex: SPSET,ntripClientCasterUserPW,thePassword = $SPSET,ntripClientCasterUserPW,"thePassword",OK*2F
+void commandSendStringOkResponse(char *command, char *settingName, char *valueBuffer)
+{
+    // Add escapes for any quotes in valueBuffer
+    // https://stackoverflow.com/a/26114476
+    const char *escapeChar = "\"";
+    char escapedValueBuffer[100];
+    size_t bp = 0;
+
+    for (size_t sp = 0; valueBuffer[sp]; sp++)
+    {
+        if (strchr(escapeChar, valueBuffer[sp]))
+            escapedValueBuffer[bp++] = '\\';
+        escapedValueBuffer[bp++] = valueBuffer[sp];
+    }
+    escapedValueBuffer[bp] = 0;
+
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "%s,%s,\"%s\",OK", command, settingName, escapedValueBuffer);
+    commandSendResponse(innerBuffer);
+}
+
+// Given a command, and a value, send response sentence with checksum and <CR><LR>
+// Ex: $SPGET,ntripClientCasterUserPW*35 = $SPSET,ntripClientCasterUserPW,"thePassword",OK*2F
+void commandSendStringResponse(char *command, char *settingName, char *valueBuffer)
+{
+    // Add escapes for any quotes in valueBuffer
+    // https://stackoverflow.com/a/26114476
+    const char *escapeChar = "\"";
+    char escapedValueBuffer[100];
+    size_t bp = 0;
+
+    for (size_t sp = 0; valueBuffer[sp]; sp++)
+    {
+        if (strchr(escapeChar, valueBuffer[sp]))
+            escapedValueBuffer[bp++] = '\\';
+        escapedValueBuffer[bp++] = valueBuffer[sp];
+    }
+    escapedValueBuffer[bp] = 0;
+
+    // Create string between $ and * for checksum calculation
+    char innerBuffer[200];
+    sprintf(innerBuffer, "%s,%s,\"%s\"", command, settingName, escapedValueBuffer);
+    commandSendResponse(innerBuffer);
+}
+
 // Given a command, send response sentence with OK and checksum and <CR><LR>
 // Ex: observationPositionAccuracy,float,0.5 =
 void commandSendExecuteListResponse(const char *settingName, char *settingType, char *settingValue)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
-    sprintf(innerBuffer, "SPLST,%s,%s,%s", settingName, settingType, settingValue);
+
+    // Put quotes around char settings
+    if (strstr(settingType, "char"))
+    {
+        // Add escapes for any quotes in settingValue
+        // https://stackoverflow.com/a/26114476
+        const char *escapeChar = "\"";
+        char escapedSettingValue[100];
+        size_t bp = 0;
+
+        for (size_t sp = 0; settingValue[sp]; sp++)
+        {
+            if (strchr(escapeChar, settingValue[sp]))
+                escapedSettingValue[bp++] = '\\';
+            escapedSettingValue[bp++] = settingValue[sp];
+        }
+        escapedSettingValue[bp] = 0;
+
+        sprintf(innerBuffer, "SPLST,%s,%s,\"%s\"", settingName, settingType, settingValue);
+    }
+    else
+        sprintf(innerBuffer, "SPLST,%s,%s,%s", settingName, settingType, settingValue);
+
     commandSendResponse(innerBuffer);
 }
 
@@ -268,11 +414,7 @@ bool commandValid(char *commandString)
 }
 
 // Split a settingName into a truncatedName and a suffix
-void commandSplitName(const char * settingName,
-                      char * truncatedName,
-                      int truncatedNameLen,
-                      char * suffix,
-                      int suffixLen)
+void commandSplitName(const char *settingName, char *truncatedName, int truncatedNameLen, char *suffix, int suffixLen)
 {
     // The settingName contains an underscore at the split point, search
     // for the underscore, the truncatedName is on the left including
@@ -298,26 +440,21 @@ void commandSplitName(const char * settingName,
 }
 
 // Lookup up setting name
-int commandLookupSettingName(const char * settingName,
-                             char * truncatedName,
-                             int truncatedNameLen,
-                             char * suffix,
+int commandLookupSettingName(const char *settingName, char *truncatedName, int truncatedNameLen, char *suffix,
                              int suffixLen)
 {
-    const char * command;
+    const char *command;
 
     // Loop through the valid command entries
     for (int i = 0; i < commandCount; i++)
     {
         // Verify that this command does not get split
-        if ((commandIndex[i] >= 0)
-            && (!rtkSettingsEntries[commandIndex[i]].useSuffix))
+        if ((commandIndex[i] >= 0) && (!rtkSettingsEntries[commandIndex[i]].useSuffix))
         {
             command = commandGetName(0, commandIndex[i]);
 
             // For speed, compare the first letter, then the whole string
-            if ((command[0] == settingName[0])
-                && (strcmp(command, settingName) == 0))
+            if ((command[0] == settingName[0]) && (strcmp(command, settingName) == 0))
             {
                 return commandIndex[i];
             }
@@ -325,8 +462,7 @@ int commandLookupSettingName(const char * settingName,
     }
 
     // Split a settingName into a truncatedName and a suffix
-    commandSplitName(settingName, truncatedName, truncatedNameLen,
-                     suffix, suffixLen);
+    commandSplitName(settingName, truncatedName, truncatedNameLen, suffix, suffixLen);
 
     // Loop through the settings entries
     // TODO: make this faster
@@ -335,14 +471,12 @@ int commandLookupSettingName(const char * settingName,
     for (int i = 0; i < commandCount; i++)
     {
         // Verify that this command gets split
-        if ((commandIndex[i] >= 0)
-            && rtkSettingsEntries[commandIndex[i]].useSuffix)
+        if ((commandIndex[i] >= 0) && rtkSettingsEntries[commandIndex[i]].useSuffix)
         {
             command = commandGetName(0, commandIndex[i]);
 
             // For speed, compare the first letter, then the whole string
-            if ((command[0] == truncatedName[0])
-                && (strcmp(command, truncatedName) == 0))
+            if ((command[0] == truncatedName[0]) && (strcmp(command, truncatedName) == 0))
             {
                 return commandIndex[i];
             }
@@ -354,11 +488,9 @@ int commandLookupSettingName(const char * settingName,
 }
 
 // Check for unknown variables
-bool commandCheckForUnknownVariable(const char * settingName,
-                                    const char ** entry,
-                                    int tableEntries)
+bool commandCheckForUnknownVariable(const char *settingName, const char **entry, int tableEntries)
 {
-    const char ** tableEnd;
+    const char **tableEnd;
 
     // Walk table of unused variables - read to avoid errors
     tableEnd = &entry[tableEntries];
@@ -372,7 +504,7 @@ bool commandCheckForUnknownVariable(const char * settingName,
 }
 
 // Given a settingName, and string value, update a given setting
-bool updateSettingWithValue(const char *settingName, const char *settingValueStr)
+SettingValueResponse updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
     int i;
     char *ptr;
@@ -391,10 +523,11 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         settingValue = 0;
 
     bool knownSetting = false;
+    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
+                                  // Generally char arrays but some others.
 
     // Loop through the valid command entries
-    i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName),
-                                 suffix, sizeof(suffix));
+    i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -522,8 +655,9 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
 
             // Update the profile name in the file system if necessary
             if (strcmp(settingName, "profileName") == 0)
-                setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile names at
-                                               // location profileNumber
+                setProfileName(profileNumber); // Copy the current settings.profileName into the array of profile names
+                                               // at location profileNumber
+            settingIsString = true;
         }
         break;
         case _IPString: {
@@ -531,13 +665,13 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             IPAddress *ptr = (IPAddress *)var;
             ptr->fromString(tempString);
             knownSetting = true;
+            settingIsString = true;
         }
         break;
         case tUbxMsgRt: {
             for (int x = 0; x < qualifier; x++)
             {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
                 {
                     settings.ubxMessageRates[x] = (uint8_t)settingValue;
                     knownSetting = true;
@@ -570,6 +704,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                     for (int i = 0; i < 6; i++)
                         settings.espnowPeers[suffixNum][i] = mac[i];
                     knownSetting = true;
+                    settingIsString = true;
                 }
             }
         }
@@ -599,6 +734,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                     strncpy(settings.wifiNetworks[network].ssid, settingValueStr,
                             sizeof(settings.wifiNetworks[0].ssid));
                     knownSetting = true;
+                    settingIsString = true;
                 }
             }
             else if (strstr(suffix, "Password") != nullptr)
@@ -608,6 +744,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                     strncpy(settings.wifiNetworks[network].password, settingValueStr,
                             sizeof(settings.wifiNetworks[0].password));
                     knownSetting = true;
+                    settingIsString = true;
                 }
             }
         }
@@ -619,6 +756,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 strncpy(&settings.ntripServer_CasterHost[server][0], settingValueStr,
                         sizeof(settings.ntripServer_CasterHost[server]));
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -638,6 +776,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 strncpy(&settings.ntripServer_CasterUser[server][0], settingValueStr,
                         sizeof(settings.ntripServer_CasterUser[server]));
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -648,6 +787,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 strncpy(&settings.ntripServer_CasterUserPW[server][0], settingValueStr,
                         sizeof(settings.ntripServer_CasterUserPW[server]));
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -658,6 +798,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 strncpy(&settings.ntripServer_MountPoint[server][0], settingValueStr,
                         sizeof(settings.ntripServer_MountPoint[server]));
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -668,6 +809,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 strncpy(&settings.ntripServer_MountPointPW[server][0], settingValueStr,
                         sizeof(settings.ntripServer_MountPointPW[server]));
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -749,8 +891,10 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
     }
 
     // Done when the setting is found
-    if (knownSetting)
-        return true;
+    if (knownSetting == true && settingIsString == true)
+        return (SETTING_KNOWN_STRING);
+    else if (knownSetting == true)
+        return (SETTING_KNOWN);
 
     if (strcmp(settingName, "fixedLatText") == 0)
     {
@@ -947,7 +1091,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         {
             endLogging(false, true); //(gotSemaphore, releaseSemaphore) Close file. Reset parser stats.
             beginLogging();          // Create new file based on current RTC.
-            setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
+            setLoggingType();        // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
 
             char newFileNameCSV[sizeof("logFileName,") + sizeof(logFileName) + 1];
             snprintf(newFileNameCSV, sizeof(newFileNameCSV), "logFileName,%s,", logFileName);
@@ -1015,25 +1159,14 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
     // Unused variables - read to avoid errors
     else
     {
-        const char * table[] =
-        {
-            "baseTypeSurveyIn",
-            "enableFactoryDefaults",
-            "enableFirmwareUpdate",
-            "enableForgetRadios",
-            "fileSelectAll",
-            "fixedBaseCoordinateTypeGeo",
-            "fixedHAEAPC",
-            "measurementRateSec",
-            "nicknameECEF",
-            "nicknameGeodetic",
-            "saveToArduino",
+        const char *table[] = {
+            "baseTypeSurveyIn", "enableFactoryDefaults",      "enableFirmwareUpdate", "enableForgetRadios",
+            "fileSelectAll",    "fixedBaseCoordinateTypeGeo", "fixedHAEAPC",          "measurementRateSec",
+            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName,
-                                                      table,
-                                                      tableEntries);
+        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
     }
 
     // Last catch
@@ -1042,7 +1175,12 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         systemPrintf("Unknown '%s': %0.3lf\r\n", settingName, settingValue);
     }
 
-    return (knownSetting);
+    if (knownSetting == true && settingIsString == true)
+        return (SETTING_KNOWN_STRING);
+    else if (knownSetting == true)
+        return (SETTING_KNOWN);
+
+    return (SETTING_UNKNOWN);
 }
 
 // Create a csv string with current settings
@@ -1738,7 +1876,7 @@ void writeToString(char *settingValueStr, char *value)
 // Given a settingName, create a string with setting value
 // Used in conjunction with the command line interface
 // The order of variables matches the order found in settings.h
-bool getSettingValue(const char *settingName, char *settingValueStr)
+SettingValueResponse getSettingValue(const char *settingName, char *settingValueStr)
 {
     int i;
     int qualifier;
@@ -1748,10 +1886,11 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
     void *var;
 
     bool knownSetting = false;
+    bool settingIsString = false; // Goes true when setting needs to be surrounded by quotes during command response.
+                                  // Generally char arrays but some others.
 
     // Loop through the valid command entries
-    i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName),
-                                 suffix, sizeof(suffix));
+    i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -1863,19 +2002,20 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             char *ptr = (char *)var;
             writeToString(settingValueStr, ptr);
             knownSetting = true;
+            settingIsString = true;
         }
         break;
         case _IPString: {
             IPAddress *ptr = (IPAddress *)var;
             writeToString(settingValueStr, (char *)ptr->toString().c_str());
             knownSetting = true;
+            settingIsString = true;
         }
         break;
         case tUbxMsgRt: {
             for (int x = 0; x < qualifier; x++)
             {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
-                    (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
                 {
                     writeToString(settingValueStr, settings.ubxMessageRates[x]);
                     knownSetting = true;
@@ -1908,6 +2048,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                          settings.espnowPeers[suffixNum][5]);
                 writeToString(settingValueStr, peer);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -1935,6 +2076,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 {
                     writeToString(settingValueStr, settings.wifiNetworks[network].ssid);
                     knownSetting = true;
+                    settingIsString = true;
                 }
             }
             else if (strstr(suffix, "Password") != nullptr)
@@ -1943,6 +2085,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
                 {
                     writeToString(settingValueStr, settings.wifiNetworks[network].password);
                     knownSetting = true;
+                    settingIsString = true;
                 }
             }
         }
@@ -1953,6 +2096,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             {
                 writeToString(settingValueStr, settings.ntripServer_CasterHost[server]);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -1971,6 +2115,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             {
                 writeToString(settingValueStr, settings.ntripServer_CasterUser[server]);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -1980,6 +2125,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             {
                 writeToString(settingValueStr, settings.ntripServer_CasterUserPW[server]);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -1989,6 +2135,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             {
                 writeToString(settingValueStr, settings.ntripServer_MountPoint[server]);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -1998,6 +2145,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             {
                 writeToString(settingValueStr, settings.ntripServer_MountPointPW[server]);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -2071,6 +2219,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             {
                 writeToString(settingValueStr, settings.regionalCorrectionTopics[region]);
                 knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -2078,8 +2227,10 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
     }
 
     // Done if the settingName was found
-    if (knownSetting)
-        return true;
+    if (knownSetting == true && settingIsString == true)
+        return (SETTING_KNOWN_STRING);
+    else if (knownSetting == true)
+        return (SETTING_KNOWN);
 
     // Report deviceID over CLI - Useful for label generation
     if (strcmp(settingName, "deviceId") == 0)
@@ -2090,6 +2241,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
 
         writeToString(settingValueStr, hardwareID);
         knownSetting = true;
+        settingIsString = true;
     }
 
     // Special actions
@@ -2103,8 +2255,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
     // TODO: check this! Is this really what we want?
     else
     {
-        const char * table[] =
-        {
+        const char *table[] = {
             "baseTypeFixed",
             "baseTypeSurveyIn",
             "checkNewFirmware",
@@ -2135,9 +2286,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
-        knownSetting = commandCheckForUnknownVariable(settingName,
-                                                      table,
-                                                      tableEntries);
+        knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
     }
 
     if (knownSetting == false)
@@ -2146,7 +2295,12 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 
-    return (knownSetting);
+    if (knownSetting == true && settingIsString == true)
+        return (SETTING_KNOWN_STRING);
+    else if (knownSetting == true)
+        return (SETTING_KNOWN);
+
+    return (SETTING_UNKNOWN);
 }
 
 // List available settings, their type in CSV, and value
@@ -2256,8 +2410,7 @@ void commandList(int i)
         // Record message settings
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     ubxMessages[x].msgTextName);
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
 
             getSettingValue(settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
@@ -2355,8 +2508,7 @@ void commandList(int i)
     case tNSCUsrPw: {
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
-            snprintf(settingType, sizeof(settingType), "char[%d]",
-                     sizeof(settings.ntripServer_CasterUserPW[x]));
+            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
             getSettingValue(settingName, settingValue);
@@ -2378,8 +2530,7 @@ void commandList(int i)
     case tNSMtPtPw: {
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
-            snprintf(settingType, sizeof(settingType), "char[%d]",
-                     sizeof(settings.ntripServer_MountPointPW[x]));
+            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
             getSettingValue(settingName, settingValue);
@@ -2439,8 +2590,7 @@ void commandList(int i)
         // Record corrections priorities
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     correctionsSourceNames[x]);
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionsSourceNames[x]);
 
             getSettingValue(settingName, settingValue);
             commandSendExecuteListResponse(settingName, "int", settingValue);
@@ -2450,8 +2600,7 @@ void commandList(int i)
     case tRegCorTp: {
         for (int r = 0; r < rtkSettingsEntries[i].qualifier; r++)
         {
-            snprintf(settingType, sizeof(settingType), "char[%d]",
-                     sizeof(settings.regionalCorrectionTopics[0]));
+            snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, r);
 
             getSettingValue(settingName, settingValue);
@@ -2462,7 +2611,7 @@ void commandList(int i)
     }
 }
 
-const char * commandGetName(int stringIndex, int rtkIndex)
+const char *commandGetName(int stringIndex, int rtkIndex)
 {
     int number;
     static char temp[2][16];
@@ -2514,9 +2663,9 @@ bool commandAvailableOnPlatform(int i)
 bool commandIndexFill()
 {
     int i;
-    const char * iCommandName;
+    const char *iCommandName;
     int j;
-    const char * jCommandName;
+    const char *jCommandName;
     int length;
     int16_t temp;
 
@@ -2557,7 +2706,7 @@ bool commandIndexFill()
         {
             jCommandName = commandGetName(1, commandIndex[j]);
 
-            //Determine if the commands are out of order
+            // Determine if the commands are out of order
             if (strncasecmp(iCommandName, jCommandName, strlen(iCommandName) + 1) > 0)
             {
                 // Out of order, switch the two entries
@@ -2589,7 +2738,7 @@ void printAvailableSettings()
         else if (commandIndex[i] >= -MAX_PROFILE_COUNT)
         {
             int index;
-            const char * settingName;
+            const char *settingName;
             char settingType[100];
 
             settingName = commandGetName(0, commandIndex[i]);
