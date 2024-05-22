@@ -19,8 +19,6 @@
   Settings are loaded from microSD if available, otherwise settings are pulled from ESP32's file system LittleFS.
 */
 
-#define IPv6Address IPAddress // Temporary fix to let SparkFun_WebServer_ESP32_W5500 compile on arduino-esp32 v3.0.0 - TODO delete this
-
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality

@@ -7,12 +7,12 @@ void sdUpdate()
         return;
 
     // Skip if going into / in configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        //if (settings.debugNetworkLayer)
-        //    systemPrintln("configureViaEthernet: skipping sdUpdate");
-        return;
-    }
+    // if (configureViaEthernet)
+    // {
+    //     //if (settings.debugNetworkLayer)
+    //     //    systemPrintln("configureViaEthernet: skipping sdUpdate");
+    //     return;
+    // }
 
     if (settings.enableSD == false)
     {
@@ -146,7 +146,7 @@ bool sdCardPresent(void)
 
 bool sdCardPresentSoftwareTest()
 {
-    SPI.begin();
+    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);

@@ -553,12 +553,12 @@ void beginSD()
         return;
 
     // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginSD");
-        return;
-    }
+    // if (configureViaEthernet)
+    // {
+    //     if (settings.debugNetworkLayer)
+    //         systemPrintln("configureViaEthernet: skipping beginSD");
+    //     return;
+    // }
 
     bool gotSemaphore;
 
@@ -696,7 +696,7 @@ void resetSPI()
     sdDeselectCard();
 
     // Flush SPI interface
-    SPI.begin();
+    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -706,7 +706,7 @@ void resetSPI()
     sdSelectCard();
 
     // Flush SD interface
-    SPI.begin();
+    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -875,12 +875,12 @@ bool forceConfigureViaEthernet()
 void beginInterrupts()
 {
     // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginInterrupts");
-        return;
-    }
+    // if (configureViaEthernet)
+    // {
+    //     if (settings.debugNetworkLayer)
+    //         systemPrintln("configureViaEthernet: skipping beginInterrupts");
+    //     return;
+    // }
 
     if (present.timePulseInterrupt ==
         true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
@@ -894,8 +894,9 @@ void beginInterrupts()
     if (present.ethernet_ws5500 == true)
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
-        pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
-        attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
+        pinMode(pin_Ethernet_Interrupt, INPUT);                 // Prepare the interrupt pin
+        //pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
+        //attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
     }
 #endif // COMPILE_ETHERNET
 }
