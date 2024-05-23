@@ -211,7 +211,7 @@ void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
         }
         else
             zedSetMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
-                              endOfBlock); // Find start and stop of given messageType in message array
+                                 endOfBlock); // Find start and stop of given messageType in message array
 
         for (int x = 0; x < (endOfBlock - startOfBlock); x++)
         {
@@ -599,65 +599,72 @@ void checkGNSSArrayDefaults()
 {
     bool defaultsApplied = false;
 
-    if (settings.ubxMessageRates[0] == 254)
+    if (present.gnss_zedf9p)
     {
-        defaultsApplied = true;
 
-        // Reset rates to defaults
-        for (int x = 0; x < MAX_UBX_MSG; x++)
+        if (settings.ubxMessageRates[0] == 254)
         {
-            if (ubxMessages[x].msgClass == UBX_RTCM_MSB)
-                settings.ubxMessageRates[x] = 0; // For general rover messages, RTCM should be zero by default.
-                                                 // ubxMessageRatesBase will have the proper defaults.
-            else
-                settings.ubxMessageRates[x] = ubxMessages[x].msgDefaultRate;
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UBX_MSG; x++)
+            {
+                if (ubxMessages[x].msgClass == UBX_RTCM_MSB)
+                    settings.ubxMessageRates[x] = 0; // For general rover messages, RTCM should be zero by default.
+                                                     // ubxMessageRatesBase will have the proper defaults.
+                else
+                    settings.ubxMessageRates[x] = ubxMessages[x].msgDefaultRate;
+            }
+        }
+
+        if (settings.ubxMessageRatesBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset Base rates to defaults
+            int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
+            for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+                settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
     }
-
-    if (settings.ubxMessageRatesBase[0] == 254)
+    else if (present.gnss_um980)
     {
-        defaultsApplied = true;
 
-        // Reset Base rates to defaults
-        int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
-        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-            settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
-    }
+        if (settings.um980Constellations[0] == 254)
+        {
+            defaultsApplied = true;
 
-    if (settings.um980Constellations[0] == 254)
-    {
-        defaultsApplied = true;
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+                settings.um980Constellations[x] = 1;
+        }
 
-        // Reset constellations to defaults
-        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            settings.um980Constellations[x] = 1;
-    }
+        if (settings.um980MessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
 
-    if (settings.um980MessageRatesNMEA[0] == 254)
-    {
-        defaultsApplied = true;
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+        }
 
-        // Reset rates to defaults
-        for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-            settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
-    }
+        if (settings.um980MessageRatesRTCMRover[0] == 254)
+        {
+            defaultsApplied = true;
 
-    if (settings.um980MessageRatesRTCMRover[0] == 254)
-    {
-        defaultsApplied = true;
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMRover[x] = 0;
+        }
 
-        // For rovers, RTCM should be zero by default.
-        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            settings.um980MessageRatesRTCMRover[x] = 0;
-    }
+        if (settings.um980MessageRatesRTCMBase[0] == 254)
+        {
+            defaultsApplied = true;
 
-    if (settings.um980MessageRatesRTCMBase[0] == 254)
-    {
-        defaultsApplied = true;
-
-        // Reset RTCM rates to defaults
-        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+        }
     }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
