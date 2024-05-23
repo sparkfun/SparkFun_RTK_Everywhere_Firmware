@@ -53,7 +53,8 @@ void sendStringToWebsocket(const char *stringToSend)
     }
     else
     {
-        systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
+        if (settings.debugWebConfig == true)
+            systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
     }
 
 }
@@ -72,7 +73,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
         // Log the fd, so we can reuse it for httpd_ws_send_frame
         // TODO: do we need to be cleverer about this?
         last_ws_fd = httpd_req_to_sockfd(req);
-        systemPrintln("Handshake done, the new ws connection was opened");
+        if (settings.debugWebConfig == true)
+            systemPrintln("Handshake done, the new ws connection was opened");
 
         websocketConnected = true;
         lastDynamicDataUpdate = millis();
@@ -90,7 +92,8 @@ static esp_err_t ws_handler(httpd_req_t *req)
         systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
         return ret;
     }
-    systemPrintf("frame len is %d\r\n", ws_pkt.len);
+    if (settings.debugWebConfig == true)
+        systemPrintf("frame len is %d\r\n", ws_pkt.len);
     if (ws_pkt.len) {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
         buf = (uint8_t *)calloc(1, ws_pkt.len + 1);
@@ -106,9 +109,11 @@ static esp_err_t ws_handler(httpd_req_t *req)
             free(buf);
             return ret;
         }
-        systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
+        if (settings.debugWebConfig == true)
+            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
     }
-    systemPrintf("Packet type: %d\r\n", ws_pkt.type);
+    if (settings.debugWebConfig == true)
+        systemPrintf("Packet type: %d\r\n", ws_pkt.type);
     // HTTPD_WS_TYPE_CONTINUE   = 0x0,
     // HTTPD_WS_TYPE_TEXT       = 0x1,
     // HTTPD_WS_TYPE_BINARY     = 0x2,
@@ -155,14 +160,16 @@ static void start_wsserver(void)
     config.stack_size = AP_CONFIG_SETTING_SIZE;
 
     // Start the httpd server
-    systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
+    if (settings.debugWebConfig == true)
+        systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
     if (wsserver == nullptr)
         wsserver = new httpd_handle_t;
 
     if (httpd_start(wsserver, &config) == ESP_OK) {
         // Registering the ws handler
-        systemPrintln("Registering URI handlers");
+        if (settings.debugWebConfig == true)
+            systemPrintln("Registering URI handlers");
         httpd_register_uri_handler(*wsserver, &ws);
         return;
     }
@@ -193,7 +200,8 @@ class CaptiveRequestHandler : public RequestHandler
                       "/check_network_status.txt"};
     CaptiveRequestHandler()
     {
-        systemPrintln("CaptiveRequestHandler is registered");
+        if (settings.debugWebConfig == true)
+            systemPrintln("CaptiveRequestHandler is registered");
     }
     virtual ~CaptiveRequestHandler()
     {
@@ -211,7 +219,8 @@ class CaptiveRequestHandler : public RequestHandler
     bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri) override
     {
         String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
-        systemPrintln(logmessage);
+        if (settings.debugWebConfig == true)
+            systemPrintln(logmessage);
         String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
         response += "<div class='container'>";
         response += "<div align='center' class='col-sm-12'><img src='http://";
@@ -244,7 +253,9 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         if (settings.mdnsEnable == true)
         {
             if (MDNS.begin("rtk") == false) // This should make the module findable from 'rtk.local' in browser
+            {
                 systemPrintln("Error setting up MDNS responder!");
+            }
             else
                 MDNS.addService("http", "tcp", 80); // Add service to MDNS-SD
         }
@@ -438,7 +449,8 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // Handler for file manager
         webserver->on("/listfiles", HTTP_GET, []() {
             String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            systemPrintln(logmessage);
+            if (settings.debugWebConfig == true)
+                systemPrintln(logmessage);
             String files;
             getFileList(files);
             webserver->send(200, "text/plain", files);
@@ -447,20 +459,24 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // Handler for supported messages list
         webserver->on("/listMessages", HTTP_GET, []() {
             String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            systemPrintln(logmessage);
+            if (settings.debugWebConfig == true)
+                systemPrintln(logmessage);
             String messages;
             createMessageList(messages);
-            systemPrintln(messages);
+            if (settings.debugWebConfig == true)
+                systemPrintln(messages);
             webserver->send(200, "text/plain", messages);
         });
 
         // Handler for supported RTCM/Base messages list
         webserver->on("/listMessagesBase", HTTP_GET, []() {
             String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            systemPrintln(logmessage);
+            if (settings.debugWebConfig == true)
+                systemPrintln(logmessage);
             String messageList;
             createMessageListBase(messageList);
-            systemPrintln(messageList);
+            if (settings.debugWebConfig == true)
+                systemPrintln(messageList);
             webserver->send(200, "text/plain", messageList);
         });
 
@@ -590,7 +606,8 @@ static void handleFileManager()
         }
         else
         {
-            systemPrintln(logmessage + " file exists");
+            if (settings.debugWebConfig == true)
+                systemPrintln(logmessage + " file exists");
 
             if (fileAction == "download")
             {
@@ -700,8 +717,6 @@ static void handleFirmwareFileUpload()
 
                 char bytesSentMsg[100];
                 snprintf(bytesSentMsg, sizeof(bytesSentMsg), "%'d bytes sent", binBytesSent);
-
-                systemPrintf("bytesSentMsg: %s\r\n", bytesSentMsg);
 
                 char statusMsg[200] = {'\0'};
                 stringRecord(statusMsg, "firmwareUploadStatus",
