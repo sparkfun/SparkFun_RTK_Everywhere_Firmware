@@ -113,8 +113,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
             {
-                systemPrintf("UDP Server wrote %d bytes as broadcast on port %d\r\n", length,
-                             settings.udpServerPort);
+                systemPrintf("UDP Server wrote %d bytes as broadcast on port %d\r\n", length, settings.udpServerPort);
                 PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             }
         }

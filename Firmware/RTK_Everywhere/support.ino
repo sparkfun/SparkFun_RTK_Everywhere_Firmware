@@ -20,13 +20,11 @@ int systemRead()
 void systemWrite(const uint8_t *buffer, uint16_t length)
 {
     // Output data to bluetooth if necessary
-    if ((printEndpoint == PRINT_ENDPOINT_ALL)
-        || (printEndpoint == PRINT_ENDPOINT_BLUETOOTH))
+    if ((printEndpoint == PRINT_ENDPOINT_ALL) || (printEndpoint == PRINT_ENDPOINT_BLUETOOTH))
         bluetoothWrite(buffer, length);
 
     // Output data to USB serial if necessary
-    if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH)
-        && (!forwardGnssDataToUsbSerial))
+    if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH) && (!forwardGnssDataToUsbSerial))
         Serial.write(buffer, length);
 }
 

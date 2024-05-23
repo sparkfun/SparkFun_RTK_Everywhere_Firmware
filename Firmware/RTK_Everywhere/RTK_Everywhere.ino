@@ -466,7 +466,7 @@ volatile bool forwardGnssDataToUsbSerial;
 // forwardGnssDataToUsbSerial is set to false and menuMain is displayed.
 // If the timeout between characters occurs or an invalid character is
 // entered then no changes are made and the +++ sequence must be re-entered.
-#define PLUS_PLUS_PLUS_TIMEOUT      (2 * 1000)  // Milliseconds
+#define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
@@ -659,7 +659,7 @@ uint8_t *pplRtcmBuffer;
 bool pplAttemptedStart = false;
 bool pplGnssOutput = false;
 bool pplMqttCorrections = false;
-bool pplLBandCorrections = false; // Raw L-Band - e.g. from mosaic X5
+bool pplLBandCorrections = false;     // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -719,7 +719,7 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover;         // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
+bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
@@ -748,7 +748,8 @@ uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
 // Corrections Priorities Support
-std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+std::vector<registeredCorrectionsSource>
+    registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
 correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
@@ -778,7 +779,7 @@ unsigned long lastGnssToPpl = 0;
 
 // Command processing
 int commandCount;
-int16_t * commandIndex;
+int16_t *commandIndex;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
@@ -855,7 +856,7 @@ volatile bool deadManWalking;
         settings.debugNtripServerState = true;                                                                         \
         settings.debugTcpClient = true;                                                                                \
         settings.debugTcpServer = true;                                                                                \
-        settings.debugUdpServer = true;                                                                             \
+        settings.debugUdpServer = true;                                                                                \
         settings.printBootTimes = true;                                                                                \
     }
 

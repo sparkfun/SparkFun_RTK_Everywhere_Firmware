@@ -100,8 +100,8 @@ uint16_t bluetoothOutgoingToGnssHead;
 unsigned long lastGnssSend; // Timestamp of the last time we sent RTCM to GNSS
 
 // Ring buffer tails
-static RING_BUFFER_OFFSET btRingBufferTail; // BT Tail advances as it is sent over BT
-static RING_BUFFER_OFFSET sdRingBufferTail; // SD Tail advances as it is recorded to SD
+static RING_BUFFER_OFFSET btRingBufferTail;  // BT Tail advances as it is sent over BT
+static RING_BUFFER_OFFSET sdRingBufferTail;  // SD Tail advances as it is recorded to SD
 static RING_BUFFER_OFFSET usbRingBufferTail; // USB Tail advances as it is sent over USB serial
 
 // Ring buffer offsets
@@ -1393,7 +1393,7 @@ void buttonCheckTask(void *e)
             // The user button only exits tilt mode
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
-                tiltRequestStop(); //Don't force the hardware off here as it may be in use in another task
+                tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
             }
 
             else if (doubleTap)

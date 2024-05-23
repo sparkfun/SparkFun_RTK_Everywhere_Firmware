@@ -1646,7 +1646,7 @@ void updateLBand()
         }
         else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
         {
-            lbandTimeFloatStarted = 0; //Restart timer in case we drop from RTK Fix
+            lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
 
             rtkTimeToFixMs = millis();
             if (settings.debugCorrections == true)

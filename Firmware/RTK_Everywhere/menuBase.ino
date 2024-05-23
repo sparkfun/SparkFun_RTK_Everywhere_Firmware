@@ -246,8 +246,8 @@ void menuBase()
         {
             // Arbitrary 0.1m minimum
 
-                getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
+            getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
+                          (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
         }
 
         else if (incoming == 7)

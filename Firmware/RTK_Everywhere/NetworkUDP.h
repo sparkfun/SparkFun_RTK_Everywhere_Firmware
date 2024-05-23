@@ -6,17 +6,15 @@ extern uint8_t networkGetType(uint8_t user);
 class NetworkUDP : public UDP
 {
   protected:
-
-    UDP * _udp; // Ethernet or WiFi udp
+    UDP *_udp; // Ethernet or WiFi udp
     bool _friendClass;
     uint8_t _networkType;
 
   public:
-
     //------------------------------
     // Create the network client
     //------------------------------
-    NetworkUDP(UDP * udp, uint8_t networkType)
+    NetworkUDP(UDP *udp, uint8_t networkType)
     {
         _friendClass = true;
         _networkType = networkType;
@@ -34,9 +32,9 @@ class NetworkUDP : public UDP
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
             _udp = new WiFiUDP;
-#else   // COMPILE_WIFI
-            _udp = nullptr;
-#endif  // COMPILE_WIFI
+#else  // COMPILE_WIFI
+        _udp = nullptr;
+#endif // COMPILE_WIFI
     };
 
     //------------------------------
@@ -53,7 +51,6 @@ class NetworkUDP : public UDP
         }
     };
 
-    
     //------------------------------
     // Determine if the network client was allocated
     //------------------------------
@@ -110,7 +107,7 @@ class NetworkUDP : public UDP
     // Read available data
     //------------------------------
 
-    int read(unsigned char* buf, size_t length)
+    int read(unsigned char *buf, size_t length)
     {
         if (_udp)
             return _udp->read(buf, length);
@@ -121,7 +118,7 @@ class NetworkUDP : public UDP
     // Read available data
     //------------------------------
 
-    int read(char* buf, size_t length)
+    int read(char *buf, size_t length)
     {
         if (_udp)
             return _udp->read(buf, length);
@@ -186,7 +183,7 @@ class NetworkUDP : public UDP
     // Begin a UDP packet
     //------------------------------
 
-    int beginPacket(const char* host, uint16_t port)
+    int beginPacket(const char *host, uint16_t port)
     {
         if (_udp)
             return _udp->beginPacket(host, port);
@@ -228,7 +225,7 @@ class NetworkUDP : public UDP
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
             return ((WiFiUDP *)_udp)->remoteIP();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         return IPAddress((uint32_t)0);
     }
 
@@ -245,12 +242,11 @@ class NetworkUDP : public UDP
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
             return ((WiFiUDP *)_udp)->remotePort();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         return 0;
     }
 
   protected:
-
     //------------------------------
     // Declare the friend classes
     //------------------------------
@@ -259,18 +255,14 @@ class NetworkUDP : public UDP
     friend class NetworkWiFiUdp;
 };
 
-#ifdef  COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
 class NetworkEthernetUdp : public NetworkUDP
 {
   private:
-
     EthernetUDP _udp;
 
   public:
-
-    NetworkEthernetUdp(EthernetUDP& udp) :
-        _udp{udp},
-        NetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
+    NetworkEthernetUdp(EthernetUDP &udp) : _udp{udp}, NetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
     {
     }
 
@@ -279,20 +271,16 @@ class NetworkEthernetUdp : public NetworkUDP
         this->~NetworkUDP();
     }
 };
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
-#ifdef  COMPILE_WIFI
+#ifdef COMPILE_WIFI
 class NetworkWiFiUdp : public NetworkUDP
 {
   private:
-
     WiFiUDP _udp;
 
   public:
-
-    NetworkWiFiUdp(WiFiUDP& udp) :
-        _udp{udp},
-        NetworkUDP(&_udp, NETWORK_TYPE_WIFI)
+    NetworkWiFiUdp(WiFiUDP &udp) : _udp{udp}, NetworkUDP(&_udp, NETWORK_TYPE_WIFI)
     {
     }
 
@@ -301,6 +289,6 @@ class NetworkWiFiUdp : public NetworkUDP
         this->~NetworkUDP();
     }
 };
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
-#endif  // __NETWORK_CLIENT_H__
+#endif // __NETWORK_CLIENT_H__

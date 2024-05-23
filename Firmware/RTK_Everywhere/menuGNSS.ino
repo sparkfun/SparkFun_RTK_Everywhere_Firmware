@@ -237,7 +237,7 @@ void menuGNSS()
             if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 90, &minCNO) ==
                 INPUT_RESPONSE_VALID)
             {
-                gnssSetMinCno(minCNO); //Set the setting and configure the GNSS receiver
+                gnssSetMinCno(minCNO); // Set the setting and configure the GNSS receiver
             }
         }
 

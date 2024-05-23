@@ -389,7 +389,8 @@ void networkDisplayIpAddress(uint8_t networkType)
         {
             strcpy(ipAddress, networkGetIpAddress(networkType).toString().c_str());
             if (network->type == NETWORK_TYPE_WIFI)
-                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], wifiGetSsid(), ipAddress, wifiGetRssi());
+                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], wifiGetSsid(),
+                             ipAddress, wifiGetRssi());
             else
                 systemPrintf("%s IP address: %s\r\n", networkName[network->type], ipAddress);
 
@@ -810,7 +811,7 @@ void networkStart(uint8_t networkType)
 //----------------------------------------
 // Translate the network state into a string
 //----------------------------------------
-const char * networkStateToString(uint8_t state)
+const char *networkStateToString(uint8_t state)
 {
     if (state >= networkStateEntries)
         return "Unknown";
@@ -1025,7 +1026,7 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
 //----------------------------------------
 // Translate type into a string
 //----------------------------------------
-const char * networkTypeToString(uint8_t type)
+const char *networkTypeToString(uint8_t type)
 {
     if (type >= networkNameEntries)
         return "Unknown";
@@ -1037,11 +1038,11 @@ const char * networkTypeToString(uint8_t type)
 //----------------------------------------
 void networkTypeUpdate(uint8_t networkType)
 {
-    if(inWiFiConfigMode())
+    if (inWiFiConfigMode())
     {
-        //Avoid the full network layer while in Browser Config Mode
+        // Avoid the full network layer while in Browser Config Mode
         wifiUpdate();
-        return; 
+        return;
     }
 
     char errorMsg[64];
@@ -1111,8 +1112,8 @@ void networkTypeUpdate(uint8_t networkType)
             // Display the network type change
             network->type = type;
             if (settings.debugNetworkLayer && (network->type != network->requestedNetwork))
-                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n", networkTypeToString(network->requestedNetwork),
-                             networkName[network->type]);
+                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n",
+                             networkTypeToString(network->requestedNetwork), networkName[network->type]);
             if (settings.debugNetworkLayer)
                 systemPrintf("networkTypeUpdate, network->requestedNetwork: %s --> %s\r\n",
                              networkName[network->requestedNetwork], networkTypeToString(network->type));
@@ -1364,7 +1365,7 @@ bool networkUserOpen(uint8_t user, uint8_t networkType)
 //----------------------------------------
 // Translate user into a string
 //----------------------------------------
-const char * networkUserToString(uint8_t userNumber)
+const char *networkUserToString(uint8_t userNumber)
 {
     if (userNumber >= networkUserEntries)
         return "Unknown";

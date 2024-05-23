@@ -764,7 +764,8 @@ void beginGnssUart()
 
         if (task.gnssUartPinnedTaskRunning == false)
         {
-            task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start here and check for completion.
+            task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start
+                                                   // here and check for completion.
 
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,

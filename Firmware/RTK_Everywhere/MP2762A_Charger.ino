@@ -149,21 +149,21 @@ void mp2762setFastChargeVoltageMv(uint16_t mVoltLevel)
     mp2762writeRegister(MP2762A_PRECHARGE_THRESHOLD_OPTION, status);
 }
 
-//Given a bit field, and a startingBitValue
-//Example: Battery voltage is bit 12.5mV per bit
+// Given a bit field, and a startingBitValue
+// Example: Battery voltage is bit 12.5mV per bit
 float convertBitsToDoubler(uint16_t bitField, float startingBitValue)
 {
-  float totalMv = 0;
-  for (int x = 0 ; x < 16 ; x++)
-  {
-    if (bitField & 0x0001)
-      totalMv += startingBitValue;
+    float totalMv = 0;
+    for (int x = 0; x < 16; x++)
+    {
+        if (bitField & 0x0001)
+            totalMv += startingBitValue;
 
-    bitField >>= 1;
+        bitField >>= 1;
 
-    startingBitValue *= 2;
-  }
-  return (totalMv);
+        startingBitValue *= 2;
+    }
+    return (totalMv);
 }
 
 // Reads from a given location

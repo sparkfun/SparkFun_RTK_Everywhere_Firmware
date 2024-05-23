@@ -601,7 +601,6 @@ void checkGNSSArrayDefaults()
 
     if (present.gnss_zedf9p)
     {
-
         if (settings.ubxMessageRates[0] == 254)
         {
             defaultsApplied = true;
@@ -629,7 +628,6 @@ void checkGNSSArrayDefaults()
     }
     else if (present.gnss_um980)
     {
-
         if (settings.um980Constellations[0] == 254)
         {
             defaultsApplied = true;

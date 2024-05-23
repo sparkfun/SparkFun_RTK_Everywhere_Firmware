@@ -413,7 +413,7 @@ void stateUpdate()
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
 
-            WIFI_STOP(); //Notify the network layer that it should stop so we can take over control of WiFi
+            WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
             bluetoothStop();
             espnowStop();
 
@@ -626,8 +626,7 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_WIFI_STARTED): {
-                wifiMaxConnectionAttempts =
-                    wifiOriginalMaxConnectionAttempts; // Revert setting
+            wifiMaxConnectionAttempts = wifiOriginalMaxConnectionAttempts; // Revert setting
 
             if (wifiIsConnected())
                 changeState(STATE_KEYS_WIFI_CONNECTED);

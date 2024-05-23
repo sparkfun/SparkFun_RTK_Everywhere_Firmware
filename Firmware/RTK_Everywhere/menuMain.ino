@@ -107,7 +107,7 @@ void menuMain()
 
                 ethernetWebServerStopESP32W5500();
 
-                settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
+                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
                 recordSystemSettings();
 
@@ -133,7 +133,7 @@ void menuMain()
             getFirmwareVersion(versionString, sizeof(versionString), true);
             systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
 
-    #ifdef COMPILE_BT
+#ifdef COMPILE_BT
 
             if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
                 systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
@@ -143,9 +143,9 @@ void menuMain()
                 systemPrint("** Bluetooth Low-Energy broadcasting as: ");
             systemPrint(deviceName);
             systemPrintln(" **");
-    #else  // COMPILE_BT
+#else  // COMPILE_BT
             systemPrintln("** Bluetooth Not Compiled **");
-    #endif // COMPILE_BT
+#endif // COMPILE_BT
 
             systemPrintln("Menu: Main");
 
@@ -160,39 +160,39 @@ void menuMain()
             if (productVariant != RTK_TORCH) // Torch does not have logging
                 systemPrintln("5) Configure Logging");
 
-    #ifdef COMPILE_WIFI
+#ifdef COMPILE_WIFI
             systemPrintln("6) Configure WiFi");
-    #else  // COMPILE_WIFI
+#else  // COMPILE_WIFI
             systemPrintln("6) **WiFi Not Compiled**");
-    #endif // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
-    #if COMPILE_NETWORK
+#if COMPILE_NETWORK
             systemPrintln("7) Configure TCP/UDP");
-    #else  // COMPILE_NETWORK
+#else  // COMPILE_NETWORK
             systemPrintln("7) **TCP/UDP Not Compiled**");
-    #endif // COMPILE_NETWORK
+#endif // COMPILE_NETWORK
 
-    #ifdef COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
             if (present.ethernet_ws5500 == true)
                 systemPrintln("e) Configure Ethernet");
-    #endif // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
             systemPrintln("f) Firmware Update");
 
             systemPrintln("i) Configure Corrections Priorities");
 
-    #ifdef COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
             if (present.ethernet_ws5500 == true)
                 systemPrintln("n) Configure NTP");
-    #endif // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
             systemPrintln("p) Configure PointPerfect");
 
-    #ifdef COMPILE_ESPNOW
+#ifdef COMPILE_ESPNOW
             systemPrintln("r) Configure Radios");
-    #else  // COMPILE_ESPNOW
+#else  // COMPILE_ESPNOW
             systemPrintln("r) **ESP-Now Not Compiled**");
-    #endif // COMPILE_ESPNOW
+#endif // COMPILE_ESPNOW
 
             systemPrintln("s) Configure System");
 
@@ -236,10 +236,10 @@ void menuMain()
                 menuUserProfiles();
             else if (incoming == 'p')
                 menuPointPerfect();
-    #ifdef COMPILE_ESPNOW
+#ifdef COMPILE_ESPNOW
             else if (incoming == 'r')
                 menuRadio();
-    #endif // COMPILE_ESPNOW
+#endif // COMPILE_ESPNOW
             else if (incoming == 's')
                 menuSystem();
             else if (incoming == 't' && (present.imu_im19 == true))
@@ -283,7 +283,6 @@ void menuMain()
         gnssSaveConfiguration();
 
         recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
-
     }
 
     if (settings.debugGnss == true)
@@ -563,8 +562,8 @@ void menuRadio()
         {
             settings.enableEspNow ^= 1;
 
-            //Start ESP-NOW so that getChannel runs correctly
-            if(settings.enableEspNow == true)
+            // Start ESP-NOW so that getChannel runs correctly
+            if (settings.enableEspNow == true)
                 espnowStart();
             else
                 espnowStop();

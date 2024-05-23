@@ -50,7 +50,8 @@ void menuCorrectionsPriorities()
 
         if (incoming == 1)
         {
-            getNewSetting("Enter new correction source lifetime in seconds (5-120): ", 5, 120, &settings.correctionsSourcesLifetime_s);
+            getNewSetting("Enter new correction source lifetime in seconds (5-120): ", 5, 120,
+                          &settings.correctionsSourcesLifetime_s);
         }
         else if ((incoming >= 'a') && (incoming < ('a' + correctionsSource::CORR_NUM)))
         {
@@ -184,7 +185,8 @@ bool isHighestRegisteredCorrectionsSource(correctionsSource theSource)
     if (highestPriority == (int)CORR_NUM)
         return false; // This is actually an error. No sources were found...
 
-    return (settings.correctionsSourcesPriority[(int)theSource] <= highestPriority); // Return true if theSource is highest
+    return (settings.correctionsSourcesPriority[(int)theSource] <=
+            highestPriority); // Return true if theSource is highest
 }
 
 // Update when this corrections source was lastSeen. (Re)register it if required.

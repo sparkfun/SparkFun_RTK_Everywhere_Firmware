@@ -893,47 +893,44 @@ bool zedBeginPPS()
 // Enable data output from the NEO
 bool zedEnableLBandCommunication()
 {
-/*
-    Paul's Notes on (NEO-D9S) L-Band:
+    /*
+        Paul's Notes on (NEO-D9S) L-Band:
 
-    Torch will receive PointPerfect SPARTN via IP, run it through the PPL, and feed RTCM to the UM980. No L-Band...
+        Torch will receive PointPerfect SPARTN via IP, run it through the PPL, and feed RTCM to the UM980. No L-Band...
 
-    The EVK has ZED-F9P and NEO-D9S. But there are two versions of the PCB:
-    v1.1 PCB :
-        Both ZED and NEO are on the i2c_0 I2C bus (the OLED is on i2c_1)
-        ZED UART1 is connected to the ESP32 (pins 25 and 33) only
-        ZED UART2 is connected to the I/O connector only
-        NEO UART1 is connected to test points only
-        NEO UART2 is not connected
-    v1.0 PCB (the one we are currently using for code development) :
-        Both ZED and NEO are on the i2c_0 I2C bus
-        ZED UART1 is connected to NEO UART1 only - not to ESP32 (Big mistake! Makes BT and Logging much more complicated...)
-        ZED UART2 is connected to the I/O connector only
-        NEO UART2 is not connected
+        The EVK has ZED-F9P and NEO-D9S. But there are two versions of the PCB:
+        v1.1 PCB :
+            Both ZED and NEO are on the i2c_0 I2C bus (the OLED is on i2c_1)
+            ZED UART1 is connected to the ESP32 (pins 25 and 33) only
+            ZED UART2 is connected to the I/O connector only
+            NEO UART1 is connected to test points only
+            NEO UART2 is not connected
+        v1.0 PCB (the one we are currently using for code development) :
+            Both ZED and NEO are on the i2c_0 I2C bus
+            ZED UART1 is connected to NEO UART1 only - not to ESP32 (Big mistake! Makes BT and Logging much more
+       complicated...) ZED UART2 is connected to the I/O connector only NEO UART2 is not connected
 
-    Facet v2 hasn't been built yet. The v2.01 PCB probably won't get built as it needs the new soft power switch.
-    When v2.10 (?) gets built :
-        Both ZED and NEO are on the I2C bus
-        ZED UART1 is connected to the ESP32 (pins 14 and 13) and also to the DATA connector via the Mux (output only)
-        ZED UART2 is connected to the RADIO connector only
-        NEO UART1 is not connected
-        NEO UART2 TX is connected to ESP32 pin 4. If the ESP32 has a UART spare - and it probably does - the PMP data
-          can go over this connection and avoid having double-PMP traffic on I2C. Neat huh?!
+        Facet v2 hasn't been built yet. The v2.01 PCB probably won't get built as it needs the new soft power switch.
+        When v2.10 (?) gets built :
+            Both ZED and NEO are on the I2C bus
+            ZED UART1 is connected to the ESP32 (pins 14 and 13) and also to the DATA connector via the Mux (output
+       only) ZED UART2 is connected to the RADIO connector only NEO UART1 is not connected NEO UART2 TX is connected to
+       ESP32 pin 4. If the ESP32 has a UART spare - and it probably does - the PMP data can go over this connection and
+       avoid having double-PMP traffic on I2C. Neat huh?!
 
-    Facet mosaic v1.0 PCB has been built, but needs the new soft power switch and some other minor mods.
-        X5 COM1 is connected to the ESP32 (pins 13 and 14) - RTCM from PPL, NMEA and RTCM to PPL and Bluetooth
-        X5 COM2 is connected to the RADIO connector only
-        X5 COM3 is connected to the DATA connector via the Mux (I/O)
-        X5 COM4 is connected to the ESP32 (pins 4 and 25) - raw L-Band to PPL, control from ESP32 to X5 ?
+        Facet mosaic v1.0 PCB has been built, but needs the new soft power switch and some other minor mods.
+            X5 COM1 is connected to the ESP32 (pins 13 and 14) - RTCM from PPL, NMEA and RTCM to PPL and Bluetooth
+            X5 COM2 is connected to the RADIO connector only
+            X5 COM3 is connected to the DATA connector via the Mux (I/O)
+            X5 COM4 is connected to the ESP32 (pins 4 and 25) - raw L-Band to PPL, control from ESP32 to X5 ?
 
-    So, what does all of this mean?
-    EVK v1.0 supports direct NEO to ZED UART communication, but V1.1 will not. There is no point in supporting it here.
-    Facet v2 can pipe NEO UART PMP data to the ZED (over I2C or maybe UART), but the hardware doesn't exist yet so there
-    is no point in adding that feature yet... TODO.
-    So, right now, we should assume NEO PMP data will arrive via I2C, and will get pushed to the ZED via I2C if the
-    corrections priority permits.
-    Deleting: useI2cForLbandCorrections, useI2cForLbandCorrectionsConfigured and rtcmTimeoutBeforeUsingLBand_s
-*/    
+        So, what does all of this mean?
+        EVK v1.0 supports direct NEO to ZED UART communication, but V1.1 will not. There is no point in supporting it
+       here. Facet v2 can pipe NEO UART PMP data to the ZED (over I2C or maybe UART), but the hardware doesn't exist yet
+       so there is no point in adding that feature yet... TODO. So, right now, we should assume NEO PMP data will arrive
+       via I2C, and will get pushed to the ZED via I2C if the corrections priority permits. Deleting:
+       useI2cForLbandCorrections, useI2cForLbandCorrectionsConfigured and rtcmTimeoutBeforeUsingLBand_s
+    */
 
     bool response = true;
 
@@ -948,20 +945,17 @@ bool zedEnableLBandCommunication()
 
         response &= i2cLBand.newCfgValset();
 
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
 
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 0); // Disable UBX output on NEO's UART1
-        
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
+
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
 
         // TODO: change this as needed for Facet v2
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
 
         // TODO: change this as needed for Facet v2
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
 
         response &= i2cLBand.sendCfgValset();
     }
@@ -999,8 +993,7 @@ bool zedDisableLBandCommunication()
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
 
         // TODO: change this as needed for Facet v2
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
 
         response &= i2cLBand.sendCfgValset();
     }
@@ -1446,8 +1439,8 @@ void zedApplyPointPerfectKeys()
     if (gnssFirmwareVersionInt < 130)
     {
         systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
-                        "Please upgrade your ZED firmware: "
-                        "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
+                      "Please upgrade your ZED firmware: "
+                      "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
         return;
     }
 
@@ -1482,11 +1475,11 @@ void zedApplyPointPerfectKeys()
         theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
 
         theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                            3); // Set the differential mode - ambiguities are fixed whenever possible
+                         3); // Set the differential mode - ambiguities are fixed whenever possible
 
         bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                        settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                        nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+                                                      settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                      nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
 
         if (response == false)
             systemPrintln("setDynamicSPARTNKeys failed");
@@ -1569,7 +1562,8 @@ void zedMenuMessages()
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "NMEA_"); // The following _ avoids listing NMEANAV2 messages
+            zedMenuMessagesSubtype(settings.ubxMessageRates,
+                                   "NMEA_"); // The following _ avoids listing NMEANAV2 messages
         else if (incoming == 2)
             zedMenuMessagesSubtype(settings.ubxMessageRates, "RTCM");
         else if (incoming == 3)
@@ -1796,7 +1790,7 @@ uint8_t zedGetNAV2MessageCount()
         int endOfBlock = 0;
 
         zedSetMessageOffsets(&ubxMessages[0], "NAV2", startOfBlock,
-                          endOfBlock); // Find start and stop of given messageType in message array
+                             endOfBlock); // Find start and stop of given messageType in message array
 
         for (int x = 0; x < (endOfBlock - startOfBlock); x++)
         {
@@ -1805,7 +1799,7 @@ uint8_t zedGetNAV2MessageCount()
         }
 
         zedSetMessageOffsets(&ubxMessages[0], "NMEANAV2", startOfBlock,
-                          endOfBlock); // Find start and stop of given messageType in message array
+                             endOfBlock); // Find start and stop of given messageType in message array
 
         for (int x = 0; x < (endOfBlock - startOfBlock); x++)
         {
@@ -1815,7 +1809,7 @@ uint8_t zedGetNAV2MessageCount()
 
         return (enabledMessages);
     }
-    else 
+    else
         systemPrintln("zedGetNAV2MessageCount() Platform not supported");
 
     return (false);
@@ -1835,7 +1829,7 @@ bool zedSetMessageRateByName(const char *msgName, uint8_t msgRate)
             }
         }
     }
-    else 
+    else
         systemPrintln("zedSetMessageRateByName() Platform not supported");
 
     systemPrintf("zedSetMessageRateByName: %s not found\r\n", msgName);
@@ -1849,8 +1843,8 @@ uint8_t zedGetMessageRateByName(const char *msgName)
     {
         return (settings.ubxMessageRates[zedGetMessageNumberByName(msgName)]);
     }
-    else 
-        systemPrintln("zedGetMessageRateByName() Platform not supported"); 
+    else
+        systemPrintln("zedGetMessageRateByName() Platform not supported");
 
     return (0);
 }
