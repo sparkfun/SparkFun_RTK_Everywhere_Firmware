@@ -1,7 +1,6 @@
 void menuCommands()
 {
     char cmdBuffer[200];
-    char *command;
     char responseBuffer[200];
     char valueBuffer[100];
     const int MAX_TOKENS = 10;
@@ -28,9 +27,10 @@ void menuCommands()
             continue;
         }
 
-        // Allow command input via serial menu
+        // Allow serial input to skip the validation step. Used for testing.
         else if (cmdBuffer[0] != '$')
-            command = cmdBuffer;
+        {
+        }
 
         // Verify command structure
         else
@@ -42,15 +42,12 @@ void menuCommands()
             }
 
             // Remove $
-            command = cmdBuffer + 1;
+            memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
 
-            // Remove * and CRC
-            command[strlen(command) - 3] = '\0';
+            // Change * to , and null terminate on the first CRC character
+            cmdBuffer[strlen(cmdBuffer) - 3] = ',';
+            cmdBuffer[strlen(cmdBuffer) - 2] = '\0';
         }
-
-        // Change * to , and null terminate on the first CRC character
-        cmdBuffer[strlen(cmdBuffer) - 3] = ',';
-        cmdBuffer[strlen(cmdBuffer) - 2] = '\0';
 
         const int MAX_TOKENS = 10;
         char valueBuffer[100];
@@ -465,7 +462,6 @@ int commandLookupSettingName(const char *settingName, char *truncatedName, int t
     commandSplitName(settingName, truncatedName, truncatedNameLen, suffix, suffixLen);
 
     // Loop through the settings entries
-    // TODO: make this faster
     // E.g. by storing the previous value of i and starting there.
     // Most of the time, the match will be i+1.
     for (int i = 0; i < commandCount; i++)

@@ -1,5 +1,5 @@
 /*
-  Demonstration of the command line interface as specified by Avinan Malla
+  Demonstration of the command line interface as specified by Avinab Malla
 */
 
 typedef enum
@@ -9,6 +9,9 @@ typedef enum
   SETTING_KNOWN_STRING,
 } SettingValueResponse;
 
+const uint16_t bufferLen = 1024;
+char cmdBuffer[bufferLen];
+
 void setup()
 {
   Serial.begin(115200);
@@ -17,110 +20,107 @@ void setup()
   Serial.println();
   Serial.println("SparkFun Command Line Interface Tests");
 
-  const uint16_t bufferLen = 1024;
-  char cmdBuffer[bufferLen];
-
   sprintf(cmdBuffer, "$CMD*4A"); //Bad command
   Serial.printf("command: %s (Unknown command) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPCMD*AA"); //Bad checksum
   Serial.printf("command: %s (Bad checksum) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPCMD*49"); //Valid command
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPGET,elvMask,15*1A"); //Too many arguments
   Serial.printf("command: %s (Too many arguments) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET*55"); //Bad command
   Serial.printf("command: %s (Missing command) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET,maxHeight*32"); //Unknown setting
   Serial.printf("command: %s (Unknown setting) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET,elvMask*32"); //Valid command
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPGET,ntripClientCasterUserPW*35"); //Valid command, response with escaped quote
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPSET,elvMask*26"); //Incorrect number of arguments
   Serial.printf("command: %s (Wrong number of arguments) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,maxHeight,15*0E"); //Unknown setting
   Serial.printf("command: %s (Unknown setting) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"casterPW*3A"); //Missing closing quote
   Serial.printf("command: %s (Missing quote) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,elvMask,0.77*14"); //Valid
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"MyPass\"*08"); //Valid string
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"complex,password\"*5E"); //Valid string with an internal comma
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"pwWith\\\"quote\"*2C"); //Valid string with an escaped quote
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPSET,ntripClientCasterUserPW,\"a55G\\\"e,e#\"*5A"); //Valid string with an internal escaped quote, and internal comma
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   Serial.println();
 
   sprintf(cmdBuffer, "$SPEXE*5B"); //Incorrect number of arguments
   Serial.printf("command: %s (Wrong number of arguments) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,maxHeight*3C"); //Unknown command
   Serial.printf("command: %s (Unknown command) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,EXIT*77"); //Valid
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,APPLY*23"); //Valid
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,SAVE*76"); //Valid
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,REBOOT*76"); //Valid
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 
   sprintf(cmdBuffer, "$SPEXE,LIST*75"); //Valid
   Serial.printf("command: %s (Valid) - ", cmdBuffer);
-  commandParser(cmdBuffer);
+  commandParser();
 }
 
-void commandParser(char *cmdBuffer)
+void commandParser()
 {
   //Verify command structure
   if (commandValid(cmdBuffer) == false)
@@ -130,7 +130,7 @@ void commandParser(char *cmdBuffer)
   }
 
   //Remove $
-  cmdBuffer = &cmdBuffer[1];
+  memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
 
   //Change * to , and null terminate on the first CRC character
   cmdBuffer[strlen(cmdBuffer) - 3] = ',';
