@@ -560,11 +560,16 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 
 #include <DNSServer.h>
 #include <WebServer.h>
+#include <esp_http_server.h>
 #include "form.h"
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
 DNSServer *dnsserver;
 WebServer *webserver;
+
+httpd_handle_t *wsserver = nullptr;
+//httpd_req_t *last_ws_req;
+int last_ws_fd;
 
 TaskHandle_t webserverTaskHandle;
 const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest

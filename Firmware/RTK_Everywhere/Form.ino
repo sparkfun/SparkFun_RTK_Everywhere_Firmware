@@ -11,6 +11,178 @@ Form.ino
 
 bool websocketConnected = false;
 
+// Inspired by:
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/MultiHomedServers/MultiHomedServers.ino
+// https://esp32.com/viewtopic.php?t=37384
+// https://github.com/espressif/esp-idf/blob/master/examples/protocols/http_server/ws_echo_server/main/ws_echo_server.c
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/ESP32/examples/Camera/CameraWebServer/CameraWebServer.ino
+// https://esp32.com/viewtopic.php?t=24445
+
+// These are useful:
+// https://github.com/mo-thunderz/Esp32WifiPart2/blob/main/Arduino/ESP32WebserverWebsocket/ESP32WebserverWebsocket.ino
+// https://www.youtube.com/watch?v=15X0WvGaVg8
+
+void sendStringToWebsocket(const char *stringToSend)
+{
+    if (!websocketConnected)
+    {
+        systemPrintf("sendStringToWebsocket: not connected - could not send: %s\r\n", stringToSend);
+        return;
+    }
+
+    // To send content to the webserver, we would call: webserver->sendContent(stringToSend);
+    //
+    // But here we want to send content to the websocket (wsserver)...
+
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.payload = (uint8_t*)stringToSend;
+    ws_pkt.len = strlen(stringToSend);
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+    // If we use httpd_ws_send_frame, it requires a req.
+    //esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
+    //if (ret != ESP_OK) {
+    //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
+    //}
+
+    // If we use httpd_ws_send_frame_async, it requires a fd.
+    esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
+    if (ret != ESP_OK) {
+        systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
+    }
+    else
+    {
+        systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
+    }
+
+}
+
+/*
+ * This handler echos back the received ws data
+ * and triggers an async send if certain message received
+ */
+static esp_err_t ws_handler(httpd_req_t *req)
+{
+    // Log the req, so we can reuse it for httpd_ws_send_frame
+    // TODO: do we need to be cleverer about this?
+    //last_ws_req = req;
+
+    if (req->method == HTTP_GET) {
+        // Log the fd, so we can reuse it for httpd_ws_send_frame
+        // TODO: do we need to be cleverer about this?
+        last_ws_fd = httpd_req_to_sockfd(req);
+        systemPrintln("Handshake done, the new ws connection was opened");
+
+        websocketConnected = true;
+        lastDynamicDataUpdate = millis();
+        sendStringToWebsocket(settingsCSV);
+
+        return ESP_OK;
+    }
+    httpd_ws_frame_t ws_pkt;
+    uint8_t *buf = NULL;
+    memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    /* Set max_len = 0 to get the frame len */
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+    if (ret != ESP_OK) {
+        systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
+        return ret;
+    }
+    systemPrintf("frame len is %d\r\n", ws_pkt.len);
+    if (ws_pkt.len) {
+        /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
+        buf = (uint8_t *)calloc(1, ws_pkt.len + 1);
+        if (buf == NULL) {
+            systemPrintln("Failed to calloc memory for buf");
+            return ESP_ERR_NO_MEM;
+        }
+        ws_pkt.payload = buf;
+        /* Set max_len = ws_pkt.len to get the frame payload */
+        ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+        if (ret != ESP_OK) {
+            systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
+            free(buf);
+            return ret;
+        }
+        systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
+    }
+    systemPrintf("Packet type: %d\r\n", ws_pkt.type);
+    // HTTPD_WS_TYPE_CONTINUE   = 0x0,
+    // HTTPD_WS_TYPE_TEXT       = 0x1,
+    // HTTPD_WS_TYPE_BINARY     = 0x2,
+    // HTTPD_WS_TYPE_CLOSE      = 0x8,
+    // HTTPD_WS_TYPE_PING       = 0x9,
+    // HTTPD_WS_TYPE_PONG       = 0xA
+
+
+    if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
+    {
+        if (currentlyParsingData == false)
+        {
+            for (int i = 0; i < ws_pkt.len; i++)
+            {
+                incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
+                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
+            }
+            timeSinceLastIncomingSetting = millis();
+        }
+    }
+
+    free(buf);
+    return ret;
+}
+
+static const httpd_uri_t ws = {
+        .uri        = "/ws",
+        .method     = HTTP_GET,
+        .handler    = ws_handler,
+        .user_ctx   = NULL,
+        .is_websocket = true,
+        .handle_ws_control_frames = true,
+        .supported_subprotocol = NULL
+};
+
+static void start_wsserver(void)
+{
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
+    // Use different ports for websocket and webserver - use port 81 for the websocket - also defined in main.js
+    config.server_port = 81;
+
+    // Increase the stack size from 4K to ~15K
+    config.stack_size = AP_CONFIG_SETTING_SIZE;
+
+    // Start the httpd server
+    systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
+
+    if (wsserver == nullptr)
+        wsserver = new httpd_handle_t;
+
+    if (httpd_start(wsserver, &config) == ESP_OK) {
+        // Registering the ws handler
+        systemPrintln("Registering URI handlers");
+        httpd_register_uri_handler(*wsserver, &ws);
+        return;
+    }
+
+    systemPrintln("Error starting wsserver!");
+}
+
+void stop_wsserver()
+{
+    createSettingsString(settingsCSV);
+    websocketConnected = false;
+
+    if (*wsserver)
+    {
+        // Stop the httpd server
+        esp_err_t ret = httpd_stop(*wsserver);
+        //*wsserver = nullptr;
+    }
+}
+
 // ===== Request Handler class used to answer more complex requests =====
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
 class CaptiveRequestHandler : public RequestHandler
@@ -122,9 +294,9 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         if (settings.enableCaptivePortal == true)
         {
             webserver->addHandler(new CaptiveRequestHandler());
-        }
 
-        webserver->on("/ws", onWsEvent); // websocket
+            // TODO: add a handler for /connecttest.txt
+        }
 
         // * index.html (not gz'd)
         // * favicon.ico
@@ -143,7 +315,6 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // * /src/fonts/icomoon.woof
 
         // * /listfiles responds with a CSV of files and sizes in root
-        // * /listCorrections responds with a CSV of correction sources and their priorities
         // * /listMessages responds with a CSV of messages supported by this platform
         // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
         // * /file allows the download or deletion of a file
@@ -298,7 +469,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         webserver->begin();
 
-        // Starts task for feeding NMEA+RTCM to PPL
+        // Starts task for updating webserver with handleClient
         if (online.updatePplTaskRunning == false)
             xTaskCreate(updateWebServerTask,
                         "UpdateWebServer",            // Just for humans
@@ -310,10 +481,19 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         if (settings.debugWiFiConfig == true)
             systemPrintln("Web Server Started");
         reportHeapNow(false);
+
+        // Start the web socket server on port 81 using <esp_http_server.h>
+        start_wsserver();
+
+        if (settings.debugWiFiConfig == true)
+            systemPrintln("Web Socket Server Started");
+        reportHeapNow(false);
+
         return true;
     } while (0);
 
     // Release the resources
+    stop_wsserver();
     stopWebServer();
     return false;
 }
@@ -378,7 +558,7 @@ void stopWebServer()
 
 void notFound()
 {
-    String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
+    String logmessage = "notFound: Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
     systemPrintln(logmessage);
     webserver->send(404, "text/plain", "Not found");
 }
@@ -387,7 +567,7 @@ void notFound()
 static void handleFileManager()
 {
     // This section does not tolerate semaphore transactions
-    String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
+    String logmessage = "handleFileManager: Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
 
     if (webserver->hasArg("name") && webserver->hasArg("action"))
     {
@@ -488,14 +668,14 @@ static void handleFirmwareFileUpload()
             }
             else
             {
-                systemPrintf("Unknown: %s\r\n", fname);
+                systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
                 webserver->send(400, "text/html", "<b>Error:</b> Unknown file type");
                 return;
             }
         }
         else
         {
-            systemPrintf("Unknown: %s\r\n", fname);
+            systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
             webserver->send(400, "text/html", "<b>Error:</b> Unknown file type");
             return;
         }
@@ -551,12 +731,8 @@ static void handleFirmwareFileUpload()
     }
 }
 
-void onWsEvent()
-{
-    
-}
-
 /*
+// TODO: delete this. This is the old method - using AsyncWebSocketClient
 // Events triggered by web sockets
 void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
                size_t len)
@@ -928,11 +1104,6 @@ void handleUpload()
         webserver->sendHeader("Location", "/");
         webserver->send(302);
     }
-}
-
-void sendStringToWebsocket(const char *stringToSend)
-{
-    webserver->sendContent(stringToSend);
 }
 
 #endif // COMPILE_AP
