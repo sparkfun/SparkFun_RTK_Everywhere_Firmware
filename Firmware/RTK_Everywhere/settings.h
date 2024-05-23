@@ -1788,9 +1788,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // ublox GNSS Receiver
     { 0, 1, 1, 0, 1, 1, 0, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
-    { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_CONSTELLATIONS, & settings.ubxConstellations[0], "Constellation_",  },
-    { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "MessageRate_",  },
-    { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "MessageRateBase_",  },
+    { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
+    { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "messageRate_",  },
+    { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "messageRateBase_",  },
 
     // UDP Server
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.debugUdpServer, "debugUdpServer",  },
@@ -1816,10 +1816,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.tiltPoleLength, "tiltPoleLength",  },
-    { 0, 1, 1, 1, 0, 0, 0, 1, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "Constellations_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "MessageRatesNMEA_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "MessageRatesRTCMBase_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "MessageRatesRTCMRover_",  },
+    { 0, 1, 1, 1, 0, 0, 0, 1, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellations_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRatesNMEA_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRatesRTCMBase_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRatesRTCMRover_",  },
 
     // Web Server
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
