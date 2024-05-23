@@ -221,6 +221,8 @@ bool pointperfectProvisionDevice()
 
     do
     {
+        provisionAttempt++;
+
         char hardwareID[15];
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                  btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
@@ -344,6 +346,7 @@ bool pointperfectProvisionDevice()
                          landingPageUrl, hardwareID);
 
             displayAccountExpired(5000);
+            break;
         }
         else if (ztpResponse == ZTP_NOT_WHITELISTED)
         {
@@ -364,6 +367,7 @@ bool pointperfectProvisionDevice()
                          landingPageUrl, hardwareID);
 
             displayNotListed(5000);
+            break;
         }
         else if (ztpResponse == ZTP_ALREADY_REGISTERED)
         {
@@ -375,11 +379,11 @@ bool pointperfectProvisionDevice()
             systemPrintf("This device is registered on a different profile. Please contact "
                          "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
                          hardwareID);
+            break;
         }
         else if (ztpResponse == ZTP_RESPONSE_TIMEOUT)
         {
             // The WiFi failed to connect in a timely manner to the API.
-            provisionAttempt++;
             if (provisionAttempt < maxProvisionAttempts)
                 systemPrintf("Provision server response timed out. Trying again.\r\n");
             else
@@ -388,7 +392,6 @@ bool pointperfectProvisionDevice()
         else
         {
             // Unknown error
-            provisionAttempt++;
             if (provisionAttempt < maxProvisionAttempts)
                 systemPrintf("Unknown provisioning error. Trying again.\r\n");
             else
