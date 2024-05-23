@@ -331,10 +331,17 @@ bool pointperfectProvisionDevice()
             snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                      btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
 
+            char landingPageUrl[200] = "";
+            if (productVariant == RTK_TORCH)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
+            else
+                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
             systemPrintf("This device has been deactivated. Please contact "
-                         "support@sparkfun.com or goto https://www.sparkfun.com/pointperfect to renew the PointPerfect "
+                         "support@sparkfun.com %sto renew the PointPerfect "
                          "subscription. Please reference device ID: %s\r\n",
-                         hardwareID);
+                         landingPageUrl, hardwareID);
 
             displayAccountExpired(5000);
         }
@@ -344,10 +351,17 @@ bool pointperfectProvisionDevice()
             snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                      btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
 
+            char landingPageUrl[200] = "";
+            if (productVariant == RTK_TORCH)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
+            else
+                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
             systemPrintf("This device is not whitelisted. Please contact "
-                         "support@sparkfun.com or goto https://www.sparkfun.com/pointperfect to get your subscription "
+                         "support@sparkfun.com %sto get the subscription "
                          "activated. Please reference device ID: %s\r\n",
-                         hardwareID);
+                         landingPageUrl, hardwareID);
 
             displayNotListed(5000);
         }
