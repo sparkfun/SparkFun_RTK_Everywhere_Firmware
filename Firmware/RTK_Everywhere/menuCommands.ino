@@ -2686,7 +2686,7 @@ bool commandIndexFill()
         if (commandAvailableOnPlatform(i))
             commandCount += 1;
     }
-    commandCount += COMMAND_UNKNOWN - 1;
+    commandCount += COMMAND_COUNT - 1;
 
     // Allocate the command array
     length = commandCount * sizeof(*commandIndex);
@@ -2705,7 +2705,7 @@ bool commandIndexFill()
             commandIndex[commandCount++] = i;
 
     // Add the man-machine interface commands to the list
-    for (i = 1; i < COMMAND_UNKNOWN; i++)
+    for (i = 1; i < COMMAND_COUNT; i++)
         commandIndex[commandCount++] = -i;
 
     // Sort the commands

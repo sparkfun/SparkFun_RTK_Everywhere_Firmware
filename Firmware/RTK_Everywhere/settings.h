@@ -1413,7 +1413,8 @@ typedef struct
 #define COMMAND_PROFILE_0_INDEX     -1
 #define COMMAND_PROFILE_NUMBER      (COMMAND_PROFILE_0_INDEX - MAX_PROFILE_COUNT)
 #define COMMAND_DEVICE_ID           (COMMAND_PROFILE_NUMBER - 1)
-#define COMMAND_UNKNOWN             (-(COMMAND_DEVICE_ID - 1))
+#define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1)
+#define COMMAND_COUNT               (-(COMMAND_UNKNOWN))
 
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
