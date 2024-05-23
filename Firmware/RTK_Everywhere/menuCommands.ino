@@ -2659,6 +2659,20 @@ bool commandAvailableOnPlatform(int i)
     return true;
 }
 
+// Determine if the setting is available on this platform
+bool settingAvailableOnPlatform(int i)
+{
+    if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
+        return (true);
+    if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
+        return (true);
+    if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
+        return (true);
+    if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
+        return (true);
+    return false;
+}
+
 // Allocate and fill the commandIndex table
 bool commandIndexFill()
 {

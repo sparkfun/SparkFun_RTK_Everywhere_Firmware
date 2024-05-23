@@ -229,6 +229,10 @@ void recordSystemSettingsToFile(File *settingsFile)
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
+        // Skip this setting if it is not supported by the current platform
+        if (settingAvailableOnPlatform(i) == false)
+            continue;
+
         // Exceptions:
         // runLogTest not stored in NVM
         if (strcmp(rtkSettingsEntries[i].name, "runLogTest") == 0)
