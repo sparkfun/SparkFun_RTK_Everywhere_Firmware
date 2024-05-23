@@ -1091,7 +1091,7 @@ uint8_t um980GetMessageNumberByName(const char *msgName)
             return (x);
     }
 
-    systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
+    systemPrintf("um980GetMessageNumberByName: %s not found\r\n", msgName);
     return (0);
 }
 

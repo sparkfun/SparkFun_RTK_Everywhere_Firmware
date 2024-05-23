@@ -865,12 +865,12 @@ void createMessageListBase(String &returnText)
 
     if (present.gnss_zedf9p)
     {
-        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
 
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
         {
             if (messageSupported(firstRTCMRecord + messageNumber) == true)
-                returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) + "," +
+                returnText += "MessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) + "," +
                             String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
         }
     }
@@ -879,7 +879,7 @@ void createMessageListBase(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "um980MessageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+            returnText += "MessageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
                         String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }

@@ -710,7 +710,7 @@ SettingValueResponse updateSettingWithValue(const char *settingName, const char 
         }
         break;
         case tUbMsgRtb: {
-            int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+            int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
 
             for (int x = 0; x < qualifier; x++)
             {
@@ -1360,7 +1360,7 @@ void createSettingsString(char *newSettings)
             case tUbMsgRtb: {
                 // Record message settings
 
-                int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+                int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
 
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -2053,7 +2053,7 @@ SettingValueResponse getSettingValue(const char *settingName, char *settingValue
         }
         break;
         case tUbMsgRtb: {
-            int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+            int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
 
             for (int x = 0; x < qualifier; x++)
             {
@@ -2443,7 +2443,7 @@ void commandList(int i)
     break;
     case tUbMsgRtb: {
         // Record message settings
-        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
 
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
