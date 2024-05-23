@@ -1289,7 +1289,7 @@ struct Settings
     // Measurement scale
     uint8_t measurementScale = MEASUREMENTS_IN_METERS;
 
-    bool debugWiFiConfig = false;
+    bool debugWebConfig = false;
     bool enablePsram = true; // Control the use on onboard PSRAM. Used for testing behavior when PSRAM is not available.
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
@@ -1601,7 +1601,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] = {
 
     { & settings.measurementScale, "measurementScale", _uint8_t, 0, false, true, true },
 
-    { & settings.debugWiFiConfig, "debugWiFiConfig", _bool, 0, false, true, true },
+    { & settings.debugWebConfig, "debugWebConfig", _bool, 0, false, true, true },
     { & settings.enablePsram, "enablePsram", _bool, 0, false, true, true },
     { & settings.printTaskStartStop, "printTaskStartStop", _bool, 0, false, true, true },
     { & settings.psramMallocLevel, "psramMallocLevel", _uint16_t, 0, false, true, true },

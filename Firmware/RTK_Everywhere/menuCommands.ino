@@ -679,7 +679,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             // This is one of the first settings to be received. If seen, remove the station files.
             removeFile(stationCoordinateECEFFileName);
             removeFile(stationCoordinateGeodeticFileName);
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintln("Station coordinate files removed");
             knownSetting = true;
         }
@@ -691,7 +691,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file
             recordLineToSD(stationCoordinateECEFFileName, settingValueStr);
             recordLineToLFS(stationCoordinateECEFFileName, settingValueStr);
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("%s recorded\r\n", settingValueStr);
             knownSetting = true;
         }
@@ -700,7 +700,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file
             recordLineToSD(stationCoordinateGeodeticFileName, settingValueStr);
             recordLineToLFS(stationCoordinateGeodeticFileName, settingValueStr);
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("%s recorded\r\n", settingValueStr);
             knownSetting = true;
         }
@@ -752,7 +752,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         else if (strcmp(settingName, "exitAndReset") == 0)
         {
             // Confirm receipt
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintln("Sending reset confirmation");
 
             sendStringToWebsocket("confirmReset,1,");
@@ -784,7 +784,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         else if (strcmp(settingName, "setProfile") == 0)
         {
             // Change to new profile
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("Changing to profile number %d\r\n", settingValue);
             changeProfileNumber(settingValue);
 
@@ -796,7 +796,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
 
             createSettingsString(settingsCSV);
 
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
             {
                 systemPrintf("Sending profile %d\r\n", settingValue);
                 systemPrintf("Profile contents: %s\r\n", settingsCSV);
@@ -819,7 +819,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
 
             createSettingsString(settingsCSV);
 
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
             {
                 systemPrintf("Sending reset profile %d\r\n", settingValue);
                 systemPrintf("Profile contents: %s\r\n", settingsCSV);
@@ -853,7 +853,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         }
         else if (strcmp(settingName, "checkNewFirmware") == 0)
         {
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintln("Checking for new OTA Pull firmware");
 
             sendStringToWebsocket("checkingNewFirmware,1,"); // Tell the config page we received their request
@@ -870,13 +870,13 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
                 if (isReportedVersionNewer(reportedVersion, currentVersion) == true)
                 {
-                    if (settings.debugWiFiConfig == true)
+                    if (settings.debugWebConfig == true)
                         systemPrintln("New version detected");
                     snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", reportedVersion);
                 }
                 else
                 {
-                    if (settings.debugWiFiConfig == true)
+                    if (settings.debugWebConfig == true)
                         systemPrintln("No new firmware available");
                     snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
                 }
@@ -884,7 +884,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
             else
             {
                 // Failed to get version number
-                if (settings.debugWiFiConfig == true)
+                if (settings.debugWebConfig == true)
                     systemPrintln("Sending error to AP config page");
                 snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,ERROR,");
             }
@@ -894,7 +894,7 @@ bool updateSettingWithValue(const char *settingName, const char *settingValueStr
         }
         else if (strcmp(settingName, "getNewFirmware") == 0)
         {
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintln("Getting new OTA Pull firmware");
 
             sendStringToWebsocket("gettingNewFirmware,1,");
@@ -1462,7 +1462,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("ECEF SD station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -1474,7 +1474,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("ECEF LFS station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -1500,7 +1500,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("Geo SD station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -1512,7 +1512,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWiFiConfig == true)
+            if (settings.debugWebConfig == true)
                 systemPrintf("Geo LFS station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2145,7 +2145,7 @@ bool getSettingValue(const char *settingName, char *settingValueStr)
 
     if (knownSetting == false)
     {
-        if (settings.debugWiFiConfig)
+        if (settings.debugWebConfig)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 

@@ -478,14 +478,14 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                         updateWebServerTaskPriority,
                         &updatePplTaskHandle); // Task handle
 
-        if (settings.debugWiFiConfig == true)
+        if (settings.debugWebConfig == true)
             systemPrintln("Web Server Started");
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
         start_wsserver();
 
-        if (settings.debugWiFiConfig == true)
+        if (settings.debugWebConfig == true)
             systemPrintln("Web Socket Server Started");
         reportHeapNow(false);
 
@@ -551,7 +551,7 @@ void stopWebServer()
         incomingSettings = nullptr;
     }
 
-    if (settings.debugWiFiConfig == true)
+    if (settings.debugWebConfig == true)
         systemPrintln("Web Server Stopped");
     reportHeapNow(false);
 }
@@ -739,7 +739,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
 {
     if (type == WS_EVT_CONNECT)
     {
-        if (settings.debugWiFiConfig == true)
+        if (settings.debugWebConfig == true)
             systemPrintln("Websocket client connected");
         client->text(settingsCSV);
         lastDynamicDataUpdate = millis();
@@ -747,7 +747,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     }
     else if (type == WS_EVT_DISCONNECT)
     {
-        if (settings.debugWiFiConfig == true)
+        if (settings.debugWebConfig == true)
             systemPrintln("Websocket client disconnected");
 
         // User has either refreshed the page or disconnected. Recompile the current settings.
@@ -768,7 +768,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     }
     else
     {
-        if (settings.debugWiFiConfig == true)
+        if (settings.debugWebConfig == true)
             systemPrintf("onWsEvent: unrecognised AwsEventType %d\r\n", type);
     }
 }
@@ -881,7 +881,7 @@ bool parseIncomingSettings()
     if (counter < maxAttempts)
     {
         // Confirm receipt
-        if (settings.debugWiFiConfig == true)
+        if (settings.debugWebConfig == true)
             systemPrintln("Sending receipt confirmation of settings");
         sendStringToWebsocket("confirmDataReceipt,1,");
     }
@@ -944,7 +944,7 @@ void getFileList(String &returnText)
         systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
     }
 
-    if (settings.debugWiFiConfig == true)
+    if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -962,7 +962,7 @@ void createCorrectionsList(String &returnText)
                       String(settings.correctionsSourcesPriority[s]) + ",";
     }
 
-    if (settings.debugWiFiConfig == true)
+    if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 */
@@ -997,7 +997,7 @@ void createMessageList(String &returnText)
         }
     }
 
-    if (settings.debugWiFiConfig == true)
+    if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -1028,7 +1028,7 @@ void createMessageListBase(String &returnText)
         }
     }
 
-    if (settings.debugWiFiConfig == true)
+    if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
