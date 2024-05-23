@@ -37,7 +37,7 @@ void menuCommands()
         {
             if (commandValid(cmdBuffer) == false)
             {
-                commandSendErrorResponse("SP", "Bad command structure or checksum");
+                commandSendErrorResponse((char *)"SP", (char *)"Bad command structure or checksum");
                 continue;
             }
 
@@ -132,7 +132,7 @@ void menuCommands()
         else if (strcmp(tokens[0], "SPGET") == 0)
         {
             if (tokenCount != 2)
-                commandSendErrorResponse(tokens[0], "Incorrect number of arguments");
+                commandSendErrorResponse(tokens[0], (char *)"Incorrect number of arguments");
             else
             {
                 auto field = tokens[1];
@@ -152,7 +152,7 @@ void menuCommands()
         {
             if (tokenCount != 3)
                 commandSendErrorResponse(tokens[0],
-                                         "Incorrect number of arguments"); // Incorrect number of arguments
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
             else
             {
                 auto field = tokens[1];
@@ -173,7 +173,7 @@ void menuCommands()
         {
             if (tokenCount != 2)
                 commandSendErrorResponse(tokens[0],
-                                         "Incorrect number of arguments"); // Incorrect number of arguments
+                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
             else
             {
                 if (strcmp(tokens[1], "EXIT") == 0)
@@ -205,12 +205,12 @@ void menuCommands()
                     commandSendExecuteOkResponse(tokens[0], tokens[1]);
                 }
                 else
-                    commandSendErrorResponse(tokens[0], tokens[1], "Unknown command");
+                    commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
             }
         }
         else
         {
-            commandSendErrorResponse(tokens[0], "Unknown command");
+            commandSendErrorResponse(tokens[0], (char *)"Unknown command");
         }
     } // while(1)
 
@@ -287,7 +287,7 @@ void commandSendStringResponse(char *command, char *settingName, char *valueBuff
 
 // Given a command, send response sentence with OK and checksum and <CR><LR>
 // Ex: observationPositionAccuracy,float,0.5 =
-void commandSendExecuteListResponse(const char *settingName, char *settingType, char *settingValue)
+void commandSendExecuteListResponse(const char *settingName, const char *settingType, char *settingValue)
 {
     // Create string between $ and * for checksum calculation
     char innerBuffer[200];
