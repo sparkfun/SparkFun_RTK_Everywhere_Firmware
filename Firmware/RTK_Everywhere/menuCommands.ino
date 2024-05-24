@@ -1221,7 +1221,7 @@ void createSettingsString(char *newSettings)
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (rtkSettingsEntries[i].inSettingsString)
+        if (rtkSettingsEntries[i].inSettingsString && (settingAvailableOnPlatform(i) == true))
         {
             switch (rtkSettingsEntries[i].type)
             {
