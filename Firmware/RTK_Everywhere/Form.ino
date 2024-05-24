@@ -59,10 +59,6 @@ void sendStringToWebsocket(const char *stringToSend)
 
 }
 
-/*
- * This handler echos back the received ws data
- * and triggers an async send if certain message received
- */
 static esp_err_t ws_handler(httpd_req_t *req)
 {
     // Log the req, so we can reuse it for httpd_ws_send_frame
@@ -70,11 +66,12 @@ static esp_err_t ws_handler(httpd_req_t *req)
     //last_ws_req = req;
 
     if (req->method == HTTP_GET) {
-        // Log the fd, so we can reuse it for httpd_ws_send_frame
+        // Log the fd, so we can reuse it for httpd_ws_send_frame_async
         // TODO: do we need to be cleverer about this?
         last_ws_fd = httpd_req_to_sockfd(req);
+
         if (settings.debugWebConfig == true)
-            systemPrintln("Handshake done, the new ws connection was opened");
+            systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
 
         websocketConnected = true;
         lastDynamicDataUpdate = millis();
@@ -82,6 +79,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
         return ESP_OK;
     }
+
     httpd_ws_frame_t ws_pkt;
     uint8_t *buf = NULL;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
@@ -109,8 +107,6 @@ static esp_err_t ws_handler(httpd_req_t *req)
             free(buf);
             return ret;
         }
-        if (settings.debugWebConfig == true)
-            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
     }
     if (settings.debugWebConfig == true)
         systemPrintf("Packet type: %d\r\n", ws_pkt.type);
@@ -124,6 +120,9 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
+        if (settings.debugWebConfig == true)
+            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
+
         if (currentlyParsingData == false)
         {
             for (int i = 0; i < ws_pkt.len; i++)
@@ -133,6 +132,14 @@ static esp_err_t ws_handler(httpd_req_t *req)
             }
             timeSinceLastIncomingSetting = millis();
         }
+    }
+    else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
+    {
+        if (settings.debugWebConfig == true)
+            systemPrintln("Client closed or refreshed the web page");
+
+        createSettingsString(settingsCSV);
+        websocketConnected = false;
     }
 
     free(buf);
@@ -157,7 +164,7 @@ static void start_wsserver(void)
     config.server_port = 81;
 
     // Increase the stack size from 4K to ~15K
-    config.stack_size = AP_CONFIG_SETTING_SIZE;
+    config.stack_size = updateWebSocketStackSize;
 
     // Start the httpd server
     if (settings.debugWebConfig == true)
@@ -489,7 +496,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         if (online.updatePplTaskRunning == false)
             xTaskCreate(updateWebServerTask,
                         "UpdateWebServer",            // Just for humans
-                        updateWebServerTaskStackSize, // Stack Size
+                        updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
                         nullptr,                // Task input parameter
                         updateWebServerTaskPriority,
                         &updatePplTaskHandle); // Task handle
@@ -594,20 +601,20 @@ static void handleFileManager()
                      "?name=" + fileName + "&action=" + fileAction;
 
         char slashFileName[60];
-        snprintf(slashFileName, sizeof(slashFileName), "/%s", webserver->arg("name"));
+        snprintf(slashFileName, sizeof(slashFileName), "/%s", fileName.c_str());
 
-        bool fileExists;
-        fileExists = sd->exists(slashFileName);
+        bool fileExists = sd->exists(slashFileName);
 
         if (fileExists == false)
         {
-            systemPrintln(logmessage + " ERROR: file does not exist");
+            logmessage += " ERROR: file ";
+            logmessage += slashFileName;
+            logmessage += " does not exist";
             webserver->send(400, "text/plain", "ERROR: file does not exist");
         }
         else
         {
-            if (settings.debugWebConfig == true)
-                systemPrintln(logmessage + " file exists");
+            logmessage += " file exists";
 
             if (fileAction == "download")
             {
@@ -627,7 +634,7 @@ static void handleFileManager()
 
                 managerTempFile.close();
 
-                // TODO: websocket->textAll("fmNext,1,"); // Tell browser to send next file if needed
+                sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
             }
             else if (fileAction == "delete")
             {
@@ -640,8 +647,8 @@ static void handleFileManager()
                 logmessage += " ERROR: invalid action param supplied";
                 webserver->send(400, "text/plain", "ERROR: invalid action param supplied");
             }
-            systemPrintln(logmessage);
         }
+        systemPrintln(logmessage);
     }
     else
     {
@@ -880,7 +887,8 @@ bool parseIncomingSettings()
             headPtr = commaPtr + 1;
         }
 
-        // log_d("settingName: %s value: %s", settingName, valueStr);
+        if (settings.debugWebConfig == true)
+            systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
 
         updateSettingWithValue(settingName, valueStr);
 
@@ -962,25 +970,6 @@ void getFileList(String &returnText)
     if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
-
-/*
-// When called, responds with the corrections sources and their priorities
-// Source name and priority are formatted in CSV, formatted to html by JS
-void createCorrectionsList(String &returnText)
-{
-    returnText = "";
-
-    for (int s = 0; s < correctionsSource::CORR_NUM; s++)
-    {
-        returnText += String("correctionsPriority.") +
-                      String(correctionsSourceNames[s]) + "," +
-                      String(settings.correctionsSourcesPriority[s]) + ",";
-    }
-
-    if (settings.debugWebConfig == true)
-        systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
-}
-*/
 
 // When called, responds with the messages supported on this platform
 // Message name and current rate are formatted in CSV, formatted to html by JS

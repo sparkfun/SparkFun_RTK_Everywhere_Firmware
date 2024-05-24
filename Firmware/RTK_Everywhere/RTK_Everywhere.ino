@@ -555,6 +555,16 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 
 // Webserver for serving config page from ESP32 as Acess Point
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// Because the incoming string is longer than max len, there are multiple callbacks so we
+// use a global to combine the incoming
+#define AP_CONFIG_SETTING_SIZE 10000
+char *settingsCSV; // Push large array onto heap
+char *incomingSettings;
+int incomingSettingsSpot;
+unsigned long timeSinceLastIncomingSetting;
+unsigned long lastDynamicDataUpdate;
+
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
@@ -573,19 +583,12 @@ int last_ws_fd;
 
 TaskHandle_t webserverTaskHandle;
 const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-const int updateWebServerTaskStackSize = 3000;
+const int updateWebServerTaskStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
+const int updateWebSocketStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
 
-// Because the incoming string is longer than max len, there are multiple callbacks so we
-// use a global to combine the incoming
-#define AP_CONFIG_SETTING_SIZE 15000
-char *settingsCSV; // Push large array onto heap
-char *incomingSettings;
-int incomingSettingsSpot;
-unsigned long timeSinceLastIncomingSetting;
-unsigned long lastDynamicDataUpdate;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Corrections
