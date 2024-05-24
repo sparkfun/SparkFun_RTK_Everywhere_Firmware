@@ -1213,7 +1213,7 @@
                     Ports Configuration <i id="portsCaret" class="caret-icon bi icon-caret-down"></i>
                 </button>
             </div>
-            <div class="collapse show">
+            <div class="collapse">
                 <div class="card card-body" id="collapsePortsConfig">
 
                     <!-- For device with an external DATA port, show full option set -->
@@ -1917,16 +1917,6 @@
                         <button type="button" id="factoryDefaults" class="btn btn-primary"
                             onClick="resetToFactoryDefaults()" disabled>Reset to Factory Defaults</button>
                         <p id="factoryDefaultsMsg" class="inlineSuccess"></p>
-                    </div>
-
-                    <label class="mt-2" for="debugZone">Debug Zone:</label>
-                    <div class="form-check mt-1 box-margin20">
-                        <label class="form-check-label" for="enableResetDisplay">Display Reset Counter</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableResetDisplay" unchecked>
-                        <span class="tt" data-bs-placement="right"
-                            title="A small number will be added to the display indicating the number of non-power-on-reset cycles. Used for debugging. Default: Disabled">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
                     </div>
                 </div>
             </div>
