@@ -27,7 +27,7 @@
           possible to share code between the two.
 
   updateSettingWithValue();
-    In menuCommnds.ino
+    In menuCommands.ino
     Updates the selected settings using a text value
     Called by Command SET
     Also called by parseIncomingSettings (HTML/JS Config)
