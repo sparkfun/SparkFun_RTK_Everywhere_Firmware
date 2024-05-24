@@ -152,7 +152,6 @@ function parseIncoming(msg) {
                 show("noExternalPortOptions");
                 hide("logToSDCard");
                 show("galileoHasSetting");
-                hide("baseConfig");
 
                 //UM980 has discrete constellation settings for GPS and QZSS
                 hide("constellationsGpsQzss");
@@ -320,10 +319,10 @@ function parseIncoming(msg) {
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
         }
-        else if (id.includes("um980MessageRates")) {
-            // um980MessageRatesNMEA_GPDTM
-            // um980MessageRatesRTCMRover_RTCM1001
-            // um980MessageRatesRTCMBase_RTCM1001
+        else if (id.includes("messageRate")) {
+            // messageRateNMEA_GPDTM
+            // messageRateRTCMRover_RTCM1001
+            // messagRatesRTCMBase_RTCM1001
             var messageName = id;
             var messageRate = parseFloat(val);
             var messageNameLabel = "";
@@ -607,19 +606,19 @@ function validateFields() {
     }
 
     //Check all UM980 message boxes
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         checkMessageValueUM980(messageName);
     }
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         checkMessageValueUM980(messageName);
     }
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         checkMessageValueUM980Base(messageName);
     }
 
@@ -1031,16 +1030,16 @@ function zeroMessages() {
         var messageName = ubxMessages[x].id;
         ge(messageName).value = 0;
     }
-    //match um980MessageRatesNMEA_
-    ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    //match messageRateNMEA_
+    var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
-    //match um980MessageRatesRTCMRover_
-    ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    //match messageRateRTCMRover_
+    messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
 }
@@ -1052,10 +1051,10 @@ function zeroBaseMessages() {
         var messageName = ubxMessages[x].id;
         ge(messageName).value = 0;
     }
-    //match um980MessageRatesRTCMBase_
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    //match messageRateRTCMBase_
+    var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
 }
@@ -1070,11 +1069,11 @@ function resetToSurveyingDefaults() {
         ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesNMEA_GPGGA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGST").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSV").value = 1.0;
-        ge("um980MessageRatesNMEA_GPRMC").value = 0.5;
+        ge("messageRateNMEA_GPGGA").value = 0.5;
+        ge("messageRateNMEA_GPGSA").value = 0.5;
+        ge("messageRateNMEA_GPGST").value = 0.5;
+        ge("messageRateNMEA_GPGSV").value = 1.0;
+        ge("messageRateNMEA_GPRMC").value = 0.5;
     }
 }
 function resetToLoggingDefaults() {
@@ -1090,16 +1089,16 @@ function resetToLoggingDefaults() {
         ge("ubxMessageRate_UBX_RXM_SFRBX").value = 1;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesNMEA_GPGGA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGST").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSV").value = 1.0;
-        ge("um980MessageRatesNMEA_GPRMC").value = 0.5;
+        ge("messageRateNMEA_GPGGA").value = 0.5;
+        ge("messageRateNMEA_GPGSA").value = 0.5;
+        ge("messageRateNMEA_GPGST").value = 0.5;
+        ge("messageRateNMEA_GPGSV").value = 1.0;
+        ge("messageRateNMEA_GPRMC").value = 0.5;
 
-        ge("um980MessageRatesRTCMRover_RTCM1019").value = 1.0;
-        ge("um980MessageRatesRTCMRover_RTCM1020").value = 1.0;
-        ge("um980MessageRatesRTCMRover_RTCM1042").value = 1.0;
-        ge("um980MessageRatesRTCMRover_RTCM1046").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1019").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1020").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1042").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1046").value = 1.0;
     }
 }
 
@@ -1122,12 +1121,12 @@ function resetToRTCMDefaults() {
         ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesRTCMBase_RTCM1005").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1033").value = 10.0;
-        ge("um980MessageRatesRTCMBase_RTCM1074").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1084").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1094").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1124").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1005").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1033").value = 10.0;
+        ge("messageRateRTCMBase_RTCM1074").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1084").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1094").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
 }
 
@@ -1150,12 +1149,12 @@ function resetToRTCMLowBandwidth() {
         ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesRTCMBase_RTCM1005").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1033").value = 10.0;
-        ge("um980MessageRatesRTCMBase_RTCM1074").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1084").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1094").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1124").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1005").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1033").value = 10.0;
+        ge("messageRateRTCMBase_RTCM1074").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1084").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1094").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1124").value = 2.0;
     }
 }
 

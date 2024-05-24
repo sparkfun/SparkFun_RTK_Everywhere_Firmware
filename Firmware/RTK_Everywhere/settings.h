@@ -1818,9 +1818,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.tiltPoleLength, "tiltPoleLength",  },
     { 0, 1, 1, 1, 0, 0, 0, 1, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellations_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRatesNMEA_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRatesRTCMBase_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRatesRTCMRover_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_",  },
 
     // Web Server
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
