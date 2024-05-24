@@ -108,6 +108,10 @@ function parseIncoming(msg) {
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
+
+                //UBX uses combined GPS/QZSS setting
+                hide("constellationsGps");
+                hide("constellationsQzss");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -115,9 +119,14 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
+                hide("noExternalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
+
+                //UBX uses combined GPS/QZSS setting
+                hide("constellationsGps");
+                hide("constellationsQzss");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -125,24 +134,28 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
+                hide("noExternalPortOptions");
                 show("logToSDCard");
                 show("galileoHasSetting");
                 hide("tiltConfig");
+
+                //mosaic has discrete constellation settings for GPS and QZSS
+                hide("constellationsGpsQzss");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                hide("portsConfig");
+                show("portsConfig");
+                hide("externalPortOptions");
+                show("noExternalPortOptions");
                 hide("logToSDCard");
                 show("galileoHasSetting");
                 hide("baseConfig");
 
                 //UM980 has discrete constellation settings for GPS and QZSS
                 hide("constellationsGpsQzss");
-                show("constellationsGps");
-                show("constellationsQzss");
                 hide("constellationsSbas"); //Not supported on UM980
 
                 select = ge("dynamicModel");
@@ -154,11 +167,6 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
             }
 
-            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
-                //UBX uses combined GPS/QZSS setting
-                hide("constellationsGps");
-                hide("constellationsQzss");
-            }
 
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
