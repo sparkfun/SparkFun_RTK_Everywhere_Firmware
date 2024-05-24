@@ -311,36 +311,32 @@
                     <div class="form-group mt-3" id="constellationCheckBoxes">
                         <label for="gnssConstellations">Constellations:</label>
                         <span class="tt" data-bs-placement="right"
-                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: GPS, SBAS, GLONASS, BeiDou, and Galileo.">
+                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: All enabled.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
-                        <div id="constellationsBeiDou" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_BeiDou">BeiDou</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_BeiDou">
+                        <div id="constellationBeiDou" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_BeiDou">BeiDou</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_BeiDou">
                         </div>
-                        <div id="constellationsGalileo" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_Galileo">Galileo</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_Galileo">
+                        <div id="constellationGalileo" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_Galileo">Galileo</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_Galileo">
                         </div>
-                        <div id="constellationsGlonass" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_GLONASS">GLONASS</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_GLONASS">
+                        <div id="constellationGlonass" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_GLONASS">GLONASS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_GLONASS">
                         </div>
-                        <div id="constellationsGpsQzss" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_GPS">GPS/QZSS</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_GPS">
+                        <div id="constellationGps" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_GPS">GPS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_GPS">
                         </div>
-                        <div id="constellationsGps" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_GPS">GPS</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_GPS">
+                        <div id="constellationQzss" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_QZSS">QZSS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_QZSS">
                         </div>
-                        <div id="constellationsQzss" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_QZSS">QZSS</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_QZSS">
-                        </div>
-                        <div id="constellationsSbas" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellations_SBAS">SBAS</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellations_SBAS">
+                        <div id="constellationSbas" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_SBAS">SBAS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_SBAS">
                         </div>
                         <div class="form-group row">
                             <p id="gnssConstellationsError" class="inlineError"></p>
@@ -353,7 +349,7 @@
                                 Corrections</label>
                             <input class="form-check-input" type="checkbox" value="" id="enableGalileoHas">
                             <span class="tt" data-bs-placement="right"
-                                title="Use High Accuracy Service corrections provided over the Galileo constallation. Default: Enabled.">
+                                title="Use High Accuracy Service corrections provided over the Galileo constellation. Default: Enabled.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
@@ -722,7 +718,7 @@
                                 <label for="antennaReferencePoint" class="box-margin40 col-5 col-form-label">Antenna
                                     Reference Point(mm):
                                     <span class="tt" data-bs-placement="right"
-                                        title="ARP is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common ARPs: Facet L-Band (69mm) Torch(102mm)">
+                                        title="ARP is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common ARPs: Facet L-Band (69mm) Torch(117mm)">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
@@ -1751,8 +1747,8 @@
                     </div>
 
                     <div>
-                        <div align="center">
-                            <button type="button" id="btnCheckNewFirmware" class="btn btn-primary box-margin20"
+                        <div>
+                            <button type="button" id="btnCheckNewFirmware" class="btn btn-primary"
                                 onClick="checkNewFirmware()">Check for New Firmware</button>
 
                             <span class="tt" data-bs-placement="right"
@@ -1761,7 +1757,7 @@
                             </span>
                             <p id="firmwareCheckNewMsg"></p>
 
-                            <div>
+                            <div class="form-check mt-3">
                                 <label class="form-check-label" for="enableRCFirmware">Allow Beta Firmware</label>
                                 <input class="form-check-input" type="checkbox" value="" id="enableRCFirmware">
                                 <span class="tt" data-bs-placement="right"
@@ -1769,6 +1765,30 @@
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </div>
+
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableAutoFirmwareUpdate">Enable Automatic Firmware Updates</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableAutoFirmwareUpdate">
+                                <span class="tt" data-bs-placement="right"
+                                    title="If enabled, device will periodically check for new firmware. If a new production version firmware is available, it will be installed automatically.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="enableAutomaticFirmwareUpdateDetails" class="collapse mb-2">
+                                <div class="form-group row">
+                                    <label for="autoFirmwareCheckMinutes"
+                                        class="box-margin40 col-sm-3 col-7 col-form-label">Minutes between checks:
+                                        <span class="tt" data-bs-placement="right"
+                                            title="If automatic firmware update is enabled, the device will check for new firmware after this many minutes have elapsed. Default: 1440 (1 day)">
+                                            <span class="icon-info-circle text-primary ms-2"></span>
+                                        </span>
+                                    </label>
+                                    <input type="number" class="form-control box-small" id="autoFirmwareCheckMinutes">
+                                    <p id="autoFirmwareCheckMinutesError" class="inlineError"></p>
+                                </div>
+                            </div>
+
                         </div>
                         <br>
 
@@ -1783,7 +1803,7 @@
                         </div>
                     </div>
 
-                    <div align="center">
+                    <div>
                         <label class="btn btn-primary">
                             <input type="file" name="binfile" id="submitFirmwareFile" onchange="firmwareUploadWait()" />
                             Upload BIN
@@ -1904,6 +1924,51 @@
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
+
+                    <div id="beeperControl" class="form-check mt-3">
+                        <label class="form-check-label" for="enableBeeper">Enable Audible Beeper</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableBeeper">
+                        <span class="tt" data-bs-placement="right"
+                            title="Allow internal buzzer to give audio feedback to the user. Default: Enabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="measurementScaleDropdown" class="mb-2 mt-3">
+                        <label for="measurementScale">Measurement Scale: </label>
+                        <select name="measurementScale" id="measurementScale" class="form-dropdown">
+                            <option value="0">Meters</option>
+                            <option value="1">Feet/Inches</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="Display and print units in meters or feet. This does not affect NMEA output, only internal device prints and displays. Default: Meters">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableAutoReset">Enable Automatic Device Restart</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableAutoReset">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will periodically restart. This is helpful when deploying a device in a remote location. Default: Disabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="enableAutomaticResetDetails" class="collapse mb-2">
+                        <div class="form-group row">
+                            <label for="rebootMinutes"
+                                class="box-margin40 col-sm-3 col-7 col-form-label">Minutes between restarts:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If automatic restart is enabled, the device will reset after this many minutes have elapsed. Default: 1440 (1 day)">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <input type="number" class="form-control box-small" id="rebootMinutes">
+                            <p id="rebootMinutesError" class="inlineError"></p>
+                        </div>
+                    </div>
+
 
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableFactoryDefaults">Enable Factory Defaults</label>

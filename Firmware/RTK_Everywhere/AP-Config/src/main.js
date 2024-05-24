@@ -12,7 +12,6 @@ function initWebSocket() {
     websocket.onmessage = function (msg) {
         parseIncoming(msg.data);
     };
-    show("constellationsGpsQzss");
 }
 
 function ge(e) {
@@ -108,10 +107,7 @@ function parseIncoming(msg) {
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
-
-                //UBX uses combined GPS/QZSS setting
-                hide("constellationsGps");
-                hide("constellationsQzss");
+                hide("beeperControl");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -123,10 +119,7 @@ function parseIncoming(msg) {
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
-
-                //UBX uses combined GPS/QZSS setting
-                hide("constellationsGps");
-                hide("constellationsQzss");
+                hide("beeperControl");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -136,11 +129,8 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 hide("noExternalPortOptions");
                 show("logToSDCard");
-                show("galileoHasSetting");
                 hide("tiltConfig");
-
-                //mosaic has discrete constellation settings for GPS and QZSS
-                hide("constellationsGpsQzss");
+                hide("beeperControl");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -151,11 +141,8 @@ function parseIncoming(msg) {
                 hide("externalPortOptions");
                 show("noExternalPortOptions");
                 hide("logToSDCard");
-                show("galileoHasSetting");
 
-                //UM980 has discrete constellation settings for GPS and QZSS
-                hide("constellationsGpsQzss");
-                hide("constellationsSbas"); //Not supported on UM980
+                hide("constellationSbas"); //Not supported on UM980
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -271,8 +258,10 @@ function parseIncoming(msg) {
             if (val > 0)
                 ge("peerMACs").innerHTML = "";
         }
-        else if (id.includes("peerMAC")) {
-            ge("peerMACs").innerHTML += val + "<br>";
+        else if (id.includes("espnowPeer_")) {
+            if (val[0] != "0" && val[1] != "0") {
+                ge("peerMACs").innerHTML += val + "<br>";
+            }
         }
         else if (id.includes("stationECEF")) {
             recordsECEF.push(val);
@@ -374,6 +363,20 @@ function parseIncoming(msg) {
         else if (id.includes("fixedLong")) {
             fixedLong = val;
         }
+        else if (id.includes("rebootSeconds")) {
+            if (val > 0) {
+                //Convert to minutes
+                val = val / 60;
+                ge("rebootMinutes").value = val;
+                ge("enableAutoReset").checked = true;
+                show("enableAutomaticResetDetails");
+            }
+            else {
+                ge("rebootMinutes").value = 0;
+                ge("enableAutoReset").checked = false;
+                hide("enableAutomaticResetDetails");
+            }
+        }
 
         //Check boxes / radio buttons
         else if (val == "true") {
@@ -425,6 +428,8 @@ function parseIncoming(msg) {
         ge("antennaReferencePoint").dispatchEvent(new CustomEvent('change'));
         ge("enableLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
+        ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
+        ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -434,7 +439,7 @@ function parseIncoming(msg) {
         dhcpEthernet();
         updateLatLong();
         updateCorrectionsPriorities();
-        tiltCompensationBoxes();   
+        tiltCompensationBoxes();
     }
 }
 
@@ -717,7 +722,7 @@ function validateFields() {
     checkElementString("wifiNetwork_2Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
-    if (ge("enableTcpClient").checked  == true) {
+    if (ge("enableTcpClient").checked == true) {
         checkElementString("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
     if (ge("enableTcpServer").checked == true) {
@@ -746,6 +751,21 @@ function validateFields() {
     else {
         clearElement("ARPLoggingInterval", 10);
     }
+
+    if (ge("enableAutoFirmwareUpdate").checked == true) {
+        checkElementValue("autoFirmwareCheckMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
+    }
+    else {
+        clearElement("autoFirmwareCheckMinutes", 1440);
+    }
+
+    if (ge("enableAutoReset").checked == true) {
+        checkElementValue("rebootMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
+    }
+    else {
+        clearElement("rebootMinutes", 1440);
+    }
+
 
     //Ethernet
     if (platformPrefix == "EVK") {
@@ -840,9 +860,9 @@ function saveConfig() {
 function checkConstellations() {
     if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
         if ((ge("ubxConstellation_GPS").checked == false)
-        && (ge("ubxConstellation_Galileo").checked == false)
-        && (ge("ubxConstellation_BeiDou").checked == false)
-        && (ge("ubxConstellation_GLONASS").checked == false)) {
+            && (ge("ubxConstellation_Galileo").checked == false)
+            && (ge("ubxConstellation_BeiDou").checked == false)
+            && (ge("ubxConstellation_GLONASS").checked == false)) {
             ge("collapseGNSSConfig").classList.add('show');
             showError('gnssConstellations', "Please choose one constellation");
             errorCount++;
@@ -851,10 +871,10 @@ function checkConstellations() {
             clearError("gnssConstellations");
     }
     if (platformPrefix == "Torch") {
-        if ((ge("um980Constellations_GPS").checked == false)
-        && (ge("um980Constellations_Galileo").checked == false)
-        && (ge("um980Constellations_BeiDou").checked == false)
-        && (ge("um980Constellations_GLONASS").checked == false)) {
+        if ((ge("constellation_GPS").checked == false)
+            && (ge("constellation_Galileo").checked == false)
+            && (ge("constellation_BeiDou").checked == false)
+            && (ge("constellation_GLONASS").checked == false)) {
             ge("collapseGNSSConfig").classList.add('show');
             showError('gnssConstellations', "Please choose one constellation");
             errorCount++;
@@ -1283,7 +1303,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 ge("antennaReferencePoint").value = 61.4;
             }
             else if (platformPrefix == "Torch") {
-                ge("antennaReferencePoint").value = 102.0;
+                ge("antennaReferencePoint").value = 116.2;
             }
             else {
                 ge("antennaReferencePoint").value = 0.0;
@@ -1384,6 +1404,24 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             hide("enableARPLoggingDetails");
+        }
+    });
+
+    ge("enableAutoFirmwareUpdate").addEventListener("change", function () {
+        if (ge("enableAutoFirmwareUpdate").checked == true) {
+            show("enableAutomaticFirmwareUpdateDetails");
+        }
+        else {
+            hide("enableAutomaticFirmwareUpdateDetails");
+        }
+    });
+
+    ge("enableAutoReset").addEventListener("change", function () {
+        if (ge("enableAutoReset").checked == true) {
+            show("enableAutomaticResetDetails");
+        }
+        else {
+            hide("enableAutomaticResetDetails");
         }
     });
 
