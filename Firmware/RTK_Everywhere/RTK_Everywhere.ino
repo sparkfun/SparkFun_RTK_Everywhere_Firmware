@@ -21,7 +21,7 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
+//#define COMPILE_BT       // Comment out to remove Bluetooth functionality
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
 
@@ -242,7 +242,8 @@ typedef enum LoggingType
 } LoggingType;
 LoggingType loggingType;
 
-SdFile managerTempFile; // File used for uploading or downloading in the file manager section of AP config
+SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
+bool managerFileOpen = false;
 
 TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
@@ -568,9 +569,10 @@ unsigned long lastDynamicDataUpdate;
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
-#include <DNSServer.h>
-#include <WebServer.h>
-#include <esp_http_server.h>
+#include <DNSServer.h> // Needed for the captive portal
+#include <WebServer.h> // Port 80
+#include <esp_http_server.h> // Needed for web sockets only - on port 81
+#include <SD.h> // Needed for web config file download (streamFile)
 #include "form.h"
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
@@ -1594,6 +1596,12 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_FILEMANAGER_UPLOAD3:
         strcpy(functionName, "FileManager Upload3");
+        break;
+    case FUNCTION_FILEMANAGER_DOWNLOAD1:
+        strcpy(functionName, "FileManager Download1");
+        break;
+    case FUNCTION_FILEMANAGER_DOWNLOAD2:
+        strcpy(functionName, "FileManager Download2");
         break;
     case FUNCTION_SDSIZECHECK:
         strcpy(functionName, "SD Size Check");

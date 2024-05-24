@@ -448,11 +448,19 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         // Handler for the /uploadFile form POST
         webserver->on(
-            "/uploadFile", HTTP_POST, handleUpload); // Run handleUpload function when file manager file is uploaded
+            "/uploadFile", HTTP_POST,
+            []() {
+                webserver->send(200, "text/plain", "");
+            },
+            handleUpload); // Run handleUpload function when file manager file is uploaded
 
         // Handler for the /uploadFirmware form POST
         webserver->on(
-            "/uploadFirmware", HTTP_POST, handleFirmwareFileUpload);
+            "/uploadFirmware", HTTP_POST, 
+            []() {
+                webserver->send(200, "text/plain", "");
+            },
+            handleFirmwareFileUpload);
 
         // Handler for file manager
         webserver->on("/listfiles", HTTP_GET, []() {
@@ -621,21 +629,46 @@ static void handleFileManager()
             {
                 logmessage += " downloaded";
 
-                if (managerTempFile.open(slashFileName, O_READ) != true)
+                // This is a nasty hack to allow us to use streamFile to download the file:
+                // End SdFat, begin SD, open the file using SD, stream it, end SD and allow SdFat to take over again...
+
+                // Attempt to gain access to the SD card
+                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
                 {
-                    systemPrintln("Error: File Manager failed to open file");
-                    return;
+                    markSemaphore(FUNCTION_FILEMANAGER_DOWNLOAD1);
+
+                    endSD(true, false);
+
+                    if (!SD.begin(pin_microSD_CS))
+                    {
+                        systemPrintln("Failed to begin SD!");                        
+                    }
+                    else
+                    {
+                        File download = SD.open(slashFileName, "r");
+
+                        if (!download)
+                        {
+                            systemPrintf("Failed to open %s for download!\r\n", slashFileName);
+                        }
+                        else
+                        {
+                            webserver->sendHeader("Cache-Control", "no-cache");
+                            webserver->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
+                            webserver->sendHeader("Access-Control-Allow-Origin", "*");
+                            webserver->streamFile(download, "application/octet-stream");
+
+                            download.close();
+                            SD.end();
+
+                            sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
+                        }
+                    }
+
+                    xSemaphoreGive(sdCardSemaphore);
+                    
+                    beginSD();
                 }
-
-                webserver->sendHeader("Cache-Control", "no-cache");
-                webserver->sendHeader("Content-Disposition", "attachment; filename=" + fileName);
-                webserver->sendHeader("Access-Control-Allow-Origin", "*");
-
-                // TODO: webserver->streamFile(managerTempFile, "application/octet-stream");
-
-                managerTempFile.close();
-
-                sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
             }
             else if (fileAction == "delete")
             {
@@ -1039,33 +1072,53 @@ void createMessageListBase(String &returnText)
 
 // Handles uploading of user files to SD
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
-static void handleUpload()
+void handleUpload()
 {
-    String logmessage = "";
-    String filename = "";
-
     HTTPUpload &upload = webserver->upload();
 
     if (upload.status == UPLOAD_FILE_START)
     {
-        filename = upload.filename;
+        String filename = upload.filename;
 
-        logmessage = "Upload Start: " + filename;
+        String logmessage = "Upload Start: " + filename;
 
         int fileNameLen = filename.length();
         char tempFileName[fileNameLen + 2] = {'/'}; // Filename must start with / or VERY bad things happen on SD_MMC
         filename.toCharArray(&tempFileName[1], fileNameLen + 1);
         tempFileName[fileNameLen + 1] = '\0'; // Terminate array
 
-        // Attempt to gain access to the SD card
-        if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+        // Allocate the managerTempFile
+        if (!managerTempFile)
         {
-            markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
-
-            managerTempFile.open(tempFileName, O_CREAT | O_APPEND | O_WRITE);
-
-            xSemaphoreGive(sdCardSemaphore);
+            managerTempFile = new SdFile;
+            if (!managerTempFile)
+            {
+                systemPrintln("Failed to allocate managerTempFile!");
+                return;
+            }
         }
+
+        if (managerFileOpen == false)
+        {
+            // Attempt to gain access to the SD card
+            if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+            {
+                markSemaphore(FUNCTION_FILEMANAGER_UPLOAD1);
+
+                if (managerTempFile->open(tempFileName, O_CREAT | O_APPEND | O_WRITE) == true)
+                    managerFileOpen = true;
+                else
+                    systemPrintln("Error: handleUpload failed to open file");
+
+                xSemaphoreGive(sdCardSemaphore);
+            }
+        }
+        else
+        {
+            // File is already in use. Wait your turn.
+            webserver->send(202, "text/plain", "ERROR: File already uploading");
+        }
+
 
         systemPrintln(logmessage);
     }
@@ -1077,7 +1130,7 @@ static void handleUpload()
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD2);
 
-            managerTempFile.write(upload.buf, upload.currentSize); // stream the incoming chunk to the opened file
+            managerTempFile->write(upload.buf, upload.currentSize); // stream the incoming chunk to the opened file
 
             xSemaphoreGive(sdCardSemaphore);
         }
@@ -1085,16 +1138,17 @@ static void handleUpload()
 
     else if (upload.status == UPLOAD_FILE_END)
     {
-        logmessage = "Upload Complete: " + filename + ", size: " + String(upload.totalSize);
+        String logmessage = "Upload Complete: " + String(upload.filename) + ", size: " + String(upload.totalSize);
 
         // Attempt to gain access to the SD card
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
         {
             markSemaphore(FUNCTION_FILEMANAGER_UPLOAD3);
 
-            sdUpdateFileCreateTimestamp(&managerTempFile); // Update the file create time & date
+            sdUpdateFileCreateTimestamp(managerTempFile); // Update the file create time & date
 
-            managerTempFile.close();
+            managerTempFile->close();
+            managerFileOpen = false;
 
             xSemaphoreGive(sdCardSemaphore);
         }
@@ -1103,7 +1157,7 @@ static void handleUpload()
 
         // Redirect to "/"
         webserver->sendHeader("Location", "/");
-        webserver->send(302);
+        webserver->send(302, "text/plain", "");
     }
 }
 
