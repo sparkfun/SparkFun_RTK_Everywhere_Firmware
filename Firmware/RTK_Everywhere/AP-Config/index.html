@@ -140,6 +140,7 @@
                 </button>
             </div>
             <div class="collapse mb-2" id="collapseProfileConfig">
+                <!-- <div class="collapse show mb-2" id="collapseProfileConfig"> -->
                 <div class="card card-body">
 
                     <div class="form-group mt-2">
@@ -322,18 +323,18 @@
 
                     <div id="tiltCompensationSettings">
                         <div class="form-check mt-3">
-                                <label class="form-check-label" for="enableTiltCompensation">Enable Tilt Compensation</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation" onClick="tiltCompensationBoxes()">
-                            <span class="tt" data-bs-placement="right"
-                                title="Use tilt compensation. Default: Enabled.">
+                            <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
+                                Compensation</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation"
+                                onClick="tiltCompensationBoxes()">
+                            <span class="tt" data-bs-placement="right" title="Use tilt compensation. Default: Enabled.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
 
                         <div id="poleLengthConfig">
                             <div class="form-group row">
-                                <label for="tiltPoleLength"
-                                    class="col-sm-4 col-6 col-form-label">Pole Length (m):
+                                <label for="tiltPoleLength" class="col-sm-4 col-6 col-form-label">Pole Length (m):
                                     <span class="tt" data-bs-placement="right"
                                         title="Pole length for tilt compensation. Default: 1.8m">
                                         <span class="icon-info-circle text-primary ms-2"></span>
@@ -347,6 +348,8 @@
                         </div>
                     </div>
 
+
+
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableNtripClient">
@@ -358,8 +361,7 @@
 
                     <div id="ntripClientConfig" class="collapse mb-2">
                         <div class="form-group row">
-                            <label for="ntripClientCasterHost"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                            <label for="ntripClientCasterHost" class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Host:</label>
                             <div class="col-sm-8 col-6">
                                 <input type="text" class="form-control" id="ntripClientCasterHost">
@@ -368,8 +370,7 @@
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClientCasterPort"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                            <label for="ntripClientCasterPort" class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Port:</label>
                             <div class="col-sm-8 col-6">
                                 <input type="number" class="form-control" id="ntripClientCasterPort">
@@ -378,8 +379,7 @@
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClientCasterUser"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                            <label for="ntripClientCasterUser" class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 User:</label>
                             <div class="col-sm-8 col-6">
                                 <input type="text" class="form-control" id="ntripClientCasterUser">
@@ -803,16 +803,16 @@
                     <div id="ntripServerConfig" class="collapse mb-2">
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig0"
-                                aria-expanded="false" aria-controls="ntripServerConfig0">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig0" aria-expanded="false"
+                                aria-controls="ntripServerConfig0">
                                 NTRIP Server 1 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig0">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_0"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -876,16 +876,16 @@
                         </div>
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig1"
-                                aria-expanded="false" aria-controls="ntripServerConfig1">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig1" aria-expanded="false"
+                                aria-controls="ntripServerConfig1">
                                 NTRIP Server 2 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig1">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_1"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -949,16 +949,16 @@
                         </div>
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig2"
-                                aria-expanded="false" aria-controls="ntripServerConfig2">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig2" aria-expanded="false"
+                                aria-controls="ntripServerConfig2">
                                 NTRIP Server 3 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig2">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_2"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -1022,16 +1022,16 @@
                         </div>
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig3"
-                                aria-expanded="false" aria-controls="ntripServerConfig3">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig3" aria-expanded="false"
+                                aria-controls="ntripServerConfig3">
                                 NTRIP Server 4 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig3">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_3"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -1112,10 +1112,12 @@
                         <div class="card card-body" style="margin-top:5px;">
 
                             <div style="margin-bottom:5px;">
-                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to Defaults</button>
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to
+                                    Defaults</button>
                             </div>
                             <div style="margin-bottom:5px;">
-                                <button type="button" class="btn btn-primary" onClick="resetToRTCMLowBandwidth()">Reset to Low Bandwidth Link</button>
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMLowBandwidth()">Reset
+                                    to Low Bandwidth Link</button>
                             </div>
 
                             <div id="messageListBase">
@@ -1143,7 +1145,8 @@
                     </div>
 
                     <div class="form-check mt-3">
-                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect Corrections </label>
+                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect
+                            Corrections </label>
                         <input class="form-check-input" type="checkbox" value="" id="enablePointPerfectCorrections">
                         <span class="tt" data-bs-placement="right"
                             title="Use L-Band / IP PointPerfect corrections when available. Default: Disabled">
@@ -1607,7 +1610,8 @@
             <!-- --------- Corrections Priority Config --------- -->
             <div class="d-grid gap-2">
                 <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
-                    data-target="#collapseCorrectionsPriorityConfig" aria-expanded="false" aria-controls="collapseCorrectionsPriorityConfig">
+                    data-target="#collapseCorrectionsPriorityConfig" aria-expanded="false"
+                    aria-controls="collapseCorrectionsPriorityConfig">
                     Corrections Configuration <i id="correctionsCaret" class="caret-icon bi icon-caret-down"></i>
                 </button>
             </div>
@@ -1616,14 +1620,15 @@
                 <div class="card card-body">
 
                     <div class="form-group row">
-                        <label for="correctionsSourcesLifetime" class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
+                        <label for="correctionsSourcesLifetime"
+                            class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
                             <span class="tt" data-bs-placement="right"
                                 title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
                         <div class='col-sm-4 col-4'>
-                            <input type='number' class='form-control'id="correctionsSourcesLifetime">
+                            <input type='number' class='form-control' id="correctionsSourcesLifetime">
                         </div>
                         <p id="correctionsSourcesLifetimeError" class="inlineError"></p>
                     </div>
@@ -1783,7 +1788,8 @@
 
                             <div class="form-check mt-1 box-margin20">
                                 <label class="form-check-label" for="enableARPLogging">Enable ARP Logging</label>
-                                <input class="form-check-input" type="checkbox" value="" id="enableARPLogging" unchecked>
+                                <input class="form-check-input" type="checkbox" value="" id="enableARPLogging"
+                                    unchecked>
                                 <span class="tt" data-bs-placement="right"
                                     title="If enabled, the Antenna Reference Position from RTCM 1005/1006 will be added to the log.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
@@ -1792,7 +1798,8 @@
 
                             <div id="enableARPLoggingDetails" class="collapse mb-2">
                                 <div class="form-group row">
-                                    <label for="ARPLoggingInterval" class="box-margin40 col-sm-3 col-7 col-form-label">ARP
+                                    <label for="ARPLoggingInterval"
+                                        class="box-margin40 col-sm-3 col-7 col-form-label">ARP
                                         Logging Interval (s):
                                         <span class="tt" data-bs-placement="right"
                                             title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds.">
