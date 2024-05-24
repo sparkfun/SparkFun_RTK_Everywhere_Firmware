@@ -314,41 +314,50 @@
                             title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: GPS, SBAS, GLONASS, BeiDou, and Galileo.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
-                        <div id="gnssConstellations">
+                        <div id="constellationsBeiDou" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_BeiDou">BeiDou</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_BeiDou">
+                        </div>
+                        <div id="constellationsGalileo" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_Galileo">Galileo</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_Galileo">
+                        </div>
+                        <div id="constellationsGlonass" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_GLONASS">GLONASS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_GLONASS">
+                        </div>
+                        <div id="constellationsGpsQzss" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_GPS">GPS/QZSS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_GPS">
+                        </div>
+                        <div id="constellationsGps" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_GPS">GPS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_GPS">
+                        </div>
+                        <div id="constellationsQzss" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_QZSS">QZSS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_QZSS">
+                        </div>
+                        <div id="constellationsSbas" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellations_SBAS">SBAS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellations_SBAS">
                         </div>
                         <div class="form-group row">
                             <p id="gnssConstellationsError" class="inlineError"></p>
                         </div>
                     </div>
 
-                    <div id="tiltCompensationSettings">
+                    <div id="galileoHasSetting">
                         <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
-                                Compensation</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation"
-                                onClick="tiltCompensationBoxes()">
-                            <span class="tt" data-bs-placement="right" title="Use tilt compensation. Default: Enabled.">
+                            <label class="form-check-label" for="enableGalileoHas">Enable Galileo HAS/E6
+                                Corrections</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableGalileoHas">
+                            <span class="tt" data-bs-placement="right"
+                                title="Use High Accuracy Service corrections provided over the Galileo constallation. Default: Enabled.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
-
-                        <div id="poleLengthConfig">
-                            <div class="form-group row">
-                                <label for="tiltPoleLength" class="col-sm-4 col-6 col-form-label">Pole Length (m):
-                                    <span class="tt" data-bs-placement="right"
-                                        title="Pole length for tilt compensation. Default: 1.8m">
-                                        <span class="icon-info-circle text-primary ms-2"></span>
-                                    </span>
-                                </label>
-                                <div class="col-sm-4 col-6">
-                                    <input type="number" class="form-control" id="tiltPoleLength">
-                                    <p id="tiltPoleLengthError" class="inlineError"></p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
-
 
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableNtripClient">Enable NTRIP Client</label>
@@ -1655,6 +1664,48 @@
                     </div>
                 </div>
             </div>
+
+            <!-- --------- Tilt Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" id="tiltConfig" type="button" data-toggle="collapse"
+                    data-target="#collapseTiltConfig" aria-expanded="false" aria-controls="collapseTiltConfig">
+                    Tilt Configuration <i id="tiltCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseTiltConfig">
+                <div class="card card-body">
+
+                    <div id="tiltCompensationSettings">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
+                                Compensation</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation"
+                                onClick="tiltCompensationBoxes()">
+                            <span class="tt" data-bs-placement="right" title="Use tilt compensation. Default: Enabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="poleLengthConfig">
+                            <div class="form-group row">
+                                <label for="tiltPoleLength" class="col-sm-4 col-6 col-form-label">Pole Length (m):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="This is the length of the pole only, no additional ARP should be included. Default: 1.8m">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="tiltPoleLength">
+                                    <p id="tiltPoleLengthError" class="inlineError"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
 
             <!-- --------- System Config --------- -->
             <div class="d-grid gap-2">

@@ -12,6 +12,7 @@ function initWebSocket() {
     websocket.onmessage = function (msg) {
         parseIncoming(msg.data);
     };
+    show("constellationsGpsQzss");
 }
 
 function ge(e) {
@@ -103,36 +104,46 @@ function parseIncoming(msg) {
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
-                hide("tiltCompensationSettings");
                 hide("portsConfig");
                 show("logToSDCard");
+                hide("galileoHasSetting");
+                hide("tiltConfig");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                hide("tiltCompensationSettings");
                 show("portsConfig");
                 show("logToSDCard");
+                hide("galileoHasSetting");
+                hide("tiltConfig");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                hide("tiltCompensationSettings");
                 show("portsConfig");
                 show("logToSDCard");
+                show("galileoHasSetting");
+                hide("tiltConfig");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
                 hide("ntpConfig");
-                show("tiltCompensationSettings");
                 hide("portsConfig");
                 hide("logToSDCard");
+                show("galileoHasSetting");
+                hide("baseConfig");
+
+                //UM980 has discrete constellation settings for GPS and QZSS
+                hide("constellationsGpsQzss");
+                show("constellationsGps");
+                show("constellationsQzss");
+                hide("constellationsSbas"); //Not supported on UM980
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -141,52 +152,12 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
-
-                var constellationChecks = "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='um980Constellations_GPS'>GPS </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GPS'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='um980Constellations_GLONASS'>GLONASS </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_GLONASS'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='um980Constellations_Galileo'>Galileo </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_Galileo'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='um980Constellations_BeiDou'>BeiDou </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_BeiDou'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='um980Constellations_QZSS'>QZSS </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='um980Constellations_QZSS'>";
-                constellationChecks += "</div>";
-                ge("gnssConstellations").innerHTML = constellationChecks;
             }
 
             if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
-                var constellationChecks = "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='ubxConstellation_GPS'>GPS/QZSS </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GPS'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='ubxConstellation_SBAS'>SBAS </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_SBAS'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='ubxConstellation_Galileo'>Galileo </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_Galileo'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='ubxConstellation_BeiDou'>BeiDou </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_BeiDou'>";
-                constellationChecks += "</div>";
-                constellationChecks += "<div class='form-check mt-1'>";
-                constellationChecks += "<label class='form-check-label' for='ubxConstellation_GLONASS'>GLONASS </label>";
-                constellationChecks += "<input class='form-check-input' type='checkbox' value='' id='ubxConstellation_GLONASS'>";
-                constellationChecks += "</div>";
-                ge("gnssConstellations").innerHTML = constellationChecks;
+                //UBX uses combined GPS/QZSS setting
+                hide("constellationsGps");
+                hide("constellationsQzss");
             }
 
         }
