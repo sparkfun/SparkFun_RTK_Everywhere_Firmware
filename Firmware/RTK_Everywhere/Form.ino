@@ -339,9 +339,6 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         webserver->onNotFound(notFound);
 
-        webserver->onFileUpload(
-            handleUpload); // Run handleUpload function when any file is uploaded. Must be before server.on() calls.
-
         webserver->on("/", HTTP_GET, []() {
             webserver->sendHeader("Content-Encoding", "gzip");
             webserver->send_P(200, "text/html", (const char *)index_html, sizeof(index_html));
@@ -449,9 +446,13 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             webserver->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
         });
 
-        // Handler for the /upload form POST
+        // Handler for the /uploadFile form POST
         webserver->on(
-            "/upload", HTTP_POST, handleFirmwareFileUpload);
+            "/uploadFile", HTTP_POST, handleUpload); // Run handleUpload function when file manager file is uploaded
+
+        // Handler for the /uploadFirmware form POST
+        webserver->on(
+            "/uploadFirmware", HTTP_POST, handleFirmwareFileUpload);
 
         // Handler for file manager
         webserver->on("/listfiles", HTTP_GET, []() {
@@ -1038,12 +1039,8 @@ void createMessageListBase(String &returnText)
 
 // Handles uploading of user files to SD
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
-void handleUpload()
+static void handleUpload()
 {
-    if (webserver->uri() != "/edit") {
-        return;
-    }
-
     String logmessage = "";
     String filename = "";
 
@@ -1088,7 +1085,7 @@ void handleUpload()
 
     else if (upload.status == UPLOAD_FILE_END)
     {
-        logmessage = "Upload Complete: " + filename + ",size: " + String(upload.totalSize);
+        logmessage = "Upload Complete: " + filename + ", size: " + String(upload.totalSize);
 
         // Attempt to gain access to the SD card
         if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)

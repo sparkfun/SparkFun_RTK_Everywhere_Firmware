@@ -1232,7 +1232,7 @@ function firmwareUploadWait() {
     var formdata = new FormData();
     formdata.append("submitFirmwareFile", file);
     var ajax = new XMLHttpRequest();
-    ajax.open("POST", "/upload");
+    ajax.open("POST", "/uploadFirmware");
     ajax.send(formdata);
 
     ge("firmwareUploadMsg").innerHTML = "<br>Uploading, please wait...";
@@ -1813,7 +1813,7 @@ function uploadFile() {
     ajax.addEventListener("load", completeHandler, false);
     ajax.addEventListener("error", errorHandler, false);
     ajax.addEventListener("abort", abortHandler, false);
-    ajax.open("POST", "/");
+    ajax.open("POST", "/uploadFile");
     ajax.send(formdata);
 }
 function progressHandler(event) {
