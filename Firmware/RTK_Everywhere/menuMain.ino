@@ -2,7 +2,11 @@
 // Report status if ~ received, otherwise present config menu
 void terminalUpdate()
 {
+    char buffer[128];
     static uint32_t lastPeriodicDisplay;
+    int length;
+    static bool passRtcmToGnss;
+    static uint32_t rtcmTimer;
 
     // Determine which items are periodically displayed
     if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
@@ -16,45 +20,85 @@ void terminalUpdate()
     {
         byte incoming = systemRead();
 
-        if (incoming == '~')
+        // Is this the start of an RTCM correction message
+        if (incoming == 0xd3)
         {
-            // Output custom GNTXT message with all current system data
-            printCurrentConditionsNMEA();
+            // Enable RTCM reception
+            passRtcmToGnss = true;
+
+            // Start the RTCM timer
+            rtcmTimer = millis();
+            rtcmLastPacketReceived = rtcmTimer;
+
+            // Tell the display about the serial RTCM message
+            usbSerialIncomingRtcm = true;
+
+            // Read the beginning of the RTCM correction message
+            buffer[0] = incoming;
+            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
+
+            // Push RTCM to GNSS module over I2C / SPI
+            gnssPushRawData((uint8_t *)buffer, length);
+        }
+
+        // Does incoming data consist of RTCM correction messages
+        if (passRtcmToGnss && ((millis() - rtcmTimer) < RTCM_CORRECTION_INPUT_TIMEOUT))
+        {
+            // Renew the RTCM timer
+            rtcmTimer = millis();
+            rtcmLastPacketReceived = rtcmTimer;
+
+            // Tell the display about the serial RTCM message
+            usbSerialIncomingRtcm = true;
+
+            // Read more of the RTCM correction message
+            buffer[0] = incoming;
+            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
+
+            // Push RTCM to GNSS module over I2C / SPI
+            gnssPushRawData((uint8_t *)buffer, length);
         }
         else
         {
-            // When outputting GNSS data to USB serial, check for +++
-            if (forwardGnssDataToUsbSerial)
+            // Allow regular serial input
+            passRtcmToGnss = false;
+
+            if (incoming == '~')
             {
-                static uint32_t plusTimeout;
-                static uint8_t plusCount;
-
-                // Reset plusCount on timeout
-                if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
-                    plusCount = 0;
-
-                // Check for + input
-                if (incoming != '+')
-                {
-                    // Must start over looking for +++
-                    plusCount = 0;
-                    return;
-                }
+                // Output custom GNTXT message with all current system data
+                printCurrentConditionsNMEA();
+            }
+            else
+            {
+                // When outputting GNSS data to USB serial, check for +++
+                if (!forwardGnssDataToUsbSerial)
+                    menuMain(); // Present user menu
                 else
                 {
-                    // + entered, check for the +++ sequence
-                    plusCount++;
-                    if (plusCount < 3)
-                    {
-                        // Restart the timeout
-                        plusTimeout = millis();
-                        return;
-                    }
+                    static uint32_t plusTimeout;
+                    static uint8_t plusCount;
 
-                    // +++ was entered, display the main menu
+                    // Reset plusCount on timeout
+                    if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
+                        plusCount = 0;
+
+                    // Check for + input
+                    if (incoming != '+')
+                        // Must start over looking for +++
+                        plusCount = 0;
+                    else
+                    {
+                        // + entered, check for the +++ sequence
+                        plusCount++;
+                        if (plusCount < 3)
+                            // Restart the timeout
+                            plusTimeout = millis();
+                        else
+                            // +++ was entered, display the main menu
+                            menuMain(); // Present user menu
+                    }
                 }
             }
-            menuMain(); // Present user menu
         }
     }
 }

@@ -792,6 +792,16 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
 
+            if (usbSerialIncomingRtcm)
+            {
+                // Download : Columns 59 - 66
+                iconPropertyBlinking prop;
+                prop.icon = DownloadArrow128x64;
+                prop.duty = 0b11111111;
+                iconList->push_back(prop);
+                usbSerialIncomingRtcm = false;
+            }
+
             if (wifiState == WIFI_STATE_CONNECTED)
             {
                 if (netIncomingRTCM == true) // Download : Columns 59 - 66
