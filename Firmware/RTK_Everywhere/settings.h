@@ -1187,7 +1187,7 @@ struct Settings
     bool printPartitionTable = false;
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
-    uint32_t rebootSeconds = (uint32_t)-1; // Disabled, reboots after uptime reaches this number of seconds
+    uint32_t rebootMinutes = (uint32_t)-1; // Disabled, reboots after uptime reaches this number of minutes
     int resetCount = 0;
 
     // Periodic Display
@@ -1654,7 +1654,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.printPartitionTable, "printPartitionTable",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.printTaskStartStop, "printTaskStartStop",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.psramMallocLevel, "psramMallocLevel",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.rebootSeconds, "rebootSeconds",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.rebootMinutes, "rebootMinutes",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _int,      0, & settings.resetCount, "resetCount",  },
 
     // Periodic Display

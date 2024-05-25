@@ -1159,7 +1159,7 @@ void loop()
         periodicDisplay = settings.periodicDisplay;
 
         // Reboot the system after a specified timeout
-        if (((lastPeriodicDisplay / 1000) > settings.rebootSeconds) && (!inMainMenu))
+        if (((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes) && (!inMainMenu))
             ESP.restart();
     }
     if (deadManWalking)

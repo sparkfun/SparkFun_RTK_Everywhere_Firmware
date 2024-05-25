@@ -365,10 +365,8 @@ function parseIncoming(msg) {
         else if (id.includes("fixedLong")) {
             fixedLong = val;
         }
-        else if (id.includes("rebootSeconds")) {
+        else if (id.includes("rebootMinutes")) {
             if (val > 0) {
-                //Convert to minutes
-                val = val / 60;
                 ge("rebootMinutes").value = val;
                 ge("enableAutoReset").checked = true;
                 show("enableAutomaticResetDetails");
