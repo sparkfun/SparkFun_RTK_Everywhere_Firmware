@@ -138,8 +138,10 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
+                
                 hide("externalPortOptions");
                 show("noExternalPortOptions");
+                
                 hide("logToSDCard");
 
                 hide("constellationSbas"); //Not supported on UM980
@@ -526,11 +528,11 @@ function clearMsg(id, msg) {
 
 var errorCount = 0;
 
-function checkMessageValue(id) {
+function checkMessageValueUBX(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsg");
 }
 
-function checkMessageValueBase(id) {
+function checkMessageValueUBXBase(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsgBase");
 }
 
@@ -598,33 +600,37 @@ function validateFields() {
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValue(messageName);
-    }
-    //match all ids starting with ubxMessageRateBase_
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValueBase(messageName);
+    if (platformPrefix == "EVK" || platformPrefix == "Facet v2") {
+        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
+        for (let x = 0; x < ubxMessages.length; x++) {
+            var messageName = ubxMessages[x].id;
+            checkMessageValueUBX(messageName);
+        }
+        //match all ids starting with ubxMessageRateBase_
+        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+        for (let x = 0; x < ubxMessages.length; x++) {
+            var messageName = ubxMessages[x].id;
+            checkMessageValueUBXBase(messageName);
+        }
     }
 
     //Check all UM980 message boxes
-    var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
-    for (let x = 0; x < messages.length; x++) {
-        var messageName = messages[x].id;
-        checkMessageValueUM980(messageName);
-    }
-    var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
-    for (let x = 0; x < messages.length; x++) {
-        var messageName = messages[x].id;
-        checkMessageValueUM980(messageName);
-    }
-    var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
-    for (let x = 0; x < messages.length; x++) {
-        var messageName = messages[x].id;
-        checkMessageValueUM980Base(messageName);
+    else if (platformPrefix == "Torch") {
+        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueUM980(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueUM980(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueUM980Base(messageName);
+        }
     }
 
     //Base Config
