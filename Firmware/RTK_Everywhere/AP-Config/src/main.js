@@ -12,7 +12,6 @@ function initWebSocket() {
     websocket.onmessage = function (msg) {
         parseIncoming(msg.data);
     };
-    show("constellationsGpsQzss");
 }
 
 function ge(e) {
@@ -108,10 +107,7 @@ function parseIncoming(msg) {
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
-
-                //UBX uses combined GPS/QZSS setting
-                hide("constellationsGps");
-                hide("constellationsQzss");
+                hide("beeperControl");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -123,10 +119,7 @@ function parseIncoming(msg) {
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
-
-                //UBX uses combined GPS/QZSS setting
-                hide("constellationsGps");
-                hide("constellationsQzss");
+                hide("beeperControl");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -136,11 +129,8 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 hide("noExternalPortOptions");
                 show("logToSDCard");
-                show("galileoHasSetting");
                 hide("tiltConfig");
-
-                //mosaic has discrete constellation settings for GPS and QZSS
-                hide("constellationsGpsQzss");
+                hide("beeperControl");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -148,15 +138,13 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
+                
                 hide("externalPortOptions");
                 show("noExternalPortOptions");
+                
                 hide("logToSDCard");
-                show("galileoHasSetting");
-                hide("baseConfig");
 
-                //UM980 has discrete constellation settings for GPS and QZSS
-                hide("constellationsGpsQzss");
-                hide("constellationsSbas"); //Not supported on UM980
+                hide("constellationSbas"); //Not supported on UM980
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -272,8 +260,10 @@ function parseIncoming(msg) {
             if (val > 0)
                 ge("peerMACs").innerHTML = "";
         }
-        else if (id.includes("peerMAC")) {
-            ge("peerMACs").innerHTML += val + "<br>";
+        else if (id.includes("espnowPeer_")) {
+            if (val[0] != "0" && val[1] != "0") {
+                ge("peerMACs").innerHTML += val + "<br>";
+            }
         }
         else if (id.includes("stationECEF")) {
             recordsECEF.push(val);
@@ -320,10 +310,10 @@ function parseIncoming(msg) {
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
         }
-        else if (id.includes("um980MessageRates")) {
-            // um980MessageRatesNMEA_GPDTM
-            // um980MessageRatesRTCMRover_RTCM1001
-            // um980MessageRatesRTCMBase_RTCM1001
+        else if (id.includes("messageRate")) {
+            // messageRateNMEA_GPDTM
+            // messageRateRTCMRover_RTCM1001
+            // messagRatesRTCMBase_RTCM1001
             var messageName = id;
             var messageRate = parseFloat(val);
             var messageNameLabel = "";
@@ -374,6 +364,18 @@ function parseIncoming(msg) {
         }
         else if (id.includes("fixedLong")) {
             fixedLong = val;
+        }
+        else if (id.includes("rebootMinutes")) {
+            if (val > 0) {
+                ge("rebootMinutes").value = val;
+                ge("enableAutoReset").checked = true;
+                show("enableAutomaticResetDetails");
+            }
+            else {
+                ge("rebootMinutes").value = 0;
+                ge("enableAutoReset").checked = false;
+                hide("enableAutomaticResetDetails");
+            }
         }
 
         //Check boxes / radio buttons
@@ -426,6 +428,8 @@ function parseIncoming(msg) {
         ge("antennaReferencePoint").dispatchEvent(new CustomEvent('change'));
         ge("enableLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
+        ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
+        ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -435,7 +439,7 @@ function parseIncoming(msg) {
         dhcpEthernet();
         updateLatLong();
         updateCorrectionsPriorities();
-        tiltCompensationBoxes();   
+        tiltCompensationBoxes();
     }
 }
 
@@ -522,11 +526,11 @@ function clearMsg(id, msg) {
 
 var errorCount = 0;
 
-function checkMessageValue(id) {
+function checkMessageValueUBX(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsg");
 }
 
-function checkMessageValueBase(id) {
+function checkMessageValueUBXBase(id) {
     checkElementValue(id, 0, 255, "Must be between 0 and 255", "collapseGNSSConfigMsgBase");
 }
 
@@ -594,33 +598,37 @@ function validateFields() {
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValue(messageName);
-    }
-    //match all ids starting with ubxMessageRateBase_
-    var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValueBase(messageName);
+    if (platformPrefix == "EVK" || platformPrefix == "Facet v2") {
+        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
+        for (let x = 0; x < ubxMessages.length; x++) {
+            var messageName = ubxMessages[x].id;
+            checkMessageValueUBX(messageName);
+        }
+        //match all ids starting with ubxMessageRateBase_
+        var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRateBase_]');
+        for (let x = 0; x < ubxMessages.length; x++) {
+            var messageName = ubxMessages[x].id;
+            checkMessageValueUBXBase(messageName);
+        }
     }
 
     //Check all UM980 message boxes
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValueUM980(messageName);
-    }
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValueUM980(messageName);
-    }
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
-        checkMessageValueUM980Base(messageName);
+    else if (platformPrefix == "Torch") {
+        var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueUM980(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueUM980(messageName);
+        }
+        var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkMessageValueUM980Base(messageName);
+        }
     }
 
     //Base Config
@@ -718,7 +726,7 @@ function validateFields() {
     checkElementString("wifiNetwork_2Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
-    if (ge("enableTcpClient").checked  == true) {
+    if (ge("enableTcpClient").checked == true) {
         checkElementString("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
     }
     if (ge("enableTcpServer").checked == true) {
@@ -747,6 +755,21 @@ function validateFields() {
     else {
         clearElement("ARPLoggingInterval", 10);
     }
+
+    if (ge("enableAutoFirmwareUpdate").checked == true) {
+        checkElementValue("autoFirmwareCheckMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
+    }
+    else {
+        clearElement("autoFirmwareCheckMinutes", 1440);
+    }
+
+    if (ge("enableAutoReset").checked == true) {
+        checkElementValue("rebootMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
+    }
+    else {
+        clearElement("rebootMinutes", 1440);
+    }
+
 
     //Ethernet
     if (platformPrefix == "EVK") {
@@ -841,9 +864,9 @@ function saveConfig() {
 function checkConstellations() {
     if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
         if ((ge("ubxConstellation_GPS").checked == false)
-        && (ge("ubxConstellation_Galileo").checked == false)
-        && (ge("ubxConstellation_BeiDou").checked == false)
-        && (ge("ubxConstellation_GLONASS").checked == false)) {
+            && (ge("ubxConstellation_Galileo").checked == false)
+            && (ge("ubxConstellation_BeiDou").checked == false)
+            && (ge("ubxConstellation_GLONASS").checked == false)) {
             ge("collapseGNSSConfig").classList.add('show');
             showError('gnssConstellations', "Please choose one constellation");
             errorCount++;
@@ -852,10 +875,10 @@ function checkConstellations() {
             clearError("gnssConstellations");
     }
     if (platformPrefix == "Torch") {
-        if ((ge("um980Constellations_GPS").checked == false)
-        && (ge("um980Constellations_Galileo").checked == false)
-        && (ge("um980Constellations_BeiDou").checked == false)
-        && (ge("um980Constellations_GLONASS").checked == false)) {
+        if ((ge("constellation_GPS").checked == false)
+            && (ge("constellation_Galileo").checked == false)
+            && (ge("constellation_BeiDou").checked == false)
+            && (ge("constellation_GLONASS").checked == false)) {
             ge("collapseGNSSConfig").classList.add('show');
             showError('gnssConstellations', "Please choose one constellation");
             errorCount++;
@@ -1031,16 +1054,16 @@ function zeroMessages() {
         var messageName = ubxMessages[x].id;
         ge(messageName).value = 0;
     }
-    //match um980MessageRatesNMEA_
-    ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesNMEA_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    //match messageRateNMEA_
+    var messages = document.querySelectorAll('input[id^=messageRateNMEA_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
-    //match um980MessageRatesRTCMRover_
-    ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMRover_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    //match messageRateRTCMRover_
+    messages = document.querySelectorAll('input[id^=messageRateRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
 }
@@ -1052,10 +1075,10 @@ function zeroBaseMessages() {
         var messageName = ubxMessages[x].id;
         ge(messageName).value = 0;
     }
-    //match um980MessageRatesRTCMBase_
-    var ubxMessages = document.querySelectorAll('input[id^=um980MessageRatesRTCMBase_]');
-    for (let x = 0; x < ubxMessages.length; x++) {
-        var messageName = ubxMessages[x].id;
+    //match messageRateRTCMBase_
+    var messages = document.querySelectorAll('input[id^=messageRateRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
 }
@@ -1070,11 +1093,11 @@ function resetToSurveyingDefaults() {
         ge("ubxMessageRate_UBX_NMEA_RMC").value = 1;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesNMEA_GPGGA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGST").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSV").value = 1.0;
-        ge("um980MessageRatesNMEA_GPRMC").value = 0.5;
+        ge("messageRateNMEA_GPGGA").value = 0.5;
+        ge("messageRateNMEA_GPGSA").value = 0.5;
+        ge("messageRateNMEA_GPGST").value = 0.5;
+        ge("messageRateNMEA_GPGSV").value = 1.0;
+        ge("messageRateNMEA_GPRMC").value = 0.5;
     }
 }
 function resetToLoggingDefaults() {
@@ -1090,16 +1113,16 @@ function resetToLoggingDefaults() {
         ge("ubxMessageRate_UBX_RXM_SFRBX").value = 1;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesNMEA_GPGGA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSA").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGST").value = 0.5;
-        ge("um980MessageRatesNMEA_GPGSV").value = 1.0;
-        ge("um980MessageRatesNMEA_GPRMC").value = 0.5;
+        ge("messageRateNMEA_GPGGA").value = 0.5;
+        ge("messageRateNMEA_GPGSA").value = 0.5;
+        ge("messageRateNMEA_GPGST").value = 0.5;
+        ge("messageRateNMEA_GPGSV").value = 1.0;
+        ge("messageRateNMEA_GPRMC").value = 0.5;
 
-        ge("um980MessageRatesRTCMRover_RTCM1019").value = 1.0;
-        ge("um980MessageRatesRTCMRover_RTCM1020").value = 1.0;
-        ge("um980MessageRatesRTCMRover_RTCM1042").value = 1.0;
-        ge("um980MessageRatesRTCMRover_RTCM1046").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1019").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1020").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1042").value = 1.0;
+        ge("messageRateRTCMRover_RTCM1046").value = 1.0;
     }
 }
 
@@ -1122,12 +1145,12 @@ function resetToRTCMDefaults() {
         ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesRTCMBase_RTCM1005").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1033").value = 10.0;
-        ge("um980MessageRatesRTCMBase_RTCM1074").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1084").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1094").value = 1.0;
-        ge("um980MessageRatesRTCMBase_RTCM1124").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1005").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1033").value = 10.0;
+        ge("messageRateRTCMBase_RTCM1074").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1084").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1094").value = 1.0;
+        ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
 }
 
@@ -1150,12 +1173,12 @@ function resetToRTCMLowBandwidth() {
         ge("ubxMessageRateBase_UBX_RTCM_4072_1").value = 0;
     }
     else if (platformPrefix == "Torch") {
-        ge("um980MessageRatesRTCMBase_RTCM1005").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1033").value = 10.0;
-        ge("um980MessageRatesRTCMBase_RTCM1074").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1084").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1094").value = 2.0;
-        ge("um980MessageRatesRTCMBase_RTCM1124").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1005").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1033").value = 10.0;
+        ge("messageRateRTCMBase_RTCM1074").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1084").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1094").value = 2.0;
+        ge("messageRateRTCMBase_RTCM1124").value = 2.0;
     }
 }
 
@@ -1284,7 +1307,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 ge("antennaReferencePoint").value = 61.4;
             }
             else if (platformPrefix == "Torch") {
-                ge("antennaReferencePoint").value = 102.0;
+                ge("antennaReferencePoint").value = 116.2;
             }
             else {
                 ge("antennaReferencePoint").value = 0.0;
@@ -1385,6 +1408,24 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             hide("enableARPLoggingDetails");
+        }
+    });
+
+    ge("enableAutoFirmwareUpdate").addEventListener("change", function () {
+        if (ge("enableAutoFirmwareUpdate").checked == true) {
+            show("enableAutomaticFirmwareUpdateDetails");
+        }
+        else {
+            hide("enableAutomaticFirmwareUpdateDetails");
+        }
+    });
+
+    ge("enableAutoReset").addEventListener("change", function () {
+        if (ge("enableAutoReset").checked == true) {
+            show("enableAutomaticResetDetails");
+        }
+        else {
+            hide("enableAutomaticResetDetails");
         }
     });
 

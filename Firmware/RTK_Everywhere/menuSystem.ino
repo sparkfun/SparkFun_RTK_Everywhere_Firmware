@@ -757,25 +757,24 @@ void menuDebugSoftware()
         systemPrint("31) Print duplicate states: ");
         systemPrintf("%s\r\n", settings.enablePrintDuplicateStates ? "Enabled" : "Disabled");
 
-        systemPrint("32) Reboot RTK after uptime reaches: ");
-        if (settings.rebootSeconds > 4294967)
+        systemPrint("32) Automatic device reboot in minutes: ");
+        if (settings.rebootMinutes > 4294967)
             systemPrintln("Disabled");
         else
         {
             int days;
             int hours;
             int minutes;
-            int seconds;
 
-            seconds = settings.rebootSeconds;
-            days = seconds / SECONDS_IN_A_DAY;
-            seconds -= days * SECONDS_IN_A_DAY;
-            hours = seconds / SECONDS_IN_AN_HOUR;
-            seconds -= hours * SECONDS_IN_AN_HOUR;
-            minutes = seconds / SECONDS_IN_A_MINUTE;
-            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            const int minutesInADay = 60 * 24;
 
-            systemPrintf("%d (%d days %d:%02d:%02d)\r\n", settings.rebootSeconds, days, hours, minutes, seconds);
+            minutes = settings.rebootMinutes;
+            days = minutes / minutesInADay;
+            minutes -= days * minutesInADay;
+            hours = minutes / minutesInADay;
+            minutes -= hours * minutesInADay;
+
+            systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
         }
 
         systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
@@ -825,13 +824,13 @@ void menuDebugSoftware()
             settings.enablePrintDuplicateStates ^= 1;
         else if (incoming == 32)
         {
-            systemPrint("Enter uptime seconds before reboot, Disabled = 0, Reboot range (30 - 4294967): ");
-            int rebootSeconds = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((rebootSeconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootSeconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
+            int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (rebootSeconds < 30 || rebootSeconds > 4294967) // Disable the reboot
+                if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
                 {
-                    settings.rebootSeconds = (uint32_t)-1;
+                    settings.rebootMinutes = (uint32_t)-1;
                     systemPrintln("Reset is disabled");
                 }
                 else
@@ -839,20 +838,19 @@ void menuDebugSoftware()
                     int days;
                     int hours;
                     int minutes;
-                    int seconds;
+
+                    const int minutesInADay = 60 * 24;
 
                     // Set the reboot time
-                    settings.rebootSeconds = rebootSeconds;
+                    settings.rebootMinutes = rebootMinutes;
 
-                    seconds = settings.rebootSeconds;
-                    days = seconds / SECONDS_IN_A_DAY;
-                    seconds -= days * SECONDS_IN_A_DAY;
-                    hours = seconds / SECONDS_IN_AN_HOUR;
-                    seconds -= hours * SECONDS_IN_AN_HOUR;
-                    minutes = seconds / SECONDS_IN_A_MINUTE;
-                    seconds -= minutes * SECONDS_IN_A_MINUTE;
+                    minutes = settings.rebootMinutes;
+                    days = minutes / minutesInADay;
+                    minutes -= days * minutesInADay;
+                    hours = minutes / minutesInADay;
+                    minutes -= hours * minutesInADay;
 
-                    systemPrintf("Reboot after uptime reaches %d days %d:%02d:%02d\r\n", days, hours, minutes, seconds);
+                    systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
                 }
             }
         }

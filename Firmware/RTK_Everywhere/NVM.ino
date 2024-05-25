@@ -6,44 +6,38 @@
     In this file NVM.ino
     Records all settings to the selected file (LFS or SD) as setting=value\r\n
     Uses standard settingsFile->printf to do the printing / writing
-    Settings Refactor: Done
 
   parseLine();
     In this file NVM.ino
     Splits a line from a settings file (setting=value\r\n) into settingName plus string / double value
     Then updates settings using those
     Called by loadSystemSettingsFromFileSD and loadSystemSettingsFromFileLFS
-    Settings Refactor: Done
     Note: there is a _lot_ of commonality between this and updateSettingWithValue. It should be
           possible to update parseLine so it calls updateSettingWithValue to do the actual updating.
 
   createSettingsString();
     In menuCommands.ino
-    Generates a CSV string of all settings and their values - if they are inSettingsString
+    Generates a CSV string of all settings and their values - if they are inWebConfig
     Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile),
     Calls the stringRecord methods - also in menuCommands.ino
-    Settings Refactor: Done
     Note: there is a _lot_ of commonality between this and recordSystemSettingsToFile. It may be
           possible to share code between the two.
 
   updateSettingWithValue();
-    In menuCommnds.ino
+    In menuCommands.ino
     Updates the selected settings using a text value
     Called by Command SET
     Also called by parseIncomingSettings (HTML/JS Config)
-    Settings Refactor: Done + Tested (Command)
 
   getSettingValue();
     In menuCommands.ino
     Returns the value of the selected setting as text in response to Command GET
     Calls the writeToString methods - also in menuCommands.ino
-    Settings Refactor: Done + Tested
 
   printAvailableSettings();
     In menuCommands.ino
     Prints all available settings and their types as CSV in response to Command LIST
     - if they are inCommands
-    Settings Refactor: Done + Tested
 
   form.h also needs to be updated to include a space for user input. This is best
   edited in the index.html and main.js files.

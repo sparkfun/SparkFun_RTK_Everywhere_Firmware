@@ -870,7 +870,7 @@ void createMessageListBase(String &returnText)
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
         {
             if (messageSupported(firstRTCMRecord + messageNumber) == true)
-                returnText += "MessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
+                returnText += "messageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
                               "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
         }
     }
@@ -879,7 +879,7 @@ void createMessageListBase(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "MessageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+            returnText += "messageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
                           String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }
