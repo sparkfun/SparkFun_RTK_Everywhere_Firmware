@@ -1500,7 +1500,7 @@ void updatePeriodicDisplay()
         periodicDisplay = settings.periodicDisplay;
 
         // Reboot the system after a specified timeout
-        if (((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes) && (!inMainMenu))
+        if ((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes)
         {
             systemPrintln("Automatic system reset");
             delay(50); // Allow print to complete
