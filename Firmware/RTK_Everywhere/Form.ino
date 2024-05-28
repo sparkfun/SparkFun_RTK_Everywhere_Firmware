@@ -723,7 +723,7 @@ bool parseIncomingSettings()
 
         // log_d("settingName: %s value: %s", settingName, valueStr);
 
-        updateSettingWithValue(settingName, valueStr);
+        updateSettingWithValue(false, settingName, valueStr);
 
         // Avoid infinite loop if response is malformed
         counter++;

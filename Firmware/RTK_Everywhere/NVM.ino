@@ -876,7 +876,7 @@ bool parseLine(char *str)
         double settingValue;
 
         // Loop through the valid command entries
-        i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+        i = commandLookupSettingName(false, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
         // Determine if settingName is in the command table
         if (i >= 0)
