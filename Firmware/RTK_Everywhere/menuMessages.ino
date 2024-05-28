@@ -207,7 +207,7 @@ void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
         {
             startOfBlock = 0;
             endOfBlock = MAX_UBX_MSG_RTCM;
-            rtcmOffset = zedGetMessageNumberByName("UBX_RTCM_1005");
+            rtcmOffset = zedGetMessageNumberByName("RTCM_1005");
         }
         else
             zedSetMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
@@ -621,7 +621,7 @@ void checkGNSSArrayDefaults()
             defaultsApplied = true;
 
             // Reset Base rates to defaults
-            int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
+            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
             for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
@@ -698,13 +698,13 @@ void setLoggingType()
     int messageCount = gnssGetActiveMessageCount();
     if (messageCount == 5 || messageCount == 7)
     {
-        if (zedGetMessageRateByName("UBX_NMEA_GGA") > 0 && zedGetMessageRateByName("UBX_NMEA_GSA") > 0 &&
-            zedGetMessageRateByName("UBX_NMEA_GST") > 0 && zedGetMessageRateByName("UBX_NMEA_GSV") > 0 &&
-            zedGetMessageRateByName("UBX_NMEA_RMC") > 0)
+        if (zedGetMessageRateByName("NMEA_GGA") > 0 && zedGetMessageRateByName("NMEA_GSA") > 0 &&
+            zedGetMessageRateByName("NMEA_GST") > 0 && zedGetMessageRateByName("NMEA_GSV") > 0 &&
+            zedGetMessageRateByName("NMEA_RMC") > 0)
         {
             loggingType = LOGGING_STANDARD;
 
-            if (zedGetMessageRateByName("UBX_RXM_RAWX") > 0 && zedGetMessageRateByName("UBX_RXM_SFRBX") > 0)
+            if (zedGetMessageRateByName("RXM_RAWX") > 0 && zedGetMessageRateByName("RXM_SFRBX") > 0)
                 loggingType = LOGGING_PPP;
         }
     }
@@ -721,23 +721,23 @@ void setLogTestFrequencyMessages(int rate, int messages)
     setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
     if (messages == 5)
     {
-        zedSetMessageRateByName("UBX_NMEA_GGA", 1);
-        zedSetMessageRateByName("UBX_NMEA_GSA", 1);
-        zedSetMessageRateByName("UBX_NMEA_GST", 1);
-        zedSetMessageRateByName("UBX_NMEA_GSV", rate); // One report per second
-        zedSetMessageRateByName("UBX_NMEA_RMC", 1);
+        zedSetMessageRateByName("NMEA_GGA", 1);
+        zedSetMessageRateByName("NMEA_GSA", 1);
+        zedSetMessageRateByName("NMEA_GST", 1);
+        zedSetMessageRateByName("NMEA_GSV", rate); // One report per second
+        zedSetMessageRateByName("NMEA_RMC", 1);
 
         log_d("Messages: Surveying Defaults (NMEAx5)");
     }
     else if (messages == 7)
     {
-        zedSetMessageRateByName("UBX_NMEA_GGA", 1);
-        zedSetMessageRateByName("UBX_NMEA_GSA", 1);
-        zedSetMessageRateByName("UBX_NMEA_GST", 1);
-        zedSetMessageRateByName("UBX_NMEA_GSV", rate); // One report per second
-        zedSetMessageRateByName("UBX_NMEA_RMC", 1);
-        zedSetMessageRateByName("UBX_RXM_RAWX", 1);
-        zedSetMessageRateByName("UBX_RXM_SFRBX", 1);
+        zedSetMessageRateByName("NMEA_GGA", 1);
+        zedSetMessageRateByName("NMEA_GSA", 1);
+        zedSetMessageRateByName("NMEA_GST", 1);
+        zedSetMessageRateByName("NMEA_GSV", rate); // One report per second
+        zedSetMessageRateByName("NMEA_RMC", 1);
+        zedSetMessageRateByName("RXM_RAWX", 1);
+        zedSetMessageRateByName("RXM_SFRBX", 1);
 
         log_d("Messages: PPP NMEAx5+RXMx2");
     }

@@ -497,7 +497,7 @@ bool zedConfigureRover()
         // product - in Rover mode - we want to leave any RTCM messages enabled on SPI so they can be logged if desired.
 
         // Find first RTCM record in ubxMessage array
-        int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
         // Set RTCM messages to user's settings
         for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
@@ -600,7 +600,7 @@ bool zedConfigureBase()
         // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
 
         // Find first RTCM record in ubxMessage array
-        int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
         // ubxMessageRatesBase is an array of ~12 uint8_ts
         // ubxMessage is an array of ~80 messages
@@ -1046,7 +1046,7 @@ bool zedSetRate(double secondsBetweenSolutions)
     response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, measRate);
     response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, navRate);
 
-    int gsvRecordNumber = zedGetMessageNumberByName("UBX_NMEA_GSV");
+    int gsvRecordNumber = zedGetMessageNumberByName("NMEA_GSV");
 
     // If enabled, adjust GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
     if (settings.ubxMessageRates[gsvRecordNumber] > 0)
@@ -1057,7 +1057,7 @@ bool zedSetRate(double secondsBetweenSolutions)
 
         log_d("Adjusting GSV setting to %f", measurementFrequency);
 
-        zedSetMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // Update GSV setting in file
+        zedSetMessageRateByName("NMEA_GSV", measurementFrequency); // Update GSV setting in file
         response &= theGNSS->addCfgValset(ubxMessages[gsvRecordNumber].msgConfigKey,
                                           settings.ubxMessageRates[gsvRecordNumber]); // Update rate on module
     }
@@ -1583,36 +1583,36 @@ void zedMenuMessages()
         else if (incoming == 10)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
-            zedSetMessageRateByName("UBX_NMEA_GGA", 1);
-            zedSetMessageRateByName("UBX_NMEA_GSA", 1);
-            zedSetMessageRateByName("UBX_NMEA_GST", 1);
+            zedSetMessageRateByName("NMEA_GGA", 1);
+            zedSetMessageRateByName("NMEA_GSA", 1);
+            zedSetMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
             float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
-            zedSetMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
+            zedSetMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
 
-            zedSetMessageRateByName("UBX_NMEA_RMC", 1);
+            zedSetMessageRateByName("NMEA_RMC", 1);
             systemPrintln("Reset to Surveying Defaults (NMEAx5)");
         }
         else if (incoming == 11)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
-            zedSetMessageRateByName("UBX_NMEA_GGA", 1);
-            zedSetMessageRateByName("UBX_NMEA_GSA", 1);
-            zedSetMessageRateByName("UBX_NMEA_GST", 1);
+            zedSetMessageRateByName("NMEA_GGA", 1);
+            zedSetMessageRateByName("NMEA_GSA", 1);
+            zedSetMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
             float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
-            zedSetMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
+            zedSetMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
 
-            zedSetMessageRateByName("UBX_NMEA_RMC", 1);
+            zedSetMessageRateByName("NMEA_RMC", 1);
 
-            zedSetMessageRateByName("UBX_RXM_RAWX", 1);
-            zedSetMessageRateByName("UBX_RXM_SFRBX", 1);
+            zedSetMessageRateByName("RXM_RAWX", 1);
+            zedSetMessageRateByName("RXM_SFRBX", 1);
             systemPrintln("Reset to PPP Logging Defaults (NMEAx5 + RXMx2)");
         }
         else if (incoming == 12)
@@ -1648,41 +1648,41 @@ void zedMenuMessages()
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
 void zedBaseRtcmDefault()
 {
-    int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1005") - firstRTCMRecord] = 1; // 1105
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1074") - firstRTCMRecord] = 1; // 1074
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1077") - firstRTCMRecord] = 0; // 1077
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1084") - firstRTCMRecord] = 1; // 1084
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1087") - firstRTCMRecord] = 0; // 1087
+    int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1005") - firstRTCMRecord] = 1; // 1105
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1074") - firstRTCMRecord] = 1; // 1074
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1077") - firstRTCMRecord] = 0; // 1077
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1084") - firstRTCMRecord] = 1; // 1084
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1087") - firstRTCMRecord] = 0; // 1087
 
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1094") - firstRTCMRecord] = 1;  // 1094
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1097") - firstRTCMRecord] = 0;  // 1097
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1124") - firstRTCMRecord] = 1;  // 1124
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1127") - firstRTCMRecord] = 0;  // 1127
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1230") - firstRTCMRecord] = 10; // 1230
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1094") - firstRTCMRecord] = 1;  // 1094
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1097") - firstRTCMRecord] = 0;  // 1097
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1124") - firstRTCMRecord] = 1;  // 1124
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1127") - firstRTCMRecord] = 0;  // 1127
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1230") - firstRTCMRecord] = 10; // 1230
 
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
 }
 
 // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
 void zedBaseRtcmLowDataRate()
 {
-    int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1005") - firstRTCMRecord] = 10; // 1105 0.1Hz
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1074") - firstRTCMRecord] = 2;  // 1074 0.5Hz
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1077") - firstRTCMRecord] = 0;  // 1077
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1084") - firstRTCMRecord] = 2;  // 1084 0.5Hz
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1087") - firstRTCMRecord] = 0;  // 1087
+    int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1005") - firstRTCMRecord] = 10; // 1105 0.1Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1074") - firstRTCMRecord] = 2;  // 1074 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1077") - firstRTCMRecord] = 0;  // 1077
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1084") - firstRTCMRecord] = 2;  // 1084 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1087") - firstRTCMRecord] = 0;  // 1087
 
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1094") - firstRTCMRecord] = 2;  // 1094 0.5Hz
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1097") - firstRTCMRecord] = 0;  // 1097
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1124") - firstRTCMRecord] = 2;  // 1124 0.5Hz
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1127") - firstRTCMRecord] = 0;  // 1127
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_1230") - firstRTCMRecord] = 10; // 1230 0.1Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1094") - firstRTCMRecord] = 2;  // 1094 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1097") - firstRTCMRecord] = 0;  // 1097
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1124") - firstRTCMRecord] = 2;  // 1124 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1127") - firstRTCMRecord] = 0;  // 1127
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1230") - firstRTCMRecord] = 10; // 1230 0.1Hz
 
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
-    settings.ubxMessageRatesBase[zedGetMessageNumberByName("UBX_RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
 }
 
 char *zedGetRtcmDefaultString()
@@ -1752,7 +1752,7 @@ void zedSetMessageOffsets(const ubxMsg *localMessage, const char *messageType, i
     if (present.gnss_zedf9p)
     {
         char messageNamePiece[40];                                                   // UBX_RTCM
-        snprintf(messageNamePiece, sizeof(messageNamePiece), "UBX_%s", messageType); // Put UBX_ infront of type
+        snprintf(messageNamePiece, sizeof(messageNamePiece), "%s", messageType); // Put UBX_ infront of type
 
         // Find the first occurrence
         for (startOfBlock = 0; startOfBlock < MAX_UBX_MSG; startOfBlock++)
