@@ -369,7 +369,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tUbMsgRtb: {
             // Record message settings
 
-            int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
+            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
@@ -1041,7 +1041,7 @@ bool parseLine(char *str)
             }
             break;
             case tUbMsgRtb: {
-                int firstRTCMRecord = zedGetMessageNumberByName("UBX_RTCM_1005");
+                int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
                 for (int x = 0; x < qualifier; x++)
                 {
