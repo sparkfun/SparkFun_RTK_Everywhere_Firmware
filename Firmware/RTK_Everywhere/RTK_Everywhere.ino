@@ -1150,20 +1150,8 @@ void setup()
 
 void loop()
 {
-    static uint32_t lastPeriodicDisplay;
-
-    // Determine which items are periodically displayed
-    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
-    {
-        lastPeriodicDisplay = millis();
-        periodicDisplay = settings.periodicDisplay;
-
-        // Reboot the system after a specified timeout
-        if (((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes) && (!inMainMenu))
-            ESP.restart();
-    }
-    if (deadManWalking)
-        periodicDisplay = (PeriodicDisplay_t)-1;
+    DMW_c("periodicDisplay");
+    updatePeriodicDisplay();
 
     DMW_c("gnssUpdate");
     gnssUpdate();
@@ -1499,6 +1487,28 @@ void updateRadio()
         }
     }
 #endif // COMPILE_ESPNOW
+}
+
+void updatePeriodicDisplay()
+{
+    static uint32_t lastPeriodicDisplay;
+
+    // Determine which items are periodically displayed
+    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
+    {
+        lastPeriodicDisplay = millis();
+        periodicDisplay = settings.periodicDisplay;
+
+        // Reboot the system after a specified timeout
+        if (((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes) && (!inMainMenu))
+        {
+            systemPrintln("Automatic system reset");
+            delay(50); // Allow print to complete
+            ESP.restart();
+        }
+    }
+    if (deadManWalking)
+        periodicDisplay = (PeriodicDisplay_t)-1;
 }
 
 // Record who is holding the semaphore
