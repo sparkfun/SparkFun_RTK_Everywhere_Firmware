@@ -843,12 +843,12 @@ void createMessageList(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
         {
-            returnText += "um980MessageRatesNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
+            returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
                           String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
         }
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "um980MessageRatesRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+            returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
                           String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
         }
     }
@@ -879,7 +879,7 @@ void createMessageListBase(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "messageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+            returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
                           String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }

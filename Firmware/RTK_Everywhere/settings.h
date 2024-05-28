@@ -1187,7 +1187,7 @@ struct Settings
     bool printPartitionTable = false;
     bool printTaskStartStop = false;
     uint16_t psramMallocLevel = 40; // By default, push as much as possible to PSRAM. Needed to do secure WiFi (MQTT) + BT + PPL
-    uint32_t rebootMinutes = (uint32_t)-1; // Disabled, reboots after uptime reaches this number of minutes
+    uint32_t rebootMinutes = 0; // Disabled, reboots after uptime reaches this number of minutes
     int resetCount = 0;
 
     // Periodic Display

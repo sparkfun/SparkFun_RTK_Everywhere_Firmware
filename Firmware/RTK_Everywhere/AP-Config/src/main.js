@@ -760,14 +760,14 @@ function validateFields() {
         checkElementValue("autoFirmwareCheckMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
     }
     else {
-        clearElement("autoFirmwareCheckMinutes", 1440);
+        clearElement("autoFirmwareCheckMinutes", 0);
     }
 
     if (ge("enableAutoReset").checked == true) {
         checkElementValue("rebootMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
     }
     else {
-        clearElement("rebootMinutes", 1440);
+        clearElement("rebootMinutes", 0); //0 = disable
     }
 
 
