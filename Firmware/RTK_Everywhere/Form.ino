@@ -879,7 +879,7 @@ void createMessageListBase(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "messageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+            returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
                           String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }
