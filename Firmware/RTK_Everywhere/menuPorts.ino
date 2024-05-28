@@ -70,6 +70,8 @@ void menuPortsNoMux()
         else
             systemPrintln("Disabled");
 
+        systemPrintf("4) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -117,6 +119,8 @@ void menuPortsNoMux()
             settings.enableUART2UBXIn ^= 1;
             systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart");
         }
+        else if (incoming == 4)
+            settings.enableGnssToUsbSerial ^= 1;
 
         else if (incoming == 'x')
             break;
