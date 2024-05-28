@@ -137,7 +137,7 @@ void menuCommands()
             {
                 auto field = tokens[1];
 
-                SettingValueResponse response = getSettingValue(field, valueBuffer);
+                SettingValueResponse response = getSettingValue(false, field, valueBuffer);
 
                 if (response == SETTING_KNOWN)
                     commandSendValueResponse(tokens[0], field, valueBuffer); // Send structured response
@@ -158,7 +158,7 @@ void menuCommands()
                 auto field = tokens[1];
                 auto value = tokens[2];
 
-                SettingValueResponse response = updateSettingWithValue(field, value);
+                SettingValueResponse response = updateSettingWithValue(true, field, value);
                 if (response == SETTING_KNOWN)
                     commandSendValueOkResponse(tokens[0], field,
                                                value); // Just respond with the setting (not quotes needed)
@@ -437,7 +437,7 @@ void commandSplitName(const char *settingName, char *truncatedName, int truncate
 }
 
 // Lookup up setting name
-int commandLookupSettingName(const char *settingName, char *truncatedName, int truncatedNameLen, char *suffix,
+int commandLookupSettingName(bool inCommands, const char *settingName, char *truncatedName, int truncatedNameLen, char *suffix,
                              int suffixLen)
 {
     const char *command;
@@ -446,7 +446,8 @@ int commandLookupSettingName(const char *settingName, char *truncatedName, int t
     for (int i = 0; i < commandCount; i++)
     {
         // Verify that this command does not get split
-        if ((commandIndex[i] >= 0) && (!rtkSettingsEntries[commandIndex[i]].useSuffix))
+        if ((commandIndex[i] >= 0) && (!rtkSettingsEntries[commandIndex[i]].useSuffix)
+            && ((!inCommands) || (inCommands && rtkSettingsEntries[commandIndex[i]].inCommands)))
         {
             command = commandGetName(0, commandIndex[i]);
 
@@ -500,7 +501,7 @@ bool commandCheckForUnknownVariable(const char *settingName, const char **entry,
 }
 
 // Given a settingName, and string value, update a given setting
-SettingValueResponse updateSettingWithValue(const char *settingName, const char *settingValueStr)
+SettingValueResponse updateSettingWithValue(bool inCommands, const char *settingName, const char *settingValueStr)
 {
     int i;
     char *ptr;
@@ -523,7 +524,7 @@ SettingValueResponse updateSettingWithValue(const char *settingName, const char 
                                   // Generally char arrays but some others.
 
     // Loop through the valid command entries
-    i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+    i = commandLookupSettingName(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -1872,7 +1873,7 @@ void writeToString(char *settingValueStr, char *value)
 // Given a settingName, create a string with setting value
 // Used in conjunction with the command line interface
 // The order of variables matches the order found in settings.h
-SettingValueResponse getSettingValue(const char *settingName, char *settingValueStr)
+SettingValueResponse getSettingValue(bool inCommands, const char *settingName, char *settingValueStr)
 {
     int i;
     int qualifier;
@@ -1886,7 +1887,7 @@ SettingValueResponse getSettingValue(const char *settingName, char *settingValue
                                   // Generally char arrays but some others.
 
     // Loop through the valid command entries
-    i = commandLookupSettingName(settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
+    i = commandLookupSettingName(inCommands, settingName, truncatedName, sizeof(truncatedName), suffix, sizeof(suffix));
 
     // Determine if settingName is in the command table
     if (i >= 0)
@@ -2301,7 +2302,7 @@ SettingValueResponse getSettingValue(const char *settingName, char *settingValue
 
 // List available settings, their type in CSV, and value
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/190
-void commandList(int i)
+void commandList(bool inCommands, int i)
 {
     char settingName[100];
     char settingType[100];
@@ -2312,93 +2313,93 @@ void commandList(int i)
     default:
         break;
     case _bool: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "bool", settingValue);
     }
     break;
     case _int: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int", settingValue);
     }
     break;
     case _float: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "float", settingValue);
     }
     break;
     case _double: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "double", settingValue);
     }
     break;
     case _uint8_t: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint8_t", settingValue);
     }
     break;
     case _uint16_t: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint16_t", settingValue);
     }
     break;
     case _uint32_t: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint32_t", settingValue);
     }
     break;
     case _uint64_t: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "uint64_t", settingValue);
     }
     break;
     case _int8_t: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int8_t", settingValue);
     }
     break;
     case _int16_t: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "int16_t", settingValue);
     }
     break;
     case tMuxConn: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "muxConnectionType_e", settingValue);
     }
     break;
     case tSysState: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "SystemState", settingValue);
     }
     break;
     case tPulseEdg: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "pulseEdgeType_e", settingValue);
     }
     break;
     case tBtRadio: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "BluetoothRadioType_e", settingValue);
     }
     break;
     case tPerDisp: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "PeriodicDisplay_t", settingValue);
     }
     break;
     case tCoordInp: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "CoordinateInputType", settingValue);
     }
     break;
     case tCharArry: {
         snprintf(settingType, sizeof(settingType), "char[%d]", rtkSettingsEntries[i].qualifier);
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, settingType, settingValue);
     }
     break;
     case _IPString: {
-        getSettingValue(rtkSettingsEntries[i].name, settingValue);
+        getSettingValue(inCommands, rtkSettingsEntries[i].name, settingValue);
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
     }
     break;
@@ -2408,7 +2409,7 @@ void commandList(int i)
         {
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
         }
     }
@@ -2420,7 +2421,7 @@ void commandList(int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      settings.ubxConstellations[x].textName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "bool", settingValue);
         }
     }
@@ -2432,7 +2433,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2446,7 +2447,7 @@ void commandList(int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      ubxMessages[firstRTCMRecord + x].msgTextName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
         }
     }
@@ -2458,13 +2459,13 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].password));
             snprintf(settingName, sizeof(settingName), "%s%dPassword", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
 
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.wifiNetworks[0].ssid));
             snprintf(settingName, sizeof(settingName), "%s%dSSID", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2475,7 +2476,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterHost[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2485,7 +2486,7 @@ void commandList(int i)
         {
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint16_t", settingValue);
         }
     }
@@ -2496,7 +2497,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUser[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2507,7 +2508,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_CasterUserPW[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2518,7 +2519,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPoint[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2529,7 +2530,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.ntripServer_MountPointPW[x]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2541,7 +2542,7 @@ void commandList(int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      umMessagesNMEA[x].msgTextName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "float", settingValue);
         }
     }
@@ -2553,7 +2554,7 @@ void commandList(int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      umMessagesRTCM[x].msgTextName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "float", settingValue);
         }
     }
@@ -2565,7 +2566,7 @@ void commandList(int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      umMessagesRTCM[x].msgTextName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "float", settingValue);
         }
     }
@@ -2577,7 +2578,7 @@ void commandList(int i)
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      um980ConstellationCommands[x].textName);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
         }
     }
@@ -2588,7 +2589,7 @@ void commandList(int i)
         {
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionsSourceNames[x]);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "int", settingValue);
         }
     }
@@ -2599,7 +2600,7 @@ void commandList(int i)
             snprintf(settingType, sizeof(settingType), "char[%d]", sizeof(settings.regionalCorrectionTopics[0]));
             snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, r);
 
-            getSettingValue(settingName, settingValue);
+            getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
@@ -2632,41 +2633,23 @@ const char *commandGetName(int stringIndex, int rtkIndex)
     return "deviceId";
 }
 
-// Determine if the command is available on this platform
-bool commandAvailableOnPlatform(int i)
-{
-    do
-    {
-        // Determine if this command is supported by the command processor
-        if (rtkSettingsEntries[i].inCommands)
-        {
-            // Verify that the command is available on the platform
-            if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
-                break;
-            if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
-                break;
-            if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
-                break;
-            if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
-                break;
-        }
-        return false;
-    } while (0);
-    return true;
-}
-
 // Determine if the setting is available on this platform
 bool settingAvailableOnPlatform(int i)
 {
-    if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
-        return (true);
-    if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
-        return (true);
-    if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
-        return (true);
-    if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
-        return (true);
-    return false;
+    do
+    {
+        // Verify that the command is available on the platform
+        if ((productVariant == RTK_EVK) && rtkSettingsEntries[i].platEvk)
+            break;
+        if ((productVariant == RTK_FACET_V2) && rtkSettingsEntries[i].platFacetV2)
+            break;
+        if ((productVariant == RTK_FACET_MOSAIC) && rtkSettingsEntries[i].platFacetMosaic)
+            break;
+        if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
+            break;
+        return false;
+    } while (0);
+    return true;
 }
 
 // Allocate and fill the commandIndex table
@@ -2683,7 +2666,7 @@ bool commandIndexFill()
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
     {
-        if (commandAvailableOnPlatform(i))
+        if (settingAvailableOnPlatform(i))
             commandCount += 1;
     }
     commandCount += COMMAND_COUNT - 1;
@@ -2701,7 +2684,7 @@ bool commandIndexFill()
     // Initialize commandIndex with index values into rtkSettingsEntries
     commandCount = 0;
     for (i = 0; i < numRtkSettingsEntries; i++)
-        if (commandAvailableOnPlatform(i))
+        if (settingAvailableOnPlatform(i))
             commandIndex[commandCount++] = i;
 
     // Add the man-machine interface commands to the list
@@ -2741,7 +2724,11 @@ void printAvailableSettings()
     {
         // Display the command from rtkSettingsEntries
         if (commandIndex[i] >= 0)
-            commandList(commandIndex[i]);
+        {
+            // Only display setting supported by the command processor
+            if (rtkSettingsEntries[commandIndex[i]].inCommands)
+                commandList(false, commandIndex[i]);
+        }
 
         // Below are commands formed specifically for the Man-Machine-Interface
         // Display the profile name - used in Profiles
