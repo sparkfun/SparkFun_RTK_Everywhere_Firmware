@@ -758,7 +758,7 @@ void menuDebugSoftware()
         systemPrintf("%s\r\n", settings.enablePrintDuplicateStates ? "Enabled" : "Disabled");
 
         systemPrint("32) Automatic device reboot in minutes: ");
-        if (settings.rebootMinutes > 4294967)
+        if (settings.rebootMinutes == 0)
             systemPrintln("Disabled");
         else
         {
@@ -830,7 +830,7 @@ void menuDebugSoftware()
             {
                 if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
                 {
-                    settings.rebootMinutes = (uint32_t)-1;
+                    settings.rebootMinutes = 0;
                     systemPrintln("Reset is disabled");
                 }
                 else
