@@ -436,7 +436,7 @@ void commandSplitName(const char *settingName, char *truncatedName, int truncate
     }
 }
 
-// Lookup up setting name
+// Using the settingName string, return the index of the setting within commandIndex 
 int commandLookupSettingName(const char *settingName, char *truncatedName, int truncatedNameLen, char *suffix,
                              int suffixLen)
 {
@@ -1163,6 +1163,15 @@ SettingValueResponse updateSettingWithValue(const char *settingName, const char 
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
         knownSetting = commandCheckForUnknownVariable(settingName, table, tableEntries);
+    }
+
+    // If we've received a setting update for a setting that is not valid to this platform,
+    // allow it, but throw a warning.
+    // This is often caused by the Web Config page reporting all cells including
+    // those that are hidden because of platform limitations
+    if (knownSetting == true && settingAvailableOnPlatform(i) == false)
+    {
+        systemPrintf("Setting '%s' stored but not supported on this platform\r\n", settingName);
     }
 
     // Last catch
