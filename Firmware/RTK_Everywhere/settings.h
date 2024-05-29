@@ -1342,7 +1342,7 @@ struct Settings
     uint16_t httpPort = 80;
 
     // WiFi
-    bool debugWiFiConfig = false;
+    bool debugWebConfig = false;
     bool debugWifiState = false;
     bool enableCaptivePortal = true;
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
@@ -1836,7 +1836,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
 
     // WiFi
-    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugWiFiConfig, "debugWiFiConfig",  },
+    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugWebConfig, "debugWebConfig",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugWifiState, "debugWifiState",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },
@@ -1972,6 +1972,7 @@ struct struct_tasks
     bool handleGnssDataTaskStopRequest = false;
     bool sdSizeCheckTaskStopRequest = false;
     bool updatePplTaskStopRequest = false;
+    bool updateWebServerTaskStopRequest = false;
 } task;
 
 #ifdef COMPILE_WIFI
