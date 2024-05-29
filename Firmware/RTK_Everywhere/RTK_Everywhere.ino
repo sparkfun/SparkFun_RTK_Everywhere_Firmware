@@ -567,7 +567,6 @@ unsigned long lastDynamicDataUpdate;
 #include <DNSServer.h> // Needed for the captive portal
 #include <WebServer.h> // Port 80
 #include <esp_http_server.h> // Needed for web sockets only - on port 81
-#include <SD.h> // Needed for web config file download (streamFile)
 #include "form.h"
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
