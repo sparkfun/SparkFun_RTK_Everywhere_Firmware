@@ -36,7 +36,7 @@ public:
 	bool add(BTAdvertisedDeviceSet advertisedDevice, bool unique = true);
 	void clear();
 
-    std::map<String, BTAdvertisedDeviceSet> m_vectorAdvertisedDevices;
+    std::map<std::string, BTAdvertisedDeviceSet> m_vectorAdvertisedDevices;
 };
 
 #endif

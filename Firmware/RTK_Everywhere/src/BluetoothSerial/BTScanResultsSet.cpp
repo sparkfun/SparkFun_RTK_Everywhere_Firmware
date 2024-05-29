@@ -84,9 +84,9 @@ void BTScanResultsSet::clear() {
 }
 
 bool BTScanResultsSet::add(BTAdvertisedDeviceSet advertisedDevice, bool unique) {
-	String key = String(advertisedDevice.getAddress().toString().c_str(), advertisedDevice.getAddress().toString().length());
+	std::string key = std::string(advertisedDevice.getAddress().toString().c_str(), advertisedDevice.getAddress().toString().length());
 	if (!unique || m_vectorAdvertisedDevices.count(key) == 0) {
-		m_vectorAdvertisedDevices.insert(std::pair<String, BTAdvertisedDeviceSet>(key, advertisedDevice));
+		m_vectorAdvertisedDevices.insert(std::pair<std::string, BTAdvertisedDeviceSet>(key, advertisedDevice));
 		return true;
 	} else
 		return false;

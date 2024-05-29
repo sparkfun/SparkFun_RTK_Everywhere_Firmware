@@ -17,7 +17,7 @@ public:
 
     virtual BTAddress   getAddress();
     virtual uint32_t    getCOD() const;
-    virtual String getName() const;
+    virtual std::string getName() const;
     virtual int8_t      getRSSI() const;
 
 
@@ -25,7 +25,7 @@ public:
     virtual bool        haveName() const;
     virtual bool        haveRSSI() const;
 
-    virtual String toString();
+    virtual std::string toString();
 };
 
 class BTAdvertisedDeviceSet : public virtual BTAdvertisedDevice {
@@ -36,7 +36,7 @@ public:
 
     BTAddress   getAddress();
     uint32_t    getCOD() const;
-    String getName() const;
+    std::string getName() const;
     int8_t      getRSSI() const;
 
 
@@ -44,11 +44,11 @@ public:
     bool        haveName() const;
     bool        haveRSSI() const;
 
-    String toString();
+    std::string toString();
 
     void setAddress(BTAddress address);
     void setCOD(uint32_t cod);
-    void setName(String name);
+    void setName(std::string name);
     void setRSSI(int8_t rssi);
 
     bool m_haveCOD;
@@ -58,7 +58,7 @@ public:
 
     BTAddress   m_address = BTAddress((uint8_t*)"\0\0\0\0\0\0");
     uint32_t    m_cod;
-    String m_name;
+    std::string m_name;
     int8_t      m_rssi;
 };
 

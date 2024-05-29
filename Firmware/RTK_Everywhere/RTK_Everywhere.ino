@@ -69,11 +69,6 @@
 
 #define NTRIP_SERVER_MAX 4
 
-#include <Arduino.h>
-#include <stdlib.h>
-//#include <string.h>
-#include <string>
-
 #include <NetworkClient.h>
 #include <NetworkUdp.h>
 

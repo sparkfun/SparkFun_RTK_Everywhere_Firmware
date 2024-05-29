@@ -78,7 +78,7 @@ static esp_spp_sec_t _sec_mask;
 static esp_spp_role_t _role;
 // start connect on ESP_SPP_DISCOVERY_COMP_EVT or save entry for getChannels
 static bool _doConnect;
-static std::map <int, String> sdpRecords;
+static std::map <int, std::string> sdpRecords;
 
 static BTScanResultsSet scanResults;
 static BTAdvertisedDeviceCb advertisedDeviceCb = nullptr;
@@ -1162,7 +1162,7 @@ BluetoothSerial::operator bool() const
  * SDP scan address
  * esp_spp_start_discovery doesn't tell us the btAddress in the callback, so we have to wait until it's finished
  */
-std::map<int, String> BluetoothSerial::getChannels(const BTAddress &remoteAddress) {
+std::map<int, std::string> BluetoothSerial::getChannels(const BTAddress &remoteAddress) {
     if(xEventGroupGetBits(_bt_event_group) & BT_SDP_RUNNING) {
         log_e("getChannels failed - already running");
     }
