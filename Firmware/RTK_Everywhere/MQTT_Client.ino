@@ -315,7 +315,8 @@ void mqttClientReceiveMessage(int messageSize)
                     updateCorrectionsLastSeen(CORR_IP);
                     if (isHighestRegisteredCorrectionsSource(CORR_IP))
                     {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                            !inMainMenu)
                             systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
                         updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
@@ -325,8 +326,10 @@ void mqttClientReceiveMessage(int messageSize)
                     }
                     else
                     {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                            systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount, topic);
+                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                            !inMainMenu)
+                            systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
+                                         topic);
                     }
                 }
                 // Always push KEYS and MGA to the ZED
@@ -423,6 +426,10 @@ void mqttClientStop(bool shutdown)
     // Free the mqttClient resources
     if (mqttClient)
     {
+        // Disconnect from broker
+        if (mqttClient->connected() == true)
+            mqttClient->stop(); // Disconnects and stops client
+
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttClient");
 

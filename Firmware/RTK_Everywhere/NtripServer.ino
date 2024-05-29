@@ -690,8 +690,9 @@ void ntripServerUpdate(int serverIndex)
             if (millis() - ntripServer->timer > 10000)
             {
                 if (ntripServerConnectLimitReached(serverIndex))
-                    systemPrintf("Caster %d - %s failed to respond. Do you have your caster address and port correct?\r\n",
-                                 serverIndex, settings.ntripServer_CasterHost[serverIndex]);
+                    systemPrintf(
+                        "Caster %d - %s failed to respond. Do you have your caster address and port correct?\r\n",
+                        serverIndex, settings.ntripServer_CasterHost[serverIndex]);
             }
         }
         else
@@ -701,9 +702,11 @@ void ntripServerUpdate(int serverIndex)
             ntripServerResponse(serverIndex, response, sizeof(response));
 
             if (settings.debugNtripServerState)
-                systemPrintf("Server %d - %s Response: %s\r\n", serverIndex, settings.ntripServer_CasterHost[serverIndex], response);
+                systemPrintf("Server %d - %s Response: %s\r\n", serverIndex,
+                             settings.ntripServer_CasterHost[serverIndex], response);
             else
-                log_d("Server %d - %s Response: %s", serverIndex, settings.ntripServer_CasterHost[serverIndex], response);
+                log_d("Server %d - %s Response: %s", serverIndex, settings.ntripServer_CasterHost[serverIndex],
+                      response);
 
             // Look for various responses
             if (strstr(response, "200") != nullptr) //'200' found
@@ -777,13 +780,15 @@ void ntripServerUpdate(int serverIndex)
         else if (!ntripServer->networkClient->connected())
         {
             // Broken connection, retry the NTRIP connection
-            systemPrintf("Connection to NTRIP Caster %d - %s was lost\r\n", serverIndex, settings.ntripServer_CasterHost[serverIndex]);
+            systemPrintf("Connection to NTRIP Caster %d - %s was lost\r\n", serverIndex,
+                         settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);
         }
         else if ((millis() - ntripServer->timer) > (10 * 1000))
         {
             // GNSS stopped sending RTCM correction data
-            systemPrintf("NTRIP Server %d breaking connection to %s due to lack of RTCM data!\r\n", serverIndex, settings.ntripServer_CasterHost[serverIndex]);
+            systemPrintf("NTRIP Server %d breaking connection to %s due to lack of RTCM data!\r\n", serverIndex,
+                         settings.ntripServer_CasterHost[serverIndex]);
             ntripServerRestart(serverIndex);
         }
         else
@@ -801,7 +806,8 @@ void ntripServerUpdate(int serverIndex)
                 ntripServer->connectionAttempts = 0;
                 ntripServer->connectionAttemptTimeout = 0;
                 if (settings.debugNtripServerState)
-                    systemPrintf("NTRIP Server %d - %s resetting connection attempt counter and timeout\r\n", serverIndex, settings.ntripServer_CasterHost[serverIndex]);
+                    systemPrintf("NTRIP Server %d - %s resetting connection attempt counter and timeout\r\n",
+                                 serverIndex, settings.ntripServer_CasterHost[serverIndex]);
             }
         }
         break;

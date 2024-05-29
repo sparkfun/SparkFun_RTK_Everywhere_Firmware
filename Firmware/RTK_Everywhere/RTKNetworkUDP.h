@@ -6,13 +6,11 @@ extern uint8_t networkGetType(uint8_t user);
 class RTKNetworkUDP : public UDP
 {
   protected:
-
-    UDP * _udp; // Ethernet or WiFi udp
+    UDP *_udp; // Ethernet or WiFi udp
     bool _friendClass;
     uint8_t _networkType;
 
   public:
-
     //------------------------------
     // Create the network client
     //------------------------------
@@ -34,9 +32,9 @@ class RTKNetworkUDP : public UDP
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
             _udp = new WiFiUDP;
-#else   // COMPILE_WIFI
-            _udp = nullptr;
-#endif  // COMPILE_WIFI
+#else  // COMPILE_WIFI
+        _udp = nullptr;
+#endif // COMPILE_WIFI
     };
 
     //------------------------------
@@ -53,7 +51,6 @@ class RTKNetworkUDP : public UDP
         }
     };
 
-    
     //------------------------------
     // Determine if the network client was allocated
     //------------------------------
@@ -110,7 +107,7 @@ class RTKNetworkUDP : public UDP
     // Read available data
     //------------------------------
 
-    int read(unsigned char* buf, size_t length)
+    int read(unsigned char *buf, size_t length)
     {
         if (_udp)
             return _udp->read(buf, length);
@@ -121,7 +118,7 @@ class RTKNetworkUDP : public UDP
     // Read available data
     //------------------------------
 
-    int read(char* buf, size_t length)
+    int read(char *buf, size_t length)
     {
         if (_udp)
             return _udp->read(buf, length);
@@ -186,7 +183,7 @@ class RTKNetworkUDP : public UDP
     // Begin a UDP packet
     //------------------------------
 
-    int beginPacket(const char* host, uint16_t port)
+    int beginPacket(const char *host, uint16_t port)
     {
         if (_udp)
             return _udp->beginPacket(host, port);
@@ -228,7 +225,7 @@ class RTKNetworkUDP : public UDP
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
             return ((WiFiUDP *)_udp)->remoteIP();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         return IPAddress((uint32_t)0);
     }
 
@@ -245,12 +242,11 @@ class RTKNetworkUDP : public UDP
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
             return ((WiFiUDP *)_udp)->remotePort();
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
         return 0;
     }
 
   protected:
-
     //------------------------------
     // Declare the friend classes
     //------------------------------
@@ -279,13 +275,12 @@ class NetworkEthernetUdp : public RTKNetworkUDP
         this->~RTKNetworkUDP();
     }
 };
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
 #ifdef  COMPILE_WIFI
 class NetworkWiFiUdp : public RTKNetworkUDP
 {
   private:
-
     WiFiUDP _udp;
 
   public:
@@ -301,6 +296,6 @@ class NetworkWiFiUdp : public RTKNetworkUDP
         this->~RTKNetworkUDP();
     }
 };
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
-#endif  // __NETWORK_CLIENT_H__
+#endif // __NETWORK_CLIENT_H__

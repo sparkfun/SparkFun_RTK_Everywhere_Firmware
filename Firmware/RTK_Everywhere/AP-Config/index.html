@@ -140,6 +140,7 @@
                 </button>
             </div>
             <div class="collapse mb-2" id="collapseProfileConfig">
+                <!-- <div class="collapse show mb-2" id="collapseProfileConfig"> -->
                 <div class="card card-body">
 
                     <div class="form-group mt-2">
@@ -310,40 +311,47 @@
                     <div class="form-group mt-3" id="constellationCheckBoxes">
                         <label for="gnssConstellations">Constellations:</label>
                         <span class="tt" data-bs-placement="right"
-                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: GPS, SBAS, GLONASS, BeiDou, and Galileo.">
+                            title="The receiver is capable of concurrently receiving signals from multiple satellites across multiple constellations. Some applications dictate the need to turn off certain constellation reception. Deselecting a given constellation will cause the receiver to ignore those signals preventing them from being used during position calculations. Default: All enabled.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
-                        <div id="gnssConstellations">
+                        <div id="constellationBeiDou" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_BeiDou">BeiDou</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_BeiDou">
+                        </div>
+                        <div id="constellationGalileo" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_Galileo">Galileo</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_Galileo">
+                        </div>
+                        <div id="constellationGlonass" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_GLONASS">GLONASS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_GLONASS">
+                        </div>
+                        <div id="constellationGps" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_GPS">GPS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_GPS">
+                        </div>
+                        <div id="constellationQzss" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_QZSS">QZSS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_QZSS">
+                        </div>
+                        <div id="constellationSbas" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_SBAS">SBAS</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_SBAS">
                         </div>
                         <div class="form-group row">
                             <p id="gnssConstellationsError" class="inlineError"></p>
                         </div>
                     </div>
 
-                    <div id="tiltCompensationSettings">
+                    <div id="galileoHasSetting">
                         <div class="form-check mt-3">
-                                <label class="form-check-label" for="enableTiltCompensation">Enable Tilt Compensation</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation" onClick="tiltCompensationBoxes()">
+                            <label class="form-check-label" for="enableGalileoHas">Enable Galileo HAS/E6
+                                Corrections</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableGalileoHas">
                             <span class="tt" data-bs-placement="right"
-                                title="Use tilt compensation. Default: Enabled.">
+                                title="Use High Accuracy Service corrections provided over the Galileo constellation. Default: Enabled.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
-                        </div>
-
-                        <div id="poleLengthConfig">
-                            <div class="form-group row">
-                                <label for="tiltPoleLength"
-                                    class="col-sm-4 col-6 col-form-label">Pole Length (m):
-                                    <span class="tt" data-bs-placement="right"
-                                        title="Pole length for tilt compensation. Default: 1.8m">
-                                        <span class="icon-info-circle text-primary ms-2"></span>
-                                    </span>
-                                </label>
-                                <div class="col-sm-4 col-6">
-                                    <input type="number" class="form-control" id="tiltPoleLength">
-                                    <p id="tiltPoleLengthError" class="inlineError"></p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -358,8 +366,7 @@
 
                     <div id="ntripClientConfig" class="collapse mb-2">
                         <div class="form-group row">
-                            <label for="ntripClientCasterHost"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                            <label for="ntripClientCasterHost" class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Host:</label>
                             <div class="col-sm-8 col-6">
                                 <input type="text" class="form-control" id="ntripClientCasterHost">
@@ -368,8 +375,7 @@
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClientCasterPort"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                            <label for="ntripClientCasterPort" class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 Port:</label>
                             <div class="col-sm-8 col-6">
                                 <input type="number" class="form-control" id="ntripClientCasterPort">
@@ -378,8 +384,7 @@
                         </div>
 
                         <div class="form-group row">
-                            <label for="ntripClientCasterUser"
-                                class="box-margin20 col-sm-3 col-5 col-form-label">Caster
+                            <label for="ntripClientCasterUser" class="box-margin20 col-sm-3 col-5 col-form-label">Caster
                                 User:</label>
                             <div class="col-sm-8 col-6">
                                 <input type="text" class="form-control" id="ntripClientCasterUser">
@@ -713,7 +718,7 @@
                                 <label for="antennaReferencePoint" class="box-margin40 col-5 col-form-label">Antenna
                                     Reference Point(mm):
                                     <span class="tt" data-bs-placement="right"
-                                        title="ARP is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common ARPs: Facet L-Band (69mm) Torch(102mm)">
+                                        title="ARP is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common ARPs: Facet L-Band (69mm) Torch(117mm)">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
@@ -803,16 +808,16 @@
                     <div id="ntripServerConfig" class="collapse mb-2">
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig0"
-                                aria-expanded="false" aria-controls="ntripServerConfig0">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig0" aria-expanded="false"
+                                aria-controls="ntripServerConfig0">
                                 NTRIP Server 1 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig0">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_0"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -876,16 +881,16 @@
                         </div>
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig1"
-                                aria-expanded="false" aria-controls="ntripServerConfig1">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig1" aria-expanded="false"
+                                aria-controls="ntripServerConfig1">
                                 NTRIP Server 2 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig1">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_1"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -949,16 +954,16 @@
                         </div>
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig2"
-                                aria-expanded="false" aria-controls="ntripServerConfig2">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig2" aria-expanded="false"
+                                aria-controls="ntripServerConfig2">
                                 NTRIP Server 3 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig2">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_2"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -1022,16 +1027,16 @@
                         </div>
 
                         <div>
-                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn"
-                                type="button" data-toggle="collapse" data-target="#ntripServerConfig3"
-                                aria-expanded="false" aria-controls="ntripServerConfig3">
+                            <button class="btn btn-md btn-outline-primary mt-3 toggle-btn" type="button"
+                                data-toggle="collapse" data-target="#ntripServerConfig3" aria-expanded="false"
+                                aria-controls="ntripServerConfig3">
                                 NTRIP Server 4 <i class="caret-icon bi icon-caret-down"></i>
                             </button>
                         </div>
-    
+
                         <div class="collapse" id="ntripServerConfig3">
                             <div class="card card-body" style="margin-top:5px;">
-    
+
                                 <div class="form-group row">
                                     <label for="ntripServerCasterHost_3"
                                         class="box-margin20 col-sm-3 col-5 col-form-label">Caster
@@ -1112,10 +1117,12 @@
                         <div class="card card-body" style="margin-top:5px;">
 
                             <div style="margin-bottom:5px;">
-                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to Defaults</button>
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMDefaults()">Reset to
+                                    Defaults</button>
                             </div>
                             <div style="margin-bottom:5px;">
-                                <button type="button" class="btn btn-primary" onClick="resetToRTCMLowBandwidth()">Reset to Low Bandwidth Link</button>
+                                <button type="button" class="btn btn-primary" onClick="resetToRTCMLowBandwidth()">Reset
+                                    to Low Bandwidth Link</button>
                             </div>
 
                             <div id="messageListBase">
@@ -1130,7 +1137,7 @@
             <div class="d-grid gap-2">
                 <button class="btn btn-primary mt-3 toggle-btn" id="ppConfig" type="button" data-toggle="collapse"
                     data-target="#collapsePPConfig" aria-expanded="false" aria-controls="collapsePPConfig"
-                    style="display:none">
+                    style="display">
                     PointPerfect Configuration <i id="pointPerfectCaret" class="caret-icon bi icon-caret-down"></i>
                 </button>
             </div>
@@ -1143,7 +1150,8 @@
                     </div>
 
                     <div class="form-check mt-3">
-                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect Corrections </label>
+                        <label class="form-check-label" for="enablePointPerfectCorrections">Enable PointPerfect
+                            Corrections </label>
                         <input class="form-check-input" type="checkbox" value="" id="enablePointPerfectCorrections">
                         <span class="tt" data-bs-placement="right"
                             title="Use L-Band / IP PointPerfect corrections when available. Default: Disabled">
@@ -1202,125 +1210,151 @@
                 </button>
             </div>
             <div class="collapse" id="collapsePortsConfig">
-                <div class="card card-body">
 
-                    <div id="radioPortChannelDropdown" class="mb-2">
-                        <label for="radioPortBaud">Radio Port Baud Rate: </label>
-                        <select name="radioPortBaud" id="radioPortBaud" class="form-dropdown">
-                            <option value="4800">4800</option>
-                            <option value="9600">9600</option>
-                            <option value="19200">19200</option>
-                            <option value="38400">38400</option>
-                            <option value="57600">57600</option>
-                            <option value="115200">115200</option>
-                            <option value="230400">230400</option>
-                            <option value="460800">460800</option>
-                            <option value="921600">921600</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                        <br>
-                    </div>
-
-                    <div id="dataPortChannelDropdown" class="mb-2">
-                        <label for="dataPortChannel">Mux Channel: </label>
-                        <select name="dataPortChannel" id="dataPortChannel" class="form-dropdown">
-                            <option value="0">NMEA</option>
-                            <option value="1">PPS/Event Trigger</option>
-                            <option value="2" id="muxChannel2">I2C</option>
-                            <option value="3">ADC/DAC</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="The DATA port can be configured for different applications. NMEA is used for serial TX/RX of location information. PPS/Trigger is used for pulse per second output and 5ns accurate trigger inputs. I2C is used as an additional SDA/SCL data channel. Wheel/Dir Tick is used for automotive interfacing. ADC/DAC is used for custom firmware applications. Default: NMEA">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="dataPortBaudDropdown" class="mb-2">
-                        <label for="dataPortBaud">Data Port Baud Rate: </label>
-                        <select name="dataPortBaud" id="dataPortBaud" class="form-dropdown">
-                            <option value="4800">4800</option>
-                            <option value="9600">9600</option>
-                            <option value="19200">19200</option>
-                            <option value="38400">38400</option>
-                            <option value="57600">57600</option>
-                            <option value="115200">115200</option>
-                            <option value="230400">230400</option>
-                            <option value="460800">460800</option>
-                            <option value="921600">921600</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="In NMEA mode, the baud rate for the DATA port can be changed to match a user's application. Default: 460800bps">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="externalPulseConfig" class="collapse mb-2">
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableExternalPulse">Enable External Pulse</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableExternalPulse">
+                    <!-- For device with an external DATA port, show full option set -->
+                    <div id="externalPortOptions">
+                        <div id="radioPortChannelDropdown" class="mb-2">
+                            <label for="radioPortBaud">Radio Port Baud Rate: </label>
+                            <select name="radioPortBaud" id="radioPortBaud" class="form-dropdown">
+                                <option value="4800">4800</option>
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="57600">57600</option>
+                                <option value="115200">115200</option>
+                                <option value="230400">230400</option>
+                                <option value="460800">460800</option>
+                                <option value="921600">921600</option>
+                            </select>
                             <span class="tt" data-bs-placement="right"
-                                title="Generate a Pulse Per Second or a time base much faster, with extreme accuracy. Requires GNSS reception. Default: Enabled with 100,000us pulse length and 900,000us time between pulses.">
+                                title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                            <br>
+                        </div>
+
+                        <div id="dataPortChannelDropdown" class="mb-2">
+                            <label for="dataPortChannel">Mux Channel: </label>
+                            <select name="dataPortChannel" id="dataPortChannel" class="form-dropdown">
+                                <option value="0">NMEA</option>
+                                <option value="1">PPS/Event Trigger</option>
+                                <option value="2" id="muxChannel2">I2C</option>
+                                <option value="3">ADC/DAC</option>
+                            </select>
+                            <span class="tt" data-bs-placement="right"
+                                title="The DATA port can be configured for different applications. NMEA is used for serial TX/RX of location information. PPS/Trigger is used for pulse per second output and 5ns accurate trigger inputs. I2C is used as an additional SDA/SCL data channel. Wheel/Dir Tick is used for automotive interfacing. ADC/DAC is used for custom firmware applications. Default: NMEA">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
 
-                        <div id="externalPulseConfigDetails" class="collapse mb-2">
-                            <div class="form-group row">
-                                <label for="externalPulseTimeBetweenPulse"
-                                    class="box-margin20 col-sm-3 col-4 col-form-label">Time between pulses (µs):
-                                </label>
-                                <div class="col-sm-8 col-7">
-                                    <input type="number" class="form-control" id="externalPulseTimeBetweenPulse">
-                                    <p id="externalPulseTimeBetweenPulseError" class="inlineError"></p>
-                                </div>
-                            </div>
+                        <div id="dataPortBaudDropdown" class="mb-2">
+                            <label for="dataPortBaud">Data Port Baud Rate: </label>
+                            <select name="dataPortBaud" id="dataPortBaud" class="form-dropdown">
+                                <option value="4800">4800</option>
+                                <option value="9600">9600</option>
+                                <option value="19200">19200</option>
+                                <option value="38400">38400</option>
+                                <option value="57600">57600</option>
+                                <option value="115200">115200</option>
+                                <option value="230400">230400</option>
+                                <option value="460800">460800</option>
+                                <option value="921600">921600</option>
+                            </select>
+                            <span class="tt" data-bs-placement="right"
+                                title="In NMEA mode, the baud rate for the DATA port can be changed to match a user's application. Default: 460800bps">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
 
-                            <div class="form-group row">
-                                <label for="externalPulseLength"
-                                    class="box-margin20 col-sm-3 col-4 col-form-label">Pulse length (µs):</label>
-                                <div class="col-sm-8 col-7">
-                                    <input type="number" class="form-control" id="externalPulseLength">
-                                    <p id="externalPulseLengthError" class="inlineError"></p>
-                                </div>
-                            </div>
-
-                            <div id="pulseEdgeDropdown" class="mb-2">
-                                <label for="externalPulsePolarity"
-                                    class="box-margin20 col-sm-3 col-4 col-form-label">Pulse Polarity: </label>
-                                <select name="externalPulsePolarity" id="externalPulsePolarity" class="form-dropdown">
-                                    <option value="0">Rising Edge</option>
-                                    <option value="1">Falling Edge</option>
-                                </select>
+                        <div id="externalPulseConfig" class="collapse mb-2">
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableExternalPulse">Enable External Pulse</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableExternalPulse">
                                 <span class="tt" data-bs-placement="right"
-                                    title="The pulse signal will be high when active (rising edge) or low when active (falling edge). Default: Rising Edge">
+                                    title="Generate a Pulse Per Second or a time base much faster, with extreme accuracy. Requires GNSS reception. Default: Enabled with 100,000us pulse length and 900,000us time between pulses.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="externalPulseConfigDetails" class="collapse mb-2">
+                                <div class="form-group row">
+                                    <label for="externalPulseTimeBetweenPulse"
+                                        class="box-margin20 col-sm-3 col-4 col-form-label">Time between pulses (µs):
+                                    </label>
+                                    <div class="col-sm-8 col-7">
+                                        <input type="number" class="form-control" id="externalPulseTimeBetweenPulse">
+                                        <p id="externalPulseTimeBetweenPulseError" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group row">
+                                    <label for="externalPulseLength"
+                                        class="box-margin20 col-sm-3 col-4 col-form-label">Pulse length (µs):</label>
+                                    <div class="col-sm-8 col-7">
+                                        <input type="number" class="form-control" id="externalPulseLength">
+                                        <p id="externalPulseLengthError" class="inlineError"></p>
+                                    </div>
+                                </div>
+
+                                <div id="pulseEdgeDropdown" class="mb-2">
+                                    <label for="externalPulsePolarity"
+                                        class="box-margin20 col-sm-3 col-4 col-form-label">Pulse Polarity: </label>
+                                    <select name="externalPulsePolarity" id="externalPulsePolarity"
+                                        class="form-dropdown">
+                                        <option value="0">Rising Edge</option>
+                                        <option value="1">Falling Edge</option>
+                                    </select>
+                                    <span class="tt" data-bs-placement="right"
+                                        title="The pulse signal will be high when active (rising edge) or low when active (falling edge). Default: Rising Edge">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableExternalHardwareEventLogging">Enable External
+                                    Event Logging</label>
+                                <input class="form-check-input" type="checkbox" value=""
+                                    id="enableExternalHardwareEventLogging">
+                                <span class="tt" data-bs-placement="right"
+                                    title="Log external pulses (events) with 30ns accuracy RMS. Useful for things like audio triangulation. See the Timemark section of the ZED-F9P Integration Manual for more information. Requires GNSS reception. Default: Disabled">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </div>
                         </div>
 
                         <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableExternalHardwareEventLogging">Enable External
-                                Event Logging</label>
-                            <input class="form-check-input" type="checkbox" value=""
-                                id="enableExternalHardwareEventLogging">
+                            <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
+                                GNSS UART2</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
                             <span class="tt" data-bs-placement="right"
-                                title="Log external pulses (events) with 30ns accuracy RMS. Useful for things like audio triangulation. See the Timemark section of the ZED-F9P Integration Manual for more information. Requires GNSS reception. Default: Disabled">
+                                title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
+                                USB</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableGnssToUsbSerial">
+                            <span class="tt" data-bs-placement="right"
+                                title="Output GNSS serial data (ie, NMEA and RTCM) over the USB port instead of status messages. Default: False">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
                     </div>
 
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
-                            GNSS UART2</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
-                        <span class="tt" data-bs-placement="right"
-                            title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
+                    <!-- For devices that don't have an external port, preset the USB output option only-->
+                    <div id="noExternalPortOptions">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
+                                USB</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableGnssToUsbSerial">
+                            <span class="tt" data-bs-placement="right"
+                                title="Output GNSS serial data (ie, NMEA and RTCM) over the USB port instead of status messages. Default: False">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1607,7 +1641,8 @@
             <!-- --------- Corrections Priority Config --------- -->
             <div class="d-grid gap-2">
                 <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
-                    data-target="#collapseCorrectionsPriorityConfig" aria-expanded="false" aria-controls="collapseCorrectionsPriorityConfig">
+                    data-target="#collapseCorrectionsPriorityConfig" aria-expanded="false"
+                    aria-controls="collapseCorrectionsPriorityConfig">
                     Corrections Configuration <i id="correctionsCaret" class="caret-icon bi icon-caret-down"></i>
                 </button>
             </div>
@@ -1616,14 +1651,15 @@
                 <div class="card card-body">
 
                     <div class="form-group row">
-                        <label for="correctionsSourcesLifetime" class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
+                        <label for="correctionsSourcesLifetime"
+                            class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
                             <span class="tt" data-bs-placement="right"
                                 title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
                         <div class='col-sm-4 col-4'>
-                            <input type='number' class='form-control'id="correctionsSourcesLifetime">
+                            <input type='number' class='form-control' id="correctionsSourcesLifetime">
                         </div>
                         <p id="correctionsSourcesLifetimeError" class="inlineError"></p>
                     </div>
@@ -1651,6 +1687,48 @@
                 </div>
             </div>
 
+            <!-- --------- Tilt Config --------- -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary mt-3 toggle-btn" id="tiltConfig" type="button" data-toggle="collapse"
+                    data-target="#collapseTiltConfig" aria-expanded="false" aria-controls="collapseTiltConfig">
+                    Tilt Configuration <i id="tiltCaret" class="caret-icon bi icon-caret-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="collapseTiltConfig">
+                <div class="card card-body">
+
+                    <div id="tiltCompensationSettings">
+                        <div class="form-check mt-3">
+                            <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
+                                Compensation</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation"
+                                onClick="tiltCompensationBoxes()">
+                            <span class="tt" data-bs-placement="right" title="Use tilt compensation. Default: Enabled.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="poleLengthConfig">
+                            <div class="form-group row">
+                                <label for="tiltPoleLength" class="col-sm-4 col-6 col-form-label">Pole Length (m):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="This is the length of the pole only, no additional ARP should be included. Default: 1.8m">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="tiltPoleLength">
+                                    <p id="tiltPoleLengthError" class="inlineError"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
+
             <!-- --------- System Config --------- -->
             <div class="d-grid gap-2">
                 <button class="btn btn-primary mt-3 toggle-btn" type="button" data-toggle="collapse"
@@ -1668,8 +1746,8 @@
                     </div>
 
                     <div>
-                        <div align="center">
-                            <button type="button" id="btnCheckNewFirmware" class="btn btn-primary box-margin20"
+                        <div>
+                            <button type="button" id="btnCheckNewFirmware" class="btn btn-primary"
                                 onClick="checkNewFirmware()">Check for New Firmware</button>
 
                             <span class="tt" data-bs-placement="right"
@@ -1678,7 +1756,7 @@
                             </span>
                             <p id="firmwareCheckNewMsg"></p>
 
-                            <div>
+                            <div class="form-check mt-3">
                                 <label class="form-check-label" for="enableRCFirmware">Allow Beta Firmware</label>
                                 <input class="form-check-input" type="checkbox" value="" id="enableRCFirmware">
                                 <span class="tt" data-bs-placement="right"
@@ -1686,6 +1764,30 @@
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </div>
+
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableAutoFirmwareUpdate">Enable Automatic Firmware Updates</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableAutoFirmwareUpdate">
+                                <span class="tt" data-bs-placement="right"
+                                    title="If enabled, device will periodically check for new firmware. If a new production version firmware is available, it will be installed automatically.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="enableAutomaticFirmwareUpdateDetails" class="collapse mb-2">
+                                <div class="form-group row">
+                                    <label for="autoFirmwareCheckMinutes"
+                                        class="box-margin40 col-sm-3 col-7 col-form-label">Minutes between checks:
+                                        <span class="tt" data-bs-placement="right"
+                                            title="If automatic firmware update is enabled, the device will check for new firmware after this many minutes have elapsed. Default: 1440 (1 day)">
+                                            <span class="icon-info-circle text-primary ms-2"></span>
+                                        </span>
+                                    </label>
+                                    <input type="number" class="form-control box-small" id="autoFirmwareCheckMinutes">
+                                    <p id="autoFirmwareCheckMinutesError" class="inlineError"></p>
+                                </div>
+                            </div>
+
                         </div>
                         <br>
 
@@ -1700,7 +1802,7 @@
                         </div>
                     </div>
 
-                    <div align="center">
+                    <div>
                         <label class="btn btn-primary">
                             <input type="file" name="binfile" id="submitFirmwareFile" onchange="firmwareUploadWait()" />
                             Upload BIN
@@ -1783,7 +1885,8 @@
 
                             <div class="form-check mt-1 box-margin20">
                                 <label class="form-check-label" for="enableARPLogging">Enable ARP Logging</label>
-                                <input class="form-check-input" type="checkbox" value="" id="enableARPLogging" unchecked>
+                                <input class="form-check-input" type="checkbox" value="" id="enableARPLogging"
+                                    unchecked>
                                 <span class="tt" data-bs-placement="right"
                                     title="If enabled, the Antenna Reference Position from RTCM 1005/1006 will be added to the log.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
@@ -1792,7 +1895,8 @@
 
                             <div id="enableARPLoggingDetails" class="collapse mb-2">
                                 <div class="form-group row">
-                                    <label for="ARPLoggingInterval" class="box-margin40 col-sm-3 col-7 col-form-label">ARP
+                                    <label for="ARPLoggingInterval"
+                                        class="box-margin40 col-sm-3 col-7 col-form-label">ARP
                                         Logging Interval (s):
                                         <span class="tt" data-bs-placement="right"
                                             title="If ARP logging is enabled, the Antenna Reference Position will be logged at intervals of this many seconds.">
@@ -1820,6 +1924,51 @@
                         </span>
                     </div>
 
+                    <div id="beeperControl" class="form-check mt-3">
+                        <label class="form-check-label" for="enableBeeper">Enable Audible Beeper</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableBeeper">
+                        <span class="tt" data-bs-placement="right"
+                            title="Allow internal buzzer to give audio feedback to the user. Default: Enabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="measurementScaleDropdown" class="mb-2 mt-3">
+                        <label for="measurementScale">Measurement Scale: </label>
+                        <select name="measurementScale" id="measurementScale" class="form-dropdown">
+                            <option value="0">Meters</option>
+                            <option value="1">Feet/Inches</option>
+                        </select>
+                        <span class="tt" data-bs-placement="right"
+                            title="Display and print units in meters or feet. This does not affect NMEA output, only internal device prints and displays. Default: Meters">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableAutoReset">Enable Automatic Device Restart</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableAutoReset">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will periodically restart. This is helpful when deploying a device in a remote location. Default: Disabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div id="enableAutomaticResetDetails" class="collapse mb-2">
+                        <div class="form-group row">
+                            <label for="rebootMinutes"
+                                class="box-margin40 col-sm-3 col-7 col-form-label">Minutes between restarts:
+                                <span class="tt" data-bs-placement="right"
+                                    title="If automatic restart is enabled, the device will reset after this many minutes have elapsed. Default: 1440 (1 day)">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <input type="number" class="form-control box-small" id="rebootMinutes">
+                            <p id="rebootMinutesError" class="inlineError"></p>
+                        </div>
+                    </div>
+
+
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableFactoryDefaults">Enable Factory Defaults</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableFactoryDefaults" unchecked>
@@ -1832,16 +1981,6 @@
                         <button type="button" id="factoryDefaults" class="btn btn-primary"
                             onClick="resetToFactoryDefaults()" disabled>Reset to Factory Defaults</button>
                         <p id="factoryDefaultsMsg" class="inlineSuccess"></p>
-                    </div>
-
-                    <label class="mt-2" for="debugZone">Debug Zone:</label>
-                    <div class="form-check mt-1 box-margin20">
-                        <label class="form-check-label" for="enableResetDisplay">Display Reset Counter</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableResetDisplay" unchecked>
-                        <span class="tt" data-bs-placement="right"
-                            title="A small number will be added to the display indicating the number of non-power-on-reset cycles. Used for debugging. Default: Disabled">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
                     </div>
                 </div>
             </div>

@@ -463,7 +463,7 @@ volatile bool forwardGnssDataToUsbSerial;
 // forwardGnssDataToUsbSerial is set to false and menuMain is displayed.
 // If the timeout between characters occurs or an invalid character is
 // entered then no changes are made and the +++ sequence must be re-entered.
-#define PLUS_PLUS_PLUS_TIMEOUT      (2 * 1000)  // Milliseconds
+#define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
@@ -673,7 +673,7 @@ uint8_t *pplRtcmBuffer;
 bool pplAttemptedStart = false;
 bool pplGnssOutput = false;
 bool pplMqttCorrections = false;
-bool pplLBandCorrections = false; // Raw L-Band - e.g. from mosaic X5
+bool pplLBandCorrections = false;     // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -733,7 +733,7 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover;         // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
+bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
@@ -762,7 +762,8 @@ uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
 // Corrections Priorities Support
-std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+std::vector<registeredCorrectionsSource>
+    registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
 correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
@@ -771,10 +772,8 @@ correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is fee
 //  This is to allow SparkFun_WebServer_ESP32_W5500 to have _exclusive_ access to WiFi, SPI and Interrupts.
 bool configureViaEthernet;
 
-unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
-int lbandRestarts;
+int floatLockRestarts;
 unsigned long rtkTimeToFixMs;
-unsigned long lbandLastReport;
 
 volatile PeriodicDisplay_t periodicDisplay;
 
@@ -791,11 +790,15 @@ unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl = 0;
 unsigned long lastGnssToPpl = 0;
+
+// Command processing
+int commandCount;
+int16_t *commandIndex;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 39
+#define MAX_BOOT_TIME_ENTRIES 40
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -848,7 +851,6 @@ volatile bool deadManWalking;
         settings.enablePrintIdleTime = true;                                                                           \
         settings.enablePrintBatteryMessages = true;                                                                    \
         settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintBadMessages = true;                                                                        \
         settings.enablePrintLogFileMessages = true;                                                                    \
         settings.enablePrintLogFileStatus = true;                                                                      \
         settings.enablePrintRingBufferOffsets = true;                                                                  \
@@ -868,7 +870,7 @@ volatile bool deadManWalking;
         settings.debugNtripServerState = true;                                                                         \
         settings.debugTcpClient = true;                                                                                \
         settings.debugTcpServer = true;                                                                                \
-        settings.debugUdpServer = true;                                                                             \
+        settings.debugUdpServer = true;                                                                                \
         settings.printBootTimes = true;                                                                                \
     }
 
@@ -995,11 +997,15 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
+    DMW_b("commandIndexFill");
+    if (!commandIndexFill()) // Initialize the command table index
+        reportFatalError("Failed to allocate and fill the commandIndex!");
+
     DMW_b("beginBoard");
     beginBoard(); // Set all pin numbers and pin initial states
 
     DMW_b("beginFS");
-    beginFS(); // Load NVM settings
+    beginFS(); // Start the LittleFS file system in the spiffs partition
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
@@ -1158,20 +1164,8 @@ void setup()
 
 void loop()
 {
-    static uint32_t lastPeriodicDisplay;
-
-    // Determine which items are periodically displayed
-    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
-    {
-        lastPeriodicDisplay = millis();
-        periodicDisplay = settings.periodicDisplay;
-
-        // Reboot the system after a specified timeout
-        if (((lastPeriodicDisplay / 1000) > settings.rebootSeconds) && (!inMainMenu))
-            ESP.restart();
-    }
-    if (deadManWalking)
-        periodicDisplay = (PeriodicDisplay_t)-1;
+    DMW_c("periodicDisplay");
+    updatePeriodicDisplay();
 
     DMW_c("gnssUpdate");
     gnssUpdate();
@@ -1507,6 +1501,28 @@ void updateRadio()
         }
     }
 #endif // COMPILE_ESPNOW
+}
+
+void updatePeriodicDisplay()
+{
+    static uint32_t lastPeriodicDisplay;
+
+    // Determine which items are periodically displayed
+    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
+    {
+        lastPeriodicDisplay = millis();
+        periodicDisplay = settings.periodicDisplay;
+
+        // Reboot the system after a specified timeout
+        if ((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes)
+        {
+            systemPrintln("Automatic system reset");
+            delay(50); // Allow print to complete
+            ESP.restart();
+        }
+    }
+    if (deadManWalking)
+        periodicDisplay = (PeriodicDisplay_t)-1;
 }
 
 // Record who is holding the semaphore

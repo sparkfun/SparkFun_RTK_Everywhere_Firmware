@@ -2,17 +2,17 @@ void menuPorts()
 {
     if (present.portDataMux == true)
     {
-        //RTK Facet mosaic, Facet v2
+        // RTK Facet mosaic, Facet v2
         menuPortsMultiplexed();
     }
     else if (productVariant == RTK_TORCH)
     {
-        //RTK Torch
+        // RTK Torch
         menuPortsUsb();
     }
     else
     {
-        //RTK EVK
+        // RTK EVK
         menuPortsNoMux();
     }
 }
@@ -25,7 +25,8 @@ void menuPortsUsb()
         systemPrintln();
         systemPrintln("Menu: Ports");
 
-        systemPrintf("1) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+        systemPrintf("1) Output GNSS data to USB serial: %s\r\n",
+                     settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
         systemPrintln("x) Exit");
 
@@ -68,6 +69,8 @@ void menuPortsNoMux()
             systemPrintln("Enabled");
         else
             systemPrintln("Disabled");
+
+        systemPrintf("4) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
         systemPrintln("x) Exit");
 
@@ -116,6 +119,8 @@ void menuPortsNoMux()
             settings.enableUART2UBXIn ^= 1;
             systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart");
         }
+        else if (incoming == 4)
+            settings.enableGnssToUsbSerial ^= 1;
 
         else if (incoming == 'x')
             break;

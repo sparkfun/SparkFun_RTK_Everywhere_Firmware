@@ -957,7 +957,7 @@ bool parseIncomingSettings()
         if (settings.debugWebConfig == true)
             systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
 
-        updateSettingWithValue(settingName, valueStr);
+        updateSettingWithValue(false, settingName, valueStr);
 
         // Avoid infinite loop if response is malformed
         counter++;
@@ -1050,7 +1050,7 @@ void createMessageList(String &returnText)
         {
             if (messageSupported(messageNumber) == true)
                 returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
-                            String(settings.ubxMessageRates[messageNumber]) + ",";
+                              String(settings.ubxMessageRates[messageNumber]) + ",";
         }
     }
 
@@ -1058,13 +1058,13 @@ void createMessageList(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
         {
-            returnText += "um980MessageRatesNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
-                        String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
+            returnText += "messageRateNMEA_" + String(umMessagesNMEA[messageNumber].msgTextName) + "," +
+                          String(settings.um980MessageRatesNMEA[messageNumber]) + ",";
         }
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "um980MessageRatesRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
-                        String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
+            returnText += "messageRateRTCMRover_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                          String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
         }
     }
 
@@ -1080,13 +1080,13 @@ void createMessageListBase(String &returnText)
 
     if (present.gnss_zedf9p)
     {
-        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
         {
             if (messageSupported(firstRTCMRecord + messageNumber) == true)
-                returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) + "," +
-                            String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
+                returnText += "messageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
+                              "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
         }
     }
 
@@ -1094,8 +1094,8 @@ void createMessageListBase(String &returnText)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
         {
-            returnText += "um980MessageRatesRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
-                        String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
+            returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
+                          String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }
 

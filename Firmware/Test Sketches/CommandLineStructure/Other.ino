@@ -1,38 +1,50 @@
 // Given a settingName, and string value, update a given setting
-bool updateSettingWithValue(const char *settingName, const char *settingValueStr)
+SettingValueResponse updateSettingWithValue(const char *settingName, const char *settingValueStr)
 {
-  char *ptr;
-  double settingValue = strtod(settingValueStr, &ptr);
-
   bool knownSetting = false;
-
-  if (strcmp(settingValueStr, "true") == 0)
-    settingValue = 1;
-  if (strcmp(settingValueStr, "false") == 0)
-    settingValue = 0;
+  bool settingIsString = false;
 
   if (strcmp(settingName, "elvMask") == 0)
   {
     //settings.elvMask = value
     knownSetting = true;
   }
+  else if (strcmp(settingName, "ntripClientCasterUserPW") == 0)
+  {
+    //Serial.printf("New password: '%s'\r\n", settingValueStr);
+    settingIsString = true;
+    knownSetting = true;
+  }
 
-  return (knownSetting);
+  if (knownSetting == true && settingIsString == true)
+    return (SETTING_KNOWN_STRING);
+  else if (knownSetting == true)
+    return (SETTING_KNOWN);
+
+  return (SETTING_UNKNOWN);
 }
 
-bool getSettingValue(const char *settingName, char *settingValueStr)
+SettingValueResponse getSettingValue(const char *settingName, char *settingValueStr)
 {
   bool knownSetting = false;
-
-  char truncatedName[51];
-  char suffix[51];
+  bool settingIsString = false;
 
   if (strcmp(settingName, "elvMask") == 0)
   {
     sprintf(settingValueStr, "%0.2f", 0.25);
     knownSetting = true;
   }
+  else if (strcmp(settingName, "ntripClientCasterUserPW") == 0)
+  {
+    sprintf(settingValueStr, "%s", (char*)"pwWith\"quote");
+    settingIsString = true;
+    knownSetting = true;
+  }
 
-  return (knownSetting);
+  if (knownSetting == true && settingIsString == true)
+    return (SETTING_KNOWN_STRING);
+  else if (knownSetting == true)
+    return (SETTING_KNOWN);
 
+  return (SETTING_UNKNOWN);
 }

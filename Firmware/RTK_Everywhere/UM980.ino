@@ -184,9 +184,10 @@ bool um980ConfigureOnce()
         }
         else
         {
-            systemPrintf("Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
-                         "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
-                         um980Version);
+            systemPrintf(
+                "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
+                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
+                um980Version);
         }
     }
     else
@@ -196,7 +197,7 @@ bool um980ConfigureOnce()
         {
             if (um980->sendCommand("CONFIG PPP DISABLE") == true)
             {
-                //systemPrintln("Galileo E6 service disabled");
+                // systemPrintln("Galileo E6 service disabled");
             }
             else
                 systemPrintln("Galileo E6 service config error");
@@ -1091,7 +1092,7 @@ uint8_t um980GetMessageNumberByName(const char *msgName)
             return (x);
     }
 
-    systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
+    systemPrintf("um980GetMessageNumberByName: %s not found\r\n", msgName);
     return (0);
 }
 

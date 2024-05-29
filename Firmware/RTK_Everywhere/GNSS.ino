@@ -1198,7 +1198,7 @@ void gnssMenuMessageBaseRtcm()
 {
     if (present.gnss_zedf9p)
     {
-        menuMessagesSubtype(settings.ubxMessageRatesBase, "RTCM-Base");
+        zedMenuMessagesSubtype(settings.ubxMessageRatesBase, "RTCM-Base");
     }
     else if (present.gnss_um980)
     {
