@@ -629,46 +629,78 @@ static void handleFileManager()
             {
                 logmessage += " downloaded";
 
-                // This is a nasty hack to allow us to use streamFile to download the file:
-                // End SdFat, begin SD, open the file using SD, stream it, end SD and allow SdFat to take over again...
+                // This would be SO much easier with webserver->streamFile
+                // except streamFile only works with File - not SdFile...
+                // TODO: if we ever upgrade to SD from SdFat, replace this with streamFile
 
-                // Attempt to gain access to the SD card
-                if (xSemaphoreTake(sdCardSemaphore, fatSemaphore_longWait_ms) == pdPASS)
+                if (managerFileOpen == false)
                 {
-                    markSemaphore(FUNCTION_FILEMANAGER_DOWNLOAD1);
-
-                    endSD(true, false);
-
-                    if (!SD.begin(pin_microSD_CS))
+                    // Allocate the managerTempFile
+                    if (!managerTempFile)
                     {
-                        systemPrintln("Failed to begin SD!");                        
+                        managerTempFile = new SdFile;
+                        if (!managerTempFile)
+                        {
+                            systemPrintln("Failed to allocate managerTempFile!");
+                            return;
+                        }
+                    }
+
+                    if (managerTempFile->open(slashFileName, O_READ) == true)
+                        managerFileOpen = true;
+                    else
+                        systemPrintln("Error: File Manager failed to open file");
+                }
+                else
+                {
+                    // File is already in use. Wait your turn.
+                    webserver->send(202, "text/plain", "ERROR: File already downloading");
+                }
+
+                const size_t maxLen = 8000;
+                uint8_t *buf = new uint8_t[maxLen];
+
+                size_t dataAvailable = managerTempFile->size() - managerTempFile->position();
+
+                while (dataAvailable > 0)
+                {
+                    bool firstSend = (managerTempFile->position() == 0);
+
+                    size_t sending;
+
+                    if (dataAvailable > maxLen)
+                    {
+                        sending = managerTempFile->read(buf, maxLen);
                     }
                     else
                     {
-                        File download = SD.open(slashFileName, "r");
-
-                        if (!download)
-                        {
-                            systemPrintf("Failed to open %s for download!\r\n", slashFileName);
-                        }
-                        else
-                        {
-                            webserver->sendHeader("Cache-Control", "no-cache");
-                            webserver->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
-                            webserver->sendHeader("Access-Control-Allow-Origin", "*");
-                            webserver->streamFile(download, "application/octet-stream");
-
-                            download.close();
-                            SD.end();
-
-                            sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
-                        }
+                        sending = managerTempFile->read(buf, dataAvailable);
                     }
 
-                    xSemaphoreGive(sdCardSemaphore);
-                    
-                    beginSD();
+                    if (firstSend) // First send?
+                    {
+                        webserver->setContentLength(managerTempFile->size());
+                        webserver->sendHeader("Cache-Control", "no-cache");
+                        webserver->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
+                        webserver->sendHeader("Access-Control-Allow-Origin", "*");
+                        webserver->send(200, "application/octet-stream", "");
+                    }
+
+                    webserver->sendContent((const char *)buf, sending);
+
+                    if (sending < maxLen) // Last send?
+                    {
+                        managerTempFile->close();
+
+                        managerFileOpen = false;
+
+                        sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
+                    }
+                
+                    dataAvailable = managerTempFile->size() - managerTempFile->position();
                 }
+
+                delete[] buf;
             }
             else if (fileAction == "delete")
             {
