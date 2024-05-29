@@ -552,14 +552,6 @@ void beginSD()
     if (present.microSd == false)
         return;
 
-    // Skip if going into configure-via-ethernet mode
-    // if (configureViaEthernet)
-    // {
-    //     if (settings.debugNetworkLayer)
-    //         systemPrintln("configureViaEthernet: skipping beginSD");
-    //     return;
-    // }
-
     bool gotSemaphore;
 
     gotSemaphore = false;
@@ -874,14 +866,6 @@ bool forceConfigureViaEthernet()
 // Begin interrupts
 void beginInterrupts()
 {
-    // Skip if going into configure-via-ethernet mode
-    // if (configureViaEthernet)
-    // {
-    //     if (settings.debugNetworkLayer)
-    //         systemPrintln("configureViaEthernet: skipping beginInterrupts");
-    //     return;
-    // }
-
     if (present.timePulseInterrupt ==
         true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
