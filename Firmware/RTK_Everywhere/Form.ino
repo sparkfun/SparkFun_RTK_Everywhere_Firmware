@@ -657,15 +657,15 @@ static void handleFileManager()
                     webserver->send(202, "text/plain", "ERROR: File already downloading");
                 }
 
-                const size_t maxLen = 8000;
+                const size_t maxLen = 8192;
                 uint8_t *buf = new uint8_t[maxLen];
 
-                size_t dataAvailable = managerTempFile->size() - managerTempFile->position();
+                size_t dataAvailable = managerTempFile->size();
+
+                bool firstSend = true;
 
                 while (dataAvailable > 0)
                 {
-                    bool firstSend = (managerTempFile->position() == 0);
-
                     size_t sending;
 
                     if (dataAvailable > maxLen)
@@ -679,11 +679,12 @@ static void handleFileManager()
 
                     if (firstSend) // First send?
                     {
-                        webserver->setContentLength(managerTempFile->size());
+                        webserver->setContentLength(dataAvailable);
                         webserver->sendHeader("Cache-Control", "no-cache");
                         webserver->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
                         webserver->sendHeader("Access-Control-Allow-Origin", "*");
                         webserver->send(200, "application/octet-stream", "");
+                        firstSend = false;
                     }
 
                     webserver->sendContent((const char *)buf, sending);
@@ -697,7 +698,7 @@ static void handleFileManager()
                         sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
                     }
                 
-                    dataAvailable = managerTempFile->size() - managerTempFile->position();
+                    dataAvailable -= sending;
                 }
 
                 delete[] buf;
