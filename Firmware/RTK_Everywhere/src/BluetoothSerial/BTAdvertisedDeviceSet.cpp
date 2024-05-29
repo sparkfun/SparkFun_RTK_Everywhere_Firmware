@@ -65,7 +65,7 @@ void BTAdvertisedDeviceSet::setCOD(uint32_t cod) {
 	m_haveCOD = true;
 }
 
-void BTAdvertisedDeviceSet::setName(String name) {
+void BTAdvertisedDeviceSet::setName(std::string name) {
     m_name     = name;
 	m_haveName = true;
 }
