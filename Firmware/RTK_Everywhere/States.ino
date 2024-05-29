@@ -900,7 +900,7 @@ void stateUpdate()
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 
-            if (!startWebServer(false, settings.httpPort)) // Start the async web server
+            if (!startWebServer(false, settings.httpPort)) // Start the web server
                 changeState(STATE_ROVER_NOT_STARTED);
             else
                 changeState(STATE_CONFIG_VIA_ETH);

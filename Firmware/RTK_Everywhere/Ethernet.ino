@@ -144,14 +144,6 @@ void ethernetBegin()
     switch (online.ethernetStatus)
     {
     case (ETH_NOT_STARTED):
-        // TODO: Ethernet.init(pin_Ethernet_CS);
-
-        // First we start Ethernet without DHCP to detect if a cable is connected
-        // DHCP causes system freeze for ~62 seconds so we avoid it until a cable is connected
-        // TODO: Ethernet.begin(ethernetMACAddress, settings.ethernetIP, settings.ethernetDNS, settings.ethernetGateway,
-        //               settings.ethernetSubnet);
-
-        // if (Ethernet.hardwareStatus() == EthernetNoHardware) // Check that a W5n00 has been detected
         if (!(ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI)))
         {
             if (settings.debugNetworkLayer)
@@ -159,6 +151,9 @@ void ethernetBegin()
             online.ethernetStatus = ETH_CAN_NOT_BEGIN;
             return;
         }
+
+        if (!settings.ethernetDHCP)
+            ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
 
         online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
         lastEthernetCheck = millis(); // Wait a full second before checking the cable
@@ -170,7 +165,7 @@ void ethernetBegin()
         {
             lastEthernetCheck = millis();
 
-            if (eth_connected)
+            if (eth_connected) // eth_connected indicates that we are connected and have an IP address
             {
                 if (settings.debugNetworkLayer)
                     systemPrintln("Ethernet connected");
@@ -199,7 +194,8 @@ void ethernetBegin()
         {
             lastEthernetCheck = millis();
 
-            // TODO: if (Ethernet.begin(ethernetMACAddress, 20000)) // Restart Ethernet with DHCP. Use 20s timeout
+            // We should fall straight through this as eth_connected indicates we already have an IP address
+            if (eth_connected)
             {
                 if (settings.debugNetworkLayer)
                     systemPrintln("Ethernet started with DHCP");
@@ -360,24 +356,12 @@ void onEthernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 // Start Ethernet WebServer ESP32 W5500 - needs exclusive access to WiFi, SPI and Interrupts
 void ethernetWebServerStartESP32W5500()
 {
-    // Configure the W5500
-    // TODO
-
     Network.onEvent(onEthernetEvent);
 
-    // start the ethernet connection and the server:
-    // Use DHCP dynamic IP
-    // bool begin(int POCI_GPIO, int PICO_GPIO, int SCLK_GPIO, int CS_GPIO, int INT_GPIO, int SPI_CLOCK_MHZ,
-    //            int SPI_HOST, uint8_t *W5500_Mac = W5500_Default_Mac, bool installIsrService = true);
-    // Old version: ETH.begin(pin_POCI, pin_PICO, pin_SCK, pin_Ethernet_CS, pin_Ethernet_Interrupt, 25, SPI3_HOST, ethernetMACAddress);
     ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
 
     if (!settings.ethernetDHCP)
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
-
-    // TODO
-    //if (ETH.linkUp())
-    //    ESP32_W5500_waitForConnect();
 }
 
 // Stop the Ethernet web server

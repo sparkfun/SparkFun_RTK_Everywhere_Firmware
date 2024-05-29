@@ -879,7 +879,7 @@ void beginInterrupts()
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
         pinMode(pin_Ethernet_Interrupt, INPUT);                 // Prepare the interrupt pin
-        //pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
+        // TODO: figure out how to handle NTP mode and timestamp the arrival of UDP NTP requests
         //attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
     }
 #endif // COMPILE_ETHERNET
