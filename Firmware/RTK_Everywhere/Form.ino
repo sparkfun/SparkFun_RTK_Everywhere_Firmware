@@ -502,7 +502,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         webserver->begin();
 
         // Starts task for updating webserver with handleClient
-        if (online.updatePplTaskRunning == false)
+        if (task.updateWebServerTaskRunning == false)
             xTaskCreate(updateWebServerTask,
                         "UpdateWebServer",            // Just for humans
                         updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
@@ -533,12 +533,13 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 void updateWebServerTask(void *e)
 {
     // Start notification
-    online.updateWebServerTaskRunning = true;
+    task.updateWebServerTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task updateWebServerTask started");
 
     // Verify that the task is still running
-    while (online.updateWebServerTaskRunning)
+    task.updateWebServerTaskStopRequest = false;
+    while (task.updateWebServerTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_UPDATE_WEBSERVER))
@@ -556,13 +557,14 @@ void updateWebServerTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task updateWebServerTask stopped");
-    online.updateWebServerTaskRunning = false;
+    task.updateWebServerTaskRunning = false;
     vTaskDelete(NULL);
 }
 
 void stopWebServer()
 {
-    online.updatePplTaskRunning = false;
+    if (task.updateWebServerTaskRunning)
+        task.updateWebServerTaskStopRequest = true;
 
     if (webserver != nullptr)
     {
@@ -583,9 +585,9 @@ void stopWebServer()
         incomingSettings = nullptr;
     }
 
-    if (settings.debugWebConfig == true)
-        systemPrintln("Web Server Stopped");
-    reportHeapNow(false);
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
 }
 
 void notFound()
