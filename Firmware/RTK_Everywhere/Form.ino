@@ -508,7 +508,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                         updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
                         nullptr,                // Task input parameter
                         updateWebServerTaskPriority,
-                        &updatePplTaskHandle); // Task handle
+                        &updateWebServerTaskHandle); // Task handle
 
         if (settings.debugWebConfig == true)
             systemPrintln("Web Server Started");
