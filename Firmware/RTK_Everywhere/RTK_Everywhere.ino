@@ -6,7 +6,7 @@
   This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
   and communicates with various GNSS receivers.
 
-  Compiled using Arduino CLI and ESP32 core v2.0.11.
+  Compiled using Arduino CLI and ESP32 core v3.0.0.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
