@@ -554,9 +554,11 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     int wifiResponse = WL_DISCONNECTED;
 
     systemPrint("Connecting WiFi... ");
-    WiFiMulti wifiMulti;
+    
+    static WiFiMulti wifiMulti;
 
     // Load SSIDs
+    wifiMulti.APlistClean();
     for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
         if (strlen(settings.wifiNetworks[x].ssid) > 0)
