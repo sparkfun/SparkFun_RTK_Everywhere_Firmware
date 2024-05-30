@@ -144,6 +144,8 @@ void ethernetBegin()
     switch (online.ethernetStatus)
     {
     case (ETH_NOT_STARTED):
+        Network.onEvent(onEthernetEvent);
+
         if (!(ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI)))
         {
             if (settings.debugNetworkLayer)
