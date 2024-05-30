@@ -771,8 +771,8 @@ void menuDebugSoftware()
             minutes = settings.rebootMinutes;
             days = minutes / minutesInADay;
             minutes -= days * minutesInADay;
-            hours = minutes / minutesInADay;
-            minutes -= hours * minutesInADay;
+            hours = minutes / 60;
+            minutes -= hours * 60;
 
             systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
         }
@@ -824,6 +824,7 @@ void menuDebugSoftware()
             settings.enablePrintDuplicateStates ^= 1;
         else if (incoming == 32)
         {
+            // We use millis (uint32_t) to measure the reboot interval. 4294967000 is just less than (2^32 - 1)
             systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
             int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
@@ -847,8 +848,8 @@ void menuDebugSoftware()
                     minutes = settings.rebootMinutes;
                     days = minutes / minutesInADay;
                     minutes -= days * minutesInADay;
-                    hours = minutes / minutesInADay;
-                    minutes -= hours * minutesInADay;
+                    hours = minutes / 60;
+                    minutes -= hours * 60;
 
                     systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
                 }
