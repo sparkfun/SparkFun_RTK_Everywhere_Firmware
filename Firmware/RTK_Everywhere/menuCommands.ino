@@ -1310,7 +1310,7 @@ void createSettingsString(char *newSettings)
             break;
             case tPerDisp: {
                 PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
-                stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
+                stringRecord(newSettings, rtkSettingsEntries[i].name, *ptr);
             }
             break;
             case tCoordInp: {
@@ -1995,7 +1995,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
         case tPerDisp: {
             PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)var;
-            writeToString(settingValueStr, (int)*ptr);
+            writeToString(settingValueStr, *ptr);
             knownSetting = true;
         }
         break;

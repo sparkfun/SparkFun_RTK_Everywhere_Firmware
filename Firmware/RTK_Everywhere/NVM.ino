@@ -312,7 +312,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         break;
         case tPerDisp: {
             PeriodicDisplay_t *ptr = (PeriodicDisplay_t *)rtkSettingsEntries[i].var;
-            settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, (int)*ptr); // PeriodicDisplay_t is uint64_t
+            settingsFile->printf("%s=%llu\r\n", rtkSettingsEntries[i].name, *ptr); // PeriodicDisplay_t is uint64_t
         }
         break;
         case tCoordInp: {
