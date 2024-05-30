@@ -1228,6 +1228,9 @@ void menuPeriodicPrint()
         systemPrint("74) sdSizeCheckTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_SD_SIZE_CHECK) ? "Enabled" : "Disabled");
 
+        systemPrint("75) WebServerTask state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_UPDATE_WEBSERVER) ? "Enabled" : "Disabled");
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -1313,6 +1316,8 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_TASK_HANDLE_GNSS_DATA);
         else if (incoming == 74)
             PERIODIC_TOGGLE(PD_TASK_SD_SIZE_CHECK);
+        else if (incoming == 75)
+            PERIODIC_TOGGLE(PD_TASK_UPDATE_WEBSERVER);
 
         // Menu exit control
         else if (incoming == 'x')
