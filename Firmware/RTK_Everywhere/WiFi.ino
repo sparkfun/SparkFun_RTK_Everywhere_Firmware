@@ -92,7 +92,7 @@ void menuWiFi()
         systemPrint("m) MDNS: ");
         systemPrintf("%s\r\n", settings.mdnsEnable ? "Enabled" : "Disabled");
 
-        systemPrintf("t) Connect Timeout (ms): %d", settings.wifiConnectTimeoutMs);
+        systemPrintf("t) Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
 
         systemPrintln("x) Exit");
 
@@ -574,7 +574,7 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
         if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid, (const char *)&settings.wifiNetworks[x].password);
     }
 
     wifiResponse = wifiMulti.run(timeout);
