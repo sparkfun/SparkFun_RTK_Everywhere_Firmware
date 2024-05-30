@@ -1523,7 +1523,7 @@ void menuPointPerfect()
             }
             else
             {
-                if (wifiConnect(10000) == true)
+                if (wifiConnect(settings.wifiConnectTimeoutMs)) == true)
                 {
                     // Check if we have certificates
                     char fileName[80];

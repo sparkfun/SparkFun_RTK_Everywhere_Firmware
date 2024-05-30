@@ -92,6 +92,8 @@ void menuWiFi()
         systemPrint("m) MDNS: ");
         systemPrintf("%s\r\n", settings.mdnsEnable ? "Enabled" : "Disabled");
 
+        systemPrintf("t) Connect Timeout (ms): %d", settings.wifiConnectTimeoutMs);
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -127,6 +129,18 @@ void menuWiFi()
         else if (incoming == 'm')
         {
             settings.mdnsEnable ^= 1;
+        }
+        else if (incoming == 't')
+        {
+            systemPrint("Enter connect timeout in ms (1000 - 120000): ");
+            long newTimeout = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((newTimeout != INPUT_RESPONSE_GETNUMBER_EXIT) && (newTimeout != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                if ((newTimeout >= 1000) && (newTimeout <= 120000))
+                {
+                    settings.wifiConnectTimeoutMs = newTimeout;
+                }
+            }
         }
         else if (incoming == 'x')
             break;
@@ -280,13 +294,11 @@ bool wifiStartAP(bool forceAP)
         // Start webserver on local WiFi instead of AP
 
         // Attempt to connect to local WiFi with increasing timeouts
-        int timeout = 0;
         int x = 0;
         const int maxTries = 2;
         for (; x < maxTries; x++)
         {
-            timeout += 5000;
-            if (wifiConnect(timeout) == true) // Attempt to connect to any SSID on settings list
+            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
                 wifiPrintNetworkInfo();
                 break;
@@ -343,7 +355,7 @@ void wifiUpdate()
         {
             wifiLastConnectionAttempt = millis();
 
-            if (wifiConnect(10000) == true) // Attempt to connect to any SSID on settings list
+            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
                 // Restart ESPNow if it was previously on
                 if (espnowState > ESPNOW_OFF)
@@ -554,7 +566,7 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     int wifiResponse = WL_DISCONNECTED;
 
     systemPrint("Connecting WiFi... ");
-    
+
     static WiFiMulti wifiMulti;
 
     // Load SSIDs

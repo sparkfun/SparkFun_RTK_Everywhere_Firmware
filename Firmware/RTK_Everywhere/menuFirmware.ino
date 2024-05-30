@@ -473,7 +473,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 
     bool wasInAPmode;
 
-    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
     {
         char versionString[21];
         getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -577,7 +577,7 @@ void otaUpdate()
 
     bool wasInAPmode;
 
-    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
         overTheAirUpdate();
 
     // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode

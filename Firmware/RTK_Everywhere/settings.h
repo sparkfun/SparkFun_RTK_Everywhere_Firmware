@@ -1353,6 +1353,7 @@ struct Settings
         {"", ""},
         {"", ""},
     };
+    uint32_t wifiConnectTimeoutMs = 10000; // Wait this long for a WiFiMulti connection
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1842,6 +1843,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },
     { 0, 1, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_",  },
+    { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
