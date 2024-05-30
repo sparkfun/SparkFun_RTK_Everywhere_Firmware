@@ -591,7 +591,7 @@ bool networkIsMediaConnected(NETWORK_DATA *network)
     }
 
     // Verify that the network has an IP address
-    if (isConnected && (networkGetIpAddress(network->type) != 0))
+    if (isConnected && (networkGetIpAddress(network->type) != IPAddress((uint32_t)0)))
     {
         networkPeriodicallyDisplayIpAddress();
         return true;
