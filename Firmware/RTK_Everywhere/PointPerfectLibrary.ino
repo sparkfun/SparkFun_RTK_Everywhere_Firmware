@@ -105,7 +105,7 @@ void updatePplTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task updatePplTask stopped");
     task.updatePplTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(updatePplTaskHandle);
 }
 
 // Begin the PointPerfect Library and give it the current key
