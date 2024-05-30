@@ -764,7 +764,7 @@ function validateFields() {
     }
 
     if (ge("enableAutoReset").checked == true) {
-        checkElementValue("rebootMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
+        checkElementValue("rebootMinutes", 1, 4294967, "Must be 1 to 4294967", "collapseSystemConfig");
     }
     else {
         clearElement("rebootMinutes", 0); //0 = disable
