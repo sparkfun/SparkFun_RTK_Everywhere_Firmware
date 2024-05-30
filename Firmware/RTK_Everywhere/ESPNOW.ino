@@ -34,6 +34,10 @@ void espnowOnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 }
 #endif // COMPILE_ESPNOW
 
+#ifndef COMPILE_ESPNOW
+#define esp_now_recv_info uint8_t
+#endif
+
 // Callback when data is received
 void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
 {
