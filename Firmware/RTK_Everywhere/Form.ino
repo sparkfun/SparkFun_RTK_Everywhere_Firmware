@@ -558,7 +558,7 @@ void updateWebServerTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task updateWebServerTask stopped");
     task.updateWebServerTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(updateWebServerTaskHandle);
 }
 
 void stopWebServer()
