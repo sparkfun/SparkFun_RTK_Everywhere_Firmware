@@ -1504,7 +1504,7 @@ void updateRadio()
 
 void updatePeriodicDisplay()
 {
-    static uint32_t lastPeriodicDisplay;
+    static uint32_t lastPeriodicDisplay = 0;
 
     // Determine which items are periodically displayed
     if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
@@ -1513,10 +1513,11 @@ void updatePeriodicDisplay()
         periodicDisplay = settings.periodicDisplay;
 
         // Reboot the system after a specified timeout
-        if ((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes)
+        // Strictly, this will reboot after rebootMinutes plus periodicDisplay. Do we care?
+        if ((settings.rebootMinutes > 0) && ((lastPeriodicDisplay / (1000 * 60)) >= settings.rebootMinutes))
         {
             systemPrintln("Automatic system reset");
-            delay(50); // Allow print to complete
+            delay(100); // Allow print to complete
             ESP.restart();
         }
     }
