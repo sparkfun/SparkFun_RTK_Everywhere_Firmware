@@ -453,7 +453,7 @@ void tcpServerUpdate()
 
                 // Data structure not in use
                 // Check for another TCP server client
-                client = tcpServer->available();
+                client = tcpServer->accept();
 
                 // Done if no TCP server client found
                 if (!client)
