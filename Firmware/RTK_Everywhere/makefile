@@ -8,6 +8,10 @@
 # Source files
 ##########
 
+# Uncomment all four lines for a complete update
+#EXECUTABLES = arduino-config lib-update
+EXECUTABLES += partition
+EXECUTABLES += form
 EXECUTABLES += RTK
 
 ##########
@@ -29,7 +33,7 @@ all: $(EXECUTABLES)
 .PHONY: arduino-config
 
 arduino-config:
-	arduino-cli config init --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
+	arduino-cli config init --overwrite --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 
 .PHONY: lib-update
 
@@ -58,7 +62,13 @@ lib-update:
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
           SSLClientESP32@2.0.0
 
-	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
+.PHONY: partition
+
+partition:
+# This is Windows-specific
+	copy ..\RTKEverywhere.csv C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\RTKEverywhere.csv
+# Linux may need something like:
+#	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
 
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
@@ -66,16 +76,17 @@ FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
 
-form.h:	* AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
+form:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-RTK:	RTK_Everywhere.ino *ino *.h
-	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL) RTK_Everywhere.ino \
-          --build-property build.partitions=RTKEverywhere \
-          --build-property upload.maximum_size=3145728 \
-          --build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
-          --export-binaries
+RTK:	RTK_Everywhere.ino *.ino *.h
+	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
+		--warnings default \
+		--build-property build.partitions=RTKEverywhere \
+		--build-property upload.maximum_size=3145728 \
+		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
+		--export-binaries
 #	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL) RTK_Everywhere.ino  --build-property build.partitions=app3M_fat9M_16MB  --build-property upload.maximum_size=3145728 --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" --export-binaries
 
 ########
