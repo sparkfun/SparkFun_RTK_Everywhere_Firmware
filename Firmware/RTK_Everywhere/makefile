@@ -44,7 +44,6 @@ lib-update:
           ESP32Time@2.0.0 \
           ESP32_BleSerial@1.0.4 \
           "ESP32-OTA-Pull"@1.0.0 \
-          Ethernet@2.0.2 \
           JC_Button@2.1.2 \
           PubSubClient@2.8.0 \
           "SdFat"@2.1.1 \
@@ -57,13 +56,7 @@ lib-update:
           "SparkFun u-blox GNSS v3"@3.1.5 \
           "SparkFun u-blox PointPerfect Library"@1.11.4 \
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
-          SparkFun_WebServer_ESP32_W5500@1.5.5 \
           SSLClientESP32@2.0.0
-
-	arduino-cli config set library.enable_unsafe_install true
-	arduino-cli lib install --git-url \
-          https://github.com/me-no-dev/ESPAsyncWebServer.git \
-          https://github.com/me-no-dev/AsyncTCP.git \
 
 	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
 
