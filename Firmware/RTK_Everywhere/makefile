@@ -58,7 +58,7 @@ lib-update:
           "SparkFun u-blox PointPerfect Library"@1.11.4 \
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
           SparkFun_WebServer_ESP32_W5500@1.5.5 \
-          SSLClientESP32@2.0.0 \
+          SSLClientESP32@2.0.0
 
 	arduino-cli config set library.enable_unsafe_install true
 	arduino-cli lib install --git-url \
