@@ -65,10 +65,13 @@ lib-update:
 .PHONY: partition
 
 partition:
+ifeq ($(OS),Windows_NT)
 # This is Windows-specific
 	copy ..\RTKEverywhere.csv C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\RTKEverywhere.csv
+else
 # Linux may need something like:
-#	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
+	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
+endif
 
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
