@@ -100,7 +100,9 @@ jobs:
 
       # https://github.com/avinabmalla/ESP32_BleSerial/issues/15
       - name: Patch ESP32_BleSerial BLECharacteristic
-        run: sed -i 's|std::string value = pCharacteristic->getValue();|String value = pCharacteristic->getValue();|g' /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp BleSerial.cpp /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
 
       - name: Setup Python
         uses: actions/setup-python@v4
