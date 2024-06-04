@@ -102,9 +102,6 @@ jobs:
       - name: Patch ESP32_BleSerial BLECharacteristic
         run: sed -i 's|std::string value = pCharacteristic->getValue();|String value = pCharacteristic->getValue();|g' /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
 
-      - name: Enable external libs
-        run: arduino-cli config set library.enable_unsafe_install true
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
