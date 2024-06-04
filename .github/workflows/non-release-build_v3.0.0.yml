@@ -1,4 +1,4 @@
-name: Non-Release Build
+name: Non-Release Build v3.0.0
 on: 
   workflow_dispatch:
     branches: 
