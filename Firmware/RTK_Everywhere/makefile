@@ -8,9 +8,10 @@
 # Source files
 ##########
 
-# Uncomment all four lines for a complete update
+# Uncomment all five lines for a complete update
 #EXECUTABLES = arduino-config lib-update
 EXECUTABLES += partition
+EXECUTABLES += patch
 EXECUTABLES += form
 EXECUTABLES += RTK
 
@@ -33,7 +34,7 @@ all: $(EXECUTABLES)
 .PHONY: arduino-config
 
 arduino-config:
-	arduino-cli config init --overwrite --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
+	arduino-cli config init --overwrite --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json"
 
 .PHONY: lib-update
 
@@ -43,34 +44,45 @@ lib-update:
 	arduino-cli core update-index
 	arduino-cli core install esp32:esp32@$(ESP_CORE_VERSION)
 	arduino-cli lib install \
-          ArduinoJson@6.19.4 \
-          "ArduinoMqttClient"@0.1.8 \
-          ESP32Time@2.0.0 \
-          ESP32_BleSerial@1.0.4 \
-          "ESP32-OTA-Pull"@1.0.0 \
-          JC_Button@2.1.2 \
-          PubSubClient@2.8.0 \
-          "SdFat"@2.1.1 \
-          "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0 \
-          "SparkFun Extensible Message Parser"@1.0.0 \
-          "SparkFun IM19 IMU Arduino Library"@1.0.1 \
-          "SparkFun LIS2DH12 Arduino Library"@1.0.3 \
-          "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
-          "SparkFun Qwiic OLED Arduino Library"@1.0.13 \
-          "SparkFun u-blox GNSS v3"@3.1.5 \
-          "SparkFun u-blox PointPerfect Library"@1.11.4 \
-          "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
-          SSLClientESP32@2.0.0
+		ArduinoJson@6.19.4 \
+		"ArduinoMqttClient"@0.1.8 \
+		ESP32Time@2.0.0 \
+		ESP32_BleSerial@1.0.4 \
+		"ESP32-OTA-Pull"@1.0.0 \
+		JC_Button@2.1.2 \
+		PubSubClient@2.8.0 \
+		"SdFat"@2.1.1 \
+		"SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0 \
+		"SparkFun Extensible Message Parser"@1.0.0 \
+		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
+		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
+		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
+		"SparkFun Qwiic OLED Arduino Library"@1.0.13 \
+		"SparkFun u-blox GNSS v3"@3.1.5 \
+		"SparkFun u-blox PointPerfect Library"@1.11.4 \
+		"SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
+		SSLClientESP32@2.0.0
 
-.PHONY: partition
+.PHONY:	partition
 
 partition:
 ifeq ($(OS),Windows_NT)
-# This is Windows-specific
 	copy ..\RTKEverywhere.csv C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\RTKEverywhere.csv
 else
 # Linux may need something like:
 	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
+endif
+
+patch: 	Patch/*
+ifeq ($(OS),Windows_NT)
+	copy Patch\WiFiScan.h C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\libraries\WiFi\src\WiFiScan.h
+	copy Patch\WiFiScan.cpp C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\libraries\WiFi\src\WiFiScan.cpp
+	copy Patch\BleSerial.cpp C:\Users\$(USERNAME)\Documents\Arduino\libraries\ESP32_BleSerial\src\BleSerial.cpp
+else
+# Linux may need something like:
+	cp Patch/WiFiScan.h ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/libraries/WiFi/src/WiFiScan.h
+	cp Patch/WiFiScan.cpp ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/libraries/WiFi/src/WiFiScan.cpp
+	cp Patch/BleSerial.cpp ~/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
 endif
 
 DEBUG_LEVEL=debug
@@ -90,7 +102,6 @@ RTK:	RTK_Everywhere.ino *.ino *.h
 		--build-property upload.maximum_size=3145728 \
 		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
 		--export-binaries
-#	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL) RTK_Everywhere.ino  --build-property build.partitions=app3M_fat9M_16MB  --build-property upload.maximum_size=3145728 --build-property "compiler.cpp.extra_flags=\"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" --export-binaries
 
 ########
 # Clean the build directory
