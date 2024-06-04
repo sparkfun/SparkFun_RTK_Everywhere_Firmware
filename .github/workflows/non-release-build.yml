@@ -9,6 +9,7 @@ env:
   FIRMWARE_VERSION_MINOR: 99
   POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
   POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
+  CORE_VERSION: 2.0.11
 
 jobs:
   build:
@@ -64,7 +65,7 @@ jobs:
         run: arduino-cli lib update-index
 
       - name: Install platform
-        run: arduino-cli core install esp32:esp32@2.0.11
+        run: arduino-cli core install esp32:esp32@${{ env.CORE_VERSION }}
 
       - name: Get Known Libraries
         run: arduino-cli lib install
@@ -97,12 +98,6 @@ jobs:
           https://github.com/me-no-dev/ESPAsyncWebServer.git
           https://github.com/me-no-dev/AsyncTCP.git
           
-      #Incorporate ESP-Now patch into core: https://github.com/espressif/arduino-esp32/pull/7044/files
-      #- name: Patch ESP32 Core
-      #  run: |
-      #    cd Firmware/RTK_Everywhere/Patch/
-      #    cp WiFiGeneric.cpp /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.2/libraries/WiFi/src/WiFiGeneric.cpp
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -133,7 +128,7 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
-          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/2.0.11/tools/partitions/RTKEverywhere.csv
+          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch
         run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
