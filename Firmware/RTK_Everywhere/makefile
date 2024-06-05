@@ -38,7 +38,7 @@ arduino-config:
 
 .PHONY: lib-update
 
-ESP_CORE_VERSION=3.0.0
+ESP_CORE_VERSION=3.0.1
 
 lib-update:
 	arduino-cli core update-index
@@ -75,13 +75,9 @@ endif
 
 patch: 	Patch/*
 ifeq ($(OS),Windows_NT)
-	copy Patch\WiFiScan.h C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\libraries\WiFi\src\WiFiScan.h
-	copy Patch\WiFiScan.cpp C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\libraries\WiFi\src\WiFiScan.cpp
 	copy Patch\BleSerial.cpp C:\Users\$(USERNAME)\Documents\Arduino\libraries\ESP32_BleSerial\src\BleSerial.cpp
 else
 # Linux may need something like:
-	cp Patch/WiFiScan.h ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/libraries/WiFi/src/WiFiScan.h
-	cp Patch/WiFiScan.cpp ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/libraries/WiFi/src/WiFiScan.cpp
 	cp Patch/BleSerial.cpp ~/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
 endif
 

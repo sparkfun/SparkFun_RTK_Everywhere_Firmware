@@ -9,7 +9,7 @@ env:
   FIRMWARE_VERSION_MINOR: 99
   POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
   POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
-  CORE_VERSION: 3.0.0
+  CORE_VERSION: 3.0.1
 
 jobs:
   build:
@@ -64,18 +64,8 @@ jobs:
       - name: Update library index
         run: arduino-cli lib update-index
 
-      # We need v3.0.1-rc1 to fix the WiFiMulti.run timeout issue - but it is not yet available
-      #- name: Install platform
-      #  run: arduino-cli core install esp32:esp32@${{ env.CORE_VERSION }}
-
-      # So, right now, we need to use v3.0.0 and patch it
       - name: Install platform
-        run: arduino-cli core install esp32:esp32@3.0.0
-      - name: Patch v3.0.0
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp WiFiScan.h /home/runner/.arduino15/packages/esp32/hardware/esp32/3.0.0/libraries/WiFi/src/WiFiScan.h
-          cp WiFiScan.cpp /home/runner/.arduino15/packages/esp32/hardware/esp32/3.0.0/libraries/WiFi/src/WiFiScan.cpp
+        run: arduino-cli core install esp32:esp32@${{ env.CORE_VERSION }}
 
       - name: Get Known Libraries
         run: arduino-cli lib install
