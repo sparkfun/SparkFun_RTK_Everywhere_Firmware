@@ -6,93 +6,90 @@ While we recommend SW Maps for Android, there are a variety of 3rd party apps av
 
 The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support additional connection options including TCP and Bluetooth Low Energy (BLE).
 
-## SW Maps
+## ArcGIS Survey123
 
-SWMaps is available for iOS [here](https://apps.apple.com/us/app/sw-maps/id6444248083).  
+![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
 
-Make sure your RTK device is switched on and operating in Rover mode.
+*ArcGIS Survey123 Home Screen*
 
-Make sure Bluetooth is enabled on your iOS device Settings.
+[ArcGIS Survey123](https://apps.apple.com/us/app/arcgis-survey123/id993015031) a popular offering from Esri that works well with SparkFun RTK products.
 
-The RTK device will not appear in the _OTHER DEVICES_ list. That is OK.
+ArcGIS Survey123 connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad.
 
-![iOS Settings Bluetooth](img/iOS/Screenshot1.PNG)
+![alt text](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
 
-*iOS Settings Bluetooth*
 
-Open SWMaps.
+![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
 
-Open or continue a Project if desired.
 
-SWMaps will show your approximate location based on your iOS device's location.
+*Adding WiFi network to settings*
 
-![iOS SWMaps Initial Location](img/iOS/Screenshot2.PNG)
+The RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
 
-*iOS SWMaps Initial Location*
+![TCP Server Enabled on port 2948](<img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png>)
 
-Press the 'SWMaps' icon at the top left of the screen to open the menu.
+*TCP Server Enabled on port 2948*
 
-![iOS SWMaps Menu](img/iOS/Screenshot3.PNG)
+Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
+![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
 
-*iOS SWMaps Menu*
+*RTK device showing IP address*
 
-Select Bluetooth GNSS.
+Once the RTK device connects to the WiFi hotspot, its IP address can be found in the System menu. This is the number that needs to be entered into ArcGIS Survey123. You can now proceed to the ArcGIS Survey123 app to set up the software connection.
 
-![iOS SWMaps Bluetooth Connection](img/iOS/Screenshot4.PNG)
+![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
 
-*iOS SWMaps Bluetooth Connection*
+*ArcGIS Survey123 Home Screen*
 
-Set the **Instrument Model** to **Generic NMEA (Bluetooth LE)**.
+From the home screen, click on the 'hamburger' icon in the upper right corner.
 
-![iOS SWMaps Instrument Model](img/iOS/Screenshot5.PNG)
+![ArcGIS Survey123 Settings Menu](<img/ArcGIS/SparkFun RTK - ArcGIS Settings.png>)
 
-*iOS SWMaps Instrument Model*
+*ArcGIS Survey123 Settings Menu*
 
-Press 'Scan' and your RTK device should appear.
+From the settings menu, click on the *Settings* gear.
 
-![iOS SWMaps Bluetooth Scan](img/iOS/Screenshot6.PNG)
+![ArcGIS Survey123 Settings List](<img/ArcGIS/SparkFun RTK - ArcGIS Settings List.png>)
 
-*iOS SWMaps Bluetooth Scan*
+*ArcGIS Survey123 Settings List*
 
-Select (tick) the RTK device and press 'Connect'.
+From the settings list, click on *Location*.
 
-![iOS SWMaps Bluetooth Connected](img/iOS/Screenshot7.PNG)
+![ArcGIS Survey123 List of Location Providers](<img/ArcGIS/SparkFun RTK - ArcGIS Location Providers.png>)
 
-*iOS SWMaps Bluetooth Connected*
+*ArcGIS Survey123 List of Location Providers*
 
-Close the menu and your RTK location will be displayed on the map.
+Click on the *Add location provider*.
 
-You can now use the other features of SWMaps, including the built-in NTRIP Client.
+![ArcGIS Survey123 Network Connection Type](<img/ArcGIS/SparkFun RTK - ArcGIS Location Network.png>)
 
-Re-open the menu and select 'NTRIP Client'.
+*ArcGIS Survey123 Network Connection Type*
 
-Enter the details for your NTRIP Caster - as shown in the [SWMaps section above](#sw-maps).
+Select *Network*.
 
-![iOS SWMaps NTRIP Client](img/iOS/Screenshot8.PNG)
+![ArcGIS Survey123 TCP Connection Information](<img/ArcGIS/SparkFun RTK - ArcGIS Network Information.png>)
 
-*iOS SWMaps NTRIP Client*
+*ArcGIS Survey123 TCP Connection Information*
 
-Click 'Connect'
+Enter the IP address previously found along with the TCP port. Once complete, click *Add*.
 
-At this point, you should see a Bluetooth Pairing Request. Select 'Pair' to pair your RTK with your iOS device.
+![ArcGIS Survey123 Sensor Settings](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Settings.png>)
 
-![iOS Bluetooth Pairing](img/iOS/Screenshot9.PNG)
+*ArcGIS Survey123 Sensor Settings*
 
-*iOS Bluetooth Pairing*
+You may enter various sensor-specific settings including antenna height, if desired. To view real-time sensor information, click on the satellite icon in the upper right corner.
 
-SWMaps will now receive NTRIP correction data from the caster and push it to your RTK over Bluetooth BLE.
+![ArcGIS Survey123 Sensor Data](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Data.png>)
 
-From the SWMaps menu, open 'GNSS Status' to see your position, fix type and accuracy.
+*ArcGIS Survey123 Sensor Data*
 
-![iOS SWMaps GNSS Status](img/iOS/Screenshot10.PNG)
+The SparkFun RTK device's data should now be seen. Click on the *Map* icon to return to the mapping interface.
 
-*iOS SWMaps GNSS Status*
+![ArcGIS Survey123 Map Interface](<img/ArcGIS/SparkFun RTK - ArcGIS Map Interface.png>)
 
-If you return to the iOS Bluetooth Settings, you will see that your iOS and RTK devices are now paired.
+*ArcGIS Survey123 Map Interface*
 
-![iOS Settings Bluetooth Paired](img/iOS/Screenshot11.PNG)
-
-*iOS Settings Bluetooth - Paired*
+Returning to the map view, we can now begin gathering point information with millimeter accuracy.
 
 ## QField
 
@@ -181,90 +178,93 @@ Above, we see the port is successfully connected. Exit out of all menus.
 
 Returning to the map view, we see an RTK Fix with 11mm positional accuracy.
 
-## ArcGIS Survey123
+## SW Maps
 
-![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
+SWMaps is available for iOS [here](https://apps.apple.com/us/app/sw-maps/id6444248083).  
 
-*ArcGIS Survey123 Home Screen*
+Make sure your RTK device is switched on and operating in Rover mode.
 
-[ArcGIS Survey123](https://apps.apple.com/us/app/arcgis-survey123/id993015031) a popular offering from Esri that works well with SparkFun RTK products.
+Make sure Bluetooth is enabled on your iOS device Settings.
 
-ArcGIS Survey123 connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad.
+The RTK device will not appear in the _OTHER DEVICES_ list. That is OK.
 
-![alt text](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+![iOS Settings Bluetooth](img/iOS/Screenshot1.PNG)
 
+*iOS Settings Bluetooth*
 
-![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
+Open SWMaps.
 
+Open or continue a Project if desired.
 
-*Adding WiFi network to settings*
+SWMaps will show your approximate location based on your iOS device's location.
 
-The RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
+![iOS SWMaps Initial Location](img/iOS/Screenshot2.PNG)
 
-![TCP Server Enabled on port 2948](<img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png>)
+*iOS SWMaps Initial Location*
 
-*TCP Server Enabled on port 2948*
+Press the 'SWMaps' icon at the top left of the screen to open the menu.
 
-Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
-![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
+![iOS SWMaps Menu](img/iOS/Screenshot3.PNG)
 
-*RTK device showing IP address*
+*iOS SWMaps Menu*
 
-Once the RTK device connects to the WiFi hotspot, its IP address can be found in the System menu. This is the number that needs to be entered into ArcGIS Survey123. You can now proceed to the ArcGIS Survey123 app to set up the software connection.
+Select Bluetooth GNSS.
 
-![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
+![iOS SWMaps Bluetooth Connection](img/iOS/Screenshot4.PNG)
 
-*ArcGIS Survey123 Home Screen*
+*iOS SWMaps Bluetooth Connection*
 
-From the home screen, click on the 'hamburger' icon in the upper right corner.
+Set the **Instrument Model** to **Generic NMEA (Bluetooth LE)**.
 
-![ArcGIS Survey123 Settings Menu](<img/ArcGIS/SparkFun RTK - ArcGIS Settings.png>)
+![iOS SWMaps Instrument Model](img/iOS/Screenshot5.PNG)
 
-*ArcGIS Survey123 Settings Menu*
+*iOS SWMaps Instrument Model*
 
-From the settings menu, click on the *Settings* gear.
+Press 'Scan' and your RTK device should appear.
 
-![ArcGIS Survey123 Settings List](<img/ArcGIS/SparkFun RTK - ArcGIS Settings List.png>)
+![iOS SWMaps Bluetooth Scan](img/iOS/Screenshot6.PNG)
 
-*ArcGIS Survey123 Settings List*
+*iOS SWMaps Bluetooth Scan*
 
-From the settings list, click on *Location*.
+Select (tick) the RTK device and press 'Connect'.
 
-![ArcGIS Survey123 List of Location Providers](<img/ArcGIS/SparkFun RTK - ArcGIS Location Providers.png>)
+![iOS SWMaps Bluetooth Connected](img/iOS/Screenshot7.PNG)
 
-*ArcGIS Survey123 List of Location Providers*
+*iOS SWMaps Bluetooth Connected*
 
-Click on the *Add location provider*.
+Close the menu and your RTK location will be displayed on the map.
 
-![ArcGIS Survey123 Network Connection Type](<img/ArcGIS/SparkFun RTK - ArcGIS Location Network.png>)
+You can now use the other features of SWMaps, including the built-in NTRIP Client.
 
-*ArcGIS Survey123 Network Connection Type*
+Re-open the menu and select 'NTRIP Client'.
 
-Select *Network*.
+Enter the details for your NTRIP Caster - as shown in the [SWMaps section above](#sw-maps).
 
-![ArcGIS Survey123 TCP Connection Information](<img/ArcGIS/SparkFun RTK - ArcGIS Network Information.png>)
+![iOS SWMaps NTRIP Client](img/iOS/Screenshot8.PNG)
 
-*ArcGIS Survey123 TCP Connection Information*
+*iOS SWMaps NTRIP Client*
 
-Enter the IP address previously found along with the TCP port. Once complete, click *Add*.
+Click 'Connect'
 
-![ArcGIS Survey123 Sensor Settings](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Settings.png>)
+At this point, you should see a Bluetooth Pairing Request. Select 'Pair' to pair your RTK with your iOS device.
 
-*ArcGIS Survey123 Sensor Settings*
+![iOS Bluetooth Pairing](img/iOS/Screenshot9.PNG)
 
-You may enter various sensor-specific settings including antenna height, if desired. To view real-time sensor information, click on the satellite icon in the upper right corner.
+*iOS Bluetooth Pairing*
 
-![ArcGIS Survey123 Sensor Data](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Data.png>)
+SWMaps will now receive NTRIP correction data from the caster and push it to your RTK over Bluetooth BLE.
 
-*ArcGIS Survey123 Sensor Data*
+From the SWMaps menu, open 'GNSS Status' to see your position, fix type and accuracy.
 
-The SparkFun RTK device's data should now be seen. Click on the *Map* icon to return to the mapping interface.
+![iOS SWMaps GNSS Status](img/iOS/Screenshot10.PNG)
 
-![ArcGIS Survey123 Map Interface](<img/ArcGIS/SparkFun RTK - ArcGIS Map Interface.png>)
+*iOS SWMaps GNSS Status*
 
-*ArcGIS Survey123 Map Interface*
+If you return to the iOS Bluetooth Settings, you will see that your iOS and RTK devices are now paired.
 
-Returning to the map view, we can now begin gathering point information with millimeter accuracy.
+![iOS Settings Bluetooth Paired](img/iOS/Screenshot11.PNG)
+
+*iOS Settings Bluetooth - Paired*
 
 ## Other GIS Packages
 
