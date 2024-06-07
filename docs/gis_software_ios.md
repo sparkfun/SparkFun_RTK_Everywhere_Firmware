@@ -12,15 +12,14 @@ The software options for Apple iOS are much more limited because Apple products 
 
 *ArcGIS Survey123 Home Screen*
 
-[ArcGIS Survey123](https://apps.apple.com/us/app/arcgis-survey123/id993015031) a popular offering from Esri that works well with SparkFun RTK products.
+[ArcGIS Survey123](https://apps.apple.com/us/app/arcgis-survey123/id993015031) is a popular offering from Esri that works well with SparkFun RTK products.
 
 ArcGIS Survey123 connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad.
 
-![alt text](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
 
 
 ![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
-
 
 *Adding WiFi network to settings*
 
@@ -31,11 +30,12 @@ The RTK device must use WiFi to connect to the data collector. Using a cellular 
 *TCP Server Enabled on port 2948*
 
 Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
+
 ![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
 
 *RTK device showing IP address*
 
-Once the RTK device connects to the WiFi hotspot, its IP address can be found in the System menu. This is the number that needs to be entered into ArcGIS Survey123. You can now proceed to the ArcGIS Survey123 app to set up the software connection.
+Once the RTK device connects to the WiFi hotspot, its IP address can be found in the [System Menu](menu_system.md). This is the number that needs to be entered into ArcGIS Survey123. You can now proceed to the ArcGIS Survey123 app to set up the software connection.
 
 ![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
 
@@ -112,11 +112,14 @@ QField currently does not correctly parse other messages such as **GPRMC**, or *
 
 These NMEA message settings can be found under the [Messages menu](menu_messages.md), using the [web config page](configure_with_wifi.md) or the [serial config interface](configure_with_serial.md).
 
-![Adding WiFi network to settings](<SparkFun RTK WiFi Config - WiFi Menu.png>)
+![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+
+
+![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
 
 *Adding WiFi network to settings*
 
-Next, the RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *Roving* (a cell phone hotspot) when WiFi is needed.
+Next, the RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
 
 ![TCP Server Enabled on port 9000](<img/QField/SparkFun RTK QField - TCP Server.png>)
 
@@ -124,11 +127,11 @@ Next, the RTK device must use WiFi to connect to the data collector. Using a cel
 
 Next, the RTK device must be configured as a *TCP Server*. QField uses a default port of 9000 so that is what we recommend using. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
 
-![RTK device showing IP address](<img/QField/SparkFun RTK QField - TCP Connection.png>)
+![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
 
 *RTK device showing IP address*
 
-Once the RTK device connects to the WiFi hotspot, it will display its IP address. This is the number that needs to be entered into QField. You can now proceed to the QField app to set up the software connection.
+Once the RTK device connects to the WiFi hotspot, its IP address can be found in the [System Menu](menu_system.md). This is the number that needs to be entered into QField. You can now proceed to the QField app to set up the software connection.
 
 ![QField Opening Screen](<img/QField/SparkFun RTK QField - Opening Page.png>)
 
