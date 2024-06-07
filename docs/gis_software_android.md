@@ -1,8 +1,8 @@
-# GIS Software
+# Anrdoid
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
-While we recommend SW Maps for Android, there are a variety of 3rd party apps available for GIS and surveying. We will cover a few examples below that should give you an idea of how to get the incoming NMEA data over Bluetooth into the software of your choice.
+While we recommend SW Maps for Android, there are a variety of 3rd party apps available for GIS and surveying. We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.
 
 ## SW Maps
 
@@ -358,7 +358,7 @@ Alternatively, a direct serial connection to the RTK device can be obtained. Use
 
 ![Opening page of QField](img/QField/SparkFun%20RTK%20QField%20-%20Open%20Project.png)
 
-[QField](https://docs.qfield.org/get-started/) is a free GIS the Android app that runs QGIS.
+[QField](https://docs.qfield.org/get-started/) is a free GIS Android app that runs QGIS.
 
 ![NMEA message configuration](img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_GNSS_Config_Messages.jpg)
 
@@ -403,100 +403,6 @@ From the submenu, select 'Settings'.
 Select the Positioning Menu. Then, with your RTK device on and in normal mode (not AP Config) press the Scan button in the QField app to update the dropdown list of available Bluetooth devices. If your device is not detected, be sure you've [paired your cellphone or laptop with Bluetooth](connecting_bluetooth.md).
 
 Once connected exit out of the menus and see position information within your project.
-
-## Apple iOS
-
-The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK devices support Bluetooth Low Energy (BLE) which *does* work with iOS.
-
-We recommend SWMaps for iOS. SWMaps is available for iOS [here](https://apps.apple.com/us/app/sw-maps/id6444248083).  
-
-More information is available on the [System Menu](menu_system.md) for switching between Bluetooth SPP and BLE.
-
-To begin:
-
-Make sure your RTK device is switched on, in Rover mode and operating in Bluetooth BLE mode.
-
-Make sure Bluetooth is enabled on your iOS device Settings.
-
-The RTK device will not appear in the _OTHER DEVICES_ list. That is OK.
-
-![iOS Settings Bluetooth](img/iOS/Screenshot1.PNG)
-
-*iOS Settings Bluetooth*
-
-Open SWMaps.
-
-Open or continue a Project if desired.
-
-SWMaps will show your approximate location based on your iOS device's location.
-
-![iOS SWMaps Initial Location](img/iOS/Screenshot2.PNG)
-
-*iOS SWMaps Initial Location*
-
-Press the 'SWMaps' icon at the top left of the screen to open the menu.
-
-![iOS SWMaps Menu](img/iOS/Screenshot3.PNG)
-
-*iOS SWMaps Menu*
-
-Select Bluetooth GNSS.
-
-![iOS SWMaps Bluetooth Connection](img/iOS/Screenshot4.PNG)
-
-*iOS SWMaps Bluetooth Connection*
-
-Set the **Instrument Model** to **Generic NMEA (Bluetooth LE)**.
-
-![iOS SWMaps Instrument Model](img/iOS/Screenshot5.PNG)
-
-*iOS SWMaps Instrument Model*
-
-Press 'Scan' and your RTK device should appear.
-
-![iOS SWMaps Bluetooth Scan](img/iOS/Screenshot6.PNG)
-
-*iOS SWMaps Bluetooth Scan*
-
-Select (tick) the RTK device and press 'Connect'.
-
-![iOS SWMaps Bluetooth Connected](img/iOS/Screenshot7.PNG)
-
-*iOS SWMaps Bluetooth Connected*
-
-Close the menu and your RTK location will be displayed on the map.
-
-You can now use the other features of SWMaps, including the built-in NTRIP Client.
-
-Re-open the menu and select 'NTRIP Client'.
-
-Enter the details for your NTRIP Caster - as shown in the [SWMaps section above](#sw-maps).
-
-![iOS SWMaps NTRIP Client](img/iOS/Screenshot8.PNG)
-
-*iOS SWMaps NTRIP Client*
-
-Click 'Connect'
-
-At this point, you should see a Bluetooth Pairing Request. Select 'Pair' to pair your RTK with your iOS device.
-
-![iOS Bluetooth Pairing](img/iOS/Screenshot9.PNG)
-
-*iOS Bluetooth Pairing*
-
-SWMaps will now receive NTRIP correction data from the caster and push it to your RTK over Bluetooth BLE.
-
-From the SWMaps menu, open 'GNSS Status' to see your position, fix type and accuracy.
-
-![iOS SWMaps GNSS Status](img/iOS/Screenshot10.PNG)
-
-*iOS SWMaps GNSS Status*
-
-If you return to the iOS Bluetooth Settings, you will see that your iOS and RTK devices are now paired.
-
-![iOS Settings Bluetooth Paired](img/iOS/Screenshot11.PNG)
-
-*iOS Settings Bluetooth - Paired*
 
 ## Other GIS Packages
 
