@@ -181,9 +181,90 @@ Above, we see the port is successfully connected. Exit out of all menus.
 
 Returning to the map view, we see an RTK Fix with 11mm positional accuracy.
 
+## ArcGIS Survey123
+
+![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
+
+*ArcGIS Survey123 Home Screen*
+
+[ArcGIS Survey123](https://apps.apple.com/us/app/arcgis-survey123/id993015031) a popular offering from Esri that works well with SparkFun RTK products.
+
+ArcGIS Survey123 connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad.
+
+![alt text](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
 
 
+![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
 
+
+*Adding WiFi network to settings*
+
+The RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
+
+![TCP Server Enabled on port 2948](<img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png>)
+
+*TCP Server Enabled on port 2948*
+
+Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
+![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
+
+*RTK device showing IP address*
+
+Once the RTK device connects to the WiFi hotspot, its IP address can be found in the System menu. This is the number that needs to be entered into ArcGIS Survey123. You can now proceed to the ArcGIS Survey123 app to set up the software connection.
+
+![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
+
+*ArcGIS Survey123 Home Screen*
+
+From the home screen, click on the 'hamburger' icon in the upper right corner.
+
+![ArcGIS Survey123 Settings Menu](<img/ArcGIS/SparkFun RTK - ArcGIS Settings.png>)
+
+*ArcGIS Survey123 Settings Menu*
+
+From the settings menu, click on the *Settings* gear.
+
+![ArcGIS Survey123 Settings List](<img/ArcGIS/SparkFun RTK - ArcGIS Settings List.png>)
+
+*ArcGIS Survey123 Settings List*
+
+From the settings list, click on *Location*.
+
+![ArcGIS Survey123 List of Location Providers](<img/ArcGIS/SparkFun RTK - ArcGIS Location Providers.png>)
+
+*ArcGIS Survey123 List of Location Providers*
+
+Click on the *Add location provider*.
+
+![ArcGIS Survey123 Network Connection Type](<img/ArcGIS/SparkFun RTK - ArcGIS Location Network.png>)
+
+*ArcGIS Survey123 Network Connection Type*
+
+Select *Network*.
+
+![ArcGIS Survey123 TCP Connection Information](<img/ArcGIS/SparkFun RTK - ArcGIS Network Information.png>)
+
+*ArcGIS Survey123 TCP Connection Information*
+
+Enter the IP address previously found along with the TCP port. Once complete, click *Add*.
+
+![ArcGIS Survey123 Sensor Settings](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Settings.png>)
+
+*ArcGIS Survey123 Sensor Settings*
+
+You may enter various sensor-specific settings including antenna height, if desired. To view real-time sensor information, click on the satellite icon in the upper right corner.
+
+![ArcGIS Survey123 Sensor Data](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Data.png>)
+
+*ArcGIS Survey123 Sensor Data*
+
+The SparkFun RTK device's data should now be seen. Click on the *Map* icon to return to the mapping interface.
+
+![ArcGIS Survey123 Map Interface](<img/ArcGIS/SparkFun RTK - ArcGIS Map Interface.png>)
+
+*ArcGIS Survey123 Map Interface*
+
+Returning to the map view, we can now begin gathering point information with millimeter accuracy.
 
 ## Other GIS Packages
 
