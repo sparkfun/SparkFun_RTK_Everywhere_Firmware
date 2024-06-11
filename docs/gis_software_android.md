@@ -1,4 +1,4 @@
-# Anrdoid
+# Android
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png)
 
@@ -123,40 +123,6 @@ From the submenu, select 'Settings'.
 Select the Positioning Menu. Then, with your RTK device on and in normal mode (not AP Config) press the Scan button in the QField app to update the dropdown list of available Bluetooth devices. If your device is not detected, be sure you've [paired your cellphone or laptop with Bluetooth](connecting_bluetooth.md).
 
 Once connected exit out of the menus and see position information within your project.
-
-## QGIS
-
-QGIS is a free and open-source geographic information system software for desktops. It's available [here](https://qgis.org/).
-
-Once the software is installed open QGIS Desktop.
-
-![View Menu](img/QGIS/SparkFun%20RTK%20QGIS%20-%20View%20Menu.png)
-
-Open the View Menu, then look for the 'Panels' submenu.
-
-![Panels submenu](img/QGIS/SparkFun%20RTK%20QGIS%20-%20Enable%20GPS%20Info%20Panel.png)
-
-From the Panels submenu, enable 'GPS Information'. This will show a new panel on the left side.
-
-At this point, you will need to enable *TCP Server* mode on your RTK device from the [WiFi Config menu](menu_wifi.md). Once the RTK device is connected to local WiFi QGIS will be able to connect to the given IP address and TCP port.
-
-![Select GPSD](img/QGIS/SparkFun%20RTK%20QGIS%20-%20GPS%20Panel.png)
-
-Above: From the subpanel, select 'gpsd'.
-
-![Entering gpsd specifics](img/QGIS/SparkFun%20RTK%20QGIS%20-%20GPS%20Panel%20Entering%20IP%20and%20port.png)
-
-Enter the IP address of your RTK device. This can be found by opening a serial connection to the device. The IP address will be displayed every few seconds. Enter the TCP port to use. By default an RTK device uses 2947.
-
-Press 'Connect'. 
-
-![Viewing location in QGIS](img/QGIS/SparkFun%20RTK%20QGIS%20-%20Location%20on%20Map.png)
-
-The device location will be shown on the map. To see a map, be sure to enable OpenStreetMap under the XYZ Tiles on the Browser.
-
-![Connecting over Serial](img/QGIS/SparkFun%20RTK%20QGIS%20-%20Direct%20Serial%20Connection.png)
-
-Alternatively, a direct serial connection to the RTK device can be obtained. Use a USB cable to connect to the RTK device. See [Output GNSS Data over USB](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_ports/#output-gnss-data-over-usb) for more information.
 
 ## Survey Master
 

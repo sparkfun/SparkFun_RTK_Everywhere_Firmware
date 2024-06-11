@@ -132,6 +132,7 @@ nav:
   - GIS Software:
       - gis_software_android.md
       - gis_software_ios.md
+      - gis_software_windows.md
   - Configuration Methods:
       - configure_with_bluetooth.md
       - configure_with_serial.md
