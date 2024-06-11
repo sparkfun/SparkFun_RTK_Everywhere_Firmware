@@ -92,8 +92,6 @@ void menuWiFi()
         systemPrint("m) MDNS: ");
         systemPrintf("%s\r\n", settings.mdnsEnable ? "Enabled" : "Disabled");
 
-        systemPrintf("t) Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
-
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -129,18 +127,6 @@ void menuWiFi()
         else if (incoming == 'm')
         {
             settings.mdnsEnable ^= 1;
-        }
-        else if (incoming == 't')
-        {
-            systemPrint("Enter connect timeout in ms (1000 - 120000): ");
-            long newTimeout = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((newTimeout != INPUT_RESPONSE_GETNUMBER_EXIT) && (newTimeout != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if ((newTimeout >= 1000) && (newTimeout <= 120000))
-                {
-                    settings.wifiConnectTimeoutMs = newTimeout;
-                }
-            }
         }
         else if (incoming == 'x')
             break;

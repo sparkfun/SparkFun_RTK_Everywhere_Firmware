@@ -1353,7 +1353,7 @@ struct Settings
         {"", ""},
         {"", ""},
     };
-    uint32_t wifiConnectTimeoutMs = 10000; // Wait this long for a WiFiMulti connection
+    uint32_t wifiConnectTimeoutMs = 20000; // Wait this long for a WiFiMulti connection
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below

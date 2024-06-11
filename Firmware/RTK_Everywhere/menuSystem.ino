@@ -736,6 +736,8 @@ void menuDebugSoftware()
 
         systemPrintf("2) Set level to use PSRAM (bytes): %d\r\n", settings.psramMallocLevel);
 
+        systemPrintf("3) WiFi Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
+
         // Ring buffer - ZED Tx
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
@@ -809,6 +811,10 @@ void menuDebugSoftware()
         else if (incoming == 2)
         {
             getNewSetting("Enter level to use PSRAM in bytes", 0, 65535, &settings.psramMallocLevel);
+        }
+        else if (incoming == 3)
+        {
+            getNewSetting("Enter WiFi connect timeout in ms", 1000, 120000, &settings.wifiConnectTimeoutMs);
         }
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
