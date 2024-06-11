@@ -146,6 +146,7 @@ void ethernetBegin()
     case (ETH_NOT_STARTED):
         Network.onEvent(onEthernetEvent);
 
+        //        begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
         if (!(ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI)))
         {
             if (settings.debugNetworkLayer)
@@ -360,6 +361,7 @@ void ethernetWebServerStartESP32W5500()
 {
     Network.onEvent(onEthernetEvent);
 
+    //  begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
     ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
 
     if (!settings.ethernetDHCP)
