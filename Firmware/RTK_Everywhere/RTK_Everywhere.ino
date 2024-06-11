@@ -670,7 +670,7 @@ const int updatePplTaskStackSize = 3000;
 
 bool pplNewRtcmNmea = false;
 bool pplNewSpartn = false;
-uint8_t *pplRtcmBuffer;
+uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
 bool pplGnssOutput = false;
