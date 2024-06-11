@@ -215,8 +215,6 @@ To verify the NMEA sentences are being delivered correctly, Survey Master has a 
 
 ## SurvPC
 
-Note: The company behind SurvPC, Carlson Software, is not always welcoming to competitors of their $18,000 devices, so be warned.
-
 Be sure your device is [paired over Bluetooth](connecting_bluetooth.md#windows).
 
 ![Equip Sub Menu](img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20Equip%20Menu.jpg)
