@@ -94,9 +94,13 @@ static esp_err_t ws_handler(httpd_req_t *req)
         systemPrintf("frame len is %d\r\n", ws_pkt.len);
     if (ws_pkt.len) {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
-        buf = (uint8_t *)calloc(1, ws_pkt.len + 1);
+        if (online.psram == true)
+            buf = (uint8_t *)ps_malloc(ws_pkt.len + 1);
+        else
+            buf = (uint8_t *)malloc(ws_pkt.len + 1);
+        
         if (buf == NULL) {
-            systemPrintln("Failed to calloc memory for buf");
+            systemPrintln("Failed to malloc memory for buf");
             return ESP_ERR_NO_MEM;
         }
         ws_pkt.payload = buf;
