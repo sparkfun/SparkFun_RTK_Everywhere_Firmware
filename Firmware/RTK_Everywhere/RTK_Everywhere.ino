@@ -394,6 +394,9 @@ const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/
 bool lBandForceGetKeys;               // Used to allow key update from display
 unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+
+bool usbSerialIncomingRtcm;            // Incoming RTCM over the USB serial port
+#define RTCM_CORRECTION_INPUT_TIMEOUT   (2 * 1000)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GNSS configuration - UM980
