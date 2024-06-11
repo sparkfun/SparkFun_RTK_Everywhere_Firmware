@@ -3,7 +3,7 @@
 
 extern uint8_t networkGetType(uint8_t user);
 
-class NetworkClient : public Client
+class RTKNetworkClient : public Client
 {
   protected:
     Client *_client; // Ethernet or WiFi client
@@ -14,20 +14,20 @@ class NetworkClient : public Client
     //------------------------------
     // Create the network client
     //------------------------------
-    NetworkClient(Client *client, uint8_t networkType)
+    RTKNetworkClient(Client *client, uint8_t networkType)
     {
         _friendClass = true;
         _networkType = networkType;
         _client = client;
     }
 
-    NetworkClient(uint8_t user)
+    RTKNetworkClient(uint8_t user)
     {
         _friendClass = false;
         _networkType = networkGetType(user);
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            _client = new EthernetClient;
+            _client = new NetworkClient;
         else
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
@@ -40,7 +40,7 @@ class NetworkClient : public Client
     //------------------------------
     // Delete the network client
     //------------------------------
-    ~NetworkClient()
+    ~RTKNetworkClient()
     {
         if (_client)
         {
@@ -161,7 +161,7 @@ class NetworkClient : public Client
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetClient *)_client)->remoteIP();
+            return ((NetworkClient *)_client)->remoteIP();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -178,7 +178,7 @@ class NetworkClient : public Client
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetClient *)_client)->remotePort();
+            return ((NetworkClient *)_client)->remotePort();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -240,66 +240,66 @@ class NetworkClient : public Client
 };
 
 #ifdef COMPILE_ETHERNET
-class NetworkEthernetClient : public NetworkClient
+class NetworkEthernetClient : public RTKNetworkClient
 {
   private:
-    EthernetClient _ethernetClient;
+    NetworkClient _ethernetClient;
 
   public:
-    NetworkEthernetClient() : NetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
+    NetworkEthernetClient() : RTKNetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
     {
     }
 
-    NetworkEthernetClient(EthernetClient &client)
-        : _ethernetClient{client}, NetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
+    NetworkEthernetClient(NetworkClient &client)
+        : _ethernetClient{client}, RTKNetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
     {
     }
 
     ~NetworkEthernetClient()
     {
-        this->~NetworkClient();
+        this->~RTKNetworkClient();
     }
 };
 #endif // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-class NetworkWiFiClient : public NetworkClient
+class NetworkWiFiClient : public RTKNetworkClient
 {
   protected:
     WiFiClient _client;
 
   public:
-    NetworkWiFiClient() : NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkWiFiClient() : RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
-    NetworkWiFiClient(WiFiClient &client) : _client{client}, NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkWiFiClient(WiFiClient &client) : _client{client}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
     ~NetworkWiFiClient()
     {
-        this->~NetworkClient();
+        this->~RTKNetworkClient();
     }
 };
 
-class NetworkSecureWiFiClient : public NetworkClient
+class NetworkSecureWiFiClient : public RTKNetworkClient
 {
   protected:
     WiFiClientSecure _client;
 
   public:
-    NetworkSecureWiFiClient() : _client{WiFiClientSecure()}, NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkSecureWiFiClient() : _client{WiFiClientSecure()}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
-    NetworkSecureWiFiClient(WiFiClient &client) : _client{client}, NetworkClient(&_client, NETWORK_TYPE_WIFI)
+    NetworkSecureWiFiClient(WiFiClient &client) : _client{client}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
     ~NetworkSecureWiFiClient()
     {
-        this->~NetworkClient();
+        this->~RTKNetworkClient();
     }
 
     WiFiClientSecure *getClient()
@@ -384,9 +384,9 @@ class NetworkSecureWiFiClient : public NetworkClient
         }
     */
 
-    int setTimeout(uint32_t seconds)
+    void setTimeout(uint32_t seconds)
     {
-        return _client.setTimeout(seconds);
+        _client.setTimeout(seconds);
     }
 
     int fd() const

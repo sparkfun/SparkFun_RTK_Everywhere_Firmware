@@ -473,7 +473,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 
     bool wasInAPmode;
 
-    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
     {
         char versionString[21];
         getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -555,7 +555,7 @@ void overTheAirUpdate()
         {
 #ifdef COMPILE_AP
             // Tell AP page to display reset info
-            websocket->textAll("confirmReset,1,");
+            sendStringToWebsocket("confirmReset,1,");
 #endif // COMPILE_AP
         }
         ESP.restart();
@@ -577,7 +577,7 @@ void otaUpdate()
 
     bool wasInAPmode;
 
-    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
         overTheAirUpdate();
 
     // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
@@ -623,7 +623,7 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 #ifdef COMPILE_AP
             char myProgress[50];
             snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
-            websocket->textAll(myProgress);
+            sendStringToWebsocket(myProgress);
 #endif // COMPILE_AP
         }
 

@@ -143,7 +143,7 @@ Network.ino
 // Constants
 //----------------------------------------
 
-#define NETWORK_CONNECTION_TIMEOUT (15 * 1000) // Timeout for network media connection
+#define NETWORK_CONNECTION_TIMEOUT (30 * 1000) // Timeout for network media connection - allow extra time for WiFiMulti scan
 #define NETWORK_DELAY_BEFORE_RETRY (75 * 100)  // Delay between network connection retries
 #define NETWORK_IP_ADDRESS_DISPLAY (12 * 1000) // Delay in milliseconds between display of IP address
 #define NETWORK_MAX_IDLE_TIME 500              // Maximum network idle time before shutdown
@@ -352,9 +352,9 @@ void menuTcpUdp()
 //----------------------------------------
 // Allocate a network client
 //----------------------------------------
-NetworkClient *networkClient(uint8_t user, bool useSSL)
+RTKNetworkClient *networkClient(uint8_t user, bool useSSL)
 {
-    NetworkClient *client;
+    RTKNetworkClient *client;
     int type;
 
     type = networkGetType(user);
@@ -591,7 +591,7 @@ bool networkIsMediaConnected(NETWORK_DATA *network)
     }
 
     // Verify that the network has an IP address
-    if (isConnected && (networkGetIpAddress(network->type) != 0))
+    if (isConnected && (networkGetIpAddress(network->type) != IPAddress((uint32_t)0)))
     {
         networkPeriodicallyDisplayIpAddress();
         return true;

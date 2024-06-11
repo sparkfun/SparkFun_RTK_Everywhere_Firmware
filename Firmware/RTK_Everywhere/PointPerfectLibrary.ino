@@ -105,7 +105,7 @@ void updatePplTask(void *e)
     if (settings.printTaskStartStop)
         systemPrintln("Task updatePplTask stopped");
     task.updatePplTaskRunning = false;
-    vTaskDelete(NULL);
+    vTaskDelete(updatePplTaskHandle);
 }
 
 // Begin the PointPerfect Library and give it the current key
@@ -175,8 +175,6 @@ void beginPPL()
     {
         systemPrintf("PointPerfect Library Online: %s\r\n", PPL_SDK_VERSION);
 
-        TaskHandle_t taskHandle;
-
         // Starts task for feeding NMEA+RTCM to PPL
         if (task.updatePplTaskRunning == false)
             xTaskCreate(updatePplTask,
@@ -184,7 +182,7 @@ void beginPPL()
                         updatePplTaskStackSize, // Stack Size
                         nullptr,                // Task input parameter
                         updatePplTaskPriority,
-                        &taskHandle); // Task handle
+                        &updatePplTaskHandle); // Task handle
     }
     else
         systemPrintln("PointPerfect Library failed to start");

@@ -120,8 +120,11 @@ void menuPortsNoMux()
             systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart");
         }
         else if (incoming == 4)
+        {
             settings.enableGnssToUsbSerial ^= 1;
-
+            if (settings.enableGnssToUsbSerial)
+                systemPrintln("GNSS to USB is enabled. To exit this mode, press +++ to open the configuration menu.");
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

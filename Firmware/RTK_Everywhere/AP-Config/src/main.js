@@ -1,4 +1,4 @@
-var gateway = `ws://${window.location.hostname}/ws`;
+var gateway = `ws://${window.location.hostname}:81/ws`;
 var websocket;
 
 window.addEventListener('load', onLoad);
@@ -764,7 +764,7 @@ function validateFields() {
     }
 
     if (ge("enableAutoReset").checked == true) {
-        checkElementValue("rebootMinutes", 1, 999999, "Must be 1 to 999999", "collapseSystemConfig");
+        checkElementValue("rebootMinutes", 1, 4294967, "Must be 1 to 4294967", "collapseSystemConfig");
     }
     else {
         clearElement("rebootMinutes", 0); //0 = disable
@@ -1234,7 +1234,7 @@ function firmwareUploadWait() {
     var formdata = new FormData();
     formdata.append("submitFirmwareFile", file);
     var ajax = new XMLHttpRequest();
-    ajax.open("POST", "/upload");
+    ajax.open("POST", "/uploadFirmware");
     ajax.send(formdata);
 
     ge("firmwareUploadMsg").innerHTML = "<br>Uploading, please wait...";
@@ -1833,7 +1833,7 @@ function uploadFile() {
     ajax.addEventListener("load", completeHandler, false);
     ajax.addEventListener("error", errorHandler, false);
     ajax.addEventListener("abort", abortHandler, false);
-    ajax.open("POST", "/");
+    ajax.open("POST", "/uploadFile");
     ajax.send(formdata);
 }
 function progressHandler(event) {

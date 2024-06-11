@@ -73,7 +73,7 @@ static uint32_t tcpServerTimer;
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
 static volatile uint8_t tcpServerClientWriteError;
-static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
+static RTKNetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
 
@@ -89,7 +89,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
     {
         // Update the data sent flag when data successfully sent
         if (length > 0)
-            tcpServerClientDataSent |= 1 << index;
+            tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
@@ -112,8 +112,8 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         }
 
         tcpServerClient[index]->stop();
-        tcpServerClientConnected &= ~(1 << index);
-        tcpServerClientWriteError |= 1 << index;
+        tcpServerClientConnected = tcpServerClientConnected  & (~(1 << index));
+        tcpServerClientWriteError = tcpServerClientWriteError | (1 << index);
         length = 0;
     }
     return length;
@@ -315,8 +315,8 @@ void tcpServerStopClient(int index)
 
     // Shutdown the TCP server client link
     tcpServerClient[index]->stop();
-    tcpServerClientConnected &= ~(1 << index);
-    tcpServerClientWriteError &= ~(1 << index);
+    tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
+    tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
 
 // Update the TCP server state
@@ -453,7 +453,7 @@ void tcpServerUpdate()
 
                 // Data structure not in use
                 // Check for another TCP server client
-                client = tcpServer->available();
+                client = tcpServer->accept();
 
                 // Done if no TCP server client found
                 if (!client)
@@ -462,8 +462,8 @@ void tcpServerUpdate()
                 // Start processing the new TCP server client connection
                 tcpServerClient[index] = new NetworkWiFiClient(client);
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
-                tcpServerClientConnected |= 1 << index;
-                tcpServerClientDataSent |= 1 << index;
+                tcpServerClientConnected = tcpServerClientConnected | (1 << index);
+                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
                 if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
                 {
                     PERIODIC_CLEAR(PD_TCP_SERVER_DATA);

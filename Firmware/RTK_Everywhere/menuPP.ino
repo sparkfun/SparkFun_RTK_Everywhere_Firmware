@@ -168,8 +168,10 @@ void menuPointPerfectKeys()
 }
 
 // Given a GPS Epoch, return a DD/MM/YYYY string
-char *printDateFromGPSEpoch(long long gpsEpoch)
+const char *printDateFromGPSEpoch(long long gpsEpoch)
 {
+    static char response[strlen("01/01/1010") + 1]; // Make room for terminator
+
     uint16_t keyGPSWeek;
     uint32_t keyGPSToW;
     epochToWeekToW(gpsEpoch, &keyGPSWeek, &keyGPSToW);
@@ -179,35 +181,35 @@ char *printDateFromGPSEpoch(long long gpsEpoch)
     long expYear;
     gpsWeekToWToDate(keyGPSWeek, keyGPSToW, &expDay, &expMonth, &expYear);
 
-    char *response = (char *)malloc(strlen("01/01/1010"));
-
     sprintf(response, "%02ld/%02ld/%ld", expDay, expMonth, expYear);
-    return (response);
+    return ((const char *)response);
 }
 
 // Given a Unix Epoch, return a DD/MM/YYYY string
 // https://www.epochconverter.com/programming/c
-char *printDateFromUnixEpoch(long long unixEpoch)
+const char *printDateFromUnixEpoch(long long unixEpoch)
 {
-    char *buf = (char *)malloc(strlen("01/01/2023") + 1); // Make room for terminator
+    static char response[strlen("01/01/2023") + 1]; // Make room for terminator
+
     time_t rawtime = unixEpoch;
 
     struct tm ts;
     ts = *localtime(&rawtime);
 
     // Format time, "dd/mm/yyyy"
-    strftime(buf, strlen("01/01/2023") + 1, "%d/%m/%Y", &ts);
-    return (buf);
+    strftime(response, strlen("01/01/2023") + 1, "%d/%m/%Y", &ts);
+    return ((const char *)response);
 }
 
 // Given a duration in ms, print days
-char *printDaysFromDuration(long long duration)
+const char *printDaysFromDuration(long long duration)
 {
+    static char response[strlen("99.99") + 1]; // Make room for terminator
+
     float days = duration / (1000.0 * 60 * 60 * 24); // Convert ms to days
 
-    char *response = (char *)malloc(strlen("34.9") + 1); // Make room for terminator
     sprintf(response, "%0.2f", days);
-    return (response);
+    return ((const char *)response);
 }
 
 // Connect to 'home' WiFi and then ThingStream API. This will attach this unique device to the ThingStream network.
@@ -776,8 +778,13 @@ bool checkPrivateKeyValidity(char *privateKey, int privateKeySize)
     mbedtls_pk_context pk;
     mbedtls_pk_init(&pk);
 
-    int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0);
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+
+    int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_pk_free(&pk);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    
     if (result_code < 0)
     {
         if (settings.debugPpCertificate)
@@ -949,8 +956,8 @@ bool pointperfectUpdateKeys()
 void mqttCallback(int messageSize)
 {
 #ifdef COMPILE_WIFI
-    static uint32_t messageLength;
-    static byte *message;
+    static uint32_t messageLength = 0;
+    static byte *message = nullptr;
 
     do
     {
@@ -962,7 +969,7 @@ void mqttCallback(int messageSize)
         if (messageLength < messageSize)
         {
             // Free the previous message buffer
-            if (message)
+            if (message != nullptr)
             {
                 free(message);
                 message = nullptr;
@@ -1518,7 +1525,7 @@ void menuPointPerfect()
             }
             else
             {
-                if (wifiConnect(10000) == true)
+                if (wifiConnect(settings.wifiConnectTimeoutMs) == true)
                 {
                     // Check if we have certificates
                     char fileName[80];

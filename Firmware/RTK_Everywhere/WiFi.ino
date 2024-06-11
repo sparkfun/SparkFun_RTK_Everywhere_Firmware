@@ -280,13 +280,11 @@ bool wifiStartAP(bool forceAP)
         // Start webserver on local WiFi instead of AP
 
         // Attempt to connect to local WiFi with increasing timeouts
-        int timeout = 0;
         int x = 0;
         const int maxTries = 2;
         for (; x < maxTries; x++)
         {
-            timeout += 5000;
-            if (wifiConnect(timeout) == true) // Attempt to connect to any SSID on settings list
+            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
                 wifiPrintNetworkInfo();
                 break;
@@ -343,7 +341,7 @@ void wifiUpdate()
         {
             wifiLastConnectionAttempt = millis();
 
-            if (wifiConnect(10000) == true) // Attempt to connect to any SSID on settings list
+            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
                 // Restart ESPNow if it was previously on
                 if (espnowState > ESPNOW_OFF)
@@ -554,13 +552,15 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     int wifiResponse = WL_DISCONNECTED;
 
     systemPrint("Connecting WiFi... ");
-    WiFiMulti wifiMulti;
+
+    static WiFiMulti wifiMulti;
 
     // Load SSIDs
+    wifiMulti.APlistClean();
     for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
         if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid, (const char *)&settings.wifiNetworks[x].password);
     }
 
     wifiResponse = wifiMulti.run(timeout);

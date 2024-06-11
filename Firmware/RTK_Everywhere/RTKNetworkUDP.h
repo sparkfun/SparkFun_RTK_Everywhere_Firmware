@@ -3,7 +3,7 @@
 
 extern uint8_t networkGetType(uint8_t user);
 
-class NetworkUDP : public UDP
+class RTKNetworkUDP : public UDP
 {
   protected:
     UDP *_udp; // Ethernet or WiFi udp
@@ -14,20 +14,20 @@ class NetworkUDP : public UDP
     //------------------------------
     // Create the network client
     //------------------------------
-    NetworkUDP(UDP *udp, uint8_t networkType)
+    RTKNetworkUDP(UDP * udp, uint8_t networkType)
     {
         _friendClass = true;
         _networkType = networkType;
         _udp = udp;
     }
 
-    NetworkUDP(uint8_t user)
+    RTKNetworkUDP(uint8_t user)
     {
         _friendClass = false;
         _networkType = networkGetType(user);
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            _udp = new EthernetUDP;
+            _udp = new NetworkUDP;
         else
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
@@ -40,7 +40,7 @@ class NetworkUDP : public UDP
     //------------------------------
     // Delete the network client
     //------------------------------
-    ~NetworkUDP()
+    ~RTKNetworkUDP()
     {
         if (_udp)
         {
@@ -220,7 +220,7 @@ class NetworkUDP : public UDP
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetUDP *)_udp)->remoteIP();
+            return ((NetworkUDP *)_udp)->remoteIP();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -237,7 +237,7 @@ class NetworkUDP : public UDP
     {
 #if defined(COMPILE_ETHERNET)
         if (_networkType == NETWORK_TYPE_ETHERNET)
-            return ((EthernetUDP *)_udp)->remotePort();
+            return ((NetworkUDP *)_udp)->remotePort();
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
@@ -255,38 +255,45 @@ class NetworkUDP : public UDP
     friend class NetworkWiFiUdp;
 };
 
-#ifdef COMPILE_ETHERNET
-class NetworkEthernetUdp : public NetworkUDP
+#ifdef  COMPILE_ETHERNET
+class NetworkEthernetUdp : public RTKNetworkUDP
 {
   private:
-    EthernetUDP _udp;
+
+    NetworkUDP _udp;
 
   public:
-    NetworkEthernetUdp(EthernetUDP &udp) : _udp{udp}, NetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
+
+    NetworkEthernetUdp(NetworkUDP& udp) :
+        _udp{udp},
+        RTKNetworkUDP(&_udp, NETWORK_TYPE_ETHERNET)
     {
     }
 
     ~NetworkEthernetUdp()
     {
-        this->~NetworkUDP();
+        this->~RTKNetworkUDP();
     }
 };
 #endif // COMPILE_ETHERNET
 
-#ifdef COMPILE_WIFI
-class NetworkWiFiUdp : public NetworkUDP
+#ifdef  COMPILE_WIFI
+class NetworkWiFiUdp : public RTKNetworkUDP
 {
   private:
     WiFiUDP _udp;
 
   public:
-    NetworkWiFiUdp(WiFiUDP &udp) : _udp{udp}, NetworkUDP(&_udp, NETWORK_TYPE_WIFI)
+
+    NetworkWiFiUdp(WiFiUDP& udp) :
+        _udp{udp},
+        RTKNetworkUDP(&_udp, NETWORK_TYPE_WIFI)
     {
     }
 
     ~NetworkWiFiUdp()
     {
-        this->~NetworkUDP();
+        this->~RTKNetworkUDP();
     }
 };
 #endif // COMPILE_WIFI

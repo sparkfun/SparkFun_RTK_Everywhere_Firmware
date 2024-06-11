@@ -706,12 +706,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         else
             systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
         updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
-        availableHandlerSpace += discardedBytes;
+        availableHandlerSpace = availableHandlerSpace + discardedBytes;
     }
 
     // Add another message to the ring buffer
     // Account for this message
-    availableHandlerSpace -= bytesToCopy;
+    availableHandlerSpace = availableHandlerSpace - bytesToCopy;
 
     // Fill the buffer to the end and then start at the beginning
     if ((dataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
@@ -723,9 +723,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Copy the data into the ring buffer
     memcpy(&ringBuffer[dataHead], parse->buffer, bytesToCopy);
-    dataHead += bytesToCopy;
+    dataHead = dataHead + bytesToCopy;
     if (dataHead >= settings.gnssHandlerBufferSize)
-        dataHead -= settings.gnssHandlerBufferSize;
+        dataHead = dataHead - settings.gnssHandlerBufferSize;
 
     // Determine the remaining bytes
     remainingBytes = parse->length - bytesToCopy;
@@ -733,9 +733,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Copy the remaining bytes into the beginning of the ring buffer
         memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
-        dataHead += remainingBytes;
+        dataHead = dataHead + remainingBytes;
         if (dataHead >= settings.gnssHandlerBufferSize)
-            dataHead -= settings.gnssHandlerBufferSize;
+            dataHead = dataHead - settings.gnssHandlerBufferSize;
     }
 
     // Add the head offset to the offset array
@@ -1185,7 +1185,7 @@ void tickerBluetoothLedUpdate()
         if (btFadeLevel < 0)
             btFadeLevel = 0;
 
-        ledcWrite(ledBtChannel, btFadeLevel);
+        ledcWrite(pin_bluetoothStatusLED, btFadeLevel);
     }
     // Blink on/off while we wait for BT connection
     else if (bluetoothGetState() == BT_NOTCONNECTED)
@@ -1194,13 +1194,13 @@ void tickerBluetoothLedUpdate()
             btFadeLevel = 255;
         else
             btFadeLevel = 0;
-        ledcWrite(ledBtChannel, btFadeLevel);
+        ledcWrite(pin_bluetoothStatusLED, btFadeLevel);
     }
     // Solid LED if BT Connected
     else if (bluetoothGetState() == BT_CONNECTED)
-        ledcWrite(ledBtChannel, 255);
+        ledcWrite(pin_bluetoothStatusLED, 255);
     else
-        ledcWrite(ledBtChannel, 0);
+        ledcWrite(pin_bluetoothStatusLED, 0);
 }
 
 // Control GNSS LED on variants
@@ -1218,11 +1218,11 @@ void tickerGnssLedUpdate()
         // Solid once RTK Fix is achieved, or PPP converges
         if (gnssIsRTKFix() == true || gnssIsPppConverged())
         {
-            ledcWrite(ledGnssChannel, 255);
+            ledcWrite(pin_gnssStatusLED, 255);
         }
         else
         {
-            ledcWrite(ledGnssChannel, 0);
+            ledcWrite(pin_gnssStatusLED, 0);
         }
     }
 }
@@ -1242,15 +1242,15 @@ void tickerBatteryLedUpdate()
         // Solid LED when fuel level is above 50%
         if (batteryLevelPercent > 50)
         {
-            ledcWrite(ledBatteryChannel, 255);
+            ledcWrite(pin_batteryStatusLED, 255);
         }
         // Blink a short blink to indicate battery is depleting
         else
         {
             if (batteryCallCounter == (batteryTaskUpdatesHz / 10)) // On for 1/10th of a second
-                ledcWrite(ledBatteryChannel, 255);
+                ledcWrite(pin_batteryStatusLED, 255);
             else
-                ledcWrite(ledBatteryChannel, 0);
+                ledcWrite(pin_batteryStatusLED, 0);
         }
     }
 }

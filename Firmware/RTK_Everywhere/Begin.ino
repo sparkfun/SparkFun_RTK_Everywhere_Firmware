@@ -5,6 +5,8 @@ Begin.ino
   radio, etc.
 ------------------------------------------------------------------------------*/
 
+#include <esp_mac.h>  // required - exposes esp_mac_type_t values
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -227,7 +229,6 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
-#ifdef EVKv1point1
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
@@ -296,73 +297,7 @@ void beginBoard()
         pin_microSD_CardDetect = 36;
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
-#else
-        // EVK v1.0 - TODO: delete this once all five EVK v1.0's have been upgraded / replaced
-        present.psram_4mb = true;
-        present.gnss_zedf9p = true;
-        present.lband_neo = true;
-        present.cellular_lara = true;
-        present.ethernet_ws5500 = true;
-        present.microSd = true;
-        present.microSdCardDetectLow = true;
-        present.button_mode = true;
-        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been
-        // changed
-        present.peripheralPowerControl = true;
-        present.laraPowerControl = true; // Tertiary power controls the LARA
-        present.antennaShortOpen = true;
-        present.timePulseInterrupt = true;
-        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
-        present.i2c1 = true;
-        present.display_i2c1 = true;
-        present.display_type = DISPLAY_128x64;
-        present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
 
-        // Pin Allocations:
-        // 35, D1  : Serial TX (CH340 RX)
-        // 34, D3  : Serial RX (CH340 TX)
-
-        // 25, D0  : Boot + Boot Button
-        pin_modeButton = 0;
-        // 24, D2  : Status LED
-        pin_baseStatusLED = 2;
-        // 29, D5  : LARA_ON - not used
-        // 14, D12 : I2C1 SDA via 74LVC4066 switch
-        pin_I2C1_SDA = 12;
-        // 23, D15 : I2C1 SCL via 74LVC4066 switch
-        pin_I2C1_SCL = 15;
-
-        // 26, D4  : microSD card select bar
-        pin_microSD_CS = 4;
-        // 16, D13 : LARA_TXDI
-        pin_Cellular_TX = 13;
-        // 13, D14 : LARA_RXDO
-        pin_Cellular_RX = 14;
-
-        // 30, D18 : SPI SCK --> Ethernet, microSD card
-        // 31, D19 : SPI POCI
-        // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
-        pin_I2C0_SDA = 21;
-        // 36, D22 : I2C0 SCL
-        pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO
-        // 10, D25 : GNSS TP
-        pin_GNSS_TimePulse = 25;
-        // 11, D26 : LARA_PWR_ON
-        pin_Cellular_PWR_ON = 26;
-        // 12, D27 : Ethernet Chip Select
-        pin_Ethernet_CS = 27;
-        //  8, D32 : PWREN
-        pin_peripheralPowerControl = 32;
-        //  9, D33 : Ethernet Interrupt
-        pin_Ethernet_Interrupt = 33;
-        //  6, A34 : LARA_NI
-        pin_Cellular_Network_Indicator = 34;
-        //  7, A35 : Board Detect (1.1V)
-        //  4, A36 : microSD card detect
-        pin_microSD_CardDetect = 36;
-        //  5, A39 : Not used
-#endif
         // Select the I2C 0 data structure
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
@@ -553,14 +488,6 @@ void beginSD()
     if (present.microSd == false)
         return;
 
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginSD");
-        return;
-    }
-
     bool gotSemaphore;
 
     gotSemaphore = false;
@@ -697,7 +624,7 @@ void resetSPI()
     sdDeselectCard();
 
     // Flush SPI interface
-    SPI.begin();
+    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -707,7 +634,7 @@ void resetSPI()
     sdSelectCard();
 
     // Flush SD interface
-    SPI.begin();
+    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -883,14 +810,6 @@ bool forceConfigureViaEthernet()
 // Begin interrupts
 void beginInterrupts()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginInterrupts");
-        return;
-    }
-
     if (present.timePulseInterrupt ==
         true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
@@ -903,8 +822,9 @@ void beginInterrupts()
     if (present.ethernet_ws5500 == true)
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
-        pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
-        attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
+        pinMode(pin_Ethernet_Interrupt, INPUT);                 // Prepare the interrupt pin
+        // TODO: figure out how to handle NTP mode and timestamp the arrival of UDP NTP requests
+        //attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
     }
 #endif // COMPILE_ETHERNET
 }
@@ -914,26 +834,23 @@ void tickerBegin()
 {
     if (pin_bluetoothStatusLED != PIN_UNDEFINED)
     {
-        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
-        ledcWrite(ledBtChannel, 255); // Turn on BT LED at startup
-        // Attach happens in bluetoothStart()
+        ledcAttach(pin_bluetoothStatusLED, pwmFreq, pwmResolution);
+        ledcWrite(pin_bluetoothStatusLED, 255);                                               // Turn on BT LED at startup
+        //Attach happens in bluetoothStart()
     }
 
     if (pin_gnssStatusLED != PIN_UNDEFINED)
     {
-        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
-        ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED at startup
+        ledcAttach(pin_gnssStatusLED, pwmFreq, pwmResolution);
+        ledcWrite(pin_gnssStatusLED, 0);                                     // Turn off GNSS LED at startup
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 
     if (pin_batteryStatusLED != PIN_UNDEFINED)
     {
-        ledcSetup(ledBatteryChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_batteryStatusLED, ledBatteryChannel);
-        ledcWrite(ledBatteryChannel, 0);                                           // Turn off battery LED at startup
+        ledcAttach(pin_batteryStatusLED, pwmFreq, pwmResolution);
+        ledcWrite(pin_batteryStatusLED, 0);                                           // Turn off battery LED at startup
         batteryLedTask.detach();                                                   // Turn off any previous task
         batteryLedTask.attach(1.0 / batteryTaskUpdatesHz, tickerBatteryLedUpdate); // Rate in seconds, callback
     }
@@ -952,9 +869,9 @@ void tickerStop()
     gnssLedTask.detach();
     batteryLedTask.detach();
 
-    ledcDetachPin(pin_bluetoothStatusLED);
-    ledcDetachPin(pin_gnssStatusLED);
-    ledcDetachPin(pin_batteryStatusLED);
+    ledcDetach(pin_bluetoothStatusLED);
+    ledcDetach(pin_gnssStatusLED);
+    ledcDetach(pin_batteryStatusLED);
 }
 
 // Configure the battery fuel gauge

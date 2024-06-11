@@ -602,7 +602,7 @@ void ntripServerUpdate(int serverIndex)
         else if (networkUserConnected(NETWORK_USER_NTRIP_SERVER + serverIndex))
         {
             // Allocate the networkClient structure
-            ntripServer->networkClient = new NetworkClient(NETWORK_USER_NTRIP_SERVER + serverIndex);
+            ntripServer->networkClient = new RTKNetworkClient(NETWORK_USER_NTRIP_SERVER + serverIndex);
             if (!ntripServer->networkClient)
             {
                 // Failed to allocate the networkClient structure

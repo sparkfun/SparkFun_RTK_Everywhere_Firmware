@@ -6,7 +6,7 @@
   This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
   and communicates with various GNSS receivers.
 
-  Compiled using Arduino CLI and ESP32 core v2.0.11.
+  Compiled using Arduino CLI and ESP32 core v3.0.0.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
@@ -69,9 +69,11 @@
 
 #define NTRIP_SERVER_MAX 4
 
+#include <NetworkClient.h>
+#include <NetworkUdp.h>
+
 #ifdef COMPILE_ETHERNET
-#include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
-#include <Ethernet.h>                       // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
+#include <ETH.h>
 #endif                                      // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
@@ -235,8 +237,8 @@ typedef enum LoggingType
 } LoggingType;
 LoggingType loggingType;
 
-SdFile *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
-bool managerFileOpen;
+SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
+bool managerFileOpen = false;
 
 TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
@@ -424,13 +426,8 @@ SFE_MAX1704X lipo(MAX1704X_MAX17048);
 BQ40Z50 *bq40z50Battery;
 #endif // COMPILE_BQ40Z50
 
-// RTK LED PWM properties
+// RTK LED PWM (LEDC) properties
 const int pwmFreq = 5000;
-const int ledRedChannel = 0;
-const int ledGreenChannel = 1;
-const int ledBtChannel = 2;
-const int ledGnssChannel = 3;
-const int ledBatteryChannel = 4;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;
@@ -557,26 +554,40 @@ unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 
 
 // Webserver for serving config page from ESP32 as Acess Point
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_WIFI
-#ifdef COMPILE_AP
-
-#include "ESPAsyncWebServer.h" //Get from: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
-#include "form.h"
-
-AsyncWebServer *webserver;
-AsyncWebSocket *websocket;
-
-#endif // COMPILE_AP
-#endif // COMPILE_WIFI
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
-#define AP_CONFIG_SETTING_SIZE 15000
+#define AP_CONFIG_SETTING_SIZE 10000
 char *settingsCSV; // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
+
+#ifdef COMPILE_WIFI
+#ifdef COMPILE_AP
+
+#include <DNSServer.h> // Needed for the captive portal
+#include <WebServer.h> // Port 80
+#include <esp_http_server.h> // Needed for web sockets only - on port 81
+#include "form.h"
+
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+DNSServer *dnsserver;
+WebServer *webserver;
+
+httpd_handle_t *wsserver = nullptr;
+//httpd_req_t *last_ws_req;
+int last_ws_fd;
+
+TaskHandle_t updateWebServerTaskHandle;
+const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
+const int updateWebServerTaskStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
+const int updateWebSocketStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
+
+#endif // COMPILE_AP
+#endif // COMPILE_WIFI
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Corrections
@@ -616,18 +627,20 @@ IPAddress ethernetDNS;
 IPAddress ethernetGateway;
 IPAddress ethernetSubnetMask;
 
-class derivedEthernetUDP : public EthernetUDP
-{
-  public:
-    uint8_t getSockIndex()
-    {
-        return sockindex; // sockindex is protected in EthernetUDP. A derived class can access it.
-    }
-};
+// TODO
+// class derivedEthernetUDP : public EthernetUDP
+// {
+//   public:
+//     uint8_t getSockIndex()
+//     {
+//         return sockindex; // sockindex is protected in EthernetUDP. A derived class can access it.
+//     }
+// };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
 #endif // COMPILE_ETHERNET
 
+static bool eth_connected = false;
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -657,7 +670,7 @@ const int updatePplTaskStackSize = 3000;
 
 bool pplNewRtcmNmea = false;
 bool pplNewSpartn = false;
-uint8_t *pplRtcmBuffer;
+uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
 bool pplGnssOutput = false;
@@ -1494,7 +1507,7 @@ void updateRadio()
 
 void updatePeriodicDisplay()
 {
-    static uint32_t lastPeriodicDisplay;
+    static uint32_t lastPeriodicDisplay = 0;
 
     // Determine which items are periodically displayed
     if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
@@ -1503,10 +1516,11 @@ void updatePeriodicDisplay()
         periodicDisplay = settings.periodicDisplay;
 
         // Reboot the system after a specified timeout
-        if ((lastPeriodicDisplay / (1000 * 60)) > settings.rebootMinutes)
+        // Strictly, this will reboot after rebootMinutes plus periodicDisplay. Do we care?
+        if ((settings.rebootMinutes > 0) && ((lastPeriodicDisplay / (1000 * 60)) >= settings.rebootMinutes))
         {
             systemPrintln("Automatic system reset");
-            delay(50); // Allow print to complete
+            delay(100); // Allow print to complete
             ESP.restart();
         }
     }
@@ -1596,6 +1610,12 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_FILEMANAGER_UPLOAD3:
         strcpy(functionName, "FileManager Upload3");
+        break;
+    case FUNCTION_FILEMANAGER_DOWNLOAD1:
+        strcpy(functionName, "FileManager Download1");
+        break;
+    case FUNCTION_FILEMANAGER_DOWNLOAD2:
+        strcpy(functionName, "FileManager Download2");
         break;
     case FUNCTION_SDSIZECHECK:
         strcpy(functionName, "SD Size Check");

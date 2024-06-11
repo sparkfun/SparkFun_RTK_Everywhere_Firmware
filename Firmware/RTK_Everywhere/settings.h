@@ -316,14 +316,14 @@ enum WiFiState
 };
 volatile byte wifiState = WIFI_STATE_OFF;
 
-#include "NetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
-#include "NetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
+#include "RTKNetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
+#include "RTKNetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA
 {
     // Network connection used to push RTCM to NTRIP caster
-    NetworkClient *networkClient;
+    RTKNetworkClient *networkClient;
     volatile uint8_t state;
 
     // Count of bytes sent by the NTRIP server to the NTRIP caster
@@ -479,6 +479,8 @@ typedef enum
     FUNCTION_FILEMANAGER_UPLOAD1,
     FUNCTION_FILEMANAGER_UPLOAD2,
     FUNCTION_FILEMANAGER_UPLOAD3,
+    FUNCTION_FILEMANAGER_DOWNLOAD1,
+    FUNCTION_FILEMANAGER_DOWNLOAD2,
     FUNCTION_SDSIZECHECK,
     FUNCTION_LOG_CLOSURE,
     FUNCTION_PRINT_FILE_LIST,
@@ -582,14 +584,16 @@ enum PeriodDisplayValues
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
+
+    PD_TASK_UPDATE_WEBSERVER,   // 34
     // Add new values before this line
 };
 
 #define PERIODIC_MASK(x) (1ull << x)
 #define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_CLEAR(x) periodicDisplay &= ~PERIODIC_MASK(x)
+#define PERIODIC_CLEAR(x) periodicDisplay = periodicDisplay & ~PERIODIC_MASK(x)
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_TOGGLE(x) settings.periodicDisplay ^= PERIODIC_MASK(x)
+#define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
 #define INCHES_IN_A_METER       39.37009424
 
@@ -1338,7 +1342,7 @@ struct Settings
     uint16_t httpPort = 80;
 
     // WiFi
-    bool debugWiFiConfig = false;
+    bool debugWebConfig = false;
     bool debugWifiState = false;
     bool enableCaptivePortal = true;
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
@@ -1349,6 +1353,7 @@ struct Settings
         {"", ""},
         {"", ""},
     };
+    uint32_t wifiConnectTimeoutMs = 20000; // Wait this long for a WiFiMulti connection
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1832,12 +1837,13 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
 
     // WiFi
-    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugWiFiConfig, "debugWiFiConfig",  },
+    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugWebConfig, "debugWebConfig",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugWifiState, "debugWifiState",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },
     { 0, 1, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_",  },
+    { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
@@ -1960,6 +1966,7 @@ struct struct_tasks
     volatile bool idleTask1Running = false;
     volatile bool sdSizeCheckTaskRunning = false;
     volatile bool updatePplTaskRunning = false;
+    volatile bool updateWebServerTaskRunning = false;
 
     bool btReadTaskStopRequest = false;
     bool buttonCheckTaskStopRequest = false;
@@ -1967,6 +1974,7 @@ struct struct_tasks
     bool handleGnssDataTaskStopRequest = false;
     bool sdSizeCheckTaskStopRequest = false;
     bool updatePplTaskStopRequest = false;
+    bool updateWebServerTaskStopRequest = false;
 } task;
 
 #ifdef COMPILE_WIFI

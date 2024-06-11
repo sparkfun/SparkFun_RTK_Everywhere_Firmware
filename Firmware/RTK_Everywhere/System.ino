@@ -77,12 +77,13 @@ void updateBattery()
 
             checkBatteryLevels();
 
-            if (present.fuelgauge_bq40z50 == true)
-            {
-                // Turn on green battery LED if battery is above 50%
-                if (batteryLevelPercent > 50)
-                    batteryStatusLedOn();
-            }
+            // tickerBatteryLedUpdate will take care of this. Doing it here creates error "IO 0 is not set as GPIO"
+            //if (present.fuelgauge_bq40z50 == true)
+            //{
+            //    // Turn on green battery LED if battery is above 50%
+            //    if (batteryLevelPercent > 50)
+            //        batteryStatusLedOn();
+            //}
         }
     }
 
