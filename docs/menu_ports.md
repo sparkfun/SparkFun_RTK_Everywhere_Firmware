@@ -18,11 +18,11 @@ Torch: ![Feature Partially Supported](img/Icons/YellowDot.png)
 
 Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB). 
 
+To exit this mode, press **+++** to open the configuration menu.
+
 ![Example NMEA output over USB](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output Example.png>)
 
 *Example NMEA output over USB*
-
-To exit this mode, press **+++** to open the configuration menu.
 
 ## Radio Port
 
