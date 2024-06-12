@@ -862,30 +862,16 @@ function saveConfig() {
 }
 
 function checkConstellations() {
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
-        if ((ge("ubxConstellation_GPS").checked == false)
-            && (ge("ubxConstellation_Galileo").checked == false)
-            && (ge("ubxConstellation_BeiDou").checked == false)
-            && (ge("ubxConstellation_GLONASS").checked == false)) {
-            ge("collapseGNSSConfig").classList.add('show');
-            showError('gnssConstellations', "Please choose one constellation");
-            errorCount++;
-        }
-        else
-            clearError("gnssConstellations");
+    if ((ge("constellation_GPS").checked == false)
+        && (ge("constellation_Galileo").checked == false)
+        && (ge("constellation_BeiDou").checked == false)
+        && (ge("constellation_GLONASS").checked == false)) {
+        ge("collapseGNSSConfig").classList.add('show');
+        showError('gnssConstellations', "Please choose one constellation");
+        errorCount++;
     }
-    if (platformPrefix == "Torch") {
-        if ((ge("constellation_GPS").checked == false)
-            && (ge("constellation_Galileo").checked == false)
-            && (ge("constellation_BeiDou").checked == false)
-            && (ge("constellation_GLONASS").checked == false)) {
-            ge("collapseGNSSConfig").classList.add('show');
-            showError('gnssConstellations', "Please choose one constellation");
-            errorCount++;
-        }
-        else
-            clearError("gnssConstellations");
-    }
+    else
+        clearError("gnssConstellations");
 }
 
 function checkBitMapValue(id, min, max, bitMap, errorText, collapseID) {
