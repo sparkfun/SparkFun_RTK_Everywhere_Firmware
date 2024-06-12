@@ -213,6 +213,56 @@ Known Issues:
 
 To verify the NMEA sentences are being delivered correctly, Survey Master has a built-in tool. Select the Device->Rover->More->'H-Terminal'. 
 
+## SurPad
+
+[SurPad](https://surpadapp.com/) is an Android app available as a free trial for 30-days. It's loaded as an APK (rather than through Google Play).
+
+Be sure your RTK device has been [paired over Bluetooth](connecting_bluetooth.md#android) to your phone.
+
+![SurPad Home Screen](<img/SurPad/SparkFun RTK - SurPad - Home Screen.png>)
+
+*SurPad Home Screen*
+
+Create a project and get to the home screen. Shown above, click on the GNSS receiver icon.
+
+![SurPad connecting over Bluetooth](<img/SurPad/SparkFun RTK - SurPad - Communication.png>)
+
+*SurPad connecting over Bluetooth*
+
+Set the **Device manufacturer** to *Other*, **Device type** to *RTK(NMEA0183)*, and **Communication Mode** to *Bluetooth*. Select the SparkFun RTK device that you would like to connect to on the **Paired Devices** list and then click *Connect*.
+
+Once connected to the device a *Debug* button will appear. This is one of the nice features of SurPad: Running debug will allow you to inspect the NMEA coming across the link.
+
+Once done, press the back arrow (top left corner) to return to the home screen. 
+
+![SurPad Point Survey map](<img/SurPad/SparkFun RTK - SurPad - Point Survey.png>)
+
+*SurPad Point Survey map*
+
+Above: From the home screen press the **Survey** button at the bottom, then **Point Survey** to bring up the map.
+
+In the top left corner, press the green hamburger + cell phone icon. This will open the NTRIP settings.
+
+![SurPad Data Link NTRIP Configuration](<img/SurPad/SparkFun RTK - SurPad - Data Link.png>)
+
+*SurPad Data Link NTRIP Configuration*
+
+Change the **Connect Mode** from *TCP Client* to *NTRIP*. If you are unable to edit or change the **Connect Mode** from TCP Client be sure the TCP Client is stopped by pressing the *Stop* button in the lower left corner (located in the same spot as the highlighted *Start*).
+
+![SurPad NTRIP Connection](<img/SurPad/SparkFun RTK - SurPad - Communication NTRIP Connected.png>)
+
+*SurPad NTRIP Connection*
+
+Enter the information for your NTRIP caster. In the above example, we are connected to the SparkFun base station on RTK2Go. For RTK2Go you will need to enter a valid email address for a user name but a password is not required.
+
+Click on *Start* and you should see the 'Receive data' progress bar (highlighted above) increase each second indicating a connection. Once complete, press 'Apply' to return to the map.
+
+![SurPad with RTK Fix](<img/SurPad/SparkFun RTK - SurPad - Map with RTK Fix.png>)
+
+*SurPad with RTK Fix*
+
+Above: After a few moments, the RTK device should move to RTK Float, then RTK Fix. You can see the age of the RTCM data in the upper bar, along with the horizontal (23mm) and vertical (31mm) accuracy estimates. Now you can begin taking points.
+
 ## SurvPC
 
 Be sure your device is [paired over Bluetooth](connecting_bluetooth.md#windows).
