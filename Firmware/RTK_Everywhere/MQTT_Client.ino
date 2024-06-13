@@ -480,7 +480,9 @@ void mqttClientStop(bool shutdown)
     if (shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);
-        settings.enablePointPerfectCorrections = false;
+        //settings.enablePointPerfectCorrections = false;
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
+        //cannot be restarted without opening the menu or web configuration page...
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
     }
