@@ -208,9 +208,8 @@ void menuBase()
                                     settings.coordinateInputType = latCoordinateInputType;
 
                                     systemPrint("\r\nAltitude in meters (ex: 1560.2284): ");
-                                    double fixedAltitude = getDouble();
-                                    if (fixedAltitude != INPUT_RESPONSE_GETNUMBER_TIMEOUT &&
-                                        fixedAltitude != INPUT_RESPONSE_GETNUMBER_EXIT)
+                                    double fixedAltitude;
+                                    if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
                                         settings.fixedAltitude = fixedAltitude;
                                 }
                                 else
