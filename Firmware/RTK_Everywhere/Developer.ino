@@ -59,7 +59,7 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
-void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[0] = false;}
+void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[serverIndex] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
 bool ntripServerIsCasting(int serverIndex) {
