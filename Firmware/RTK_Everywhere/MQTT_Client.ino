@@ -443,7 +443,7 @@ void mqttClientStop(bool shutdown)
     {
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttSecureClient");
-        delete mqttSecureClient;
+        //delete mqttSecureClient;
         mqttSecureClient = nullptr;
         reportHeapNow(settings.debugMqttClientState);
     }
