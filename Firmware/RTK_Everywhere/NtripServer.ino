@@ -580,7 +580,7 @@ void ntripServerUpdate(int serverIndex)
     {
         if (ntripServer->state > NTRIP_SERVER_OFF)
         {
-            ntripServerStop(serverIndex, false);
+            ntripServerStop(serverIndex, true); // Was false - #StopVsRestart
             ntripServer->connectionAttempts = 0;
             ntripServer->connectionAttemptTimeout = 0;
             ntripServerSetState(ntripServer, NTRIP_SERVER_OFF);
@@ -610,7 +610,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerRestart(serverIndex);
+            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
         // Determine if the network is connected to the media
         else if (networkUserConnected(NETWORK_USER_NTRIP_SERVER + serverIndex))
@@ -638,7 +638,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerRestart(serverIndex);
+            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
         else if (settings.enableNtripServer &&
                  (millis() - ntripServer->lastConnectionAttempt > ntripServer->connectionAttemptTimeout))
@@ -656,7 +656,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerRestart(serverIndex);
+            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
         // State change handled in ntripServerProcessRTCM
         break;
@@ -666,7 +666,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerRestart(serverIndex);
+            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
         // Delay before opening the NTRIP server connection
         else if ((millis() - ntripServer->timer) >= ntripServer->connectionAttemptTimeout)
@@ -694,7 +694,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
             // Failed to connect to to the network, attempt to restart the network
-            ntripServerRestart(serverIndex);
+            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
         // Check if caster service responded
         else if (ntripServer->networkClient->available() <
@@ -788,7 +788,7 @@ void ntripServerUpdate(int serverIndex)
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
             // Failed to connect to the network, attempt to restart the network
-            ntripServerRestart(serverIndex);
+            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
         // Check for a broken connection
         else if (!ntripServer->networkClient->connected())

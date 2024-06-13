@@ -546,7 +546,7 @@ void ntripClientUpdate()
     {
         if (ntripClientState > NTRIP_CLIENT_OFF)
         {
-            ntripClientStop(false);
+            ntripClientStop(true); // Was false - #StopVsRestart
             ntripClientConnectionAttempts = 0;
             ntripClientConnectionAttemptTimeout = 0;
             ntripClientSetState(NTRIP_CLIENT_OFF);
@@ -573,7 +573,7 @@ void ntripClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
             // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
+            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
         // Determine if the network is connected to the media
         else if (networkUserConnected(NETWORK_USER_NTRIP_CLIENT))
@@ -600,7 +600,7 @@ void ntripClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
             // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
+            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
@@ -633,7 +633,7 @@ void ntripClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
             // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
+            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
         // Check for no response from the caster service
         else if (ntripClientReceiveDataAvailable() <
@@ -753,7 +753,7 @@ void ntripClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
             // Failed to connect to to the network, attempt to restart the network
-            ntripClientRestart();
+            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
         // Check for a broken connection
         else if (!ntripClient->connected())
