@@ -848,7 +848,6 @@ volatile bool deadManWalking;
         settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
-        settings.enablePrintState = true;                                                                              \
         settings.enablePrintPosition = true;                                                                           \
         settings.enablePrintIdleTime = true;                                                                           \
         settings.enablePrintBatteryMessages = true;                                                                    \

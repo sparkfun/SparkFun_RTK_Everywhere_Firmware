@@ -1645,26 +1645,41 @@ function loadGeodetic() {
     var val = ge("StationCoordinatesGeodetic").value;
     if (val > "") {
         var parts = recordsGeodetic[val].split(' ');
-        ge("nicknameGeodetic").value = parts[0];
-        ge("fixedLatText").value = parts[1];
-        ge("fixedLongText").value = parts[2];
-        ge("antennaHeight").value = parts[4];
-        ge("antennaReferencePoint").value = parts[5];
+        var numParts = parts.length;
+        if (numParts >= 6) {
+            var latParts = (numParts - 4) / 2;
+            ge("nicknameGeodetic").value = parts[0];
+            ge("fixedLatText").value = parts[1];
+            if (latParts > 1) {
+                for (let moreParts = 1; moreParts < latParts; moreParts++) {
+                    ge("fixedLatText").value += ' ' + parts[moreParts + 1];
+                }
+            }
+            ge("fixedLongText").value = parts[1 + latParts];
+            if (latParts > 1) {
+                for (let moreParts = 1; moreParts < latParts; moreParts++) {
+                    ge("fixedLongText").value += ' ' + parts[moreParts + 1 + latParts];
+                }
+            }
+            ge("fixedAltitude").value = parts[numParts - 3];
+            ge("antennaHeight").value = parts[numParts - 2];
+            ge("antennaReferencePoint").value = parts[numParts - 1];
 
-        ge("fixedAltitude").value = parts[3];
+            $("input[name=markRadio][value=1]").prop('checked', false);
+            $("input[name=markRadio][value=2]").prop('checked', true);
 
-        $("input[name=markRadio][value=1]").prop('checked', false);
-        $("input[name=markRadio][value=2]").prop('checked', true);
+            adjustHAE();
 
-        adjustHAE();
-
-        clearError("nicknameGeodetic");
-        clearError("fixedLatText");
-        clearError("fixedLongText");
-        clearError("fixedAltitude");
-        clearError("antennaHeight");
-        clearError("antennaReferencePoint");
-    }
+            clearError("nicknameGeodetic");
+            clearError("fixedLatText");
+            clearError("fixedLongText");
+            clearError("fixedAltitude");
+            clearError("antennaHeight");
+            clearError("antennaReferencePoint");
+        }
+        else {
+            console.log("stationGeodetic split error");
+        }
 }
 
 //Based on recordsGeodetic array, update and monospace HTML list
@@ -2077,7 +2092,7 @@ function identifyInputType(userEntry) {
         seconds -= (minutes * 100); //Remove MM
         convertedCoordinate = decimal + (minutes / 60.0) + (seconds / 3600.0);
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
     else if (spaceCount == 0 && dashCount == 0 && (lengthOfLeadingNumber == 5 || lengthOfLeadingNumber == 4)) //DDMM.mmmmmmm
@@ -2091,7 +2106,7 @@ function identifyInputType(userEntry) {
         minutes -= (decimal * 100); //Remove DDD
         convertedCoordinate = decimal + (minutes / 60.0);
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
 
@@ -2104,7 +2119,7 @@ function identifyInputType(userEntry) {
         var minutes = Number(data[1]); //Get MM.mmmmmmm
         convertedCoordinate = decimal + (minutes / 60.0);
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
     else if (dashCount == 2) //DD-MM-SS.ssss
@@ -2122,7 +2137,7 @@ function identifyInputType(userEntry) {
         var seconds = Number(data[2]); //Get SS.ssssss
         convertedCoordinate = decimal + (minutes / 60.0) + (seconds / 3600.0);
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
     else if (spaceCount == 0) //DD.ddddddddd
@@ -2130,7 +2145,7 @@ function identifyInputType(userEntry) {
         coordinateInputType = CoordinateTypes.COORDINATE_INPUT_TYPE_DD;
         convertedCoordinate = userEntry;
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
     else if (spaceCount == 1) //DD MM.mmmmmmm
@@ -2142,7 +2157,7 @@ function identifyInputType(userEntry) {
         var minutes = Number(data[1]); //Get MM.mmmmmmm
         convertedCoordinate = decimal + (minutes / 60.0);
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
     else if (spaceCount == 2) //DD MM SS.ssssss
@@ -2160,7 +2175,7 @@ function identifyInputType(userEntry) {
         var seconds = Number(data[2]); //Get SS.ssssss
         convertedCoordinate = decimal + (minutes / 60.0) + (seconds / 3600.0);
         if (negativeSign == true) {
-            convertedCoordinate *= -1;
+            convertedCoordinate *= -1.0;
         }
     }
 
@@ -2267,6 +2282,9 @@ function printableInputType(coordinateInputType) {
             break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS):
             return ("DD MM SS.ssssss");
+            break;
+        case (CoordinateTypes.COORDINATE_INPUT_TYPE_DD_MM_SS_DASH):
+            return ("DD-MM-SS.ssssss");
             break;
         case (CoordinateTypes.COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL):
             return ("DDMMSS");

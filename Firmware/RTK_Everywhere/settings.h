@@ -343,6 +343,10 @@ typedef struct _NTRIP_SERVER_DATA
     uint32_t timer;
     uint32_t startTime;
     int connectionAttemptsTotal; // Count the number of connection attempts absolutely
+
+    // Better debug printing by ntripServerProcessRTCM
+    uint32_t rtcmBytesSent;
+    uint32_t previousMilliseconds;
 } NTRIP_SERVER_DATA;
 
 typedef enum
@@ -1281,7 +1285,6 @@ struct Settings
 
     // State
     bool enablePrintDuplicateStates = false;
-    bool enablePrintState = false;
     bool enablePrintStates = true;
     SystemState lastState = STATE_NOT_SET; // Start unit in last known state
 
@@ -1765,7 +1768,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // State
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates",  },
-    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintState, "enablePrintState",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.enablePrintStates, "enablePrintStates",  },
     { 1, 1, 1, 0, 1, 1, 1, 1, tSysState, 0, & settings.lastState, "lastState",  },
 
