@@ -117,13 +117,17 @@ void menuBase()
             {
                 systemPrintf("NTRIP Server #%d\r\n", serverIndex + 1);
 
-                systemPrintf("%d) Set Caster Address: %s\r\n", (0 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster Address: %s\r\n", (0 + (serverIndex * 6)) + ntripServerOptionOffset,
                              &settings.ntripServer_CasterHost[serverIndex][0]);
-                systemPrintf("%d) Set Caster Port: %d\r\n", (1 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster Port: %d\r\n", (1 + (serverIndex * 6)) + ntripServerOptionOffset,
                              settings.ntripServer_CasterPort[serverIndex]);
-                systemPrintf("%d) Set Mountpoint: %s\r\n", (2 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster User: %s\r\n", (2 + (serverIndex * 6)) + ntripServerOptionOffset,
+                             &settings.ntripServer_CasterUser[serverIndex][0]);
+                systemPrintf("%d) Set Caster User PW: %s\r\n", (3 + (serverIndex * 6)) + ntripServerOptionOffset,
+                             &settings.ntripServer_CasterUserPW[serverIndex][0]);
+                systemPrintf("%d) Set Mountpoint: %s\r\n", (4 + (serverIndex * 6)) + ntripServerOptionOffset,
                              &settings.ntripServer_MountPoint[serverIndex][0]);
-                systemPrintf("%d) Set Mountpoint PW: %s\r\n", (3 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Mountpoint PW: %s\r\n", (5 + (serverIndex * 6)) + ntripServerOptionOffset,
                              &settings.ntripServer_MountPointPW[serverIndex][0]);
             }
         }
@@ -263,12 +267,12 @@ void menuBase()
 
         // NTRIP Server entries
         else if ((settings.enableNtripServer == true) && (incoming >= ntripServerOptionOffset) &&
-                 incoming < (ntripServerOptionOffset + 4 * NTRIP_SERVER_MAX))
+                 incoming < (ntripServerOptionOffset + 6 * NTRIP_SERVER_MAX))
         {
             // Down adjust user's selection
             incoming -= ntripServerOptionOffset;
-            int serverNumber = incoming / 4;
-            incoming -= (serverNumber * 4);
+            int serverNumber = incoming / 6;
+            incoming -= (serverNumber * 6);
 
             if (incoming == 0)
             {
@@ -293,6 +297,28 @@ void menuBase()
             else if (incoming == 2)
             {
                 if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
+                    systemPrintf("Enter Caster User for %s: ", settings.ntripServer_CasterHost[serverNumber]);
+                else
+                    systemPrintf("Enter Caster User for Server %d: ", serverNumber + 1);
+
+                if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0],
+                                       sizeof(settings.ntripServer_CasterUser[serverNumber])) == INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+            else if (incoming == 3)
+            {
+                if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
+                    systemPrintf("Enter password for Caster User %s: ", settings.ntripServer_CasterUser[serverNumber]);
+                else
+                    systemPrintf("Enter password for Caster User for Server %d: ", serverNumber + 1);
+
+                if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0],
+                                       sizeof(settings.ntripServer_CasterUserPW[serverNumber])) == INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+            else if (incoming == 4)
+            {
+                if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
                     systemPrintf("Enter Mount Point for %s: ", settings.ntripServer_CasterHost[serverNumber]);
                 else
                     systemPrintf("Enter Mount Point for Server %d: ", serverNumber + 1);
@@ -301,7 +327,7 @@ void menuBase()
                                        sizeof(settings.ntripServer_MountPoint[serverNumber])) == INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
-            else if (incoming == 3)
+            else if (incoming == 5)
             {
                 if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
                     systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint[serverNumber]);
