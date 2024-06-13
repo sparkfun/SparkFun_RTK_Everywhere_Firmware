@@ -343,6 +343,10 @@ typedef struct _NTRIP_SERVER_DATA
     uint32_t timer;
     uint32_t startTime;
     int connectionAttemptsTotal; // Count the number of connection attempts absolutely
+
+    // Better debug printing by ntripServerProcessRTCM
+    uint32_t rtcmBytesSent;
+    uint32_t previousMilliseconds;
 } NTRIP_SERVER_DATA;
 
 typedef enum

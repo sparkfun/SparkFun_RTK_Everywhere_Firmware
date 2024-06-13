@@ -359,18 +359,16 @@ void ntripServerPrintStatus(int serverIndex)
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
 {
     NTRIP_SERVER_DATA *ntripServer = &ntripServerArray[serverIndex];
-    static uint32_t rtcmBytesSent;
 
     if (ntripServer->state == NTRIP_SERVER_CASTING)
     {
         // Generate and print timestamp if needed
         uint32_t currentMilliseconds;
-        static uint32_t previousMilliseconds = 0;
         if (online.rtc)
         {
             // Timestamp the RTCM messages
             currentMilliseconds = millis();
-            if (((settings.debugNtripServerRtcm && ((currentMilliseconds - previousMilliseconds) > 5)) ||
+            if (((settings.debugNtripServerRtcm && ((currentMilliseconds - ntripServer->previousMilliseconds) > 5)) ||
                  PERIODIC_DISPLAY(PD_NTRIP_SERVER_DATA)) &&
                 (!settings.enableRtcmMessageChecking) && (!inMainMenu) && ntripServer->bytesSent)
             {
@@ -383,10 +381,10 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
                 char timestamp[30];
                 strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
                 systemPrintf("    Tx%d RTCM: %s.%03ld, %d bytes sent\r\n", serverIndex, timestamp, rtc.getMillis(),
-                             rtcmBytesSent);
-                rtcmBytesSent = 0;
+                             ntripServer->rtcmBytesSent);
+                ntripServer->rtcmBytesSent = 0;
             }
-            previousMilliseconds = currentMilliseconds;
+            ntripServer->previousMilliseconds = currentMilliseconds;
         }
 
         // If we have not gotten new RTCM bytes for a period of time, assume end of frame
@@ -403,7 +401,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
         {
             ntripServer->networkClient->write(incoming); // Send this byte to socket
             ntripServer->bytesSent++;
-            rtcmBytesSent++;
+            ntripServer->rtcmBytesSent++;
             ntripServer->timer = millis();
             netOutgoingRTCM = true;
         }
