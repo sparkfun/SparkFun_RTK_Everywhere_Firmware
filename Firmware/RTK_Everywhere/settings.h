@@ -1803,8 +1803,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // ublox GNSS Receiver
     { 0, 1, 1, 0, 1, 1, 0, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
     { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
-    { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "messageRate_",  },
-    { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "messageRateBase_",  },
+    { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_",  },
+    { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_",  },
 
     // UDP Server
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugUdpServer, "debugUdpServer",  },
