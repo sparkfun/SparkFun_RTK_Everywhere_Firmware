@@ -452,19 +452,19 @@ void ntripClientRestart()
 }
 
 // Update the state of the NTRIP client state machine
+// PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE) is handled by ntripClientUpdate
 void ntripClientSetState(uint8_t newState)
 {
-    if (settings.debugNtripClientState || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
+    if (settings.debugNtripClientState)
     {
         if (ntripClientState == newState)
-            systemPrint("*");
+            systemPrint("NTRIP Client: *");
         else
-            systemPrintf("%s --> ", ntripClientStateName[ntripClientState]);
+            systemPrintf("NTRIP Client: %s --> ", ntripClientStateName[ntripClientState]);
     }
     ntripClientState = newState;
-    if (settings.debugNtripClientState || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
+    if (settings.debugNtripClientState)
     {
-        PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
         if (newState >= NTRIP_CLIENT_STATE_MAX)
         {
             systemPrintf("Unknown NTRIP Client state: %d\r\n", newState);
@@ -860,7 +860,10 @@ void ntripClientUpdate()
 
     // Periodically display the NTRIP client state
     if (PERIODIC_DISPLAY(PD_NTRIP_CLIENT_STATE))
-        ntripClientSetState(ntripClientState);
+    {
+        systemPrintf("NTRIP Client state: %s\r\n", ntripClientStateName[ntripClientState]);
+        PERIODIC_CLEAR(PD_NTRIP_CLIENT_STATE);
+    }
 }
 
 // Verify the NTRIP client tables
