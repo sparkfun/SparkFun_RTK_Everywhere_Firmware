@@ -1173,7 +1173,7 @@ void menuPeriodicPrint()
         systemPrintf("%s\r\n", settings.enablePrintPosition ? "Enabled" : "Disabled");
 
         systemPrint("26) RTK state: ");
-        systemPrintf("%s\r\n", settings.enablePrintState ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", settings.enablePrintStates ? "Enabled" : "Disabled");
 
         systemPrintln("------  Clients  -----");
         systemPrint("40) NTP server data: ");
@@ -1281,7 +1281,7 @@ void menuPeriodicPrint()
         else if (incoming == 25)
             settings.enablePrintPosition ^= 1;
         else if (incoming == 26)
-            settings.enablePrintState ^= 1;
+            settings.enablePrintStates ^= 1;
 
         else if (incoming == 40)
             PERIODIC_TOGGLE(PD_NTP_SERVER_DATA);

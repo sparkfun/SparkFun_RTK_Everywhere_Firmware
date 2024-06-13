@@ -27,7 +27,7 @@ void stateUpdate()
             }
         }
 
-        if (settings.enablePrintState && ((millis() - lastStateTime) > 15000))
+        if (settings.enablePrintStates && ((millis() - lastStateTime) > 15000))
         {
             changeState(systemState);
             lastStateTime = millis();
