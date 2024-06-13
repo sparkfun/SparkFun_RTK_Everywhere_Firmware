@@ -443,7 +443,7 @@ void mqttClientStop(bool shutdown)
     {
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttSecureClient");
-        //delete mqttSecureClient;
+        //delete mqttSecureClient; // Don't. This causes issue #335
         mqttSecureClient = nullptr;
         reportHeapNow(settings.debugMqttClientState);
     }
