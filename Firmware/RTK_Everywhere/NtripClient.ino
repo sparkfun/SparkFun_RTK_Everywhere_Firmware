@@ -467,7 +467,7 @@ void ntripClientSetState(uint8_t newState)
     {
         if (newState >= NTRIP_CLIENT_STATE_MAX)
         {
-            systemPrintf("Unknown NTRIP Client state: %d\r\n", newState);
+            systemPrintf("Unknown client state: %d\r\n", newState);
             reportFatalError("Unknown NTRIP Client state");
         }
         else

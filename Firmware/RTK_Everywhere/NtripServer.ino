@@ -447,22 +447,30 @@ void ntripServerRestart(int serverIndex)
 // Update the state of the NTRIP server state machine
 void ntripServerSetState(NTRIP_SERVER_DATA *ntripServer, uint8_t newState)
 {
-    int serverIndex = ntripServer - &ntripServerArray[0];
+    int serverIndex = -999;
+    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
+    {
+        if (ntripServer == &ntripServerArray[index])
+        {
+            serverIndex = index;
+            break;
+        }
+    }
 
-    if (settings.debugNtripServerState || PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
+    // PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE) is handled by ntripServerUpdate
+    if (settings.debugNtripServerState)
     {
         if (ntripServer->state == newState)
-            systemPrintf("%d: *", serverIndex);
+            systemPrintf("NTRIP Server %d: *", serverIndex);
         else
-            systemPrintf("%d: %s --> ", serverIndex, ntripServerStateName[ntripServer->state]);
+            systemPrintf("NTRIP Server %d: %s --> ", serverIndex, ntripServerStateName[ntripServer->state]);
     }
     ntripServer->state = newState;
-    if (settings.debugNtripServerState || PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
+    if (settings.debugNtripServerState)
     {
-        PERIODIC_CLEAR(PD_NTRIP_SERVER_STATE);
         if (newState >= NTRIP_SERVER_STATE_MAX)
         {
-            systemPrintf("Unknown NTRIP Server %d state: %d\r\n", serverIndex, newState);
+            systemPrintf("Unknown server state: %d\r\n", newState);
             reportFatalError("Unknown NTRIP Server state");
         }
         else
@@ -555,7 +563,11 @@ void ntripServerStop(int serverIndex, bool shutdown)
         // servers have disconnected?
     }
     else
+    {
+        if (settings.debugNtripServerState)
+            systemPrintf("ntripServerStop server %d start requested\r\n", serverIndex);
         ntripServerSetState(ntripServer, NTRIP_SERVER_ON);
+    }
 }
 
 // Update the NTRIP server state machine
@@ -819,7 +831,11 @@ void ntripServerUpdate(int serverIndex)
 
     // Periodically display the state
     if (PERIODIC_DISPLAY(PD_NTRIP_SERVER_STATE))
-        ntripServerSetState(ntripServer, ntripServer->state);
+    {
+        systemPrintf("NTRIP Server %d state: %s\r\n", serverIndex, ntripServerStateName[ntripServer->state]);
+        if (serverIndex == (NTRIP_SERVER_MAX - 1))
+            PERIODIC_CLEAR(PD_NTRIP_SERVER_STATE); // Clear the periodic display only on the last server
+    }
 }
 
 // Update the NTRIP server state machine
