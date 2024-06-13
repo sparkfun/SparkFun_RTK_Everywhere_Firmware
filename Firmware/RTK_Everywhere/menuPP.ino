@@ -1361,27 +1361,45 @@ void beginLBand()
 
     gnssUpdate();
 
-    // Previously the L-Band frequency was set here based on gnssGetLongitude and gnssGetLatitude
-    // if gnssIsFixed was true. beginLBand is called early during setup and I worry that the
-    // GNSS may not always be fixed... I think it is far safer to set the frequency based on the
-    // selected geographical region...
-
-    uint32_t lBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
-    if (lBandFreq > 0)
+    uint32_t LBandFreq;
+    uint8_t fixType = gnssGetFixType();
+    double latitude = gnssGetLatitude();
+    double longitude = gnssGetLongitude();
+    // If we have a fix, check which frequency to use
+    if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
     {
-        if (settings.debugCorrections == true)
-            systemPrintf("L-Band frequency (Hz): %d\r\n", lBandFreq);
+        int r = 0; // Step through each geographic region
+        for (; r < numRegionalAreas; r++)
+        {
+            if ((longitude >= Regional_Information_Table[r].area.lonWest)
+                && (longitude <= Regional_Information_Table[r].area.lonEast)
+                && (latitude >= Regional_Information_Table[r].area.latSouth)
+                && (latitude <= Regional_Information_Table[r].area.latNorth))
+            {
+                LBandFreq = Regional_Information_Table[r].frequency;
+                if (settings.debugCorrections == true)
+                    systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name, LBandFreq);
+                break;
+            }
+        }
+        if (r == numRegionalAreas) // Geographic region not found
+        {
+            LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+            if (settings.debugCorrections == true)
+                systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+        }
+
     }
     else
     {
-        lBandFreq = Regional_Information_Table[0].frequency;
+        LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
         if (settings.debugCorrections == true)
-            systemPrintf("Geographic region has no L-Band frequency. Defaulting to (Hz): %d\r\n", lBandFreq);
-    }
+            systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+    }    
 
     bool response = true;
     response &= i2cLBand.newCfgValset();
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, lBandFreq); // Default 1539812500 Hz
+    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
     response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
     response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
     response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
