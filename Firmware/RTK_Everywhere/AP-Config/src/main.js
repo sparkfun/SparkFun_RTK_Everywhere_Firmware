@@ -583,18 +583,18 @@ function validateFields() {
         checkElementString("ntripClientCasterHost", 1, 45, "Must be 1 to 45 characters", "collapseGNSSConfig");
         checkElementValue("ntripClientCasterPort", 1, 99999, "Must be 1 to 99999", "collapseGNSSConfig");
         checkElementString("ntripClientMountPoint", 1, 30, "Must be 1 to 30 characters", "collapseGNSSConfig");
-        checkElementCasterUser("ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
-        checkElementCasterUser("ntripClientCasterUser", "www.rtk2go.com", "User must use their email address", "collapseGNSSConfig");
+        checkElementCasterUser("ntripClientCasterHost", "ntripClientCasterUser", "rtk2go.com", "User must use their email address", "collapseGNSSConfig");
     }
-    else {
-        clearElement("ntripClientCasterHost", "rtk2go.com");
-        clearElement("ntripClientCasterPort", 2101);
-        clearElement("ntripClientMountPoint", "bldr_SparkFun1");
-        clearElement("ntripClientMountPointPW");
-        clearElement("ntripClientCasterUser", "test@test.com");
-        clearElement("ntripClientCasterUserPW", "");
-        ge("ntripClientTransmitGGA").checked = true;
-    }
+    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
+    // else {
+    //     clearElement("ntripClientCasterHost", "rtk2go.com");
+    //     clearElement("ntripClientCasterPort", 2101);
+    //     clearElement("ntripClientMountPoint", "bldr_SparkFun1");
+    //     clearElement("ntripClientMountPointPW");
+    //     clearElement("ntripClientCasterUser", "test@test.com");
+    //     clearElement("ntripClientCasterUserPW", "");
+    //     ge("ntripClientTransmitGGA").checked = true;
+    // }
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
@@ -676,35 +676,56 @@ function validateFields() {
     if (ge("enableNtripServer").checked == true) {
         checkElementString("ntripServerCasterHost_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
         checkElementValue("ntripServerCasterPort_0", 1, 99999, "Must be 1 to 99999", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServer_CasterUser_0", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServer_CasterUserPW_0", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
         checkElementString("ntripServerMountPoint_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPointPW_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPointPW_0", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerCasterHost_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementValue("ntripServerCasterPort_1", 0, 99999, "Must be 0 to 99999", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServer_CasterUser_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServer_CasterUserPW_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServerMountPoint_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPointPW_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerCasterHost_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementValue("ntripServerCasterPort_2", 0, 99999, "Must be 0 to 99999", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServer_CasterUser_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServer_CasterUserPW_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServerMountPoint_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPointPW_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerCasterHost_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementValue("ntripServerCasterPort_3", 0, 99999, "Must be 0 to 99999", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServer_CasterUser_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServer_CasterUserPW_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
+        checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
     }
-    else {
-        clearElement("ntripServerCasterHost_0", "rtk2go.com");
-        clearElement("ntripServerCasterPort_0", 2101);
-        clearElement("ntripServerCasterUser_0", "test@test.com");
-        clearElement("ntripServerCasterUserPW_0", "");
-        clearElement("ntripServerMountPoint_0", "bldr_dwntwn2");
-        clearElement("ntripServerMountPointPW_0", "WR5wRo4H");
-        clearElement("ntripServerCasterHost_1", "");
-        clearElement("ntripServerCasterPort_1", 0);
-        clearElement("ntripServerCasterUser_1", "");
-        clearElement("ntripServerCasterUserPW_1", "");
-        clearElement("ntripServerMountPoint_1", "");
-        clearElement("ntripServerMountPointPW_1", "");
-        clearElement("ntripServerCasterHost_2", "");
-        clearElement("ntripServerCasterPort_2", 0);
-        clearElement("ntripServerCasterUser_2", "");
-        clearElement("ntripServerCasterUserPW_2", "");
-        clearElement("ntripServerMountPoint_2", "");
-        clearElement("ntripServerMountPointPW_2", "");
-        clearElement("ntripServerCasterHost_3", "");
-        clearElement("ntripServerCasterPort_3", 0);
-        clearElement("ntripServerCasterUser_3", "");
-        clearElement("ntripServerCasterUserPW_3", "");
-        clearElement("ntripServerMountPoint_3", "");
-        clearElement("ntripServerMountPointPW_3", "");
-    }
+    // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
+    // else {
+    //     clearElement("ntripServerCasterHost_0", "rtk2go.com");
+    //     clearElement("ntripServerCasterPort_0", 2101);
+    //     clearElement("ntripServerCasterUser_0", "test@test.com");
+    //     clearElement("ntripServerCasterUserPW_0", "");
+    //     clearElement("ntripServerMountPoint_0", "bldr_dwntwn2");
+    //     clearElement("ntripServerMountPointPW_0", "WR5wRo4H");
+    //     clearElement("ntripServerCasterHost_1", "");
+    //     clearElement("ntripServerCasterPort_1", 0);
+    //     clearElement("ntripServerCasterUser_1", "");
+    //     clearElement("ntripServerCasterUserPW_1", "");
+    //     clearElement("ntripServerMountPoint_1", "");
+    //     clearElement("ntripServerMountPointPW_1", "");
+    //     clearElement("ntripServerCasterHost_2", "");
+    //     clearElement("ntripServerCasterPort_2", 0);
+    //     clearElement("ntripServerCasterUser_2", "");
+    //     clearElement("ntripServerCasterUserPW_2", "");
+    //     clearElement("ntripServerMountPoint_2", "");
+    //     clearElement("ntripServerMountPointPW_2", "");
+    //     clearElement("ntripServerCasterHost_3", "");
+    //     clearElement("ntripServerCasterPort_3", 0);
+    //     clearElement("ntripServerCasterUser_3", "");
+    //     clearElement("ntripServerCasterUserPW_3", "");
+    //     clearElement("ntripServerMountPoint_3", "");
+    //     clearElement("ntripServerMountPointPW_3", "");
+    // }
 
     //PointPerfect Config
     if (ge("enablePointPerfectCorrections").checked == true) {
@@ -726,18 +747,21 @@ function validateFields() {
     checkElementString("wifiNetwork_2Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_3Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
+
+    //TCP/UDP Config
     if (ge("enableTcpClient").checked == true) {
-        checkElementString("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+        checkElementValue("tcpClientPort", 1, 65535, "Must be 1 to 65535", "collapseTCPUDPConfig");
+        checkElementString("tcpClientHost", 1, 49, "Must be 1 to 49 characters", "collapseTCPUDPConfig");
     }
     if (ge("enableTcpServer").checked == true) {
-        checkElementString("tcpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+        checkElementValue("tcpServerPort", 1, 65535, "Must be 1 to 65535", "collapseTCPUDPConfig");
     }
     if (ge("enableUdpServer").checked == true) {
-        checkElementString("udpServerPort", 1, 65535, "Must be 1 to 65535", "collapseWiFiConfig");
+        checkElementValue("udpServerPort", 1, 65535, "Must be 1 to 65535", "collapseTCPUDPConfig");
     }
     //On Ethernet, TCP Client and Server can not be enabled at the same time
     //But, on WiFi, they can be...
-    //checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseWiFiConfig");
+    //checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseTCPUDPConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -994,12 +1018,19 @@ function checkElementIPAddress(id, errorText, collapseID) {
         clearError(id);
 }
 
-function checkElementCasterUser(id, badUserName, errorText, collapseID) {
-    if (ge("ntripClientCasterHost").value.toLowerCase() == "rtk2go.com") {
-        checkElementString(id, 1, 49, errorText, collapseID);
+function checkElementCasterUser(host, user, url, errorText, collapseID) {
+    if (ge(host).value.toLowerCase().includes(url)) {
+        value = ge(user).value;
+        if ((value.length < 1) || (value.length > 49)) {
+            ge(user + 'Error').innerHTML = 'Error: ' + errorText;
+            ge(collapseID).classList.add('show');
+            errorCount++;
+        }
+        else
+            clearError(user);
     }
     else
-        clearError(id);
+        clearError(user);
 }
 
 function checkCheckboxMutex(id1, id2, errorText, collapseID) {
@@ -1680,6 +1711,7 @@ function loadGeodetic() {
         else {
             console.log("stationGeodetic split error");
         }
+    }
 }
 
 //Based on recordsGeodetic array, update and monospace HTML list
