@@ -99,6 +99,34 @@ RTK:	RTK_Everywhere.ino *.ino *.h
 		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
 		--export-binaries
 
+##########
+# Upload the firmware
+##########
+
+.PHONY: upload
+
+SKETCH=RTK_Everywhere.ino
+ESPTOOL_PATH=~/Arduino/hardware/espressif/esp32/tools/esptool
+TERMINAL_PORT="/dev/ttyUSB0"
+BOOT_LOADER_PATH=~/SparkFun/SparkFun_RTK_Firmware_Uploader/RTK_Firmware_Uploader/resource
+
+upload:	build/esp32.esp32.esp32/$(SKETCH).bin
+	python3 $(ESPTOOL_PATH)/esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT) \
+        --baud   921600 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)/RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)/RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)/boot_app0.bin \
+        0x10000   $<
+
 ########
 # Clean the build directory
 ##########
