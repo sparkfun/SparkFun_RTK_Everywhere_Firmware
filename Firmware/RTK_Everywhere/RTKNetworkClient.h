@@ -3,10 +3,10 @@
 
 extern uint8_t networkGetType(uint8_t user);
 
-class RTKNetworkClient : public Client
+class RTKNetworkClient : public NetworkClient
 {
   protected:
-    Client *_client; // Ethernet or WiFi client
+    NetworkClient *_client; // Ethernet or WiFi client
     bool _friendClass;
     uint8_t _networkType;
 
@@ -14,7 +14,7 @@ class RTKNetworkClient : public Client
     //------------------------------
     // Create the network client
     //------------------------------
-    RTKNetworkClient(Client *client, uint8_t networkType)
+    RTKNetworkClient(NetworkClient *client, uint8_t networkType)
     {
         _friendClass = true;
         _networkType = networkType;
@@ -31,7 +31,7 @@ class RTKNetworkClient : public Client
         else
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
-            _client = new WiFiClient;
+            _client = new NetworkClient;
 #else  // COMPILE_WIFI
         _client = nullptr;
 #endif // COMPILE_WIFI
@@ -165,7 +165,7 @@ class RTKNetworkClient : public Client
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
-            return ((WiFiClient *)_client)->remoteIP();
+            return ((NetworkClient *)_client)->remoteIP();
 #endif // COMPILE_WIFI
         return IPAddress((uint32_t)0);
     }
@@ -182,7 +182,7 @@ class RTKNetworkClient : public Client
 #endif // COMPILE_ETHERNET
 #if defined(COMPILE_WIFI)
         if (_networkType == NETWORK_TYPE_WIFI)
-            return ((WiFiClient *)_client)->remotePort();
+            return ((NetworkClient *)_client)->remotePort();
 #endif // COMPILE_WIFI
         return 0;
     }
@@ -266,7 +266,7 @@ class NetworkEthernetClient : public RTKNetworkClient
 class NetworkWiFiClient : public RTKNetworkClient
 {
   protected:
-    WiFiClient _client;
+    NetworkClient _client;
 
   public:
     NetworkWiFiClient() : RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
@@ -286,7 +286,7 @@ class NetworkWiFiClient : public RTKNetworkClient
 class NetworkSecureWiFiClient : public RTKNetworkClient
 {
   protected:
-    WiFiClientSecure _client;
+    NetworkClientSecure _client;
 
   public:
     NetworkSecureWiFiClient() : _client{WiFiClientSecure()}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
@@ -302,7 +302,7 @@ class NetworkSecureWiFiClient : public RTKNetworkClient
         this->~RTKNetworkClient();
     }
 
-    WiFiClientSecure *getClient()
+    NetworkClientSecure *getClient()
     {
         return &_client;
     }
