@@ -243,7 +243,7 @@ bool pointperfectProvisionDevice()
         char versionString[9];
         getFirmwareVersion(versionString, sizeof(versionString), false);
 
-        StaticJsonDocument<256> pointPerfectAPIPost;
+        JsonDocument pointPerfectAPIPost;
 
         char tokenString[37] = "\0";
         char tokenChar;
@@ -443,10 +443,10 @@ void pointperfectGetToken(char *tokenString)
 // Given a prepared JSON blob, pass to the PointPerfect API
 // If it passes, keys/values are recorded to settings, ZTP_SUCCESS is returned
 // If we fail, a ZTP response is returned
-ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
+ZtpResponse pointperfectTryZtpToken(JsonDocument &apiPost)
 {
 #ifdef COMPILE_WIFI
-    DynamicJsonDocument *jsonZtp = nullptr;
+    JsonDocument *jsonZtp = nullptr;
     char *tempHolderPtr = nullptr;
 
     WiFiClientSecure client;
@@ -526,7 +526,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
         {
             // Device is now active with ThingStream
             // Pull pertinent values from response
-            jsonZtp = new DynamicJsonDocument(8192);
+            jsonZtp = new JsonDocument;
             if (!jsonZtp)
             {
                 systemPrintln("ERROR - Failed to allocate jsonZtp!\r\n");
@@ -645,7 +645,7 @@ ZtpResponse pointperfectTryZtpToken(StaticJsonDocument<256> &apiPost)
 }
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
-int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, DynamicJsonDocument *jsonZtp)
+int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, JsonDocument *jsonZtp)
 {
     if (!jsonZtp)
         return (-1);
@@ -784,7 +784,7 @@ bool checkPrivateKeyValidity(char *privateKey, int privateKeySize)
     int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_pk_free(&pk);
     mbedtls_ctr_drbg_free(&ctr_drbg);
-    
+
     if (result_code < 0)
     {
         if (settings.debugPpCertificate)
