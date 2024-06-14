@@ -233,56 +233,33 @@ class RTKNetworkClient : public NetworkClient
     // Declare the friend classes
     //------------------------------
 
-    friend class NetworkEthernetClient;
     friend class NetworkEthernetSslClient;
     friend class NetworkWiFiClient;
     friend class NetworkWiFiSslClient;
 };
 
-#ifdef COMPILE_ETHERNET
-class NetworkEthernetClient : public RTKNetworkClient
+class RTKNetworkClientType : public RTKNetworkClient
 {
   private:
-    NetworkClient _ethernetClient;
-
-  public:
-    NetworkEthernetClient() : RTKNetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
-    {
-    }
-
-    NetworkEthernetClient(NetworkClient &client)
-        : _ethernetClient{client}, RTKNetworkClient(&_ethernetClient, NETWORK_TYPE_ETHERNET)
-    {
-    }
-
-    ~NetworkEthernetClient()
-    {
-        this->~RTKNetworkClient();
-    }
-};
-#endif // COMPILE_ETHERNET
-
-#ifdef COMPILE_WIFI
-class NetworkWiFiClient : public RTKNetworkClient
-{
-  protected:
     NetworkClient _client;
 
   public:
-    NetworkWiFiClient() : RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
+    RTKNetworkClientType(uint8_t type) : RTKNetworkClient(&_client, type)
     {
     }
 
-    NetworkWiFiClient(WiFiClient &client) : _client{client}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
+    RTKNetworkClientType(NetworkClient &client, uint8_t type)
+        : _client{client}, RTKNetworkClient(&_client, type)
     {
     }
 
-    ~NetworkWiFiClient()
+    ~RTKNetworkClientType()
     {
         this->~RTKNetworkClient();
     }
 };
 
+#ifdef COMPILE_WIFI
 class NetworkSecureWiFiClient : public RTKNetworkClient
 {
   protected:

@@ -449,7 +449,7 @@ void tcpServerUpdate()
             // Determine if the client data structure is in use
             if (!(tcpServerClientConnected & (1 << index)))
             {
-                WiFiClient client;
+                NetworkClient client;
 
                 // Data structure not in use
                 // Check for another TCP server client
@@ -460,7 +460,7 @@ void tcpServerUpdate()
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new NetworkWiFiClient(client);
+                tcpServerClient[index] = new RTKNetworkClientType(client, NETWORK_TYPE_WIFI);
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);

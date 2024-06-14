@@ -358,18 +358,7 @@ RTKNetworkClient *networkClient(uint8_t user, bool useSSL)
     int type;
 
     type = networkGetType(user);
-#if defined(COMPILE_ETHERNET)
-    if (type == NETWORK_TYPE_ETHERNET)
-        client = new NetworkEthernetClient;
-    else
-#endif // COMPILE_ETHERNET
-    {
-#if defined(COMPILE_WIFI)
-        client = new NetworkWiFiClient();
-#else  // COMPILE_WIFI
-        client = nullptr;
-#endif // COMPILE_WIFI
-    }
+    client = new RTKNetworkClientType(type);
     return client;
 }
 
