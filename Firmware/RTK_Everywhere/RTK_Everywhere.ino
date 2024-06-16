@@ -801,7 +801,7 @@ int16_t *commandIndex;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 40
+#define MAX_BOOT_TIME_ENTRIES 39
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1073,9 +1073,6 @@ void setup()
 
     DMW_b("gnssConfigure");
     gnssConfigure(); // Requires settings. Configure ZED module
-
-    DMW_b("ethernetBegin");
-    ethernetBegin(); // Requires settings. Start up the Ethernet connection
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band

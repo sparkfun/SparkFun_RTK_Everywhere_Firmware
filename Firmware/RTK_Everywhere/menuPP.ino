@@ -466,7 +466,7 @@ ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
             do
             {
                 if (settings.debugPpCertificate)
-                    systemPrintf("Sending JSON, %d bytes\r\n", strlen(str.c_str()));
+                    systemPrintf("Sending JSON, %d bytes\r\n", strlen(ztpRequest.c_str()));
                 httpClient.addHeader(F("Content-Type"), F("application/json"));
                 int httpResponseCode = httpClient.POST(ztpRequest.c_str());
                 String response = httpClient.getString();
@@ -1531,14 +1531,16 @@ void menuPointPerfect()
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            if ((networkGetActiveType() == NETWORK_TYPE_WIFI)
+            uint8_t networkType = networkGetActiveType();
+            if ((networkType == NETWORK_TYPE_WIFI)
                 && (wifiNetworkCount() == 0))
             {
                 systemPrintln("Error: Please enter at least one SSID before getting keys");
             }
             else
             {
-                if (wifiConnect(settings.wifiConnectTimeoutMs) == true)
+                if ((networkType != NETWORK_TYPE_WIFI)
+                    || (wifiConnect(settings.wifiConnectTimeoutMs) == true))
                 {
                     // Check if we have certificates
                     char fileName[80];
