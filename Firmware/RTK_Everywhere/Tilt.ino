@@ -553,8 +553,8 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
     float undulation = (float)atof(undulationStr);
 
-    // Remove the undulation from the IMU's altitude
-    float orthometricHeight = tiltSensor->getNaviAltitude() - undulation;
+    // Remove the undulation from the IMU's altitude and adjust hight to normal
+    float orthometricHeight = tiltSensor->getNaviAltitude() - undulation + settings.tiltPoleLength + present.antennaReferencePoint_mm / 1000.0;
 
     char newSentence[150] = {0};
 
@@ -863,8 +863,8 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
     float undulation = (float)atof(undulationStr);
 
-    // Remove the undulation from the IMU's altitude
-    float orthometricHeight = tiltSensor->getNaviAltitude() - undulation;
+    // Remove the undulation from the IMU's altitude and adjust hight to normal
+    float orthometricHeight = tiltSensor->getNaviAltitude() - undulation + settings.tiltPoleLength + present.antennaReferencePoint_mm / 1000.0;
 
     char newSentence[150] = {0};
 
