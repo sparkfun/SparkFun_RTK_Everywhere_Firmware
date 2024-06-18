@@ -118,29 +118,94 @@ void menuEthernet()
 // Ethernet routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// Regularly called to update the Ethernet status
-void ethernetBegin()
+// Display the Ethernet state
+void ethernetDisplayState()
+{
+    if (online.ethernetStatus >= ethernetStateEntries)
+        systemPrint("UNKNOWN");
+    else
+        systemPrint(ethernetStates[online.ethernetStatus]);
+}
+
+// Return the IP address for the Ethernet controller
+IPAddress ethernetGetIpAddress()
+{
+    return ETH.localIP();
+}
+
+// Determine if Ethernet is needed. Saves RAM...
+bool ethernetIsNeeded()
+{
+    bool needed = true;
+
+    do
+    {
+        // Does NTP need Ethernet?
+        if (inNtpMode() == true)
+            break;
+
+        // Does Base mode NTRIP Server need Ethernet?
+        if (settings.enableNtripServer == true && inBaseMode() == true)
+            break;
+
+        // Does Rover mode NTRIP Client need Ethernet?
+        if (settings.enableNtripClient == true && inRoverMode() == true)
+            break;
+
+        // Does TCP client or server need Ethernet?
+        if (settings.enableTcpClient || settings.enableTcpServer || settings.enableUdpServer ||
+            settings.enableAutoFirmwareUpdate)
+            break;
+
+        // Is the platform using Ethernet
+        if (networkGetActiveType() == NETWORK_TYPE_ETHERNET)
+            break;
+
+        // Forced to use Ethernet
+        if ((settings.defaultNetworkType == NETWORK_TYPE_ETHERNET) && (!settings.enableNetworkFailover))
+            break;
+
+        needed = false;
+    } while (0);
+
+    if (settings.enablePrintEthernetDiag && (!inMainMenu))
+        systemPrintf("ethernetIsNeeded = %s\r\n", needed ? "true" : "false");
+    return needed;
+}
+
+// Ethernet (W5500) ISR
+// Triggered by the falling edge of the W5500 interrupt signal - indicates the arrival of a packet
+// Record the time the packet arrived
+void ethernetISR()
+{
+    // Don't check or clear the interrupt here -
+    // it may clash with a GNSS SPI transaction and cause a wdt timeout.
+    // Do it in updateEthernet
+    gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP interrupt
+}
+
+// Restart the Ethernet controller
+void ethernetRestart()
+{
+    // Reset online.ethernetStatus so ethernetBegin will call Ethernet.begin to use the new settings
+    online.ethernetStatus = ETH_NOT_STARTED;
+
+    // NTP Server
+    ntpServerStop();
+
+    // NTRIP?
+}
+
+// Update the Ethernet state
+void ethernetUpdate()
 {
     if (present.ethernet_ws5500 == false)
         return;
 
-    // Skip if going into configure-via-ethernet mode
+    // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping ethernetBegin");
-        return;
-    }
-
-    if ((productVariant != RTK_EVK) && (!ethernetIsNeeded()))
         return;
 
-    if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))
-    {
-        PERIODIC_CLEAR(PD_ETHERNET_STATE);
-        ethernetDisplayState();
-        systemPrintln();
-    }
     switch (online.ethernetStatus)
     {
     case (ETH_NOT_STARTED):
@@ -150,7 +215,7 @@ void ethernetBegin()
         if (!(ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI)))
         {
             if (settings.debugNetworkLayer)
-                systemPrintln("Ethernet begin failed");
+                systemPrintln("ERROR: ETH.begin failed");
             online.ethernetStatus = ETH_CAN_NOT_BEGIN;
             return;
         }
@@ -181,7 +246,10 @@ void ethernetBegin()
                 else
                 {
                     if (settings.debugNetworkLayer)
-                        systemPrintln("Ethernet started with static IP");
+                    {
+                        systemPrint("Ethernet started with static IP: ");
+                        systemPrintln(settings.ethernetIP);
+                    }
                     online.ethernetStatus = ETH_CONNECTED;
                 }
             }
@@ -220,86 +288,18 @@ void ethernetBegin()
         break;
 
     default:
-        log_d("Unknown status");
+        if (settings.debugNetworkLayer)
+            systemPrintf("ERROR: Unknown state, %d\r\n", online.ethernetStatus);
         break;
     }
-}
 
-// Display the Ethernet state
-void ethernetDisplayState()
-{
-    if (online.ethernetStatus >= ethernetStateEntries)
-        systemPrint("UNKNOWN");
-    else
-        systemPrint(ethernetStates[online.ethernetStatus]);
-}
-
-// Return the IP address for the Ethernet controller
-IPAddress ethernetGetIpAddress()
-{
-    return ETH.localIP();
-}
-
-// Determine if Ethernet is needed. Saves RAM...
-bool ethernetIsNeeded()
-{
-    // Does NTP need Ethernet?
-    if (inNtpMode() == true)
-        return true;
-
-    // Does Base mode NTRIP Server need Ethernet?
-    if (settings.enableNtripServer == true && inBaseMode() == true)
-        return true;
-
-    // Does Rover mode NTRIP Client need Ethernet?
-    if (settings.enableNtripClient == true && inRoverMode() == true)
-        return true;
-
-    // Does TCP client or server need Ethernet?
-    if (settings.enableTcpClient || settings.enableTcpServer || settings.enableUdpServer ||
-        settings.enableAutoFirmwareUpdate)
-        return true;
-
-    return false;
-}
-
-// Ethernet (W5500) ISR
-// Triggered by the falling edge of the W5500 interrupt signal - indicates the arrival of a packet
-// Record the time the packet arrived
-void ethernetISR()
-{
-    // Don't check or clear the interrupt here -
-    // it may clash with a GNSS SPI transaction and cause a wdt timeout.
-    // Do it in updateEthernet
-    gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP interrupt
-}
-
-// Restart the Ethernet controller
-void ethernetRestart()
-{
-    // Reset online.ethernetStatus so ethernetBegin will call Ethernet.begin to use the new settings
-    online.ethernetStatus = ETH_NOT_STARTED;
-
-    // NTP Server
-    ntpServerStop();
-
-    // NTRIP?
-}
-
-// Update the Ethernet state
-void ethernetUpdate()
-{
-    // Skip if in configure-via-ethernet mode
-    if (configureViaEthernet)
-        return;
-
-    if (present.ethernet_ws5500 == false)
-        return;
-
-    if (online.ethernetStatus == ETH_CAN_NOT_BEGIN)
-        return;
-
-    ethernetBegin(); // This updates the link status
+    // Display the current state
+    if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))
+    {
+        PERIODIC_CLEAR(PD_ETHERNET_STATE);
+        ethernetDisplayState();
+        systemPrintln();
+    }
 }
 
 // Verify the Ethernet tables
@@ -348,6 +348,8 @@ void onEthernetEvent(arduino_event_id_t event, arduino_event_info_t info)
         eth_connected = false;
         break;
     default:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintf("ETH Unknown event: %d\r\n", event);
         break;
     }
 }
