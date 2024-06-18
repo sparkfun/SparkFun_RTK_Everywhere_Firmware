@@ -479,6 +479,20 @@ IPAddress networkGetIpAddress(uint8_t networkType)
 //----------------------------------------
 // Get the network type
 //----------------------------------------
+uint8_t networkGetActiveType()
+{
+    NETWORK_DATA *network;
+    uint8_t type;
+
+    type = network->type;
+    if (type == NETWORK_TYPE_USE_DEFAULT)
+        type = NETWORK_TYPE_ETHERNET;
+    return type;
+}
+
+//----------------------------------------
+// Get the network type
+//----------------------------------------
 uint8_t networkGetType(uint8_t user)
 {
     NETWORK_DATA *network;

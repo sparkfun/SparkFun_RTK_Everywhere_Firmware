@@ -70,6 +70,7 @@
 #define NTRIP_SERVER_MAX 4
 
 #include <NetworkClient.h>
+#include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
 
 #ifdef COMPILE_ETHERNET

@@ -449,7 +449,7 @@ ZtpResponse pointperfectTryZtpToken(JsonDocument &apiPost)
     JsonDocument *jsonZtp = nullptr;
     char *tempHolderPtr = nullptr;
 
-    WiFiClientSecure client;
+    NetworkClientSecure client;
     client.setCACert(AWS_PUBLIC_CERT);
 
     String json;
@@ -815,7 +815,7 @@ bool pointperfectUpdateKeys()
 #ifdef COMPILE_WIFI
     char *certificateContents = nullptr; // Holds the contents of the keys prior to MQTT connection
     char *keyContents = nullptr;
-    WiFiClientSecure secureClient;
+    NetworkClientSecure secureClient;
     bool gotKeys = false;
     menuppMqttClient = nullptr;
 
@@ -1395,7 +1395,7 @@ void beginLBand()
         LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
         if (settings.debugCorrections == true)
             systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
-    }    
+    }
 
     bool response = true;
     response &= i2cLBand.newCfgValset();
@@ -1537,7 +1537,8 @@ void menuPointPerfect()
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            if (wifiNetworkCount() == 0)
+            if ((networkGetActiveType() == NETWORK_TYPE_WIFI)
+                && (wifiNetworkCount() == 0))
             {
                 systemPrintln("Error: Please enter at least one SSID before getting keys");
             }
