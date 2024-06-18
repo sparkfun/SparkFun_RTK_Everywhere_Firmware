@@ -10,10 +10,27 @@
 
 # Uncomment all five lines for a complete update
 #EXECUTABLES = arduino-config lib-update
-EXECUTABLES += partition
-EXECUTABLES += patch
-EXECUTABLES += form
 EXECUTABLES += RTK
+
+PARTITION_CSV_FILE=RTKEverywhere
+
+# Windows NT
+ifeq ($(OS),Windows_NT)
+BLE_PATCH_DST_PATH=C:\Users\$(USERNAME)\Documents\Arduino\libraries\ESP32_BleSerial\src\BleSerial.cpp
+BLE_PATCH_SRC_PATH=Patch\BleSerial.cpp
+COPY=copy
+PARTITION_DST_PATH=C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
+PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
+
+# Linux
+else
+BLE_PATCH_DST_PATH=~/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
+BLE_PATCH_SRC_PATH=Patch/BleSerial.cpp
+COPY=cp
+PARTITION_DST_PATH=~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
+PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
+
+endif
 
 ##########
 # Buid tools and rules
@@ -53,7 +70,7 @@ lib-update:
 		PubSubClient@2.8.0 \
 		"SdFat"@2.1.1 \
 		"SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0 \
-		"SparkFun Extensible Message Parser"@1.0.0 \
+		"SparkFun Extensible Message Parser"@1.0.1 \
 		"SparkFun IM19 IMU Arduino Library"@1.0.1 \
 		"SparkFun LIS2DH12 Arduino Library"@1.0.3 \
 		"SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4 \
@@ -63,23 +80,12 @@ lib-update:
 		"SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4 \
 		SSLClientESP32@2.0.0
 
-.PHONY:	partition
 
-partition:
-ifeq ($(OS),Windows_NT)
-	copy ..\RTKEverywhere.csv C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\RTKEverywhere.csv
-else
-# Linux may need something like:
-	cp ../RTKEverywhere.csv ~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/RTKEverywhere.csv
-endif
+$(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
+	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
 
-patch: 	Patch/*
-ifeq ($(OS),Windows_NT)
-	copy Patch\BleSerial.cpp C:\Users\$(USERNAME)\Documents\Arduino\libraries\ESP32_BleSerial\src\BleSerial.cpp
-else
-# Linux may need something like:
-	cp Patch/BleSerial.cpp ~/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
-endif
+$(BLE_PATCH_DST_PATH): 	$(BLE_PATCH_SRC_PATH)
+	$(COPY)  $(BLE_PATCH_SRC_PATH)  $(BLE_PATCH_DST_PATH)
 
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
@@ -87,14 +93,14 @@ FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
 
-form:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
+form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-RTK:	RTK_Everywhere.ino *.ino *.h
+RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
-		--build-property build.partitions=RTKEverywhere \
+		--build-property build.partitions=$(PARTITION_CSV_FILE) \
 		--build-property upload.maximum_size=6291456 \
 		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
 		--export-binaries
@@ -126,6 +132,7 @@ upload:	build/esp32.esp32.esp32/$(SKETCH).bin
          0x8000   $(BOOT_LOADER_PATH)/RTK_Surveyor_Partitions_16MB.bin \
          0xe000   $(BOOT_LOADER_PATH)/boot_app0.bin \
         0x10000   $<
+	~/SparkFun/serial-115200.sh   ttyUSB0
 
 ########
 # Clean the build directory
