@@ -397,7 +397,7 @@ void ntripServerProcessRTCM(int serverIndex, uint8_t incoming)
             ntripServer->bytesSent = 0;
         }
 
-        if (ntripServer->networkClient->connected())
+        if (ntripServer->networkClient && ntripServer->networkClient->connected())
         {
             ntripServer->networkClient->write(incoming); // Send this byte to socket
             ntripServer->bytesSent++;
