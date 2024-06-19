@@ -130,13 +130,13 @@ const int platformProvisionTableEntries = sizeof (platformProvisionTable) / size
 typedef enum
 {
     // Change the order of these to set the default priority. First (0) is highest
-    CORR_BLUETOOTH = 0, // Added - Tasks.ino (sendGnssBuffer)
-    CORR_IP, // Added - MQTT_Client.ino
-    CORR_TCP, // Added - NtripClient.ino
-    CORR_LBAND, // Added - menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
-    CORR_RADIO_EXT, // TODO: this needs a meeting. Data goes direct from RADIO connector to ZED - or X5. How to disable / enable it? Via port protocol?
-    CORR_RADIO_LORA, // TODO: this needs a meeting. UM980 only? Does data go direct from LoRa to UM980?
-    CORR_ESPNOW, // Added - ESPNOW.ino
+    CORR_RADIO_EXT = 0, // 0, 100 m Baseline, Data goes direct from RADIO connector to ZED - or X5. How to disable / enable it? Via port protocol?
+    CORR_ESPNOW,        // 1, 100 m Baseline, ESPNOW.ino
+    CORR_RADIO_LORA,    // 2,   1 km Baseline, UM980 only? Does data go direct from LoRa to UM980?
+    CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
+    CORR_TCP,           // 4,  10+km Baseline, NtripClient.ino
+    CORR_LBAND,         // 5, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_IP,            // 6, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
@@ -144,13 +144,13 @@ typedef enum
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
     // These must match correctionsSource above
+    "External Radio",
+    "ESP-Now",
+    "LoRa Radio",
     "Bluetooth",
-    "IP (PointPerfect/MQTT)",
     "TCP (NTRIP)",
     "L-Band",
-    "External Radio",
-    "LoRa Radio",
-    "ESP-Now",
+    "IP (PointPerfect/MQTT)",
     // Add new correction sources just above this line
 };
 
