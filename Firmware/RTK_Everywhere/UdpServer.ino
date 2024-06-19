@@ -59,7 +59,7 @@ UdpServer.ino
         3. Verify that the displayed coordinates, fix tpe etc. are valid
 */
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants

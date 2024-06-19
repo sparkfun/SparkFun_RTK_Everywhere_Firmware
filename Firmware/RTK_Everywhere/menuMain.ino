@@ -210,7 +210,7 @@ void menuMain()
             systemPrintln("6) **WiFi Not Compiled**");
 #endif // COMPILE_WIFI
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
             systemPrintln("7) Configure TCP/UDP");
 #else  // COMPILE_NETWORK
             systemPrintln("7) **TCP/UDP Not Compiled**");

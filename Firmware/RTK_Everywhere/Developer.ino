@@ -30,7 +30,7 @@ void ntpServerStop() {}
 
 #endif // COMPILE_ETHERNET
 
-#if !COMPILE_NETWORK
+#ifndef COMPILE_NETWORK
 
 //----------------------------------------
 // Network layer
@@ -42,6 +42,9 @@ void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
+uint8_t networkGetActiveType() {
+    return (0);
+}
 
 //----------------------------------------
 // NTRIP client

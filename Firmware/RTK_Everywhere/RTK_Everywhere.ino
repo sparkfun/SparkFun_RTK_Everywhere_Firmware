@@ -39,9 +39,7 @@
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
-#define COMPILE_NETWORK true
-#else // COMPILE_WIFI || COMPILE_ETHERNET
-#define COMPILE_NETWORK false
+#define COMPILE_NETWORK
 #endif // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements

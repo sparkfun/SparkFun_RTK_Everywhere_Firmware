@@ -137,7 +137,7 @@ Network.ino
     * private SNIP NTRIP caster
 ------------------------------------------------------------------------------*/
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants
