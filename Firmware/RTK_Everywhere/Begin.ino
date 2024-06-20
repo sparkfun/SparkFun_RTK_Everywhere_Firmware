@@ -671,6 +671,7 @@ void beginGnssUart()
     length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
 
+    // Never freed...
     if (rbOffsetArray == nullptr)
     {
         if (online.psram == true)

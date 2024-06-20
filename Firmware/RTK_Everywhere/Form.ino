@@ -271,6 +271,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                 MDNS.addService("http", "tcp", 80); // Add service to MDNS-SD
         }
 
+        // Freed by stopWebServer
         if (online.psram == true)
             incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         else
@@ -284,6 +285,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
         // Pre-load settings CSV
+        // Freed by stopWebServer
         if (online.psram == true)
             settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         else
