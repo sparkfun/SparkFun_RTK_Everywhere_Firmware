@@ -202,6 +202,8 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <SPI.h> //Built-in
 
+void beginSPI(bool force = false); // Header
+
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
 SdFat *sd;
 
@@ -1003,6 +1005,9 @@ void setup()
 
     DMW_b("beginBoard");
     beginBoard(); // Set all pin numbers and pin initial states
+
+    DMW_b("beginSPI");
+    beginSPI(); // Begin SPI as needed
 
     DMW_b("beginFS");
     beginFS(); // Start the LittleFS file system in the spiffs partition
