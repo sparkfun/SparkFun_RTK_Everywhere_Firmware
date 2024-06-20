@@ -2681,9 +2681,14 @@ bool commandIndexFill()
     }
     commandCount += COMMAND_COUNT - 1;
 
-    // Allocate the command array
+    // Allocate the command array. Never freed
     length = commandCount * sizeof(*commandIndex);
-    commandIndex = (int16_t *)malloc(length);
+
+    if (online.psram == true)
+        commandIndex = (int16_t *)ps_malloc(length);
+    else
+        commandIndex = (int16_t *)malloc(length);
+
     if (!commandIndex)
     {
         // Failed to allocate the commandIndex
