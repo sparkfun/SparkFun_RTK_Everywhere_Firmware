@@ -504,7 +504,7 @@ typedef struct
 
 // These are the allowable constellations to receive from and log (if enabled)
 // Tested with u-center v21.02
-#define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
+#define MAX_UBX_CONSTELLATIONS 6 // Should be (sizeof(settings.ubxConstellations)/sizeof(ubxConstellation)). Tricky...
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
@@ -1305,8 +1305,8 @@ struct Settings
     int8_t timeZoneSeconds = 0;
 
     // UBX (SX1276)
-    bool enableUART2UBXIn = false;                             // UBX Protocol In on UART2
-    ubxConstellation ubxConstellations[MAX_CONSTELLATIONS] = { // Constellations monitored/used for fix
+    bool enableUART2UBXIn = false;                                 // UBX Protocol In on UART2
+    ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
         {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, true, "Galileo"},
         {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, true, "GLONASS"},
@@ -1802,7 +1802,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // ublox GNSS Receiver
     { 0, 1, 1, 0, 1, 1, 0, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
-    { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
+    { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_",  },
 
