@@ -346,7 +346,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Record constellation settings
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // ubxConstellation_BeiDou=1
+                char tempString[50]; // constellation_BeiDou=1
                 snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
                          settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
                 settingsFile->println(tempString);
