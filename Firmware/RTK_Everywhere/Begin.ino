@@ -324,7 +324,6 @@ void beginBoard()
 
         // In the fullness of time, pin_Cellular_PWR_ON will (probably) be controlled by the Cellular Library
         DMW_if systemPrintf("pin_Cellular_PWR_ON: %d\r\n", pin_Cellular_PWR_ON);
-        digitalWrite(pin_Cellular_PWR_ON, LOW);
         pinMode(pin_Cellular_PWR_ON, OUTPUT);
         digitalWrite(pin_Cellular_PWR_ON, LOW);
 
