@@ -365,14 +365,20 @@ void printReports()
             // If we are in rover mode, display HPA and SIV
             if (inRoverMode() == true)
             {
+                systemPrintf("Rover: ");
+
                 float hpa = gnssGetHorizontalAccuracy();
 
-                char modifiedHpa[20];
-                const char *hpaUnits =
-                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
+                if (hpa <= 30.)
+                {
+                    char modifiedHpa[20];
+                    const char *hpaUnits =
+                        getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
 
-                systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
-                             gnssGetSatellitesInView());
+                    systemPrintf("Accuracy (%s): %s, ", hpaUnits, modifiedHpa);
+                }
+
+                systemPrintf("SIV: %d GNSS State: ", gnssGetSatellitesInView());
 
                 if (gnssIsRTKFix() == true)
                     systemPrint("RTK Fix");
@@ -721,11 +727,14 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
 {
     const char *units;
 
+    static const char unknown[] = "Unknown";
+    static const char inch[] = "in";
+
     // Return the units
     if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
     {
-        units = "Unknown";
-        strcpy(buffer, "Unknown");
+        units = unknown;
+        strncpy(buffer, unknown, length);
     }
     else
     {
@@ -747,7 +756,7 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
                 snprintf(buffer, length, "%.*f", decimals, feet);
             else
             {
-                units = "in";
+                units = inch;
                 snprintf(buffer, length, "%.*f", decimals, inches);
             }
             break;
