@@ -483,6 +483,19 @@ void beginVersion()
     }
 }
 
+void beginSPI(bool force) // Call after beginBoard
+{
+    static bool started = false;
+
+    bool spiNeeded = present.ethernet_ws5500 || present.microSd;
+
+    if (force || (spiNeeded && !started))
+    {
+        SPI.begin(pin_SCK, pin_POCI, pin_PICO);
+        started = true;
+    }
+}
+
 void beginSD()
 {
     if (present.microSd == false)
@@ -624,7 +637,7 @@ void resetSPI()
     sdDeselectCard();
 
     // Flush SPI interface
-    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
+    beginSPI(true);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -634,7 +647,7 @@ void resetSPI()
     sdSelectCard();
 
     // Flush SD interface
-    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
+    beginSPI(true);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
