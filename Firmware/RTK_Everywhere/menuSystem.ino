@@ -221,7 +221,8 @@ void menuSystem()
 
         systemPrintln("r) Reset all settings to default");
 
-        systemPrintf("u) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
+        systemPrintf("u) Printed measurement units: %s\r\n",
+            measurementScaleTable[measurementScaleToIndex(settings.measurementScale)].measurementScaleName);
 
         systemPrintf("z) Set time zone offset: %02d:%02d:%02d\r\n", settings.timeZoneHours, settings.timeZoneMinutes,
                      settings.timeZoneSeconds);
@@ -291,7 +292,7 @@ void menuSystem()
         else if (incoming == 'u')
         {
             settings.measurementScale += 1;
-            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+            if (settings.measurementScale >= MEASUREMENT_UNITS_MAX)
                 settings.measurementScale = 0;
         }
         else if (incoming == 'z')
@@ -1350,7 +1351,7 @@ void printCurrentConditions()
 
         float hpa = gnssGetHorizontalAccuracy();
         char temp[20];
-        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3);
+        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3, true);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");

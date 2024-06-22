@@ -668,10 +668,8 @@ void verifyTables()
         reportFatalError("Fix platformProvisionTable to match ProductVariant");
 
     // Verify the measurement scales
-    if (measurementScaleNameEntries != MEASUREMENT_SCALE_MAX)
-        reportFatalError("Fix measurementScaleName to match MeasurementScale");
-    if (measurementScaleUnitsEntries != MEASUREMENT_SCALE_MAX)
-        reportFatalError("Fix measurementScaleUnits to match MeasurementScale");
+    if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
+        reportFatalError("Fix measurementScaleTable to match measurementUnits");
 
     // Verify the consistency of the internal tables
     ethernetVerifyTables();
