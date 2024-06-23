@@ -51,3 +51,11 @@ Not all companies providing correction services use the same type of corrections
 **State Space Representation** (SSR) covers huge areas, sometimes entire continents. SSR combines the readings from a handful of base stations and creates a model for the region. This model extrapolates the needed corrections for a given area. These corrections are 'good enough' for many applications. Because SSR requires far fewer base stations, they are often a much lower-cost service. The RTK Fix accuracy is lower (20mm is possible but 30-60mm is common), and the convergence time increases considerably. Convergence time for an SSR can be 180 seconds or more.
 
 The [PointPerfect](https://www.u-blox.com/en/pointperfect-service-coverage) and [Skylark Cx](https://www.swiftnav.com/products/skylark) are examples of an SSR. 
+
+## Galileo HAS
+
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
+
+The European Union launched a free correction service called [High Accuracy Service](https://www.gsc-europa.eu/galileo/services/galileo-high-accuracy-service-has) or **HAS** starting in 2023. The service is delivered over the E6 frequency. In general, this service will greatly improve accuracy to receivers but is lower accuracy than an OSR or SSR-based RTK Fix. Additionally, a receiver can take up to 5 minutes to benefit from these corrections (convergence time is larger), as opposed to OSR (seconds) or SSR (~180 seconds) to achieve maximum accuracy. But HAS is free! And available with very little additional configuration.
+
+Various SparkFun RTK products support this new GNSS band (E6). In general, the RTK Torch will need UM980 firmware 118333 or newer. See how to [Update the UM980 Firmware](firmware_update.md#updating-um980-firmware) for instructions. HAS/E6 is enabled by default and can be disabled in the [GNSS Menu](menu_gnss.md#galileo-e6-corrections) if desired.

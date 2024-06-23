@@ -1,0 +1,161 @@
+name: Non-Release Build v3.0.0
+on: 
+  workflow_dispatch:
+    branches: 
+
+env:
+  FILENAME_PREFIX: RTK_Everywhere_Firmware
+  FIRMWARE_VERSION_MAJOR: 99
+  FIRMWARE_VERSION_MINOR: 99
+  POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
+  POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
+  CORE_VERSION: 3.0.0
+
+jobs:
+  build:
+    
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%b_%d_%Y')" >> $GITHUB_OUTPUT
+
+      - name: Get current date
+        id: dateNoScores
+        run: echo "dateNoScores=$(date +'%b %d %Y')" >> $GITHUB_OUTPUT
+
+      - name: Extract branch name
+        run: echo "BRANCH=${{github.ref_name}}" >> $GITHUB_ENV
+
+      #File_Name_v1_0.bin
+      #File_Name_RC-Jan_26_2023.bin
+      - name: Create file ending and compiler flags based on branch
+        run: |
+          if [[ $BRANCH == 'main' ]]; then
+              echo "FILE_ENDING_UNDERSCORE=_v${{ env.FIRMWARE_VERSION_MAJOR }}_${{ env.FIRMWARE_VERSION_MINOR }}" >> "$GITHUB_ENV"
+              echo "FILE_ENDING_NOUNDERSCORE=_v${{ env.FIRMWARE_VERSION_MAJOR }}.${{ env.FIRMWARE_VERSION_MINOR }}" >> "$GITHUB_ENV"
+              echo "JSON_ENDING=" >> "$GITHUB_ENV"
+              echo "JSON_FILE_NAME=RTK-Everywhere-Firmware.json" >> "$GITHUB_ENV"
+              echo "ENABLE_DEVELOPER=false" >> "$GITHUB_ENV"
+              echo "DEBUG_LEVEL=none" >> "$GITHUB_ENV"
+          else
+              echo "FILE_ENDING_UNDERSCORE=_RC-${{ steps.date.outputs.date }}" >> "$GITHUB_ENV"
+              echo "FILE_ENDING_NOUNDERSCORE=_RC-${{ steps.dateNoScores.outputs.dateNoScores }}" >> "$GITHUB_ENV"
+              echo "JSON_ENDING=-${{ steps.dateNoScores.outputs.dateNoScores }}" >> "$GITHUB_ENV"
+              echo "JSON_FILE_NAME=RTK-Everywhere-RC-Firmware.json" >> "$GITHUB_ENV"
+              echo "ENABLE_DEVELOPER=true" >> "$GITHUB_ENV"
+              echo "DEBUG_LEVEL=debug" >> "$GITHUB_ENV"
+          fi
+
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+
+      - name: Start config file
+        run: arduino-cli config init --additional-urls "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json"
+
+      - name: Update core index
+        run: arduino-cli core update-index
+
+      - name: Update library index
+        run: arduino-cli lib update-index
+
+      # We need v3.0.1-rc1 to fix the WiFiMulti.run timeout issue - but it is not yet available
+      #- name: Install platform
+      #  run: arduino-cli core install esp32:esp32@${{ env.CORE_VERSION }}
+
+      # So, right now, we need to use v3.0.0 and patch it
+      - name: Install platform
+        run: arduino-cli core install esp32:esp32@3.0.0
+      - name: Patch v3.0.0
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp WiFiScan.h /home/runner/.arduino15/packages/esp32/hardware/esp32/3.0.0/libraries/WiFi/src/WiFiScan.h
+          cp WiFiScan.cpp /home/runner/.arduino15/packages/esp32/hardware/esp32/3.0.0/libraries/WiFi/src/WiFiScan.cpp
+
+      - name: Get Known Libraries
+        run: arduino-cli lib install
+          ArduinoJson@6.19.4
+          ESP32Time@2.0.0
+          ESP32_BleSerial@1.0.4
+          "ESP32-OTA-Pull"@1.0.0
+          JC_Button@2.1.2
+          PubSubClient@2.8.0
+          "SdFat"@2.1.1
+          "SparkFun LIS2DH12 Arduino Library"@1.0.3
+          "SparkFun MAX1704x Fuel Gauge Arduino Library"@1.0.4
+          "SparkFun u-blox GNSS v3"@3.1.5
+          "SparkFun Qwiic OLED Arduino Library"@1.0.13
+          SSLClientESP32@2.0.0
+          "SparkFun Extensible Message Parser"@1.0.0
+          "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
+          "ArduinoMqttClient"@0.1.8
+          "SparkFun u-blox PointPerfect Library"@1.11.4
+          "SparkFun IM19 IMU Arduino Library"@1.0.1
+          "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
+
+      # https://github.com/avinabmalla/ESP32_BleSerial/issues/15
+      - name: Patch ESP32_BleSerial BLECharacteristic
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp BleSerial.cpp /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Configure Python - now we have Python installed, we need to provide everything needed by esptool otherwise the compile fails
+      - name: Configure Python
+        run: |
+          pip3 install pyserial
+
+      - name: Update index_html
+        run: |
+          cd Firmware/Tools
+          python index_html_zipper.py ../RTK_Everywhere/AP-Config/index.html ../RTK_Everywhere/form.h
+
+      - name: Update main_js
+        run: |
+          cd Firmware/Tools
+          python main_js_zipper.py ../RTK_Everywhere/AP-Config/src/main.js ../RTK_Everywhere/form.h
+
+      - name: Commit and push form.h
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          directory: ./Firmware/RTK_Everywhere
+          branch: ${{ env.BRANCH }}
+          message: 'Update form.h via Python'
+
+      - name: Copy custom RTKEverywhere.csv
+        run:
+          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
+
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
+          --build-property build.partitions=RTKEverywhere
+          --build-property upload.maximum_size=3145728 
+          --build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_LBAND_TOKEN=$POINTPERFECT_LBAND_TOKEN\" \"-DPOINTPERFECT_IP_TOKEN=$POINTPERFECT_IP_TOKEN\" \"-DPOINTPERFECT_LBAND_IP_TOKEN=$POINTPERFECT_LBAND_IP_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
+          --export-binaries
+
+      - name: Create artifact name
+        run: |
+          echo "ARTIFACT=${{ env.FILENAME_PREFIX }}${{ env.FILE_ENDING_UNDERSCORE }}" >> $GITHUB_ENV
+
+      - name: Create artifact directory
+        run: |
+          cd Firmware/RTK_Everywhere/build/esp32.esp32.esp32/
+          mkdir ${{ env.ARTIFACT }}
+          mv RTK_Everywhere.ino.bin ${{ env.ARTIFACT }}
+
+      - name: Upload artifact directory to action - avoid double-zip
+        uses: actions/upload-artifact@v3
+        with: 
+          name: ${{ env.ARTIFACT }}
+          path: Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.ARTIFACT }}
+          retention-days: 7
