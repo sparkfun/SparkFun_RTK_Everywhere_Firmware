@@ -565,7 +565,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude() + settings.tiltPoleLength + present.antennaReferencePoint_mm / 1000.0);
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
@@ -856,7 +856,7 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude() + settings.tiltPoleLength + present.antennaReferencePoint_mm / 1000.0);
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
