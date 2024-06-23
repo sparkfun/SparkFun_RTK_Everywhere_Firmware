@@ -1002,6 +1002,8 @@ const Regional_Information Regional_Information_Table[] =
 };
 const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
 
+#define NTRIP_SERVER_STRING_SIZE        50
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 struct Settings
@@ -1130,7 +1132,7 @@ struct Settings
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
     bool enableRtcmMessageChecking = false;
-    char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
+    char ntripServer_CasterHost[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] = // It's free...
     {
         "rtk2go.com",
         "",
@@ -1144,28 +1146,28 @@ struct Settings
         2101,
         2101,
     };
-    char ntripServer_CasterUser[NTRIP_SERVER_MAX][50] =
+    char ntripServer_CasterUser[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "test@test.com" // Some free casters require auth. User must provide their own email address to use RTK2Go
         "",
         "",
         "",
     };
-    char ntripServer_CasterUserPW[NTRIP_SERVER_MAX][50] =
+    char ntripServer_CasterUserPW[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "",
         "",
         "",
         "",
     };
-    char ntripServer_MountPoint[NTRIP_SERVER_MAX][50] =
+    char ntripServer_MountPoint[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "bldr_dwntwn2", // NTRIP Server
         "",
         "",
         "",
     };
-    char ntripServer_MountPointPW[NTRIP_SERVER_MAX][50] =
+    char ntripServer_MountPointPW[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "WR5wRo4H",
         "",
