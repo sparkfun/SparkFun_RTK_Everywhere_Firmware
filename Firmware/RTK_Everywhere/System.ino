@@ -369,7 +369,7 @@ void printReports()
 
                 char modifiedHpa[20];
                 const char *hpaUnits =
-                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
+                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3, true); // Returns string of the HPA units
 
                 systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
                              gnssGetSatellitesInView());
@@ -716,44 +716,49 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
-// Returns string of the HPA units
-const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
+// This allows the measurementScaleTable to be alphabetised if desired
+int measurementScaleToIndex(uint8_t scale)
 {
-    const char *units;
-
-    // Return the units
-    if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+    for (int i = 0; i < MEASUREMENT_UNITS_MAX; i++)
     {
-        units = "Unknown";
-        strcpy(buffer, "Unknown");
+        if (measurementScaleTable[i].measurementUnit == scale)
+            return i;
     }
-    else
-    {
-        units = measurementScaleUnits[settings.measurementScale];
 
-        // Convert the HPA value to a string
-        switch (settings.measurementScale)
+    return -1; // This should never happen...
+}
+
+// Returns string of the HPA units
+const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool limit)
+{
+    static const char unknown[] = "Unknown";
+
+    int i = measurementScaleToIndex(settings.measurementScale);
+    if (i >= 0)
+    {
+        const char *units = measurementScaleTable[i].measurementScale1NameShort;
+
+        hpa *= measurementScaleTable[i].multiplierMetersToScale1; // Scale1: m->m or m->ft
+
+        bool limited = false;
+        if (limit && (hpa > measurementScaleTable[i].reportingLimitScale1)) // Limit the reported accuracy (Scale1)
         {
-        case MEASUREMENTS_IN_METERS:
-            snprintf(buffer, length, "%.*f", decimals, hpa);
-            break;
-
-        case MEASUREMENTS_IN_FEET_INCHES:
-            double inches;
-            double feet;
-            inches = hpa * INCHES_IN_A_METER;
-            feet = inches / 12.;
-            if (inches >= 36.)
-                snprintf(buffer, length, "%.*f", decimals, feet);
-            else
-            {
-                units = "in";
-                snprintf(buffer, length, "%.*f", decimals, inches);
-            }
-            break;
+            limited = true;
+            hpa = measurementScaleTable[i].reportingLimitScale1;
         }
+
+        if (hpa <= measurementScaleTable[i].changeFromScale1To2At) // Scale2: m->m or ft->in
+        {
+            hpa *= measurementScaleTable[i].multiplierScale1To2;
+            units = measurementScaleTable[i].measurementScale2NameShort;
+        }
+
+        snprintf(buffer, length, "%s%.*f", limited ? "> " : "", decimals, hpa);
+        return units;
     }
-    return units;
+
+    strncpy(buffer, unknown, length);
+    return unknown;
 }
 
 // Helper method to convert GNSS time and date into Unix Epoch

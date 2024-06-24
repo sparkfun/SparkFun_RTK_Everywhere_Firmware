@@ -260,8 +260,9 @@ void stateUpdate()
             // Check for <1m horz accuracy before starting surveyIn
             char accuracy[20];
             char temp[20];
-            const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2);
-            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2);
+            const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
+            // gnssGetSurveyInStartingAccuracy is 10m max
+            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
@@ -313,7 +314,7 @@ void stateUpdate()
             else
             {
                 char temp[20];
-                const char *units = getHpaUnits(meanAccuracy, temp, sizeof(temp), 3);
+                const char *units = getHpaUnits(meanAccuracy, temp, sizeof(temp), 3, true);
                 systemPrintf("Time elapsed: %d Accuracy (%s): %s SIV: %d\r\n", observationTime, units, temp, siv);
 
                 if (observationTime > maxSurveyInWait_s)

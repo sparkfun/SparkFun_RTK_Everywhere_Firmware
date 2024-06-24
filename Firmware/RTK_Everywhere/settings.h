@@ -599,29 +599,34 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
-#define INCHES_IN_A_METER       39.37009424
+#define INCHES_IN_A_METER   39.37007874
+#define FEET_IN_A_METER     3.280839895
 
-enum MeasurementScale
+typedef enum
 {
-    MEASUREMENTS_IN_METERS = 0,
-    MEASUREMENTS_IN_FEET_INCHES,
-    // Add new measurement scales above this line
-    MEASUREMENT_SCALE_MAX
-};
+    MEASUREMENT_UNITS_METERS = 0,
+    MEASUREMENT_UNITS_FEET_INCHES,
+    // Add new measurement units above this line
+    MEASUREMENT_UNITS_MAX
+} measurementUnits;
 
-const char * const measurementScaleName[] =
+typedef struct
 {
-    "meters",
-    "feet and inches",
-};
-const int measurementScaleNameEntries = sizeof(measurementScaleName) / sizeof(measurementScaleName[0]);
+    const measurementUnits measurementUnit;
+    const char *measurementScaleName;
+    const char *measurementScale1NameShort;
+    const char *measurementScale2NameShort;
+    const double multiplierMetersToScale1;
+    const double changeFromScale1To2At;
+    const double multiplierScale1To2;
+    const double reportingLimitScale1;
+} measurementScaleEntry;
 
-const char * const measurementScaleUnits[] =
-{
-    "m",
-    "ft",
+const measurementScaleEntry measurementScaleTable[] = {
+    { MEASUREMENT_UNITS_METERS, "meters", "m", "m", 1.0, 1.0, 1.0, 30.0 },
+    { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
 };
-const int measurementScaleUnitsEntries = sizeof(measurementScaleUnits) / sizeof(measurementScaleUnits[0]);
+const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
 
 // These are the allowable messages to broadcast and log (if enabled)
 
@@ -1190,7 +1195,7 @@ struct Settings
     uint8_t handleGnssDataTaskCore = 1;     // Core where task should run, 0=core, 1=Arduino
     uint8_t handleGnssDataTaskPriority = 1; // Read from the cicular buffer and dole out to end points (SD, TCP, BT).
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
-    uint8_t measurementScale = MEASUREMENTS_IN_METERS;
+    uint8_t measurementScale = MEASUREMENT_UNITS_METERS;
     bool printBootTimes = false; // Print times and deltas during boot
     bool printPartitionTable = false;
     bool printTaskStartStop = false;
