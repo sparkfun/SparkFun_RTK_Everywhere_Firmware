@@ -123,7 +123,7 @@ static volatile uint32_t mqttClientLastDataReceived; // Last time data was recei
 
 static char *mqttClientPrivateKeyBuffer; // Buffer for client private key
 
-static NetworkSecureWiFiClient *mqttSecureClient;
+static RTKNetworkSecureClient *mqttSecureClient;
 
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
@@ -555,7 +555,7 @@ void mqttClientUpdate()
         }
 
         // Allocate the mqttSecureClient structure
-        mqttSecureClient = new NetworkSecureWiFiClient();
+        mqttSecureClient = new RTKNetworkSecureClient();
         if (!mqttSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
