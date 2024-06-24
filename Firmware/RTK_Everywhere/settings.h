@@ -1363,6 +1363,8 @@ struct Settings
     };
     uint32_t wifiConnectTimeoutMs = 20000; // Wait this long for a WiFiMulti connection
 
+    bool outputTipAltitude = false; // If enabled, subtract the pole length and ARP from the GNSS receiver's reported altitude
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1851,6 +1853,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.wifiConfigOverAP, "wifiConfigOverAP",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, tWiFiNet,  MAX_WIFI_NETWORKS, & settings.wifiNetworks, "wifiNetwork_",  },
     { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
+
+    { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.outputTipAltitude, "outputTipAltitude",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
