@@ -588,6 +588,11 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     // Add interstitial between end of lon and beginning of alt
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
 
+    // If outputTipAltitude is enabled, then we don't have to make any adjustments: the tilt compensation module outputs tip altitude
+    // If outputTipAltitude is disabled, then we need to add back the pole length and ARP
+    if(settings.outputTipAltitude == false)
+        orthometricHeight = orthometricHeight + settings.tiltPoleLength + (present.antennaReferencePoint_mm / 1000.0);
+
     // Convert altitude double to string
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", orthometricHeight);
 
@@ -899,6 +904,11 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
 
     // Add interstitial between end of lon and beginning of alt
     strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
+
+    // If outputTipAltitude is enabled, then we don't have to make any adjustments: the tilt compensation module outputs tip altitude
+    // If outputTipAltitude is disabled, then we need to add back the pole length and ARP
+    if(settings.outputTipAltitude == false)
+        orthometricHeight = orthometricHeight + settings.tiltPoleLength + (present.antennaReferencePoint_mm / 1000.0);
 
     // Convert altitude double to string
     snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", orthometricHeight);
