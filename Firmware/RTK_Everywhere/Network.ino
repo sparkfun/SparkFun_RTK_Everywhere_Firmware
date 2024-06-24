@@ -137,13 +137,13 @@ Network.ino
     * private SNIP NTRIP caster
 ------------------------------------------------------------------------------*/
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants
 //----------------------------------------
 
-#define NETWORK_CONNECTION_TIMEOUT (15 * 1000) // Timeout for network media connection
+#define NETWORK_CONNECTION_TIMEOUT (30 * 1000) // Timeout for network media connection - allow extra time for WiFiMulti scan
 #define NETWORK_DELAY_BEFORE_RETRY (75 * 100)  // Delay between network connection retries
 #define NETWORK_IP_ADDRESS_DISPLAY (12 * 1000) // Delay in milliseconds between display of IP address
 #define NETWORK_MAX_IDLE_TIME 500              // Maximum network idle time before shutdown
@@ -232,20 +232,6 @@ void menuTcpUdp()
         if (settings.enableUdpServer)
             systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
-        if (present.ethernet_ws5500 == true)
-        {
-            //------------------------------
-            // Display the network layer menu items
-            //------------------------------
-
-            systemPrint("d) Default network: ");
-            networkPrintName(settings.defaultNetworkType);
-            systemPrintln();
-
-            systemPrint("f) Ethernet / WiFi Failover: ");
-            systemPrintf("%s\r\n", settings.enableNetworkFailover ? "Enabled" : "Disabled");
-        }
-
         //------------------------------
         // Finish the menu and get the input
         //------------------------------
@@ -318,23 +304,6 @@ void menuTcpUdp()
         }
 
         //------------------------------
-        // Get the network layer parameters
-        //------------------------------
-
-        else if ((incoming == 'd') && (present.ethernet_ws5500 == true))
-        {
-            // Toggle the network type
-            settings.defaultNetworkType += 1;
-            if (settings.defaultNetworkType > NETWORK_TYPE_USE_DEFAULT)
-                settings.defaultNetworkType = 0;
-        }
-        else if ((incoming == 'f') && (present.ethernet_ws5500 == true))
-        {
-            // Toggle failover support
-            settings.enableNetworkFailover ^= 1;
-        }
-
-        //------------------------------
         // Handle exit and invalid input
         //------------------------------
 
@@ -352,24 +321,13 @@ void menuTcpUdp()
 //----------------------------------------
 // Allocate a network client
 //----------------------------------------
-NetworkClient *networkClient(uint8_t user, bool useSSL)
+RTKNetworkClient *networkClient(uint8_t user, bool useSSL)
 {
-    NetworkClient *client;
+    RTKNetworkClient *client;
     int type;
 
     type = networkGetType(user);
-#if defined(COMPILE_ETHERNET)
-    if (type == NETWORK_TYPE_ETHERNET)
-        client = new NetworkEthernetClient;
-    else
-#endif // COMPILE_ETHERNET
-    {
-#if defined(COMPILE_WIFI)
-        client = new NetworkWiFiClient();
-#else  // COMPILE_WIFI
-        client = nullptr;
-#endif // COMPILE_WIFI
-    }
+    client = new RTKNetworkClientType(type);
     return client;
 }
 
@@ -389,7 +347,8 @@ void networkDisplayIpAddress(uint8_t networkType)
         {
             strcpy(ipAddress, networkGetIpAddress(networkType).toString().c_str());
             if (network->type == NETWORK_TYPE_WIFI)
-                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], wifiGetSsid(), ipAddress, wifiGetRssi());
+                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], wifiGetSsid(),
+                             ipAddress, wifiGetRssi());
             else
                 systemPrintf("%s IP address: %s\r\n", networkName[network->type], ipAddress);
 
@@ -484,6 +443,20 @@ IPAddress networkGetIpAddress(uint8_t networkType)
     if (networkType == NETWORK_TYPE_WIFI)
         return wifiGetIpAddress();
     return IPAddress((uint32_t)0);
+}
+
+//----------------------------------------
+// Get the network type
+//----------------------------------------
+uint8_t networkGetActiveType()
+{
+    NETWORK_DATA *network;
+    uint8_t type;
+
+    type = network->type;
+    if (type == NETWORK_TYPE_USE_DEFAULT)
+        type = NETWORK_TYPE_ETHERNET;
+    return type;
 }
 
 //----------------------------------------
@@ -590,7 +563,7 @@ bool networkIsMediaConnected(NETWORK_DATA *network)
     }
 
     // Verify that the network has an IP address
-    if (isConnected && (networkGetIpAddress(network->type) != 0))
+    if (isConnected && (networkGetIpAddress(network->type) != IPAddress((uint32_t)0)))
     {
         networkPeriodicallyDisplayIpAddress();
         return true;
@@ -810,7 +783,7 @@ void networkStart(uint8_t networkType)
 //----------------------------------------
 // Translate the network state into a string
 //----------------------------------------
-const char * networkStateToString(uint8_t state)
+const char *networkStateToString(uint8_t state)
 {
     if (state >= networkStateEntries)
         return "Unknown";
@@ -896,14 +869,14 @@ void networkStop(uint8_t networkType)
                         serverIndex = user - NETWORK_USER_NTRIP_SERVER;
                         if (settings.debugNetworkLayer)
                             systemPrintln("Network layer stopping NTRIP server");
-                        ntripServerRestart(serverIndex);
+                        ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
                     }
                     break;
 
                 case NETWORK_USER_MQTT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping MQTT client");
-                    mqttClientRestart();
+                    mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
                     break;
 
                 case NETWORK_USER_NTP_SERVER:
@@ -915,7 +888,7 @@ void networkStop(uint8_t networkType)
                 case NETWORK_USER_NTRIP_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping NTRIP client");
-                    ntripClientRestart();
+                    ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
                     break;
 
                 case NETWORK_USER_OTA_AUTO_UPDATE:
@@ -1025,7 +998,7 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
 //----------------------------------------
 // Translate type into a string
 //----------------------------------------
-const char * networkTypeToString(uint8_t type)
+const char *networkTypeToString(uint8_t type)
 {
     if (type >= networkNameEntries)
         return "Unknown";
@@ -1037,11 +1010,11 @@ const char * networkTypeToString(uint8_t type)
 //----------------------------------------
 void networkTypeUpdate(uint8_t networkType)
 {
-    if(inWiFiConfigMode())
+    if (inWiFiConfigMode())
     {
-        //Avoid the full network layer while in Browser Config Mode
+        // Avoid the full network layer while in Browser Config Mode
         wifiUpdate();
-        return; 
+        return;
     }
 
     char errorMsg[64];
@@ -1111,8 +1084,8 @@ void networkTypeUpdate(uint8_t networkType)
             // Display the network type change
             network->type = type;
             if (settings.debugNetworkLayer && (network->type != network->requestedNetwork))
-                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n", networkTypeToString(network->requestedNetwork),
-                             networkName[network->type]);
+                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n",
+                             networkTypeToString(network->requestedNetwork), networkName[network->type]);
             if (settings.debugNetworkLayer)
                 systemPrintf("networkTypeUpdate, network->requestedNetwork: %s --> %s\r\n",
                              networkName[network->requestedNetwork], networkTypeToString(network->type));
@@ -1364,7 +1337,7 @@ bool networkUserOpen(uint8_t user, uint8_t networkType)
 //----------------------------------------
 // Translate user into a string
 //----------------------------------------
-const char * networkUserToString(uint8_t userNumber)
+const char *networkUserToString(uint8_t userNumber)
 {
     if (userNumber >= networkUserEntries)
         return "Unknown";

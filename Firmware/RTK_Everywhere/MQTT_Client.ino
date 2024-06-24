@@ -315,7 +315,8 @@ void mqttClientReceiveMessage(int messageSize)
                     updateCorrectionsLastSeen(CORR_IP);
                     if (isHighestRegisteredCorrectionsSource(CORR_IP))
                     {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
+                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                            !inMainMenu)
                             systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
                         updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
@@ -325,8 +326,10 @@ void mqttClientReceiveMessage(int messageSize)
                     }
                     else
                     {
-                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                            systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount, topic);
+                        if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                            !inMainMenu)
+                            systemPrintf("NOT pushing %d bytes from %s topic to GNSS due to priority\r\n", mqttCount,
+                                         topic);
                     }
                 }
                 // Always push KEYS and MGA to the ZED
@@ -423,6 +426,10 @@ void mqttClientStop(bool shutdown)
     // Free the mqttClient resources
     if (mqttClient)
     {
+        // Disconnect from broker
+        if (mqttClient->connected() == true)
+            mqttClient->stop(); // Disconnects and stops client
+
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttClient");
 
@@ -436,7 +443,7 @@ void mqttClientStop(bool shutdown)
     {
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttSecureClient");
-        delete mqttSecureClient;
+        //delete mqttSecureClient; // Don't. This causes issue #335
         mqttSecureClient = nullptr;
         reportHeapNow(settings.debugMqttClientState);
     }
@@ -473,7 +480,9 @@ void mqttClientStop(bool shutdown)
     if (shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);
-        settings.enablePointPerfectCorrections = false;
+        //settings.enablePointPerfectCorrections = false;
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
+        //cannot be restarted without opening the menu or web configuration page...
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
     }
@@ -497,7 +506,7 @@ void mqttClientUpdate()
         if (mqttClientState > MQTT_CLIENT_OFF)
         {
             systemPrintln("MQTT Client stopping");
-            mqttClientStop(false);
+            mqttClientStop(true); // Was false - #StopVsRestart
             mqttClientConnectionAttempts = 0;
             mqttClientConnectionAttemptTimeout = 0;
             mqttClientSetState(MQTT_CLIENT_OFF);
@@ -516,7 +525,7 @@ void mqttClientUpdate()
 
     // Start the network
     case MQTT_CLIENT_ON: {
-        if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_WIFI))
+        if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
             mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
         break;
     }
@@ -526,7 +535,7 @@ void mqttClientUpdate()
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
             // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
+            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
 
         // Determine if the network is connected to the media
         else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
@@ -541,7 +550,7 @@ void mqttClientUpdate()
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
             // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
+            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
             break;
         }
 
@@ -645,7 +654,7 @@ void mqttClientUpdate()
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
             // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
+            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
             break;
         }
 
@@ -654,7 +663,7 @@ void mqttClientUpdate()
         {
             mqttClientRestart();
             systemPrintln("ERROR: Subscription to key distribution topic failed!!");
-            mqttClientRestart();
+            mqttClientRestart(); // Why twice? TODO
             break;
         }
 
@@ -671,7 +680,7 @@ void mqttClientUpdate()
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
             // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
+            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
             break;
         }
 
@@ -682,7 +691,7 @@ void mqttClientUpdate()
             {
                 mqttClientRestart();
                 systemPrintln("ERROR: Subscription to corrections topic failed!!");
-                mqttClientRestart();
+                mqttClientRestart(); // Why twice? TODO
                 break;
             }
 
@@ -704,7 +713,7 @@ void mqttClientUpdate()
         if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
         {
             // Failed to connect to the network, attempt to restart the network
-            mqttClientRestart();
+            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
             break;
         }
 

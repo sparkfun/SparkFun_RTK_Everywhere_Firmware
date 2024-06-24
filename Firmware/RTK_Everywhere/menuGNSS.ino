@@ -134,7 +134,7 @@ void menuGNSS()
             if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
                 INPUT_RESPONSE_VALID) // 20Hz limit with all constellations enabled
             {
-                gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRate,
+                gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
                                          // settings.navigationRate, and GSV message
             }
         }
@@ -158,7 +158,7 @@ void menuGNSS()
             if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate) ==
                 INPUT_RESPONSE_VALID)
             {
-                gnssSetRate(rate); // This will set settings.measurementRate, settings.navigationRate, and GSV message
+                gnssSetRate(rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
             }
         }
         else if (incoming == 3)
@@ -237,8 +237,7 @@ void menuGNSS()
             if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 90, &minCNO) ==
                 INPUT_RESPONSE_VALID)
             {
-                // We don't know which platform we are using so we cannot explicitly use the settings.minCNO_F9P, eg
-                gnssSetMinCno(minCNO);
+                gnssSetMinCno(minCNO); // Set the setting and configure the GNSS receiver
             }
         }
 

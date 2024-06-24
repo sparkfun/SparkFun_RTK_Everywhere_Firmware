@@ -117,13 +117,17 @@ void menuBase()
             {
                 systemPrintf("NTRIP Server #%d\r\n", serverIndex + 1);
 
-                systemPrintf("%d) Set Caster Address: %s\r\n", (0 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster Address: %s\r\n", (0 + (serverIndex * 6)) + ntripServerOptionOffset,
                              &settings.ntripServer_CasterHost[serverIndex][0]);
-                systemPrintf("%d) Set Caster Port: %d\r\n", (1 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster Port: %d\r\n", (1 + (serverIndex * 6)) + ntripServerOptionOffset,
                              settings.ntripServer_CasterPort[serverIndex]);
-                systemPrintf("%d) Set Mountpoint: %s\r\n", (2 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Caster User: %s\r\n", (2 + (serverIndex * 6)) + ntripServerOptionOffset,
+                             &settings.ntripServer_CasterUser[serverIndex][0]);
+                systemPrintf("%d) Set Caster User PW: %s\r\n", (3 + (serverIndex * 6)) + ntripServerOptionOffset,
+                             &settings.ntripServer_CasterUserPW[serverIndex][0]);
+                systemPrintf("%d) Set Mountpoint: %s\r\n", (4 + (serverIndex * 6)) + ntripServerOptionOffset,
                              &settings.ntripServer_MountPoint[serverIndex][0]);
-                systemPrintf("%d) Set Mountpoint PW: %s\r\n", (3 + (serverIndex * 4)) + ntripServerOptionOffset,
+                systemPrintf("%d) Set Mountpoint PW: %s\r\n", (5 + (serverIndex * 6)) + ntripServerOptionOffset,
                              &settings.ntripServer_MountPointPW[serverIndex][0]);
             }
         }
@@ -184,28 +188,34 @@ void menuBase()
                 {
                     double fixedLat = 0.0;
                     // Identify which type of method they used
-                    if (coordinateIdentifyInputType(userEntry, &fixedLat) != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                    CoordinateInputType latCoordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLat);
+                    if (latCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
                     {
-                        settings.fixedLat = fixedLat;
-
                         // Progress with additional prompts only if the user enters valid data
                         systemPrint("\r\nLongitude in degrees (ex: -105.184774720, -105 11.0864832, -105-11.0864832, "
                                     "-105 11 05.188992, etc): ");
                         if (getUserInputString(userEntry, sizeof(userEntry)) == INPUT_RESPONSE_VALID)
                         {
                             double fixedLong = 0.0;
-
                             // Identify which type of method they used
-                            if (coordinateIdentifyInputType(userEntry, &fixedLong) !=
-                                COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
+                            CoordinateInputType longCoordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLong);
+                            if (longCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
                             {
-                                settings.fixedLong = fixedLong;
-                                settings.coordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLong);
+                                if (latCoordinateInputType == longCoordinateInputType)
+                                {
+                                    settings.fixedLat = fixedLat;
+                                    settings.fixedLong = fixedLong;
+                                    settings.coordinateInputType = latCoordinateInputType;
 
-                                systemPrint("\nAltitude in meters (ex: 1560.2284): ");
-                                double fixedAltitude;
-                                if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
-                                    settings.fixedAltitude = fixedAltitude;
+                                    systemPrint("\r\nAltitude in meters (ex: 1560.2284): ");
+                                    double fixedAltitude;
+                                    if (getUserInputDouble(&fixedAltitude) == INPUT_RESPONSE_VALID)
+                                        settings.fixedAltitude = fixedAltitude;
+                                }
+                                else
+                                {
+                                    systemPrintln("\r\nCoordinate types must match!");
+                                }
                             } // idInput on fixedLong
                         } // getString for fixedLong
                     } // idInput on fixedLat
@@ -245,14 +255,9 @@ void menuBase()
         else if (settings.fixedBase == false && incoming == 4)
         {
             // Arbitrary 0.1m minimum
-            if (present.gnss_zedf9p)
-            {
-                getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.zedSurveyInStartingAccuracy);
-            }
-            else if (present.gnss_um980)
-                getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
-                              (double)maxSurveyInStartingAccuracy, &settings.um980SurveyInStartingAccuracy);
+
+            getNewSetting("Enter the positional accuracy required before Survey-In begins", 0.1,
+                          (double)maxSurveyInStartingAccuracy, &settings.surveyInStartingAccuracy);
         }
 
         else if (incoming == 7)
@@ -268,12 +273,12 @@ void menuBase()
 
         // NTRIP Server entries
         else if ((settings.enableNtripServer == true) && (incoming >= ntripServerOptionOffset) &&
-                 incoming < (ntripServerOptionOffset + 4 * NTRIP_SERVER_MAX))
+                 incoming < (ntripServerOptionOffset + 6 * NTRIP_SERVER_MAX))
         {
             // Down adjust user's selection
             incoming -= ntripServerOptionOffset;
-            int serverNumber = incoming / 4;
-            incoming -= (serverNumber * 4);
+            int serverNumber = incoming / 6;
+            incoming -= (serverNumber * 6);
 
             if (incoming == 0)
             {
@@ -298,6 +303,28 @@ void menuBase()
             else if (incoming == 2)
             {
                 if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
+                    systemPrintf("Enter Caster User for %s: ", settings.ntripServer_CasterHost[serverNumber]);
+                else
+                    systemPrintf("Enter Caster User for Server %d: ", serverNumber + 1);
+
+                if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0],
+                                       sizeof(settings.ntripServer_CasterUser[serverNumber])) == INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+            else if (incoming == 3)
+            {
+                if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
+                    systemPrintf("Enter password for Caster User %s: ", settings.ntripServer_CasterUser[serverNumber]);
+                else
+                    systemPrintf("Enter password for Caster User for Server %d: ", serverNumber + 1);
+
+                if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0],
+                                       sizeof(settings.ntripServer_CasterUserPW[serverNumber])) == INPUT_RESPONSE_VALID)
+                    restartBase = true;
+            }
+            else if (incoming == 4)
+            {
+                if (strlen(settings.ntripServer_CasterHost[serverNumber]) > 0)
                     systemPrintf("Enter Mount Point for %s: ", settings.ntripServer_CasterHost[serverNumber]);
                 else
                     systemPrintf("Enter Mount Point for Server %d: ", serverNumber + 1);
@@ -306,7 +333,7 @@ void menuBase()
                                        sizeof(settings.ntripServer_MountPoint[serverNumber])) == INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
-            else if (incoming == 3)
+            else if (incoming == 5)
             {
                 if (strlen(settings.ntripServer_MountPoint[serverNumber]) > 0)
                     systemPrintf("Enter password for Mount Point %s: ", settings.ntripServer_MountPoint[serverNumber]);

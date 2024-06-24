@@ -30,7 +30,7 @@ void ntpServerStop() {}
 
 #endif // COMPILE_ETHERNET
 
-#if !COMPILE_NETWORK
+#ifndef COMPILE_NETWORK
 
 //----------------------------------------
 // Network layer
@@ -42,6 +42,9 @@ void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
+uint8_t networkGetActiveType() {
+    return (0);
+}
 
 //----------------------------------------
 // NTRIP client
@@ -59,7 +62,7 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
-void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[0] = false;}
+void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[serverIndex] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
 bool ntripServerIsCasting(int serverIndex) {
@@ -127,7 +130,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 }
 void stopWebServer() {}
 bool parseIncomingSettings() {return false;}
-void sendStringToWebsocket(char* stringToSend) {}
+void sendStringToWebsocket(const char* stringToSend) {}
 
 #endif  // COMPILE_AP
 #ifndef COMPILE_WIFI
@@ -218,7 +221,7 @@ bool     um980IsValidTime() {return false;}
 void     um980PrintInfo() {}
 int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
 bool     um980SaveConfiguration() {}
-void     um980SetBaudRateCOM3(uint32_t baudRate) {}
+bool     um980SetBaudRateCOM3(uint32_t baudRate) {}
 bool     um980SetConstellations() {return false;}
 void     um980SetMinCNO(uint8_t cnoValue) {}
 void     um980SetMinElevation(uint8_t elevationDegrees) {}
@@ -237,7 +240,6 @@ void     um980BaseRtcmDefault(){}
 void     um980BaseRtcmLowDataRate(){}
 char *   um980GetRtcmDefaultString() {return ("Not compiled");}
 char *   um980GetRtcmLowDataRateString() {return ("Not compiled");}
-float    um980GetSurveyInStartingAccuracy() {return(0.0);}
 void     um980MenuConstellations(){}
 double   um980GetRateS() {return(0.0);}
 void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}

@@ -442,6 +442,9 @@ void tiltSensorFactoryReset()
 // Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
 // Modifies the sentence directly. Updates sentence CRC.
 // Auto-detects sentence type and will only modify sentences that have lat/lon/alt (ie GGA yes, GSV no)
+// Which sentences have altitude? Yes: GGA, GNS No: RMC, GLL
+// Which sentences have undulation? Yes: GGA, GNS No: RMC, GLL
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
 void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 {
     // Verify the sentence is null-terminated
@@ -481,8 +484,14 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 }
 
 // Modify a GNS sentence with tilt compensation
-//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.361,M,,*7D - Original
-//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1580.987,M,-21.361,M,,*7E - Modified
+//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1574.406,-8.4923,,,S*71 - Original
+//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1589.4793,-8.4923,,,S*7E - Modified
+// 1580.987 is what is provided by the IMU and is the ellisoidal height
+// 1580.987 is called 'ellipsoidal height' in SW Maps and includes the MSL + undulation
+// To get mean sea level: 1580.987 - -8.4923 = 1589.4793
+// 1589.4793 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
 void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
 {
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
@@ -490,6 +499,7 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
+    const int undulationComma = 10;
 
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
@@ -497,6 +507,8 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     uint8_t longitudeStop = 0;
     uint8_t altitudeStart = 0;
     uint8_t altitudeStop = 0;
+    uint8_t undulationStart = 0;
+    uint8_t undulationStop = 0;
     uint8_t checksumStart = 0;
 
     int commaCount = 0;
@@ -507,16 +519,20 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
             commaCount++;
             if (commaCount == latitudeComma)
                 latitudeStart = x + 1;
-            else if (commaCount == latitudeComma + 1)
+            if (commaCount == latitudeComma + 1)
                 latitudeStop = x;
-            else if (commaCount == longitudeComma)
+            if (commaCount == longitudeComma)
                 longitudeStart = x + 1;
-            else if (commaCount == longitudeComma + 1)
+            if (commaCount == longitudeComma + 1)
                 longitudeStop = x;
-            else if (commaCount == altitudeComma)
+            if (commaCount == altitudeComma)
                 altitudeStart = x + 1;
-            else if (commaCount == altitudeComma + 1)
+            if (commaCount == altitudeComma + 1)
                 altitudeStop = x;
+            if (commaCount == undulationComma)
+                undulationStart = x + 1;
+            if (commaCount == undulationComma + 1)
+                undulationStop = x;
         }
         if (nmeaSentence[x] == '*')
         {
@@ -526,11 +542,19 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     }
 
     if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || altitudeStart == 0 ||
-        altitudeStop == 0 || checksumStart == 0)
+        altitudeStop == 0 || undulationStart == 0 || undulationStop == 0 || checksumStart == 0)
     {
         systemPrintln("Delineator not found");
         return;
     }
+
+    // Extract the undulation
+    char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
+    strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
+    float undulation = (float)atof(undulationStr);
+
+    // Remove the undulation from the IMU's altitude
+    float orthometricHeight = tiltSensor->getNaviAltitude() - undulation;
 
     char newSentence[150] = {0};
 
@@ -769,13 +793,20 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
 }
 
 // Modify a GGA sentence with tilt compensation
-//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.361,M,,*7D - Original
-//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1580.987,M,-21.361,M,,*7E - Modified
+//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.3612,M,,*7D - Original
+//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1602.348,M,-21.3612,M,,*4C - Modified
+// 1580.987 is what is provided by the IMU and is the ellisoidal height
+//'Ellipsoidal height' includes the MSL + undulation
+// To get mean sea level: 1580.987 - -21.3612 = 1602.3482
+// 1602.3482 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
 void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
 {
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
+    const int undulationComma = 11;
 
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
@@ -783,6 +814,8 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     uint8_t longitudeStop = 0;
     uint8_t altitudeStart = 0;
     uint8_t altitudeStop = 0;
+    uint8_t undulationStart = 0;
+    uint8_t undulationStop = 0;
     uint8_t checksumStart = 0;
 
     if (settings.enableImuCompensationDebug == true)
@@ -796,16 +829,20 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
             commaCount++;
             if (commaCount == latitudeComma)
                 latitudeStart = x + 1;
-            else if (commaCount == latitudeComma + 1)
+            if (commaCount == latitudeComma + 1)
                 latitudeStop = x;
-            else if (commaCount == longitudeComma)
+            if (commaCount == longitudeComma)
                 longitudeStart = x + 1;
-            else if (commaCount == longitudeComma + 1)
+            if (commaCount == longitudeComma + 1)
                 longitudeStop = x;
-            else if (commaCount == altitudeComma)
+            if (commaCount == altitudeComma)
                 altitudeStart = x + 1;
-            else if (commaCount == altitudeComma + 1)
+            if (commaCount == altitudeComma + 1)
                 altitudeStop = x;
+            if (commaCount == undulationComma)
+                undulationStart = x + 1;
+            if (commaCount == undulationComma + 1)
+                undulationStop = x;
         }
         if (nmeaSentence[x] == '*')
         {
@@ -815,11 +852,19 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     }
 
     if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || altitudeStart == 0 ||
-        altitudeStop == 0 || checksumStart == 0)
+        altitudeStop == 0 || undulationStart == 0 || undulationStop == 0 || checksumStart == 0)
     {
         systemPrintln("Delineator not found");
         return;
     }
+
+    // Extract the undulation
+    char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
+    strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
+    float undulation = (float)atof(undulationStr);
+
+    // Remove the undulation from the IMU's altitude
+    float orthometricHeight = tiltSensor->getNaviAltitude() - undulation;
 
     char newSentence[150] = {0};
 

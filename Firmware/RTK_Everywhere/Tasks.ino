@@ -100,8 +100,8 @@ uint16_t bluetoothOutgoingToGnssHead;
 unsigned long lastGnssSend; // Timestamp of the last time we sent RTCM to GNSS
 
 // Ring buffer tails
-static RING_BUFFER_OFFSET btRingBufferTail; // BT Tail advances as it is sent over BT
-static RING_BUFFER_OFFSET sdRingBufferTail; // SD Tail advances as it is recorded to SD
+static RING_BUFFER_OFFSET btRingBufferTail;  // BT Tail advances as it is sent over BT
+static RING_BUFFER_OFFSET sdRingBufferTail;  // SD Tail advances as it is recorded to SD
 static RING_BUFFER_OFFSET usbRingBufferTail; // USB Tail advances as it is sent over USB serial
 
 // Ring buffer offsets
@@ -125,12 +125,13 @@ void btReadTask(void *e)
     uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
 
     // Start notification
-    online.btReadTaskRunning = true;
+    task.btReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task btReadTask started");
 
-    // Verify that the task is still running
-    while (online.btReadTaskRunning)
+    // Run task until a request is raised
+    task.btReadTaskStopRequest = false;
+    while (task.btReadTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_BLUETOOTH_READ))
@@ -177,8 +178,8 @@ void btReadTask(void *e)
                     btAppCommandCharsReceived++;
                     if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
                     {
+                        systemPrintln("Device has entered config mode over Bluetooth");
                         printEndpoint = PRINT_ENDPOINT_ALL;
-                        systemPrintln("App has entered config mode");
                         btPrintEcho = true;
                         runCommandMode = true;
 
@@ -187,7 +188,7 @@ void btReadTask(void *e)
                     }
                 }
 
-                else // This is just a character in the stream, ignore
+                else // This character is not a command character, pass along to GNSS
                 {
                     // Pass any escape characters that turned out to not be a complete escape sequence
                     while (btEscapeCharsReceived-- > 0)
@@ -244,7 +245,7 @@ void btReadTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task btReadTask stopped");
-    online.btReadTaskRunning = false;
+    task.btReadTaskRunning = false;
     vTaskDelete(NULL);
 }
 
@@ -345,7 +346,7 @@ void gnssReadTask(void *e)
     static SEMP_PARSE_STATE *parse;
 
     // Start notification
-    online.gnssReadTaskRunning = true;
+    task.gnssReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask started");
 
@@ -361,8 +362,9 @@ void gnssReadTask(void *e)
     if (settings.debugGnss)
         sempEnableDebugOutput(parse);
 
-    // Verify that the task is still running
-    while (online.gnssReadTaskRunning)
+    // Run task until a request is raised
+    task.gnssReadTaskStopRequest = false;
+    while (task.gnssReadTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_GNSS_READ))
@@ -405,7 +407,7 @@ void gnssReadTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask stopped");
-    online.gnssReadTaskRunning = false;
+    task.gnssReadTaskRunning = false;
     vTaskDelete(NULL);
 }
 
@@ -704,12 +706,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         else
             systemPrintf("Ring buffer full: discarding %d bytes\r\n", discardedBytes);
         updateRingBufferTails(previousTail, rbOffsetArray[rbOffsetTail]);
-        availableHandlerSpace += discardedBytes;
+        availableHandlerSpace = availableHandlerSpace + discardedBytes;
     }
 
     // Add another message to the ring buffer
     // Account for this message
-    availableHandlerSpace -= bytesToCopy;
+    availableHandlerSpace = availableHandlerSpace - bytesToCopy;
 
     // Fill the buffer to the end and then start at the beginning
     if ((dataHead + bytesToCopy) > settings.gnssHandlerBufferSize)
@@ -721,9 +723,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Copy the data into the ring buffer
     memcpy(&ringBuffer[dataHead], parse->buffer, bytesToCopy);
-    dataHead += bytesToCopy;
+    dataHead = dataHead + bytesToCopy;
     if (dataHead >= settings.gnssHandlerBufferSize)
-        dataHead -= settings.gnssHandlerBufferSize;
+        dataHead = dataHead - settings.gnssHandlerBufferSize;
 
     // Determine the remaining bytes
     remainingBytes = parse->length - bytesToCopy;
@@ -731,9 +733,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     {
         // Copy the remaining bytes into the beginning of the ring buffer
         memcpy(ringBuffer, &parse->buffer[bytesToCopy], remainingBytes);
-        dataHead += remainingBytes;
+        dataHead = dataHead + remainingBytes;
         if (dataHead >= settings.gnssHandlerBufferSize)
-            dataHead -= settings.gnssHandlerBufferSize;
+            dataHead = dataHead - settings.gnssHandlerBufferSize;
     }
 
     // Add the head offset to the offset array
@@ -808,7 +810,7 @@ void handleGnssDataTask(void *e)
     int32_t usedSpace;
 
     // Start notification
-    online.handleGnssDataTaskRunning = true;
+    task.handleGnssDataTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task handleGnssDataTask started");
 
@@ -819,8 +821,9 @@ void handleGnssDataTask(void *e)
     udpServerZeroTail();
     sdRingBufferTail = 0;
 
-    // Verify that the task is still running
-    while (online.handleGnssDataTaskRunning)
+    // Run task until a request is raised
+    task.handleGnssDataTaskStopRequest = false;
+    while (task.handleGnssDataTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_HANDLE_GNSS_DATA))
@@ -1161,7 +1164,7 @@ void handleGnssDataTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task handleGnssDataTask stopped");
-    online.handleGnssDataTaskRunning = false;
+    task.handleGnssDataTaskRunning = false;
     vTaskDelete(NULL);
 }
 
@@ -1182,7 +1185,7 @@ void tickerBluetoothLedUpdate()
         if (btFadeLevel < 0)
             btFadeLevel = 0;
 
-        ledcWrite(ledBtChannel, btFadeLevel);
+        ledcWrite(pin_bluetoothStatusLED, btFadeLevel);
     }
     // Blink on/off while we wait for BT connection
     else if (bluetoothGetState() == BT_NOTCONNECTED)
@@ -1191,13 +1194,13 @@ void tickerBluetoothLedUpdate()
             btFadeLevel = 255;
         else
             btFadeLevel = 0;
-        ledcWrite(ledBtChannel, btFadeLevel);
+        ledcWrite(pin_bluetoothStatusLED, btFadeLevel);
     }
     // Solid LED if BT Connected
     else if (bluetoothGetState() == BT_CONNECTED)
-        ledcWrite(ledBtChannel, 255);
+        ledcWrite(pin_bluetoothStatusLED, 255);
     else
-        ledcWrite(ledBtChannel, 0);
+        ledcWrite(pin_bluetoothStatusLED, 0);
 }
 
 // Control GNSS LED on variants
@@ -1215,11 +1218,11 @@ void tickerGnssLedUpdate()
         // Solid once RTK Fix is achieved, or PPP converges
         if (gnssIsRTKFix() == true || gnssIsPppConverged())
         {
-            ledcWrite(ledGnssChannel, 255);
+            ledcWrite(pin_gnssStatusLED, 255);
         }
         else
         {
-            ledcWrite(ledGnssChannel, 0);
+            ledcWrite(pin_gnssStatusLED, 0);
         }
     }
 }
@@ -1239,15 +1242,15 @@ void tickerBatteryLedUpdate()
         // Solid LED when fuel level is above 50%
         if (batteryLevelPercent > 50)
         {
-            ledcWrite(ledBatteryChannel, 255);
+            ledcWrite(pin_batteryStatusLED, 255);
         }
         // Blink a short blink to indicate battery is depleting
         else
         {
             if (batteryCallCounter == (batteryTaskUpdatesHz / 10)) // On for 1/10th of a second
-                ledcWrite(ledBatteryChannel, 255);
+                ledcWrite(pin_batteryStatusLED, 255);
             else
-                ledcWrite(ledBatteryChannel, 0);
+                ledcWrite(pin_batteryStatusLED, 0);
         }
     }
 }
@@ -1338,12 +1341,13 @@ void buttonCheckTask(void *e)
     bool doubleTap = false;
 
     // Start notification
-    online.buttonCheckTaskRunning = true;
+    task.buttonCheckTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task buttonCheckTask started");
 
-    // Verify that the task is still running
-    while (online.buttonCheckTaskRunning)
+    // Run task until a request is raised
+    task.buttonCheckTaskStopRequest = false;
+    while (task.buttonCheckTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_BUTTON_CHECK))
@@ -1389,7 +1393,7 @@ void buttonCheckTask(void *e)
             // The user button only exits tilt mode
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
-                tiltRequestStop(); //Don't force the hardware off here as it may be in use in another task
+                tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
             }
 
             else if (doubleTap)
@@ -1601,12 +1605,12 @@ void buttonCheckTask(void *e)
 
         feedWdt();
         taskYIELD();
-    } // End while (online.buttonCheckTaskRunning)
+    } // End while (task.buttonCheckTaskStopRequest == false)
 
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task buttonCheckTask stopped");
-    online.buttonCheckTaskRunning = false;
+    task.buttonCheckTaskRunning = false;
     vTaskDelete(NULL);
 }
 
@@ -1619,7 +1623,7 @@ void idleTask(void *e)
     uint32_t lastStackPrintTime = 0;
 
     // Start notification
-    idleTaskRunning = cpu ? &online.idleTask1Running : &online.idleTask0Running;
+    idleTaskRunning = cpu ? &task.idleTask1Running : &task.idleTask0Running;
     *idleTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintf("Task idleTask%d started\r\n", cpu);
@@ -1693,7 +1697,7 @@ bool tasksStartGnssUart()
     availableHandlerSpace = settings.gnssHandlerBufferSize;
 
     // Reads data from ZED and stores data into circular buffer
-    if (!online.gnssReadTaskRunning)
+    if (!task.gnssReadTaskRunning)
         xTaskCreatePinnedToCore(gnssReadTask,                  // Function to call
                                 "gnssRead",                    // Just for humans
                                 gnssReadTaskStackSize,         // Stack Size
@@ -1703,7 +1707,7 @@ bool tasksStartGnssUart()
                                 settings.gnssReadTaskCore);    // Core where task should run, 0=core, 1=Arduino
 
     // Reads data from circular buffer and sends data to SD, SPP, or network clients
-    if (!online.handleGnssDataTaskRunning)
+    if (!task.handleGnssDataTaskRunning)
         xTaskCreatePinnedToCore(handleGnssDataTask,                  // Function to call
                                 "handleGNSSData",                    // Just for humans
                                 handleGnssDataTaskStackSize,         // Stack Size
@@ -1713,7 +1717,7 @@ bool tasksStartGnssUart()
                                 settings.handleGnssDataTaskCore);    // Core where task should run, 0=core, 1=Arduino
 
     // Reads data from BT and sends to GNSS
-    if (!online.btReadTaskRunning)
+    if (!task.btReadTaskRunning)
         xTaskCreatePinnedToCore(btReadTask,                  // Function to call
                                 "btRead",                    // Just for humans
                                 btReadTaskStackSize,         // Stack Size
@@ -1728,15 +1732,15 @@ bool tasksStartGnssUart()
 void tasksStopGnssUart()
 {
     // Stop tasks if running
-    online.gnssReadTaskRunning = false;
-    online.handleGnssDataTaskRunning = false;
-    online.btReadTaskRunning = false;
+    task.gnssReadTaskStopRequest = true;
+    task.handleGnssDataTaskStopRequest = true;
+    task.btReadTaskStopRequest = true;
 
     // Give the other CPU time to finish
     // Eliminates CPU bus hang condition
     do
         delay(10);
-    while (online.gnssReadTaskRunning || online.handleGnssDataTaskRunning || online.btReadTaskRunning);
+    while (task.gnssReadTaskRunning || task.handleGnssDataTaskRunning || task.btReadTaskRunning);
 }
 
 // Checking the number of available clusters on the SD card can take multiple seconds
@@ -1745,12 +1749,13 @@ void tasksStopGnssUart()
 void sdSizeCheckTask(void *e)
 {
     // Start notification
-    online.sdSizeCheckTaskRunning = true;
+    task.sdSizeCheckTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task sdSizeCheckTask started");
 
-    // Verify that the task is still running
-    while (online.sdSizeCheckTaskRunning)
+    // Run task until a request is raised
+    task.sdSizeCheckTaskStopRequest = false;
+    while (task.sdSizeCheckTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_SD_SIZE_CHECK))
@@ -1806,7 +1811,7 @@ void sdSizeCheckTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task sdSizeCheckTask stopped");
-    online.sdSizeCheckTaskRunning = false;
+    task.sdSizeCheckTaskRunning = false;
     vTaskDelete(NULL);
 }
 

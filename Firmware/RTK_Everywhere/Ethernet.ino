@@ -35,6 +35,17 @@ void menuEthernet()
             systemPrintln(settings.ethernetSubnet.toString().c_str());
         }
 
+        //------------------------------
+        // Display the network layer menu items
+        //------------------------------
+
+        systemPrint("d) Default network: ");
+        networkPrintName(settings.defaultNetworkType);
+        systemPrintln();
+
+        systemPrint("f) Ethernet / WiFi Failover: ");
+        systemPrintf("%s\r\n", settings.enableNetworkFailover ? "Enabled" : "Disabled");
+
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -96,6 +107,24 @@ void menuEthernet()
             else
                 systemPrint("Error: invalid Subnet Mask");
         }
+
+        //------------------------------
+        // Get the network layer parameters
+        //------------------------------
+
+        else if (incoming == 'd')
+        {
+            // Toggle the network type
+            settings.defaultNetworkType += 1;
+            if (settings.defaultNetworkType > NETWORK_TYPE_USE_DEFAULT)
+                settings.defaultNetworkType = 0;
+        }
+        else if (incoming == 'f')
+        {
+            // Toggle failover support
+            settings.enableNetworkFailover ^= 1;
+        }
+
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -118,108 +147,6 @@ void menuEthernet()
 // Ethernet routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// Regularly called to update the Ethernet status
-void ethernetBegin()
-{
-    if (present.ethernet_ws5500 == false)
-        return;
-
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping ethernetBegin");
-        return;
-    }
-
-    if ((productVariant != RTK_EVK) && (!ethernetIsNeeded()))
-        return;
-
-    if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))
-    {
-        PERIODIC_CLEAR(PD_ETHERNET_STATE);
-        ethernetDisplayState();
-        systemPrintln();
-    }
-    switch (online.ethernetStatus)
-    {
-    case (ETH_NOT_STARTED):
-        Ethernet.init(pin_Ethernet_CS);
-
-        // First we start Ethernet without DHCP to detect if a cable is connected
-        // DHCP causes system freeze for ~62 seconds so we avoid it until a cable is connected
-        Ethernet.begin(ethernetMACAddress, settings.ethernetIP, settings.ethernetDNS, settings.ethernetGateway,
-                       settings.ethernetSubnet);
-
-        if (Ethernet.hardwareStatus() == EthernetNoHardware) // Check that a W5n00 has been detected
-        {
-            log_d("Ethernet hardware not found");
-            online.ethernetStatus = ETH_CAN_NOT_BEGIN;
-            return;
-        }
-
-        online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
-        lastEthernetCheck = millis(); // Wait a full second before checking the cable
-
-        break;
-
-    case (ETH_STARTED_CHECK_CABLE):
-        if (millis() - lastEthernetCheck > 1000) // Check for cable every second
-        {
-            lastEthernetCheck = millis();
-
-            if (Ethernet.linkStatus() == LinkON)
-            {
-                log_d("Ethernet cable detected");
-
-                if (settings.ethernetDHCP)
-                {
-                    paintGettingEthernetIP();
-                    online.ethernetStatus = ETH_STARTED_START_DHCP;
-                }
-                else
-                {
-                    systemPrintln("Ethernet started with static IP");
-                    online.ethernetStatus = ETH_CONNECTED;
-                }
-            }
-            else
-            {
-                // log_d("No cable detected");
-            }
-        }
-        break;
-
-    case (ETH_STARTED_START_DHCP):
-        if (millis() - lastEthernetCheck > 1000) // Try DHCP every second
-        {
-            lastEthernetCheck = millis();
-
-            if (Ethernet.begin(ethernetMACAddress, 20000)) // Restart Ethernet with DHCP. Use 20s timeout
-            {
-                log_d("Ethernet started with DHCP");
-                online.ethernetStatus = ETH_CONNECTED;
-            }
-        }
-        break;
-
-    case (ETH_CONNECTED):
-        if (Ethernet.linkStatus() == LinkOFF)
-        {
-            log_d("Ethernet cable disconnected!");
-            online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
-        }
-        break;
-
-    case (ETH_CAN_NOT_BEGIN):
-        break;
-
-    default:
-        log_d("Unknown status");
-        break;
-    }
-}
-
 // Display the Ethernet state
 void ethernetDisplayState()
 {
@@ -232,30 +159,47 @@ void ethernetDisplayState()
 // Return the IP address for the Ethernet controller
 IPAddress ethernetGetIpAddress()
 {
-    return Ethernet.localIP();
+    return ETH.localIP();
 }
 
 // Determine if Ethernet is needed. Saves RAM...
 bool ethernetIsNeeded()
 {
-    // Does NTP need Ethernet?
-    if (inNtpMode() == true)
-        return true;
+    bool needed = true;
 
-    // Does Base mode NTRIP Server need Ethernet?
-    if (settings.enableNtripServer == true && inBaseMode() == true)
-        return true;
+    do
+    {
+        // Does NTP need Ethernet?
+        if (inNtpMode() == true)
+            break;
 
-    // Does Rover mode NTRIP Client need Ethernet?
-    if (settings.enableNtripClient == true && inRoverMode() == true)
-        return true;
+        // Does Base mode NTRIP Server need Ethernet?
+        if (settings.enableNtripServer == true && inBaseMode() == true)
+            break;
 
-    // Does TCP client or server need Ethernet?
-    if (settings.enableTcpClient || settings.enableTcpServer || settings.enableUdpServer ||
-        settings.enableAutoFirmwareUpdate)
-        return true;
+        // Does Rover mode NTRIP Client need Ethernet?
+        if (settings.enableNtripClient == true && inRoverMode() == true)
+            break;
 
-    return false;
+        // Does TCP client or server need Ethernet?
+        if (settings.enableTcpClient || settings.enableTcpServer || settings.enableUdpServer ||
+            settings.enableAutoFirmwareUpdate)
+            break;
+
+        // Is the platform using Ethernet
+        if (networkGetActiveType() == NETWORK_TYPE_ETHERNET)
+            break;
+
+        // Forced to use Ethernet
+        if ((settings.defaultNetworkType == NETWORK_TYPE_ETHERNET) && (!settings.enableNetworkFailover))
+            break;
+
+        needed = false;
+    } while (0);
+
+    if (settings.enablePrintEthernetDiag && (!inMainMenu))
+        systemPrintf("ethernetIsNeeded = %s\r\n", needed ? "true" : "false");
+    return needed;
 }
 
 // Ethernet (W5500) ISR
@@ -284,58 +228,107 @@ void ethernetRestart()
 // Update the Ethernet state
 void ethernetUpdate()
 {
+    if (present.ethernet_ws5500 == false)
+        return;
+
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
         return;
 
-    if (present.ethernet_ws5500 == false)
-        return;
+    switch (online.ethernetStatus)
+    {
+    case (ETH_NOT_STARTED):
+        Network.onEvent(onEthernetEvent);
 
-    if (online.ethernetStatus == ETH_CAN_NOT_BEGIN)
-        return;
-
-    ethernetBegin(); // This updates the link status
-
-    // Maintain the ethernet connection
-    if ((online.ethernetStatus >= ETH_STARTED_CHECK_CABLE) && (online.ethernetStatus <= ETH_CONNECTED))
-        switch (Ethernet.maintain())
+        //        begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
+        if (!(ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI)))
         {
-        case 1:
-            // renewed fail
-            if (settings.enablePrintEthernetDiag && (!inMainMenu))
-                systemPrintln("Ethernet: Error: renewed fail");
-            ethernetRestart(); // Restart Ethernet
-            break;
-
-        case 2:
-            // renewed success
-            if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            {
-                systemPrint("Ethernet: Renewed success. IP address: ");
-                systemPrintln(Ethernet.localIP());
-            }
-            break;
-
-        case 3:
-            // rebind fail
-            if (settings.enablePrintEthernetDiag && (!inMainMenu))
-                systemPrintln("Ethernet: Error: rebind fail");
-            ethernetRestart(); // Restart Ethernet
-            break;
-
-        case 4:
-            // rebind success
-            if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            {
-                systemPrint("Ethernet: Rebind success. IP address: ");
-                systemPrintln(Ethernet.localIP());
-            }
-            break;
-
-        default:
-            // nothing happened
-            break;
+            if (settings.debugNetworkLayer)
+                systemPrintln("ERROR: ETH.begin failed");
+            online.ethernetStatus = ETH_CAN_NOT_BEGIN;
+            return;
         }
+
+        if (!settings.ethernetDHCP)
+            ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
+
+        online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
+        lastEthernetCheck = millis(); // Wait a full second before checking the cable
+
+        break;
+
+    case (ETH_STARTED_CHECK_CABLE):
+        if (millis() - lastEthernetCheck > 1000) // Check for cable every second
+        {
+            lastEthernetCheck = millis();
+
+            if (eth_connected) // eth_connected indicates that we are connected and have an IP address
+            {
+                if (settings.debugNetworkLayer)
+                    systemPrintln("Ethernet connected");
+
+                if (settings.ethernetDHCP)
+                {
+                    paintGettingEthernetIP();
+                    online.ethernetStatus = ETH_STARTED_START_DHCP;
+                }
+                else
+                {
+                    if (settings.debugNetworkLayer)
+                    {
+                        systemPrint("Ethernet started with static IP: ");
+                        systemPrintln(settings.ethernetIP);
+                    }
+                    online.ethernetStatus = ETH_CONNECTED;
+                }
+            }
+            else
+            {
+                // log_d("No cable detected");
+            }
+        }
+        break;
+
+    case (ETH_STARTED_START_DHCP):
+        if (millis() - lastEthernetCheck > 1000) // Try DHCP every second
+        {
+            lastEthernetCheck = millis();
+
+            // We should fall straight through this as eth_connected indicates we already have an IP address
+            if (eth_connected)
+            {
+                if (settings.debugNetworkLayer)
+                    systemPrintln("Ethernet started with DHCP");
+                online.ethernetStatus = ETH_CONNECTED;
+            }
+        }
+        break;
+
+    case (ETH_CONNECTED):
+        if (!eth_connected)
+        {
+            if (settings.debugNetworkLayer)
+                systemPrintln("Ethernet disconnected!");
+            online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
+        }
+        break;
+
+    case (ETH_CAN_NOT_BEGIN):
+        break;
+
+    default:
+        if (settings.debugNetworkLayer)
+            systemPrintf("ERROR: Unknown state, %d\r\n", online.ethernetStatus);
+        break;
+    }
+
+    // Display the current state
+    if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))
+    {
+        PERIODIC_CLEAR(PD_ETHERNET_STATE);
+        ethernetDisplayState();
+        systemPrintln();
+    }
 }
 
 // Verify the Ethernet tables
@@ -346,6 +339,50 @@ void ethernetVerifyTables()
         reportFatalError("Please fix ethernetStates table to match ethernetStatus_e");
 }
 
+void onEthernetEvent(arduino_event_id_t event, arduino_event_info_t info)
+{
+    switch (event)
+    {
+    case ARDUINO_EVENT_ETH_START:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Started");
+        // set eth hostname here
+        ETH.setHostname("esp32-eth0");
+        break;
+    case ARDUINO_EVENT_ETH_CONNECTED:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Connected");
+        break;
+    case ARDUINO_EVENT_ETH_GOT_IP:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+        {
+            systemPrintf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif));
+            //systemPrintln(ETH);
+        }
+        eth_connected = true;
+        break;
+    case ARDUINO_EVENT_ETH_LOST_IP:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Lost IP");
+        eth_connected = false;
+        break;
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Disconnected");
+        eth_connected = false;
+        break;
+    case ARDUINO_EVENT_ETH_STOP:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Stopped");
+        eth_connected = false;
+        break;
+    default:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintf("ETH Unknown event: %d\r\n", event);
+        break;
+    }
+}
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Web server routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -353,21 +390,13 @@ void ethernetVerifyTables()
 // Start Ethernet WebServer ESP32 W5500 - needs exclusive access to WiFi, SPI and Interrupts
 void ethernetWebServerStartESP32W5500()
 {
-    // Configure the W5500
-    // To be called before ETH.begin()
-    ESP32_W5500_onEvent();
+    Network.onEvent(onEthernetEvent);
 
-    // start the ethernet connection and the server:
-    // Use DHCP dynamic IP
-    // bool begin(int POCI_GPIO, int PICO_GPIO, int SCLK_GPIO, int CS_GPIO, int INT_GPIO, int SPI_CLOCK_MHZ,
-    //            int SPI_HOST, uint8_t *W5500_Mac = W5500_Default_Mac, bool installIsrService = true);
-    ETH.begin(pin_POCI, pin_PICO, pin_SCK, pin_Ethernet_CS, pin_Ethernet_Interrupt, 25, SPI3_HOST, ethernetMACAddress);
+    //  begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
+    ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
 
     if (!settings.ethernetDHCP)
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
-
-    if (ETH.linkUp())
-        ESP32_W5500_waitForConnect();
 }
 
 // Stop the Ethernet web server

@@ -27,7 +27,7 @@ void stateUpdate()
             }
         }
 
-        if (settings.enablePrintState && ((millis() - lastStateTime) > 15000))
+        if (settings.enablePrintStates && ((millis() - lastStateTime) > 15000))
         {
             changeState(systemState);
             lastStateTime = millis();
@@ -138,11 +138,7 @@ void stateUpdate()
 
         case (STATE_ROVER_FIX): {
             if (gnssIsRTKFloat())
-            {
-                // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
-                lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
-            }
             else if (gnssIsRTKFix())
                 changeState(STATE_ROVER_RTK_FIX);
         }
@@ -160,11 +156,7 @@ void stateUpdate()
             if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
             if (gnssIsRTKFloat())
-            {
-                // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
-                lbandTimeFloatStarted = millis();
                 changeState(STATE_ROVER_RTK_FLOAT);
-            }
         }
         break;
 
@@ -268,8 +260,9 @@ void stateUpdate()
             // Check for <1m horz accuracy before starting surveyIn
             char accuracy[20];
             char temp[20];
-            const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2);
-            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2);
+            const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
+            // gnssGetSurveyInStartingAccuracy is 10m max
+            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
@@ -321,7 +314,7 @@ void stateUpdate()
             else
             {
                 char temp[20];
-                const char *units = getHpaUnits(meanAccuracy, temp, sizeof(temp), 3);
+                const char *units = getHpaUnits(meanAccuracy, temp, sizeof(temp), 3, true);
                 systemPrintf("Time elapsed: %d Accuracy (%s): %s SIV: %d\r\n", observationTime, units, temp, siv);
 
                 if (observationTime > maxSurveyInWait_s)
@@ -421,7 +414,7 @@ void stateUpdate()
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
 
-            WIFI_STOP(); //Notify the network layer that it should stop so we can take over control of WiFi
+            WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
             bluetoothStop();
             espnowStop();
 
@@ -474,7 +467,7 @@ void stateUpdate()
                     createDynamicDataString(settingsCSV);
 
                     // log_d("Sending coordinates: %s", settingsCSV);
-                    websocket->textAll(settingsCSV);
+                    sendStringToWebsocket(settingsCSV);
                 }
             }
 #endif // COMPILE_AP
@@ -634,14 +627,14 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_WIFI_STARTED): {
+            wifiMaxConnectionAttempts = wifiOriginalMaxConnectionAttempts; // Revert setting
+
             if (wifiIsConnected())
                 changeState(STATE_KEYS_WIFI_CONNECTED);
             else
             {
                 wifiShutdown(); // Turn off WiFi
 
-                wifiMaxConnectionAttempts =
-                    wifiOriginalMaxConnectionAttempts; // Override setting to 2 attemps during keys
                 changeState(STATE_KEYS_WIFI_TIMEOUT);
             }
         }
@@ -900,7 +893,7 @@ void stateUpdate()
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 
-            if (!startWebServer(false, settings.httpPort)) // Start the async web server
+            if (!startWebServer(false, settings.httpPort)) // Start the web server
                 changeState(STATE_ROVER_NOT_STARTED);
             else
                 changeState(STATE_CONFIG_VIA_ETH);
@@ -947,7 +940,7 @@ void stateUpdate()
                     createDynamicDataString(settingsCSV);
 
                     // log_d("Sending coordinates: %s", settingsCSV);
-                    websocket->textAll(settingsCSV);
+                    sendStringToWebsocket(settingsCSV);
                 }
             }
 #endif // COMPILE_AP

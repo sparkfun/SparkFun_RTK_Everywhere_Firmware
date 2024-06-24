@@ -4,12 +4,13 @@
 void updatePplTask(void *e)
 {
     // Start notification
-    online.updatePplTaskRunning = true;
+    task.updatePplTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("updatePplTask started");
 
-    // Verify that the task is still running
-    while (online.updatePplTaskRunning)
+    // Run task until a request is raised
+    task.updatePplTaskStopRequest = false;
+    while (task.updatePplTaskStopRequest == false)
     {
         // Display an alive message
         if (PERIODIC_DISPLAY(PD_TASK_UPDATE_PPL))
@@ -93,7 +94,7 @@ void updatePplTask(void *e)
                 }
             }
 
-            online.updatePplTaskRunning = false; // Stop task either because new key failed or we need to apply new key
+            break; // Stop task either because new key failed or we need to apply new key
         }
 
         feedWdt();
@@ -103,8 +104,8 @@ void updatePplTask(void *e)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task updatePplTask stopped");
-    online.updatePplTaskRunning = false;
-    vTaskDelete(NULL);
+    task.updatePplTaskRunning = false;
+    vTaskDelete(updatePplTaskHandle);
 }
 
 // Begin the PointPerfect Library and give it the current key
@@ -131,10 +132,13 @@ void beginPPL()
     reportHeapNow(false);
 
     // PPL_MAX_RTCM_BUFFER is 3345 bytes so we create it on the heap
-    if (online.psram == true)
-        pplRtcmBuffer = (uint8_t *)ps_malloc(PPL_MAX_RTCM_BUFFER);
-    else
-        pplRtcmBuffer = (uint8_t *)malloc(PPL_MAX_RTCM_BUFFER);
+    if (pplRtcmBuffer == nullptr)
+    {
+        if (online.psram == true)
+            pplRtcmBuffer = (uint8_t *)ps_malloc(PPL_MAX_RTCM_BUFFER);
+        else
+            pplRtcmBuffer = (uint8_t *)malloc(PPL_MAX_RTCM_BUFFER);
+    }
 
     if (!pplRtcmBuffer)
     {
@@ -171,16 +175,14 @@ void beginPPL()
     {
         systemPrintf("PointPerfect Library Online: %s\r\n", PPL_SDK_VERSION);
 
-        TaskHandle_t taskHandle;
-
         // Starts task for feeding NMEA+RTCM to PPL
-        if (online.updatePplTaskRunning == false)
+        if (task.updatePplTaskRunning == false)
             xTaskCreate(updatePplTask,
                         "UpdatePpl",            // Just for humans
                         updatePplTaskStackSize, // Stack Size
                         nullptr,                // Task input parameter
                         updatePplTaskPriority,
-                        &taskHandle); // Task handle
+                        &updatePplTaskHandle); // Task handle
     }
     else
         systemPrintln("PointPerfect Library failed to start");
@@ -188,12 +190,42 @@ void beginPPL()
     reportHeapNow(false);
 }
 
+// Stop PPL task and release resources
+void stopPPL()
+{
+    // Stop task if running
+    if (task.updatePplTaskRunning)
+        task.updatePplTaskStopRequest = true;
+
+    if (pplRtcmBuffer != nullptr)
+    {
+        free(pplRtcmBuffer);
+        pplRtcmBuffer = nullptr;
+    }
+
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updatePplTaskRunning);
+
+    online.ppl = false;
+}
+
 // Start the PPL if needed
 // Because the key for the PPL expires every ~28 days, we use updatePPL to first apply keys, and
 // restart the PPL when new keys need to be applied
 void updatePPL()
 {
-    if (online.ppl == false && (settings.enablePointPerfectCorrections))
+    static unsigned long pplReport = 0;
+
+    static unsigned long pplTimeFloatStarted; // Monitors when the PPL got first RTK Float.
+
+    // During float lock, the PPL has been seen to drop to 3D fix so once pplTimeFloatStarted
+    // is started, we do not reset it unless a 3D fix is lost.
+
+    static unsigned long pplTime3dFixStarted;
+
+    if (online.ppl == false && settings.enablePointPerfectCorrections && gnssIsFixed())
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected. Don't restart the PPL if we've already tried
@@ -212,11 +244,17 @@ void updatePPL()
     {
         if (settings.debugCorrections == true)
         {
-            static unsigned long pplReport = 0;
             if (millis() - pplReport > 5000)
             {
                 pplReport = millis();
-                
+
+                if (gnssIsRTKFloat() && pplTimeFloatStarted > 0)
+                {
+                    systemPrintf("GNSS restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
+                                 floatLockRestarts,
+                                 settings.pplFixTimeoutS - ((millis() - pplTimeFloatStarted) / 1000));
+                }
+
                 // Report which data source may be fouling the RTCM generation from the PPL
                 if ((millis() - lastMqttToPpl) > 5000)
                     systemPrintln("PPL MQTT Data is stale");
@@ -225,11 +263,50 @@ void updatePPL()
             }
         }
 
-        if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        if (gnssIsRTKFloat())
         {
-            rtkTimeToFixMs = millis();
-            if (settings.debugCorrections == true)
-                systemPrintf("Time to first PPL RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+            if (pplTimeFloatStarted == 0)
+                pplTimeFloatStarted = millis();
+
+            if (settings.pplFixTimeoutS > 0)
+            {
+                // If we don't get an RTK fix within Timeout, restart the PPL
+                if ((millis() - pplTimeFloatStarted) > (settings.pplFixTimeoutS * 1000L))
+                {
+                    floatLockRestarts++;
+
+                    pplTimeFloatStarted = millis(); // Restart timer for PPL monitoring.
+
+                    stopPPL(); // Stop PPL and mark it offline. It will auto-restart at the next update().
+                    pplAttemptedStart = false; // Reset to allow restart
+
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Restarting PPL. Number of Float lock restarts: %d\r\n", floatLockRestarts);
+                }
+            }
+        }
+        else if (gnssIsRTKFix())
+        {
+            if (pplTimeFloatStarted != 0)
+                pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted
+
+            if (rtkTimeToFixMs == 0)
+                rtkTimeToFixMs = millis();
+
+            if (millis() - pplReport > 5000)
+            {
+                pplReport = millis();
+
+                if (settings.debugCorrections == true)
+                    systemPrintf("Time to first PPL RTK Fix: %ds\r\n", rtkTimeToFixMs / 1000);
+            }
+        }
+        else
+        {
+            // We are not in RTK Float or RTK Fix
+
+            if (gnssIsFixed() == false)
+                pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted if we loose a 3D fix entirely
         }
     }
 

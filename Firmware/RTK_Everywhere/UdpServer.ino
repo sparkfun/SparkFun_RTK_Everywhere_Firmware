@@ -59,7 +59,7 @@ UdpServer.ino
         3. Verify that the displayed coordinates, fix tpe etc. are valid
 */
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants
@@ -90,7 +90,7 @@ const RtkMode_t udpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 //----------------------------------------
 
 // UDP server
-static NetworkUDP *udpServer = nullptr;
+static RTKNetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
@@ -113,8 +113,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
             {
-                systemPrintf("UDP Server wrote %d bytes as broadcast on port %d\r\n", length,
-                             settings.udpServerPort);
+                systemPrintf("UDP Server wrote %d bytes as broadcast on port %d\r\n", length, settings.udpServerPort);
                 PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             }
         }
@@ -231,7 +230,7 @@ bool udpServerStart()
         systemPrintln("UDP server starting");
 
     // Start the UDP server
-    udpServer = new NetworkUDP(NETWORK_USER_UDP_SERVER);
+    udpServer = new RTKNetworkUDP(NETWORK_USER_UDP_SERVER);
     if (!udpServer)
         return false;
 
