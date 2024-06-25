@@ -28,8 +28,6 @@
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
-#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
 #endif                      // COMPILE_WIFI
 
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
@@ -40,6 +38,8 @@
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
+#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
+#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
 #endif // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -67,21 +67,23 @@
 
 #define NTRIP_SERVER_MAX 4
 
+#ifdef  COMPILE_NETWORK
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#include <DNSServer.h>    //Built-in.
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
+#include <ESPmDNS.h>      //Built-in.
+#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#endif  // COMPILE_NETWORK
 
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>
 #endif                                      // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 #include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
-#include <DNSServer.h>    //Built-in.
-#include <ESPmDNS.h>      //Built-in.
-#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
 #include <WiFi.h>         //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.

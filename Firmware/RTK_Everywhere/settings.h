@@ -1986,7 +1986,7 @@ struct struct_tasks
     bool updateWebServerTaskStopRequest = false;
 } task;
 
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
 // AWS certificate for PointPerfect API
 static const char *AWS_PUBLIC_CERT = R"=====(
 -----BEGIN CERTIFICATE-----
@@ -2010,5 +2010,5 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
-#endif // COMPILE_WIFI
+#endif // COMPILE_NETWORK
 #endif // __SETTINGS_H__

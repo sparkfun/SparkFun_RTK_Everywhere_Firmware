@@ -184,6 +184,12 @@ byte wifiGetStatus()
     return WiFi.status();
 }
 
+// Set AP mode
+void wifiSetApMode()
+{
+    WiFi.mode(WIFI_AP);
+}
+
 // Update the state of the WiFi state machine
 void wifiSetState(byte newState)
 {

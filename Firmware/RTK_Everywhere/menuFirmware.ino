@@ -595,7 +595,7 @@ void otaUpdate()
 
     // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
     if (wasInAPmode)
-        WiFi.mode(WIFI_AP);
+        wifiSetApMode();
 
     // Update failed. If WiFi was originally off, turn it off again
     if (previouslyConnected == false)
