@@ -162,6 +162,12 @@ IPAddress ethernetGetIpAddress()
     return ETH.localIP();
 }
 
+// Return the subnet mask for the Ethernet controller
+IPAddress ethernetGetSubnetMask()
+{
+    return ETH.subnetMask();
+}
+
 // Determine if Ethernet is needed. Saves RAM...
 bool ethernetIsNeeded()
 {

@@ -107,7 +107,8 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
     // Send the data as broadcast
     if (settings.enableUdpServer && online.udpServer && wifiIsConnected())
     {
-        udpServer->beginPacket(WiFi.broadcastIP(), settings.udpServerPort);
+        udpServer->beginPacket(networkGetBroadcastIpAddress(networkGetType(NETWORK_USER_UDP_SERVER)),
+                               settings.udpServerPort);
         udpServer->write(data, length);
         if (udpServer->endPacket())
         {
