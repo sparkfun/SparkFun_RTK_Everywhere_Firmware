@@ -434,6 +434,23 @@ NETWORK_DATA *networkGet(uint8_t networkType, bool updateRequestedNetwork)
 }
 
 //----------------------------------------
+// Get the broadast IP address
+//----------------------------------------
+IPAddress networkGetBroadcastIpAddress(uint8_t networkType)
+{
+    IPAddress ip;
+    IPAddress mask;
+    IPAddress temp;
+
+    // Get the local network address and subnet mask
+    ip = networkGetIpAddress(networkType);
+    mask = networkGetSubnetMask(networkType);
+
+    // Return the local network broadcast IP address
+    return IPAddress((uint32_t)ip | (~(uint32_t)mask));
+}
+
+//----------------------------------------
 // Get the IP address
 //----------------------------------------
 IPAddress networkGetIpAddress(uint8_t networkType)
@@ -442,6 +459,19 @@ IPAddress networkGetIpAddress(uint8_t networkType)
         return ethernetGetIpAddress();
     if (networkType == NETWORK_TYPE_WIFI)
         return wifiGetIpAddress();
+    return IPAddress((uint32_t)0);
+}
+
+//----------------------------------------
+// Get the subnet mask
+//----------------------------------------
+IPAddress networkGetSubnetMask(uint8_t networkType)
+{
+    // Determine the network address
+    if (networkType == NETWORK_TYPE_ETHERNET)
+        return ethernetGetSubnetMask();
+    else if (networkType == NETWORK_TYPE_WIFI)
+        return wifiGetSubnetMask();
     return IPAddress((uint32_t)0);
 }
 
