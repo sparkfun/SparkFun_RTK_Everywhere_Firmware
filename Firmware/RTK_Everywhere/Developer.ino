@@ -153,6 +153,7 @@ void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(unsigned long timeout) {return false;}
+bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
 IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetSubnetMask() {return IPAddress((uint32_t)0);}
@@ -162,6 +163,7 @@ bool wifiIsConnected() {return false;}
 bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}
 void wifiPrintNetworkInfo() {}
+void wifiSetApMode() {}
 void wifiStart() {}
 void wifiStop() {}
 void wifiUpdate() {}
