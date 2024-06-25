@@ -1424,6 +1424,20 @@ int8_t getProfileNumberFromUnit(uint8_t profileUnit)
     return (-1);
 }
 
+// Returns the number of available profiles
+// https://stackoverflow.com/questions/8871204/count-number-of-1s-in-binary-representation
+uint8_t getProfileCount()
+{
+    int count = 0;
+    uint8_t n = activeProfiles;
+    while (n != 0)
+    {
+        n = n & (n - 1);
+        count++;
+    }
+    return (count);
+}
+
 // Record large character blob to file
 void recordFile(const char *fileID, char *fileContents, uint32_t fileSize)
 {
