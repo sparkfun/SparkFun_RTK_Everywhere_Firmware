@@ -489,6 +489,7 @@ bool wifiConnect(unsigned long timeout)
 {
     return wifiConnect(timeout, false, nullptr);
 }
+
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 {
     if (wifiIsConnected())
@@ -698,21 +699,31 @@ void wifiPrintNetworkInfo()
     systemPrintln();
 }
 
+// Return the gateway IP address for the WiFi controller
 IPAddress wifiGetGatewayIpAddress()
 {
     return WiFi.gatewayIP();
 }
 
+// Return the IP address for the WiFi controller
 IPAddress wifiGetIpAddress()
 {
     return WiFi.localIP();
 }
 
+// Return the subnet mask for the WiFi controller
+IPAddress wifiGetSubnetMask()
+{
+    return WiFi.subnetMask();
+}
+
+// Return the WiFi signal signal strength
 int wifiGetRssi()
 {
     return WiFi.RSSI();
 }
 
+// Return the Wifi station ID
 String wifiGetSsid()
 {
     return WiFi.SSID();
