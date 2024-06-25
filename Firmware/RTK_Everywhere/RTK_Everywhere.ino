@@ -550,7 +550,6 @@ const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being t
 const int buttonTaskStackSize = 2000;
 
 const int shutDownButtonTime = 2000;  // ms press and hold before shutdown
-unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 500ms), enter WiFi AP Config mode
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Webserver for serving config page from ESP32 as Acess Point
