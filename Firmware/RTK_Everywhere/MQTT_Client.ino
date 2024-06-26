@@ -122,8 +122,6 @@ static int mqttClientConnectionAttemptsTotal; // Count the number of connection 
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
 
-static char *mqttClientPrivateKeyBuffer; // Buffer for client private key
-
 static RTKNetworkSecureClient *mqttSecureClient;
 
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
