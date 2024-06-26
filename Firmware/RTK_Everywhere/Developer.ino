@@ -224,8 +224,8 @@ bool     um980IsValidDate() {return false;}
 bool     um980IsValidTime() {return false;}
 void     um980PrintInfo() {}
 int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
-bool     um980SaveConfiguration() {}
-bool     um980SetBaudRateCOM3(uint32_t baudRate) {}
+bool     um980SaveConfiguration() {return false;}
+bool     um980SetBaudRateCOM3(uint32_t baudRate) {return false;}
 bool     um980SetConstellations() {return false;}
 void     um980SetMinCNO(uint8_t cnoValue) {}
 void     um980SetMinElevation(uint8_t elevationDegrees) {}
@@ -242,8 +242,8 @@ uint8_t  um980GetActiveMessageCount() {return(0);}
 void     um980MenuMessages(){}
 void     um980BaseRtcmDefault(){}
 void     um980BaseRtcmLowDataRate(){}
-char *   um980GetRtcmDefaultString() {return ("Not compiled");}
-char *   um980GetRtcmLowDataRateString() {return ("Not compiled");}
+char *   um980GetRtcmDefaultString() {return ((char*)"Not compiled");}
+char *   um980GetRtcmLowDataRateString() {return ((char*)"Not compiled");}
 void     um980MenuConstellations(){}
 double   um980GetRateS() {return(0.0);}
 void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}
