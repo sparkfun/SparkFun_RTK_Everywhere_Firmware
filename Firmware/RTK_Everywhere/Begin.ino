@@ -1108,6 +1108,10 @@ void beginSystemState()
 
         if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
+
+        //If the setting is not set, override with default
+        if (settings.antennaPhaseCenter_mm == 0.0)
+            settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
     }
     else
     {
