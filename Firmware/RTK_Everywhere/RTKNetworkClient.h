@@ -259,22 +259,21 @@ class RTKNetworkClientType : public RTKNetworkClient
     }
 };
 
-#ifdef COMPILE_WIFI
-class NetworkSecureWiFiClient : public RTKNetworkClient
+class RTKNetworkSecureClient : public RTKNetworkClient
 {
   protected:
     NetworkClientSecure _client;
 
   public:
-    NetworkSecureWiFiClient() : _client{WiFiClientSecure()}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
+    RTKNetworkSecureClient() : _client{NetworkClientSecure()}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
-    NetworkSecureWiFiClient(WiFiClient &client) : _client{client}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
+    RTKNetworkSecureClient(NetworkClientSecure &client) : _client{client}, RTKNetworkClient(&_client, NETWORK_TYPE_WIFI)
     {
     }
 
-    ~NetworkSecureWiFiClient()
+    ~RTKNetworkSecureClient()
     {
         this->~RTKNetworkClient();
     }
@@ -371,7 +370,5 @@ class NetworkSecureWiFiClient : public RTKNetworkClient
         return _client.fd();
     }
 };
-
-#endif // COMPILE_WIFI
 
 #endif // __NETWORK_CLIENT_H__

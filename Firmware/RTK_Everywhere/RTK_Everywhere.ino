@@ -28,8 +28,6 @@
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
-#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
 #endif                      // COMPILE_WIFI
 
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
@@ -40,6 +38,8 @@
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
+#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
+#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
 #endif // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -67,9 +67,16 @@
 
 #define NTRIP_SERVER_MAX 4
 
+#ifdef  COMPILE_NETWORK
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
+#include <DNSServer.h>    //Built-in.
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
+#include <ESPmDNS.h>      //Built-in.
+#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#endif  // COMPILE_NETWORK
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
 
@@ -78,12 +85,7 @@ bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special 
 #endif                                      // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 #include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
-#include <DNSServer.h>    //Built-in.
-#include <ESPmDNS.h>      //Built-in.
-#include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
 #include <WiFi.h>         //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
@@ -203,6 +205,8 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 // microSD Interface
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <SPI.h> //Built-in
+
+void beginSPI(bool force = false); // Header
 
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
 SdFat *sd;
@@ -550,7 +554,6 @@ const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being t
 const int buttonTaskStackSize = 2000;
 
 const int shutDownButtonTime = 2000;  // ms press and hold before shutdown
-unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 500ms), enter WiFi AP Config mode
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Webserver for serving config page from ESP32 as Acess Point
@@ -1005,6 +1008,9 @@ void setup()
 
     DMW_b("beginBoard");
     beginBoard(); // Set all pin numbers and pin initial states
+
+    DMW_b("beginSPI");
+    beginSPI(); // Begin SPI as needed
 
     DMW_b("beginFS");
     beginFS(); // Start the LittleFS file system in the spiffs partition

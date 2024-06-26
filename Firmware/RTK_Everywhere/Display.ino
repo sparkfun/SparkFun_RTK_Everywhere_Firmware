@@ -1470,17 +1470,12 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         paintBatteryLevel(iconList);
     else // if (present.ethernet_ws5500 == true)
     {
-        if (online.ethernetStatus == ETH_NOT_STARTED)
-            return; // If Ethernet has not stated because not needed, don't display the icon
+        if (online.ethernetStatus != ETH_CONNECTED)
+            return; // Only display the Ethernet icon if we are successfully connected (no blinking)
 
         iconPropertyBlinking prop;
         prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-
-        if (online.ethernetStatus == ETH_CONNECTED)
-            prop.duty = 0b11111111;
-        else
-            prop.duty = 0b01010101;
-
+        prop.duty = 0b11111111;
         iconList->push_back(prop);
     }
 }
@@ -2812,7 +2807,7 @@ void paintGettingKeys()
 
 void paintGettingEthernetIP()
 {
-    displayMessage("Getting IP", 0);
+    displayMessage("Getting IP", 1000);
 }
 
 // If an L-Band is indoors without reception, we have a ~2s wait for the RTC to come online

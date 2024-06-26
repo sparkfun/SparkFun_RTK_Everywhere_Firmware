@@ -1332,13 +1332,17 @@ void buttonCheckTask(void *e)
 {
     // Record the time of the most recent two button releases
     // This allows us to detect single and double presses
-    unsigned long doubleTapInterval = 500; // User must press and release twice within this to create a double tap
+    unsigned long doubleTapInterval = 250; // User must press and release twice within this to create a double tap
+
     if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
         doubleTapInterval = 1000; // We are only interested in double taps, so use a longer interval
+
     unsigned long previousButtonRelease = 0;
     unsigned long thisButtonRelease = 0;
     bool singleTap = false;
     bool doubleTap = false;
+
+    bool showMenu = false;
 
     // Start notification
     task.buttonCheckTaskRunning = true;
@@ -1362,6 +1366,10 @@ void buttonCheckTask(void *e)
         {
             previousButtonRelease = thisButtonRelease;
             thisButtonRelease = millis();
+
+            //If we are not currently showing the menu, immediately display it
+            if (showMenu == false && systemState != STATE_DISPLAY_SETUP)
+                showMenu = true;
         }
 
         if ((previousButtonRelease > 0) && (thisButtonRelease > 0) &&
@@ -1380,7 +1388,9 @@ void buttonCheckTask(void *e)
             previousButtonRelease = 0;
             thisButtonRelease = 0;
         }
-        else // if ((previousButtonRelease == 0) && (thisButtonRelease > 0)) // Tap in progress?
+
+        // else // if ((previousButtonRelease == 0) && (thisButtonRelease > 0)) // Tap in progress?
+        else if ((millis() - previousButtonRelease) > 2000) // No user interaction
         {
             doubleTap = false;
             singleTap = false;
@@ -1478,8 +1488,14 @@ void buttonCheckTask(void *e)
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_TEST);
             }
-            else if (singleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
+            
+            // If the button is disabled, do nothing
+            // If we detect a singleTap, move through menus
+            // If the button was pressed to initially show the menu, then allow immediate entry and show the menu
+            else if ((settings.disableSetupButton == false) && ((singleTap && firstRoverStart == false) || showMenu))
             {
+                showMenu = false;
+
                 switch (systemState)
                 {
                 // If we are in any running state, change to STATE_DISPLAY_SETUP
@@ -1513,6 +1529,9 @@ void buttonCheckTask(void *e)
                     // Exit into new system state on double tap - see below
                     // Exit display setup into previous state after ~10s - see updateSystemState()
                     lastSetupMenuChange = millis();
+
+                    forceDisplayUpdate = true; // User is interacting so repaint display quickly
+
                     setupSelectedButton++;
                     if (setupSelectedButton == setupButtons.size()) // Limit reached?
                         setupSelectedButton = 0;
@@ -1566,6 +1585,8 @@ void buttonCheckTask(void *e)
             } // End singleTap
             else if (doubleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
             {
+                showMenu = false;
+
                 switch (systemState)
                 {
                 case STATE_DISPLAY_SETUP: {

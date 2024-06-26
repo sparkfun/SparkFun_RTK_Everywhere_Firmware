@@ -193,10 +193,13 @@ void menuSystem()
         else
             systemPrintln("Off");
 
-        if (settings.shutdownNoChargeTimeout_s == 0)
-            systemPrintln("c) Shutdown if not charging: Disabled");
-        else
-            systemPrintf("c) Shutdown if not charging after: %d seconds\r\n", settings.shutdownNoChargeTimeout_s);
+        if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a)
+        {
+            if (settings.shutdownNoChargeTimeout_s == 0)
+                systemPrintln("c) Shutdown if not charging: Disabled");
+            else
+                systemPrintf("c) Shutdown if not charging after: %d seconds\r\n", settings.shutdownNoChargeTimeout_s);
+        }
 
         systemPrintln("d) Debug software");
 
@@ -221,7 +224,8 @@ void menuSystem()
 
         systemPrintln("r) Reset all settings to default");
 
-        systemPrintf("u) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
+        systemPrintf("u) Printed measurement units: %s\r\n",
+            measurementScaleTable[measurementScaleToIndex(settings.measurementScale)].measurementScaleName);
 
         systemPrintf("z) Set time zone offset: %02d:%02d:%02d\r\n", settings.timeZoneHours, settings.timeZoneMinutes,
                      settings.timeZoneSeconds);
@@ -254,7 +258,7 @@ void menuSystem()
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
             bluetoothStart();
         }
-        else if (incoming == 'c')
+        else if ((incoming == 'c') && (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
         {
             getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
                           &settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
@@ -291,7 +295,7 @@ void menuSystem()
         else if (incoming == 'u')
         {
             settings.measurementScale += 1;
-            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+            if (settings.measurementScale >= MEASUREMENT_UNITS_MAX)
                 settings.measurementScale = 0;
         }
         else if (incoming == 'z')
@@ -1350,7 +1354,7 @@ void printCurrentConditions()
 
         float hpa = gnssGetHorizontalAccuracy();
         char temp[20];
-        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3);
+        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3, true);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");

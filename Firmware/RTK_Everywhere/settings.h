@@ -316,6 +316,8 @@ enum WiFiState
 };
 volatile byte wifiState = WIFI_STATE_OFF;
 
+#ifdef  COMPILE_NETWORK
+
 #include "RTKNetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
 #include "RTKNetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
@@ -348,6 +350,8 @@ typedef struct _NTRIP_SERVER_DATA
     uint32_t rtcmBytesSent;
     uint32_t previousMilliseconds;
 } NTRIP_SERVER_DATA;
+
+#endif  // COMPILE_NETWORK
 
 typedef enum
 {
@@ -504,7 +508,7 @@ typedef struct
 
 // These are the allowable constellations to receive from and log (if enabled)
 // Tested with u-center v21.02
-#define MAX_CONSTELLATIONS 6 //(sizeof(ubxConstellations)/sizeof(ubxConstellation))
+#define MAX_UBX_CONSTELLATIONS 6 // Should be (sizeof(settings.ubxConstellations)/sizeof(ubxConstellation)). Tricky...
 
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
@@ -599,29 +603,34 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
-#define INCHES_IN_A_METER       39.37009424
+#define INCHES_IN_A_METER   39.37007874
+#define FEET_IN_A_METER     3.280839895
 
-enum MeasurementScale
+typedef enum
 {
-    MEASUREMENTS_IN_METERS = 0,
-    MEASUREMENTS_IN_FEET_INCHES,
-    // Add new measurement scales above this line
-    MEASUREMENT_SCALE_MAX
-};
+    MEASUREMENT_UNITS_METERS = 0,
+    MEASUREMENT_UNITS_FEET_INCHES,
+    // Add new measurement units above this line
+    MEASUREMENT_UNITS_MAX
+} measurementUnits;
 
-const char * const measurementScaleName[] =
+typedef struct
 {
-    "meters",
-    "feet and inches",
-};
-const int measurementScaleNameEntries = sizeof(measurementScaleName) / sizeof(measurementScaleName[0]);
+    const measurementUnits measurementUnit;
+    const char *measurementScaleName;
+    const char *measurementScale1NameShort;
+    const char *measurementScale2NameShort;
+    const double multiplierMetersToScale1;
+    const double changeFromScale1To2At;
+    const double multiplierScale1To2;
+    const double reportingLimitScale1;
+} measurementScaleEntry;
 
-const char * const measurementScaleUnits[] =
-{
-    "m",
-    "ft",
+const measurementScaleEntry measurementScaleTable[] = {
+    { MEASUREMENT_UNITS_METERS, "meters", "m", "m", 1.0, 1.0, 1.0, 30.0 },
+    { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
 };
-const int measurementScaleUnitsEntries = sizeof(measurementScaleUnits) / sizeof(measurementScaleUnits[0]);
+const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
 
 // These are the allowable messages to broadcast and log (if enabled)
 
@@ -1002,6 +1011,8 @@ const Regional_Information Regional_Information_Table[] =
 };
 const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
 
+#define NTRIP_SERVER_STRING_SIZE        50
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 struct Settings
@@ -1130,7 +1141,7 @@ struct Settings
     bool debugNtripServerState = false;
     bool enableNtripServer = false;
     bool enableRtcmMessageChecking = false;
-    char ntripServer_CasterHost[NTRIP_SERVER_MAX][50] = // It's free...
+    char ntripServer_CasterHost[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] = // It's free...
     {
         "rtk2go.com",
         "",
@@ -1144,28 +1155,28 @@ struct Settings
         2101,
         2101,
     };
-    char ntripServer_CasterUser[NTRIP_SERVER_MAX][50] =
+    char ntripServer_CasterUser[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "test@test.com" // Some free casters require auth. User must provide their own email address to use RTK2Go
         "",
         "",
         "",
     };
-    char ntripServer_CasterUserPW[NTRIP_SERVER_MAX][50] =
+    char ntripServer_CasterUserPW[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "",
         "",
         "",
         "",
     };
-    char ntripServer_MountPoint[NTRIP_SERVER_MAX][50] =
+    char ntripServer_MountPoint[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "bldr_dwntwn2", // NTRIP Server
         "",
         "",
         "",
     };
-    char ntripServer_MountPointPW[NTRIP_SERVER_MAX][50] =
+    char ntripServer_MountPointPW[NTRIP_SERVER_MAX][NTRIP_SERVER_STRING_SIZE] =
     {
         "WR5wRo4H",
         "",
@@ -1190,7 +1201,7 @@ struct Settings
     uint8_t handleGnssDataTaskCore = 1;     // Core where task should run, 0=core, 1=Arduino
     uint8_t handleGnssDataTaskPriority = 1; // Read from the cicular buffer and dole out to end points (SD, TCP, BT).
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
-    uint8_t measurementScale = MEASUREMENTS_IN_METERS;
+    uint8_t measurementScale = MEASUREMENT_UNITS_METERS;
     bool printBootTimes = false; // Print times and deltas during boot
     bool printPartitionTable = false;
     bool printTaskStartStop = false;
@@ -1305,8 +1316,8 @@ struct Settings
     int8_t timeZoneSeconds = 0;
 
     // UBX (SX1276)
-    bool enableUART2UBXIn = false;                             // UBX Protocol In on UART2
-    ubxConstellation ubxConstellations[MAX_CONSTELLATIONS] = { // Constellations monitored/used for fix
+    bool enableUART2UBXIn = false;                                 // UBX Protocol In on UART2
+    ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
         {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, true, "Galileo"},
         {UBLOX_CFG_SIGNAL_GLO_ENA, SFE_UBLOX_GNSS_ID_GLONASS, true, "GLONASS"},
@@ -1802,7 +1813,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // ublox GNSS Receiver
     { 0, 1, 1, 0, 1, 1, 0, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
-    { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
+    { 1, 1, 1, 1, 1, 1, 0, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_",  },
 
@@ -1979,7 +1990,7 @@ struct struct_tasks
     bool updateWebServerTaskStopRequest = false;
 } task;
 
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
 // AWS certificate for PointPerfect API
 static const char *AWS_PUBLIC_CERT = R"=====(
 -----BEGIN CERTIFICATE-----
@@ -2003,5 +2014,5 @@ o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
 rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 )=====";
-#endif // COMPILE_WIFI
+#endif // COMPILE_NETWORK
 #endif // __SETTINGS_H__

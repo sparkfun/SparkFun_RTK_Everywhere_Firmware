@@ -232,20 +232,6 @@ void menuTcpUdp()
         if (settings.enableUdpServer)
             systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
-        if (present.ethernet_ws5500 == true)
-        {
-            //------------------------------
-            // Display the network layer menu items
-            //------------------------------
-
-            systemPrint("d) Default network: ");
-            networkPrintName(settings.defaultNetworkType);
-            systemPrintln();
-
-            systemPrint("f) Ethernet / WiFi Failover: ");
-            systemPrintf("%s\r\n", settings.enableNetworkFailover ? "Enabled" : "Disabled");
-        }
-
         //------------------------------
         // Finish the menu and get the input
         //------------------------------
@@ -315,23 +301,6 @@ void menuTcpUdp()
         else if (incoming == 7 && settings.enableUdpServer)
         {
             getNewSetting("Enter the UDP port to use", 0, 65535, &settings.udpServerPort);
-        }
-
-        //------------------------------
-        // Get the network layer parameters
-        //------------------------------
-
-        else if ((incoming == 'd') && (present.ethernet_ws5500 == true))
-        {
-            // Toggle the network type
-            settings.defaultNetworkType += 1;
-            if (settings.defaultNetworkType > NETWORK_TYPE_USE_DEFAULT)
-                settings.defaultNetworkType = 0;
-        }
-        else if ((incoming == 'f') && (present.ethernet_ws5500 == true))
-        {
-            // Toggle failover support
-            settings.enableNetworkFailover ^= 1;
         }
 
         //------------------------------
@@ -465,6 +434,23 @@ NETWORK_DATA *networkGet(uint8_t networkType, bool updateRequestedNetwork)
 }
 
 //----------------------------------------
+// Get the broadast IP address
+//----------------------------------------
+IPAddress networkGetBroadcastIpAddress(uint8_t networkType)
+{
+    IPAddress ip;
+    IPAddress mask;
+    IPAddress temp;
+
+    // Get the local network address and subnet mask
+    ip = networkGetIpAddress(networkType);
+    mask = networkGetSubnetMask(networkType);
+
+    // Return the local network broadcast IP address
+    return IPAddress((uint32_t)ip | (~(uint32_t)mask));
+}
+
+//----------------------------------------
 // Get the IP address
 //----------------------------------------
 IPAddress networkGetIpAddress(uint8_t networkType)
@@ -473,6 +459,19 @@ IPAddress networkGetIpAddress(uint8_t networkType)
         return ethernetGetIpAddress();
     if (networkType == NETWORK_TYPE_WIFI)
         return wifiGetIpAddress();
+    return IPAddress((uint32_t)0);
+}
+
+//----------------------------------------
+// Get the subnet mask
+//----------------------------------------
+IPAddress networkGetSubnetMask(uint8_t networkType)
+{
+    // Determine the network address
+    if (networkType == NETWORK_TYPE_ETHERNET)
+        return ethernetGetSubnetMask();
+    else if (networkType == NETWORK_TYPE_WIFI)
+        return wifiGetSubnetMask();
     return IPAddress((uint32_t)0);
 }
 

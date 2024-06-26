@@ -1345,12 +1345,14 @@ bool zedSetConstellations(bool sendCompleteBatch)
     if (sendCompleteBatch)
         response &= theGNSS->newCfgValset();
 
-    bool enableMe = settings.ubxConstellations[0].enabled;
-    response &= theGNSS->addCfgValset(settings.ubxConstellations[0].configKey, enableMe); // GPS
+    // GPS
+    int gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS);
+    bool enableMe = settings.ubxConstellations[gnssIndex].enabled;
+    response &= theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, enableMe);
 
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, settings.ubxConstellations[0].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, settings.ubxConstellations[0].enabled);
-
+    // SBAS
     // v1.12 ZED-F9P firmware does not allow for SBAS control
     // Also, if we can't identify the version (99), skip SBAS enable
     if ((gnssFirmwareVersionInt == 112) || (gnssFirmwareVersionInt == 99))
@@ -1359,34 +1361,45 @@ bool zedSetConstellations(bool sendCompleteBatch)
     }
     else
     {
-        response &= theGNSS->addCfgValset(settings.ubxConstellations[1].configKey,
-                                          settings.ubxConstellations[1].enabled); // SBAS
-        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, settings.ubxConstellations[1].enabled);
+        gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_SBAS);
+        enableMe = settings.ubxConstellations[gnssIndex].enabled;
+        response &= theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, enableMe);
     }
 
+    // GAL
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GALILEO);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[2].configKey, settings.ubxConstellations[2].enabled); // GAL
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, settings.ubxConstellations[2].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, settings.ubxConstellations[2].enabled);
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, enableMe);
 
+    // BDS
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_BEIDOU);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[3].configKey, settings.ubxConstellations[3].enabled); // BDS
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, settings.ubxConstellations[3].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, settings.ubxConstellations[3].enabled);
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, enableMe);
 
+    // QZSS
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[4].configKey, settings.ubxConstellations[4].enabled); // QZSS
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, settings.ubxConstellations[4].enabled);
-
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, enableMe);
     // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, enableMe);
 
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, settings.ubxConstellations[4].enabled);
-
+    // GLO
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GLONASS);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[5].configKey, settings.ubxConstellations[5].enabled); // GLO
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, settings.ubxConstellations[5].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, settings.ubxConstellations[5].enabled);
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, enableMe);
 
     if (sendCompleteBatch)
         response &= theGNSS->sendCfgValset();
@@ -1694,6 +1707,17 @@ char *zedGetRtcmLowDataRateString()
     return ((char *)"1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
 }
 
+int ubxConstellationIDToIndex(int id)
+{
+    for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+    {
+        if (settings.ubxConstellations[x].gnssID == id)
+            return x;
+    }
+
+    return -1; // Should never be reached...!
+}
+
 // Controls the constellations that are used to generate a fix and logged
 void zedMenuConstellations()
 {
@@ -1702,7 +1726,7 @@ void zedMenuConstellations()
         systemPrintln();
         systemPrintln("Menu: Constellations");
 
-        for (int x = 0; x < MAX_CONSTELLATIONS; x++)
+        for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
         {
             systemPrintf("%d) Constellation %s: ", x + 1, settings.ubxConstellations[x].textName);
             if (settings.ubxConstellations[x].enabled == true)
@@ -1716,7 +1740,7 @@ void zedMenuConstellations()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
+        if (incoming >= 1 && incoming <= MAX_UBX_CONSTELLATIONS)
         {
             incoming--; // Align choice to constellation array of 0 to 5
 
@@ -1724,12 +1748,15 @@ void zedMenuConstellations()
 
             // 3.10.6: To avoid cross-correlation issues, it is recommended that GPS and QZSS are always both enabled or
             // both disabled.
-            if (incoming == SFE_UBLOX_GNSS_ID_GPS || incoming == 4) // QZSS ID is 5 but array location is 4
+            if (incoming == ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)) // Match QZSS to GPS
             {
-                settings.ubxConstellations[SFE_UBLOX_GNSS_ID_GPS].enabled =
-                    settings.ubxConstellations[incoming].enabled; // GPS ID is 0 and array location is 0
-                settings.ubxConstellations[4].enabled =
-                    settings.ubxConstellations[incoming].enabled; // QZSS ID is 5 but array location is 4
+                settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)].enabled =
+                    settings.ubxConstellations[incoming].enabled;
+            }
+            if (incoming == ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)) // Match GPS to QZSS
+            {
+                settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)].enabled =
+                    settings.ubxConstellations[incoming].enabled;
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)

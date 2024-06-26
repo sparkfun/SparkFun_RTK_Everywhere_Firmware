@@ -138,7 +138,6 @@ bool sdCardPresent(void)
 
 bool sdCardPresentSoftwareTest()
 {
-    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);

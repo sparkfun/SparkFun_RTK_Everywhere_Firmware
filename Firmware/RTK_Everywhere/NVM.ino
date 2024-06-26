@@ -346,7 +346,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Record constellation settings
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // ubxConstellation_BeiDou=1
+                char tempString[50]; // constellation_BeiDou=1
                 snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
                          settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
                 settingsFile->println(tempString);
@@ -1422,6 +1422,20 @@ int8_t getProfileNumberFromUnit(uint8_t profileUnit)
     log_d("Profile unit %d not found", profileUnit);
 
     return (-1);
+}
+
+// Returns the number of available profiles
+// https://stackoverflow.com/questions/8871204/count-number-of-1s-in-binary-representation
+uint8_t getProfileCount()
+{
+    int count = 0;
+    uint8_t n = activeProfiles;
+    while (n != 0)
+    {
+        n = n & (n - 1);
+        count++;
+    }
+    return (count);
 }
 
 // Record large character blob to file

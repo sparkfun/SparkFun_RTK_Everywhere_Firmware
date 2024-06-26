@@ -1,4 +1,5 @@
 #include "mbedtls/ssl.h" //Needed for certificate validation
+#include "mbedtls/ctr_drbg.h"
 
 //----------------------------------------
 // Locals - compiled out
@@ -811,11 +812,11 @@ void erasePointperfectCredentials()
 // Subscribe to MQTT channel, grab keys, then stop
 bool pointperfectUpdateKeys()
 {
-#ifdef COMPILE_WIFI
+    bool gotKeys = false;
+#ifdef COMPILE_NETWORK
     char *certificateContents = nullptr; // Holds the contents of the keys prior to MQTT connection
     char *keyContents = nullptr;
     NetworkClientSecure secureClient;
-    bool gotKeys = false;
     menuppMqttClient = nullptr;
 
     do
@@ -948,16 +949,14 @@ bool pointperfectUpdateKeys()
         free(certificateContents);
 
     // Return the key status
+#endif  // COMPILE_NETWORK
     return (gotKeys);
-#else  // COMPILE_WIFI
-    return (false);
-#endif // COMPILE_WIFI
 }
 
 // Called when a subscribed to message arrives
 void mqttCallback(int messageSize)
 {
-#ifdef COMPILE_WIFI
+#ifdef  COMPILE_NETWORK
     static uint32_t messageLength = 0;
     static byte *message = nullptr;
 
@@ -1048,7 +1047,7 @@ void mqttCallback(int messageSize)
 
         mqttMessageReceived = true;
     } while (0);
-#endif // COMPILE_WIFI
+#endif  // COMPILE_NETWORK
 }
 
 // Get a date from a user
@@ -1502,6 +1501,7 @@ void menuPointPerfect()
 
         if (pointPerfectIsEnabled())
         {
+#ifdef  COMPILE_NETWORK
             systemPrint("2) Toggle Auto Key Renewal: ");
             if (settings.autoKeyRenewal == true)
                 systemPrintln("Enabled");
@@ -1512,6 +1512,7 @@ void menuPointPerfect()
                 systemPrintln("3) Provision Device");
             else
                 systemPrintln("3) Update Keys");
+#endif  // COMPILE_NETWORK
 
             systemPrintln("4) Show device ID");
 
@@ -1533,6 +1534,7 @@ void menuPointPerfect()
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
         }
 
+#ifdef  COMPILE_NETWORK
         else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
@@ -1589,6 +1591,7 @@ void menuPointPerfect()
 
             WIFI_STOP();
         }
+#endif  // COMPILE_NETWORK
         else if (incoming == 4 && pointPerfectIsEnabled())
         {
             char hardwareID[15];
