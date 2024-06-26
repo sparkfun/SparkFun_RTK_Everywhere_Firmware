@@ -299,21 +299,21 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 
 **Note:** We use the 'ESP32 Dev Module' for pin numbering. 
 
-3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72).
+3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72). Be sure to include the external libraries (You may have to enable external library support in the CLI).
 
-4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv)file.
+4. RTK Everywhere uses a custom partition file. Download the [RTKEverywhere.csv](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/RTKEverywhere.csv) file.
 
-5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look seomthing like
+5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look something like
 
         C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.11\tools\partitions\RTKEverywhere.csv
 
     This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash.
 
-
 6. Compile using the following command
-        arduino-cli --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled, compile 'Firmware/RTK_Everywhere' --build-property build.partitions=RTKEverywhere;
 
-7. Once compiled, upload to the device using the following command where `[COM_PORT]` is the COM port on which the RTK device is located (ie `COM42`).
+       arduino-cli compile 'Firmware/RTK_Everywhere' --build-property build.partitions=RTKEverywhere --build-property upload.maximum_size=3145728 --fqbn esp32:esp32:esp32:FlashSize=16M,PSRAM=enabled
+
+8. Once compiled, upload to the device using the following command where `[COM_PORT]` is the COM port on which the RTK device is located (ie `COM42`).
 
         arduino-cli upload -p [COM_PORT] --fqbn esp32:esp32:esp32:UploadSpeed=512000,FlashSize=16M 'Firmware/RTK_Everywhere'
 
@@ -321,7 +321,7 @@ If you are seeing the error:
 
 > text section exceeds available space ...
 
-You have not replaced the partition file correctly. See the 'Change Partition table' step inside the [Windows instructions](firmware_update.md#windows_1).
+You have either not replaced the partition file correctly or failed to include the 'upload.maximum_size' argument in your compile command. See steps 4 through 6 above. 
 
 **Note:** There are a variety of compile guards (COMPILE_WIFI, COMPILE_AP, etc) at the top of RTK_Everywhere.ino that can be commented out to remove them from compilation. This will greatly reduce the firmware size and allow for faster development of functions that do not rely on these features (serial menus, system configuration, logging, etc).
 
