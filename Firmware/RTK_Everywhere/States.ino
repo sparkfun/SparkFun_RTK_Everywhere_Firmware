@@ -525,7 +525,8 @@ void stateUpdate()
             // If we don't have keys, begin zero touch provisioning
             else if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
             {
-                log_d("PointPerfect Keys starting WiFi");
+                if (settings.debugPpCertificate)
+                    systemPrintln("PointPerfect Keys starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -550,7 +551,9 @@ void stateUpdate()
                 // Determine days until next key expires
                 int daysRemaining =
                     daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-                log_d("Days until keys expire: %d", daysRemaining);
+
+                if (settings.debugPpCertificate)
+                    systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
 
                 if (checkCertificates() && (daysRemaining > 28 && daysRemaining <= 56))
                     changeState(STATE_KEYS_DAYS_REMAINING);
@@ -565,7 +568,8 @@ void stateUpdate()
 
             if (online.rtc == false)
             {
-                log_d("Keys Needed. RTC offline. Starting WiFi");
+                if (settings.debugPpCertificate)
+                    systemPrintln("Keys Needed. RTC offline. Starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -581,7 +585,8 @@ void stateUpdate()
                 settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
                 recordSystemSettings();                   // Record these settings to unit
 
-                log_d("Keys Needed. Starting WiFi");
+                if (settings.debugPpCertificate)
+                    systemPrintln("Keys Needed. Starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -606,7 +611,8 @@ void stateUpdate()
             {
                 lBandForceGetKeys = false;
 
-                log_d("Force key update. Starting WiFi");
+                if (settings.debugPpCertificate)
+                    systemPrintln("Force key update. Starting WiFi");
 
                 // Temporarily limit WiFi connection attempts
                 wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
@@ -619,7 +625,9 @@ void stateUpdate()
 
             else
             {
-                log_d("Already tried to obtain keys for today");
+                if (settings.debugPpCertificate)
+                    systemPrintln("Already tried to obtain keys for today");
+
                 changeState(
                     STATE_KEYS_DAYS_REMAINING); // We have valid keys, we've already tried today. No need to try again.
             }
