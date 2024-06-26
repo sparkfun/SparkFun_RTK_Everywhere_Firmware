@@ -407,11 +407,14 @@ void mqttClientShutdown()
 // Start the MQTT client
 void mqttClientStart()
 {
-    // Display the heap state
-    reportHeapNow(settings.debugMqttClientState);
+    if (settings.debugMqttClientState)
+    {
+        // Display the heap state
+        reportHeapNow(settings.debugMqttClientState);
 
-    // Start the MQTT client
-    systemPrintln("MQTT Client start");
+        // Start the MQTT client
+        systemPrintln("MQTT Client start");
+    }
     mqttClientStop(false);
 }
 
