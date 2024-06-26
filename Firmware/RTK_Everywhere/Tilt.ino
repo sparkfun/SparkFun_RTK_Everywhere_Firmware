@@ -299,7 +299,8 @@ void beginTilt()
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
     // antennaPhaseCenter_mm assigned in begin()
 
-    snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+    snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f",
+             (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
     result &= tiltSensor->sendCommand(clubVector);
 
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
