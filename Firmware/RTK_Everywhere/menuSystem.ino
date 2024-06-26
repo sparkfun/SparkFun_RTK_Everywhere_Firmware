@@ -1361,9 +1361,9 @@ void menuInstrument()
         // Print the combined APC
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",  ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
 
-        systemPrintf("1) Set Antenna Height (aka Pole Length): %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
+        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
-        systemPrintf("2) Set Antenna Phase Center (aka ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
+        systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 
         systemPrint("3) Report Tip Altitude: ");
         systemPrintf("%s\r\n", settings.outputTipAltitude ? "Enabled" : "Disabled");
