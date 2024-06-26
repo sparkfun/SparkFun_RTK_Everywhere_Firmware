@@ -1357,18 +1357,20 @@ void menuInstrument()
     {
         systemPrintln();
         systemPrintln("Menu: Instrument Setup");
-        systemPrintln();
 
         // Print the combined APC
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",  ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
 
-        systemPrintf("1) Set Antenna Height (aka Pole Length): %dmm\r\n", settings.antennaHeight_mm);
+        systemPrintf("1) Set Antenna Height (aka Pole Length): %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
         systemPrintf("2) Set Antenna Phase Center (aka ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 
+        systemPrint("3) Report Tip Altitude: ");
+        systemPrintf("%s\r\n", settings.outputTipAltitude ? "Enabled" : "Disabled");
+
         if(present.imu_im19)
         {
-            systemPrint("3) Tilt Compensation: ");
+            systemPrint("4) Tilt Compensation: ");
             systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
         }
 
@@ -1378,8 +1380,11 @@ void menuInstrument()
 
         if (incoming == 1)
         {
-            getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
-                          &settings.antennaHeight_mm);
+            float antennaHeight = 0;
+
+            if(getNewSetting("Enter the antenna height (a.k.a. pole length) in meters", -15.0, 15.0,
+                          &antennaHeight) == INPUT_RESPONSE_VALID)
+                settings.antennaHeight_mm = antennaHeight * 1000.0;
         }
         else if (incoming == 2)
         {
@@ -1387,7 +1392,11 @@ void menuInstrument()
                           "Torch=116mm",
                           -200.0, 200.0, &settings.antennaPhaseCenter_mm);
         }
-        else if (incoming == 3 && present.imu_im19)
+        else if (incoming == 3)
+        {
+            settings.outputTipAltitude ^= 1;
+        }
+        else if (incoming == 4 && present.imu_im19)
         {
             settings.enableTiltCompensation ^= 1;
         }

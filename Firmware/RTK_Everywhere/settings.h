@@ -1362,7 +1362,7 @@ struct Settings
     };
     uint32_t wifiConnectTimeoutMs = 20000; // Wait this long for a WiFiMulti connection
 
-    bool outputTipAltitude = false; // If enabled, subtract the pole length and ARP from the GNSS receiver's reported altitude
+    bool outputTipAltitude = false; // If enabled, subtract the pole length and APC from the GNSS receiver's reported altitude
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below

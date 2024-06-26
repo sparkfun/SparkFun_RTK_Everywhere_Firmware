@@ -72,7 +72,7 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.antennaHeight_mm < 0.5)
+            if (settings.antennaHeight_mm < 500)
                 systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.antennaHeight_mm);
 
             if (settings.enableImuDebug == true)
@@ -109,7 +109,7 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.antennaHeight_mm < 0.5)
+            if (settings.antennaHeight_mm < 500)
                 systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.antennaHeight_mm);
 
             if (settings.enableImuDebug == true)
