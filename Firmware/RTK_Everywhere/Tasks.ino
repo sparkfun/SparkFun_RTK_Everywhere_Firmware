@@ -477,13 +477,11 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
-    if (tiltIsCorrecting() == true)
+    // Handle LLA compensation due to tilt or outputTipAltitude setting
+    if (type == RTK_NMEA_PARSER_INDEX)
     {
-        if (type == RTK_NMEA_PARSER_INDEX)
-        {
-            parse->buffer[parse->length++] = '\0'; // Null terminate string
-            tiltApplyCompensation((char *)parse->buffer, parse->length);
-        }
+        parse->buffer[parse->length++] = '\0'; // Null terminate string
+        nmeaApplyCompensation((char *)parse->buffer, parse->length);
     }
 
     // Determine where to send RTCM data
