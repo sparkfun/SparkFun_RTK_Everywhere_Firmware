@@ -147,7 +147,7 @@ void menuMain()
 
             if (incoming == 'r')
             {
-                displayConfigViaEthNotStarted(1000);
+                displayConfigViaEthStarting(1000);
 
                 ethernetWebServerStopESP32W5500();
 

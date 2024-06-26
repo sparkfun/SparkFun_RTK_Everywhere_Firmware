@@ -2943,22 +2943,44 @@ void displayNTPFail(uint16_t displayTime)
     }
 }
 
-void displayConfigViaEthNotStarted(uint16_t displayTime)
+void displayConfigViaEthStarting(uint16_t displayTime)
 {
     if (online.display == true)
     {
         oled->erase();
 
-        uint8_t fontHeight = 8;
+        uint8_t fontHeight = 12;
         uint8_t yPos = fontHeight;
 
-        printTextCenter("Configure", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Restart", yPos, QW_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
+        printTextCenter("Starting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+
+        oled->display();
+
+        delay(displayTime);
+    }
+}
+void displayConfigViaEthExiting(uint16_t displayTime)
+{
+    if (online.display == true)
+    {
+        oled->erase();
+
+        uint8_t fontHeight = 12;
+        uint8_t yPos = fontHeight;
+
+        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        yPos += fontHeight;
+        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        yPos += fontHeight;
+        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        yPos += fontHeight;
+        printTextCenter("Exiting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 
@@ -2972,16 +2994,16 @@ void displayConfigViaEthStarted(uint16_t displayTime)
     {
         oled->erase();
 
-        uint8_t fontHeight = 8;
+        uint8_t fontHeight = 12;
         uint8_t yPos = fontHeight;
 
-        printTextCenter("Configure", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Started", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Started", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 

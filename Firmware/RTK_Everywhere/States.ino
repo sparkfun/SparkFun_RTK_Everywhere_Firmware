@@ -856,7 +856,7 @@ void stateUpdate()
         break;
 
         case (STATE_CONFIG_VIA_ETH_NOT_STARTED): {
-            displayConfigViaEthNotStarted(1500);
+            displayConfigViaEthStarting(1500);
 
             settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
             settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Record the _next_ state for POR
@@ -876,7 +876,7 @@ void stateUpdate()
             // ints).
             if (!configureViaEthernet)
             {
-                displayConfigViaEthNotStarted(1500);
+                displayConfigViaEthStarting(1500);
                 settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Re-record this state for POR
                 recordSystemSettings();
 
@@ -949,7 +949,7 @@ void stateUpdate()
         break;
 
         case (STATE_CONFIG_VIA_ETH_RESTART_BASE): {
-            displayConfigViaEthNotStarted(1000);
+            displayConfigViaEthExiting(1000);
 
             ethernetWebServerStopESP32W5500();
 
