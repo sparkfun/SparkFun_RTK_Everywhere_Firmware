@@ -1089,6 +1089,11 @@ void beginSystemState()
         // We should really restructure things so we use online.corrections...
         if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED;
+
+        // Explicitly set the default network type to avoid printing 'Hardware default'
+        // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/360
+        if(settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
+            settings.defaultNetworkType = NETWORK_TYPE_ETHERNET;
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {

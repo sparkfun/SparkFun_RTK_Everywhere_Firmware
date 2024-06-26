@@ -116,7 +116,7 @@ void menuEthernet()
         {
             // Toggle the network type
             settings.defaultNetworkType += 1;
-            if (settings.defaultNetworkType > NETWORK_TYPE_USE_DEFAULT)
+            if (settings.defaultNetworkType >= NETWORK_TYPE_MAX)
                 settings.defaultNetworkType = 0;
         }
         else if (incoming == 'f')
