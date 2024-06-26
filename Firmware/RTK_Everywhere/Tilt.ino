@@ -15,56 +15,6 @@
 
 #ifdef COMPILE_IM19_IMU
 
-// Get the parameters needed for tilt compensation
-void menuTilt()
-{
-    if (present.imu_im19 == false)
-    {
-        clearBuffer(); // Empty buffer of any newline chars
-        return;
-    }
-
-    while (1)
-    {
-        systemPrintln();
-        systemPrintln("Menu: Tilt Compensation");
-        systemPrintln();
-
-        systemPrint("1) Tilt Compensation: ");
-        systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
-
-        if (settings.enableTiltCompensation == true)
-        {
-            systemPrint("2) Pole Length: ");
-            systemPrintf("%0.3fm\r\n", settings.tiltPoleLength);
-        }
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming == 1)
-        {
-            settings.enableTiltCompensation ^= 1;
-        }
-        else if ((settings.enableTiltCompensation == true) && (incoming == 2))
-        {
-            getNewSetting("Enter length of the pole in meters", 0.0, 4.0, &settings.tiltPoleLength);
-        }
-
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
-
 typedef enum
 {
     TILT_DISABLED = 0,
@@ -122,8 +72,8 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.tiltPoleLength < 0.5)
-                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.tiltPoleLength);
+            if (settings.antennaHeight_mm < 0.5)
+                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.antennaHeight_mm);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
@@ -159,8 +109,8 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.tiltPoleLength < 0.5)
-                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.tiltPoleLength);
+            if (settings.antennaHeight_mm < 0.5)
+                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.antennaHeight_mm);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
@@ -347,10 +297,9 @@ void beginTilt()
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
-    float arp_m =
-        present.antennaReferencePoint_mm / 1000.0; // Convert mm to m. antennaReferencePoint_mm assigned in begin()
+    // antennaPhaseCenter_mm assigned in begin()
 
-    snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp_m);
+    snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
     result &= tiltSensor->sendCommand(clubVector);
 
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
@@ -617,7 +566,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
         // pole+ARP
         if (settings.outputTipAltitude == false)
             newAltitude = tiltSensor->getNaviAltitude() - undulation +
-                          (settings.tiltPoleLength + (present.antennaReferencePoint_mm / 1000.0));
+                          ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
         else if (settings.outputTipAltitude == true)
@@ -627,7 +576,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
     {
         // If tilt is off and outputTipAltitude is enabled, then subtract pole+ARP from altitude
         if (settings.outputTipAltitude == true)
-            newAltitude = altitude - (settings.tiltPoleLength + (present.antennaReferencePoint_mm / 1000.0));
+            newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         // If tilt is off and outputTipAltitude is disabled, then we should not be here
     }
@@ -979,7 +928,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
         // pole+ARP
         if (settings.outputTipAltitude == false)
             newAltitude = tiltSensor->getNaviAltitude() - undulation +
-                          (settings.tiltPoleLength + (present.antennaReferencePoint_mm / 1000.0));
+                          ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
         else if (settings.outputTipAltitude == true)
@@ -989,7 +938,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
     {
         // If tilt is off and outputTipAltitude is enabled, then subtract pole+ARP from altitude
         if (settings.outputTipAltitude == true)
-            newAltitude = altitude - (settings.tiltPoleLength + (present.antennaReferencePoint_mm / 1000.0));
+            newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         // If tilt is off and outputTipAltitude is disabled, then we should not be here
     }

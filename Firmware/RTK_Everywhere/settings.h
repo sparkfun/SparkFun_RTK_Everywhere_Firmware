@@ -1015,8 +1015,8 @@ struct Settings
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
 
     // Antenna
-    int16_t antennaHeight = 0;          // in mm
-    float antennaReferencePoint = 0.0;  // in mm
+    int16_t antennaHeight_mm = 0;          // in mm
+    float antennaPhaseCenter_mm = 0.0;  // in mm
     uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
     bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
 
@@ -1336,7 +1336,6 @@ struct Settings
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
-    float tiltPoleLength = 1.8; // Length of the rod that the device is attached to. Should not include ARP.
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMBase[MAX_UM980_RTCM_MSG] = {
@@ -1453,8 +1452,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  s  x  k  2  c  h  Type    Qual  Variable                  Name
 
     // Antenna
-    { 0, 1, 1, 0, 1, 1, 1, 1, _int16_t,  0, & settings.antennaHeight, "antennaHeight",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _float,    2, & settings.antennaReferencePoint, "antennaReferencePoint" },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _int16_t,  0, & settings.antennaHeight_mm, "antennaHeight_mm",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _float,    2, & settings.antennaPhaseCenter_mm, "antennaPhaseCenter_mm" },
     { 0, 1, 1, 0, 1, 1, 1, 0, _uint16_t, 0, & settings.ARPLoggingInterval_s, "ARPLoggingInterval",  },
     { 0, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableARPLogging, "enableARPLogging",  },
 
@@ -1836,7 +1835,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 0, 0, 0, 1, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug",  },
     { 0, 0, 0, 0, 0, 0, 0, 1, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
-    { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.tiltPoleLength, "tiltPoleLength",  },
     { 0, 1, 1, 1, 0, 0, 0, 1, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_",  },
     { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_",  },
     { 0, 0, 1, 1, 0, 0, 0, 1, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_",  },
@@ -1931,7 +1929,7 @@ struct struct_present
 
     bool needsExternalPpl = false;
 
-    float antennaReferencePoint_mm = 0.0; //Used to setup tilt compensation
+    float antennaPhaseCenter_mm = 0.0; //Used to setup tilt compensation
     bool galileoHasCapable = false;
 } present;
 

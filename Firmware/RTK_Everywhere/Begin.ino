@@ -141,7 +141,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaReferencePoint_mm = 115.7;
+        present.antennaPhaseCenter_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
 

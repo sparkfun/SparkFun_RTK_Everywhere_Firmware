@@ -27,9 +27,9 @@ void menuBase()
         // Print the combined HAE APC if we are in the given mode
         if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
         {
-            systemPrintf(
-                "Total Height Above Ellipsoid - Antenna Phase Center (HAE APC): %0.3fmm\r\n",
-                (((settings.fixedAltitude * 1000) + settings.antennaHeight + settings.antennaReferencePoint) / 1000));
+            systemPrintf("Total Height Above Ellipsoid - Antenna Phase Center (HAE APC): %0.3fmm\r\n",
+                         (((settings.fixedAltitude * 1000) +
+                           (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000)));
         }
 
         systemPrint("1) Toggle Base Mode: ");
@@ -79,9 +79,9 @@ void menuBase()
                 systemPrint("4) Set coordinate display format: ");
                 systemPrintln(coordinatePrintableInputType(settings.coordinateInputType));
 
-                systemPrintf("5) Set Antenna Height: %dmm\r\n", settings.antennaHeight);
+                systemPrintf("5) Set Antenna Height: %dmm\r\n", settings.antennaHeight_mm);
 
-                systemPrintf("6) Set Antenna Reference Point: %0.1fmm\r\n", settings.antennaReferencePoint);
+                systemPrintf("6) Set Antenna Phase Center: %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
             }
         }
         else
@@ -198,7 +198,8 @@ void menuBase()
                         {
                             double fixedLong = 0.0;
                             // Identify which type of method they used
-                            CoordinateInputType longCoordinateInputType = coordinateIdentifyInputType(userEntry, &fixedLong);
+                            CoordinateInputType longCoordinateInputType =
+                                coordinateIdentifyInputType(userEntry, &fixedLong);
                             if (longCoordinateInputType != COORDINATE_INPUT_TYPE_INVALID_UNKNOWN)
                             {
                                 if (latCoordinateInputType == longCoordinateInputType)
@@ -230,13 +231,13 @@ void menuBase()
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 5)
         {
             getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
-                          &settings.antennaHeight);
+                          &settings.antennaHeight_mm);
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            getNewSetting("Enter the antenna reference point (a.k.a. ARP) in millimeters. Common antennas "
-                          "Facet L-Band=69.0mm Torch=102.0mm",
-                          -200.0, 200.0, &settings.antennaReferencePoint);
+            getNewSetting("Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. Common antennas "
+                          "Torch=116mm",
+                          -200.0, 200.0, &settings.antennaPhaseCenter_mm);
         }
 
         else if (settings.fixedBase == false && incoming == 2)

@@ -777,7 +777,7 @@ bool zedFixedBaseStart()
         // https://www.e-education.psu.edu/geog862/node/1853
         // For example, if HAE is at 100.0m, + 2m stick + 73mm ARP = 102.073
         float totalFixedAltitude =
-            settings.fixedAltitude + (settings.antennaHeight / 1000.0) + (settings.antennaReferencePoint / 1000.0);
+            settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         // Break coordinates into main and high precision parts
         // The type casting should not effect rounding of original double cast coordinate

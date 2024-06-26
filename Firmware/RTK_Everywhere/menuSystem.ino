@@ -225,7 +225,7 @@ void menuSystem()
         systemPrintln("r) Reset all settings to default");
 
         systemPrintf("u) Printed measurement units: %s\r\n",
-            measurementScaleTable[measurementScaleToIndex(settings.measurementScale)].measurementScaleName);
+                     measurementScaleTable[measurementScaleToIndex(settings.measurementScale)].measurementScaleName);
 
         systemPrintf("z) Set time zone offset: %02d:%02d:%02d\r\n", settings.timeZoneHours, settings.timeZoneMinutes,
                      settings.timeZoneSeconds);
@@ -258,7 +258,8 @@ void menuSystem()
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
             bluetoothStart();
         }
-        else if ((incoming == 'c') && (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
+        else if ((incoming == 'c') &&
+                 (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
         {
             getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
                           &settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
@@ -1330,6 +1331,67 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_TASK_UPDATE_WEBSERVER);
 
         // Menu exit control
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Get the parameters for the antenna height, reference point, and tilt compensation
+void menuInstrument()
+{
+    if (present.imu_im19 == false)
+    {
+        clearBuffer(); // Empty buffer of any newline chars
+        return;
+    }
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Instrument Setup");
+        systemPrintln();
+
+        // Print the combined APC
+        systemPrintf("Combined Height of Instrument: %0.3fm\r\n",  ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
+
+        systemPrintf("1) Set Antenna Height (aka Pole Length): %dmm\r\n", settings.antennaHeight_mm);
+
+        systemPrintf("2) Set Antenna Phase Center (aka ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
+
+        if(present.imu_im19)
+        {
+            systemPrint("3) Tilt Compensation: ");
+            systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
+        }
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming == 1)
+        {
+            getNewSetting("Enter the antenna height (a.k.a. pole length) in millimeters", -15000, 15000,
+                          &settings.antennaHeight_mm);
+        }
+        else if (incoming == 2)
+        {
+            getNewSetting("Enter the antenna phase center (a.k.a. ARP) in millimeters. Common antennas "
+                          "Torch=116mm",
+                          -200.0, 200.0, &settings.antennaPhaseCenter_mm);
+        }
+        else if (incoming == 3 && present.imu_im19)
+        {
+            settings.enableTiltCompensation ^= 1;
+        }
+
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)

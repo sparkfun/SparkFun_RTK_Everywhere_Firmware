@@ -240,8 +240,7 @@ void menuMain()
 
             systemPrintln("s) Configure System");
 
-            if (present.imu_im19 == true)
-                systemPrintln("t) Configure Tilt Compensation");
+            systemPrintln("t) Configure Instrument Setup");
 
             systemPrintln("u) Configure User Profiles");
 
@@ -286,8 +285,8 @@ void menuMain()
 #endif // COMPILE_ESPNOW
             else if (incoming == 's')
                 menuSystem();
-            else if (incoming == 't' && (present.imu_im19 == true))
-                menuTilt();
+            else if (incoming == 't')
+                menuInstrument();
             else if (incoming == 'b' && btPrintEcho == true)
             {
                 printEndpoint = PRINT_ENDPOINT_SERIAL;
