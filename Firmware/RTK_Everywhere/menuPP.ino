@@ -556,6 +556,8 @@ ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
                         strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
                         recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
 
+                        free(tempHolderPtr); // Clean up. Done with tempHolderPtr
+
                         // Validate the keys
                         if (!checkCertificates())
                         {
@@ -733,7 +735,10 @@ bool checkCertificates()
         free(keyContents);
 
     if (settings.debugPpCertificate)
-        systemPrintln("Stored certificates are valid!");
+    {
+        systemPrintf("Stored certificates are %svalid\r\n", validCertificates ? "" : "NOT ");
+    }
+
     return (validCertificates);
 }
 
@@ -817,6 +822,7 @@ bool pointperfectUpdateKeys()
     do
     {
         // Allocate the buffers
+        // Freed outside the do loop
         if (online.psram == true)
         {
             certificateContents = (char *)ps_malloc(MQTT_CERT_SIZE);
@@ -830,8 +836,6 @@ bool pointperfectUpdateKeys()
 
         if ((!certificateContents) || (!keyContents))
         {
-            if (certificateContents)
-                free(certificateContents);
             systemPrintln("Failed to allocate content buffers!");
             break;
         }
@@ -859,6 +863,8 @@ bool pointperfectUpdateKeys()
         // Configure the MQTT client
         menuppMqttClient->setId(settings.pointPerfectClientID);
         menuppMqttClient->onMessage(mqttCallback);
+        menuppMqttClient->setKeepAliveInterval(10 * 1000);
+        menuppMqttClient->setConnectionTimeout( 5 * 1000);
 
         // Attempt to the MQTT broker
         systemPrintf("Attempting to connect to MQTT broker: %s\r\n", settings.pointPerfectBrokerHost);
@@ -933,6 +939,8 @@ bool pointperfectUpdateKeys()
         delete menuppMqttClient;
         menuppMqttClient = nullptr;
     }
+
+    secureClient.stop();
 
     // Free the content buffers
     if (keyContents)

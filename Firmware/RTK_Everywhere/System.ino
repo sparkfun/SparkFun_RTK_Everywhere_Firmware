@@ -12,7 +12,7 @@ void beginPsram()
             systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
             if (ESP.getPsramSize() > 0)
             {
-                online.psram = true;
+                RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = online.psram = true;
 
                 heap_caps_malloc_extmem_enable(
                     settings.psramMallocLevel); // Use PSRAM for memory requests larger than X bytes

@@ -112,7 +112,8 @@ const char MQTT_TOPIC_ASSISTNOW[] = "/pp/ubx/mga"; // AssistNow (MGA) topic
 
 static MqttClient *mqttClient;
 
-static char *mqttClientCertificateBuffer; // Buffer for client certificate
+static char *mqttClientCertificateBuffer = nullptr; // Buffer for client certificate
+static char *mqttClientPrivateKeyBuffer = nullptr; // Buffer for client private key
 
 // Throttle the time between connection attempts
 static int mqttClientConnectionAttempts; // Count the number of connection attempts between restarts
@@ -120,8 +121,6 @@ static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
-
-static char *mqttClientPrivateKeyBuffer; // Buffer for client private key
 
 static RTKNetworkSecureClient *mqttSecureClient;
 
@@ -564,15 +563,20 @@ void mqttClientUpdate()
         }
 
         // Allocate the buffers
+        // Freed by mqttClientShutdown / mqttClientStop
         if (online.psram == true)
         {
-            mqttClientCertificateBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
-            mqttClientPrivateKeyBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
+            if (!mqttClientCertificateBuffer)
+                mqttClientCertificateBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
+            if (!mqttClientPrivateKeyBuffer)
+                mqttClientPrivateKeyBuffer = (char *)ps_malloc(MQTT_CERT_SIZE);
         }
         else
         {
-            mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
-            mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
+            if (!mqttClientCertificateBuffer)
+                mqttClientCertificateBuffer = (char *)malloc(MQTT_CERT_SIZE);
+            if (!mqttClientPrivateKeyBuffer)
+                mqttClientPrivateKeyBuffer = (char *)malloc(MQTT_CERT_SIZE);
         }
 
         if ((!mqttClientCertificateBuffer) || (!mqttClientPrivateKeyBuffer))

@@ -78,6 +78,8 @@
 #include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
 #endif  // COMPILE_NETWORK
 
+bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
+
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>
 #endif                                      // COMPILE_ETHERNET
@@ -483,7 +485,7 @@ const int btReadTaskStackSize = 4000;
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
 #define AVERAGE_SENTENCE_LENGTH_IN_BYTES 32
-RING_BUFFER_OFFSET *rbOffsetArray;
+RING_BUFFER_OFFSET *rbOffsetArray = nullptr;
 uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040

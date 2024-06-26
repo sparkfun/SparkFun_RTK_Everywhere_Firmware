@@ -132,6 +132,7 @@ void beginPPL()
     reportHeapNow(false);
 
     // PPL_MAX_RTCM_BUFFER is 3345 bytes so we create it on the heap
+    // Freed by stopPPL()
     if (pplRtcmBuffer == nullptr)
     {
         if (online.psram == true)
