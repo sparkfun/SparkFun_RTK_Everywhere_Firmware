@@ -1078,7 +1078,7 @@ void setup()
     beginCharger(); // Configure battery charger
 
     DMW_b("gnssConfigure");
-    gnssConfigure(); // Requires settings. Configure ZED module
+    gnssConfigure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band
