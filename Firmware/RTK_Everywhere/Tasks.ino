@@ -1577,8 +1577,8 @@ void buttonCheckTask(void *e)
                     case STATE_KEYS_DAYS_REMAINING:
                     case STATE_KEYS_LBAND_CONFIGURE:
                     case STATE_KEYS_LBAND_ENCRYPTED:
-                    case STATE_KEYS_PROVISION_WIFI_STARTED:
-                    case STATE_KEYS_PROVISION_WIFI_CONNECTED:
+                    case STATE_KEYS_PROVISION_STARTED:
+                    case STATE_KEYS_PROVISION_CONNECTED:
                         // Abort key download?
                         // TODO: check this! I think we want to be able to terminate STATE_KEYS via the button?
                         break;

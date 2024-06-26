@@ -633,7 +633,7 @@ bool wifiIsNeeded()
 
     if (systemState == STATE_KEYS_WIFI_STARTED || systemState == STATE_KEYS_WIFI_CONNECTED)
         return true;
-    if (systemState == STATE_KEYS_PROVISION_WIFI_STARTED || systemState == STATE_KEYS_PROVISION_WIFI_CONNECTED)
+    if (systemState == STATE_KEYS_PROVISION_STARTED || systemState == STATE_KEYS_PROVISION_CONNECTED)
         return true;
 
     return false;

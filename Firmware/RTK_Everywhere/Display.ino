@@ -427,11 +427,11 @@ void displayUpdate()
             case (STATE_KEYS_LBAND_ENCRYPTED):
                 // Do nothing. Quick, fall through state.
                 break;
-            case (STATE_KEYS_PROVISION_WIFI_STARTED):
+            case (STATE_KEYS_PROVISION_STARTED):
                 setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;
-            case (STATE_KEYS_PROVISION_WIFI_CONNECTED):
+            case (STATE_KEYS_PROVISION_CONNECTED):
                 setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;

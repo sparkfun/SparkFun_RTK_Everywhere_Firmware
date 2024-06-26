@@ -442,11 +442,11 @@ void updateDisplay(bool doUpdate)
         case (STATE_KEYS_LBAND_ENCRYPTED):
           //Do nothing. Quick, fall through state.
           break;
-        case (STATE_KEYS_PROVISION_WIFI_STARTED):
+        case (STATE_KEYS_PROVISION_STARTED):
           iconsRadio = setWiFiIcon(); //Blink WiFi in center
           //paintGettingKeys();
           break;
-        case (STATE_KEYS_PROVISION_WIFI_CONNECTED):
+        case (STATE_KEYS_PROVISION_CONNECTED):
           iconsRadio = setWiFiIcon(); //Blink WiFi in center
           //paintGettingKeys();
           break;

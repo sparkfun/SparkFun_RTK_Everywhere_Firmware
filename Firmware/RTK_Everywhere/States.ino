@@ -533,7 +533,7 @@ void stateUpdate()
                 wifiMaxConnectionAttempts = 0; // Override setting during key retrieval. Give up after single failure.
 
                 wifiStart();
-                changeState(STATE_KEYS_PROVISION_WIFI_STARTED);
+                changeState(STATE_KEYS_PROVISION_STARTED);
             }
 
             // Determine if we have valid date/time RTC from last boot
@@ -596,7 +596,7 @@ void stateUpdate()
                 changeState(STATE_KEYS_WIFI_STARTED);
             }
 
-            // Added to display WiFi error if user selects GetKeys from the display
+            // Added to display error if user selects GetKeys from the display
             // Normally, this would be caught during STATE_KEYS_STARTED
             else if (wifiNetworkCount() == 0)
             {
@@ -748,9 +748,9 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_KEYS_PROVISION_WIFI_STARTED): {
+        case (STATE_KEYS_PROVISION_STARTED): {
             if (wifiIsConnected())
-                changeState(STATE_KEYS_PROVISION_WIFI_CONNECTED);
+                changeState(STATE_KEYS_PROVISION_CONNECTED);
             else
             {
                 wifiShutdown(); // Turn off WiFi
@@ -759,7 +759,7 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_KEYS_PROVISION_WIFI_CONNECTED): {
+        case (STATE_KEYS_PROVISION_CONNECTED): {
             forceSystemStateUpdate = true; // Imediately go to this new state
 
             if (pointperfectProvisionDevice() == true)
@@ -1052,10 +1052,10 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_KEYS_LBAND_CONFIGURE";
     case (STATE_KEYS_LBAND_ENCRYPTED):
         return "STATE_KEYS_LBAND_ENCRYPTED";
-    case (STATE_KEYS_PROVISION_WIFI_STARTED):
-        return "STATE_KEYS_PROVISION_WIFI_STARTED";
-    case (STATE_KEYS_PROVISION_WIFI_CONNECTED):
-        return "STATE_KEYS_PROVISION_WIFI_CONNECTED";
+    case (STATE_KEYS_PROVISION_STARTED):
+        return "STATE_KEYS_PROVISION_STARTED";
+    case (STATE_KEYS_PROVISION_CONNECTED):
+        return "STATE_KEYS_PROVISION_CONNECTED";
 #endif // COMPILE_L_BAND
 
     case (STATE_ESPNOW_PAIRING_NOT_STARTED):
@@ -1155,7 +1155,7 @@ const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
     {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-    {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_WIFI_CONNECTED},
+    {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_CONNECTED},
     {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
     {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
     {"Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
