@@ -1367,7 +1367,7 @@ void buttonCheckTask(void *e)
             previousButtonRelease = thisButtonRelease;
             thisButtonRelease = millis();
 
-            //If we are not currently showing the menu, immediately display it
+            // If we are not currently showing the menu, immediately display it
             if (showMenu == false && systemState != STATE_DISPLAY_SETUP)
                 showMenu = true;
         }
@@ -1383,10 +1383,18 @@ void buttonCheckTask(void *e)
         else if ((thisButtonRelease > 0) &&
                  ((millis() - thisButtonRelease) > doubleTapInterval)) // Do we have a single tap?
         {
-            doubleTap = false;
-            singleTap = true;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            // Discard the first button press as it was used to display the menu
+            if (showMenu == true)
+            {
+                showMenu = false;
+            }
+            else
+            {
+                doubleTap = false;
+                singleTap = true;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
+            }
         }
 
         // else // if ((previousButtonRelease == 0) && (thisButtonRelease > 0)) // Tap in progress?
@@ -1488,14 +1496,12 @@ void buttonCheckTask(void *e)
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_TEST);
             }
-            
+
             // If the button is disabled, do nothing
             // If we detect a singleTap, move through menus
             // If the button was pressed to initially show the menu, then allow immediate entry and show the menu
             else if ((settings.disableSetupButton == false) && ((singleTap && firstRoverStart == false) || showMenu))
             {
-                showMenu = false;
-
                 switch (systemState)
                 {
                 // If we are in any running state, change to STATE_DISPLAY_SETUP
@@ -1522,6 +1528,7 @@ void buttonCheckTask(void *e)
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
                     setupSelectedButton = 0; // Highlight the first button
+                    forceDisplayUpdate = true; // User is interacting so repaint display quickly
                     break;
 
                 case STATE_DISPLAY_SETUP:
@@ -1585,8 +1592,6 @@ void buttonCheckTask(void *e)
             } // End singleTap
             else if (doubleTap && (firstRoverStart == false) && (settings.disableSetupButton == false))
             {
-                showMenu = false;
-
                 switch (systemState)
                 {
                 case STATE_DISPLAY_SETUP: {
