@@ -316,6 +316,8 @@ enum WiFiState
 };
 volatile byte wifiState = WIFI_STATE_OFF;
 
+#ifdef  COMPILE_NETWORK
+
 #include "RTKNetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
 #include "RTKNetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
@@ -348,6 +350,8 @@ typedef struct _NTRIP_SERVER_DATA
     uint32_t rtcmBytesSent;
     uint32_t previousMilliseconds;
 } NTRIP_SERVER_DATA;
+
+#endif  // COMPILE_NETWORK
 
 typedef enum
 {
