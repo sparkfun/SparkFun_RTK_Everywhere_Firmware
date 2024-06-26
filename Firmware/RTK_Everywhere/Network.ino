@@ -143,7 +143,8 @@ Network.ino
 // Constants
 //----------------------------------------
 
-#define NETWORK_CONNECTION_TIMEOUT (30 * 1000) // Timeout for network media connection - allow extra time for WiFiMulti scan
+#define NETWORK_CONNECTION_TIMEOUT                                                                                     \
+    (30 * 1000) // Timeout for network media connection - allow extra time for WiFiMulti scan
 #define NETWORK_DELAY_BEFORE_RETRY (75 * 100)  // Delay between network connection retries
 #define NETWORK_IP_ADDRESS_DISPLAY (12 * 1000) // Delay in milliseconds between display of IP address
 #define NETWORK_MAX_IDLE_TIME 500              // Maximum network idle time before shutdown
@@ -1388,6 +1389,21 @@ void networkVerifyTables()
         reportFatalError("Fix networkState table to match NetworkStates");
     if (networkUserEntries != NETWORK_USER_MAX)
         reportFatalError("Fix networkUser table to match NetworkUsers");
+}
+
+// Returns true if this platform has the potential to connect to the internet
+// Useful for testing if platform doesn't have ethernet, and doesn't have SSIDs
+bool networkCanConnect()
+{
+    // If the platform has ethernet, return true
+    if(present.ethernet_ws5500 == true)
+        return (true);
+
+    // If the platform does not have ethernet, check if we have SSIDs
+    if (wifiNetworkCount() > 0)
+        return (true);
+
+    return (false);
 }
 
 #endif // COMPILE_NETWORK

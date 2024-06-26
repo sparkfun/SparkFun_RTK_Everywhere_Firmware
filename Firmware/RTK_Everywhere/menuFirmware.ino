@@ -91,7 +91,7 @@ void menuFirmware()
 
         else if (incoming == 'c')
         {
-            if (wifiNetworkCount() == 0)
+            if (networkCanConnect() == false)
             {
                 systemPrintln("Error: Please enter at least one SSID before updating firmware");
             }
@@ -474,15 +474,14 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
     bool wasInAPmode;
 
     uint8_t networkType = networkGetActiveType();
-    if ((networkType == NETWORK_TYPE_WIFI)
-        && (wifiNetworkCount() == 0))
+    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
     {
         systemPrintln("Error: Please enter at least one SSID before getting keys");
     }
     else
     {
-        if ((networkType != NETWORK_TYPE_WIFI)
-            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+        if ((networkType != NETWORK_TYPE_WIFI) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
+                                                   true)) // Use WIFI_AP_STA if already in WIFI_AP mode
         {
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -522,8 +521,9 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 
                 if (systemState != STATE_WIFI_CONFIG)
                 {
-                    // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode only.
-                    // For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station running.
+                    // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+                    // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+                    // running.
 
                     // If WiFi was originally off, turn it off again
                     if (previouslyConnected == false)
@@ -579,7 +579,7 @@ void overTheAirUpdate()
         systemPrintln("OTA Update: Firmware server not available");
     else
         systemPrintln("OTA Update: OTA failed");
-#endif  // COMPILE_NETWORK
+#endif // COMPILE_NETWORK
 }
 
 // Start WiFi and perform the over-the-air update
@@ -590,7 +590,8 @@ void otaUpdate()
 
     bool wasInAPmode;
 
-    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
+        true) // Use WIFI_AP_STA if already in WIFI_AP mode
         overTheAirUpdate();
 
     // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
