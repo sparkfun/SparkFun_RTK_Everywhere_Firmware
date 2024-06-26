@@ -362,7 +362,7 @@ void onEthernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_GOT_IP:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
         {
-            systemPrintf("ETH Got IP: '%s'\n", esp_netif_get_desc(info.got_ip.esp_netif));
+            systemPrintf("ETH Got IP: '%s'\r\n", esp_netif_get_desc(info.got_ip.esp_netif));
             //systemPrintln(ETH);
         }
         eth_connected = true;
