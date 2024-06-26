@@ -71,7 +71,7 @@ jobs:
       - name: Get IDF version
         run: |
           cd /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs
-          echo "ESP_IDF=${echo "$(ls | grep idf-release)"}" >> "$GITHUB_ENV"
+          echo "ESP_IDF=${echo "${ls | grep idf-release}"}" >> "$GITHUB_ENV"
 
       - name: Get Known Libraries
         run: arduino-cli lib install
