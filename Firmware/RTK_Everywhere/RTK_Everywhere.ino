@@ -71,6 +71,8 @@
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
 
+bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
+
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>
 #endif                                      // COMPILE_ETHERNET
