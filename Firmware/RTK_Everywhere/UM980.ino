@@ -351,9 +351,9 @@ bool um980FixedBaseStart()
     {
         // Add height of instrument (HI) to fixed altitude
         // https://www.e-education.psu.edu/geog862/node/1853
-        // For example, if HAE is at 100.0m, + 2m stick + 73mm ARP = 102.073
+        // For example, if HAE is at 100.0m, + 2m stick + 73mm APC = 102.073
         float totalFixedAltitude =
-            settings.fixedAltitude + (settings.antennaHeight / 1000.0) + (settings.antennaReferencePoint / 1000.0);
+            settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         um980->setModeBaseGeodetic(settings.fixedLat, settings.fixedLong, totalFixedAltitude);
     }

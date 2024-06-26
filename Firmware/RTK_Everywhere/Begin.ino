@@ -5,7 +5,7 @@ Begin.ino
   radio, etc.
 ------------------------------------------------------------------------------*/
 
-#include <esp_mac.h>  // required - exposes esp_mac_type_t values
+#include <esp_mac.h> // required - exposes esp_mac_type_t values
 
 //----------------------------------------
 // Constants
@@ -141,7 +141,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaReferencePoint_mm = 115.7;
+        present.antennaPhaseCenter_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
 
@@ -835,9 +835,9 @@ void beginInterrupts()
     if (present.ethernet_ws5500 == true)
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
-        pinMode(pin_Ethernet_Interrupt, INPUT);                 // Prepare the interrupt pin
+        pinMode(pin_Ethernet_Interrupt, INPUT); // Prepare the interrupt pin
         // TODO: figure out how to handle NTP mode and timestamp the arrival of UDP NTP requests
-        //attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
+        // attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
     }
 #endif // COMPILE_ETHERNET
 }
@@ -848,14 +848,14 @@ void tickerBegin()
     if (pin_bluetoothStatusLED != PIN_UNDEFINED)
     {
         ledcAttach(pin_bluetoothStatusLED, pwmFreq, pwmResolution);
-        ledcWrite(pin_bluetoothStatusLED, 255);                                               // Turn on BT LED at startup
-        //Attach happens in bluetoothStart()
+        ledcWrite(pin_bluetoothStatusLED, 255); // Turn on BT LED at startup
+        // Attach happens in bluetoothStart()
     }
 
     if (pin_gnssStatusLED != PIN_UNDEFINED)
     {
         ledcAttach(pin_gnssStatusLED, pwmFreq, pwmResolution);
-        ledcWrite(pin_gnssStatusLED, 0);                                     // Turn off GNSS LED at startup
+        ledcWrite(pin_gnssStatusLED, 0);                                  // Turn off GNSS LED at startup
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
@@ -863,7 +863,7 @@ void tickerBegin()
     if (pin_batteryStatusLED != PIN_UNDEFINED)
     {
         ledcAttach(pin_batteryStatusLED, pwmFreq, pwmResolution);
-        ledcWrite(pin_batteryStatusLED, 0);                                           // Turn off battery LED at startup
+        ledcWrite(pin_batteryStatusLED, 0);                                        // Turn off battery LED at startup
         batteryLedTask.detach();                                                   // Turn off any previous task
         batteryLedTask.attach(1.0 / batteryTaskUpdatesHz, tickerBatteryLedUpdate); // Rate in seconds, callback
     }
@@ -1114,6 +1114,10 @@ void beginSystemState()
 
         if (settings.enablePointPerfectCorrections)
             systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
+
+        //If the setting is not set, override with default
+        if (settings.antennaPhaseCenter_mm == 0.0)
+            settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
     }
     else
     {

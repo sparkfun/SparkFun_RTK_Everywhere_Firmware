@@ -700,7 +700,7 @@
 
 
                             <div class="form-group row">
-                                <label for="antennaHeight" class="box-margin40 col-sm-3 col-5 col-form-label">Antenna
+                                <label for="antennaHeight_mm" class="box-margin40 col-sm-3 col-5 col-form-label">Antenna
                                     Height(mm):
                                     <span class="tt" data-bs-placement="right"
                                         title="Distance from the base of the antenna to the mark on the ground. This is usually the total length of the prism pole and any extensions. Amount is added to HAE before starting fixed base.">
@@ -709,22 +709,22 @@
                                 </label>
 
                                 <div class="col-sm-4 col-5">
-                                    <input type="number" class="form-control" id="antennaHeight">
-                                    <p id="antennaHeightError" class="inlineError"></p>
+                                    <input type="number" class="form-control" id="antennaHeight_mm">
+                                    <p id="antennaHeight_mmError" class="inlineError"></p>
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label for="antennaReferencePoint" class="box-margin40 col-5 col-form-label">Antenna
-                                    Reference Point(mm):
+                                <label for="antennaPhaseCenter_mm" class="box-margin40 col-5 col-form-label">Antenna
+                                    Phase Center(mm):
                                     <span class="tt" data-bs-placement="right"
-                                        title="ARP is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common ARPs: Facet L-Band (69mm) Torch(117mm)">
+                                        title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(117mm)">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
                                 <div class="col-sm-4 col-5">
-                                    <input type="number" class="form-control" id="antennaReferencePoint">
-                                    <p id="antennaReferencePointError" class="inlineError"></p>
+                                    <input type="number" class="form-control" id="antennaPhaseCenter_mm">
+                                    <p id="antennaPhaseCenter_mm" class="inlineError"></p>
                                 </div>
                             </div>
 
@@ -1687,11 +1687,11 @@
                 </div>
             </div>
 
-            <!-- --------- Tilt Config --------- -->
+            <!-- --------- Instrument Config --------- -->
             <div class="d-grid gap-2">
                 <button class="btn btn-primary mt-3 toggle-btn" id="tiltConfig" type="button" data-toggle="collapse"
                     data-target="#collapseTiltConfig" aria-expanded="false" aria-controls="collapseTiltConfig">
-                    Tilt Configuration <i id="tiltCaret" class="caret-icon bi icon-caret-down"></i>
+                    Instrument Configuration <i id="tiltCaret" class="caret-icon bi icon-caret-down"></i>
                 </button>
             </div>
             <div class="collapse" id="collapseTiltConfig">
@@ -1708,17 +1708,32 @@
                             </span>
                         </div>
 
-                        <div id="poleLengthConfig">
+                        <div id="antennaHeight_mConfig">
                             <div class="form-group row">
-                                <label for="tiltPoleLength" class="col-sm-4 col-6 col-form-label">Pole Length (m):
+                                <label for="antennaHeight_m" class="col-sm-4 col-6 col-form-label">Antenna Height (a.k.a. Pole Length) (m):
                                     <span class="tt" data-bs-placement="right"
                                         title="This is the length of the pole only, no additional ARP should be included. Default: 1.8m">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
                                 <div class="col-sm-4 col-6">
-                                    <input type="number" class="form-control" id="tiltPoleLength">
-                                    <p id="tiltPoleLengthError" class="inlineError"></p>
+                                    <input type="number" class="form-control" id="antennaHeight_m">
+                                    <p id="antennaHeight_mError" class="inlineError"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="antennaPhaseCenter_mmConfig">
+                            <div class="form-group row">
+                                <label for="antennaPhaseCenter_mm" class="col-sm-4 col-6 col-form-label">Antenna Phase Center (mm):
+                                    <span class="tt" data-bs-placement="right"
+                                        title="This is the distance between the ARP and the antenna phase center. Default: 116mm">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </label>
+                                <div class="col-sm-4 col-6">
+                                    <input type="number" class="form-control" id="antennaPhaseCenter_mm">
+                                    <p id="antennaPhaseCenter_mmError" class="inlineError"></p>
                                 </div>
                             </div>
                         </div>
