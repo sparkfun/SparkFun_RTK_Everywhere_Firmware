@@ -553,7 +553,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
         // Add interstitial between end of lon and beginning of alt
         strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
     }
-    else // No tilt compensation, no changes the lat/lon
+    else // No tilt compensation, no changes to the lat/lon
     {
         // Add start of message up to altitude
         strncat(newSentence, nmeaSentence, altitudeStart);
@@ -870,14 +870,6 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
     strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
     float undulation = (float)atof(undulationStr);
 
-    float orthometricHeight = 0;
-
-    if (tiltIsCorrecting() == true)
-    {
-        // Remove the undulation from the IMU's altitude
-        orthometricHeight = tiltSensor->getNaviAltitude() - undulation;
-    }
-
     char newSentence[150] = {0};
 
     if (sizeof(newSentence) < arraySize)
@@ -915,7 +907,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
         // Add interstitial between end of lon and beginning of alt
         strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
     }
-    else // No tilt compensation, no changes the lat/lon
+    else // No tilt compensation, no changes to the lat/lon
     {
         // Add start of message up to altitude
         strncat(newSentence, nmeaSentence, altitudeStart);
