@@ -1359,16 +1359,17 @@ void menuInstrument()
         systemPrintln("Menu: Instrument Setup");
 
         // Print the combined APC
-        systemPrintf("Combined Height of Instrument: %0.3fm\r\n",  ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
+        systemPrintf("Combined Height of Instrument: %0.3fm\r\n",
+                     ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
 
-        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
+        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n", settings.antennaHeight_mm / (double)1000.0);
 
         systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 
         systemPrint("3) Report Tip Altitude: ");
         systemPrintf("%s\r\n", settings.outputTipAltitude ? "Enabled" : "Disabled");
 
-        if(present.imu_im19)
+        if (present.imu_im19)
         {
             systemPrint("4) Tilt Compensation: ");
             systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
@@ -1380,11 +1381,13 @@ void menuInstrument()
 
         if (incoming == 1)
         {
-            float antennaHeight = 0;
+            double antennaHeight = 0;
 
-            if(getNewSetting("Enter the antenna height (a.k.a. pole length) in meters", -15.0, 15.0,
-                          &antennaHeight) == INPUT_RESPONSE_VALID)
-                settings.antennaHeight_mm = antennaHeight * 1000.0;
+            if (getNewSetting("Enter the antenna height (a.k.a. pole length) in meters", -15.0, 15.0, &antennaHeight) ==
+                INPUT_RESPONSE_VALID)
+            {
+                settings.antennaHeight_mm = truncf(antennaHeight * 1000.0);
+            }
         }
         else if (incoming == 2)
         {
