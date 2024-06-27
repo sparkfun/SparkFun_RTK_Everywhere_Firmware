@@ -1,5 +1,5 @@
 /*
-  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor
+  Once RTK Fix is achieved, and the tilt sensor is activated (ie rocked back and forth) the tilt sensor
   generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
   GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
   Data Collector does not know anything is being tilt-compensated. To do this we must intercept
@@ -64,7 +64,7 @@ void tiltUpdate()
         break;
 
     case TILT_STARTED:
-        // Waiting for user to shake unit (RTK Fix required for isInitialized)
+        // Waiting for user to rock unit back and forth (RTK Fix required for isInitialized)
         tiltSensor->update(); // Check for the most recent incoming binary data
 
         // Check IMU state at 1Hz
@@ -73,12 +73,12 @@ void tiltUpdate()
             lastTiltCheck = millis();
 
             if (settings.antennaHeight_mm < 500)
-                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.antennaHeight_mm);
+                systemPrintf("Warning: Short pole length detected: %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
 
-            // Check to see if tilt sensor has been shaken
+            // Check to see if tilt sensor has been rocked
             if (tiltSensor->isInitialized())
             {
                 beepDurationMs(1000); // Audibly indicate the init of tilt
@@ -110,7 +110,7 @@ void tiltUpdate()
             lastTiltCheck = millis();
 
             if (settings.antennaHeight_mm < 500)
-                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.antennaHeight_mm);
+                systemPrintf("Warning: Short pole length detected: %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
@@ -301,6 +301,10 @@ void beginTilt()
 
     snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f",
              (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+    if (settings.enableImuCompensationDebug == true)
+        systemPrintf("Setting club vector to: %s\r\n", clubVector);
+
     result &= tiltSensor->sendCommand(clubVector);
 
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
@@ -553,7 +557,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
         // Add interstitial between end of lon and beginning of alt
         strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
     }
-    else // No tilt compensation, no changes the lat/lon
+    else // No tilt compensation, no changes to the lat/lon
     {
         // Add start of message up to altitude
         strncat(newSentence, nmeaSentence, altitudeStart);
@@ -820,7 +824,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
     uint8_t undulationStop = 0;
     uint8_t checksumStart = 0;
 
-    if (settings.enableImuCompensationDebug == true)
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Original GNGGA: %s\r\n", nmeaSentence);
 
     int commaCount = 0;
@@ -870,14 +874,6 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
     strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
     float undulation = (float)atof(undulationStr);
 
-    float orthometricHeight = 0;
-
-    if (tiltIsCorrecting() == true)
-    {
-        // Remove the undulation from the IMU's altitude
-        orthometricHeight = tiltSensor->getNaviAltitude() - undulation;
-    }
-
     char newSentence[150] = {0};
 
     if (sizeof(newSentence) < arraySize)
@@ -915,7 +911,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
         // Add interstitial between end of lon and beginning of alt
         strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
     }
-    else // No tilt compensation, no changes the lat/lon
+    else // No tilt compensation, no changes to the lat/lon
     {
         // Add start of message up to altitude
         strncat(newSentence, nmeaSentence, altitudeStart);
@@ -967,7 +963,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, arraySize);
 
-    if (settings.enableImuCompensationDebug == true)
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Compensated GNGGA: %s\r\n", nmeaSentence);
 }
 
