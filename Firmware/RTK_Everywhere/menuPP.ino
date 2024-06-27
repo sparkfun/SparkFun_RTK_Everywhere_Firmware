@@ -486,6 +486,7 @@ ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
                             systemPrintln("API failed to respond in time.");
 
                         ztpResponse = ZTP_RESPONSE_TIMEOUT;
+                        paintKeyUpdateFail(2000);
                         break;
                     }
 
@@ -511,6 +512,7 @@ ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
                     else if (response.indexOf("not whitelisted") >= 0)
                     {
                         ztpResponse = ZTP_NOT_WHITELISTED;
+                        paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
                         break;
                     }
                     else
@@ -625,6 +627,8 @@ ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
 
                             if (settings.debugCorrections == true)
                                 pointperfectPrintKeyInformation();
+
+                            displayKeysUpdated();
 
                             ztpResponse = ZTP_SUCCESS;
                         }
@@ -925,6 +929,7 @@ bool pointperfectUpdateKeys()
         if (mqttMessageReceived)
         {
             systemPrintln("Keys successfully updated");
+            displayKeysUpdated();
             gotKeys = true;
         }
 
@@ -1541,55 +1546,7 @@ void menuPointPerfect()
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            uint8_t networkType = networkGetActiveType();
-            if ((networkType == NETWORK_TYPE_WIFI)
-                && (wifiNetworkCount() == 0))
-            {
-                systemPrintln("Error: Please enter at least one SSID before getting keys");
-            }
-            else
-            {
-                if ((networkType != NETWORK_TYPE_WIFI)
-                    || (wifiConnect(settings.wifiConnectTimeoutMs) == true))
-                {
-                    // Check if we have certificates
-                    char fileName[80];
-                    snprintf(fileName, sizeof(fileName), "/%s_%s_%d.txt", platformFilePrefix, "certificate",
-                             profileNumber);
-                    if (LittleFS.exists(fileName) == false)
-                    {
-                        pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                    }
-                    else if (strlen(settings.pointPerfectCurrentKey) == 0 ||
-                             strlen(settings.pointPerfectKeyDistributionTopic) == 0)
-                    {
-                        pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                    }
-                    else // We have certs and keys
-                    {
-                        // Check that the certs are valid
-                        if (checkCertificates() == true)
-                        {
-                            // Update the keys
-                            pointperfectUpdateKeys();
-                        }
-                        else
-                        {
-                            // Erase keys
-                            erasePointperfectCredentials();
-
-                            // Provision device
-                            pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                        }
-                    }
-                }
-                else
-                {
-                    systemPrintln("Error: No WiFi available to get keys");
-                }
-            }
-
-            WIFI_STOP();
+            pointPerfectProvisionOrUpdate(true);
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 4 && pointPerfectIsEnabled())
@@ -1635,6 +1592,79 @@ void menuPointPerfect()
 bool pointPerfectIsEnabled()
 {
     return (settings.enablePointPerfectCorrections);
+}
+
+// Return -1 on a 
+int pointPerfectProvisionOrUpdate(bool inMenu)
+{
+    bool success = false;
+
+    uint8_t networkType = networkGetActiveType();
+    if ((networkType == NETWORK_TYPE_WIFI)
+        && (wifiNetworkCount() == 0))
+    {
+        if (inMenu)
+            systemPrintln("Error: Please enter at least one SSID before getting keys");
+        else
+        {
+            if (settings.debugNetworkLayer || settings.printNetworkStatus
+            || settings.debugPpCertificate || settings.debugMqttClientState)
+                systemPrintln("pointPerfectProvisionOrUpdate error: no WiFi SSIDs for key retrieval");
+        }
+    }
+    else
+    {
+        if ((networkType != NETWORK_TYPE_WIFI)
+            || (wifiConnect(settings.wifiConnectTimeoutMs) == true))
+        {
+            // Check if we have certificates
+            char fileName[80];
+            snprintf(fileName, sizeof(fileName), "/%s_%s_%d.txt", platformFilePrefix, "certificate",
+                        profileNumber);
+            if (LittleFS.exists(fileName) == false)
+            {
+                success = pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
+            }
+            else if (strlen(settings.pointPerfectCurrentKey) == 0 ||
+                        strlen(settings.pointPerfectKeyDistributionTopic) == 0)
+            {
+                success = pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
+            }
+            else // We have certs and keys
+            {
+                // Check that the certs are valid
+                if (checkCertificates() == true)
+                {
+                    // Update the keys
+                    success = pointperfectUpdateKeys();
+                }
+                else
+                {
+                    // Erase keys
+                    erasePointperfectCredentials();
+
+                    // Provision device
+                    success = pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
+                }
+            }
+        }
+        else
+        {
+            if (inMenu)
+                systemPrintln("Error: No WiFi available to get keys");
+            else
+            {
+                if (settings.debugNetworkLayer || settings.printNetworkStatus
+                || settings.debugPpCertificate || settings.debugMqttClientState)
+                    systemPrintln("pointPerfectProvisionOrUpdate error: no WiFi for key retrieval");
+            }
+        }
+    }
+
+    if (inMenu)
+        WIFI_STOP();
+
+    return success;
 }
 
 // Process any new L-Band from I2C

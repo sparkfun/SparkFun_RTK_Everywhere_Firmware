@@ -404,17 +404,6 @@ void displayUpdate()
             case (STATE_KEYS_NEEDED):
                 // Do nothing. Quick, fall through state.
                 break;
-            case (STATE_KEYS_WIFI_STARTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_WIFI_CONNECTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_WIFI_TIMEOUT):
-                // Do nothing. Quick, fall through state.
-                break;
             case (STATE_KEYS_EXPIRED):
                 // Do nothing. Quick, fall through state.
                 break;
@@ -431,9 +420,11 @@ void displayUpdate()
                 setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 paintGettingKeys();
                 break;
-            case (STATE_KEYS_PROVISION_CONNECTED):
+            case (STATE_KEYS_PROVISION_SUCCESS):
                 setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
+                break;
+            case (STATE_KEYS_PROVISION_FAIL):
+                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 break;
 
             case (STATE_ESPNOW_PAIRING_NOT_STARTED):
@@ -2724,12 +2715,12 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
     }
 }
 
-void paintKeyWiFiFail(uint16_t displayTime)
+void paintKeyUpdateFail(uint16_t displayTime)
 {
     // PP
     // Update
     // Failed
-    // No WiFi
+    // No Network
 
     if (online.display == true)
     {
@@ -2749,7 +2740,7 @@ void paintKeyWiFiFail(uint16_t displayTime)
         printTextCenter("Failed", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight + 1;
-        printTextCenter("No WiFi", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("No Network", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 

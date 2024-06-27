@@ -1568,15 +1568,13 @@ void buttonCheckTask(void *e)
                     /* These lines are commented to allow default to print the diagnostic.
                     case STATE_KEYS_STARTED:
                     case STATE_KEYS_NEEDED:
-                    case STATE_KEYS_WIFI_STARTED:
-                    case STATE_KEYS_WIFI_CONNECTED:
-                    case STATE_KEYS_WIFI_TIMEOUT:
                     case STATE_KEYS_EXPIRED:
                     case STATE_KEYS_DAYS_REMAINING:
                     case STATE_KEYS_LBAND_CONFIGURE:
                     case STATE_KEYS_LBAND_ENCRYPTED:
                     case STATE_KEYS_PROVISION_STARTED:
-                    case STATE_KEYS_PROVISION_CONNECTED:
+                    case STATE_KEYS_PROVISION_SUCCESS:
+                    case STATE_KEYS_PROVISION_FAIL:
                         // Abort key download?
                         // TODO: check this! I think we want to be able to terminate STATE_KEYS via the button?
                         break;

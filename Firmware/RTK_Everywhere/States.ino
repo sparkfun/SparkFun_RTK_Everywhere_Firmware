@@ -509,31 +509,29 @@ void stateUpdate()
             // We want an immediate change from this state
             forceSystemStateUpdate = true; // Immediately go to this new state
 
+            uint8_t networkType = networkGetActiveType();
+
             // If user has turned off PointPerfect, skip everything
             if (!settings.enablePointPerfectCorrections)
             {
                 changeState(settings.lastState); // Go to either rover or base
             }
 
-            // If there is no WiFi setup, and no keys, skip everything
-            else if (wifiNetworkCount() == 0 && strlen(settings.pointPerfectCurrentKey) == 0)
+            // If on WiFi and there are no WiFi SSIDs available, skip everything
+            // (Some duplication in pointPerfectProvisionOrUpdate)
+            else if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
             {
                 displayNoSSIDs(2000);
                 changeState(settings.lastState); // Go to either rover or base
             }
 
-            // If we don't have keys, begin zero touch provisioning
-            else if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
+            // If we don't have certs or keys, begin zero touch provisioning
+            else if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
             {
                 if (settings.debugPpCertificate)
-                    systemPrintln("PointPerfect Keys starting WiFi");
+                    systemPrintln("PointPerfect starting provisioning");
 
-                // Temporarily limit WiFi connection attempts
-                wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
-                wifiMaxConnectionAttempts = 0; // Override setting during key retrieval. Give up after single failure.
-
-                wifiStart();
-                changeState(STATE_KEYS_PROVISION_STARTED);
+                changeState(STATE_KEYS_NEEDED);
             }
 
             // Determine if we have valid date/time RTC from last boot
@@ -566,17 +564,14 @@ void stateUpdate()
         case (STATE_KEYS_NEEDED): {
             forceSystemStateUpdate = true; // Immediately go to this new state
 
+            uint8_t networkType = networkGetActiveType();
+
             if (online.rtc == false)
             {
                 if (settings.debugPpCertificate)
-                    systemPrintln("Keys Needed. RTC offline. Starting WiFi");
+                    systemPrintln("Keys Needed. RTC offline. Starting provisioning or update");
 
-                // Temporarily limit WiFi connection attempts
-                wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
-                wifiMaxConnectionAttempts = 0; // Override setting during key retrieval. Give up after single failure.
-
-                wifiStart();
-                changeState(STATE_KEYS_WIFI_STARTED); // If we can't check the RTC, continue
+                changeState(STATE_KEYS_PROVISION_STARTED); // If we can't check the RTC, continue
             }
 
             // When did we last try to get keys? Attempt every 24 hours
@@ -586,19 +581,14 @@ void stateUpdate()
                 recordSystemSettings();                   // Record these settings to unit
 
                 if (settings.debugPpCertificate)
-                    systemPrintln("Keys Needed. Starting WiFi");
+                    systemPrintln("Keys Needed. Starting provisioning or update");
 
-                // Temporarily limit WiFi connection attempts
-                wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
-                wifiMaxConnectionAttempts = 0; // Override setting during key retrieval. Give up after single failure.
-
-                wifiStart(); // Starts WiFi state machine
-                changeState(STATE_KEYS_WIFI_STARTED);
+                changeState(STATE_KEYS_PROVISION_STARTED);
             }
 
             // Added to display error if user selects GetKeys from the display
             // Normally, this would be caught during STATE_KEYS_STARTED
-            else if (wifiNetworkCount() == 0)
+            else if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
             {
                 displayNoSSIDs(1000);
                 changeState(
@@ -614,13 +604,7 @@ void stateUpdate()
                 if (settings.debugPpCertificate)
                     systemPrintln("Force key update. Starting WiFi");
 
-                // Temporarily limit WiFi connection attempts
-                wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts;
-                wifiMaxConnectionAttempts = 0; // Override setting during key retrieval. Give up after single failure.
-
-                wifiStart(); // Starts WiFi state machine
-
-                changeState(STATE_KEYS_WIFI_STARTED);
+                changeState(STATE_KEYS_PROVISION_STARTED);
             }
 
             else
@@ -633,75 +617,6 @@ void stateUpdate()
             }
         }
         break;
-
-        case (STATE_KEYS_WIFI_STARTED): {
-            wifiMaxConnectionAttempts = wifiOriginalMaxConnectionAttempts; // Revert setting
-
-            if (wifiIsConnected())
-                changeState(STATE_KEYS_WIFI_CONNECTED);
-            else
-            {
-                wifiShutdown(); // Turn off WiFi
-
-                changeState(STATE_KEYS_WIFI_TIMEOUT);
-            }
-        }
-        break;
-
-        case (STATE_KEYS_WIFI_CONNECTED): {
-
-            // Check that the certs are valid
-            if (checkCertificates() == true)
-            {
-                // Update the keys
-                if (pointperfectUpdateKeys() == true) // Connect to ThingStream MQTT and get PointPerfect key UBX packet
-                    displayKeysUpdated();
-            }
-            else
-            {
-                // Erase keys
-                erasePointperfectCredentials();
-
-                // Provision device
-                if (pointperfectProvisionDevice() == true) // Connect to ThingStream API and get keys
-                    displayKeysUpdated();
-            }
-
-            wifiShutdown();                // Turn off WiFi
-            forceSystemStateUpdate = true; // Imediately go to this new state
-            changeState(STATE_KEYS_DAYS_REMAINING);
-        }
-        break;
-
-        case (STATE_KEYS_WIFI_TIMEOUT): {
-            paintKeyWiFiFail(2000);
-
-            forceSystemStateUpdate = true; // Imediately go to this new state
-
-            if (online.rtc == true)
-            {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining >= 0)
-                {
-                    changeState(STATE_KEYS_DAYS_REMAINING);
-                }
-                else
-                {
-                    paintKeysExpired();
-                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
-                }
-            }
-            else
-            {
-                // No WiFi. No RTC. We don't know if the keys we have are expired. Attempt to use them.
-                changeState(STATE_KEYS_LBAND_CONFIGURE);
-            }
-        }
-        break;
-
-            // Note: STATE_KEYS_EXPIRED should be here, but isn't. TODO: check this
 
         case (STATE_KEYS_DAYS_REMAINING): {
             if (online.rtc == true)
@@ -749,30 +664,44 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_PROVISION_STARTED): {
-            if (wifiIsConnected())
-                changeState(STATE_KEYS_PROVISION_CONNECTED);
+            if (pointPerfectProvisionOrUpdate(false))
+                changeState(STATE_KEYS_PROVISION_SUCCESS);
             else
-            {
-                wifiShutdown(); // Turn off WiFi
-                changeState(STATE_KEYS_WIFI_TIMEOUT);
-            }
+                changeState(STATE_KEYS_PROVISION_FAIL);
         }
         break;
 
-        case (STATE_KEYS_PROVISION_CONNECTED): {
+        case (STATE_KEYS_PROVISION_SUCCESS): {
             forceSystemStateUpdate = true; // Imediately go to this new state
 
-            if (pointperfectProvisionDevice() == true)
+            //displayKeysUpdated();
+            changeState(STATE_KEYS_DAYS_REMAINING);
+        }
+        break;
+
+        case (STATE_KEYS_PROVISION_FAIL): {
+            forceSystemStateUpdate = true; // Imediately go to this new state
+
+            if (online.rtc == true)
             {
-                displayKeysUpdated();
-                changeState(STATE_KEYS_DAYS_REMAINING);
+                int daysRemaining =
+                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                if (daysRemaining >= 0)
+                {
+                    changeState(STATE_KEYS_DAYS_REMAINING);
+                }
+                else
+                {
+                    paintKeysExpired();
+                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
+                }
             }
             else
             {
-                paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
-                changeState(STATE_KEYS_LBAND_ENCRYPTED);
+                // No RTC. We don't know if the keys we have are expired. Attempt to use them.
+                changeState(STATE_KEYS_LBAND_CONFIGURE);
             }
-            wifiShutdown(); // Turn off WiFi
         }
         break;
 
@@ -1038,12 +967,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_KEYS_STARTED";
     case (STATE_KEYS_NEEDED):
         return "STATE_KEYS_NEEDED";
-    case (STATE_KEYS_WIFI_STARTED):
-        return "STATE_KEYS_WIFI_STARTED";
-    case (STATE_KEYS_WIFI_CONNECTED):
-        return "STATE_KEYS_WIFI_CONNECTED";
-    case (STATE_KEYS_WIFI_TIMEOUT):
-        return "STATE_KEYS_WIFI_TIMEOUT";
     case (STATE_KEYS_EXPIRED):
         return "STATE_KEYS_EXPIRED";
     case (STATE_KEYS_DAYS_REMAINING):
@@ -1054,8 +977,10 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_KEYS_LBAND_ENCRYPTED";
     case (STATE_KEYS_PROVISION_STARTED):
         return "STATE_KEYS_PROVISION_STARTED";
-    case (STATE_KEYS_PROVISION_CONNECTED):
-        return "STATE_KEYS_PROVISION_CONNECTED";
+    case (STATE_KEYS_PROVISION_SUCCESS):
+        return "STATE_KEYS_PROVISION_SUCCESS";
+    case (STATE_KEYS_PROVISION_FAIL):
+        return "STATE_KEYS_PROVISION_FAIL";
 #endif // COMPILE_L_BAND
 
     case (STATE_ESPNOW_PAIRING_NOT_STARTED):
@@ -1155,7 +1080,7 @@ const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
     {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-    {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_CONNECTED},
+    {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_FAIL},
     {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
     {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
     {"Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
