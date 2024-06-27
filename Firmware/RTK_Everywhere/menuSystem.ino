@@ -1385,9 +1385,7 @@ void menuInstrument()
 
             if (getNewSetting("Enter the antenna height (a.k.a. pole length) in meters", -15.0, 15.0, &antennaHeight) ==
                 INPUT_RESPONSE_VALID)
-            {
                 settings.antennaHeight_mm = truncf(antennaHeight * 1000.0);
-            }
         }
         else if (incoming == 2)
         {
