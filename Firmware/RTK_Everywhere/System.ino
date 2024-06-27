@@ -604,13 +604,13 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
             coordinate *= -1;
 
         if (coordinateInputType == COORDINATE_INPUT_TYPE_DDMM)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d%010.7f", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_DASH)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d-%010.7f", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d-%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SYMBOL)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d°%010.7f'", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d°%011.8f'", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d %010.7f", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d %011.8f", longitudeDegrees, coordinate);
     }
     else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SS ||
              coordinateInputType == COORDINATE_INPUT_TYPE_DDMMSS ||
