@@ -20,11 +20,6 @@ static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Toke
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
-const uint16_t HTTPS_PORT = 443; //!< The HTTPS default port
-#define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
-#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
-static const char THINGSTREAM_ZTPURL[] = "https://" THINGSTREAM_SERVER THINGSTREAM_ZTPPATH; // full ZTP url
-
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
@@ -297,108 +292,96 @@ void createZtpRequest(String &str)
     serializeJson(json, str);
 }
 
-// Connect to 'home' WiFi and then ThingStream API. This will attach this unique device to the ThingStream network.
+// Connect to network and then ThingStream API. This will attach this unique device to the ThingStream network.
 bool pointperfectProvisionDevice()
 {
     bool retVal = false;
-    uint8_t provisionAttempt = 0;
-    const uint8_t maxProvisionAttempts = 2;
-    String ztpRequest;
 
 #ifdef COMPILE_NETWORK
     /** Try to provision the PointPerfect to that we can start the MQTT server. This involves:
      *  HTTPS request to Thingstream POSTing the device token to get the credentials and client cert, key and ID
      */
-    do
+
+    // The HTTP_Client has its own retry mechanism built-in. No need to include one here.
+    const unsigned long provisionTimeout = 15000; // Must be > MAX_HTTP_CLIENT_CONNECTION_ATTEMPTS * httpClientConnectionAttemptTimeout
+    unsigned long provisionStart = millis();
+
+    httpClientModeNeeded = true; // This will trigger the HTTP_Client into life
+
+    while (millis() < (provisionStart + provisionTimeout))
     {
-        provisionAttempt++;
-
-        // Build the string containing the ZTP JSON request
-        createZtpRequest(ztpRequest);
-        if (0 < ztpRequest.length())
+        if (ztpResponse == ZTP_SUCCESS)
         {
-            // Using this token and hardwareID, attempt to get keys
-            ZtpResponse ztpResponse = pointperfectTryZtpToken(ztpRequest);
-            if (ztpResponse == ZTP_SUCCESS)
-            {
-                systemPrintln("Device successfully provisioned. Keys obtained.");
+            systemPrintln("Device successfully provisioned. Keys obtained.");
 
-                recordSystemSettings();
-                retVal = true;
-                break;
-            }
-            else if (ztpResponse == ZTP_DEACTIVATED)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                char landingPageUrl[200] = "";
-                if (productVariant == RTK_TORCH)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                             "or goto https://www.sparkfun.com/rtk_torch_registration ");
-                else
-                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
-
-                systemPrintf("This device has been deactivated. Please contact "
-                             "support@sparkfun.com %sto renew the PointPerfect "
-                             "subscription. Please reference device ID: %s\r\n",
-                             landingPageUrl, hardwareID);
-
-                displayAccountExpired(5000);
-                break;
-            }
-            else if (ztpResponse == ZTP_NOT_WHITELISTED)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                char landingPageUrl[200] = "";
-                if (productVariant == RTK_TORCH)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                             "or goto https://www.sparkfun.com/rtk_torch_registration ");
-                else
-                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
-
-                systemPrintf("This device is not whitelisted. Please contact "
-                             "support@sparkfun.com %sto get the subscription "
-                             "activated. Please reference device ID: %s\r\n",
-                             landingPageUrl, hardwareID);
-
-                displayNotListed(5000);
-                break;
-            }
-            else if (ztpResponse == ZTP_ALREADY_REGISTERED)
-            {
-                // Device is already registered to a different ZTP profile.
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                systemPrintf("This device is registered on a different profile. Please contact "
-                             "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
-                             hardwareID);
-                break;
-            }
-            else if (ztpResponse == ZTP_RESPONSE_TIMEOUT)
-            {
-                // The WiFi failed to connect in a timely manner to the API.
-                if (provisionAttempt < maxProvisionAttempts)
-                    systemPrintf("Provision server response timed out. Trying again.\r\n");
-                else
-                    systemPrintf("Provision server response timed out. \r\n");
-            }
-            else
-            {
-                // Unknown error
-                if (provisionAttempt < maxProvisionAttempts)
-                    systemPrintf("Unknown provisioning error. Trying again.\r\n");
-                else
-                    systemPrintf("Unknown provisioning error.\r\n");
-            }
+            recordSystemSettings();
+            retVal = true;
+            break;
         }
-    } while (provisionAttempt < maxProvisionAttempts);
+        else if (ztpResponse == ZTP_DEACTIVATED)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                        btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            char landingPageUrl[200] = "";
+            if (productVariant == RTK_TORCH)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                            "or goto https://www.sparkfun.com/rtk_torch_registration ");
+            else if (productVariant == RTK_EVK)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                            "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else
+                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
+            systemPrintf("This device has been deactivated. Please contact "
+                            "support@sparkfun.com %sto renew the PointPerfect "
+                            "subscription. Please reference device ID: %s\r\n",
+                            landingPageUrl, hardwareID);
+
+            displayAccountExpired(5000);
+            break;
+        }
+        else if (ztpResponse == ZTP_NOT_WHITELISTED)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                        btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            char landingPageUrl[200] = "";
+            if (productVariant == RTK_TORCH)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                            "or goto https://www.sparkfun.com/rtk_torch_registration ");
+            else if (productVariant == RTK_EVK)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                            "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else
+                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
+            systemPrintf("This device is not whitelisted. Please contact "
+                            "support@sparkfun.com %sto get the subscription "
+                            "activated. Please reference device ID: %s\r\n",
+                            landingPageUrl, hardwareID);
+
+            displayNotListed(5000);
+            break;
+        }
+        else if (ztpResponse == ZTP_ALREADY_REGISTERED)
+        {
+            // Device is already registered to a different ZTP profile.
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                        btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            systemPrintf("This device is registered on a different profile. Please contact "
+                            "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
+                            hardwareID);
+            displayAlreadyRegistered(5000);
+            break;
+        }
+    }
+
+    httpClientModeNeeded = false; // This will stop HTTP_Client
 
 #endif // COMPILE_NETWORK
 
@@ -437,6 +420,7 @@ void pointperfectGetToken(char *tokenString)
     }
 }
 
+/* TODO: delete this
 // Given a prepared JSON blob, pass to the PointPerfect API
 // If it passes, keys/values are recorded to settings, ZTP_SUCCESS is returned
 // If we fail, a ZTP response is returned
@@ -644,6 +628,7 @@ ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
 
     return (ztpResponse);
 }
+*/
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
 int findZtpJSONEntry(const char *thing1, const char *thing2, const char *thing3, JsonDocument *jsonZtp)
@@ -813,6 +798,7 @@ void erasePointperfectCredentials()
     strcpy(settings.pointPerfectNextKey, "");    // Clear contents
 }
 
+/* TODO: delete this
 // Subscribe to MQTT channel, grab keys, then stop
 bool pointperfectUpdateKeys()
 {
@@ -1054,6 +1040,7 @@ void mqttCallback(int messageSize)
     } while (0);
 #endif  // COMPILE_NETWORK
 }
+*/
 
 // Get a date from a user
 // Return true if validated
@@ -1546,7 +1533,7 @@ void menuPointPerfect()
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            pointPerfectProvisionOrUpdate(true);
+            pointperfectProvisionDevice();
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 4 && pointPerfectIsEnabled())
@@ -1592,79 +1579,6 @@ void menuPointPerfect()
 bool pointPerfectIsEnabled()
 {
     return (settings.enablePointPerfectCorrections);
-}
-
-// Return -1 on a 
-int pointPerfectProvisionOrUpdate(bool inMenu)
-{
-    bool success = false;
-
-    uint8_t networkType = networkGetActiveType();
-    if ((networkType == NETWORK_TYPE_WIFI)
-        && (wifiNetworkCount() == 0))
-    {
-        if (inMenu)
-            systemPrintln("Error: Please enter at least one SSID before getting keys");
-        else
-        {
-            if (settings.debugNetworkLayer || settings.printNetworkStatus
-            || settings.debugPpCertificate || settings.debugMqttClientState)
-                systemPrintln("pointPerfectProvisionOrUpdate error: no WiFi SSIDs for key retrieval");
-        }
-    }
-    else
-    {
-        if ((networkType != NETWORK_TYPE_WIFI)
-            || (wifiConnect(settings.wifiConnectTimeoutMs) == true))
-        {
-            // Check if we have certificates
-            char fileName[80];
-            snprintf(fileName, sizeof(fileName), "/%s_%s_%d.txt", platformFilePrefix, "certificate",
-                        profileNumber);
-            if (LittleFS.exists(fileName) == false)
-            {
-                success = pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-            }
-            else if (strlen(settings.pointPerfectCurrentKey) == 0 ||
-                        strlen(settings.pointPerfectKeyDistributionTopic) == 0)
-            {
-                success = pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-            }
-            else // We have certs and keys
-            {
-                // Check that the certs are valid
-                if (checkCertificates() == true)
-                {
-                    // Update the keys
-                    success = pointperfectUpdateKeys();
-                }
-                else
-                {
-                    // Erase keys
-                    erasePointperfectCredentials();
-
-                    // Provision device
-                    success = pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                }
-            }
-        }
-        else
-        {
-            if (inMenu)
-                systemPrintln("Error: No WiFi available to get keys");
-            else
-            {
-                if (settings.debugNetworkLayer || settings.printNetworkStatus
-                || settings.debugPpCertificate || settings.debugMqttClientState)
-                    systemPrintln("pointPerfectProvisionOrUpdate error: no WiFi for key retrieval");
-            }
-        }
-    }
-
-    if (inMenu)
-        WIFI_STOP();
-
-    return success;
 }
 
 // Process any new L-Band from I2C

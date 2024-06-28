@@ -665,6 +665,12 @@ bool loadSystemSettingsFromFileLFS(char *fileName, const char *findMe, char *fou
     if ((findMe != nullptr) && (found != nullptr))
         *found = 0; // If searching, set found to NULL
 
+    if (!LittleFS.exists(fileName))
+    {
+        // log_d("settingsFile not found in LittleFS\r\n");
+        return (false);
+    }
+
     File settingsFile = LittleFS.open(fileName, FILE_READ);
     if (!settingsFile)
     {
@@ -1282,17 +1288,26 @@ void loadProfileNumber()
     if (profileNumber < MAX_PROFILE_COUNT)
         return; // Only load it once
 
-    File fileProfileNumber = LittleFS.open("/profileNumber.txt", FILE_READ);
-    if (!fileProfileNumber)
+    if (LittleFS.exists("/profileNumber.txt"))
+    {
+        File fileProfileNumber = LittleFS.open("/profileNumber.txt", FILE_READ);
+        if (fileProfileNumber)
+        {
+            profileNumber = fileProfileNumber.read();
+            fileProfileNumber.close();
+        }
+        else
+        {
+            log_d("profileNumber.txt not found");
+            settings.updateGNSSSettings = true; // Force module update
+            recordProfileNumber(0);             // Record profile
+        }
+    }
+    else
     {
         log_d("profileNumber.txt not found");
         settings.updateGNSSSettings = true; // Force module update
         recordProfileNumber(0);             // Record profile
-    }
-    else
-    {
-        profileNumber = fileProfileNumber.read();
-        fileProfileNumber.close();
     }
 
     // We have arbitrary limit of user profiles
@@ -1468,6 +1483,13 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
 {
     char fileName[80];
     snprintf(fileName, sizeof(fileName), "/%s_%s_%d.txt", platformFilePrefix, fileID, profileNumber);
+
+    if (!LittleFS.exists(fileName))
+    {
+        if (debug)
+            systemPrintf("File %s does not exist on LittleFS\r\n", fileName);
+        return false;        
+    }
 
     File fileToRead = LittleFS.open(fileName, FILE_READ);
     if (fileToRead)

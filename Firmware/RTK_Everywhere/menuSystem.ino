@@ -668,6 +668,12 @@ void menuDebugNetwork()
         systemPrint("29) Debug MQTT client state: ");
         systemPrintf("%s\r\n", settings.debugMqttClientState ? "Enabled" : "Disabled");
 
+        // HTTP Client
+        systemPrint("30) Debug HTTP client data: ");
+        systemPrintf("%s\r\n", settings.debugHttpClientData ? "Enabled" : "Disabled");
+        systemPrint("31) Debug HTTP client state: ");
+        systemPrintf("%s\r\n", settings.debugHttpClientState ? "Enabled" : "Disabled");
+
         systemPrintln("r) Force system reset");
 
         systemPrintln("x) Exit");
@@ -706,6 +712,10 @@ void menuDebugNetwork()
             settings.debugMqttClientData ^= 1;
         else if (incoming == 29)
             settings.debugMqttClientState ^= 1;
+        else if (incoming == 30)
+            settings.debugHttpClientData ^= 1;
+        else if (incoming == 31)
+            settings.debugHttpClientState ^= 1;
 
         // Menu exit control
         else if (incoming == 'r')

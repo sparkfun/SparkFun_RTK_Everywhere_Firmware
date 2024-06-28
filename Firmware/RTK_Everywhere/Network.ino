@@ -182,6 +182,7 @@ const char *const networkUser[] = {
     "TCP Client",
     "TCP Server",
     "UDP Server",
+    "HTTP Client",
     "NTRIP Server 0",
     "NTRIP Server 1",
     "NTRIP Server 2",
@@ -944,6 +945,12 @@ void networkStop(uint8_t networkType)
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping UDP server");
                     udpServerStop();
+                    break;
+
+                case NETWORK_USER_HTTP_CLIENT:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping HTTP client");
+                    httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
                     break;
                 }
             }

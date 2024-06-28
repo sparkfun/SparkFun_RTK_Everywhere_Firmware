@@ -1900,6 +1900,11 @@ void displayNotListed(uint16_t displayTime)
     displayMessage("Not Listed", displayTime);
 }
 
+void displayAlreadyRegistered(uint16_t displayTime)
+{
+    displayMessage("Already Registered", displayTime);
+}
+
 void displayUpdateZEDF9P(uint16_t displayTime)
 {
     displayMessage("Update ZED-F9P", displayTime);

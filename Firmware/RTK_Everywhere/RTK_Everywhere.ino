@@ -38,8 +38,9 @@
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
-#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
+#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
+#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
 #endif // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -79,6 +80,13 @@
 #endif  // COMPILE_NETWORK
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
+
+bool httpClientModeNeeded = false; // This is set to true by pointperfectProvisionDevice
+
+#define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
+#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
+static const char THINGSTREAM_ZTPURL[] = "https://" THINGSTREAM_SERVER THINGSTREAM_ZTPPATH; // full ZTP url
+const uint16_t HTTPS_PORT = 443; //!< The HTTPS default port
 
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>

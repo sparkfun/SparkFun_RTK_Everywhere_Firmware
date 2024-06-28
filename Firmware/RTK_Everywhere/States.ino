@@ -518,7 +518,6 @@ void stateUpdate()
             }
 
             // If on WiFi and there are no WiFi SSIDs available, skip everything
-            // (Some duplication in pointPerfectProvisionOrUpdate)
             else if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
             {
                 displayNoSSIDs(2000);
@@ -664,7 +663,7 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_PROVISION_STARTED): {
-            if (pointPerfectProvisionOrUpdate(false))
+            if (pointperfectProvisionDevice())
                 changeState(STATE_KEYS_PROVISION_SUCCESS);
             else
                 changeState(STATE_KEYS_PROVISION_FAIL);
