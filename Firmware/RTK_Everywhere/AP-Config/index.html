@@ -1313,7 +1313,7 @@
                     </div>
                 </div>
 
-                <!-- For devices that don't have an external port, preset the USB output option only-->
+                <!-- For devices that don't have an external port, present the USB output option only-->
                 <div id="noExternalPortOptions">
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
@@ -1656,58 +1656,57 @@
 
         <!-- --------- Instrument Config --------- -->
         <div class="d-grid gap-2">
-            <button class="btn btn-primary mt-3 toggle-btn" id="tiltConfig" type="button" data-toggle="collapse"
-                data-target="#collapseTiltConfig" aria-expanded="false" aria-controls="collapseTiltConfig">
-                Instrument Configuration <i id="tiltCaret" class="caret-icon bi icon-caret-down"></i>
+            <button class="btn btn-primary mt-3 toggle-btn" id="instrumentConfig" type="button" data-toggle="collapse"
+                data-target="#collapseInstrumentConfig" aria-expanded="false" aria-controls="collapseInstrumentConfig">
+                Instrument Configuration <i id="instrumentCaret" class="caret-icon bi icon-caret-down"></i>
             </button>
         </div>
-        <div class="collapse" id="collapseTiltConfig">
+        <div class="collapse" id="collapseInstrumentConfig">
             <div class="card card-body">
 
-                <div id="tiltCompensationSettings">
+                <div id="tiltConfig" class="form-check mt-3">
                     <div class="form-check mt-3">
                         <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
                             Compensation</label>
                         <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation"
                             onClick="tiltCompensationBoxes()">
-                        <span class="tt" data-bs-placement="right" title="Use tilt compensation. Default: Enabled.">
+                        <span class="tt" data-bs-placement="right" title="Allow tilt compensation mode to be entered. Default: Enabled.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </div>
+                </div>
 
-                    <div id="antennaHeight_mConfig">
-                        <div class="form-group row">
-                            <label for="antennaHeight_m" class="col-sm-4 col-6 col-form-label">Antenna Height (a.k.a.
-                                Pole Length) (m):
-                                <span class="tt" data-bs-placement="right"
-                                    title="This is the length of the pole only, no additional ARP should be included. Default: 1.8m">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <div class="col-sm-4 col-6">
-                                <input type="number" class="form-control" id="antennaHeight_m">
-                                <p id="antennaHeight_mError" class="inlineError"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="antennaPhaseCenter_mmConfig">
-                        <div class="form-group row">
-                            <label for="antennaPhaseCenter_mm" class="col-sm-4 col-6 col-form-label">Antenna Phase
-                                Center (mm):
-                                <span class="tt" data-bs-placement="right"
-                                    title="This is the distance between the ARP and the antenna phase center. Default: 116mm">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
-                            </label>
-                            <div class="col-sm-4 col-6">
-                                <input type="number" class="form-control" id="antennaPhaseCenter_mm">
-                                <p id="antennaPhaseCenter_mmError" class="inlineError"></p>
-                            </div>
+                <div id="antennaPhaseCenter_mmConfig">
+                    <div class="form-group row">
+                        <label for="antennaPhaseCenter_mm" class="col-sm-4 col-6 col-form-label">Antenna Phase
+                            Center (mm):
+                            <span class="tt" data-bs-placement="right"
+                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(116mm)">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-4 col-6">
+                            <input type="number" class="form-control" id="antennaPhaseCenter_mm">
+                            <p id="antennaPhaseCenter_mmError" class="inlineError"></p>
                         </div>
                     </div>
                 </div>
 
+                <div id="antennaHeight_mConfig">
+                    <div class="form-group row">
+                        <label for="antennaHeight_m" class="col-sm-4 col-6 col-form-label">Antenna Height (a.k.a.
+                            Pole Length) (m):
+                            <span class="tt" data-bs-placement="right"
+                                title="This is the length of the prism pole and any included extensions. No additional ARP should be included. Default: 1.8m">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <div class="col-sm-4 col-6">
+                            <input type="number" class="form-control" id="antennaHeight_m">
+                            <p id="antennaHeight_mError" class="inlineError"></p>
+                        </div>
+                    </div>
+                </div>
 
             </div>
         </div>
