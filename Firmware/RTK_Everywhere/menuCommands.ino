@@ -1154,6 +1154,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         knownSetting = true;
     }
 
+    //Convert antenna in meters (from Web Config) to mm (internal settings)
+    else if (strcmp(settingName, "antennaHeight_m") == 0)
+    {
+        settings.antennaHeight_mm = settingValue * 1000;
+        knownSetting = true;
+    }
+
     // Unused variables - read to avoid errors
     else
     {

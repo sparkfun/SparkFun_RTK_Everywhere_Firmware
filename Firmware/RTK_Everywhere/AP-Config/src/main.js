@@ -138,10 +138,10 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-                
+
                 hide("externalPortOptions");
                 show("noExternalPortOptions");
-                
+
                 hide("logToSDCard");
 
                 hide("constellationSbas"); //Not supported on UM980
@@ -376,6 +376,11 @@ function parseIncoming(msg) {
                 ge("enableAutoReset").checked = false;
                 hide("enableAutomaticResetDetails");
             }
+        }
+
+        //Convert incoming mm to local meters
+        else if (id.includes("antennaHeight_mm")) {
+            ge("antennaHeight_m").value = val / 1000.0;
         }
 
         //Check boxes / radio buttons
@@ -641,8 +646,6 @@ function validateFields() {
         clearElement("fixedLatText", 40.09029479);
         clearElement("fixedLongText", -105.18505761);
         clearElement("fixedAltitude", 1560.089);
-        clearElement("antennaHeight_mm", 0);
-        clearElement("antennaPhaseCenter_mm", 0);
     }
     else {
         clearElement("observationSeconds", 60);
@@ -652,8 +655,6 @@ function validateFields() {
             clearElement("fixedLatText", 40.09029479);
             clearElement("fixedLongText", -105.18505761);
             clearElement("fixedAltitude", 1560.089);
-            clearElement("antennaHeight_mm", 0);
-            clearElement("antennaPhaseCenter_mm", 0);
 
             checkElementValue("fixedEcefX", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
             checkElementValue("fixedEcefY", -7000000, 7000000, "Must be -7000000 to 7000000", "collapseBaseConfig");
@@ -667,7 +668,7 @@ function validateFields() {
             checkLatLong(); //Verify Lat/Long input type
             checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
 
-            checkElementValue("antennaHeight_mm", -15000, 15000, "Must be -15000 to 15000", "collapseBaseConfig");
+            checkElementValue("antennaHeight_m", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
             checkElementValue("antennaPhaseCenter_mm", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
         }
     }
@@ -862,6 +863,7 @@ function changeProfile() {
         collapseSection("collapseEthernetConfig", "ethernetCaret");
         collapseSection("collapseNTPConfig", "ntpCaret");
         collapseSection("collapseFileManager", "fileManagerCaret");
+        collapseSection("collapseInstrumentConfig", "instrumentCaret");
     }
 }
 
@@ -1449,7 +1451,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         adjustHAE();
     });
 
-    ge("antennaHeight_mm").addEventListener("change", function () {
+    ge("antennaHeight_m").addEventListener("change", function () {
         adjustHAE();
     });
 
@@ -1620,7 +1622,7 @@ function addGeodetic() {
     checkElementString("nicknameGeodetic", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfig");
     checkLatLong();
     checkElementValue("fixedAltitude", -11034, 8849, "Must be -11034 to 8849", "collapseBaseConfig");
-    checkElementValue("antennaHeight_mm", -15000, 15000, "Must be -15000 to 15000", "collapseBaseConfig");
+    checkElementValue("antennaHeight_m", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
     checkElementValue("antennaPhaseCenter_mm", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
 
     if (errorCount == 0) {
@@ -1629,12 +1631,12 @@ function addGeodetic() {
         for (; index < recordsGeodetic.length; ++index) {
             var parts = recordsGeodetic[index].split(' ');
             if (ge("nicknameGeodetic").value == parts[0]) {
-                recordsGeodetic[index] = nicknameGeodetic.value + ' ' + fixedLatText.value + ' ' + fixedLongText.value + ' ' + fixedAltitude.value + ' ' + antennaHeight_mm.value + ' ' + antennaPhaseCenter_mm.value;
+                recordsGeodetic[index] = nicknameGeodetic.value + ' ' + fixedLatText.value + ' ' + fixedLongText.value + ' ' + fixedAltitude.value + ' ' + antennaHeight_m.value + ' ' + antennaPhaseCenter_mm.value;
                 break;
             }
         }
         if (index == recordsGeodetic.length)
-            recordsGeodetic.push(nicknameGeodetic.value + ' ' + fixedLatText.value + ' ' + fixedLongText.value + ' ' + fixedAltitude.value + ' ' + antennaHeight_mm.value + ' ' + antennaPhaseCenter_mm.value);
+            recordsGeodetic.push(nicknameGeodetic.value + ' ' + fixedLatText.value + ' ' + fixedLongText.value + ' ' + fixedAltitude.value + ' ' + antennaHeight_m.value + ' ' + antennaPhaseCenter_mm.value);
     }
 
     updateGeodeticList();
@@ -1660,13 +1662,13 @@ function adjustHAE() {
     if (haeMethod == 1) {
         ge("fixedHAEAPC").disabled = false;
         ge("fixedAltitude").disabled = true;
-        hae = Number(ge("fixedHAEAPC").value) - (Number(ge("antennaHeight_mm").value) / 1000 + Number(ge("antennaPhaseCenter_mm").value) / 1000);
+        hae = Number(ge("fixedHAEAPC").value) - (Number(ge("antennaHeight_m").value) + Number(ge("antennaPhaseCenter_mm").value) / 1000);
         ge("fixedAltitude").value = hae.toFixed(3);
     }
     else {
         ge("fixedHAEAPC").disabled = true;
         ge("fixedAltitude").disabled = false;
-        hae = Number(ge("fixedAltitude").value) + (Number(ge("antennaHeight_mm").value) / 1000 + Number(ge("antennaPhaseCenter_mm").value) / 1000);
+        hae = Number(ge("fixedAltitude").value) + (Number(ge("antennaHeight_m").value) + Number(ge("antennaPhaseCenter_mm").value) / 1000);
         ge("fixedHAEAPC").value = hae.toFixed(3);
     }
 }
@@ -1692,7 +1694,7 @@ function loadGeodetic() {
                 }
             }
             ge("fixedAltitude").value = parts[numParts - 3];
-            ge("antennaHeight_mm").value = parts[numParts - 2];
+            ge("antennaHeight_m").value = parts[numParts - 2];
             ge("antennaPhaseCenter_mm").value = parts[numParts - 1];
 
             $("input[name=markRadio][value=1]").prop('checked', false);
@@ -1704,7 +1706,7 @@ function loadGeodetic() {
             clearError("fixedLatText");
             clearError("fixedLongText");
             clearError("fixedAltitude");
-            clearError("antennaHeight_mm");
+            clearError("antennaHeight_m");
             clearError("antennaPhaseCenter_mm");
         }
         else {
