@@ -1180,149 +1180,159 @@
                 </button>
             </div>
             <div class="collapse" id="collapsePortsConfig">
+                <div class="card card-body">
 
-                <!-- For device with an external DATA port, show full option set -->
-                <div id="externalPortOptions">
-                    <div id="radioPortChannelDropdown" class="mb-2">
-                        <label for="radioPortBaud">Radio Port Baud Rate: </label>
-                        <select name="radioPortBaud" id="radioPortBaud" class="form-dropdown">
-                            <option value="4800">4800</option>
-                            <option value="9600">9600</option>
-                            <option value="19200">19200</option>
-                            <option value="38400">38400</option>
-                            <option value="57600">57600</option>
-                            <option value="115200">115200</option>
-                            <option value="230400">230400</option>
-                            <option value="460800">460800</option>
-                            <option value="921600">921600</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                        <br>
-                    </div>
+                    <div class="form-group mt-2">
 
-                    <div id="dataPortChannelDropdown" class="mb-2">
-                        <label for="dataPortChannel">Mux Channel: </label>
-                        <select name="dataPortChannel" id="dataPortChannel" class="form-dropdown">
-                            <option value="0">NMEA</option>
-                            <option value="1">PPS/Event Trigger</option>
-                            <option value="2" id="muxChannel2">I2C</option>
-                            <option value="3">ADC/DAC</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="The DATA port can be configured for different applications. NMEA is used for serial TX/RX of location information. PPS/Trigger is used for pulse per second output and 5ns accurate trigger inputs. I2C is used as an additional SDA/SCL data channel. Wheel/Dir Tick is used for automotive interfacing. ADC/DAC is used for custom firmware applications. Default: NMEA">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="dataPortBaudDropdown" class="mb-2">
-                        <label for="dataPortBaud">Data Port Baud Rate: </label>
-                        <select name="dataPortBaud" id="dataPortBaud" class="form-dropdown">
-                            <option value="4800">4800</option>
-                            <option value="9600">9600</option>
-                            <option value="19200">19200</option>
-                            <option value="38400">38400</option>
-                            <option value="57600">57600</option>
-                            <option value="115200">115200</option>
-                            <option value="230400">230400</option>
-                            <option value="460800">460800</option>
-                            <option value="921600">921600</option>
-                        </select>
-                        <span class="tt" data-bs-placement="right"
-                            title="In NMEA mode, the baud rate for the DATA port can be changed to match a user's application. Default: 460800bps">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div id="externalPulseConfig" class="collapse mb-2">
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableExternalPulse">Enable External Pulse</label>
-                            <input class="form-check-input" type="checkbox" value="" id="enableExternalPulse">
-                            <span class="tt" data-bs-placement="right"
-                                title="Generate a Pulse Per Second or a time base much faster, with extreme accuracy. Requires GNSS reception. Default: Enabled with 100,000us pulse length and 900,000us time between pulses.">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </div>
-
-                        <div id="externalPulseConfigDetails" class="collapse mb-2">
-                            <div class="form-group row">
-                                <label for="externalPulseTimeBetweenPulse"
-                                    class="box-margin20 col-sm-3 col-4 col-form-label">Time between pulses (µs):
-                                </label>
-                                <div class="col-sm-8 col-7">
-                                    <input type="number" class="form-control" id="externalPulseTimeBetweenPulse">
-                                    <p id="externalPulseTimeBetweenPulseError" class="inlineError"></p>
-                                </div>
-                            </div>
-
-                            <div class="form-group row">
-                                <label for="externalPulseLength"
-                                    class="box-margin20 col-sm-3 col-4 col-form-label">Pulse length (µs):</label>
-                                <div class="col-sm-8 col-7">
-                                    <input type="number" class="form-control" id="externalPulseLength">
-                                    <p id="externalPulseLengthError" class="inlineError"></p>
-                                </div>
-                            </div>
-
-                            <div id="pulseEdgeDropdown" class="mb-2">
-                                <label for="externalPulsePolarity"
-                                    class="box-margin20 col-sm-3 col-4 col-form-label">Pulse Polarity: </label>
-                                <select name="externalPulsePolarity" id="externalPulsePolarity" class="form-dropdown">
-                                    <option value="0">Rising Edge</option>
-                                    <option value="1">Falling Edge</option>
+                        <!-- For device with an external DATA port, show full option set -->
+                        <div id="externalPortOptions">
+                            <div id="radioPortChannelDropdown" class="mb-2">
+                                <label for="radioPortBaud">Radio Port Baud Rate: </label>
+                                <select name="radioPortBaud" id="radioPortBaud" class="form-dropdown">
+                                    <option value="4800">4800</option>
+                                    <option value="9600">9600</option>
+                                    <option value="19200">19200</option>
+                                    <option value="38400">38400</option>
+                                    <option value="57600">57600</option>
+                                    <option value="115200">115200</option>
+                                    <option value="230400">230400</option>
+                                    <option value="460800">460800</option>
+                                    <option value="921600">921600</option>
                                 </select>
                                 <span class="tt" data-bs-placement="right"
-                                    title="The pulse signal will be high when active (rising edge) or low when active (falling edge). Default: Rising Edge">
+                                    title="The baud rate for the RADIO port can be changed to match a user's choice of radio. Default: 57600bps">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                                <br>
+                            </div>
+
+                            <div id="dataPortChannelDropdown" class="mb-2">
+                                <label for="dataPortChannel">Mux Channel: </label>
+                                <select name="dataPortChannel" id="dataPortChannel" class="form-dropdown">
+                                    <option value="0">NMEA</option>
+                                    <option value="1">PPS/Event Trigger</option>
+                                    <option value="2" id="muxChannel2">I2C</option>
+                                    <option value="3">ADC/DAC</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="The DATA port can be configured for different applications. NMEA is used for serial TX/RX of location information. PPS/Trigger is used for pulse per second output and 5ns accurate trigger inputs. I2C is used as an additional SDA/SCL data channel. Wheel/Dir Tick is used for automotive interfacing. ADC/DAC is used for custom firmware applications. Default: NMEA">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="dataPortBaudDropdown" class="mb-2">
+                                <label for="dataPortBaud">Data Port Baud Rate: </label>
+                                <select name="dataPortBaud" id="dataPortBaud" class="form-dropdown">
+                                    <option value="4800">4800</option>
+                                    <option value="9600">9600</option>
+                                    <option value="19200">19200</option>
+                                    <option value="38400">38400</option>
+                                    <option value="57600">57600</option>
+                                    <option value="115200">115200</option>
+                                    <option value="230400">230400</option>
+                                    <option value="460800">460800</option>
+                                    <option value="921600">921600</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="In NMEA mode, the baud rate for the DATA port can be changed to match a user's application. Default: 460800bps">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="externalPulseConfig" class="collapse mb-2">
+                                <div class="form-check mt-3">
+                                    <label class="form-check-label" for="enableExternalPulse">Enable External
+                                        Pulse</label>
+                                    <input class="form-check-input" type="checkbox" value="" id="enableExternalPulse">
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Generate a Pulse Per Second or a time base much faster, with extreme accuracy. Requires GNSS reception. Default: Enabled with 100,000us pulse length and 900,000us time between pulses.">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+
+                                <div id="externalPulseConfigDetails" class="collapse mb-2">
+                                    <div class="form-group row">
+                                        <label for="externalPulseTimeBetweenPulse"
+                                            class="box-margin20 col-sm-3 col-4 col-form-label">Time between pulses (µs):
+                                        </label>
+                                        <div class="col-sm-8 col-7">
+                                            <input type="number" class="form-control"
+                                                id="externalPulseTimeBetweenPulse">
+                                            <p id="externalPulseTimeBetweenPulseError" class="inlineError"></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label for="externalPulseLength"
+                                            class="box-margin20 col-sm-3 col-4 col-form-label">Pulse length
+                                            (µs):</label>
+                                        <div class="col-sm-8 col-7">
+                                            <input type="number" class="form-control" id="externalPulseLength">
+                                            <p id="externalPulseLengthError" class="inlineError"></p>
+                                        </div>
+                                    </div>
+
+                                    <div id="pulseEdgeDropdown" class="mb-2">
+                                        <label for="externalPulsePolarity"
+                                            class="box-margin20 col-sm-3 col-4 col-form-label">Pulse Polarity: </label>
+                                        <select name="externalPulsePolarity" id="externalPulsePolarity"
+                                            class="form-dropdown">
+                                            <option value="0">Rising Edge</option>
+                                            <option value="1">Falling Edge</option>
+                                        </select>
+                                        <span class="tt" data-bs-placement="right"
+                                            title="The pulse signal will be high when active (rising edge) or low when active (falling edge). Default: Rising Edge">
+                                            <span class="icon-info-circle text-primary ms-2"></span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="form-check mt-3">
+                                    <label class="form-check-label" for="enableExternalHardwareEventLogging">Enable
+                                        External
+                                        Event Logging</label>
+                                    <input class="form-check-input" type="checkbox" value=""
+                                        id="enableExternalHardwareEventLogging">
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Log external pulses (events) with 30ns accuracy RMS. Useful for things like audio triangulation. See the Timemark section of the ZED-F9P Integration Manual for more information. Requires GNSS reception. Default: Disabled">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
+                                    GNSS UART2</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
+                                <span class="tt" data-bs-placement="right"
+                                    title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
+                                    USB</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableGnssToUsbSerial">
+                                <span class="tt" data-bs-placement="right"
+                                    title="Output GNSS serial data (ie, NMEA and RTCM) over the USB port instead of status messages. Default: False">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </div>
                         </div>
 
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="enableExternalHardwareEventLogging">Enable External
-                                Event Logging</label>
-                            <input class="form-check-input" type="checkbox" value=""
-                                id="enableExternalHardwareEventLogging">
-                            <span class="tt" data-bs-placement="right"
-                                title="Log external pulses (events) with 30ns accuracy RMS. Useful for things like audio triangulation. See the Timemark section of the ZED-F9P Integration Manual for more information. Requires GNSS reception. Default: Disabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
+                        <!-- For devices that don't have an external port, present the USB output option only-->
+                        <div id="noExternalPortOptions">
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
+                                    USB</label>
+                                <input class="form-check-input" type="checkbox" value="" id="enableGnssToUsbSerial">
+                                <span class="tt" data-bs-placement="right"
+                                    title="Output GNSS serial data (ie, NMEA and RTCM) over the USB port instead of status messages. Default: False">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
-                            GNSS UART2</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
-                        <span class="tt" data-bs-placement="right"
-                            title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
-                            USB</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableGnssToUsbSerial">
-                        <span class="tt" data-bs-placement="right"
-                            title="Output GNSS serial data (ie, NMEA and RTCM) over the USB port instead of status messages. Default: False">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- For devices that don't have an external port, present the USB output option only-->
-                <div id="noExternalPortOptions">
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableGnssToUsbSerial">Enable GNSS output over
-                            USB</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableGnssToUsbSerial">
-                        <span class="tt" data-bs-placement="right"
-                            title="Output GNSS serial data (ie, NMEA and RTCM) over the USB port instead of status messages. Default: False">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
                     </div>
                 </div>
             </div>
@@ -1665,15 +1675,13 @@
             <div class="card card-body">
 
                 <div id="tiltConfig" class="form-check mt-3">
-                    <div class="form-check mt-3">
-                        <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
-                            Compensation</label>
-                        <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation"
-                            onClick="tiltCompensationBoxes()">
-                        <span class="tt" data-bs-placement="right" title="Allow tilt compensation mode to be entered. Default: Enabled.">
-                            <span class="icon-info-circle text-primary ms-2"></span>
-                        </span>
-                    </div>
+                    <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
+                        Compensation</label>
+                    <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation">
+                    <span class="tt" data-bs-placement="right"
+                        title="Allow tilt compensation mode to be entered. Default: Enabled.">
+                        <span class="icon-info-circle text-primary ms-2"></span>
+                    </span>
                 </div>
 
                 <div id="antennaPhaseCenter_mmConfig">
