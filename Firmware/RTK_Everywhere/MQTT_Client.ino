@@ -524,8 +524,11 @@ void mqttClientUpdate()
 
     // Start the network
     case MQTT_CLIENT_ON: {
-        if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
-            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
+        {
+            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
+                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+        }
         break;
     }
 
