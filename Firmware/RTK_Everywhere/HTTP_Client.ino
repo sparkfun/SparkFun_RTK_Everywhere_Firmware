@@ -355,7 +355,7 @@ void httpClientUpdate()
         if (!httpClient->begin(*httpSecureClient->getClient(), THINGSTREAM_ZTPURL))
         {
             systemPrintln("ERROR: Failed to start httpClient!\r\n");
-            httpClientShutdown();
+            httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?
             break;
         }
 
@@ -401,7 +401,7 @@ void httpClientUpdate()
             // "HTTP response error -11:  "
             if (httpResponseCode == -11)
             {
-                httpClientShutdown(); // Try again
+                httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?
                 break;
             }
 
