@@ -153,8 +153,8 @@ void httpClientPrintStateSummary()
 // Print the HTTP Client status
 void httpClientPrintStatus()
 {
-    systemPrint("MQTT Client ");
-    mqttClientPrintStateSummary();
+    systemPrint("HTTP Client ");
+    httpClientPrintStateSummary();
 }
 
 // Restart the HTTP client
@@ -285,8 +285,11 @@ void httpClientUpdate()
 
     // Start the network
     case HTTP_CLIENT_ON: {
-        if (networkUserOpen(NETWORK_USER_HTTP_CLIENT, NETWORK_TYPE_ACTIVE))
-            httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
+        if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
+        {
+            if (networkUserOpen(NETWORK_USER_HTTP_CLIENT, NETWORK_TYPE_ACTIVE))
+                httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
+        }
         break;
     }
 
