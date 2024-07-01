@@ -494,6 +494,31 @@ uint8_t networkGetActiveType()
 //----------------------------------------
 // Get the network type
 //----------------------------------------
+uint8_t networkGetType()
+{
+    NETWORK_DATA *network;
+
+    // Return the current type if known
+    network = networkGet(NETWORK_TYPE_ACTIVE, false);
+    if (network && (network->type < NETWORK_TYPE_MAX))
+        return network->type;
+
+    // Network type not determined yet
+    // Determine if this type will be Ethernet
+    if (present.ethernet_ws5500)
+    {
+        if ((settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
+            || (settings.defaultNetworkType == NETWORK_TYPE_ETHERNET))
+            return NETWORK_TYPE_ETHERNET;
+    }
+
+    // Type will be WiFi
+    return NETWORK_TYPE_WIFI;
+}
+
+//----------------------------------------
+// Get the network type for a network user
+//----------------------------------------
 uint8_t networkGetType(uint8_t user)
 {
     NETWORK_DATA *network;

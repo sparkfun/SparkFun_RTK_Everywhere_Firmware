@@ -92,7 +92,6 @@ enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
     MQTT_CLIENT_ON,                  // WIFI_STATE_START state
-    MQTT_CLIENT_CHECK_CERTS,         // Check certs are available - with timeout
     MQTT_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
     MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
     MQTT_CLIENT_SUBSCRIBE_KEY,       // Subscribe to the MQTT_TOPIC_KEY
@@ -106,7 +105,6 @@ enum MQTTClientState
 const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
-    "MQTT_CLIENT_CHECK_CERTS",
     "MQTT_CLIENT_NETWORK_STARTED",
     "MQTT_CLIENT_CONNECTING_2_SERVER",
     "MQTT_CLIENT_SUBSCRIBE_KEY",
@@ -222,7 +220,6 @@ void mqttClientPrintStateSummary()
         break;
 
     case MQTT_CLIENT_ON:
-    case MQTT_CLIENT_CHECK_CERTS:
     case MQTT_CLIENT_NETWORK_STARTED:
         systemPrint("Disconnected");
         break;
@@ -484,11 +481,14 @@ void mqttClientShutdown()
 // Start the MQTT client
 void mqttClientStart()
 {
-    // Display the heap state
-    reportHeapNow(settings.debugMqttClientState);
+    if (settings.debugMqttClientState)
+    {
+        // Display the heap state
+        reportHeapNow(settings.debugMqttClientState);
 
-    // Start the MQTT client
-    systemPrintln("MQTT Client start");
+        // Start the MQTT client
+        systemPrintln("MQTT Client start");
+    }
     mqttClientStop(false);
 }
 
@@ -601,22 +601,11 @@ void mqttClientUpdate()
 
     // Start the network
     case MQTT_CLIENT_ON: {
-        if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
-            mqttClientSetState(MQTT_CLIENT_CHECK_CERTS);
-        break;
-    }
-
-    // Check for certs, wait for them to be available
-    case MQTT_CLIENT_CHECK_CERTS: {
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
-
-        // Determine if certs are available
-        else if (checkCertificates())
-            // The network is available for the MQTT client
-            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+        if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
+        {
+            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
+                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+        }
         break;
     }
 

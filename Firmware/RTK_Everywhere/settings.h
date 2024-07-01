@@ -1022,8 +1022,8 @@ struct Settings
     int rtkIdentifier = RTK_IDENTIFIER; // rtkIdentifier **must** be the second entry
 
     // Antenna
-    int16_t antennaHeight_mm = 0;          // in mm
-    float antennaPhaseCenter_mm = 0.0;  // in mm
+    int16_t antennaHeight_mm = 1800;    // Aka Pole length
+    float antennaPhaseCenter_mm = 0.0;  // Aka ARP
     uint16_t ARPLoggingInterval_s = 10; // Log the ARP every 10 seconds - if available
     bool enableARPLogging = false;      // Log the Antenna Reference Position from RTCM 1005/1006 - if available
 

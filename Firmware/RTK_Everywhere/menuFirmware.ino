@@ -589,19 +589,24 @@ void otaUpdate()
     bool previouslyConnected = wifiIsConnected();
 
     bool wasInAPmode;
+    uint8_t networkType;
 
-    if (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
-        true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    networkType = networkGetType();
+    if ((networkType != NETWORK_TYPE_WIFI)
+        || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
+            == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
         overTheAirUpdate();
 
     // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
-    if (wasInAPmode)
-        wifiSetApMode();
+    if (networkType == NETWORK_TYPE_WIFI)
+    {
+        if (wasInAPmode)
+            wifiSetApMode();
 
-    // Update failed. If WiFi was originally off, turn it off again
-    if (previouslyConnected == false)
-        WIFI_STOP();
-
+        // Update failed. If WiFi was originally off, turn it off again
+        if (previouslyConnected == false)
+            WIFI_STOP();
+    }
 #endif // COMPILE_NETWORK
 }
 
