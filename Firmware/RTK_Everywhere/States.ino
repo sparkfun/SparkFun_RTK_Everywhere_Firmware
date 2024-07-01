@@ -574,7 +574,7 @@ void stateUpdate()
             }
 
             // When did we last try to get keys? Attempt every 24 hours
-            else if (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24))
+            else if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 10 : (60 * 60 * 24)))
             {
                 settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
                 recordSystemSettings();                   // Record these settings to unit
@@ -591,7 +591,7 @@ void stateUpdate()
             {
                 displayNoSSIDs(1000);
                 changeState(
-                    STATE_KEYS_DAYS_REMAINING); // We have valid keys, we've already tried today. No need to try again.
+                    STATE_KEYS_DAYS_REMAINING);
             }
 
             // Added to allow user to select GetKeys from the display
@@ -601,7 +601,7 @@ void stateUpdate()
                 lBandForceGetKeys = false;
 
                 if (settings.debugPpCertificate)
-                    systemPrintln("Force key update. Starting WiFi");
+                    systemPrintln("Force key update");
 
                 changeState(STATE_KEYS_PROVISION_STARTED);
             }
