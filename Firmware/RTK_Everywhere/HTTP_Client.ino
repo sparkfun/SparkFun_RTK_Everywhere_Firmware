@@ -334,7 +334,7 @@ void httpClientUpdate()
         {
             // Failed to connect to the server
             systemPrintln("ERROR: Failed to connect to the Thingstream server!");
-            httpClientShutdown();
+            httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?
             break;
         }
 
