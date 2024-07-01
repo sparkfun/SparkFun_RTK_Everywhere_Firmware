@@ -286,6 +286,13 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 #endif // COMPILE_WIFI
 
+#define MQTT_CLIENT_STOP(shutdown)                                                                                      \
+    {                                                                                                                   \
+        if (settings.debugNetworkLayer || settings.debugMqttClientState)                                                \
+            systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);    \
+        mqttClientStop(shutdown);                                                                                       \
+    }
+
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
 //                                                                                                      1         1 1
 //            1         2         3         4         5         6         7         8         9         0         1 2

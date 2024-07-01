@@ -169,7 +169,7 @@ bool mqttClientConnectLimitReached()
         networkRestart(NETWORK_USER_MQTT_CLIENT);
 
     // Restart the MQTT client
-    mqttClientStop(limitReached || (!enableMqttClient));
+    MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -475,7 +475,7 @@ void mqttClientSetState(uint8_t newState)
 // Shutdown the MQTT client
 void mqttClientShutdown()
 {
-    mqttClientStop(true);
+    MQTT_CLIENT_STOP(true);
 }
 
 // Start the MQTT client
@@ -489,7 +489,7 @@ void mqttClientStart()
         // Start the MQTT client
         systemPrintln("MQTT Client start");
     }
-    mqttClientStop(false);
+    MQTT_CLIENT_STOP(false);
 }
 
 // Shutdown or restart the MQTT client
@@ -582,7 +582,7 @@ void mqttClientUpdate()
         if (mqttClientState > MQTT_CLIENT_OFF)
         {
             systemPrintln("MQTT Client stopping");
-            mqttClientStop(true); // Was false - #StopVsRestart
+            MQTT_CLIENT_STOP(true); // Was false - #StopVsRestart
             mqttClientConnectionAttempts = 0;
             mqttClientConnectionAttemptTimeout = 0;
             mqttClientSetState(MQTT_CLIENT_OFF);
@@ -686,7 +686,9 @@ void mqttClientUpdate()
         memset(mqttClientCertificateBuffer, 0, MQTT_CERT_SIZE);
         if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
         {
-            mqttClientShutdown();
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no certificate available");
+            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry with no timeout
             break;
         }
         mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
@@ -695,7 +697,9 @@ void mqttClientUpdate()
         memset(mqttClientPrivateKeyBuffer, 0, MQTT_CERT_SIZE);
         if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
         {
-            mqttClientShutdown();
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no private key available");
+            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry with no timeout
             break;
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
@@ -747,7 +751,7 @@ void mqttClientUpdate()
         {
             mqttClientRestart();
             systemPrintln("ERROR: Subscription to key distribution topic failed!!");
-            mqttClientRestart(); // Why twice? TODO
+            //mqttClientRestart(); // Why twice? TODO
             break;
         }
 
@@ -775,7 +779,7 @@ void mqttClientUpdate()
             {
                 mqttClientRestart();
                 systemPrintln("ERROR: Subscription to corrections topic failed!!");
-                mqttClientRestart(); // Why twice? TODO
+                //mqttClientRestart(); // Why twice? TODO
                 break;
             }
 
