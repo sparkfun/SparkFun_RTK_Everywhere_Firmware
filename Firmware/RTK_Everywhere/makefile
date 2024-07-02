@@ -14,21 +14,51 @@ EXECUTABLES += RTK
 
 PARTITION_CSV_FILE=RTKEverywhere
 
-# Windows NT
 ifeq ($(OS),Windows_NT)
-BLE_PATCH_DST_PATH=C:\Users\$(USERNAME)\Documents\Arduino\libraries\ESP32_BleSerial\src\BleSerial.cpp
-BLE_PATCH_SRC_PATH=Patch\BleSerial.cpp
+# Windows NT utilities
+CLEAR=cls
 COPY=copy
-PARTITION_DST_PATH=C:\Users\$(USERNAME)\AppData\Local\Arduino15\packages\esp32\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
-PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
+DIR_LISTING=dir
+TERMINAL_APP=
+TERMINAL_PARAMS=
 
-# Linux
+# Windows NT generic paths
+USER_DIRECTORY_PATH=C:\Users\$(USERNAME)
+ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)\Documents\Arduino\libraries
+HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)\AppData\Local\Arduino15\packages\esp32
+PATCH_SRC_PATH=Patch\
+
+# Windows NT patch source paths
+PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
+PATCH_SRC_PATH=Patch\
+
+# Windows NT patch destination paths
+BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)\ESP32_BleSerial\src\
+MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
+PARTITION_DST_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
+
 else
-BLE_PATCH_DST_PATH=~/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
-BLE_PATCH_SRC_PATH=Patch/BleSerial.cpp
+# Linux utilities
+CLEAR=clear
 COPY=cp
-PARTITION_DST_PATH=~/.arduino15/packages/esp32/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
+DIR_LISTING=ls
+TERMINAL_APP=minicom
+TERMINAL_PARAMS=-b 115200 -8 -D /dev/ttyUSB0 < /dev/tty
+
+# Linux generic paths
+USER_DIRECTORY_PATH=~
+ARDUINO_LIBRARY_PATH=$(USER_DIRECTORY_PATH)/Arduino/libraries
+ESP_IDF_PATH=$(HOME_BOARD_PATH)/tools/esp32-arduino-libs
+HOME_BOARD_PATH=$(USER_DIRECTORY_PATH)/.arduino15/packages/esp32
+
+# Linux patch source paths
 PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
+PATCH_SRC_PATH=Patch/
+
+# Linux patch destination paths
+BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)/ESP32_BleSerial/src/
+MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
+PARTITION_DST_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
 
 endif
 
@@ -56,6 +86,7 @@ arduino-config:
 .PHONY: lib-update
 
 ESP_CORE_VERSION=3.0.1
+ESP_IDF_VERSION=idf-release_v5.1-442a798083
 
 lib-update:
 	arduino-cli core update-index
@@ -84,9 +115,24 @@ lib-update:
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
 
-$(BLE_PATCH_DST_PATH): 	$(BLE_PATCH_SRC_PATH)
-	$(COPY)  $(BLE_PATCH_SRC_PATH)  $(BLE_PATCH_DST_PATH)
+$(BLE_PATCH_DST_PATH)BleSerial.cpp: 	$(PATCH_SRC_PATH)BleSerial.cpp
+	$(COPY)  $<  $@
 
+$(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
+	$(DIR_LISTING) $(ESP_IDF_PATH)
+	echo ESP_
+	$(COPY)  $<  $@
+
+$(MBED_LIB_DEST_PATH)libmbedtls_2.a: 	$(PATCH_SRC_PATH)libmbedtls_2.a
+	$(COPY)  $<  $@
+
+$(MBED_LIB_DEST_PATH)libmbedcrypto.a: 	$(PATCH_SRC_PATH)libmbedcrypto.a
+	$(COPY)  $<  $@
+
+$(MBED_LIB_DEST_PATH)libmbedx509.a: 	$(PATCH_SRC_PATH)libmbedx509.a
+	$(COPY)  $<  $@
+
+#DEBUG_LEVEL=none
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
 FIRMWARE_VERSION_MAJOR=99
@@ -97,7 +143,8 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH)
+RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a
+	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
 		--build-property build.partitions=$(PARTITION_CSV_FILE) \
@@ -132,7 +179,7 @@ upload:	build/esp32.esp32.esp32/$(SKETCH).bin
          0x8000   $(BOOT_LOADER_PATH)/RTK_Surveyor_Partitions_16MB.bin \
          0xe000   $(BOOT_LOADER_PATH)/boot_app0.bin \
         0x10000   $<
-	~/SparkFun/serial-115200.sh   ttyUSB0
+	$(TERMINAL_APP) $(TERMINAL_PARAMS)
 
 ########
 # Clean the build directory
