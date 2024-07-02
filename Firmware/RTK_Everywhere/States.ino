@@ -502,6 +502,12 @@ void stateUpdate()
         }
         break;
 
+        case (STATE_KEYS_REQUESTED): {
+            forceKeyAttempt = true; // Force a key update
+            changeState(lastSystemState); // Return to the last system state
+        }
+        break;
+
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW
             paintEspNowPairing();
@@ -760,6 +766,9 @@ const char *getState(SystemState state, char *buffer)
     case (STATE_PROFILE):
         return "STATE_PROFILE";
 
+    case (STATE_KEYS_REQUESTED):
+        return "STATE_KEYS_REQUESTED";
+
     case (STATE_ESPNOW_PAIRING_NOT_STARTED):
         return "STATE_ESPNOW_PAIRING_NOT_STARTED";
     case (STATE_ESPNOW_PAIRING):
@@ -932,6 +941,10 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     else
     {
         addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
+    }
+    if (settings.enablePointPerfectCorrections)
+    {
+        addSetupButton(buttons, "Get Keys", STATE_KEYS_REQUESTED);
     }
     addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
     // If only one active profile do not show any profiles

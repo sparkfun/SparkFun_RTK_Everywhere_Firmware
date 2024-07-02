@@ -398,6 +398,10 @@ void displayUpdate()
                 paintSystemTest();
                 break;
 
+            case (STATE_KEYS_REQUESTED):
+                // Do nothing. Quick, fall through state.
+                break;
+
             case (STATE_ESPNOW_PAIRING_NOT_STARTED):
                 paintEspNowPairing();
                 break;

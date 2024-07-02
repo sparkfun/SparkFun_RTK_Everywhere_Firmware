@@ -951,6 +951,11 @@ void menuPointPerfect()
                 systemPrintln("Enabled");
             else
                 systemPrintln("Disabled");
+            systemPrint("3) Request Key Update: ");
+            if (forceKeyAttempt == true)
+                systemPrintln("Requested");
+            else
+                systemPrintln("Not requested");
 #endif  // COMPILE_NETWORK
 
             systemPrintln("c) Clear the Keys");
@@ -981,6 +986,10 @@ void menuPointPerfect()
             settings.autoKeyRenewal ^= 1;
             if (settings.autoKeyRenewal)
                 forceKeyAttempt = true; // Force a key update
+        }
+        else if (incoming == 3 && pointPerfectIsEnabled())
+        {
+            forceKeyAttempt = true; // Force a key update
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 'c' && pointPerfectIsEnabled())
