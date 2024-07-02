@@ -976,20 +976,18 @@ void menuPointPerfect()
         {
             settings.enablePointPerfectCorrections ^= 1;
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-            if (settings.enablePointPerfectCorrections)
-                forceKeyAttempt = true; // Force a key update
+            forceKeyAttempt = settings.enablePointPerfectCorrections; // Force a key update - or don't
         }
 
 #ifdef  COMPILE_NETWORK
         else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
-            if (settings.autoKeyRenewal)
-                forceKeyAttempt = true; // Force a key update
+            forceKeyAttempt = settings.autoKeyRenewal; // Force a key update - or don't
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            forceKeyAttempt = true; // Force a key update
+            forceKeyAttempt ^= 1;
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 'c' && pointPerfectIsEnabled())
