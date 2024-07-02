@@ -1233,6 +1233,12 @@ void menuPeriodicPrint()
         systemPrint("53) MQTT client state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_MQTT_CLIENT_STATE) ? "Enabled" : "Disabled");
 
+        systemPrint("54) HTTP client state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_HTTP_CLIENT_STATE) ? "Enabled" : "Disabled");
+
+        systemPrint("55) Provisioning state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PROVISIONING_STATE) ? "Enabled" : "Disabled");
+
         systemPrintln("-------  Tasks  ------");
         systemPrint("70) btReadTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_BLUETOOTH_READ) ? "Enabled" : "Disabled");
@@ -1326,6 +1332,10 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_MQTT_CLIENT_DATA);
         else if (incoming == 53)
             PERIODIC_TOGGLE(PD_MQTT_CLIENT_STATE);
+        else if (incoming == 54)
+            PERIODIC_TOGGLE(PD_HTTP_CLIENT_STATE);
+        else if (incoming == 55)
+            PERIODIC_TOGGLE(PD_PROVISIONING_STATE);
 
         else if (incoming == 70)
             PERIODIC_TOGGLE(PD_TASK_BLUETOOTH_READ);

@@ -81,7 +81,7 @@
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
 
-bool httpClientModeNeeded = false; // This is set to true by pointperfectProvisionDevice
+volatile bool httpClientModeNeeded = false; // This is set to true by updateProvisioning
 
 #define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
 #define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
@@ -411,7 +411,6 @@ int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
 const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/lon
-bool lBandForceGetKeys;               // Used to allow key update from display
 unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 
@@ -815,6 +814,8 @@ unsigned long lastGnssToPpl = 0;
 // Command processing
 int commandCount;
 int16_t *commandIndex;
+
+volatile bool forceKeyAttempt = false; // Set to true to force a key provisioning attempt
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
@@ -1237,6 +1238,9 @@ void loop()
 
     DMW_c("updateCorrectionsPriorities");
     updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
+
+    DMW_c("updateProvisioning");
+    updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction topic etc.
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }

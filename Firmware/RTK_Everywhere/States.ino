@@ -502,208 +502,6 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_KEYS_STARTED): {
-            if (rtcWaitTime == 0)
-                rtcWaitTime = millis();
-
-            // We want an immediate change from this state
-            forceSystemStateUpdate = true; // Immediately go to this new state
-
-            uint8_t networkType = networkGetActiveType();
-
-            // If user has turned off PointPerfect, skip everything
-            if (!settings.enablePointPerfectCorrections)
-            {
-                changeState(settings.lastState); // Go to either rover or base
-            }
-
-            // If on WiFi and there are no WiFi SSIDs available, skip everything
-            else if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
-            {
-                displayNoSSIDs(2000);
-                changeState(settings.lastState); // Go to either rover or base
-            }
-
-            // If we don't have certs or keys, begin zero touch provisioning
-            else if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("PointPerfect starting provisioning");
-
-                changeState(STATE_KEYS_NEEDED);
-            }
-
-            // Determine if we have valid date/time RTC from last boot
-            else if (online.rtc == false)
-            {
-                if (millis() - rtcWaitTime > 2000)
-                {
-                    // If RTC is not available, we will assume we need keys
-                    changeState(STATE_KEYS_NEEDED);
-                }
-            }
-
-            else
-            {
-                // Determine days until next key expires
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (settings.debugPpCertificate)
-                    systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
-
-                if (checkCertificates() && (daysRemaining > 28 && daysRemaining <= 56))
-                    changeState(STATE_KEYS_DAYS_REMAINING);
-                else
-                    changeState(STATE_KEYS_NEEDED);
-            }
-        }
-        break;
-
-        case (STATE_KEYS_NEEDED): {
-            forceSystemStateUpdate = true; // Immediately go to this new state
-
-            uint8_t networkType = networkGetActiveType();
-
-            if (online.rtc == false)
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("Keys Needed. RTC offline. Starting provisioning or update");
-
-                changeState(STATE_KEYS_PROVISION_STARTED); // If we can't check the RTC, continue
-            }
-
-            // When did we last try to get keys? Attempt every 24 hours
-            else if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 10 : (60 * 60 * 24)))
-            {
-                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-                recordSystemSettings();                   // Record these settings to unit
-
-                if (settings.debugPpCertificate)
-                    systemPrintln("Keys Needed. Starting provisioning or update");
-
-                changeState(STATE_KEYS_PROVISION_STARTED);
-            }
-
-            // Added to display error if user selects GetKeys from the display
-            // Normally, this would be caught during STATE_KEYS_STARTED
-            else if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
-            {
-                displayNoSSIDs(1000);
-                changeState(
-                    STATE_KEYS_DAYS_REMAINING);
-            }
-
-            // Added to allow user to select GetKeys from the display
-            // This forces a key update
-            else if (lBandForceGetKeys == true)
-            {
-                lBandForceGetKeys = false;
-
-                if (settings.debugPpCertificate)
-                    systemPrintln("Force key update");
-
-                changeState(STATE_KEYS_PROVISION_STARTED);
-            }
-
-            else
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("Already tried to obtain keys for today");
-
-                changeState(
-                    STATE_KEYS_DAYS_REMAINING); // We have valid keys, we've already tried today. No need to try again.
-            }
-        }
-        break;
-
-        case (STATE_KEYS_DAYS_REMAINING): {
-            if (online.rtc == true)
-            {
-                if (settings.pointPerfectNextKeyStart > 0)
-                {
-                    int daysRemaining =
-                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-                    systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
-                    if (daysRemaining >= 0)
-                    {
-                        paintKeyDaysRemaining(daysRemaining, 2000);
-                    }
-                    else
-                    {
-                        paintKeysExpired();
-                    }
-                }
-            }
-            paintLBandConfigure();
-
-            forceSystemStateUpdate = true; // Imediately go to this new state
-            changeState(STATE_KEYS_LBAND_CONFIGURE);
-        }
-        break;
-
-        case (STATE_KEYS_LBAND_CONFIGURE): {
-            // Be sure we ignore any external RTCM sources
-            gnssDisableRtcmOnGnss();
-
-            gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
-
-            forceSystemStateUpdate = true;   // Imediately go to this new state
-            changeState(settings.lastState); // Go to either rover or base
-        }
-        break;
-
-        case (STATE_KEYS_LBAND_ENCRYPTED): {
-            // Since L-Band is not available, be sure RTCM can be provided to GNSS receiver
-            gnssEnableRtcmOnGnss();
-
-            forceSystemStateUpdate = true;   // Imediately go to this new state
-            changeState(settings.lastState); // Go to either rover or base
-        }
-        break;
-
-        case (STATE_KEYS_PROVISION_STARTED): {
-            if (pointperfectProvisionDevice())
-                changeState(STATE_KEYS_PROVISION_SUCCESS);
-            else
-                changeState(STATE_KEYS_PROVISION_FAIL);
-        }
-        break;
-
-        case (STATE_KEYS_PROVISION_SUCCESS): {
-            forceSystemStateUpdate = true; // Imediately go to this new state
-
-            //displayKeysUpdated();
-            changeState(STATE_KEYS_DAYS_REMAINING);
-        }
-        break;
-
-        case (STATE_KEYS_PROVISION_FAIL): {
-            forceSystemStateUpdate = true; // Imediately go to this new state
-
-            if (online.rtc == true)
-            {
-                int daysRemaining =
-                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (daysRemaining >= 0)
-                {
-                    changeState(STATE_KEYS_DAYS_REMAINING);
-                }
-                else
-                {
-                    paintKeysExpired();
-                    changeState(STATE_KEYS_LBAND_ENCRYPTED);
-                }
-            }
-            else
-            {
-                // No RTC. We don't know if the keys we have are expired. Attempt to use them.
-                changeState(STATE_KEYS_LBAND_CONFIGURE);
-            }
-        }
-        break;
-
         case (STATE_ESPNOW_PAIRING_NOT_STARTED): {
 #ifdef COMPILE_ESPNOW
             paintEspNowPairing();
@@ -961,26 +759,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_TESTING";
     case (STATE_PROFILE):
         return "STATE_PROFILE";
-#ifdef COMPILE_L_BAND
-    case (STATE_KEYS_STARTED):
-        return "STATE_KEYS_STARTED";
-    case (STATE_KEYS_NEEDED):
-        return "STATE_KEYS_NEEDED";
-    case (STATE_KEYS_EXPIRED):
-        return "STATE_KEYS_EXPIRED";
-    case (STATE_KEYS_DAYS_REMAINING):
-        return "STATE_KEYS_DAYS_REMAINING";
-    case (STATE_KEYS_LBAND_CONFIGURE):
-        return "STATE_KEYS_LBAND_CONFIGURE";
-    case (STATE_KEYS_LBAND_ENCRYPTED):
-        return "STATE_KEYS_LBAND_ENCRYPTED";
-    case (STATE_KEYS_PROVISION_STARTED):
-        return "STATE_KEYS_PROVISION_STARTED";
-    case (STATE_KEYS_PROVISION_SUCCESS):
-        return "STATE_KEYS_PROVISION_SUCCESS";
-    case (STATE_KEYS_PROVISION_FAIL):
-        return "STATE_KEYS_PROVISION_FAIL";
-#endif // COMPILE_L_BAND
 
     case (STATE_ESPNOW_PAIRING_NOT_STARTED):
         return "STATE_ESPNOW_PAIRING_NOT_STARTED";
@@ -1079,7 +857,6 @@ const RTK_MODE_ENTRY stateModeTable[] = {
     {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
     {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
     {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-    {"Key Provisioning", STATE_KEYS_STARTED, STATE_KEYS_PROVISION_FAIL},
     {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
     {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
     {"Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
@@ -1155,10 +932,6 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     else
     {
         addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
-    }
-    if (settings.enablePointPerfectCorrections)
-    {
-        addSetupButton(buttons, "Get Keys", STATE_KEYS_NEEDED);
     }
     addSetupButton(buttons, "E-Pair", STATE_ESPNOW_PAIRING_NOT_STARTED);
     // If only one active profile do not show any profiles

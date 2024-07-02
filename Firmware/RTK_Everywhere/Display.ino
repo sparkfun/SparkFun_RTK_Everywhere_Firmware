@@ -398,35 +398,6 @@ void displayUpdate()
                 paintSystemTest();
                 break;
 
-            case (STATE_KEYS_STARTED):
-                paintRTCWait();
-                break;
-            case (STATE_KEYS_NEEDED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_EXPIRED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_DAYS_REMAINING):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_LBAND_CONFIGURE):
-                paintLBandConfigure();
-                break;
-            case (STATE_KEYS_LBAND_ENCRYPTED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_PROVISION_STARTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_PROVISION_SUCCESS):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                break;
-            case (STATE_KEYS_PROVISION_FAIL):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                break;
-
             case (STATE_ESPNOW_PAIRING_NOT_STARTED):
                 paintEspNowPairing();
                 break;
@@ -2798,7 +2769,7 @@ void paintLBandConfigure()
 
 void paintGettingKeys()
 {
-    displayMessage("Getting Keys", 0);
+    displayMessage("Getting Keys", 2000);
 }
 
 void paintGettingEthernetIP()

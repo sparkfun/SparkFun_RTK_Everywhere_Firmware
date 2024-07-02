@@ -1279,6 +1279,8 @@ void networkUpdate()
     tcpServerUpdate(); // Turn on the TCP server as needed
     DMW_c("udpServerUpdate");
     udpServerUpdate(); // Turn on the UDP server as needed
+    DMW_c("httpClientUpdate");
+    httpClientUpdate(); // Process any Point Perfect HTTP messages
 
     // Display the IP addresses
     DMW_c("networkPeriodicallyDisplayIpAddress");

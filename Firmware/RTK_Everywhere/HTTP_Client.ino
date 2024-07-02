@@ -261,6 +261,7 @@ void httpClientUpdate()
 {
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
+    
     if (!httpClientModeNeeded)
     {
         if (httpClientState > HTTP_CLIENT_OFF)
@@ -567,7 +568,7 @@ void httpClientUpdate()
     }
 
     // The ZTP HTTP POST is complete. We either can not or do not want to continue.
-    // Hang here until httpClientModeNeeded is set to false by pointperfectProvisionDevice
+    // Hang here until httpClientModeNeeded is set to false by updateProvisioning
     case HTTP_CLIENT_COMPLETE: {
         // Determine if the network has failed
         if (networkIsShuttingDown(NETWORK_USER_HTTP_CLIENT))

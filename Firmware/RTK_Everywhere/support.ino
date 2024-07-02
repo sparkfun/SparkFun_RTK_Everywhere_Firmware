@@ -682,6 +682,8 @@ void verifyTables()
     tcpClientValidateTables();
     tcpServerValidateTables();
     tasksValidateTables();
+    httpClientValidateTables();
+    provisioningVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");
