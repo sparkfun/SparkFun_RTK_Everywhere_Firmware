@@ -38,8 +38,9 @@
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
-#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
+#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
+#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
 #endif // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -79,6 +80,13 @@
 #endif  // COMPILE_NETWORK
 
 bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
+
+volatile bool httpClientModeNeeded = false; // This is set to true by updateProvisioning
+
+#define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
+#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
+static const char THINGSTREAM_ZTPURL[] = "https://" THINGSTREAM_SERVER THINGSTREAM_ZTPPATH; // full ZTP url
+const uint16_t HTTPS_PORT = 443; //!< The HTTPS default port
 
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>
@@ -278,6 +286,13 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 #endif // COMPILE_WIFI
 
+#define MQTT_CLIENT_STOP(shutdown)                                                                                      \
+    {                                                                                                                   \
+        if (settings.debugNetworkLayer || settings.debugMqttClientState)                                                \
+            systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);    \
+        mqttClientStop(shutdown);                                                                                       \
+    }
+
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
 //                                                                                                      1         1 1
 //            1         2         3         4         5         6         7         8         9         0         1 2
@@ -396,7 +411,6 @@ int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
 const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/lon
-bool lBandForceGetKeys;               // Used to allow key update from display
 unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 
@@ -800,6 +814,8 @@ unsigned long lastGnssToPpl = 0;
 // Command processing
 int commandCount;
 int16_t *commandIndex;
+
+volatile bool forceKeyAttempt = false; // Set to true to force a key provisioning attempt
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
@@ -1222,6 +1238,9 @@ void loop()
 
     DMW_c("updateCorrectionsPriorities");
     updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
+
+    DMW_c("updateProvisioning");
+    updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction topic etc.
 
     delay(10); // A small delay prevents panic if no other I2C or functions are called
 }

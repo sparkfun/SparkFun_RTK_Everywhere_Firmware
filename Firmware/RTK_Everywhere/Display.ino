@@ -398,42 +398,8 @@ void displayUpdate()
                 paintSystemTest();
                 break;
 
-            case (STATE_KEYS_STARTED):
-                paintRTCWait();
-                break;
-            case (STATE_KEYS_NEEDED):
+            case (STATE_KEYS_REQUESTED):
                 // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_WIFI_STARTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_WIFI_CONNECTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_WIFI_TIMEOUT):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_EXPIRED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_DAYS_REMAINING):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_LBAND_CONFIGURE):
-                paintLBandConfigure();
-                break;
-            case (STATE_KEYS_LBAND_ENCRYPTED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_PROVISION_STARTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_PROVISION_CONNECTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
                 break;
 
             case (STATE_ESPNOW_PAIRING_NOT_STARTED):
@@ -1909,6 +1875,11 @@ void displayNotListed(uint16_t displayTime)
     displayMessage("Not Listed", displayTime);
 }
 
+void displayAlreadyRegistered(uint16_t displayTime)
+{
+    displayMessage("Already Registered", displayTime);
+}
+
 void displayUpdateZEDF9P(uint16_t displayTime)
 {
     displayMessage("Update ZED-F9P", displayTime);
@@ -2724,12 +2695,12 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
     }
 }
 
-void paintKeyWiFiFail(uint16_t displayTime)
+void paintKeyUpdateFail(uint16_t displayTime)
 {
     // PP
     // Update
     // Failed
-    // No WiFi
+    // No Network
 
     if (online.display == true)
     {
@@ -2749,7 +2720,7 @@ void paintKeyWiFiFail(uint16_t displayTime)
         printTextCenter("Failed", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight + 1;
-        printTextCenter("No WiFi", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("No Network", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 
@@ -2802,7 +2773,7 @@ void paintLBandConfigure()
 
 void paintGettingKeys()
 {
-    displayMessage("Getting Keys", 0);
+    displayMessage("Getting Keys", 2000);
 }
 
 void paintGettingEthernetIP()

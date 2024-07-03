@@ -119,6 +119,18 @@ void mqttClientValidateTables() {}
 #endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
+// HTTP Client
+//----------------------------------------
+
+#ifndef COMPILE_HTTP_CLIENT
+
+void httpClientPrintStatus() {}
+void httpClientUpdate() {}
+void httpClientValidateTables() {}
+
+#endif   // COMPILE_HTTP_CLIENT
+
+//----------------------------------------
 // Web Server
 //----------------------------------------
 

@@ -20,11 +20,6 @@ static const uint8_t ppLbandToken[16] = {POINTPERFECT_LBAND_TOKEN};      // Toke
 static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Token in HEX form
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
-const uint16_t HTTPS_PORT = 443; //!< The HTTPS default port
-#define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
-#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
-static const char THINGSTREAM_ZTPURL[] = "https://" THINGSTREAM_SERVER THINGSTREAM_ZTPPATH; // full ZTP url
-
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
@@ -297,114 +292,6 @@ void createZtpRequest(String &str)
     serializeJson(json, str);
 }
 
-// Connect to 'home' WiFi and then ThingStream API. This will attach this unique device to the ThingStream network.
-bool pointperfectProvisionDevice()
-{
-    bool retVal = false;
-    uint8_t provisionAttempt = 0;
-    const uint8_t maxProvisionAttempts = 2;
-    String ztpRequest;
-
-#ifdef COMPILE_NETWORK
-    /** Try to provision the PointPerfect to that we can start the MQTT server. This involves:
-     *  HTTPS request to Thingstream POSTing the device token to get the credentials and client cert, key and ID
-     */
-    do
-    {
-        provisionAttempt++;
-
-        // Build the string containing the ZTP JSON request
-        createZtpRequest(ztpRequest);
-        if (0 < ztpRequest.length())
-        {
-            // Using this token and hardwareID, attempt to get keys
-            ZtpResponse ztpResponse = pointperfectTryZtpToken(ztpRequest);
-            if (ztpResponse == ZTP_SUCCESS)
-            {
-                systemPrintln("Device successfully provisioned. Keys obtained.");
-
-                recordSystemSettings();
-                retVal = true;
-                break;
-            }
-            else if (ztpResponse == ZTP_DEACTIVATED)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                char landingPageUrl[200] = "";
-                if (productVariant == RTK_TORCH)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                             "or goto https://www.sparkfun.com/rtk_torch_registration ");
-                else
-                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
-
-                systemPrintf("This device has been deactivated. Please contact "
-                             "support@sparkfun.com %sto renew the PointPerfect "
-                             "subscription. Please reference device ID: %s\r\n",
-                             landingPageUrl, hardwareID);
-
-                displayAccountExpired(5000);
-                break;
-            }
-            else if (ztpResponse == ZTP_NOT_WHITELISTED)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                char landingPageUrl[200] = "";
-                if (productVariant == RTK_TORCH)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                             "or goto https://www.sparkfun.com/rtk_torch_registration ");
-                else
-                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
-
-                systemPrintf("This device is not whitelisted. Please contact "
-                             "support@sparkfun.com %sto get the subscription "
-                             "activated. Please reference device ID: %s\r\n",
-                             landingPageUrl, hardwareID);
-
-                displayNotListed(5000);
-                break;
-            }
-            else if (ztpResponse == ZTP_ALREADY_REGISTERED)
-            {
-                // Device is already registered to a different ZTP profile.
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                         btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                systemPrintf("This device is registered on a different profile. Please contact "
-                             "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
-                             hardwareID);
-                break;
-            }
-            else if (ztpResponse == ZTP_RESPONSE_TIMEOUT)
-            {
-                // The WiFi failed to connect in a timely manner to the API.
-                if (provisionAttempt < maxProvisionAttempts)
-                    systemPrintf("Provision server response timed out. Trying again.\r\n");
-                else
-                    systemPrintf("Provision server response timed out. \r\n");
-            }
-            else
-            {
-                // Unknown error
-                if (provisionAttempt < maxProvisionAttempts)
-                    systemPrintf("Unknown provisioning error. Trying again.\r\n");
-                else
-                    systemPrintf("Unknown provisioning error.\r\n");
-            }
-        }
-    } while (provisionAttempt < maxProvisionAttempts);
-
-#endif // COMPILE_NETWORK
-
-    return (retVal);
-}
-
 // Given a token buffer and an attempt number, decide which token to use
 // Decide which token to use for ZTP
 // There are three lists:
@@ -435,210 +322,6 @@ void pointperfectGetToken(char *tokenString)
         systemPrintln("Unknown hardware for GetToken");
         return;
     }
-}
-
-// Given a prepared JSON blob, pass to the PointPerfect API
-// If it passes, keys/values are recorded to settings, ZTP_SUCCESS is returned
-// If we fail, a ZTP response is returned
-ZtpResponse pointperfectTryZtpToken(String &ztpRequest)
-{
-    JsonDocument *jsonZtp = nullptr;
-    char *tempHolderPtr = nullptr;
-    ZtpResponse ztpResponse = ZTP_UNKNOWN_ERROR;
-
-#ifdef COMPILE_NETWORK
-
-    // Perform PointPerfect ZTP
-    NetworkClientSecure client;
-    client.setCACert(AWS_PUBLIC_CERT);
-
-    if (!client.connect(THINGSTREAM_SERVER, HTTPS_PORT))
-        systemPrintf("ERROR: Failed to connect to %s on port %d!\r\n", THINGSTREAM_SERVER, HTTPS_PORT);
-    else
-    {
-        systemPrintf("client connected to %s on port %d\r\n", THINGSTREAM_SERVER, HTTPS_PORT);
-
-        // Attempt to initialize the HTTP/HTTPS layer
-        HTTPClient httpClient;
-        if (!httpClient.begin(client, THINGSTREAM_ZTPURL))
-            systemPrintln("ERROR: Failed to start httpClient!\r\n");
-        else
-        {
-            do
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintf("Sending JSON, %d bytes\r\n", strlen(ztpRequest.c_str()));
-                httpClient.addHeader(F("Content-Type"), F("application/json"));
-                int httpResponseCode = httpClient.POST(ztpRequest.c_str());
-                String response = httpClient.getString();
-                if (httpResponseCode != 200)
-                {
-                    if (settings.debugCorrections == true)
-                    {
-                        systemPrintf("HTTP response error %d: ", httpResponseCode);
-                        systemPrintln(response);
-                    }
-
-                    // "HTTP response error -11:  "
-                    if (httpResponseCode == -11)
-                    {
-                        if (settings.debugCorrections == true)
-                            systemPrintln("API failed to respond in time.");
-
-                        ztpResponse = ZTP_RESPONSE_TIMEOUT;
-                        break;
-                    }
-
-                    // If a device has already been registered on a different ZTP profile, response will be:
-                    // "HTTP response error 403: Device already registered"
-                    else if (response.indexOf("Device already registered") >= 0)
-                    {
-                        if (settings.debugCorrections == true)
-                            systemPrintln("Device already registered to different profile. Trying next profile.");
-
-                        ztpResponse = ZTP_ALREADY_REGISTERED;
-                        break;
-                    }
-                    // If a device has been deactivated, response will be: "HTTP response error 403: No plan for device
-                    // device:9f19e97f-e6a7-4808-8d58-ac7ecac90e23"
-                    else if (response.indexOf("No plan for device") >= 0)
-                    {
-                        ztpResponse = ZTP_DEACTIVATED;
-                        break;
-                    }
-                    // If a device is not whitelisted, response will be: "HTTP response error 403: Device hardware code not
-                    // whitelisted"
-                    else if (response.indexOf("not whitelisted") >= 0)
-                    {
-                        ztpResponse = ZTP_NOT_WHITELISTED;
-                        break;
-                    }
-                    else
-                    {
-                        systemPrintf("HTTP response error %d: ", httpResponseCode);
-                        systemPrintln(response);
-                        ztpResponse = ZTP_UNKNOWN_ERROR;
-                        break;
-                    }
-                }
-                else
-                {
-                    // Device is now active with ThingStream
-                    // Pull pertinent values from response
-                    jsonZtp = new JsonDocument;
-                    if (!jsonZtp)
-                    {
-                        systemPrintln("ERROR - Failed to allocate jsonZtp!\r\n");
-                        break;
-                    }
-
-                    DeserializationError error = deserializeJson(*jsonZtp, response);
-                    if (DeserializationError::Ok != error)
-                    {
-                        systemPrintln("JSON error");
-                        break;
-                    }
-                    else
-                    {
-                        if (online.psram == true)
-                            tempHolderPtr = (char *)ps_malloc(MQTT_CERT_SIZE);
-                        else
-                            tempHolderPtr = (char *)malloc(MQTT_CERT_SIZE);
-
-                        if (!tempHolderPtr)
-                        {
-                            systemPrintln("ERROR - Failed to allocate tempHolderPtr buffer!\r\n");
-                            break;
-                        }
-                        strncpy(tempHolderPtr, (const char *)((*jsonZtp)["certificate"]), MQTT_CERT_SIZE - 1);
-                        recordFile("certificate", tempHolderPtr, strlen(tempHolderPtr));
-
-                        strncpy(tempHolderPtr, (const char *)((*jsonZtp)["privateKey"]), MQTT_CERT_SIZE - 1);
-                        recordFile("privateKey", tempHolderPtr, strlen(tempHolderPtr));
-
-                        free(tempHolderPtr); // Clean up. Done with tempHolderPtr
-
-                        // Validate the keys
-                        if (!checkCertificates())
-                        {
-                            systemPrintln("ERROR - Failed to validate the Point Perfect certificates!");
-                        }
-                        else
-                        {
-                            if (settings.debugPpCertificate)
-                                systemPrintln("Certificates recorded successfully.");
-
-                            strncpy(settings.pointPerfectClientID, (const char *)((*jsonZtp)["clientId"]),
-                                    sizeof(settings.pointPerfectClientID));
-                            strncpy(settings.pointPerfectBrokerHost, (const char *)((*jsonZtp)["brokerHost"]),
-                                    sizeof(settings.pointPerfectBrokerHost));
-
-                            // Note: from the ZTP documentation:
-                            // ["subscriptions"][0] will contain the key distribution topic
-                            // But, assuming the key distribution topic is always ["subscriptions"][0] is potentially brittle
-                            // It is safer to check the "description" contains "key distribution topic"
-                            // If we are on an IP-only plan, the path will be /pp/ubx/0236/ip
-                            // If we are on a L-Band-only or L-Band+IP plan, the path will be /pp/ubx/0236/Lb
-                            // These 0236 key distribution topics provide the keys in UBX format, ready to be pushed to a ZED.
-                            // There are also /pp/key/ip and /pp/key/Lb topics which provide the keys in JSON format - but we
-                            // don't use those.
-                            int subscription =
-                                findZtpJSONEntry("subscriptions", "description", "key distribution topic", jsonZtp);
-                            if (subscription >= 0)
-                                strncpy(settings.pointPerfectKeyDistributionTopic,
-                                        (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
-                                        sizeof(settings.pointPerfectKeyDistributionTopic));
-
-                            // "subscriptions" will also contain the correction topics for all available regional areas - for
-                            // IP-only or L-Band+IP We should store those too, and then allow the user to select the one for
-                            // their regional area
-                            for (int r = 0; r < numRegionalAreas; r++)
-                            {
-                                char findMe[40];
-                                snprintf(findMe, sizeof(findMe), "correction topic for %s",
-                                         Regional_Information_Table[r].name); // Search for "US" etc.
-                                subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
-                                if (subscription >= 0)
-                                    strncpy(settings.regionalCorrectionTopics[r],
-                                            (const char *)((*jsonZtp)["subscriptions"][subscription]["path"]),
-                                            sizeof(settings.regionalCorrectionTopics[0]));
-                                else
-                                    settings.regionalCorrectionTopics[r][0] =
-                                        0; // Erase any invalid (non-plan) correction topics. Just in case the plan has changed.
-                            }
-
-                            // "subscriptions" also contains the geographic area definition topic for each region for localized
-                            // distribution. We can cheat by appending "/gad" to the correction topic. TODO: think about doing
-                            // this properly.
-
-                            // Now we extract the current and next key pair
-                            strncpy(settings.pointPerfectCurrentKey,
-                                    (const char *)((*jsonZtp)["dynamickeys"]["current"]["value"]),
-                                    sizeof(settings.pointPerfectCurrentKey));
-                            settings.pointPerfectCurrentKeyDuration = (*jsonZtp)["dynamickeys"]["current"]["duration"];
-                            settings.pointPerfectCurrentKeyStart = (*jsonZtp)["dynamickeys"]["current"]["start"];
-
-                            strncpy(settings.pointPerfectNextKey, (const char *)((*jsonZtp)["dynamickeys"]["next"]["value"]),
-                                    sizeof(settings.pointPerfectNextKey));
-                            settings.pointPerfectNextKeyDuration = (*jsonZtp)["dynamickeys"]["next"]["duration"];
-                            settings.pointPerfectNextKeyStart = (*jsonZtp)["dynamickeys"]["next"]["start"];
-
-                            if (settings.debugCorrections == true)
-                                pointperfectPrintKeyInformation();
-
-                            ztpResponse = ZTP_SUCCESS;
-                        }
-                    } // JSON Derialized correctly
-                } // HTTP Response was 200
-            } while (0);
-            httpClient.end();
-        }
-        client.stop();
-    }
-
-#endif // COMPILE_NETWORK
-
-    return (ztpResponse);
 }
 
 // Find thing3 in (*jsonZtp)[thing1][n][thing2]. Return n on success. Return -1 on error / not found.
@@ -807,247 +490,6 @@ void erasePointperfectCredentials()
     LittleFS.remove(fileName);
     strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
     strcpy(settings.pointPerfectNextKey, "");    // Clear contents
-}
-
-// Subscribe to MQTT channel, grab keys, then stop
-bool pointperfectUpdateKeys()
-{
-    bool gotKeys = false;
-#ifdef COMPILE_NETWORK
-    char *certificateContents = nullptr; // Holds the contents of the keys prior to MQTT connection
-    char *keyContents = nullptr;
-    NetworkClientSecure secureClient;
-    menuppMqttClient = nullptr;
-
-    do
-    {
-        // Allocate the buffers
-        // Freed outside the do loop
-        if (online.psram == true)
-        {
-            certificateContents = (char *)ps_malloc(MQTT_CERT_SIZE);
-            keyContents = (char *)ps_malloc(MQTT_CERT_SIZE);
-        }
-        else
-        {
-            certificateContents = (char *)malloc(MQTT_CERT_SIZE);
-            keyContents = (char *)malloc(MQTT_CERT_SIZE);
-        }
-
-        if ((!certificateContents) || (!keyContents))
-        {
-            systemPrintln("Failed to allocate content buffers!");
-            break;
-        }
-
-        // Get the certificate
-        memset(certificateContents, 0, MQTT_CERT_SIZE);
-        loadFile("certificate", certificateContents, false);
-        secureClient.setCertificate(certificateContents);
-
-        // Get the private key
-        memset(keyContents, 0, MQTT_CERT_SIZE);
-        loadFile("privateKey", keyContents, false);
-        secureClient.setPrivateKey(keyContents);
-
-        secureClient.setCACert(AWS_PUBLIC_CERT);
-
-        // Allocate the MQTT client
-        menuppMqttClient = new MqttClient(secureClient);
-        if (!menuppMqttClient)
-        {
-            systemPrintln("Failed to allocate the MQTT client structure!");
-            break;
-        }
-
-        // Configure the MQTT client
-        menuppMqttClient->setId(settings.pointPerfectClientID);
-        menuppMqttClient->onMessage(mqttCallback);
-        menuppMqttClient->setKeepAliveInterval(10 * 1000);
-        menuppMqttClient->setConnectionTimeout( 5 * 1000);
-
-        // Attempt to the MQTT broker
-        systemPrintf("Attempting to connect to MQTT broker: %s\r\n", settings.pointPerfectBrokerHost);
-        if (!menuppMqttClient->connect(settings.pointPerfectBrokerHost, 8883))
-        {
-            systemPrintln("Failed to connect to MQTT Broker");
-
-            // MQTT does not provide good error reporting.
-            // Throw out everything and attempt to provision the device to get better error checking.
-            pointperfectProvisionDevice();
-            break; // Skip the remaining MQTT checking, release resources
-        }
-
-        // Successful connection
-        systemPrintln("MQTT connected");
-
-        // pointPerfectKeyDistributionTopic is /pp/ubx/0236/ip or /pp/ubx/0236/Lb.
-        // It is provided during ZTP provisioning.
-        // The topic contains the keys in UBX format, ready to be pushed to a ZED.
-        // These need to be unpicked into JSON format and stored in settings - by mqttCallback below.
-        mqttMessageReceived = false;
-        if (!menuppMqttClient->subscribe(settings.pointPerfectKeyDistributionTopic))
-        {
-            systemPrintf("Failed to subscribe to %s!\r\n", settings.pointPerfectKeyDistributionTopic);
-            pointperfectProvisionDevice();
-            break;
-        }
-
-        systemPrint("Waiting for keys");
-
-        // Wait for callback
-        startTime = millis();
-        while (1)
-        {
-            menuppMqttClient->poll();
-            if (mqttMessageReceived == true)
-                break;
-            if (menuppMqttClient->connected() == false)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Client disconnected");
-                break;
-            }
-            if (millis() - startTime > 8000)
-            {
-                if (settings.debugCorrections == true)
-                    systemPrintln("Channel failed to respond");
-                break;
-            }
-
-            // Continue waiting for the keys
-            delay(100);
-            systemPrint(".");
-        }
-        systemPrintln();
-
-        // Determine if the keys were updated
-        if (mqttMessageReceived)
-        {
-            systemPrintln("Keys successfully updated");
-            gotKeys = true;
-        }
-
-        // Done with the MQTT client
-        menuppMqttClient->unsubscribe(settings.pointPerfectKeyDistributionTopic);
-    } while (0);
-
-    // Stop and delete the MQTT client
-    if (menuppMqttClient)
-    {
-        menuppMqttClient->stop();
-        delete menuppMqttClient;
-        menuppMqttClient = nullptr;
-    }
-
-    secureClient.stop();
-
-    // Free the content buffers
-    if (keyContents)
-        free(keyContents);
-    if (certificateContents)
-        free(certificateContents);
-
-    // Return the key status
-#endif  // COMPILE_NETWORK
-    return (gotKeys);
-}
-
-// Called when a subscribed to message arrives
-void mqttCallback(int messageSize)
-{
-#ifdef  COMPILE_NETWORK
-    static uint32_t messageLength = 0;
-    static byte *message = nullptr;
-
-    do
-    {
-        // Determine if this is a message that should be processed
-        if (menuppMqttClient->messageTopic() != settings.pointPerfectKeyDistributionTopic)
-            break;
-
-        // Allocate the message buffer
-        if (messageLength < messageSize)
-        {
-            // Free the previous message buffer
-            if (message != nullptr)
-            {
-                free(message);
-                message = nullptr;
-            }
-
-            // Allocate the new message buffer
-            messageLength = (messageSize + 512) & (~511);
-            message = (byte *)malloc(messageLength);
-            if (!message)
-            {
-                messageLength = 0;
-                systemPrintln("Failed to allocate MQTT message buffer!");
-                break;
-            }
-        }
-
-        // Get the message data
-        menuppMqttClient->read(message, messageSize);
-        if (settings.debugCorrections)
-            systemPrintf("\r\nReceived %d bytes\r\n", messageSize);
-
-        // Separate the UBX message into its constituent Key/ToW/Week parts
-        // Obtained from SparkFun u-blox Arduino library - setDynamicSPARTNKeys()
-        byte *payLoad = &message[6];
-        uint8_t currentKeyLength = payLoad[5];
-        uint16_t currentWeek = (payLoad[7] << 8) | payLoad[6];
-        uint32_t currentToW =
-            (payLoad[11] << 8 * 3) | (payLoad[10] << 8 * 2) | (payLoad[9] << 8 * 1) | (payLoad[8] << 8 * 0);
-
-        char currentKey[currentKeyLength];
-        memcpy(&currentKey, &payLoad[20], currentKeyLength);
-
-        uint8_t nextKeyLength = payLoad[13];
-        uint16_t nextWeek = (payLoad[15] << 8) | payLoad[14];
-        uint32_t nextToW =
-            (payLoad[19] << 8 * 3) | (payLoad[18] << 8 * 2) | (payLoad[17] << 8 * 1) | (payLoad[16] << 8 * 0);
-
-        char nextKey[nextKeyLength];
-        memcpy(&nextKey, &payLoad[20 + currentKeyLength], nextKeyLength);
-
-        // Convert byte array to HEX character array
-        strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
-        strcpy(settings.pointPerfectNextKey, "");    // Clear contents
-        for (int x = 0; x < 16; x++)                 // Force length to max of 32 bytes
-        {
-            char temp[3];
-            snprintf(temp, sizeof(temp), "%02X", currentKey[x]);
-            strcat(settings.pointPerfectCurrentKey, temp);
-
-            snprintf(temp, sizeof(temp), "%02X", nextKey[x]);
-            strcat(settings.pointPerfectNextKey, temp);
-        }
-
-        // Convert from ToW and Week to key duration and key start
-        WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
-        WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
-
-        settings.pointPerfectCurrentKeyStart -= gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
-        settings.pointPerfectNextKeyStart -= gnssGetLeapSeconds();
-
-        settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
-        settings.pointPerfectNextKeyStart *= 1000;
-
-        settings.pointPerfectCurrentKeyDuration =
-            settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
-        // settings.pointPerfectNextKeyDuration =
-        //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current key
-        //     duration because we have to
-
-        settings.pointPerfectNextKeyDuration = (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
-
-        if (settings.debugCorrections == true)
-            pointperfectPrintKeyInformation();
-
-        mqttMessageReceived = true;
-    } while (0);
-#endif  // COMPILE_NETWORK
 }
 
 // Get a date from a user
@@ -1424,6 +866,8 @@ void beginLBand()
     if (settings.debugCorrections == true)
         systemPrintln("L-Band online");
 
+    gnssApplyPointPerfectKeys(); // Apply keys now, if we have them. This sets online.lbandCorrections
+
     online.lband = true;
 #endif // COMPILE_L_BAND
 }
@@ -1507,16 +951,16 @@ void menuPointPerfect()
                 systemPrintln("Enabled");
             else
                 systemPrintln("Disabled");
-
-            if (strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectKeyDistributionTopic) == 0)
-                systemPrintln("3) Provision Device");
+            systemPrint("3) Request Key Update: ");
+            if (forceKeyAttempt == true)
+                systemPrintln("Requested");
             else
-                systemPrintln("3) Update Keys");
+                systemPrintln("Not requested");
 #endif  // COMPILE_NETWORK
 
-            systemPrintln("4) Show device ID");
-
             systemPrintln("c) Clear the Keys");
+
+            systemPrintln("i) Show device ID");
 
             systemPrintln("k) Manual Key Entry");
         }
@@ -1532,77 +976,31 @@ void menuPointPerfect()
         {
             settings.enablePointPerfectCorrections ^= 1;
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
+            forceKeyAttempt = settings.enablePointPerfectCorrections; // Force a key update - or don't
         }
 
 #ifdef  COMPILE_NETWORK
         else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
+            forceKeyAttempt = settings.autoKeyRenewal; // Force a key update - or don't
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            uint8_t networkType = networkGetActiveType();
-            if ((networkType == NETWORK_TYPE_WIFI)
-                && (wifiNetworkCount() == 0))
-            {
-                systemPrintln("Error: Please enter at least one SSID before getting keys");
-            }
-            else
-            {
-                if ((networkType != NETWORK_TYPE_WIFI)
-                    || (wifiConnect(settings.wifiConnectTimeoutMs) == true))
-                {
-                    // Check if we have certificates
-                    char fileName[80];
-                    snprintf(fileName, sizeof(fileName), "/%s_%s_%d.txt", platformFilePrefix, "certificate",
-                             profileNumber);
-                    if (LittleFS.exists(fileName) == false)
-                    {
-                        pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                    }
-                    else if (strlen(settings.pointPerfectCurrentKey) == 0 ||
-                             strlen(settings.pointPerfectKeyDistributionTopic) == 0)
-                    {
-                        pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                    }
-                    else // We have certs and keys
-                    {
-                        // Check that the certs are valid
-                        if (checkCertificates() == true)
-                        {
-                            // Update the keys
-                            pointperfectUpdateKeys();
-                        }
-                        else
-                        {
-                            // Erase keys
-                            erasePointperfectCredentials();
-
-                            // Provision device
-                            pointperfectProvisionDevice(); // Connect to ThingStream API and get keys
-                        }
-                    }
-                }
-                else
-                {
-                    systemPrintln("Error: No WiFi available to get keys");
-                }
-            }
-
-            WIFI_STOP();
+            forceKeyAttempt ^= 1;
         }
 #endif  // COMPILE_NETWORK
-        else if (incoming == 4 && pointPerfectIsEnabled())
+        else if (incoming == 'c' && pointPerfectIsEnabled())
+        {
+            settings.pointPerfectCurrentKey[0] = 0;
+            settings.pointPerfectNextKey[0] = 0;
+        }
+        else if (incoming == 'i' && pointPerfectIsEnabled())
         {
             char hardwareID[15];
             snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
                      btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
             systemPrintf("Device ID: %s\r\n", hardwareID);
-        }
-        else if (incoming == 'c' && pointPerfectIsEnabled())
-        {
-            settings.pointPerfectCurrentKey[0] = 0;
-            settings.pointPerfectNextKey[0] = 0;
         }
         else if (incoming == 'k' && pointPerfectIsEnabled())
         {
@@ -1710,4 +1108,309 @@ void updateLBand()
     }
 
 #endif // COMPILE_L_BAND
+}
+
+enum ProvisioningStates
+{
+    PROVISIONING_OFF = 0,
+    PROVISIONING_WAIT_RTC,
+    PROVISIONING_NOT_STARTED,
+    PROVISIONING_CHECK_REMAINING,
+    PROVISIONING_CHECK_ATTEMPT,
+    PROVISIONING_CHECK_NETWORK,
+    PROVISIONING_STARTING,
+    PROVISIONING_STARTED,
+    PROVISIONING_KEYS_REMAINING,
+    PROVISIONING_WAIT_ATTEMPT,
+    PROVISIONING_STATE_MAX,
+};
+static volatile uint8_t provisioningState = PROVISIONING_OFF;
+
+const char *const provisioningStateName[] = {"PROVISIONING_OFF",
+                                             "PROVISIONING_WAIT_RTC",
+                                             "PROVISIONING_NOT_STARTED",
+                                             "PROVISIONING_CHECK_REMAINING",
+                                             "PROVISIONING_CHECK_ATTEMPT",
+                                             "PROVISIONING_CHECK_NETWORK",
+                                             "PROVISIONING_STARTING",
+                                             "PROVISIONING_STARTED",
+                                             "PROVISIONING_KEYS_REMAINING",
+                                             "PROVISIONING_WAIT_ATTEMPT"};
+
+const int provisioningStateNameEntries = sizeof(provisioningStateName) / sizeof(provisioningStateName[0]);
+
+void provisioningVerifyTables()
+{
+    // Verify the table length
+    if (provisioningStateNameEntries != PROVISIONING_STATE_MAX)
+        reportFatalError("Please fix provisioningStateName table to match ProvisioningStates");
+}
+
+void provisioningSetState(uint8_t newState)
+{
+    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    {
+        if (provisioningState == newState)
+            systemPrint("Provisioning: *");
+        else
+            systemPrintf("Provisioning: %s --> ", provisioningStateName[provisioningState]);
+    }
+    provisioningState = newState;
+    if (settings.debugPpCertificate || PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+    {
+        PERIODIC_CLEAR(PD_PROVISIONING_STATE);
+        if (newState >= PROVISIONING_STATE_MAX)
+        {
+            systemPrintf("Unknown provisioning state: %d\r\n", newState);
+            reportFatalError("Unknown provisioning state");
+        }
+        else
+            systemPrintln(provisioningStateName[provisioningState]);
+    }
+}
+
+unsigned long provisioningStartTime;
+const unsigned long provisioningTimeout = 20000;
+
+void updateProvisioning()
+{
+    // Skip if in configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        // if (settings.debugCorrections == true)
+        //     systemPrintln("configureViaEthernet: skipping updateProvisioning");
+        return;
+    }
+
+    DMW_st(provisioningSetState, provisioningState);
+
+    switch (provisioningState)
+    {
+        default:
+        case PROVISIONING_OFF:
+        {
+            provisioningStartTime = millis(); // Record the start time so we can timeout
+            provisioningSetState(PROVISIONING_WAIT_RTC);
+        }
+        break;
+        case PROVISIONING_WAIT_RTC:
+        {
+            if  ((online.rtc)
+                || (millis() > (provisioningStartTime + provisioningTimeout))
+                || (forceKeyAttempt))
+                provisioningSetState(PROVISIONING_NOT_STARTED);
+        }
+        break;
+        case PROVISIONING_NOT_STARTED:
+        {
+            if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || forceKeyAttempt))
+            {
+                provisioningSetState(PROVISIONING_CHECK_REMAINING);
+            }
+        }
+        break;
+        case PROVISIONING_CHECK_REMAINING:
+        {
+            // If we don't have certs or keys, begin zero touch provisioning
+            if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
+            {
+                if (settings.debugPpCertificate)
+                    systemPrintln("Invalid certificates or keys. Starting provisioning");
+                provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            }
+            else if (!online.rtc)
+            {
+                if (settings.debugPpCertificate)
+                    systemPrintln("No RTC. Starting provisioning");
+                provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            }
+            else
+            {
+                // Determine days until next key expires
+                int daysRemaining =
+                    daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+                if (settings.debugPpCertificate)
+                    systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
+
+                if (daysRemaining > 28)
+                    provisioningSetState(PROVISIONING_KEYS_REMAINING);
+                else
+                    provisioningSetState(PROVISIONING_CHECK_ATTEMPT);
+            }
+        }
+        break;
+        case PROVISIONING_CHECK_ATTEMPT:
+        {
+            // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
+            //if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : (60 * 60 * 24)))
+            // When did we last try to get keys? Attempt every 24 hours
+            if (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24))
+            {
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                recordSystemSettings();                   // Record these settings to unit
+                provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            }
+            else
+            {
+                if (settings.debugPpCertificate)
+                    systemPrintln("Already tried to obtain keys for today");
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+        }
+        break;
+        case PROVISIONING_CHECK_NETWORK:
+        {
+            uint8_t networkType = networkGetActiveType();
+            if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+            {
+                displayNoSSIDs(1000);
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+            else
+                provisioningSetState(PROVISIONING_STARTING);
+        }
+        break;
+        case PROVISIONING_STARTING:
+        {
+            forceKeyAttempt = false;
+            ztpResponse = ZTP_NOT_STARTED; // HTTP_Client will update this
+            httpClientModeNeeded = true; // This will start the HTTP_Client
+            provisioningStartTime = millis(); // Record the start time so we can timeout
+            paintGettingKeys();
+            provisioningSetState(PROVISIONING_STARTED);
+        }
+        case PROVISIONING_STARTED:
+        {
+            if (millis() > (provisioningStartTime + provisioningTimeout))
+            {
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                paintKeyUpdateFail(5000);
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+            else if (ztpResponse == ZTP_SUCCESS)
+            {
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                recordSystemSettings();
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+            else if (ztpResponse == ZTP_DEACTIVATED)
+            {
+                char hardwareID[15];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                            btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+                char landingPageUrl[200] = "";
+                if (productVariant == RTK_TORCH)
+                    snprintf(landingPageUrl, sizeof(landingPageUrl),
+                                "or goto https://www.sparkfun.com/rtk_torch_registration ");
+                else if (productVariant == RTK_EVK)
+                    snprintf(landingPageUrl, sizeof(landingPageUrl),
+                                "or goto https://www.sparkfun.com/rtk_evk_registration ");
+                else
+                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
+                systemPrintf("This device has been deactivated. Please contact "
+                                "support@sparkfun.com %sto renew the PointPerfect "
+                                "subscription. Please reference device ID: %s\r\n",
+                                landingPageUrl, hardwareID);
+
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                displayAccountExpired(5000);
+
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+            else if (ztpResponse == ZTP_NOT_WHITELISTED)
+            {
+                char hardwareID[15];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                            btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+                char landingPageUrl[200] = "";
+                if (productVariant == RTK_TORCH)
+                    snprintf(landingPageUrl, sizeof(landingPageUrl),
+                                "or goto https://www.sparkfun.com/rtk_torch_registration ");
+                else if (productVariant == RTK_EVK)
+                    snprintf(landingPageUrl, sizeof(landingPageUrl),
+                                "or goto https://www.sparkfun.com/rtk_evk_registration ");
+                else
+                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
+                systemPrintf("This device is not whitelisted. Please contact "
+                                "support@sparkfun.com %sto get the subscription "
+                                "activated. Please reference device ID: %s\r\n",
+                                landingPageUrl, hardwareID);
+
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                displayNotListed(5000);
+
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+            else if (ztpResponse == ZTP_ALREADY_REGISTERED)
+            {
+                // Device is already registered to a different ZTP profile.
+                char hardwareID[15];
+                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                            btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+                systemPrintf("This device is registered on a different profile. Please contact "
+                                "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
+                                hardwareID);
+                
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                displayAlreadyRegistered(5000);
+
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+        }
+        break;
+        case PROVISIONING_KEYS_REMAINING:
+        {
+            if (online.rtc == true)
+            {
+                if (settings.pointPerfectNextKeyStart > 0)
+                {
+                    int daysRemaining =
+                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+                    systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
+                    if (daysRemaining >= 0)
+                    {
+                        paintKeyDaysRemaining(daysRemaining, 2000);
+                    }
+                    else
+                    {
+                        paintKeysExpired();
+                    }
+                }
+            }
+            paintLBandConfigure();
+
+            // Be sure we ignore any external RTCM sources
+            gnssDisableRtcmOnGnss();
+
+            gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
+
+            provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
+        }
+        break;
+        case PROVISIONING_WAIT_ATTEMPT:
+        {
+            if (forceKeyAttempt)
+                provisioningSetState(PROVISIONING_STARTING);
+            else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
+                provisioningSetState(PROVISIONING_OFF);
+            // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
+            else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? (15 * 60) : (60 * 60 * 24))))
+            {
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                recordSystemSettings();                   // Record these settings to unit
+                provisioningSetState(PROVISIONING_STARTING);
+            }
+        }
+        break;
+    }
+
+    // Periodically display the provisioning state
+    if (PERIODIC_DISPLAY(PD_PROVISIONING_STATE))
+        provisioningSetState(provisioningState);
 }

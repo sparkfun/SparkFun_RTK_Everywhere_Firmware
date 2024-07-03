@@ -182,6 +182,7 @@ const char *const networkUser[] = {
     "TCP Client",
     "TCP Server",
     "UDP Server",
+    "HTTP Client",
     "NTRIP Server 0",
     "NTRIP Server 1",
     "NTRIP Server 2",
@@ -932,7 +933,7 @@ void networkStop(uint8_t networkType)
                 case NETWORK_USER_MQTT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping MQTT client");
-                    mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+                    MQTT_CLIENT_STOP(true); // Was mqttClientRestart(); - #StopVsRestart
                     break;
 
                 case NETWORK_USER_NTP_SERVER:
@@ -969,6 +970,12 @@ void networkStop(uint8_t networkType)
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping UDP server");
                     udpServerStop();
+                    break;
+
+                case NETWORK_USER_HTTP_CLIENT:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping HTTP client");
+                    httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
                     break;
                 }
             }
@@ -1272,6 +1279,8 @@ void networkUpdate()
     tcpServerUpdate(); // Turn on the TCP server as needed
     DMW_c("udpServerUpdate");
     udpServerUpdate(); // Turn on the UDP server as needed
+    DMW_c("httpClientUpdate");
+    httpClientUpdate(); // Process any Point Perfect HTTP messages
 
     // Display the IP addresses
     DMW_c("networkPeriodicallyDisplayIpAddress");

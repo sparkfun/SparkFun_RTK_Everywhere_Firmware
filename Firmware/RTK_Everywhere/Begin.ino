@@ -1082,14 +1082,6 @@ void beginSystemState()
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
 
-        // Begin process for getting new keys if corrections are enabled
-        // Because this is the only way to set online.lbandCorrections to true via
-        // STATE_KEYS_LBAND_CONFIGURE -> gnssApplyPointPerfectKeys -> zedApplyPointPerfectKeys
-        // TODO: we need to rethink this. We need correction keys for both ip and Lb.
-        // We should really restructure things so we use online.corrections...
-        if (settings.enablePointPerfectCorrections)
-            systemState = STATE_KEYS_STARTED;
-
         // Explicitly set the default network type to avoid printing 'Hardware default'
         // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/360
         if(settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
@@ -1111,9 +1103,6 @@ void beginSystemState()
 
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        if (settings.enablePointPerfectCorrections)
-            systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
 
         //If the setting is not set, override with default
         if (settings.antennaPhaseCenter_mm == 0.0)

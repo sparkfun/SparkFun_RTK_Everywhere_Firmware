@@ -26,17 +26,7 @@ typedef enum
     STATE_TEST,
     STATE_TESTING,
     STATE_PROFILE,
-    STATE_KEYS_STARTED,
-    STATE_KEYS_NEEDED,
-    STATE_KEYS_WIFI_STARTED,
-    STATE_KEYS_WIFI_CONNECTED,
-    STATE_KEYS_WIFI_TIMEOUT,
-    STATE_KEYS_EXPIRED,
-    STATE_KEYS_DAYS_REMAINING,
-    STATE_KEYS_LBAND_CONFIGURE,
-    STATE_KEYS_LBAND_ENCRYPTED,
-    STATE_KEYS_PROVISION_STARTED,
-    STATE_KEYS_PROVISION_CONNECTED,
+    STATE_KEYS_REQUESTED,
     STATE_ESPNOW_PAIRING_NOT_STARTED,
     STATE_ESPNOW_PAIRING,
     STATE_NTPSERVER_NOT_STARTED,
@@ -280,7 +270,8 @@ enum NetworkUsers
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
     NETWORK_USER_TCP_CLIENT,            // TCP client
     NETWORK_USER_TCP_SERVER,            // PTCP server
-    NETWORK_USER_UDP_SERVER,        // UDP server
+    NETWORK_USER_UDP_SERVER,            // UDP server
+    NETWORK_USER_HTTP_CLIENT,           // HTTP Client (Point Perfect ZTP)
 
     // Add new users above this line
     NETWORK_USER_NTRIP_SERVER,          // NTRIP server
@@ -454,11 +445,11 @@ PrintEndpoint printEndpoint = PRINT_ENDPOINT_SERIAL; // Controls where the confi
 
 typedef enum
 {
-    ZTP_SUCCESS = 1,
+    ZTP_NOT_STARTED = 0,
+    ZTP_SUCCESS,
     ZTP_DEACTIVATED,
     ZTP_NOT_WHITELISTED,
     ZTP_ALREADY_REGISTERED,
-    ZTP_RESPONSE_TIMEOUT,
     ZTP_UNKNOWN_ERROR,
 } ZtpResponse;
 
@@ -594,6 +585,10 @@ enum PeriodDisplayValues
     PD_MQTT_CLIENT_STATE,       // 33
 
     PD_TASK_UPDATE_WEBSERVER,   // 34
+
+    PD_HTTP_CLIENT_STATE,       // 35
+
+    PD_PROVISIONING_STATE,      // 36
     // Add new values before this line
 };
 
@@ -1088,6 +1083,10 @@ struct Settings
     bool enableExternalHardwareEventLogging = false;           // Log when INT/TM2 pin goes low
     uint16_t spiFrequency = 16;                           // By default, use 16MHz SPI
 
+    // HTTP
+    bool debugHttpClientData = false;  // Debug the HTTP Client (ZTP) data flow
+    bool debugHttpClientState = false; // Debug the HTTP Client state machine
+
     // Log file
     bool enableLogging = true;         // If an SD card is present, log default sentences
     bool enablePrintLogFileMessages = false;
@@ -1574,6 +1573,10 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableExternalHardwareEventLogging, "enableExternalHardwareEventLogging",  },
     { 0, 0, 0, 0, 1, 1, 1, 0, _uint16_t, 0, & settings.spiFrequency, "spiFrequency",  },
 
+    // HTTP
+    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugHttpClientData, "debugHttpClientData",  },
+    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugHttpClientState, "debugHttpClientState",  },
+
 //                      F
 //       i              a
 //    u  n  i           c
@@ -1966,6 +1969,7 @@ struct struct_online
     bool psram = false;
     bool ppl = false;
     bool batteryCharger = false;
+    bool httpClient = false;
 } online;
 
 // Monitor which tasks are running.

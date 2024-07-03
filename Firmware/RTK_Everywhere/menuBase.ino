@@ -400,6 +400,12 @@ void menuBaseCoordinateType()
 // Open the given file and load a given line to the given pointer
 bool getFileLineLFS(const char *fileName, int lineToFind, char *lineData, int lineDataLength)
 {
+    if (!LittleFS.exists(fileName))
+    {
+        log_d("File %s not found", fileName);
+        return (false);
+    }
+
     File file = LittleFS.open(fileName, FILE_READ);
     if (!file)
     {

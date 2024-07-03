@@ -60,6 +60,20 @@ MQTT_Client.ino
 
 ------------------------------------------------------------------------------*/
 
+// TODO
+// We should restructure this.
+// The hard-coded MQTT_CLIENT_SUBSCRIBE_KEY/SPARTN/ASSIST states are problematic.
+// We should have a vector of topics to be subscribed to.
+// Code will add/erase topics to/from the vector as needed.
+// If the MQTT Client is OFF and it sees that the vector has at least one entry,
+// the client starts, connects and subscribes.
+// While connected and subscribed, the MQTT Client keeps checking the vector.
+// Topics which are subscribed to but are no longer in the vector are unsubscribed.
+// If the vector becomes empty, the MQTT Client disconnects and goes back to OFF.
+// This would make it a lot easier to: only subscribe to the key topic when needed;
+// subscribe to the localized distribution topic. See #150
+// (This is how Michael's hpg does it...)
+
 #ifdef COMPILE_MQTT_CLIENT
 
 //----------------------------------------
@@ -155,7 +169,7 @@ bool mqttClientConnectLimitReached()
         networkRestart(NETWORK_USER_MQTT_CLIENT);
 
     // Restart the MQTT client
-    mqttClientStop(limitReached || (!enableMqttClient));
+    MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
 
     mqttClientConnectionAttempts++;
     mqttClientConnectionAttemptsTotal++;
@@ -275,9 +289,16 @@ void mqttClientPrintStatus()
 // Called when a subscribed message arrives
 void mqttClientReceiveMessage(int messageSize)
 {
-    const uint16_t mqttLimit = 512;
-    static uint8_t mqttData[mqttLimit]; // Allocate memory to hold the MQTT data
-    if (mqttData == NULL)
+    const uint16_t mqttLimit = 2048;
+    static uint8_t *mqttData = nullptr; // Allocate memory to hold the MQTT data. Never freed
+    if (mqttData == nullptr)
+    {
+        if (online.psram == true)
+            mqttData = (uint8_t *)ps_malloc(mqttLimit);
+        else
+            mqttData = (uint8_t *)malloc(mqttLimit);
+    }
+    if (mqttData == nullptr)
     {
         systemPrintln(F("Memory allocation for mqttData failed!"));
         return;
@@ -304,6 +325,66 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
+            // Are these keys? If so, update our local copy
+            if (strstr(topic, settings.pointPerfectKeyDistributionTopic) != nullptr)
+            {
+                // Separate the UBX message into its constituent Key/ToW/Week parts
+                uint8_t *payLoad = &mqttData[6];
+                uint8_t currentKeyLength = payLoad[5];
+                uint16_t currentWeek = (payLoad[7] << 8) | payLoad[6];
+                uint32_t currentToW =
+                    (payLoad[11] << 8 * 3) | (payLoad[10] << 8 * 2) | (payLoad[9] << 8 * 1) | (payLoad[8] << 8 * 0);
+
+                char currentKey[currentKeyLength];
+                memcpy(&currentKey, &payLoad[20], currentKeyLength);
+
+                uint8_t nextKeyLength = payLoad[13];
+                uint16_t nextWeek = (payLoad[15] << 8) | payLoad[14];
+                uint32_t nextToW =
+                    (payLoad[19] << 8 * 3) | (payLoad[18] << 8 * 2) | (payLoad[17] << 8 * 1) | (payLoad[16] << 8 * 0);
+
+                char nextKey[nextKeyLength];
+                memcpy(&nextKey, &payLoad[20 + currentKeyLength], nextKeyLength);
+
+                // Convert byte array to HEX character array
+                strcpy(settings.pointPerfectCurrentKey, ""); // Clear contents
+                strcpy(settings.pointPerfectNextKey, "");    // Clear contents
+                for (int x = 0; x < 16; x++)                 // Force length to max of 32 bytes
+                {
+                    char temp[3];
+                    snprintf(temp, sizeof(temp), "%02X", currentKey[x]);
+                    strcat(settings.pointPerfectCurrentKey, temp);
+
+                    snprintf(temp, sizeof(temp), "%02X", nextKey[x]);
+                    strcat(settings.pointPerfectNextKey, temp);
+                }
+
+                // Convert from ToW and Week to key duration and key start
+                WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
+                WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
+
+                settings.pointPerfectCurrentKeyStart -= gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+                settings.pointPerfectNextKeyStart -= gnssGetLeapSeconds();
+
+                settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
+                settings.pointPerfectNextKeyStart *= 1000;
+
+                settings.pointPerfectCurrentKeyDuration =
+                    settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
+                // settings.pointPerfectNextKeyDuration =
+                //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current key
+                //     duration because we have to
+
+                settings.pointPerfectNextKeyDuration = (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
+
+                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+                
+                recordSystemSettings();                   // Record these settings to unit
+
+                if (settings.debugCorrections == true)
+                    pointperfectPrintKeyInformation();
+            }
+
             // Correction data from PP can go direct to GNSS
             if (present.gnss_zedf9p)
             {
@@ -337,9 +418,6 @@ void mqttClientReceiveMessage(int messageSize)
                     // KEYS or MGA
                     gnssPushRawData(mqttData, mqttCount);
                     bytesPushed += mqttCount;
-
-                    // TODO: the keys may have changed. We could extract them here and update settings.
-                    // But, remember the keys will be in UBX format. Use the same code as ZTP mqttCallback
                 }
             }
 
@@ -401,7 +479,7 @@ void mqttClientSetState(uint8_t newState)
 // Shutdown the MQTT client
 void mqttClientShutdown()
 {
-    mqttClientStop(true);
+    MQTT_CLIENT_STOP(true);
 }
 
 // Start the MQTT client
@@ -415,7 +493,7 @@ void mqttClientStart()
         // Start the MQTT client
         systemPrintln("MQTT Client start");
     }
-    mqttClientStop(false);
+    MQTT_CLIENT_STOP(false);
 }
 
 // Shutdown or restart the MQTT client
@@ -508,7 +586,7 @@ void mqttClientUpdate()
         if (mqttClientState > MQTT_CLIENT_OFF)
         {
             systemPrintln("MQTT Client stopping");
-            mqttClientStop(true); // Was false - #StopVsRestart
+            MQTT_CLIENT_STOP(true); // Was false - #StopVsRestart
             mqttClientConnectionAttempts = 0;
             mqttClientConnectionAttemptTimeout = 0;
             mqttClientSetState(MQTT_CLIENT_OFF);
@@ -612,7 +690,9 @@ void mqttClientUpdate()
         memset(mqttClientCertificateBuffer, 0, MQTT_CERT_SIZE);
         if (!loadFile("certificate", mqttClientCertificateBuffer, settings.debugMqttClientState))
         {
-            mqttClientShutdown();
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no certificate available");
+            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry with no timeout
             break;
         }
         mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
@@ -621,7 +701,9 @@ void mqttClientUpdate()
         memset(mqttClientPrivateKeyBuffer, 0, MQTT_CERT_SIZE);
         if (!loadFile("privateKey", mqttClientPrivateKeyBuffer, settings.debugMqttClientState))
         {
-            mqttClientShutdown();
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no private key available");
+            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry with no timeout
             break;
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
@@ -668,12 +750,12 @@ void mqttClientUpdate()
             break;
         }
 
-        // Subscribe to the key distribution topic
+        // Subscribe to the key distribution topic. This is provided during ZTP
         if (!mqttClient->subscribe(settings.pointPerfectKeyDistributionTopic))
         {
             mqttClientRestart();
             systemPrintln("ERROR: Subscription to key distribution topic failed!!");
-            mqttClientRestart(); // Why twice? TODO
+            //mqttClientRestart(); // Why twice? TODO
             break;
         }
 
@@ -701,7 +783,7 @@ void mqttClientUpdate()
             {
                 mqttClientRestart();
                 systemPrintln("ERROR: Subscription to corrections topic failed!!");
-                mqttClientRestart(); // Why twice? TODO
+                //mqttClientRestart(); // Why twice? TODO
                 break;
             }
 

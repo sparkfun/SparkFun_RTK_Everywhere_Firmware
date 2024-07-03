@@ -599,6 +599,8 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 // Based on the current settings and system states, determine if we need WiFi on or not
 // This function does not start WiFi. Any service that needs it should call wifiStart().
 // This function is used to turn WiFi off if nothing needs it.
+//
+// TODO: Check if this is still required or needs to be updated. As a minimum, it should be networkIsNeeded ?
 bool wifiIsNeeded()
 {
     if (settings.enablePointPerfectCorrections)
@@ -630,11 +632,6 @@ bool wifiIsNeeded()
         // Keep WiFi on if user presses setup button, enters bubble level, is in AP config mode, etc
         return true;
     }
-
-    if (systemState == STATE_KEYS_WIFI_STARTED || systemState == STATE_KEYS_WIFI_CONNECTED)
-        return true;
-    if (systemState == STATE_KEYS_PROVISION_STARTED || systemState == STATE_KEYS_PROVISION_CONNECTED)
-        return true;
 
     return false;
 }
