@@ -911,6 +911,12 @@ void menuPointPerfect()
         else
             systemPrintln("No keys");
 
+        if ((settings.useLocalisedDistribution) && (localisedDistributionTileTopic.length() > 0))
+        {
+            systemPrint("Most recent localised distribution topic: ");
+            systemPrintln(localisedDistributionTileTopic.c_str()); // From MQTT_Client.ino
+        }
+
         // How this works:
         //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP
         //   For IP-only - e.g. Torch:
@@ -956,6 +962,19 @@ void menuPointPerfect()
                 systemPrintln("Requested");
             else
                 systemPrintln("Not requested");
+            systemPrint("4) Use localised distribution: ");
+            if (settings.useLocalisedDistribution == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+            if (settings.useLocalisedDistribution)
+            {
+                systemPrint("5) Localised distribution tile level: ");
+                systemPrint(settings.localisedDistributionTileLevel);
+                systemPrint(" (");
+                systemPrint(localisedDistributionTileLevelNames[settings.localisedDistributionTileLevel]);
+                systemPrintln(")");
+            }
 #endif  // COMPILE_NETWORK
 
             systemPrintln("c) Clear the Keys");
@@ -987,7 +1006,17 @@ void menuPointPerfect()
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            forceKeyAttempt ^= 1;
+            forceKeyAttempt = forceKeyAttempt ^ 1;
+        }
+        else if (incoming == 4 && pointPerfectIsEnabled())
+        {
+            settings.useLocalisedDistribution ^= 1;
+        }
+        else if (incoming == 5 && pointPerfectIsEnabled() && settings.useLocalisedDistribution)
+        {
+            settings.localisedDistributionTileLevel++;
+            if (settings.localisedDistributionTileLevel >= LOCALISED_DISTRIBUTION_TILE_LEVELS)
+                settings.localisedDistributionTileLevel = 0;
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 'c' && pointPerfectIsEnabled())
