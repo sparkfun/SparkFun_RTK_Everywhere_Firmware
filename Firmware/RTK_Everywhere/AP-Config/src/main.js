@@ -103,7 +103,8 @@ function parseIncoming(msg) {
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
-                hide("portsConfig");
+                show("portsConfig");
+                hide("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
@@ -116,7 +117,7 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-                hide("noExternalPortOptions");
+                show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
@@ -129,7 +130,7 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-                hide("noExternalPortOptions");
+                show("externalPortOptions");
                 show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
@@ -141,9 +142,7 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-
                 hide("externalPortOptions");
-                show("noExternalPortOptions");
 
                 hide("logToSDCard");
 
