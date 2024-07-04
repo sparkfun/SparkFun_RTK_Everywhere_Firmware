@@ -591,7 +591,12 @@ void stateUpdate()
         break;
 
         case (STATE_NTPSERVER_SYNC): {
-            // Do nothing - display only
+            if (!rtcSyncd)
+            {
+                if (settings.debugNtp)
+                    systemPrintln("NTP Server RTC sync lost");
+                changeState(STATE_NTPSERVER_NO_SYNC);
+            }
         }
         break;
 
