@@ -778,7 +778,6 @@ void beginFS()
 }
 
 // Check if configureViaEthernet.txt exists
-// Used to indicate if SparkFun_WebServer_ESP32_W5500 needs _exclusive_ access to SPI and interrupts
 bool checkConfigureViaEthernet()
 {
     if (online.fs == false)
@@ -796,7 +795,6 @@ bool checkConfigureViaEthernet()
 }
 
 // Force configure-via-ethernet mode by creating configureViaEthernet.txt in LittleFS
-// Used to indicate if SparkFun_WebServer_ESP32_W5500 needs _exclusive_ access to SPI and interrupts
 bool forceConfigureViaEthernet()
 {
     if (online.fs == false)
@@ -836,8 +834,6 @@ void beginInterrupts()
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
         pinMode(pin_Ethernet_Interrupt, INPUT); // Prepare the interrupt pin
-        // TODO: figure out how to handle NTP mode and timestamp the arrival of UDP NTP requests
-        // attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
     }
 #endif // COMPILE_ETHERNET
 }

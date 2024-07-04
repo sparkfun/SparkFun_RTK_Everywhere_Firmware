@@ -78,8 +78,6 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 
 static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
-static volatile uint8_t
-    ntpSockIndex; // The W5500 socket index for NTP - so we can enable and read the correct interrupt
 static uint32_t lastLoggedNTPRequest;
 
 //----------------------------------------
@@ -474,7 +472,7 @@ struct NTPpacket
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // NTP process one request
-// recTv contains the timeval the NTP packet was received - from the W5500 interrupt
+// recTv contains the timeval the NTP packet was received
 // syncTv contains the timeval when the RTC was last sync'd
 // ntpDiag will contain useful diagnostics
 bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syncTv, char *ntpDiag = nullptr,
@@ -486,19 +484,24 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
     if (ntpDiag != nullptr)
         *ntpDiag = 0; // Clear any existing diagnostics
 
-    int packetDataSize = ntpServer->parsePacket();
+    gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the possible time of the NTP request
 
-    IPAddress remoteIP = ntpServer->remoteIP();
-    uint16_t remotePort = ntpServer->remotePort();
+    int packetDataSize = 0;
 
-    if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
+    if (ntpServer->available() > 0)
+        packetDataSize = ntpServer->parsePacket();
+
+    if (packetDataSize >= NTPpacket::NTPpacketSize)
     {
-        snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %d.%d.%d.%d  Remote Port: %d\r\n", remoteIP[0],
-                 remoteIP[1], remoteIP[2], remoteIP[3], remotePort);
-    }
+        IPAddress remoteIP = ntpServer->remoteIP();
+        uint16_t remotePort = ntpServer->remotePort();
 
-    if (packetDataSize && (packetDataSize >= NTPpacket::NTPpacketSize))
-    {
+        if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
+        {
+            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %d.%d.%d.%d  Remote Port: %d\r\n", remoteIP[0],
+                    remoteIP[1], remoteIP[2], remoteIP[3], remotePort);
+        }
+
         // Read the NTP packet
         NTPpacket packet;
 
@@ -774,7 +777,6 @@ void ntpServerStop()
     // Release the NTP server memory
     if (ntpServer)
     {
-        w5500DisableSocketInterrupt(ntpSockIndex); // Disable the receive interrupt
         ntpServer->stop();
         delete ntpServer;
         ntpServer = nullptr;
@@ -850,12 +852,7 @@ void ntpServerUpdate()
                 ntpServerStop();
             else
             {
-                // Start the NTP server
-                // TODO
-                //ntpServer->begin(settings.ethernetNtpPort);
-                //ntpSockIndex = ntpServer->getSockIndex(); // Get the socket index
-                //w5500ClearSocketInterrupts();             // Clear all interrupts
-                //w5500EnableSocketInterrupt(ntpSockIndex); // Enable the RECV interrupt for the desired socket index
+                ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
                 online.ethernetNTPServer = true;
                 if (!inMainMenu)
                     reportHeapNow(settings.debugNtp);
@@ -872,9 +869,6 @@ void ntpServerUpdate()
 
         else
         {
-            if (w5500CheckSocketInterrupt(ntpSockIndex))
-                w5500ClearSocketInterrupt(ntpSockIndex); // Clear the socket interrupt here
-
             // Check for new NTP requests - if the time has been sync'd
             bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
                                                   (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));

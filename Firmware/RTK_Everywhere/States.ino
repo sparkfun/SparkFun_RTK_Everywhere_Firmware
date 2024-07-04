@@ -617,8 +617,6 @@ void stateUpdate()
             RTK_MODE(RTK_MODE_ETHERNET_CONFIG);
             // The code should only be able to enter this state if configureViaEthernet is true.
             // If configureViaEthernet is not true, we need to restart again.
-            //(If we continue, startEthernerWebServerESP32W5500 will fail as it won't have exclusive access to SPI and
-            // ints).
             if (!configureViaEthernet)
             {
                 displayConfigViaEthStarting(1500);
