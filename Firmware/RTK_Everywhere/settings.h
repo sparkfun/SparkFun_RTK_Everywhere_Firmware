@@ -1372,6 +1372,7 @@ struct Settings
     // Localised distribution
     bool useLocalisedDistribution = false;
     uint8_t localisedDistributionTileLevel = 5;
+    bool useAssistNow = false;
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1880,6 +1881,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // Localised distribution
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalisedDistribution, "useLocalisedDistribution",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localisedDistributionTileLevel, "localisedDistributionTileLevel",  },
+    { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

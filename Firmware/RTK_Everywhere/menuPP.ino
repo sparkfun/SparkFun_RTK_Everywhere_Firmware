@@ -975,6 +975,14 @@ void menuPointPerfect()
                 systemPrint(localisedDistributionTileLevelNames[settings.localisedDistributionTileLevel]);
                 systemPrintln(")");
             }
+            if (productVariant != RTK_FACET_MOSAIC)
+            {
+                systemPrint("a) Use AssistNow: ");
+                if (settings.useAssistNow == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+            }
 #endif  // COMPILE_NETWORK
 
             systemPrintln("c) Clear the Keys");
@@ -1017,6 +1025,10 @@ void menuPointPerfect()
             settings.localisedDistributionTileLevel++;
             if (settings.localisedDistributionTileLevel >= LOCALISED_DISTRIBUTION_TILE_LEVELS)
                 settings.localisedDistributionTileLevel = 0;
+        }
+        else if (incoming == 'a' && pointPerfectIsEnabled() && (productVariant != RTK_FACET_MOSAIC))
+        {
+            settings.useAssistNow ^= 1;
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 'c' && pointPerfectIsEnabled())

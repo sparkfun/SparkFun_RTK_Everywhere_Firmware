@@ -66,10 +66,14 @@ MQTT_Client.ino
 //   mqttClientSubscribedTopics contains the topics we are currently subscribed to
 // While connected, the mqttClientUpdate state machine compares mqttClientSubscribedTopics to mqttSubscribeTopics
 //   New topics on mqttSubscribeTopics are subscribed to one at a time (one topic per call of mqttClientUpdate)
+//   (this will make things easier for cellular - the LARA-R6 can only subscribe to one topic at once)
 //   Topics no longer on mqttSubscribeTopics are unsubscribed one at a time (one topic per call of mqttClientUpdate)
+//   (ditto)
 // Initially we subscribe to the key distribution topic and the continental correction topic (if available)
+// If enabled, we also subscribe to the AssistNow MGA topic
 // If localised distribution is enabled and we have a 3D fix, we subscribe to the dict topic
 // When the dict is received, we subscribe to the nearest localised topic and unsubscribe from the continental topic
+// When the AssistNow MGA data arrives, we unsubscribe and subscribe to AssistNow updates
 
 #ifdef COMPILE_MQTT_CLIENT
 
@@ -108,7 +112,8 @@ const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqtt
 
 const RtkMode_t mqttClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 
-const char MQTT_TOPIC_ASSISTNOW[] = "/pp/ubx/mga"; // AssistNow (MGA) topic
+const String MQTT_TOPIC_ASSISTNOW = "/pp/ubx/mga"; // AssistNow (MGA) topic
+const String MQTT_TOPIC_ASSISTNOW_UPDATES = "/pp/ubx/mga/updates"; // AssistNow (MGA) topic - updates only
 // Note: the key and correction topics are now stored in settings - extracted from ZTP
 const char localizedPrefix[] = "pp/ip/L"; // The localized distribution topic prefix. Note: starts with "pp", not "/pp"
 
@@ -284,9 +289,11 @@ void mqttClientPrintStatus()
 // Called when a subscribed message arrives
 void mqttClientReceiveMessage(int messageSize)
 {
-    const uint16_t mqttLimit = 26000; // The Level 3 localised distribution dictionary topic can be up to 25KB
-    static uint8_t *mqttData = nullptr; // Allocate memory to hold the MQTT data. Never freed
-    if (mqttData == nullptr)
+    // The Level 3 localised distribution dictionary topic can be up to 25KB
+    // The full AssistNow (MGA) topic can be ~11KB
+    const uint16_t mqttLimit = 26000;
+    static uint8_t *mqttData = nullptr;
+    if (mqttData == nullptr) // Allocate memory to hold the MQTT data. Never freed
     {
         if (online.psram == true)
             mqttData = (uint8_t *)ps_malloc(mqttLimit);
@@ -385,6 +392,16 @@ void mqttClientReceiveMessage(int messageSize)
 
                 mqttClientLastDataReceived = millis();
                 break; // Break now - the dict topic should not be pushed
+            }
+
+            // Is this the full AssistNow MGA data? If so, unsubscribe and subscribe to updates
+            if (strcmp(topic, MQTT_TOPIC_ASSISTNOW.c_str()) == 0)
+            {
+                std::vector<String>::iterator pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
+                if (pos != mqttSubscribeTopics.end())
+                    mqttSubscribeTopics.erase(pos);
+                
+                mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW_UPDATES);
             }
 
             // Are these keys? If so, update our local copy
@@ -487,6 +504,10 @@ void mqttClientReceiveMessage(int messageSize)
                 else
                 {
                     // KEYS or MGA
+                    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
+                        !inMainMenu)
+                        systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
+
                     gnssPushRawData(mqttData, mqttCount);
                     bytesPushed += mqttCount;
                 }
@@ -812,6 +833,11 @@ void mqttClientUpdate()
         localisedDistributionDictTopic = "";
         localisedDistributionTileTopic = "";
 
+        // Subscribe to AssistNow MGA if enabled
+        if (settings.useAssistNow)
+        {
+            mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW);
+        }
         // Subscribe to the key distribution topic
         mqttSubscribeTopics.push_back(String(settings.pointPerfectKeyDistributionTopic));
         // Subscribe to the continental correction topic for our region - if we have one. L-Band-only does not.
