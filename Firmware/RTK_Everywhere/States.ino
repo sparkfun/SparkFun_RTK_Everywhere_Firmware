@@ -503,7 +503,7 @@ void stateUpdate()
         break;
 
         case (STATE_KEYS_REQUESTED): {
-            forceKeyAttempt = true; // Force a key update
+            settings.requestKeyUpdate = true; // Force a key update
             changeState(lastSystemState); // Return to the last system state
         }
         break;

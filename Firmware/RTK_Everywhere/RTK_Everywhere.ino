@@ -815,8 +815,6 @@ unsigned long lastGnssToPpl = 0;
 int commandCount;
 int16_t *commandIndex;
 
-volatile bool forceKeyAttempt = false; // Set to true to force a key provisioning attempt
-
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times

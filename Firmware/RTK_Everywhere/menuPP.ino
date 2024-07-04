@@ -958,7 +958,7 @@ void menuPointPerfect()
             else
                 systemPrintln("Disabled");
             systemPrint("3) Request Key Update: ");
-            if (forceKeyAttempt == true)
+            if (settings.requestKeyUpdate == true)
                 systemPrintln("Requested");
             else
                 systemPrintln("Not requested");
@@ -1003,18 +1003,18 @@ void menuPointPerfect()
         {
             settings.enablePointPerfectCorrections ^= 1;
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-            forceKeyAttempt = settings.enablePointPerfectCorrections; // Force a key update - or don't
+            settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
         }
 
 #ifdef  COMPILE_NETWORK
         else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
-            forceKeyAttempt = settings.autoKeyRenewal; // Force a key update - or don't
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            forceKeyAttempt = forceKeyAttempt ^ 1;
+            settings.requestKeyUpdate ^= 1;
         }
         else if (incoming == 4 && pointPerfectIsEnabled())
         {
@@ -1238,13 +1238,13 @@ void updateProvisioning()
         {
             if  ((online.rtc)
                 || (millis() > (provisioningStartTime + provisioningTimeout))
-                || (forceKeyAttempt))
+                || (settings.requestKeyUpdate))
                 provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         break;
         case PROVISIONING_NOT_STARTED:
         {
-            if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || forceKeyAttempt))
+            if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
             {
                 provisioningSetState(PROVISIONING_CHECK_REMAINING);
             }
@@ -1314,7 +1314,8 @@ void updateProvisioning()
         break;
         case PROVISIONING_STARTING:
         {
-            forceKeyAttempt = false;
+            settings.requestKeyUpdate = false;
+            recordSystemSettings(); // Record these settings to unit
             ztpResponse = ZTP_NOT_STARTED; // HTTP_Client will update this
             httpClientModeNeeded = true; // This will start the HTTP_Client
             provisioningStartTime = millis(); // Record the start time so we can timeout
@@ -1436,7 +1437,7 @@ void updateProvisioning()
         break;
         case PROVISIONING_WAIT_ATTEMPT:
         {
-            if (forceKeyAttempt)
+            if (settings.requestKeyUpdate)
                 provisioningSetState(PROVISIONING_STARTING);
             else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
                 provisioningSetState(PROVISIONING_OFF);

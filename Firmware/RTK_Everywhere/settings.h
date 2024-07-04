@@ -1374,6 +1374,8 @@ struct Settings
     uint8_t localizedDistributionTileLevel = 5;
     bool useAssistNow = false;
 
+    bool requestKeyUpdate = false; // Set to true to force a key provisioning attempt
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1882,6 +1884,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
     { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
+
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
