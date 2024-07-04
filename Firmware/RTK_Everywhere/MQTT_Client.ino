@@ -71,8 +71,8 @@ MQTT_Client.ino
 //   (ditto)
 // Initially we subscribe to the key distribution topic and the continental correction topic (if available)
 // If enabled, we also subscribe to the AssistNow MGA topic
-// If localised distribution is enabled and we have a 3D fix, we subscribe to the dict topic
-// When the dict is received, we subscribe to the nearest localised topic and unsubscribe from the continental topic
+// If localized distribution is enabled and we have a 3D fix, we subscribe to the dict topic
+// When the dict is received, we subscribe to the nearest localized topic and unsubscribe from the continental topic
 // When the AssistNow MGA data arrives, we unsubscribe and subscribe to AssistNow updates
 
 #ifdef COMPILE_MQTT_CLIENT
@@ -124,8 +124,8 @@ const char localizedPrefix[] = "pp/ip/L"; // The localized distribution topic pr
 std::vector<String> mqttSubscribeTopics; // List of MQTT topics to be subscribed to
 std::vector<String> mqttClientSubscribedTopics; // List of topics currently subscribed to
 
-String localisedDistributionDictTopic = "";
-String localisedDistributionTileTopic = "";
+String localizedDistributionDictTopic = "";
+String localizedDistributionTileTopic = "";
 
 static MqttClient *mqttClient;
 
@@ -289,7 +289,7 @@ void mqttClientPrintStatus()
 // Called when a subscribed message arrives
 void mqttClientReceiveMessage(int messageSize)
 {
-    // The Level 3 localised distribution dictionary topic can be up to 25KB
+    // The Level 3 localized distribution dictionary topic can be up to 25KB
     // The full AssistNow (MGA) topic can be ~11KB
     const uint16_t mqttLimit = 26000;
     static uint8_t *mqttData = nullptr;
@@ -327,9 +327,9 @@ void mqttClientReceiveMessage(int messageSize)
 
         if (mqttCount > 0)
         {
-            // Check for localisedDistributionDictTopic
-            if ((localisedDistributionDictTopic.length() > 0)
-                && (strcmp(topic, localisedDistributionDictTopic.c_str()) == 0))
+            // Check for localizedDistributionDictTopic
+            if ((localizedDistributionDictTopic.length() > 0)
+                && (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
             {
                 // We should be using a JSON library to read the nodes. But JSON is
                 // heavy on RAM and the dict could be 25KB for Level 3.
@@ -381,9 +381,9 @@ void mqttClientReceiveMessage(int messageSize)
                                 minDist = distScaled;
                                 tile[12] = 0; // Convert the second quote to NULL for snprintf
                                 char tileTopic[50];
-                                snprintf(tileTopic, sizeof(tileTopic), "%s", localisedDistributionDictTopic.c_str());
+                                snprintf(tileTopic, sizeof(tileTopic), "%s", localizedDistributionDictTopic.c_str());
                                 snprintf(&tileTopic[strlen(localizedPrefix) + 13], sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s", tile + 1); // Start after the first quote
-                                localisedDistributionTileTopic = tileTopic;
+                                localizedDistributionTileTopic = tileTopic;
                             }
                         }
                         tile = strtok_r(nullptr, ",", &preservedTile);
@@ -474,9 +474,9 @@ void mqttClientReceiveMessage(int messageSize)
                     ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
                     && (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0))
                     ||
-                    // Or from the localised distribution tile topic
-                    ((localisedDistributionTileTopic.length() > 0)
-                    && (strcmp(topic, localisedDistributionTileTopic.c_str()) == 0))
+                    // Or from the localized distribution tile topic
+                    ((localizedDistributionTileTopic.length() > 0)
+                    && (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0))
                 )
                 {
                     // SPARTN
@@ -830,8 +830,8 @@ void mqttClientUpdate()
 
         mqttSubscribeTopics.clear(); // Clear the list of MQTT topics to be subscribed to
         mqttClientSubscribedTopics.clear(); // Clear the list of topics currently subscribed to
-        localisedDistributionDictTopic = "";
-        localisedDistributionTileTopic = "";
+        localizedDistributionDictTopic = "";
+        localizedDistributionTileTopic = "";
 
         // Subscribe to AssistNow MGA if enabled
         if (settings.useAssistNow)
@@ -936,8 +936,8 @@ void mqttClientUpdate()
         if (breakOut)
             break; // Break out of this state
 
-        // Check if localised distribution is enabled
-        if ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) && (settings.useLocalisedDistribution))
+        // Check if localized distribution is enabled
+        if ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) && (settings.useLocalizedDistribution))
         {
             uint8_t fixType = gnssGetFixType();
             double latitude = gnssGetLatitude(); // degrees
@@ -945,12 +945,12 @@ void mqttClientUpdate()
             if (fixType >= 3) // If we have a 3D fix
             {
                 // If both the dict and tile topics are empty, prepare to subscribe to the dict topic
-                if ((localisedDistributionDictTopic.length() == 0) && (localisedDistributionTileTopic.length() == 0))
+                if ((localizedDistributionDictTopic.length() == 0) && (localizedDistributionTileTopic.length() == 0))
                 {
                     float tileDelta = 2.5; // 2.5 degrees (10 degrees and 5 degrees are also possible)
-                    if ((settings.localisedDistributionTileLevel == 0) || (settings.localisedDistributionTileLevel == 3))
+                    if ((settings.localizedDistributionTileLevel == 0) || (settings.localizedDistributionTileLevel == 3))
                         tileDelta = 10.0;
-                    if ((settings.localisedDistributionTileLevel == 1) || (settings.localisedDistributionTileLevel == 4))
+                    if ((settings.localizedDistributionTileLevel == 1) || (settings.localizedDistributionTileLevel == 4))
                         tileDelta = 5.0;
 
                     float lat = latitude; // Degrees
@@ -965,26 +965,26 @@ void mqttClientUpdate()
 
                     char dictTopic[50];
                     snprintf(dictTopic, sizeof(dictTopic), "%s%c%c%04d%c%05d/dict",
-                        localizedPrefix, char(0x30 + settings.localisedDistributionTileLevel),
+                        localizedPrefix, char(0x30 + settings.localizedDistributionTileLevel),
                         (lat_i < 0) ? 'S' : 'N', abs(lat_i),
                         (lon_i < 0) ? 'W' : 'E', abs(lon_i));
 
 
-                    localisedDistributionDictTopic = dictTopic;
-                    mqttSubscribeTopics.push_back(localisedDistributionDictTopic);
+                    localizedDistributionDictTopic = dictTopic;
+                    mqttSubscribeTopics.push_back(localizedDistributionDictTopic);
 
                     breakOut = true;
                 }
 
-                // localisedDistributionTileTopic is populated by mqttClientReceiveMessage
-                // If both the dict and tile topics are populated, prepare to subscribe to the localised tile topic
-                // Empty localisedDistributionDictTopic afterwardds to prevent this state being repeated
-                if ((localisedDistributionDictTopic.length() > 0) && (localisedDistributionTileTopic.length() > 0))
+                // localizedDistributionTileTopic is populated by mqttClientReceiveMessage
+                // If both the dict and tile topics are populated, prepare to subscribe to the localized tile topic
+                // Empty localizedDistributionDictTopic afterwardds to prevent this state being repeated
+                if ((localizedDistributionDictTopic.length() > 0) && (localizedDistributionTileTopic.length() > 0))
                 {
-                    // Subscribe to the localisedDistributionTileTopic
-                    mqttSubscribeTopics.push_back(localisedDistributionTileTopic);
-                    // Unsubscribe from the localisedDistributionDictTopic
-                    std::vector<String>::iterator pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), localisedDistributionDictTopic);
+                    // Subscribe to the localizedDistributionTileTopic
+                    mqttSubscribeTopics.push_back(localizedDistributionTileTopic);
+                    // Unsubscribe from the localizedDistributionDictTopic
+                    std::vector<String>::iterator pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), localizedDistributionDictTopic);
                     if (pos != mqttSubscribeTopics.end())
                             mqttSubscribeTopics.erase(pos);
                     // Unsubscribe from the continental corrections
@@ -992,7 +992,7 @@ void mqttClientUpdate()
                     if (pos != mqttSubscribeTopics.end())
                             mqttSubscribeTopics.erase(pos);
 
-                    localisedDistributionDictTopic = ""; // Empty localisedDistributionDictTopic to prevent this state being repeated
+                    localizedDistributionDictTopic = ""; // Empty localizedDistributionDictTopic to prevent this state being repeated
                     breakOut = true;
                 }
 

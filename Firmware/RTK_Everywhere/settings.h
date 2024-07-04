@@ -1369,17 +1369,17 @@ struct Settings
 
     bool outputTipAltitude = false; // If enabled, subtract the pole length and APC from the GNSS receiver's reported altitude
 
-    // Localised distribution
-    bool useLocalisedDistribution = false;
-    uint8_t localisedDistributionTileLevel = 5;
+    // Localized distribution
+    bool useLocalizedDistribution = false;
+    uint8_t localizedDistributionTileLevel = 5;
     bool useAssistNow = false;
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
 
-const uint8_t LOCALISED_DISTRIBUTION_TILE_LEVELS = 6;
-const char *localisedDistributionTileLevelNames[LOCALISED_DISTRIBUTION_TILE_LEVELS] = {
+const uint8_t LOCALIZED_DISTRIBUTION_TILE_LEVELS = 6;
+const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVELS] = {
     "1000 x 1000km sparse",
     "500 x 500km sparse",
     "250 x 250km sparse",
@@ -1878,9 +1878,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.outputTipAltitude, "outputTipAltitude",  },
 
-    // Localised distribution
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalisedDistribution, "useLocalisedDistribution",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localisedDistributionTileLevel, "localisedDistributionTileLevel",  },
+    // Localized distribution
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
     { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
 
     // Add new settings to appropriate group above or create new group

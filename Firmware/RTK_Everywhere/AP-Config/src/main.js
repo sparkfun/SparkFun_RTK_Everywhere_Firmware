@@ -439,7 +439,7 @@ function parseIncoming(msg) {
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
-        ge("useLocalisedDistribution").dispatchEvent(new CustomEvent('change'));
+        ge("useLocalizedDistribution").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -1389,12 +1389,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("useLocalisedDistribution").addEventListener("change", function () {
-        if (ge("useLocalisedDistribution").checked) {
-            show("localisedDistributionTileLevelDropdown");
+    ge("useLocalizedDistribution").addEventListener("change", function () {
+        if (ge("useLocalizedDistribution").checked) {
+            show("localizedDistributionTileLevelDropdown");
         }
         else {
-            hide("localisedDistributionTileLevelDropdown");
+            hide("localizedDistributionTileLevelDropdown");
         }
     });
 

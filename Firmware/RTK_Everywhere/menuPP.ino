@@ -911,10 +911,10 @@ void menuPointPerfect()
         else
             systemPrintln("No keys");
 
-        if ((settings.useLocalisedDistribution) && (localisedDistributionTileTopic.length() > 0))
+        if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
         {
-            systemPrint("Most recent localised distribution topic: ");
-            systemPrintln(localisedDistributionTileTopic.c_str()); // From MQTT_Client.ino
+            systemPrint("Most recent localized distribution topic: ");
+            systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
         }
 
         // How this works:
@@ -962,17 +962,17 @@ void menuPointPerfect()
                 systemPrintln("Requested");
             else
                 systemPrintln("Not requested");
-            systemPrint("4) Use localised distribution: ");
-            if (settings.useLocalisedDistribution == true)
+            systemPrint("4) Use localized distribution: ");
+            if (settings.useLocalizedDistribution == true)
                 systemPrintln("Enabled");
             else
                 systemPrintln("Disabled");
-            if (settings.useLocalisedDistribution)
+            if (settings.useLocalizedDistribution)
             {
-                systemPrint("5) Localised distribution tile level: ");
-                systemPrint(settings.localisedDistributionTileLevel);
+                systemPrint("5) Localized distribution tile level: ");
+                systemPrint(settings.localizedDistributionTileLevel);
                 systemPrint(" (");
-                systemPrint(localisedDistributionTileLevelNames[settings.localisedDistributionTileLevel]);
+                systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
                 systemPrintln(")");
             }
             if (productVariant != RTK_FACET_MOSAIC)
@@ -1018,13 +1018,13 @@ void menuPointPerfect()
         }
         else if (incoming == 4 && pointPerfectIsEnabled())
         {
-            settings.useLocalisedDistribution ^= 1;
+            settings.useLocalizedDistribution ^= 1;
         }
-        else if (incoming == 5 && pointPerfectIsEnabled() && settings.useLocalisedDistribution)
+        else if (incoming == 5 && pointPerfectIsEnabled() && settings.useLocalizedDistribution)
         {
-            settings.localisedDistributionTileLevel++;
-            if (settings.localisedDistributionTileLevel >= LOCALISED_DISTRIBUTION_TILE_LEVELS)
-                settings.localisedDistributionTileLevel = 0;
+            settings.localizedDistributionTileLevel++;
+            if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
+                settings.localizedDistributionTileLevel = 0;
         }
         else if (incoming == 'a' && pointPerfectIsEnabled() && (productVariant != RTK_FACET_MOSAIC))
         {
