@@ -31,7 +31,7 @@ tcpServer.ino
 
 */
 
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants
@@ -65,7 +65,7 @@ const RtkMode_t tcpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 //----------------------------------------
 
 // TCP server
-static WiFiServer *tcpServer = nullptr;
+static NetworkServer *tcpServer = nullptr;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
 
@@ -234,13 +234,13 @@ bool tcpServerStart()
         systemPrintln("TCP server starting the server");
 
     // Start the TCP server
-    tcpServer = new WiFiServer(settings.tcpServerPort);
+    tcpServer = new NetworkServer(settings.tcpServerPort, TCP_SERVER_MAX_CLIENTS);
     if (!tcpServer)
         return false;
 
     tcpServer->begin();
     online.tcpServer = true;
-    localIp = wifiGetIpAddress();
+    localIp = networkGetIpAddress(networkGetType());
     systemPrintf("TCP server online, IP address %d.%d.%d.%d:%d\r\n", localIp[0], localIp[1], localIp[2], localIp[3],
                  settings.tcpServerPort);
     return true;
@@ -460,7 +460,7 @@ void tcpServerUpdate()
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new RTKNetworkClientType(client, NETWORK_TYPE_WIFI);
+                tcpServerClient[index] = new RTKNetworkClientType(client, networkGetType());
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
@@ -515,4 +515,4 @@ void tcpServerZeroTail()
         tcpServerClientTails[index] = 0;
 }
 
-#endif // COMPILE_WIFI
+#endif // COMPILE_NETWORK
