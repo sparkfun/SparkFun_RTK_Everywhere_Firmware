@@ -108,6 +108,7 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
+                show("useAssistNowCheckbox");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -120,6 +121,7 @@ function parseIncoming(msg) {
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
+                show("useAssistNowCheckbox");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -131,6 +133,7 @@ function parseIncoming(msg) {
                 show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
+                hide("useAssistNowCheckbox");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -145,6 +148,8 @@ function parseIncoming(msg) {
                 hide("logToSDCard");
 
                 hide("constellationSbas"); //Not supported on UM980
+
+                show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -435,6 +440,7 @@ function parseIncoming(msg) {
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
+        ge("useLocalisedDistribution").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -1381,6 +1387,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             hide("ppSettingsConfig");
+        }
+    });
+
+    ge("useLocalisedDistribution").addEventListener("change", function () {
+        if (ge("useLocalisedDistribution").checked) {
+            show("localisedDistributionTileLevelDropdown");
+        }
+        else {
+            hide("localisedDistributionTileLevelDropdown");
         }
     });
 
