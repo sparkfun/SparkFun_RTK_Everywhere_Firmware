@@ -1441,7 +1441,9 @@ void updateProvisioning()
             else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
                 provisioningSetState(PROVISIONING_OFF);
             // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-            else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? (15 * 60) : (60 * 60 * 24))))
+            //else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? (15 * 60) : (60 * 60 * 24))))
+            // When did we last try to get keys? Attempt every 24 hours
+            else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24)))
             {
                 settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
                 recordSystemSettings();                   // Record these settings to unit
