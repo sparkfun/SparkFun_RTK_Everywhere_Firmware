@@ -520,6 +520,23 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 
             ntpServer->read((char *)&packet.packet, NTPpacket::NTPpacketSize); // Copy the NTP data into our packet
 
+            /*
+            // Add the incoming packet to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Packet <-- : ");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                for (int i = 0; i < NTPpacket::NTPpacketSize; i++)
+                {
+                    snprintf(tmpbuf, sizeof(tmpbuf), "%02X ", packet.packet[i]);
+                    strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                }
+                snprintf(tmpbuf, sizeof(tmpbuf), "\r\n");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+            */
+
             // If process is false, return now
             if (!process)
             {
@@ -635,26 +652,26 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             // Add the socketSendUDP result to the diagnostics
             if (ntpDiag != nullptr)
             {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "socketSendUDP result: %d\r\n", result);
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "socketSendUDP result: %d\r\n", result);
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
             */
 
             /*
-            // Add the packet to the diagnostics
+            // Add the outgoing packet to the diagnostics
             if (ntpDiag != nullptr)
             {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "Packet: ");
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-            for (int i = 0; i < NTPpacket::NTPpacketSize; i++)
-            {
-                snprintf(tmpbuf, sizeof(tmpbuf), "%02X ", packet.packet[i]);
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Packet --> : ");
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-            }
-            snprintf(tmpbuf, sizeof(tmpbuf), "\r\n");
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                for (int i = 0; i < NTPpacket::NTPpacketSize; i++)
+                {
+                    snprintf(tmpbuf, sizeof(tmpbuf), "%02X ", packet.packet[i]);
+                    strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                }
+                snprintf(tmpbuf, sizeof(tmpbuf), "\r\n");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
             */
         }
@@ -818,7 +835,7 @@ void ntpServerStop()
 // Update the NTP server state
 void ntpServerUpdate()
 {
-    char ntpDiag[512]; // Char array to hold diagnostic messages
+    char ntpDiag[768]; // Char array to hold diagnostic messages
 
     if (present.ethernet_ws5500 == false)
         return;
