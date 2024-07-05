@@ -502,7 +502,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 
     if (packetDataSize > 0)
     {
-        gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the possible time of the NTP request
+        gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP request. This was in ethernetISR()
 
         IPAddress remoteIP = ntpServer->remoteIP();
         uint16_t remotePort = ntpServer->remotePort();

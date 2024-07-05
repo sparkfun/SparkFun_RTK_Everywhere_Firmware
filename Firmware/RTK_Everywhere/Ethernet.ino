@@ -208,19 +208,6 @@ bool ethernetIsNeeded()
     return needed;
 }
 
-/*
-// Ethernet (W5500) ISR
-// Triggered by the falling edge of the W5500 interrupt signal - indicates the arrival of a packet
-// Record the time the packet arrived
-void ethernetISR()
-{
-    // Don't check or clear the interrupt here -
-    // it may clash with a GNSS SPI transaction and cause a wdt timeout.
-    // Do it in updateEthernet
-    gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP interrupt
-}
-*/
-
 // Restart the Ethernet controller
 void ethernetRestart()
 {
