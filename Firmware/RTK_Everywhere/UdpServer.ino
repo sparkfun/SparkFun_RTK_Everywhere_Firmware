@@ -105,16 +105,17 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && wifiIsConnected())
+    if (settings.enableUdpServer && online.udpServer && networkIsMediaConnected(networkGetUserNetwork(NETWORK_USER_UDP_SERVER)))
     {
-        udpServer->beginPacket(networkGetBroadcastIpAddress(networkGetType(NETWORK_USER_UDP_SERVER)),
-                               settings.udpServerPort);
+        IPAddress broadcastAddress = networkGetBroadcastIpAddress(networkGetType(NETWORK_USER_UDP_SERVER));
+        udpServer->beginPacket( broadcastAddress, settings.udpServerPort);
         udpServer->write(data, length);
         if (udpServer->endPacket())
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
             {
-                systemPrintf("UDP Server wrote %d bytes as broadcast on port %d\r\n", length, settings.udpServerPort);
+                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length, 
+                    broadcastAddress.toString(), settings.udpServerPort);
                 PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             }
         }
@@ -122,7 +123,8 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         else if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
-            systemPrintf("UDP Server failed to write %d bytes as broadcast\r\n", length);
+            systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
+                broadcastAddress.toString(), settings.udpServerPort);
             length = 0;
         }
     }
@@ -204,9 +206,9 @@ void udpServerSetState(uint8_t newState)
     if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
     {
         if (udpServerState == newState)
-            systemPrint("*");
+            systemPrint("UDP Server: *");
         else
-            systemPrintf("%s --> ", udpServerStateName[udpServerState]);
+            systemPrintf("UDP Server: %s --> ", udpServerStateName[udpServerState]);
     }
     udpServerState = newState;
     if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_STATE)) && (!inMainMenu))
@@ -214,7 +216,7 @@ void udpServerSetState(uint8_t newState)
         PERIODIC_CLEAR(PD_UDP_SERVER_STATE);
         if (newState >= UDP_SERVER_STATE_MAX)
         {
-            systemPrintf("Unknown UDP Server state: %d\r\n", udpServerState);
+            systemPrintf("Unknown state: %d\r\n", udpServerState);
             reportFatalError("Unknown UDP Server state");
         }
         else
@@ -311,7 +313,7 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer && (!wifiIsConnected()))
+        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer) // Was && (!wifiIsConnected())) - TODO check this
         {
             if (networkUserOpen(NETWORK_USER_UDP_SERVER, NETWORK_TYPE_ACTIVE))
             {
