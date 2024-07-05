@@ -750,9 +750,9 @@ void ntpServerSetState(uint8_t newState)
     if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE)) && (!inMainMenu))
     {
         if (ntpServerState == newState)
-            systemPrint("*");
+            systemPrint("NTP Server: *");
         else
-            systemPrintf("%s --> ", ntpServerStateName[ntpServerState]);
+            systemPrintf("NTP Server: %s --> ", ntpServerStateName[ntpServerState]);
     }
     ntpServerState = newState;
     if (settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE))
@@ -760,7 +760,7 @@ void ntpServerSetState(uint8_t newState)
         PERIODIC_CLEAR(PD_NTP_SERVER_STATE);
         if (newState >= NTP_STATE_MAX)
         {
-            systemPrintf("Unknown NTP Server state: %d\r\n", newState);
+            systemPrintf("Unknown state: %d\r\n", newState);
             reportFatalError("Unknown NTP Server state");
         }
         else if (!inMainMenu)
