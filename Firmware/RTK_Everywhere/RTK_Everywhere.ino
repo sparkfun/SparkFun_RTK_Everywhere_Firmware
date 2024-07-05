@@ -1243,7 +1243,13 @@ void loop()
     DMW_c("updateProvisioning");
     updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction topic etc.
 
-    delay(10); // A small delay prevents panic if no other I2C or functions are called
+    loopDelay(); // A small delay prevents panic if no other I2C or functions are called
+}
+
+void loopDelay()
+{
+    if (systemState != STATE_NTPSERVER_SYNC) // No delay in NTP mode
+        delay(10);
 }
 
 // Create or close files as needed (startup or as the user changes settings)
