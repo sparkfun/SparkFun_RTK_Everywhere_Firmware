@@ -1211,7 +1211,7 @@ void provisioningSetState(uint8_t newState)
 }
 
 unsigned long provisioningStartTime;
-const unsigned long provisioningTimeout = 20000;
+const unsigned long provisioningTimeout = 120000;
 
 void updateProvisioning()
 {
@@ -1402,6 +1402,14 @@ void updateProvisioning()
                 httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
                 displayAlreadyRegistered(5000);
 
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
+            else if (ztpResponse == ZTP_UNKNOWN_ERROR)
+            {
+                systemPrintln("updateProvisioning: ZTP_UNKNOWN_ERROR");
+
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                
                 provisioningSetState(PROVISIONING_KEYS_REMAINING);
             }
         }
