@@ -1953,7 +1953,7 @@ function checkNewFirmware() {
     }
 
     ge("btnCheckNewFirmware").disabled = true;
-    showMsg('firmwareCheckNewMsg', "Connecting to WiFi", false);
+    showMsg('firmwareCheckNewMsg', "Connecting to network", false);
 
     var settingCSV = "";
 
@@ -1986,7 +1986,7 @@ function checkingNewFirmware() {
 function newFirmwareVersion(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
     if (firmwareVersion == "ERROR") {
-        showMsgError('firmwareCheckNewMsg', "WiFi or Server not available");
+        showMsgError('firmwareCheckNewMsg', "Network or Server not available");
         hide("divGetNewFirmware");
         ge("btnCheckNewFirmware").disabled = false;
         return;
