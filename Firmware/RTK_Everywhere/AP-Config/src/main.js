@@ -1947,7 +1947,7 @@ function networkCount() {
 }
 
 function checkNewFirmware() {
-    if (networkCount() == 0) {
+    if ((platformPrefix != "EVK") && (networkCount() == 0)) {
         showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
         return;
     }
@@ -2007,7 +2007,7 @@ function newFirmwareVersion(firmwareVersion) {
 
 function getNewFirmware() {
 
-    if (networkCount() == 0) {
+    if ((platformPrefix != "EVK") && (networkCount() == 0)) {
         showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
         hide("divGetNewFirmware");
         ge("btnCheckNewFirmware").disabled = false;
