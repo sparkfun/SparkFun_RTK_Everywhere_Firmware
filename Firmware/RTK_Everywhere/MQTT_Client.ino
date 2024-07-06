@@ -853,6 +853,8 @@ void mqttClientUpdate()
         // Subscribing to the localized distribution dictionary and local tile is handled by MQTT_CLIENT_SERVICES_CONNECTED
         // since we need a 3D fix for those
 
+        mqttClientLastDataReceived = millis(); // Prevent MQTT_CLIENT_SERVICES_CONNECTED from going immediately into timeout
+        
         reportHeapNow(settings.debugMqttClientState);
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
 
