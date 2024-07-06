@@ -261,6 +261,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_NO_FIX):
@@ -269,6 +270,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_FIX):
@@ -277,6 +279,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
@@ -285,6 +288,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
@@ -293,6 +297,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
 
@@ -309,27 +314,32 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_SURVEY_STARTED):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
@@ -1771,11 +1781,11 @@ void paintConnectingToNtripCaster()
 void paintIPAddress()
 {
     char ipAddress[16];
-    snprintf(ipAddress, sizeof(ipAddress), "%d.%d.%d.%d",
+    snprintf(ipAddress, sizeof(ipAddress), "%s",
 #ifdef COMPILE_ETHERNET
-             ETH.localIP()[0], ETH.localIP()[1], ETH.localIP()[2], ETH.localIP()[3]);
+             ETH.localIP().toString());
 #else  // COMPILE_ETHERNET
-             0, 0, 0, 0);
+             "0.0.0.0");
 #endif // COMPILE_ETHERNET
 
     oled->setFont(QW_FONT_5X7); // Set font to smallest
@@ -1806,6 +1816,26 @@ void paintIPAddress()
         snprintf(printThis, sizeof(printThis), &ipAddress[shuttle[startPos]]);
         startPos++;
         oled->print(printThis);
+    }
+}
+
+void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom left - 128x64 only
+{
+    if (present.display_type == DISPLAY_128x64)
+    {
+        char myAddress[16];
+
+        uint8_t networkType = networkGetType();
+        IPAddress ipAddress = networkGetIpAddress(networkType);
+
+        if (ipAddress != IPAddress((uint32_t)0))
+        {
+            snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());
+
+            oled->setFont(QW_FONT_5X7); // Set font to smallest
+            oled->setCursor(0, 55);
+            oled->print(ipAddress);
+        }
     }
 }
 
@@ -2091,7 +2121,7 @@ void displayWiFiConfig()
 
     // Convert to string
     char myIP[20] = {'\0'};
-    snprintf(myIP, sizeof(myIP), "%d.%d.%d.%d", myIpAddress[0], myIpAddress[1], myIpAddress[2], myIpAddress[3]);
+    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
 
     char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
     char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
@@ -3018,7 +3048,7 @@ void displayConfigViaEthernet()
 
         char ipAddress[16];
         IPAddress localIP = ETH.localIP();
-        snprintf(ipAddress, sizeof(ipAddress), "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
+        snprintf(ipAddress, sizeof(ipAddress), "%s", localIP.toString());
 
         int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
 

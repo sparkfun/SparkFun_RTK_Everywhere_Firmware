@@ -115,13 +115,7 @@ void systemPrint(int value, uint8_t printType)
 // Pretty print IP addresses
 void systemPrint(IPAddress ipaddress)
 {
-    systemPrint(ipaddress[0], DEC);
-    systemPrint(".");
-    systemPrint(ipaddress[1], DEC);
-    systemPrint(".");
-    systemPrint(ipaddress[2], DEC);
-    systemPrint(".");
-    systemPrint(ipaddress[3], DEC);
+    systemPrint(ipaddress.toString());
 }
 void systemPrintln(IPAddress ipaddress)
 {

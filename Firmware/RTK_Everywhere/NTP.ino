@@ -509,8 +509,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 
         if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
         {
-            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %d.%d.%d.%d  Remote Port: %d\r\n", remoteIP[0],
-                    remoteIP[1], remoteIP[2], remoteIP[3], remotePort);
+            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n",
+                    remoteIP.toString(), remotePort);
         }
 
         if (packetDataSize >= NTPpacket::NTPpacketSize)
