@@ -498,8 +498,11 @@ bool wifiConnect(unsigned long timeout)
 
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 {
-    if (wifiIsConnected())
+    // If WiFi is already connected and AP_STA mode is not needed, then return true now
+    if (wifiIsConnected() && !useAPSTAMode)
+    {
         return (true); // Nothing to do
+    }
 
     displayWiFiConnect();
 
