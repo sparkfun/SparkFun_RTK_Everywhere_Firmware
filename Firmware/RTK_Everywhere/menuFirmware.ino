@@ -517,7 +517,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
                 // If we were in WIFI_AP mode, return to WIFI_AP mode
                 // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
                 if (wasInAPmode)
-                    WiFi.mode(WIFI_AP);
+                    wifiSetApMode();
 
                 if (systemState != STATE_WIFI_CONFIG)
                 {
@@ -589,23 +589,36 @@ void otaUpdate()
     bool previouslyConnected = wifiIsConnected();
 
     bool wasInAPmode;
-    uint8_t networkType;
 
-    networkType = networkGetType();
-    if ((networkType != NETWORK_TYPE_WIFI)
-        || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
-            == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
-        overTheAirUpdate();
-
-    // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
-    if (networkType == NETWORK_TYPE_WIFI)
+    uint8_t networkType = networkGetActiveType();
+    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
     {
-        if (wasInAPmode)
-            wifiSetApMode();
+        systemPrintln("Error: Please enter at least one SSID before getting keys");
+    }
+    else
+    {
+        if ((networkType != NETWORK_TYPE_WIFI)
+            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
+                == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+            overTheAirUpdate();
 
-        // Update failed. If WiFi was originally off, turn it off again
-        if (previouslyConnected == false)
-            WIFI_STOP();
+        // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
+        if (networkType == NETWORK_TYPE_WIFI)
+        {
+            if (wasInAPmode)
+                wifiSetApMode();
+
+            if (systemState != STATE_WIFI_CONFIG)
+            {
+                // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+                // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+                // running.
+
+                // If WiFi was originally off, turn it off again
+                if (previouslyConnected == false)
+                    WIFI_STOP();
+            }
+        }
     }
 #endif // COMPILE_NETWORK
 }
