@@ -19,7 +19,7 @@ def client(server, port):
             except TimeoutError:
                 keepGoing = False
             if len(payload) > 0:
-                print(payload.decode(), end='')
+                print(payload.decode('latin1'), end='')
         conn.close()
         print()
         

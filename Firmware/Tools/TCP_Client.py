@@ -7,7 +7,7 @@ def client(server, port):
     sock.connect((server, port))
     while True:
         payload = sock.recv(1024)
-        print(payload.decode(), end='')
+        print(payload.decode('latin1'), end='')
         
 if __name__ == "__main__":
 
