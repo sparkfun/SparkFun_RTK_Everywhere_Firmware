@@ -482,10 +482,23 @@ IPAddress networkGetSubnetMask(uint8_t networkType)
 //----------------------------------------
 uint8_t networkGetActiveType()
 {
-    NETWORK_DATA *network;
-    uint8_t type;
+    // Previously we had this (which is wrong - network is not initialized):
+    //NETWORK_DATA *network;
+    //uint8_t type;
+    //type = network->type;
 
-    type = network->type;
+    // Is the intent this?
+    //NETWORK_DATA *network;
+    //uint8_t type;
+    //network = &networkData;
+    //type = network->type;
+
+    // Or this?
+    uint8_t type = networkGetType();
+
+    if (settings.debugNetworkLayer)
+        systemPrintf("networkGetActiveType: network type is %s\r\n", networkTypeToString(type));
+
     if (type == NETWORK_TYPE_USE_DEFAULT)
         type = NETWORK_TYPE_ETHERNET;
     return type;
@@ -1063,8 +1076,13 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
 //----------------------------------------
 const char *networkTypeToString(uint8_t type)
 {
+    static const char unknown[] = { "Unknown" };
     if (type >= networkNameEntries)
-        return "Unknown";
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintf("networkTypeToString: unknown type %d", type);
+        return unknown;
+    }
     return networkName[type];
 }
 
