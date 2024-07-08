@@ -1369,9 +1369,26 @@ struct Settings
 
     bool outputTipAltitude = false; // If enabled, subtract the pole length and APC from the GNSS receiver's reported altitude
 
+    // Localized distribution
+    bool useLocalizedDistribution = false;
+    uint8_t localizedDistributionTileLevel = 5;
+    bool useAssistNow = false;
+
+    bool requestKeyUpdate = false; // Set to true to force a key provisioning attempt
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
+
+const uint8_t LOCALIZED_DISTRIBUTION_TILE_LEVELS = 6;
+const char *localizedDistributionTileLevelNames[LOCALIZED_DISTRIBUTION_TILE_LEVELS] = {
+    "1000 x 1000km sparse",
+    "500 x 500km sparse",
+    "250 x 250km sparse",
+    "1000 x 1000km high density",
+    "500 x 500km high density",
+    "250 x 250km high density",
+};
 
 typedef enum {
     _bool = 0,
@@ -1862,6 +1879,13 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.wifiConnectTimeoutMs, "wifiConnectTimeoutMs",  },
 
     { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.outputTipAltitude, "outputTipAltitude",  },
+
+    // Localized distribution
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
+    { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
+
+    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

@@ -833,7 +833,7 @@ void ntripClientUpdate()
                             // Push RTCM to GNSS module over I2C / SPI
                             gnssPushRawData(rtcmData, rtcmCount);
 
-                            if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                            if ((settings.debugCorrections || settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
@@ -842,7 +842,7 @@ void ntripClientUpdate()
                         }
                         else
                         {
-                            if ((settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                            if ((settings.debugCorrections || settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);

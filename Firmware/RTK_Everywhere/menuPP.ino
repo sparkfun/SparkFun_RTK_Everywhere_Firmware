@@ -911,6 +911,12 @@ void menuPointPerfect()
         else
             systemPrintln("No keys");
 
+        if ((settings.useLocalizedDistribution) && (localizedDistributionTileTopic.length() > 0))
+        {
+            systemPrint("Most recent localized distribution topic: ");
+            systemPrintln(localizedDistributionTileTopic.c_str()); // From MQTT_Client.ino
+        }
+
         // How this works:
         //   There are three PointPerfect corrections plans: IP-only, L-Band-only, L-Band+IP
         //   For IP-only - e.g. Torch:
@@ -952,10 +958,31 @@ void menuPointPerfect()
             else
                 systemPrintln("Disabled");
             systemPrint("3) Request Key Update: ");
-            if (forceKeyAttempt == true)
+            if (settings.requestKeyUpdate == true)
                 systemPrintln("Requested");
             else
                 systemPrintln("Not requested");
+            systemPrint("4) Use localized distribution: ");
+            if (settings.useLocalizedDistribution == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+            if (settings.useLocalizedDistribution)
+            {
+                systemPrint("5) Localized distribution tile level: ");
+                systemPrint(settings.localizedDistributionTileLevel);
+                systemPrint(" (");
+                systemPrint(localizedDistributionTileLevelNames[settings.localizedDistributionTileLevel]);
+                systemPrintln(")");
+            }
+            if (productVariant != RTK_FACET_MOSAIC)
+            {
+                systemPrint("a) Use AssistNow: ");
+                if (settings.useAssistNow == true)
+                    systemPrintln("Enabled");
+                else
+                    systemPrintln("Disabled");
+            }
 #endif  // COMPILE_NETWORK
 
             systemPrintln("c) Clear the Keys");
@@ -976,18 +1003,32 @@ void menuPointPerfect()
         {
             settings.enablePointPerfectCorrections ^= 1;
             restartRover = true; // Require a rover restart to enable / disable RTCM for PPL
-            forceKeyAttempt = settings.enablePointPerfectCorrections; // Force a key update - or don't
+            settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
         }
 
 #ifdef  COMPILE_NETWORK
         else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
-            forceKeyAttempt = settings.autoKeyRenewal; // Force a key update - or don't
+            settings.requestKeyUpdate = settings.autoKeyRenewal; // Force a key update - or don't
         }
         else if (incoming == 3 && pointPerfectIsEnabled())
         {
-            forceKeyAttempt ^= 1;
+            settings.requestKeyUpdate ^= 1;
+        }
+        else if (incoming == 4 && pointPerfectIsEnabled())
+        {
+            settings.useLocalizedDistribution ^= 1;
+        }
+        else if (incoming == 5 && pointPerfectIsEnabled() && settings.useLocalizedDistribution)
+        {
+            settings.localizedDistributionTileLevel++;
+            if (settings.localizedDistributionTileLevel >= LOCALIZED_DISTRIBUTION_TILE_LEVELS)
+                settings.localizedDistributionTileLevel = 0;
+        }
+        else if (incoming == 'a' && pointPerfectIsEnabled() && (productVariant != RTK_FACET_MOSAIC))
+        {
+            settings.useAssistNow ^= 1;
         }
 #endif  // COMPILE_NETWORK
         else if (incoming == 'c' && pointPerfectIsEnabled())
@@ -1170,7 +1211,7 @@ void provisioningSetState(uint8_t newState)
 }
 
 unsigned long provisioningStartTime;
-const unsigned long provisioningTimeout = 20000;
+const unsigned long provisioningTimeout = 120000;
 
 void updateProvisioning()
 {
@@ -1197,13 +1238,13 @@ void updateProvisioning()
         {
             if  ((online.rtc)
                 || (millis() > (provisioningStartTime + provisioningTimeout))
-                || (forceKeyAttempt))
+                || (settings.requestKeyUpdate))
                 provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         break;
         case PROVISIONING_NOT_STARTED:
         {
-            if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || forceKeyAttempt))
+            if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
             {
                 provisioningSetState(PROVISIONING_CHECK_REMAINING);
             }
@@ -1273,7 +1314,8 @@ void updateProvisioning()
         break;
         case PROVISIONING_STARTING:
         {
-            forceKeyAttempt = false;
+            settings.requestKeyUpdate = false;
+            recordSystemSettings(); // Record these settings to unit
             ztpResponse = ZTP_NOT_STARTED; // HTTP_Client will update this
             httpClientModeNeeded = true; // This will start the HTTP_Client
             provisioningStartTime = millis(); // Record the start time so we can timeout
@@ -1362,6 +1404,14 @@ void updateProvisioning()
 
                 provisioningSetState(PROVISIONING_KEYS_REMAINING);
             }
+            else if (ztpResponse == ZTP_UNKNOWN_ERROR)
+            {
+                systemPrintln("updateProvisioning: ZTP_UNKNOWN_ERROR");
+
+                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+                
+                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            }
         }
         break;
         case PROVISIONING_KEYS_REMAINING:
@@ -1395,12 +1445,14 @@ void updateProvisioning()
         break;
         case PROVISIONING_WAIT_ATTEMPT:
         {
-            if (forceKeyAttempt)
+            if (settings.requestKeyUpdate)
                 provisioningSetState(PROVISIONING_STARTING);
             else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
                 provisioningSetState(PROVISIONING_OFF);
             // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-            else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? (15 * 60) : (60 * 60 * 24))))
+            //else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? (15 * 60) : (60 * 60 * 24))))
+            // When did we last try to get keys? Attempt every 24 hours
+            else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24)))
             {
                 settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
                 recordSystemSettings();                   // Record these settings to unit

@@ -103,11 +103,13 @@ function parseIncoming(msg) {
                 show("ppConfig");
                 show("ethernetConfig");
                 show("ntpConfig");
-                hide("portsConfig");
+                show("portsConfig");
+                hide("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
+                show("useAssistNowCheckbox");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -115,11 +117,12 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-                hide("noExternalPortOptions");
+                show("externalPortOptions");
                 show("logToSDCard");
                 hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
+                show("useAssistNowCheckbox");
             }
             else if (platformPrefix == "Facet mosaic") {
                 show("baseConfig");
@@ -127,10 +130,11 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-                hide("noExternalPortOptions");
+                show("externalPortOptions");
                 show("logToSDCard");
                 hide("tiltConfig");
                 hide("beeperControl");
+                hide("useAssistNowCheckbox");
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -138,13 +142,13 @@ function parseIncoming(msg) {
                 hide("ethernetConfig");
                 hide("ntpConfig");
                 show("portsConfig");
-
                 hide("externalPortOptions");
-                show("noExternalPortOptions");
 
                 hide("logToSDCard");
 
                 hide("constellationSbas"); //Not supported on UM980
+
+                show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -435,6 +439,7 @@ function parseIncoming(msg) {
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
+        ge("useLocalizedDistribution").dispatchEvent(new CustomEvent('change'));
 
         updateECEFList();
         updateGeodeticList();
@@ -1381,6 +1386,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             hide("ppSettingsConfig");
+        }
+    });
+
+    ge("useLocalizedDistribution").addEventListener("change", function () {
+        if (ge("useLocalizedDistribution").checked) {
+            show("localizedDistributionTileLevelDropdown");
+        }
+        else {
+            hide("localizedDistributionTileLevelDropdown");
         }
     });
 
