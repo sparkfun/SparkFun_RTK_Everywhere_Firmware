@@ -292,17 +292,17 @@ void bluetoothStart()
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
             beginSuccess &=
-                bluetoothSerialBle->begin(deviceName, false, settings.sppRxQueueSize,
-                                          settings.sppTxQueueSize); // localName, isMaster, rxBufferSize, txBufferSize
+                bluetoothSerialBle->begin(deviceName, false, false, settings.sppRxQueueSize,
+                                          settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
             beginSuccess &=
-                bluetoothSerialSpp->begin(deviceName, false, settings.sppRxQueueSize,
-                                          settings.sppTxQueueSize); // localName, isMaster, rxBufferSize, txBufferSize
+                bluetoothSerialSpp->begin(deviceName, false, false, settings.sppRxQueueSize,
+                                          settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
         }
         else
         {
             beginSuccess &=
-                bluetoothSerial->begin(deviceName, false, settings.sppRxQueueSize,
-                                       settings.sppTxQueueSize); // localName, isMaster, rxBufferSize, txBufferSize
+                bluetoothSerial->begin(deviceName, false, true, settings.sppRxQueueSize,
+                                       settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
         }
 
         if (beginSuccess == false)

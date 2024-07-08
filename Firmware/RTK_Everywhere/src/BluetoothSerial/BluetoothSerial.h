@@ -39,7 +39,7 @@ public:
   BluetoothSerial(void);
   ~BluetoothSerial(void);
 
-  bool begin(String localName = String(), bool isMaster = false, bool disableBLE = false);
+  bool begin(String localName = String(), bool isMaster = false, bool disableBLE = false, uint16_t rxQueueSize = 512 * 2, uint16_t txQueueSize = 512);
   bool begin(unsigned long baud) {  //compatibility
     return begin();
   }

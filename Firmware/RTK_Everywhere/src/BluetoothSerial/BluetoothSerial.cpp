@@ -40,8 +40,8 @@
 
 const char *_spp_server_name = "ESP32SPP";
 
-#define RX_QUEUE_SIZE         512
-#define TX_QUEUE_SIZE         32
+// #define RX_QUEUE_SIZE         512
+// #define TX_QUEUE_SIZE         32
 #define SPP_TX_QUEUE_TIMEOUT  1000
 #define SPP_TX_DONE_TIMEOUT   1000
 #define SPP_CONGESTED_TIMEOUT 1000
@@ -347,7 +347,7 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
       } else if (_spp_rx_queue != NULL) {
         for (int i = 0; i < param->data_ind.len; i++) {
           if (xQueueSend(_spp_rx_queue, param->data_ind.data + i, (TickType_t)0) != pdTRUE) {
-            log_e("RX Full! Discarding %u bytes", param->data_ind.len - i);
+            Serial.printf("RX Full! Discarding %u bytes\r\n", param->data_ind.len - i);
             break;
           }
         }
@@ -616,7 +616,7 @@ static void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *pa
   }
 }
 
-static bool _init_bt(const char *deviceName, bt_mode mode) {
+static bool _init_bt(const char *deviceName, bt_mode mode, uint16_t rxQueueSize, uint16_t txQueueSize) {
   if (!_bt_event_group) {
     _bt_event_group = xEventGroupCreate();
     if (!_bt_event_group) {
@@ -637,14 +637,16 @@ static bool _init_bt(const char *deviceName, bt_mode mode) {
     xEventGroupSetBits(_spp_event_group, SPP_CLOSED);
   }
   if (_spp_rx_queue == NULL) {
-    _spp_rx_queue = xQueueCreate(RX_QUEUE_SIZE, sizeof(uint8_t));  //initialize the queue
+    //_spp_rx_queue = xQueueCreate(RX_QUEUE_SIZE, sizeof(uint8_t));  //initialize the queue
+    _spp_rx_queue = xQueueCreate(rxQueueSize, sizeof(uint8_t)); //initialize the queue
     if (_spp_rx_queue == NULL) {
       log_e("RX Queue Create Failed");
       return false;
     }
   }
   if (_spp_tx_queue == NULL) {
-    _spp_tx_queue = xQueueCreate(TX_QUEUE_SIZE, sizeof(spp_packet_t *));  //initialize the queue
+    //_spp_tx_queue = xQueueCreate(TX_QUEUE_SIZE, sizeof(spp_packet_t *));  //initialize the queue
+    _spp_tx_queue = xQueueCreate(txQueueSize, sizeof(spp_packet_t*)); //initialize the queue
     if (_spp_tx_queue == NULL) {
       log_e("TX Queue Create Failed");
       return false;
@@ -820,12 +822,13 @@ BluetoothSerial::~BluetoothSerial(void) {
  * @param isMaster set to true if you want to connect to an other device
  * @param disableBLE if BLE is not used, its ram can be freed to get +10kB free ram
  */
-bool BluetoothSerial::begin(String localName, bool isMaster, bool disableBLE) {
+//bool BluetoothSerial::begin(String localName, bool isMaster, bool disableBLE) {
+bool BluetoothSerial::begin(String localName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize) {
   _isMaster = isMaster;
   if (localName.length()) {
     local_name = localName;
   }
-  return _init_bt(local_name.c_str(), disableBLE ? BT_MODE_CLASSIC_BT : BT_MODE_BTDM);
+  return _init_bt(local_name.c_str(), disableBLE ? BT_MODE_CLASSIC_BT : BT_MODE_BTDM, rxQueueSize, txQueueSize);
 }
 
 int BluetoothSerial::available(void) {
