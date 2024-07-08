@@ -359,7 +359,7 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer && (!wifiIsConnected()))
+        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer) // Was && (!wifiIsConnected())) - TODO check this
         {
             if (networkUserOpen(NETWORK_USER_TCP_SERVER, NETWORK_TYPE_ACTIVE))
             {
