@@ -270,7 +270,7 @@ void sendGnssBuffer()
     {
         if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
-            if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
+            if (settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX))
             {
                 PERIODIC_CLEAR(PD_ZED_DATA_TX);
                 systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
@@ -280,7 +280,7 @@ void sendGnssBuffer()
     }
     else
     {
-        if (PERIODIC_DISPLAY(PD_ZED_DATA_TX))
+        if (settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX))
         {
             PERIODIC_CLEAR(PD_ZED_DATA_TX);
             systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
