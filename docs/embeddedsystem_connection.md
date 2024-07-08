@@ -2,6 +2,12 @@
 
 Many applications using the RTK products will use a 3rd party GIS application or mobile app like SW Maps and receive the data over Bluetooth. For RTK devices that have an external connection, a user can obtain the NMEA data over serial directly.
 
+## USB
+
+Torch: ![Feature Supported](img/Icons/GreenDot.png)
+
+Most SparkFun RTK devices have a USB port for programming and status reports. This USB port can also be configured to output full NMEA/RTCM output that can be used to create a wired connection to an embedded system. See [Output GNSS Data over USB](menu_ports.md#output-gnss-data-over-usb) for more information.
+
 ## DATA Port
 
 Torch: ![Feature Not Supported](img/Icons/RedDot.png)

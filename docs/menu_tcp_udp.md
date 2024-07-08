@@ -20,4 +20,4 @@ If either Client or Server is enabled, a port can be designated. By default, the
 
 ## UDP Server
 
-PVT can also be sent via UDP rather than TCP. If enabled, the UDP Server will begin broadcasting NMEA data over the specific port (default 10110).
+NMEA messages can also be sent via UDP rather than TCP. If enabled, the UDP Server will begin broadcasting NMEA data over the specific port (default 10110).

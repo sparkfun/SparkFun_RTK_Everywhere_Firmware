@@ -277,7 +277,6 @@ void createZtpRequest(String &str)
     if (settings.debugCorrections == true)
     {
         char tokenChar;
-
         systemPrintln("{");
         tokenChar = tokenString[4];
         tokenString[4] = 0;

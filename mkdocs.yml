@@ -129,30 +129,33 @@ nav:
   - Quick Start:
     - quickstart-torch.md
   - connecting_bluetooth.md
-  - gis_software.md
+  - GIS Software:
+      - gis_software_android.md
+      - gis_software_ios.md
+      - gis_software_windows.md
   - Configuration Methods:
-      - configure_with_wifi.md
       - configure_with_bluetooth.md
       - configure_with_serial.md
       - configure_with_settings_file.md
       - configure_with_ucenter.md
+      - configure_with_wifi.md
   - Configuration Menus:
+      - menu_base.md
+      - menu_corrections_priorities.md
+      - menu_data_logging.md
+      - menu_ethernet.md
+      - menu_firmware.md
       - menu_gnss.md
       - menu_messages.md
-      - menu_base.md
-      - menu_wifi.md
-      - menu_tcp_udp.md
-      - menu_firmware.md
-      - menu_corrections_priorities.md
+      - menu_ntp.md
       - menu_pointperfect.md
+      - menu_ports.md
       - menu_radios.md
       - menu_system.md
+      - menu_tcp_udp.md
       - menu_tilt.md
       - menu_userprofiles.md
-      - menu_data_logging.md
-      - menu_ports.md
-      - menu_ethernet.md
-      - menu_ntp.md
+      - menu_wifi.md
   - Hardware:
       - firmware_update.md
       - displays.md

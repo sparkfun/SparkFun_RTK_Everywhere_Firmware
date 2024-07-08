@@ -44,13 +44,17 @@ A minimum C/N0 is set in dB. If a satellite is detected that is below this signa
 
 The GNSS receiver is capable of tracking multiple channels across four constellations, each producing their own GNSS signals (ie, L1C/A, L1C, L2P, L2C, L5, E1, E5a, E5b, E6, B1I, B2I, B3I, B1C, B2a, B2b, etc). The supported constellations include GPS (USA), Galileo (EU), BeiDou (China), and GLONASS (Russia). SBAS (satellite-based augmentation system) is also supported. By default, all constellations are used. Some users may want to study, log, or monitor a subset. Disabling a constellation will cause the GNSS receiver to ignore those signals when calculating a location fix.
 
+### Galileo E6 Corrections
+
+If supported by hardware, Galileo E6 corrections are enabled by default to support High Accuracy Service. They can be disabled if desired. For detailed information see [High Accuracy Service corrections](correction_sources.md#galileo-has).
+
 ## NTRIP Client
 
 ![NTRIP Client enabled showing settings](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 
 *NTRIP Client enabled showing settings*
 
-The SparkFun RTK Everywhere devices can obtain their correction data over a few different methods. For detailed information see [Correction Sources](correction_sources.md).
+The SparkFun RTK Everywhere devices can obtain their correction data over a few different methods. 
 
 * Bluetooth - This is the most common. An app running on a tablet or phone has an NTRIP client built into it. Once the phone is connected over Bluetooth SPP, the RTCM is pushed from the phone to the RTK device. No NTRIP Client needs to be setup on the RTK device.
 * WiFi - The rover uses WiFi to be an NTRIP Client and connect to an NTRIP Caster. WiFi and Bluetooth can run simultaneously. This is helpful in situations where a GIS software does not have an NTRIP Client; a cellular hotspot can be used to provide WiFi to the RTK device setup to use NTRIP Client an obtain RTK Fix, while Bluetooth is used to connect to the GIS software for data mapping and collection.
