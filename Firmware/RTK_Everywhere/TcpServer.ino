@@ -93,9 +93,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server wrote %d bytes to %d.%d.%d.%d\r\n", length, tcpServerClientIpAddress[index][0],
-                         tcpServerClientIpAddress[index][1], tcpServerClientIpAddress[index][2],
-                         tcpServerClientIpAddress[index][3]);
+            systemPrintf("TCP server wrote %d bytes to %s\r\n", length, tcpServerClientIpAddress[index].toString());
         }
     }
 
@@ -106,9 +104,8 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server breaking connection %d with client %d.%d.%d.%d\r\n", index,
-                         tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                         tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+            systemPrintf("TCP server breaking connection %d with client %s\r\n", index,
+                         tcpServerClientIpAddress[index].toString());
         }
 
         tcpServerClient[index]->stop();
@@ -241,8 +238,7 @@ bool tcpServerStart()
     tcpServer->begin();
     online.tcpServer = true;
     localIp = networkGetIpAddress(networkGetType());
-    systemPrintf("TCP server online, IP address %d.%d.%d.%d:%d\r\n", localIp[0], localIp[1], localIp[2], localIp[3],
-                 settings.tcpServerPort);
+    systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString(), settings.tcpServerPort);
     return true;
 }
 
@@ -308,9 +304,8 @@ void tcpServerStopClient(int index)
             systemPrintf("TCP Server: No data sent over %d seconds\r\n", TCP_SERVER_CLIENT_DATA_TIMEOUT / 1000);
         if (!connected)
             systemPrintf("TCP Server: Link to client broken\r\n");
-        systemPrintf("TCP server client %d disconnected from %d.%d.%d.%d\r\n", index,
-                     tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                     tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+        systemPrintf("TCP server client %d disconnected from %s\r\n", index,
+                     tcpServerClientIpAddress[index].toString());
     }
 
     // Shutdown the TCP server client link
@@ -431,9 +426,8 @@ void tcpServerUpdate()
                     if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
                     {
                         PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                        systemPrintf("TCP server client %d connected to %d.%d.%d.%d\r\n", index,
-                                     tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                                     tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+                        systemPrintf("TCP server client %d connected to %s\r\n", index,
+                                     tcpServerClientIpAddress[index].toString());
                     }
                 }
 
@@ -467,9 +461,8 @@ void tcpServerUpdate()
                 if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
                 {
                     PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                    systemPrintf("TCP server client %d connected to %d.%d.%d.%d\r\n", index,
-                                 tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                                 tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+                    systemPrintf("TCP server client %d connected to %s\r\n", index,
+                                 tcpServerClientIpAddress[index].toString());
                 }
             }
         }

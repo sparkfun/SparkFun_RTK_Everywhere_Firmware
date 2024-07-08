@@ -107,7 +107,7 @@ void menuSystem()
             systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
                          ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
             systemPrint("Ethernet IP Address: ");
-            systemPrintln(ETH.localIP());
+            systemPrintln(ETH.localIP().toString());
             if (!settings.ethernetDHCP)
             {
                 systemPrint("Ethernet DNS: ");

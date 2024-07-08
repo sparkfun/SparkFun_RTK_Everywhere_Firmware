@@ -208,17 +208,6 @@ bool ethernetIsNeeded()
     return needed;
 }
 
-// Ethernet (W5500) ISR
-// Triggered by the falling edge of the W5500 interrupt signal - indicates the arrival of a packet
-// Record the time the packet arrived
-void ethernetISR()
-{
-    // Don't check or clear the interrupt here -
-    // it may clash with a GNSS SPI transaction and cause a wdt timeout.
-    // Do it in updateEthernet
-    gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP interrupt
-}
-
 // Restart the Ethernet controller
 void ethernetRestart()
 {
@@ -393,7 +382,7 @@ void onEthernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 // Web server routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// Start Ethernet WebServer ESP32 W5500 - needs exclusive access to WiFi, SPI and Interrupts
+// Start Ethernet for the web server
 void ethernetWebServerStartESP32W5500()
 {
     Network.onEvent(onEthernetEvent);
@@ -405,10 +394,10 @@ void ethernetWebServerStartESP32W5500()
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
 }
 
-// Stop the Ethernet web server
+// Stop Ethernet for the web server
 void ethernetWebServerStopESP32W5500()
 {
-    ETH.end(); // This is _really_ important. It undoes the low-level changes to SPI and interrupts
+    ETH.end();
 }
 
 #endif // COMPILE_ETHERNET

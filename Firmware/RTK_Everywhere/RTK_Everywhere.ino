@@ -788,8 +788,9 @@ correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is fee
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
-//  Causes setup and loop to skip any code which would cause SPI or interrupts to be initialized.
-//  This is to allow SparkFun_WebServer_ESP32_W5500 to have _exclusive_ access to WiFi, SPI and Interrupts.
+//  Previously, the SparkFun_WebServer_ESP32_W5500 needed _exclusive_ access to SPI and Interrupts.
+//  That's no longer true - thanks to Espressif adding full support for the W5500 within the
+//  arduino-esp32 core (v3.0.0+). But it's easier to leave the code as it is.
 bool configureViaEthernet;
 
 int floatLockRestarts;
@@ -1105,7 +1106,7 @@ void setup()
     gnssBeginPPS(); // Configure the time pulse output
 
     DMW_b("beginInterrupts");
-    beginInterrupts(); // Begin the TP and W5500 interrupts
+    beginInterrupts(); // Begin the TP interrupts
 
     DMW_b("beginButtons");
     beginButtons(); // Start task for button monitoring.
@@ -1241,7 +1242,13 @@ void loop()
     DMW_c("updateProvisioning");
     updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction topic etc.
 
-    delay(10); // A small delay prevents panic if no other I2C or functions are called
+    loopDelay(); // A small delay prevents panic if no other I2C or functions are called
+}
+
+void loopDelay()
+{
+    if (systemState != STATE_NTPSERVER_SYNC) // No delay in NTP mode
+        delay(10);
 }
 
 // Create or close files as needed (startup or as the user changes settings)
