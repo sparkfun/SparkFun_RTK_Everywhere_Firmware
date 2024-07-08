@@ -353,13 +353,13 @@ bool zedConfigure()
     {
         response &=
             theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINCNO,
-                                  settings.minCNO_F9P); // Set minimum satellite signal level for navigation - default 6
+                                  settings.minCNO); // Set minimum satellite signal level for navigation - default 6
     }
 
     if (commandSupported(UBLOX_CFG_NAV2_OUT_ENABLED) == true)
     {
         // Count NAV2 messages and enable NAV2 as needed.
-        if (getNAV2MessageCount() > 0)
+        if (zedGetNAV2MessageCount() > 0)
         {
             response &= theGNSS->addCfgValset(
                 UBLOX_CFG_NAV2_OUT_ENABLED,
@@ -477,7 +477,7 @@ bool zedConfigureRover()
 
         // Set output rate
         response &= theGNSS->newCfgValset();
-        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, settings.measurementRate);
+        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, settings.measurementRateMs);
         response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, settings.navigationRate);
 
         // Survey mode is only available on ZED-F9P modules
@@ -497,7 +497,7 @@ bool zedConfigureRover()
         // product - in Rover mode - we want to leave any RTCM messages enabled on SPI so they can be logged if desired.
 
         // Find first RTCM record in ubxMessage array
-        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
         // Set RTCM messages to user's settings
         for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
@@ -600,7 +600,7 @@ bool zedConfigureBase()
         // (Tertiary) UART1 in case RTK device is sending RTCM to a phone that is then NTRIP Caster
 
         // Find first RTCM record in ubxMessage array
-        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
+        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
 
         // ubxMessageRatesBase is an array of ~12 uint8_ts
         // ubxMessage is an array of ~80 messages
@@ -777,7 +777,7 @@ bool zedFixedBaseStart()
         // https://www.e-education.psu.edu/geog862/node/1853
         // For example, if HAE is at 100.0m, + 2m stick + 73mm ARP = 102.073
         float totalFixedAltitude =
-            settings.fixedAltitude + (settings.antennaHeight / 1000.0) + (settings.antennaReferencePoint / 1000.0);
+            settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
 
         // Break coordinates into main and high precision parts
         // The type casting should not effect rounding of original double cast coordinate
@@ -893,47 +893,44 @@ bool zedBeginPPS()
 // Enable data output from the NEO
 bool zedEnableLBandCommunication()
 {
-/*
-    Paul's Notes on (NEO-D9S) L-Band:
+    /*
+        Paul's Notes on (NEO-D9S) L-Band:
 
-    Torch will receive PointPerfect SPARTN via IP, run it through the PPL, and feed RTCM to the UM980. No L-Band...
+        Torch will receive PointPerfect SPARTN via IP, run it through the PPL, and feed RTCM to the UM980. No L-Band...
 
-    The EVK has ZED-F9P and NEO-D9S. But there are two versions of the PCB:
-    v1.1 PCB :
-        Both ZED and NEO are on the i2c_0 I2C bus (the OLED is on i2c_1)
-        ZED UART1 is connected to the ESP32 (pins 25 and 33) only
-        ZED UART2 is connected to the I/O connector only
-        NEO UART1 is connected to test points only
-        NEO UART2 is not connected
-    v1.0 PCB (the one we are currently using for code development) :
-        Both ZED and NEO are on the i2c_0 I2C bus
-        ZED UART1 is connected to NEO UART1 only - not to ESP32 (Big mistake! Makes BT and Logging much more complicated...)
-        ZED UART2 is connected to the I/O connector only
-        NEO UART2 is not connected
+        The EVK has ZED-F9P and NEO-D9S. But there are two versions of the PCB:
+        v1.1 PCB :
+            Both ZED and NEO are on the i2c_0 I2C bus (the OLED is on i2c_1)
+            ZED UART1 is connected to the ESP32 (pins 25 and 33) only
+            ZED UART2 is connected to the I/O connector only
+            NEO UART1 is connected to test points only
+            NEO UART2 is not connected
+        v1.0 PCB (the one we are currently using for code development) :
+            Both ZED and NEO are on the i2c_0 I2C bus
+            ZED UART1 is connected to NEO UART1 only - not to ESP32 (Big mistake! Makes BT and Logging much more
+       complicated...) ZED UART2 is connected to the I/O connector only NEO UART2 is not connected
 
-    Facet v2 hasn't been built yet. The v2.01 PCB probably won't get built as it needs the new soft power switch.
-    When v2.10 (?) gets built :
-        Both ZED and NEO are on the I2C bus
-        ZED UART1 is connected to the ESP32 (pins 14 and 13) and also to the DATA connector via the Mux (output only)
-        ZED UART2 is connected to the RADIO connector only
-        NEO UART1 is not connected
-        NEO UART2 TX is connected to ESP32 pin 4. If the ESP32 has a UART spare - and it probably does - the PMP data
-          can go over this connection and avoid having double-PMP traffic on I2C. Neat huh?!
+        Facet v2 hasn't been built yet. The v2.01 PCB probably won't get built as it needs the new soft power switch.
+        When v2.10 (?) gets built :
+            Both ZED and NEO are on the I2C bus
+            ZED UART1 is connected to the ESP32 (pins 14 and 13) and also to the DATA connector via the Mux (output
+       only) ZED UART2 is connected to the RADIO connector only NEO UART1 is not connected NEO UART2 TX is connected to
+       ESP32 pin 4. If the ESP32 has a UART spare - and it probably does - the PMP data can go over this connection and
+       avoid having double-PMP traffic on I2C. Neat huh?!
 
-    Facet mosaic v1.0 PCB has been built, but needs the new soft power switch and some other minor mods.
-        X5 COM1 is connected to the ESP32 (pins 13 and 14) - RTCM from PPL, NMEA and RTCM to PPL and Bluetooth
-        X5 COM2 is connected to the RADIO connector only
-        X5 COM3 is connected to the DATA connector via the Mux (I/O)
-        X5 COM4 is connected to the ESP32 (pins 4 and 25) - raw L-Band to PPL, control from ESP32 to X5 ?
+        Facet mosaic v1.0 PCB has been built, but needs the new soft power switch and some other minor mods.
+            X5 COM1 is connected to the ESP32 (pins 13 and 14) - RTCM from PPL, NMEA and RTCM to PPL and Bluetooth
+            X5 COM2 is connected to the RADIO connector only
+            X5 COM3 is connected to the DATA connector via the Mux (I/O)
+            X5 COM4 is connected to the ESP32 (pins 4 and 25) - raw L-Band to PPL, control from ESP32 to X5 ?
 
-    So, what does all of this mean?
-    EVK v1.0 supports direct NEO to ZED UART communication, but V1.1 will not. There is no point in supporting it here.
-    Facet v2 can pipe NEO UART PMP data to the ZED (over I2C or maybe UART), but the hardware doesn't exist yet so there
-    is no point in adding that feature yet... TODO.
-    So, right now, we should assume NEO PMP data will arrive via I2C, and will get pushed to the ZED via I2C if the
-    corrections priority permits.
-    Deleting: useI2cForLbandCorrections, useI2cForLbandCorrectionsConfigured and rtcmTimeoutBeforeUsingLBand_s
-*/    
+        So, what does all of this mean?
+        EVK v1.0 supports direct NEO to ZED UART communication, but V1.1 will not. There is no point in supporting it
+       here. Facet v2 can pipe NEO UART PMP data to the ZED (over I2C or maybe UART), but the hardware doesn't exist yet
+       so there is no point in adding that feature yet... TODO. So, right now, we should assume NEO PMP data will arrive
+       via I2C, and will get pushed to the ZED via I2C if the corrections priority permits. Deleting:
+       useI2cForLbandCorrections, useI2cForLbandCorrectionsConfigured and rtcmTimeoutBeforeUsingLBand_s
+    */
 
     bool response = true;
 
@@ -948,20 +945,17 @@ bool zedEnableLBandCommunication()
 
         response &= i2cLBand.newCfgValset();
 
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_I2C, 1); // Enable UBX-RXM-PMP on NEO's I2C port
 
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART1OUTPROT_UBX, 0); // Disable UBX output on NEO's UART1
-        
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
+
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Disable UBX-RXM-PMP on NEO's UART1
 
         // TODO: change this as needed for Facet v2
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output on NEO's UART2
 
         // TODO: change this as needed for Facet v2
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
 
         response &= i2cLBand.sendCfgValset();
     }
@@ -999,8 +993,7 @@ bool zedDisableLBandCommunication()
         response &= i2cLBand.addCfgValset(UBLOX_CFG_UART2OUTPROT_UBX, 0); // Disable UBX output from NEO's UART2
 
         // TODO: change this as needed for Facet v2
-        response &=
-            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART2, 0); // Disable UBX-RXM-PMP on NEO's UART2
 
         response &= i2cLBand.sendCfgValset();
     }
@@ -1015,10 +1008,10 @@ bool zedDisableLBandCommunication()
     return (response);
 }
 
-// Given the number of seconds between desired solution reports, determine measurementRate and navigationRate
-// measurementRate > 25 & <= 65535
+// Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
+// measurementRateS > 25 & <= 65535
 // navigationRate >= 1 && <= 127
-// We give preference to limiting a measurementRate to 30s or below due to reported problems with measRates above 30.
+// We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 bool zedSetRate(double secondsBetweenSolutions)
 {
     uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
@@ -1053,7 +1046,7 @@ bool zedSetRate(double secondsBetweenSolutions)
     response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, measRate);
     response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, navRate);
 
-    int gsvRecordNumber = getMessageNumberByName("UBX_NMEA_GSV");
+    int gsvRecordNumber = zedGetMessageNumberByName("NMEA_GSV");
 
     // If enabled, adjust GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
     if (settings.ubxMessageRates[gsvRecordNumber] > 0)
@@ -1064,7 +1057,7 @@ bool zedSetRate(double secondsBetweenSolutions)
 
         log_d("Adjusting GSV setting to %f", measurementFrequency);
 
-        setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // Update GSV setting in file
+        zedSetMessageRateByName("NMEA_GSV", measurementFrequency); // Update GSV setting in file
         response &= theGNSS->addCfgValset(ubxMessages[gsvRecordNumber].msgConfigKey,
                                           settings.ubxMessageRates[gsvRecordNumber]); // Update rate on module
     }
@@ -1074,7 +1067,7 @@ bool zedSetRate(double secondsBetweenSolutions)
     // If we successfully set rates, only then record to settings
     if (response == true)
     {
-        settings.measurementRate = measRate;
+        settings.measurementRateMs = measRate;
         settings.navigationRate = navRate;
     }
     else
@@ -1090,7 +1083,7 @@ bool zedSetRate(double secondsBetweenSolutions)
 double zedGetRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
-    float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+    float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
     double measurementRateS = 1.0 / measurementFrequency; // 1 / 4Hz = 0.25s
 
     return (measurementRateS);
@@ -1243,7 +1236,7 @@ void zedEnableGgaForNtrip()
     theGNSS->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 1);
     theGNSS->setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
 
-    float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+    float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
     if (measurementFrequency < 0.2)
         measurementFrequency = 0.2; // 0.2Hz * 5 = 1 measurement every 5 seconds
     log_d("Adjusting GGA setting to %f", measurementFrequency);
@@ -1352,12 +1345,14 @@ bool zedSetConstellations(bool sendCompleteBatch)
     if (sendCompleteBatch)
         response &= theGNSS->newCfgValset();
 
-    bool enableMe = settings.ubxConstellations[0].enabled;
-    response &= theGNSS->addCfgValset(settings.ubxConstellations[0].configKey, enableMe); // GPS
+    // GPS
+    int gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS);
+    bool enableMe = settings.ubxConstellations[gnssIndex].enabled;
+    response &= theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, enableMe);
 
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L1CA_ENA, settings.ubxConstellations[0].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GPS_L2C_ENA, settings.ubxConstellations[0].enabled);
-
+    // SBAS
     // v1.12 ZED-F9P firmware does not allow for SBAS control
     // Also, if we can't identify the version (99), skip SBAS enable
     if ((gnssFirmwareVersionInt == 112) || (gnssFirmwareVersionInt == 99))
@@ -1366,34 +1361,45 @@ bool zedSetConstellations(bool sendCompleteBatch)
     }
     else
     {
-        response &= theGNSS->addCfgValset(settings.ubxConstellations[1].configKey,
-                                          settings.ubxConstellations[1].enabled); // SBAS
-        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, settings.ubxConstellations[1].enabled);
+        gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_SBAS);
+        enableMe = settings.ubxConstellations[gnssIndex].enabled;
+        response &= theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+        response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, enableMe);
     }
 
+    // GAL
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GALILEO);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[2].configKey, settings.ubxConstellations[2].enabled); // GAL
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, settings.ubxConstellations[2].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, settings.ubxConstellations[2].enabled);
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, enableMe);
 
+    // BDS
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_BEIDOU);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[3].configKey, settings.ubxConstellations[3].enabled); // BDS
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, settings.ubxConstellations[3].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, settings.ubxConstellations[3].enabled);
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, enableMe);
 
+    // QZSS
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[4].configKey, settings.ubxConstellations[4].enabled); // QZSS
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, settings.ubxConstellations[4].enabled);
-
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, enableMe);
     // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, settings.ubxConstellations[4].enabled);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, enableMe);
 
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L2C_ENA, settings.ubxConstellations[4].enabled);
-
+    // GLO
+    gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GLONASS);
+    enableMe = settings.ubxConstellations[gnssIndex].enabled;
     response &=
-        theGNSS->addCfgValset(settings.ubxConstellations[5].configKey, settings.ubxConstellations[5].enabled); // GLO
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, settings.ubxConstellations[5].enabled);
-    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, settings.ubxConstellations[5].enabled);
+        theGNSS->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, enableMe);
+    response &= theGNSS->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, enableMe);
 
     if (sendCompleteBatch)
         response &= theGNSS->sendCfgValset();
@@ -1446,8 +1452,8 @@ void zedApplyPointPerfectKeys()
     if (gnssFirmwareVersionInt < 130)
     {
         systemPrintln("Error: PointPerfect corrections currently supported by ZED-F9P firmware v1.30 and above. "
-                        "Please upgrade your ZED firmware: "
-                        "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
+                      "Please upgrade your ZED firmware: "
+                      "https://learn.sparkfun.com/tutorials/how-to-upgrade-firmware-of-a-u-blox-gnss-receiver");
         return;
     }
 
@@ -1482,11 +1488,11 @@ void zedApplyPointPerfectKeys()
         theGNSS->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
 
         theGNSS->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                            3); // Set the differential mode - ambiguities are fixed whenever possible
+                         3); // Set the differential mode - ambiguities are fixed whenever possible
 
         bool response = theGNSS->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                        settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                        nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+                                                      settings.pointPerfectCurrentKey, nextKeyLengthBytes,
+                                                      nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
 
         if (response == false)
             systemPrintln("setDynamicSPARTNKeys failed");
@@ -1569,56 +1575,57 @@ void zedMenuMessages()
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
-            menuMessagesSubtype(settings.ubxMessageRates, "NMEA_"); // The following _ avoids listing NMEANAV2 messages
+            zedMenuMessagesSubtype(settings.ubxMessageRates,
+                                   "NMEA_"); // The following _ avoids listing NMEANAV2 messages
         else if (incoming == 2)
-            menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "RTCM");
         else if (incoming == 3)
-            menuMessagesSubtype(settings.ubxMessageRates, "RXM");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "RXM");
         else if (incoming == 4)
-            menuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
         else if (incoming == 5)
-            menuMessagesSubtype(settings.ubxMessageRates, "NAV2");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "NAV2");
         else if (incoming == 6)
-            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
         else if (incoming == 7)
-            menuMessagesSubtype(settings.ubxMessageRates, "MON");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "MON");
         else if (incoming == 8)
-            menuMessagesSubtype(settings.ubxMessageRates, "TIM");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "TIM");
         else if (incoming == 9)
-            menuMessagesSubtype(settings.ubxMessageRates, "PUBX");
+            zedMenuMessagesSubtype(settings.ubxMessageRates, "PUBX");
         else if (incoming == 10)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
-            setMessageRateByName("UBX_NMEA_GGA", 1);
-            setMessageRateByName("UBX_NMEA_GSA", 1);
-            setMessageRateByName("UBX_NMEA_GST", 1);
+            zedSetMessageRateByName("NMEA_GGA", 1);
+            zedSetMessageRateByName("NMEA_GSA", 1);
+            zedSetMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
-            setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
+            zedSetMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
 
-            setMessageRateByName("UBX_NMEA_RMC", 1);
+            zedSetMessageRateByName("NMEA_RMC", 1);
             systemPrintln("Reset to Surveying Defaults (NMEAx5)");
         }
         else if (incoming == 11)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
-            setMessageRateByName("UBX_NMEA_GGA", 1);
-            setMessageRateByName("UBX_NMEA_GSA", 1);
-            setMessageRateByName("UBX_NMEA_GST", 1);
+            zedSetMessageRateByName("NMEA_GGA", 1);
+            zedSetMessageRateByName("NMEA_GSA", 1);
+            zedSetMessageRateByName("NMEA_GST", 1);
 
             // We want GSV NMEA to be reported at 1Hz to avoid swamping SPP connection
-            float measurementFrequency = (1000.0 / settings.measurementRate) / settings.navigationRate;
+            float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
             if (measurementFrequency < 1.0)
                 measurementFrequency = 1.0;
-            setMessageRateByName("UBX_NMEA_GSV", measurementFrequency); // One report per second
+            zedSetMessageRateByName("NMEA_GSV", measurementFrequency); // One report per second
 
-            setMessageRateByName("UBX_NMEA_RMC", 1);
+            zedSetMessageRateByName("NMEA_RMC", 1);
 
-            setMessageRateByName("UBX_RXM_RAWX", 1);
-            setMessageRateByName("UBX_RXM_SFRBX", 1);
+            zedSetMessageRateByName("RXM_RAWX", 1);
+            zedSetMessageRateByName("RXM_SFRBX", 1);
             systemPrintln("Reset to PPP Logging Defaults (NMEAx5 + RXMx2)");
         }
         else if (incoming == 12)
@@ -1654,41 +1661,41 @@ void zedMenuMessages()
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
 void zedBaseRtcmDefault()
 {
-    int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1005") - firstRTCMRecord] = 1; // 1105
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1074") - firstRTCMRecord] = 1; // 1074
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1077") - firstRTCMRecord] = 0; // 1077
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1084") - firstRTCMRecord] = 1; // 1084
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1087") - firstRTCMRecord] = 0; // 1087
+    int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1005") - firstRTCMRecord] = 1; // 1105
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1074") - firstRTCMRecord] = 1; // 1074
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1077") - firstRTCMRecord] = 0; // 1077
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1084") - firstRTCMRecord] = 1; // 1084
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1087") - firstRTCMRecord] = 0; // 1087
 
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1094") - firstRTCMRecord] = 1;  // 1094
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1097") - firstRTCMRecord] = 0;  // 1097
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1124") - firstRTCMRecord] = 1;  // 1124
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1127") - firstRTCMRecord] = 0;  // 1127
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1230") - firstRTCMRecord] = 10; // 1230
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1094") - firstRTCMRecord] = 1;  // 1094
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1097") - firstRTCMRecord] = 0;  // 1097
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1124") - firstRTCMRecord] = 1;  // 1124
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1127") - firstRTCMRecord] = 0;  // 1127
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1230") - firstRTCMRecord] = 10; // 1230
 
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
 }
 
 // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
 void zedBaseRtcmLowDataRate()
 {
-    int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1005") - firstRTCMRecord] = 10; // 1105 0.1Hz
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1074") - firstRTCMRecord] = 2;  // 1074 0.5Hz
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1077") - firstRTCMRecord] = 0;  // 1077
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1084") - firstRTCMRecord] = 2;  // 1084 0.5Hz
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1087") - firstRTCMRecord] = 0;  // 1087
+    int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1005") - firstRTCMRecord] = 10; // 1105 0.1Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1074") - firstRTCMRecord] = 2;  // 1074 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1077") - firstRTCMRecord] = 0;  // 1077
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1084") - firstRTCMRecord] = 2;  // 1084 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1087") - firstRTCMRecord] = 0;  // 1087
 
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1094") - firstRTCMRecord] = 2;  // 1094 0.5Hz
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1097") - firstRTCMRecord] = 0;  // 1097
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1124") - firstRTCMRecord] = 2;  // 1124 0.5Hz
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1127") - firstRTCMRecord] = 0;  // 1127
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_1230") - firstRTCMRecord] = 10; // 1230 0.1Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1094") - firstRTCMRecord] = 2;  // 1094 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1097") - firstRTCMRecord] = 0;  // 1097
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1124") - firstRTCMRecord] = 2;  // 1124 0.5Hz
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1127") - firstRTCMRecord] = 0;  // 1127
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_1230") - firstRTCMRecord] = 10; // 1230 0.1Hz
 
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
-    settings.ubxMessageRatesBase[getMessageNumberByName("UBX_RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_0") - firstRTCMRecord] = 0; // 4072_0
+    settings.ubxMessageRatesBase[zedGetMessageNumberByName("RTCM_4072_1") - firstRTCMRecord] = 0; // 4072_1
 }
 
 char *zedGetRtcmDefaultString()
@@ -1700,9 +1707,15 @@ char *zedGetRtcmLowDataRateString()
     return ((char *)"1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
 }
 
-float zedGetSurveyInStartingAccuracy()
+int ubxConstellationIDToIndex(int id)
 {
-    return (settings.zedSurveyInStartingAccuracy);
+    for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
+    {
+        if (settings.ubxConstellations[x].gnssID == id)
+            return x;
+    }
+
+    return -1; // Should never be reached...!
 }
 
 // Controls the constellations that are used to generate a fix and logged
@@ -1713,7 +1726,7 @@ void zedMenuConstellations()
         systemPrintln();
         systemPrintln("Menu: Constellations");
 
-        for (int x = 0; x < MAX_CONSTELLATIONS; x++)
+        for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
         {
             systemPrintf("%d) Constellation %s: ", x + 1, settings.ubxConstellations[x].textName);
             if (settings.ubxConstellations[x].enabled == true)
@@ -1727,7 +1740,7 @@ void zedMenuConstellations()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming >= 1 && incoming <= MAX_CONSTELLATIONS)
+        if (incoming >= 1 && incoming <= MAX_UBX_CONSTELLATIONS)
         {
             incoming--; // Align choice to constellation array of 0 to 5
 
@@ -1735,12 +1748,15 @@ void zedMenuConstellations()
 
             // 3.10.6: To avoid cross-correlation issues, it is recommended that GPS and QZSS are always both enabled or
             // both disabled.
-            if (incoming == SFE_UBLOX_GNSS_ID_GPS || incoming == 4) // QZSS ID is 5 but array location is 4
+            if (incoming == ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)) // Match QZSS to GPS
             {
-                settings.ubxConstellations[SFE_UBLOX_GNSS_ID_GPS].enabled =
-                    settings.ubxConstellations[incoming].enabled; // GPS ID is 0 and array location is 0
-                settings.ubxConstellations[4].enabled =
-                    settings.ubxConstellations[incoming].enabled; // QZSS ID is 5 but array location is 4
+                settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)].enabled =
+                    settings.ubxConstellations[incoming].enabled;
+            }
+            if (incoming == ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS)) // Match GPS to QZSS
+            {
+                settings.ubxConstellations[ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GPS)].enabled =
+                    settings.ubxConstellations[incoming].enabled;
             }
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -1755,4 +1771,125 @@ void zedMenuConstellations()
     gnssSetConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Given a unique string, find first and last records containing that string in message array
+void zedSetMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock)
+{
+    if (present.gnss_zedf9p)
+    {
+        char messageNamePiece[40];                                                   // UBX_RTCM
+        snprintf(messageNamePiece, sizeof(messageNamePiece), "%s", messageType); // Put UBX_ infront of type
+
+        // Find the first occurrence
+        for (startOfBlock = 0; startOfBlock < MAX_UBX_MSG; startOfBlock++)
+        {
+            if (strstr(localMessage[startOfBlock].msgTextName, messageNamePiece) != nullptr)
+                break;
+        }
+        if (startOfBlock == MAX_UBX_MSG)
+        {
+            // Error out
+            startOfBlock = 0;
+            endOfBlock = 0;
+            return;
+        }
+
+        // Find the last occurrence
+        for (endOfBlock = startOfBlock + 1; endOfBlock < MAX_UBX_MSG; endOfBlock++)
+        {
+            if (strstr(localMessage[endOfBlock].msgTextName, messageNamePiece) == nullptr)
+                break;
+        }
+    }
+    else
+        systemPrintln("zedSetMessageOffsets() Platform not supported");
+}
+
+// Count the number of NAV2 messages with rates more than 0. Used for determining if we need the enable
+// the global NAV2 feature.
+uint8_t zedGetNAV2MessageCount()
+{
+    if (present.gnss_zedf9p)
+    {
+        int enabledMessages = 0;
+        int startOfBlock = 0;
+        int endOfBlock = 0;
+
+        zedSetMessageOffsets(&ubxMessages[0], "NAV2", startOfBlock,
+                             endOfBlock); // Find start and stop of given messageType in message array
+
+        for (int x = 0; x < (endOfBlock - startOfBlock); x++)
+        {
+            if (settings.ubxMessageRates[x + startOfBlock] > 0)
+                enabledMessages++;
+        }
+
+        zedSetMessageOffsets(&ubxMessages[0], "NMEANAV2", startOfBlock,
+                             endOfBlock); // Find start and stop of given messageType in message array
+
+        for (int x = 0; x < (endOfBlock - startOfBlock); x++)
+        {
+            if (settings.ubxMessageRates[x + startOfBlock] > 0)
+                enabledMessages++;
+        }
+
+        return (enabledMessages);
+    }
+    else
+        systemPrintln("zedGetNAV2MessageCount() Platform not supported");
+
+    return (false);
+}
+
+// Given the name of a message, find it, and set the rate
+bool zedSetMessageRateByName(const char *msgName, uint8_t msgRate)
+{
+    if (present.gnss_zedf9p)
+    {
+        for (int x = 0; x < MAX_UBX_MSG; x++)
+        {
+            if (strcmp(ubxMessages[x].msgTextName, msgName) == 0)
+            {
+                settings.ubxMessageRates[x] = msgRate;
+                return (true);
+            }
+        }
+    }
+    else
+        systemPrintln("zedSetMessageRateByName() Platform not supported");
+
+    systemPrintf("zedSetMessageRateByName: %s not found\r\n", msgName);
+    return (false);
+}
+
+// Given the name of a message, find it, and return the rate
+uint8_t zedGetMessageRateByName(const char *msgName)
+{
+    if (present.gnss_zedf9p)
+    {
+        return (settings.ubxMessageRates[zedGetMessageNumberByName(msgName)]);
+    }
+    else
+        systemPrintln("zedGetMessageRateByName() Platform not supported");
+
+    return (0);
+}
+
+// Given the name of a message, return the array number
+uint8_t zedGetMessageNumberByName(const char *msgName)
+{
+    if (present.gnss_zedf9p)
+    {
+        for (int x = 0; x < MAX_UBX_MSG; x++)
+        {
+            if (strcmp(ubxMessages[x].msgTextName, msgName) == 0)
+                return (x);
+        }
+    }
+    else
+        systemPrintln("zedGetMessageNumberByName() Platform not supported");
+
+    systemPrintf("zedGetMessageNumberByName: %s not found\r\n", msgName);
+    return (0);
 }

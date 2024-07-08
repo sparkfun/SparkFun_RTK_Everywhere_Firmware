@@ -76,10 +76,8 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
-static derivedEthernetUDP *ntpServer; // This will be instantiated when we know the NTP port
+static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
-static volatile uint8_t
-    ntpSockIndex; // The W5500 socket index for NTP - so we can enable and read the correct interrupt
 static uint32_t lastLoggedNTPRequest;
 
 //----------------------------------------
@@ -114,6 +112,9 @@ void menuNTP()
 
         systemPrint("5) Reference ID: ");
         systemPrintln(settings.ntpReferenceId);
+
+        systemPrint("6) NTP Port: ");
+        systemPrintln(settings.ethernetNtpPort);
 
         systemPrintln("x) Exit");
 
@@ -169,6 +170,15 @@ void menuNTP()
             }
             else
                 systemPrintln("Error: invalid Reference ID");
+        }
+        else if (incoming == 6)
+        {
+            systemPrint("Enter new NTP port: ");
+            long newVal = getUserInputNumber();
+            if ((newVal >= 0) && (newVal <= 65535))
+                settings.ethernetNtpPort = newVal;
+            else
+                systemPrintln("Error: port number out of range");
         }
         else if (incoming == 'x')
             break;
@@ -474,7 +484,7 @@ struct NTPpacket
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // NTP process one request
-// recTv contains the timeval the NTP packet was received - from the W5500 interrupt
+// recTv contains the timeval the NTP packet was received
 // syncTv contains the timeval when the RTC was last sync'd
 // ntpDiag will contain useful diagnostics
 bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syncTv, char *ntpDiag = nullptr,
@@ -486,162 +496,195 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
     if (ntpDiag != nullptr)
         *ntpDiag = 0; // Clear any existing diagnostics
 
-    int packetDataSize = ntpServer->parsePacket();
+    ntpServer->parsePacket();
 
-    IPAddress remoteIP = ntpServer->remoteIP();
-    uint16_t remotePort = ntpServer->remotePort();
+    int packetDataSize = ntpServer->available();
 
-    if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
+    if (packetDataSize > 0)
     {
-        snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %d.%d.%d.%d  Remote Port: %d\r\n", remoteIP[0],
-                 remoteIP[1], remoteIP[2], remoteIP[3], remotePort);
+        gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP request. This was in ethernetISR()
+
+        IPAddress remoteIP = ntpServer->remoteIP();
+        uint16_t remotePort = ntpServer->remotePort();
+
+        if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
+        {
+            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n",
+                    remoteIP.toString(), remotePort);
+        }
+
+        if (packetDataSize >= NTPpacket::NTPpacketSize)
+        {
+            // Read the NTP packet
+            NTPpacket packet;
+
+            ntpServer->read((char *)&packet.packet, NTPpacket::NTPpacketSize); // Copy the NTP data into our packet
+
+            /*
+            // Add the incoming packet to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Packet <-- : ");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                for (int i = 0; i < NTPpacket::NTPpacketSize; i++)
+                {
+                    snprintf(tmpbuf, sizeof(tmpbuf), "%02X ", packet.packet[i]);
+                    strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                }
+                snprintf(tmpbuf, sizeof(tmpbuf), "\r\n");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+            */
+
+            // If process is false, return now
+            if (!process)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf),
+                        "NTP request ignored. Time has not been synchronized - or not in NTP mode.\r\n");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                return false;
+            }
+
+            packet.extract(); // Extract the raw data into fields
+
+            packet.LI(packet.defaultLeapInd);       // Clear the leap second adjustment. TODO: set this correctly using
+                                                    // getLeapSecondEvent from the GNSS
+            packet.VN(packet.defaultVersion);       // Set the version number
+            packet.mode(packet.defaultMode);        // Set the mode
+            packet.stratum = packet.defaultStratum; // Set the stratum
+            packet.pollExponent = settings.ntpPollExponent;                                  // Set the poll interval
+            packet.precision = settings.ntpPrecision;                                        // Set the precision
+            packet.rootDelay = packet.convertMicrosToSecsAndFraction(settings.ntpRootDelay); // Set the Root Delay
+            packet.rootDispersion =
+                packet.convertMicrosToSecsAndFraction(settings.ntpRootDispersion); // Set the Root Dispersion
+            for (uint8_t i = 0; i < packet.referenceIdLen; i++)
+                packet.referenceId[i] = settings.ntpReferenceId[i]; // Set the reference Id
+
+            // REF: http://support.ntp.org/bin/view/Support/DraftRfc2030
+            // '.. the client sets the Transmit Timestamp field in the request
+            // to the time of day according to the client clock in NTP timestamp format.'
+            // '.. The server copies this field to the originate timestamp in the reply and
+            // sets the Receive Timestamp and Transmit Timestamp fields to the time of day
+            // according to the server clock in NTP timestamp format.'
+
+            // Important note: the NTP Era started January 1st 1900.
+            // tv will contain the time based on the Unix epoch (January 1st 1970)
+            // We need to adjust...
+
+            // First, add the client transmit timestamp to our diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Originate Timestamp (Client Transmit): %u.%06u\r\n",
+                        packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+
+            // Copy the client transmit timestamp into the originate timestamp
+            packet.originateTimestampSeconds = packet.transmitTimestampSeconds;
+            packet.originateTimestampFraction = packet.transmitTimestampFraction;
+
+            // Set the receive timestamp to the time we received the packet (logged by the W5500 interrupt)
+            uint32_t recUnixSeconds = recTv->tv_sec;
+            recUnixSeconds -= settings.timeZoneSeconds; // Subtract the time zone offset to convert recTv to Unix time
+            recUnixSeconds -= settings.timeZoneMinutes * 60;
+            recUnixSeconds -= settings.timeZoneHours * 60 * 60;
+            packet.receiveTimestampSeconds = packet.convertUnixSecondsToNTP(recUnixSeconds);  // Unix -> NTP
+            packet.receiveTimestampFraction = packet.convertMicrosToFraction(recTv->tv_usec); // Micros to 1/2^32
+
+            // Add the receive timestamp to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Received Timestamp:                    %u.%06u\r\n",
+                        packet.receiveTimestampSeconds, packet.convertFractionToMicros(packet.receiveTimestampFraction));
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+
+            // Add when our clock was last sync'd
+            uint32_t syncUnixSeconds = syncTv->tv_sec;
+            syncUnixSeconds -= settings.timeZoneSeconds; // Subtract the time zone offset to convert recTv to Unix time
+            syncUnixSeconds -= settings.timeZoneMinutes * 60;
+            syncUnixSeconds -= settings.timeZoneHours * 60 * 60;
+            packet.referenceTimestampSeconds = packet.convertUnixSecondsToNTP(syncUnixSeconds);  // Unix -> NTP
+            packet.referenceTimestampFraction = packet.convertMicrosToFraction(syncTv->tv_usec); // Micros to 1/2^32
+
+            // Add that to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Reference Timestamp (Last Sync):       %u.%06u\r\n",
+                        packet.referenceTimestampSeconds,
+                        packet.convertFractionToMicros(packet.referenceTimestampFraction));
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+
+            // Add the transmit time - i.e. now!
+            timeval txTime;
+            gettimeofday(&txTime, nullptr);
+            uint32_t nowUnixSeconds = txTime.tv_sec;
+            nowUnixSeconds -= settings.timeZoneSeconds; // Subtract the time zone offset to convert recTv to Unix time
+            nowUnixSeconds -= settings.timeZoneMinutes * 60;
+            nowUnixSeconds -= settings.timeZoneHours * 60 * 60;
+            packet.transmitTimestampSeconds = packet.convertUnixSecondsToNTP(nowUnixSeconds);  // Unix -> NTP
+            packet.transmitTimestampFraction = packet.convertMicrosToFraction(txTime.tv_usec); // Micros to 1/2^32
+
+            packet.insert(); // Copy the data fields back into the buffer
+
+            // Now transmit the response to the client.
+            ntpServer->beginPacket(remoteIP, remotePort);
+            ntpServer->write(packet.packet, NTPpacket::NTPpacketSize);
+            int result = ntpServer->endPacket();
+            processed = true;
+
+            // Add our server transmit time to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Transmit Timestamp:                    %u.%06u\r\n",
+                        packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+
+            /*
+            // Add the socketSendUDP result to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "socketSendUDP result: %d\r\n", result);
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+            */
+
+            /*
+            // Add the outgoing packet to the diagnostics
+            if (ntpDiag != nullptr)
+            {
+                char tmpbuf[128];
+                snprintf(tmpbuf, sizeof(tmpbuf), "Packet --> : ");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                for (int i = 0; i < NTPpacket::NTPpacketSize; i++)
+                {
+                    snprintf(tmpbuf, sizeof(tmpbuf), "%02X ", packet.packet[i]);
+                    strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+                }
+                snprintf(tmpbuf, sizeof(tmpbuf), "\r\n");
+                strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+            }
+            */
+        }
+        else
+        {
+            char tmpbuf[64];
+            snprintf(tmpbuf, sizeof(tmpbuf), "Invalid size: %d\r\n", packetDataSize);
+            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
+        }
     }
 
-    if (packetDataSize && (packetDataSize >= NTPpacket::NTPpacketSize))
-    {
-        // Read the NTP packet
-        NTPpacket packet;
+    ntpServer->clear();
 
-        ntpServer->read((char *)&packet.packet, NTPpacket::NTPpacketSize); // Copy the NTP data into our packet
-
-        // If process is false, return now
-        if (!process)
-        {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf),
-                     "NTP request ignored. Time has not been synchronized - or not in NTP mode.\r\n");
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-            return false;
-        }
-
-        packet.extract(); // Extract the raw data into fields
-
-        packet.LI(packet.defaultLeapInd);       // Clear the leap second adjustment. TODO: set this correctly using
-                                                // getLeapSecondEvent from the GNSS
-        packet.VN(packet.defaultVersion);       // Set the version number
-        packet.mode(packet.defaultMode);        // Set the mode
-        packet.stratum = packet.defaultStratum; // Set the stratum
-        packet.pollExponent = settings.ntpPollExponent;                                  // Set the poll interval
-        packet.precision = settings.ntpPrecision;                                        // Set the precision
-        packet.rootDelay = packet.convertMicrosToSecsAndFraction(settings.ntpRootDelay); // Set the Root Delay
-        packet.rootDispersion =
-            packet.convertMicrosToSecsAndFraction(settings.ntpRootDispersion); // Set the Root Dispersion
-        for (uint8_t i = 0; i < packet.referenceIdLen; i++)
-            packet.referenceId[i] = settings.ntpReferenceId[i]; // Set the reference Id
-
-        // REF: http://support.ntp.org/bin/view/Support/DraftRfc2030
-        // '.. the client sets the Transmit Timestamp field in the request
-        // to the time of day according to the client clock in NTP timestamp format.'
-        // '.. The server copies this field to the originate timestamp in the reply and
-        // sets the Receive Timestamp and Transmit Timestamp fields to the time of day
-        // according to the server clock in NTP timestamp format.'
-
-        // Important note: the NTP Era started January 1st 1900.
-        // tv will contain the time based on the Unix epoch (January 1st 1970)
-        // We need to adjust...
-
-        // First, add the client transmit timestamp to our diagnostics
-        if (ntpDiag != nullptr)
-        {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "Originate Timestamp (Client Transmit): %u.%06u\r\n",
-                     packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-        }
-
-        // Copy the client transmit timestamp into the originate timestamp
-        packet.originateTimestampSeconds = packet.transmitTimestampSeconds;
-        packet.originateTimestampFraction = packet.transmitTimestampFraction;
-
-        // Set the receive timestamp to the time we received the packet (logged by the W5500 interrupt)
-        uint32_t recUnixSeconds = recTv->tv_sec;
-        recUnixSeconds -= settings.timeZoneSeconds; // Subtract the time zone offset to convert recTv to Unix time
-        recUnixSeconds -= settings.timeZoneMinutes * 60;
-        recUnixSeconds -= settings.timeZoneHours * 60 * 60;
-        packet.receiveTimestampSeconds = packet.convertUnixSecondsToNTP(recUnixSeconds);  // Unix -> NTP
-        packet.receiveTimestampFraction = packet.convertMicrosToFraction(recTv->tv_usec); // Micros to 1/2^32
-
-        // Add the receive timestamp to the diagnostics
-        if (ntpDiag != nullptr)
-        {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "Received Timestamp:                    %u.%06u\r\n",
-                     packet.receiveTimestampSeconds, packet.convertFractionToMicros(packet.receiveTimestampFraction));
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-        }
-
-        // Add when our clock was last sync'd
-        uint32_t syncUnixSeconds = syncTv->tv_sec;
-        syncUnixSeconds -= settings.timeZoneSeconds; // Subtract the time zone offset to convert recTv to Unix time
-        syncUnixSeconds -= settings.timeZoneMinutes * 60;
-        syncUnixSeconds -= settings.timeZoneHours * 60 * 60;
-        packet.referenceTimestampSeconds = packet.convertUnixSecondsToNTP(syncUnixSeconds);  // Unix -> NTP
-        packet.referenceTimestampFraction = packet.convertMicrosToFraction(syncTv->tv_usec); // Micros to 1/2^32
-
-        // Add that to the diagnostics
-        if (ntpDiag != nullptr)
-        {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "Reference Timestamp (Last Sync):       %u.%06u\r\n",
-                     packet.referenceTimestampSeconds,
-                     packet.convertFractionToMicros(packet.referenceTimestampFraction));
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-        }
-
-        // Add the transmit time - i.e. now!
-        timeval txTime;
-        gettimeofday(&txTime, nullptr);
-        uint32_t nowUnixSeconds = txTime.tv_sec;
-        nowUnixSeconds -= settings.timeZoneSeconds; // Subtract the time zone offset to convert recTv to Unix time
-        nowUnixSeconds -= settings.timeZoneMinutes * 60;
-        nowUnixSeconds -= settings.timeZoneHours * 60 * 60;
-        packet.transmitTimestampSeconds = packet.convertUnixSecondsToNTP(nowUnixSeconds);  // Unix -> NTP
-        packet.transmitTimestampFraction = packet.convertMicrosToFraction(txTime.tv_usec); // Micros to 1/2^32
-
-        packet.insert(); // Copy the data fields back into the buffer
-
-        // Now transmit the response to the client.
-        ntpServer->beginPacket(remoteIP, remotePort);
-        ntpServer->write(packet.packet, NTPpacket::NTPpacketSize);
-        // int result = ntpServer->endPacket();
-        processed = true;
-
-        // Add our server transmit time to the diagnostics
-        if (ntpDiag != nullptr)
-        {
-            char tmpbuf[128];
-            snprintf(tmpbuf, sizeof(tmpbuf), "Transmit Timestamp:                    %u.%06u\r\n",
-                     packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-        }
-
-        /*
-          // Add the socketSendUDP result to the diagnostics
-          if (ntpDiag != nullptr)
-          {
-          char tmpbuf[128];
-          snprintf(tmpbuf, sizeof(tmpbuf), "socketSendUDP result: %d\r\n", result);
-          strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-          }
-        */
-
-        /*
-          // Add the packet to the diagnostics
-          if (ntpDiag != nullptr)
-          {
-          char tmpbuf[128];
-          snprintf(tmpbuf, sizeof(tmpbuf), "Packet: ");
-          strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-          for (int i = 0; i < NTPpacket::NTPpacketSize; i++)
-          {
-            snprintf(tmpbuf, sizeof(tmpbuf), "%02X ", packet.packet[i]);
-            strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-          }
-          snprintf(tmpbuf, sizeof(tmpbuf), "\r\n");
-          strlcat(ntpDiag, tmpbuf, ntpDiagSize);
-          }
-        */
-    }
     return processed;
 }
 
@@ -747,9 +790,9 @@ void ntpServerSetState(uint8_t newState)
     if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE)) && (!inMainMenu))
     {
         if (ntpServerState == newState)
-            systemPrint("*");
+            systemPrint("NTP Server: *");
         else
-            systemPrintf("%s --> ", ntpServerStateName[ntpServerState]);
+            systemPrintf("NTP Server: %s --> ", ntpServerStateName[ntpServerState]);
     }
     ntpServerState = newState;
     if (settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_STATE))
@@ -757,7 +800,7 @@ void ntpServerSetState(uint8_t newState)
         PERIODIC_CLEAR(PD_NTP_SERVER_STATE);
         if (newState >= NTP_STATE_MAX)
         {
-            systemPrintf("Unknown NTP Server state: %d\r\n", newState);
+            systemPrintf("Unknown state: %d\r\n", newState);
             reportFatalError("Unknown NTP Server state");
         }
         else if (!inMainMenu)
@@ -774,7 +817,6 @@ void ntpServerStop()
     // Release the NTP server memory
     if (ntpServer)
     {
-        w5500DisableSocketInterrupt(ntpSockIndex); // Disable the receive interrupt
         ntpServer->stop();
         delete ntpServer;
         ntpServer = nullptr;
@@ -793,7 +835,7 @@ void ntpServerStop()
 // Update the NTP server state
 void ntpServerUpdate()
 {
-    char ntpDiag[512]; // Char array to hold diagnostic messages
+    char ntpDiag[768]; // Char array to hold diagnostic messages
 
     if (present.ethernet_ws5500 == false)
         return;
@@ -844,17 +886,13 @@ void ntpServerUpdate()
         // Attempt to start the NTP server
         else
         {
-            ntpServer = new derivedEthernetUDP;
+            ntpServer = new NetworkUDP;
             if (!ntpServer)
                 // Insufficient memory to start the NTP server
                 ntpServerStop();
             else
             {
-                // Start the NTP server
-                ntpServer->begin(settings.ethernetNtpPort);
-                ntpSockIndex = ntpServer->getSockIndex(); // Get the socket index
-                w5500ClearSocketInterrupts();             // Clear all interrupts
-                w5500EnableSocketInterrupt(ntpSockIndex); // Enable the RECV interrupt for the desired socket index
+                ntpServer->begin(settings.ethernetNtpPort); // Start the NTP server
                 online.ethernetNTPServer = true;
                 if (!inMainMenu)
                     reportHeapNow(settings.debugNtp);
@@ -871,21 +909,19 @@ void ntpServerUpdate()
 
         else
         {
-            if (w5500CheckSocketInterrupt(ntpSockIndex))
-                w5500ClearSocketInterrupt(ntpSockIndex); // Clear the socket interrupt here
-
             // Check for new NTP requests - if the time has been sync'd
             bool processed = ntpProcessOneRequest(systemState == STATE_NTPSERVER_SYNC, (const timeval *)&ethernetNtpTv,
                                                   (const timeval *)&gnssSyncTv, ntpDiag, sizeof(ntpDiag));
+
+            // Print the diagnostics - if enabled
+            if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (strlen(ntpDiag) > 0) && (!inMainMenu))
+            {
+                PERIODIC_CLEAR(PD_NTP_SERVER_DATA);
+                systemPrint(ntpDiag);
+            }
+
             if (processed)
             {
-                // Print the diagnostics - if enabled
-                if ((settings.debugNtp || PERIODIC_DISPLAY(PD_NTP_SERVER_DATA)) && (!inMainMenu))
-                {
-                    PERIODIC_CLEAR(PD_NTP_SERVER_DATA);
-                    systemPrint(ntpDiag);
-                }
-
                 // Log the NTP request to file - if enabled
                 if (settings.enableNTPFile)
                 {

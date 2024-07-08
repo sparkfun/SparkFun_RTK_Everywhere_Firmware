@@ -5,6 +5,8 @@ Begin.ino
   radio, etc.
 ------------------------------------------------------------------------------*/
 
+#include <esp_mac.h> // required - exposes esp_mac_type_t values
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -139,7 +141,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaReferencePoint_mm = 115.7;
+        present.antennaPhaseCenter_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
 
@@ -160,7 +162,7 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
-        pin_muxA = 18; //Controls U12 switch between ESP UART1 to UM980 or LoRa
+        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 or LoRa
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
@@ -227,7 +229,6 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
-#ifdef EVKv1point1        
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
@@ -237,9 +238,10 @@ void beginBoard()
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.button_mode = true;
-        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
+        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been
+        // changed
         present.peripheralPowerControl = true;
-        present.laraPowerControl = true;       // Tertiary power controls the LARA
+        present.laraPowerControl = true; // Tertiary power controls the LARA
         present.antennaShortOpen = true;
         present.timePulseInterrupt = true;
         present.gnss_to_uart = true;
@@ -295,72 +297,7 @@ void beginBoard()
         pin_microSD_CardDetect = 36;
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
-#else
-        // EVK v1.0 - TODO: delete this once all five EVK v1.0's have been upgraded / replaced
-        present.psram_4mb = true;
-        present.gnss_zedf9p = true;
-        present.lband_neo = true;
-        present.cellular_lara = true;
-        present.ethernet_ws5500 = true;
-        present.microSd = true;
-        present.microSdCardDetectLow = true;
-        present.button_mode = true;
-        // Peripheral power controls the OLED, SD, ZED, NEO, USB Hub, LARA - if the SPWR & TPWR jumpers have been changed
-        present.peripheralPowerControl = true;
-        present.laraPowerControl = true;       // Tertiary power controls the LARA
-        present.antennaShortOpen = true;
-        present.timePulseInterrupt = true;
-        present.i2c0BusSpeed_400 = true; // Run bus at higher speed
-        present.i2c1 = true;
-        present.display_i2c1 = true;
-        present.display_type = DISPLAY_128x64;
-        present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
 
-        // Pin Allocations:
-        // 35, D1  : Serial TX (CH340 RX)
-        // 34, D3  : Serial RX (CH340 TX)
-
-        // 25, D0  : Boot + Boot Button
-        pin_modeButton = 0;
-        // 24, D2  : Status LED
-        pin_baseStatusLED = 2;
-        // 29, D5  : LARA_ON - not used
-        // 14, D12 : I2C1 SDA via 74LVC4066 switch
-        pin_I2C1_SDA = 12;
-        // 23, D15 : I2C1 SCL via 74LVC4066 switch
-        pin_I2C1_SCL = 15;
-
-        // 26, D4  : microSD card select bar
-        pin_microSD_CS = 4;
-        // 16, D13 : LARA_TXDI
-        pin_Cellular_TX = 13;
-        // 13, D14 : LARA_RXDO
-        pin_Cellular_RX = 14;
-
-        // 30, D18 : SPI SCK --> Ethernet, microSD card
-        // 31, D19 : SPI POCI
-        // 33, D21 : I2C0 SDA --> ZED, NEO, USB2514B, TP, I/O connector
-        pin_I2C0_SDA = 21;
-        // 36, D22 : I2C0 SCL
-        pin_I2C0_SCL = 22;
-        // 37, D23 : SPI PICO
-        // 10, D25 : GNSS TP
-        pin_GNSS_TimePulse = 25;
-        // 11, D26 : LARA_PWR_ON
-        pin_Cellular_PWR_ON = 26;
-        // 12, D27 : Ethernet Chip Select
-        pin_Ethernet_CS = 27;
-        //  8, D32 : PWREN
-        pin_peripheralPowerControl = 32;
-        //  9, D33 : Ethernet Interrupt
-        pin_Ethernet_Interrupt = 33;
-        //  6, A34 : LARA_NI
-        pin_Cellular_Network_Indicator = 34;
-        //  7, A35 : Board Detect (1.1V)
-        //  4, A36 : microSD card detect
-        pin_microSD_CardDetect = 36;
-        //  5, A39 : Not used
-#endif
         // Select the I2C 0 data structure
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
@@ -387,14 +324,14 @@ void beginBoard()
 
         // In the fullness of time, pin_Cellular_PWR_ON will (probably) be controlled by the Cellular Library
         DMW_if systemPrintf("pin_Cellular_PWR_ON: %d\r\n", pin_Cellular_PWR_ON);
-        digitalWrite(pin_Cellular_PWR_ON, LOW);
         pinMode(pin_Cellular_PWR_ON, OUTPUT);
         digitalWrite(pin_Cellular_PWR_ON, LOW);
 
         // Turn on power to the peripherals
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
-        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub, LARA - if SPWR & TPWR jumpers have been changed
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub, LARA - if SPWR & TPWR jumpers have been
+                         // changed
     }
 
     else if (productVariant == RTK_FACET_V2)
@@ -545,18 +482,23 @@ void beginVersion()
     }
 }
 
+void beginSPI(bool force) // Call after beginBoard
+{
+    static bool started = false;
+
+    bool spiNeeded = present.ethernet_ws5500 || present.microSd;
+
+    if (force || (spiNeeded && !started))
+    {
+        SPI.begin(pin_SCK, pin_POCI, pin_PICO);
+        started = true;
+    }
+}
+
 void beginSD()
 {
     if (present.microSd == false)
         return;
-
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginSD");
-        return;
-    }
 
     bool gotSemaphore;
 
@@ -694,7 +636,7 @@ void resetSPI()
     sdDeselectCard();
 
     // Flush SPI interface
-    SPI.begin();
+    beginSPI(true);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -704,7 +646,7 @@ void resetSPI()
     sdSelectCard();
 
     // Flush SD interface
-    SPI.begin();
+    beginSPI(true);
     SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
     for (int x = 0; x < 10; x++)
         SPI.transfer(0XFF);
@@ -741,10 +683,14 @@ void beginGnssUart()
     length = settings.gnssHandlerBufferSize + (rbOffsetEntries * sizeof(RING_BUFFER_OFFSET));
     ringBuffer = nullptr;
 
-    if (online.psram == true)
-        rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
-    else
-        rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
+    // Never freed...
+    if (rbOffsetArray == nullptr)
+    {
+        if (online.psram == true)
+            rbOffsetArray = (RING_BUFFER_OFFSET *)ps_malloc(length);
+        else
+            rbOffsetArray = (RING_BUFFER_OFFSET *)malloc(length);
+    }
 
     if (!rbOffsetArray)
     {
@@ -755,7 +701,12 @@ void beginGnssUart()
     {
         ringBuffer = (uint8_t *)&rbOffsetArray[rbOffsetEntries];
         rbOffsetArray[0] = 0;
-        if (!online.gnssUartPinned)
+
+        if (task.gnssUartPinnedTaskRunning == false)
+        {
+            task.gnssUartPinnedTaskRunning = true; // The xTaskCreate runs and completes nearly immediately. Mark start
+                                                   // here and check for completion.
+
             xTaskCreatePinnedToCore(
                 pinGnssUartTask,
                 "GnssUartStart", // Just for humans
@@ -764,8 +715,9 @@ void beginGnssUart()
                 0,           // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                 &taskHandle, // Task handle
                 settings.gnssUartInterruptsCore); // Core where task should run, 0=core, 1=Arduino
+        }
 
-        while (!online.gnssUartPinned) // Wait for task to run once
+        while (task.gnssUartPinnedTaskRunning == true) // Wait for task to complete run
             delay(1);
     }
 }
@@ -787,8 +739,7 @@ void pinGnssUartTask(void *pvParameters)
     if (serialGNSS == nullptr)
         serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
 
-    serialGNSS->setRxBufferSize(
-        settings.uartReceiveBufferSize);
+    serialGNSS->setRxBufferSize(settings.uartReceiveBufferSize);
     serialGNSS->setTimeout(settings.serialTimeoutGNSS); // Requires serial traffic on the UART pins for detection
 
     if (pin_GnssUart_RX == -1 || pin_GnssUart_TX == -1)
@@ -806,7 +757,7 @@ void pinGnssUartTask(void *pvParameters)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask stopped");
-    online.gnssUartPinned = true;
+    task.gnssUartPinnedTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 
@@ -827,7 +778,6 @@ void beginFS()
 }
 
 // Check if configureViaEthernet.txt exists
-// Used to indicate if SparkFun_WebServer_ESP32_W5500 needs _exclusive_ access to SPI and interrupts
 bool checkConfigureViaEthernet()
 {
     if (online.fs == false)
@@ -845,7 +795,6 @@ bool checkConfigureViaEthernet()
 }
 
 // Force configure-via-ethernet mode by creating configureViaEthernet.txt in LittleFS
-// Used to indicate if SparkFun_WebServer_ESP32_W5500 needs _exclusive_ access to SPI and interrupts
 bool forceConfigureViaEthernet()
 {
     if (online.fs == false)
@@ -872,14 +821,6 @@ bool forceConfigureViaEthernet()
 // Begin interrupts
 void beginInterrupts()
 {
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginInterrupts");
-        return;
-    }
-
     if (present.timePulseInterrupt ==
         true) // If the GNSS Time Pulse is connected, use it as an interrupt to set the clock accurately
     {
@@ -892,8 +833,7 @@ void beginInterrupts()
     if (present.ethernet_ws5500 == true)
     {
         DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
-        pinMode(pin_Ethernet_Interrupt, INPUT_PULLUP);                 // Prepare the interrupt pin
-        attachInterrupt(pin_Ethernet_Interrupt, ethernetISR, FALLING); // Attach the interrupt
+        pinMode(pin_Ethernet_Interrupt, INPUT); // Prepare the interrupt pin
     }
 #endif // COMPILE_ETHERNET
 }
@@ -903,26 +843,23 @@ void tickerBegin()
 {
     if (pin_bluetoothStatusLED != PIN_UNDEFINED)
     {
-        ledcSetup(ledBtChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_bluetoothStatusLED, ledBtChannel);
-        ledcWrite(ledBtChannel, 255);                                               // Turn on BT LED at startup
-        //Attach happens in bluetoothStart()
+        ledcAttach(pin_bluetoothStatusLED, pwmFreq, pwmResolution);
+        ledcWrite(pin_bluetoothStatusLED, 255); // Turn on BT LED at startup
+        // Attach happens in bluetoothStart()
     }
 
     if (pin_gnssStatusLED != PIN_UNDEFINED)
     {
-        ledcSetup(ledGnssChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_gnssStatusLED, ledGnssChannel);
-        ledcWrite(ledGnssChannel, 0);                                     // Turn off GNSS LED at startup
+        ledcAttach(pin_gnssStatusLED, pwmFreq, pwmResolution);
+        ledcWrite(pin_gnssStatusLED, 0);                                  // Turn off GNSS LED at startup
         gnssLedTask.detach();                                             // Turn off any previous task
         gnssLedTask.attach(1.0 / gnssTaskUpdatesHz, tickerGnssLedUpdate); // Rate in seconds, callback
     }
 
     if (pin_batteryStatusLED != PIN_UNDEFINED)
     {
-        ledcSetup(ledBatteryChannel, pwmFreq, pwmResolution);
-        ledcAttachPin(pin_batteryStatusLED, ledBatteryChannel);
-        ledcWrite(ledBatteryChannel, 0);                                           // Turn off battery LED at startup
+        ledcAttach(pin_batteryStatusLED, pwmFreq, pwmResolution);
+        ledcWrite(pin_batteryStatusLED, 0);                                        // Turn off battery LED at startup
         batteryLedTask.detach();                                                   // Turn off any previous task
         batteryLedTask.attach(1.0 / batteryTaskUpdatesHz, tickerBatteryLedUpdate); // Rate in seconds, callback
     }
@@ -941,9 +878,9 @@ void tickerStop()
     gnssLedTask.detach();
     batteryLedTask.detach();
 
-    ledcDetachPin(pin_bluetoothStatusLED);
-    ledcDetachPin(pin_gnssStatusLED);
-    ledcDetachPin(pin_batteryStatusLED);
+    ledcDetach(pin_bluetoothStatusLED);
+    ledcDetach(pin_gnssStatusLED);
+    ledcDetach(pin_batteryStatusLED);
 }
 
 // Configure the battery fuel gauge
@@ -1100,7 +1037,7 @@ void beginButtons()
     userBtn->begin();
 
     // Starts task for monitoring button presses
-    if (!online.buttonCheckTaskRunning)
+    if (!task.buttonCheckTaskRunning)
         xTaskCreate(buttonCheckTask,
                     "BtnCheck",          // Just for humans
                     buttonTaskStackSize, // Stack Size
@@ -1141,13 +1078,10 @@ void beginSystemState()
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
 
-        // Begin process for getting new keys if corrections are enabled
-        // Because this is the only way to set online.lbandCorrections to true via
-        // STATE_KEYS_LBAND_CONFIGURE -> gnssApplyPointPerfectKeys -> zedApplyPointPerfectKeys
-        // TODO: we need to rethink this. We need correction keys for both ip and Lb.
-        // We should really restructure things so we use online.corrections...
-        if (settings.enablePointPerfectCorrections)
-            systemState = STATE_KEYS_STARTED;
+        // Explicitly set the default network type to avoid printing 'Hardware default'
+        // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/360
+        if(settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
+            settings.defaultNetworkType = NETWORK_TYPE_ETHERNET;
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
@@ -1166,8 +1100,9 @@ void beginSystemState()
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
 
-        if (settings.enablePointPerfectCorrections)
-            systemState = STATE_KEYS_STARTED; // Begin process for getting new keys
+        //If the setting is not set, override with default
+        if (settings.antennaPhaseCenter_mm == 0.0)
+            settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
     }
     else
     {
@@ -1236,7 +1171,8 @@ void beginI2C()
         while (millis() < i2cPowerUpDelay)
             ;
 
-    if (!online.i2cPinned)
+    if (task.i2cPinnedTaskRunning == false)
+    {
         xTaskCreatePinnedToCore(
             pinI2CTask,
             "I2CStart",  // Just for humans
@@ -1246,14 +1182,21 @@ void beginI2C()
             &taskHandle, // Task handle
             settings.i2cInterruptsCore); // Core where task should run, 0=core, 1=Arduino
 
-    // Wait for task to run once
-    while (!online.i2cPinned)
+        // Wait for task to start running
+        while (task.i2cPinnedTaskRunning == false)
+            delay(1);
+    }
+
+    // Wait for task to complete run
+    while (task.i2cPinnedTaskRunning == true)
         delay(1);
 }
 
 // Assign I2C interrupts to the core that started the task. See: https://github.com/espressif/arduino-esp32/issues/3386
 void pinI2CTask(void *pvParameters)
 {
+    task.i2cPinnedTaskRunning = true;
+
     // Start notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask started");
@@ -1285,7 +1228,7 @@ void pinI2CTask(void *pvParameters)
     // Stop notification
     if (settings.printTaskStartStop)
         systemPrintln("Task pinI2CTask stopped");
-    online.i2cPinned = true;
+    task.i2cPinnedTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
 }
 

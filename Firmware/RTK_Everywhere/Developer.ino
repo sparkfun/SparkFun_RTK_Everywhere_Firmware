@@ -12,6 +12,7 @@
 void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
 void ethernetBegin() {}
 IPAddress ethernetGetIpAddress() {return IPAddress((uint32_t)0);}
+IPAddress ethernetGetSubnetMask() {return IPAddress((uint32_t)0);}
 void ethernetUpdate() {}
 void ethernetVerifyTables() {}
 
@@ -30,7 +31,7 @@ void ntpServerStop() {}
 
 #endif // COMPILE_ETHERNET
 
-#if !COMPILE_NETWORK
+#ifndef COMPILE_NETWORK
 
 //----------------------------------------
 // Network layer
@@ -42,6 +43,9 @@ void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
+uint8_t networkGetActiveType() {
+    return (0);
+}
 
 //----------------------------------------
 // NTRIP client
@@ -59,7 +63,7 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
-void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[0] = false;}
+void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[serverIndex] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
 bool ntripServerIsCasting(int serverIndex) {
@@ -115,6 +119,18 @@ void mqttClientValidateTables() {}
 #endif   // COMPILE_MQTT_CLIENT
 
 //----------------------------------------
+// HTTP Client
+//----------------------------------------
+
+#ifndef COMPILE_HTTP_CLIENT
+
+void httpClientPrintStatus() {}
+void httpClientUpdate() {}
+void httpClientValidateTables() {}
+
+#endif   // COMPILE_HTTP_CLIENT
+
+//----------------------------------------
 // Web Server
 //----------------------------------------
 
@@ -127,7 +143,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 }
 void stopWebServer() {}
 bool parseIncomingSettings() {return false;}
-void sendStringToWebsocket(char* stringToSend) {}
+void sendStringToWebsocket(const char* stringToSend) {}
 
 #endif  // COMPILE_AP
 #ifndef COMPILE_WIFI
@@ -149,14 +165,17 @@ void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(unsigned long timeout) {return false;}
+bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
 IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
+IPAddress wifiGetSubnetMask() {return IPAddress((uint32_t)0);}
 int wifiGetRssi() {return -999;}
 String wifiGetSsid() {return "**WiFi Not compiled**";}
 bool wifiIsConnected() {return false;}
 bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}
 void wifiPrintNetworkInfo() {}
+void wifiSetApMode() {}
 void wifiStart() {}
 void wifiStop() {}
 void wifiUpdate() {}
@@ -217,8 +236,8 @@ bool     um980IsValidDate() {return false;}
 bool     um980IsValidTime() {return false;}
 void     um980PrintInfo() {}
 int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
-bool     um980SaveConfiguration() {}
-void     um980SetBaudRateCOM3(uint32_t baudRate) {}
+bool     um980SaveConfiguration() {return false;}
+bool     um980SetBaudRateCOM3(uint32_t baudRate) {return false;}
 bool     um980SetConstellations() {return false;}
 void     um980SetMinCNO(uint8_t cnoValue) {}
 void     um980SetMinElevation(uint8_t elevationDegrees) {}
@@ -235,9 +254,8 @@ uint8_t  um980GetActiveMessageCount() {return(0);}
 void     um980MenuMessages(){}
 void     um980BaseRtcmDefault(){}
 void     um980BaseRtcmLowDataRate(){}
-char *   um980GetRtcmDefaultString() {return ("Not compiled");}
-char *   um980GetRtcmLowDataRateString() {return ("Not compiled");}
-float    um980GetSurveyInStartingAccuracy() {return(0.0);}
+char *   um980GetRtcmDefaultString() {return ((char*)"Not compiled");}
+char *   um980GetRtcmLowDataRateString() {return ((char*)"Not compiled");}
 void     um980MenuConstellations(){}
 double   um980GetRateS() {return(0.0);}
 void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}

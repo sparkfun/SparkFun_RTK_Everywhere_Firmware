@@ -292,17 +292,17 @@ void bluetoothStart()
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
             beginSuccess &=
-                bluetoothSerialBle->begin(deviceName, false, settings.sppRxQueueSize,
-                                          settings.sppTxQueueSize); // localName, isMaster, rxBufferSize, txBufferSize
+                bluetoothSerialBle->begin(deviceName, false, false, settings.sppRxQueueSize,
+                                          settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
             beginSuccess &=
-                bluetoothSerialSpp->begin(deviceName, false, settings.sppRxQueueSize,
-                                          settings.sppTxQueueSize); // localName, isMaster, rxBufferSize, txBufferSize
+                bluetoothSerialSpp->begin(deviceName, false, false, settings.sppRxQueueSize,
+                                          settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
         }
         else
         {
             beginSuccess &=
-                bluetoothSerial->begin(deviceName, false, settings.sppRxQueueSize,
-                                       settings.sppTxQueueSize); // localName, isMaster, rxBufferSize, txBufferSize
+                bluetoothSerial->begin(deviceName, false, true, settings.sppRxQueueSize,
+                                       settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
         }
 
         if (beginSuccess == false)
@@ -315,6 +315,8 @@ void bluetoothStart()
         // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/5
         // https://github.com/espressif/esp-idf/issues/1541
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        /*
+        // Note: Since version 3.0.0 this library does not support legacy pairing (using fixed PIN consisting of 4 digits).
         esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
 
         esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE; // Requires pin 1234 on old BT dongle, No prompt on new BT dongle
@@ -330,6 +332,7 @@ void bluetoothStart()
         pin_code[2] = '3';
         pin_code[3] = '4';
         esp_bt_gap_set_pin(pin_type, 4, pin_code);
+        */
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
@@ -355,8 +358,11 @@ void bluetoothStart()
 
         systemPrintln(deviceName);
 
-        bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
-        bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        if (pin_bluetoothStatusLED != PIN_UNDEFINED)
+        {
+            bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
+            bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        }
 
         bluetoothState = BT_NOTCONNECTED;
         reportHeapNow(false);

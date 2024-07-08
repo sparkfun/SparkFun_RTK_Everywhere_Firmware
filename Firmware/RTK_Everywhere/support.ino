@@ -20,13 +20,11 @@ int systemRead()
 void systemWrite(const uint8_t *buffer, uint16_t length)
 {
     // Output data to bluetooth if necessary
-    if ((printEndpoint == PRINT_ENDPOINT_ALL)
-        || (printEndpoint == PRINT_ENDPOINT_BLUETOOTH))
+    if ((printEndpoint == PRINT_ENDPOINT_ALL) || (printEndpoint == PRINT_ENDPOINT_BLUETOOTH))
         bluetoothWrite(buffer, length);
 
     // Output data to USB serial if necessary
-    if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH)
-        && (!forwardGnssDataToUsbSerial))
+    if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH) && (!forwardGnssDataToUsbSerial))
         Serial.write(buffer, length);
 }
 
@@ -117,13 +115,7 @@ void systemPrint(int value, uint8_t printType)
 // Pretty print IP addresses
 void systemPrint(IPAddress ipaddress)
 {
-    systemPrint(ipaddress[0], DEC);
-    systemPrint(".");
-    systemPrint(ipaddress[1], DEC);
-    systemPrint(".");
-    systemPrint(ipaddress[2], DEC);
-    systemPrint(".");
-    systemPrint(ipaddress[3], DEC);
+    systemPrint(ipaddress.toString());
 }
 void systemPrintln(IPAddress ipaddress)
 {
@@ -670,10 +662,8 @@ void verifyTables()
         reportFatalError("Fix platformProvisionTable to match ProductVariant");
 
     // Verify the measurement scales
-    if (measurementScaleNameEntries != MEASUREMENT_SCALE_MAX)
-        reportFatalError("Fix measurementScaleName to match MeasurementScale");
-    if (measurementScaleUnitsEntries != MEASUREMENT_SCALE_MAX)
-        reportFatalError("Fix measurementScaleUnits to match MeasurementScale");
+    if (measurementScaleEntries != MEASUREMENT_UNITS_MAX)
+        reportFatalError("Fix measurementScaleTable to match measurementUnits");
 
     // Verify the consistency of the internal tables
     ethernetVerifyTables();
@@ -686,6 +676,8 @@ void verifyTables()
     tcpClientValidateTables();
     tcpServerValidateTables();
     tasksValidateTables();
+    httpClientValidateTables();
+    provisioningVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");

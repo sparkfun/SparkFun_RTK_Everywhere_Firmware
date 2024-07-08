@@ -2,7 +2,11 @@
 // Report status if ~ received, otherwise present config menu
 void terminalUpdate()
 {
+    char buffer[128];
     static uint32_t lastPeriodicDisplay;
+    int length;
+    static bool passRtcmToGnss;
+    static uint32_t rtcmTimer;
 
     // Determine which items are periodically displayed
     if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
@@ -16,45 +20,85 @@ void terminalUpdate()
     {
         byte incoming = systemRead();
 
-        if (incoming == '~')
+        // Is this the start of an RTCM correction message
+        if (incoming == 0xd3)
         {
-            // Output custom GNTXT message with all current system data
-            printCurrentConditionsNMEA();
+            // Enable RTCM reception
+            passRtcmToGnss = true;
+
+            // Start the RTCM timer
+            rtcmTimer = millis();
+            rtcmLastPacketReceived = rtcmTimer;
+
+            // Tell the display about the serial RTCM message
+            usbSerialIncomingRtcm = true;
+
+            // Read the beginning of the RTCM correction message
+            buffer[0] = incoming;
+            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
+
+            // Push RTCM to GNSS module over I2C / SPI
+            gnssPushRawData((uint8_t *)buffer, length);
+        }
+
+        // Does incoming data consist of RTCM correction messages
+        if (passRtcmToGnss && ((millis() - rtcmTimer) < RTCM_CORRECTION_INPUT_TIMEOUT))
+        {
+            // Renew the RTCM timer
+            rtcmTimer = millis();
+            rtcmLastPacketReceived = rtcmTimer;
+
+            // Tell the display about the serial RTCM message
+            usbSerialIncomingRtcm = true;
+
+            // Read more of the RTCM correction message
+            buffer[0] = incoming;
+            length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
+
+            // Push RTCM to GNSS module over I2C / SPI
+            gnssPushRawData((uint8_t *)buffer, length);
         }
         else
         {
-            // When outputting GNSS data to USB serial, check for +++
-            if (forwardGnssDataToUsbSerial)
+            // Allow regular serial input
+            passRtcmToGnss = false;
+
+            if (incoming == '~')
             {
-                static uint32_t plusTimeout;
-                static uint8_t plusCount;
-
-                // Reset plusCount on timeout
-                if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
-                    plusCount = 0;
-
-                // Check for + input
-                if (incoming != '+')
-                {
-                    // Must start over looking for +++
-                    plusCount = 0;
-                    return;
-                }
+                // Output custom GNTXT message with all current system data
+                printCurrentConditionsNMEA();
+            }
+            else
+            {
+                // When outputting GNSS data to USB serial, check for +++
+                if (!forwardGnssDataToUsbSerial)
+                    menuMain(); // Present user menu
                 else
                 {
-                    // + entered, check for the +++ sequence
-                    plusCount++;
-                    if (plusCount < 3)
-                    {
-                        // Restart the timeout
-                        plusTimeout = millis();
-                        return;
-                    }
+                    static uint32_t plusTimeout;
+                    static uint8_t plusCount;
 
-                    // +++ was entered, display the main menu
+                    // Reset plusCount on timeout
+                    if ((millis() - plusTimeout) > PLUS_PLUS_PLUS_TIMEOUT)
+                        plusCount = 0;
+
+                    // Check for + input
+                    if (incoming != '+')
+                        // Must start over looking for +++
+                        plusCount = 0;
+                    else
+                    {
+                        // + entered, check for the +++ sequence
+                        plusCount++;
+                        if (plusCount < 3)
+                            // Restart the timeout
+                            plusTimeout = millis();
+                        else
+                            // +++ was entered, display the main menu
+                            menuMain(); // Present user menu
+                    }
                 }
             }
-            menuMain(); // Present user menu
         }
     }
 }
@@ -103,11 +147,11 @@ void menuMain()
 
             if (incoming == 'r')
             {
-                displayConfigViaEthNotStarted(1000);
+                displayConfigViaEthStarting(1000);
 
                 ethernetWebServerStopESP32W5500();
 
-                settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
+                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
                 recordSystemSettings();
 
@@ -133,7 +177,7 @@ void menuMain()
             getFirmwareVersion(versionString, sizeof(versionString), true);
             systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
 
-    #ifdef COMPILE_BT
+#ifdef COMPILE_BT
 
             if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
                 systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
@@ -143,9 +187,9 @@ void menuMain()
                 systemPrint("** Bluetooth Low-Energy broadcasting as: ");
             systemPrint(deviceName);
             systemPrintln(" **");
-    #else  // COMPILE_BT
+#else  // COMPILE_BT
             systemPrintln("** Bluetooth Not Compiled **");
-    #endif // COMPILE_BT
+#endif // COMPILE_BT
 
             systemPrintln("Menu: Main");
 
@@ -160,44 +204,43 @@ void menuMain()
             if (productVariant != RTK_TORCH) // Torch does not have logging
                 systemPrintln("5) Configure Logging");
 
-    #ifdef COMPILE_WIFI
+#ifdef COMPILE_WIFI
             systemPrintln("6) Configure WiFi");
-    #else  // COMPILE_WIFI
+#else  // COMPILE_WIFI
             systemPrintln("6) **WiFi Not Compiled**");
-    #endif // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
-    #if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
             systemPrintln("7) Configure TCP/UDP");
-    #else  // COMPILE_NETWORK
+#else  // COMPILE_NETWORK
             systemPrintln("7) **TCP/UDP Not Compiled**");
-    #endif // COMPILE_NETWORK
+#endif // COMPILE_NETWORK
 
-    #ifdef COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
             if (present.ethernet_ws5500 == true)
                 systemPrintln("e) Configure Ethernet");
-    #endif // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
             systemPrintln("f) Firmware Update");
 
             systemPrintln("i) Configure Corrections Priorities");
 
-    #ifdef COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
             if (present.ethernet_ws5500 == true)
                 systemPrintln("n) Configure NTP");
-    #endif // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
             systemPrintln("p) Configure PointPerfect");
 
-    #ifdef COMPILE_ESPNOW
+#ifdef COMPILE_ESPNOW
             systemPrintln("r) Configure Radios");
-    #else  // COMPILE_ESPNOW
+#else  // COMPILE_ESPNOW
             systemPrintln("r) **ESP-Now Not Compiled**");
-    #endif // COMPILE_ESPNOW
+#endif // COMPILE_ESPNOW
 
             systemPrintln("s) Configure System");
 
-            if (present.imu_im19 == true)
-                systemPrintln("t) Configure Tilt Compensation");
+            systemPrintln("t) Configure Instrument Setup");
 
             systemPrintln("u) Configure User Profiles");
 
@@ -236,14 +279,14 @@ void menuMain()
                 menuUserProfiles();
             else if (incoming == 'p')
                 menuPointPerfect();
-    #ifdef COMPILE_ESPNOW
+#ifdef COMPILE_ESPNOW
             else if (incoming == 'r')
                 menuRadio();
-    #endif // COMPILE_ESPNOW
+#endif // COMPILE_ESPNOW
             else if (incoming == 's')
                 menuSystem();
-            else if (incoming == 't' && (present.imu_im19 == true))
-                menuTilt();
+            else if (incoming == 't')
+                menuInstrument();
             else if (incoming == 'b' && btPrintEcho == true)
             {
                 printEndpoint = PRINT_ENDPOINT_SERIAL;
@@ -283,7 +326,6 @@ void menuMain()
         gnssSaveConfiguration();
 
         recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
-
     }
 
     if (settings.debugGnss == true)
@@ -563,8 +605,8 @@ void menuRadio()
         {
             settings.enableEspNow ^= 1;
 
-            //Start ESP-NOW so that getChannel runs correctly
-            if(settings.enableEspNow == true)
+            // Start ESP-NOW so that getChannel runs correctly
+            if (settings.enableEspNow == true)
                 espnowStart();
             else
                 espnowStop();

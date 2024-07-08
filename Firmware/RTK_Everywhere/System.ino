@@ -12,7 +12,7 @@ void beginPsram()
             systemPrintf("PSRAM Size (bytes): %d\r\n", ESP.getPsramSize());
             if (ESP.getPsramSize() > 0)
             {
-                online.psram = true;
+                RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = online.psram = true;
 
                 heap_caps_malloc_extmem_enable(
                     settings.psramMallocLevel); // Use PSRAM for memory requests larger than X bytes
@@ -77,12 +77,13 @@ void updateBattery()
 
             checkBatteryLevels();
 
-            if (present.fuelgauge_bq40z50 == true)
-            {
-                // Turn on green battery LED if battery is above 50%
-                if (batteryLevelPercent > 50)
-                    batteryStatusLedOn();
-            }
+            // tickerBatteryLedUpdate will take care of this. Doing it here creates error "IO 0 is not set as GPIO"
+            //if (present.fuelgauge_bq40z50 == true)
+            //{
+            //    // Turn on green battery LED if battery is above 50%
+            //    if (batteryLevelPercent > 50)
+            //        batteryStatusLedOn();
+            //}
         }
     }
 
@@ -93,9 +94,9 @@ void updateBattery()
         {
             lastBatteryChargerUpdate = millis();
 
-            // If the power cable is attached, and charging has stopped, and we are below 7V, then re-enable trickle charge
-            // This is likely because the 1-hour trickle charge limit has been reached
-            // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
+            // If the power cable is attached, and charging has stopped, and we are below 7V, then re-enable trickle
+            // charge This is likely because the 1-hour trickle charge limit has been reached See issue:
+            // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/240
 
             if (isUsbAttached() == true)
             {
@@ -355,9 +356,11 @@ void printReports()
         lastPrintPosition = millis();
     }
 
-    if (settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
+    if ((settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
+        || (PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)))
     {
         lastPrintRoverAccuracy = millis();
+        PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
 
         if (online.gnss == true)
         {
@@ -368,7 +371,7 @@ void printReports()
 
                 char modifiedHpa[20];
                 const char *hpaUnits =
-                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3); // Returns string of the HPA units
+                    getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3, true); // Returns string of the HPA units
 
                 systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
                              gnssGetSatellitesInView());
@@ -401,7 +404,7 @@ void printReports()
 }
 
 // Given a user's string, try to identify the type and return the coordinate in DD.ddddddddd format
-CoordinateInputType coordinateIdentifyInputType(char *userEntryOriginal, double *coordinate)
+CoordinateInputType coordinateIdentifyInputType(const char *userEntryOriginal, double *coordinate)
 {
     char userEntry[50];
     strncpy(userEntry, userEntryOriginal,
@@ -528,7 +531,7 @@ CoordinateInputType coordinateIdentifyInputType(char *userEntryOriginal, double 
         token = strtok(nullptr, "-");
 
         // Find '.'
-        char *decimalPtr = strchr(userEntry, '.');
+        char *decimalPtr = strchr(token, '.');
         if (decimalPtr == nullptr)
             coordinateInputType = COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL;
 
@@ -603,13 +606,13 @@ void coordinateConvertInput(double coordinate, CoordinateInputType coordinateInp
             coordinate *= -1;
 
         if (coordinateInputType == COORDINATE_INPUT_TYPE_DDMM)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d%010.7f", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_DASH)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d-%010.7f", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d-%011.8f", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SYMBOL)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d°%010.7f'", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d°%011.8f'", longitudeDegrees, coordinate);
         else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM)
-            snprintf(coordinateString, sizeOfCoordinateString, "%02d %010.7f", longitudeDegrees, coordinate);
+            snprintf(coordinateString, sizeOfCoordinateString, "%02d %011.8f", longitudeDegrees, coordinate);
     }
     else if (coordinateInputType == COORDINATE_INPUT_TYPE_DD_MM_SS ||
              coordinateInputType == COORDINATE_INPUT_TYPE_DDMMSS ||
@@ -715,44 +718,49 @@ void reportFatalError(const char *errorMsg)
     }
 }
 
-// Returns string of the HPA units
-const char *getHpaUnits(double hpa, char *buffer, int length, int decimals)
+// This allows the measurementScaleTable to be alphabetised if desired
+int measurementScaleToIndex(uint8_t scale)
 {
-    const char *units;
-
-    // Return the units
-    if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+    for (int i = 0; i < MEASUREMENT_UNITS_MAX; i++)
     {
-        units = "Unknown";
-        strcpy(buffer, "Unknown");
+        if (measurementScaleTable[i].measurementUnit == scale)
+            return i;
     }
-    else
-    {
-        units = measurementScaleUnits[settings.measurementScale];
 
-        // Convert the HPA value to a string
-        switch (settings.measurementScale)
+    return -1; // This should never happen...
+}
+
+// Returns string of the HPA units
+const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool limit)
+{
+    static const char unknown[] = "Unknown";
+
+    int i = measurementScaleToIndex(settings.measurementScale);
+    if (i >= 0)
+    {
+        const char *units = measurementScaleTable[i].measurementScale1NameShort;
+
+        hpa *= measurementScaleTable[i].multiplierMetersToScale1; // Scale1: m->m or m->ft
+
+        bool limited = false;
+        if (limit && (hpa > measurementScaleTable[i].reportingLimitScale1)) // Limit the reported accuracy (Scale1)
         {
-        case MEASUREMENTS_IN_METERS:
-            snprintf(buffer, length, "%.*f", decimals, hpa);
-            break;
-
-        case MEASUREMENTS_IN_FEET_INCHES:
-            double inches;
-            double feet;
-            inches = hpa * INCHES_IN_A_METER;
-            feet = inches / 12.;
-            if (inches >= 36.)
-                snprintf(buffer, length, "%.*f", decimals, feet);
-            else
-            {
-                units = "in";
-                snprintf(buffer, length, "%.*f", decimals, inches);
-            }
-            break;
+            limited = true;
+            hpa = measurementScaleTable[i].reportingLimitScale1;
         }
+
+        if (hpa <= measurementScaleTable[i].changeFromScale1To2At) // Scale2: m->m or ft->in
+        {
+            hpa *= measurementScaleTable[i].multiplierScale1To2;
+            units = measurementScaleTable[i].measurementScale2NameShort;
+        }
+
+        snprintf(buffer, length, "%s%.*f", limited ? "> " : "", decimals, hpa);
+        return units;
     }
-    return units;
+
+    strncpy(buffer, unknown, length);
+    return unknown;
 }
 
 // Helper method to convert GNSS time and date into Unix Epoch

@@ -6,7 +6,7 @@
   This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
   and communicates with various GNSS receivers.
 
-  Compiled using Arduino CLI and ESP32 core v2.0.11.
+  Compiled using Arduino CLI and ESP32 core v3.0.0.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
@@ -28,8 +28,6 @@
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
 #define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
-#define COMPILE_MQTT_CLIENT // Requires WiFi. Comment out to remove MQTT Client functionality
-#define COMPILE_OTA_AUTO    // Requires WiFi. Comment out to disable automatic over-the-air firmware update
 #endif                      // COMPILE_WIFI
 
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
@@ -39,9 +37,10 @@
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
-#define COMPILE_NETWORK true
-#else // COMPILE_WIFI || COMPILE_ETHERNET
-#define COMPILE_NETWORK false
+#define COMPILE_NETWORK
+#define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
+#define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
+#define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
 #endif // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
@@ -69,18 +68,32 @@
 
 #define NTRIP_SERVER_MAX 4
 
-#ifdef COMPILE_ETHERNET
-#include "SparkFun_WebServer_ESP32_W5500.h" //http://librarymanager/All#SparkFun_WebServer_ESP32_W5500 v1.5.5
-#include <Ethernet.h>                       // http://librarymanager/All#Arduino_Ethernet by Arduino v2.0.2
-#endif                                      // COMPILE_ETHERNET
-
-#ifdef COMPILE_WIFI
-#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
-#include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
+#ifdef  COMPILE_NETWORK
+#include <NetworkClient.h>
+#include <NetworkClientSecure.h>
+#include <NetworkUdp.h>
 #include <DNSServer.h>    //Built-in.
+#include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
 #include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#endif  // COMPILE_NETWORK
+
+bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
+
+volatile bool httpClientModeNeeded = false; // This is set to true by updateProvisioning
+
+#define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
+#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
+static const char THINGSTREAM_ZTPURL[] = "https://" THINGSTREAM_SERVER THINGSTREAM_ZTPPATH; // full ZTP url
+const uint16_t HTTPS_PORT = 443; //!< The HTTPS default port
+
+#ifdef COMPILE_ETHERNET
+#include <ETH.h>
+#endif                                      // COMPILE_ETHERNET
+
+#ifdef COMPILE_WIFI
+#include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
 #include <WiFi.h>         //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
@@ -201,6 +214,8 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <SPI.h> //Built-in
 
+void beginSPI(bool force = false); // Header
+
 #include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
 SdFat *sd;
 
@@ -235,8 +250,8 @@ typedef enum LoggingType
 } LoggingType;
 LoggingType loggingType;
 
-SdFile *managerTempFile; // File used for uploading or downloading in the file manager section of AP config
-bool managerFileOpen;
+SdFile *managerTempFile = nullptr; // File used for uploading or downloading in the file manager section of AP config
+bool managerFileOpen = false;
 
 TaskHandle_t sdSizeCheckTaskHandle;        // Store handles so that we can delete the task once the size is found
 const uint8_t sdSizeCheckTaskPriority = 0; // 3 being the highest, and 0 being the lowest
@@ -270,6 +285,13 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
         wifiStop();                                                                                                    \
     }
 #endif // COMPILE_WIFI
+
+#define MQTT_CLIENT_STOP(shutdown)                                                                                      \
+    {                                                                                                                   \
+        if (settings.debugNetworkLayer || settings.debugMqttClientState)                                                \
+            systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);    \
+        mqttClientStop(shutdown);                                                                                       \
+    }
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
 //                                                                                                      1         1 1
@@ -389,9 +411,11 @@ int64_t ARPECEFZ;
 uint16_t ARPECEFH;
 
 const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/lon
-bool lBandForceGetKeys;               // Used to allow key update from display
 unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
+
+bool usbSerialIncomingRtcm;            // Incoming RTCM over the USB serial port
+#define RTCM_CORRECTION_INPUT_TIMEOUT   (2 * 1000)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GNSS configuration - UM980
@@ -421,13 +445,8 @@ SFE_MAX1704X lipo(MAX1704X_MAX17048);
 BQ40Z50 *bq40z50Battery;
 #endif // COMPILE_BQ40Z50
 
-// RTK LED PWM properties
+// RTK LED PWM (LEDC) properties
 const int pwmFreq = 5000;
-const int ledRedChannel = 0;
-const int ledGreenChannel = 1;
-const int ledBtChannel = 2;
-const int ledGnssChannel = 3;
-const int ledBatteryChannel = 4;
 const int pwmResolution = 8;
 
 int pwmFadeAmount = 10;
@@ -466,7 +485,7 @@ volatile bool forwardGnssDataToUsbSerial;
 // forwardGnssDataToUsbSerial is set to false and menuMain is displayed.
 // If the timeout between characters occurs or an invalid character is
 // entered then no changes are made and the +++ sequence must be re-entered.
-#define PLUS_PLUS_PLUS_TIMEOUT      (2 * 1000)  // Milliseconds
+#define PLUS_PLUS_PLUS_TIMEOUT (2 * 1000) // Milliseconds
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
@@ -480,7 +499,7 @@ const int btReadTaskStackSize = 4000;
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
 #define AVERAGE_SENTENCE_LENGTH_IN_BYTES 32
-RING_BUFFER_OFFSET *rbOffsetArray;
+RING_BUFFER_OFFSET *rbOffsetArray = nullptr;
 uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
@@ -549,31 +568,44 @@ const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being t
 const int buttonTaskStackSize = 2000;
 
 const int shutDownButtonTime = 2000;  // ms press and hold before shutdown
-unsigned long lastRockerSwitchChange; // If quick toggle is detected (less than 500ms), enter WiFi AP Config mode
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Webserver for serving config page from ESP32 as Acess Point
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_WIFI
-#ifdef COMPILE_AP
-
-#include "ESPAsyncWebServer.h" //Get from: https://github.com/me-no-dev/ESPAsyncWebServer v1.2.3
-#include "form.h"
-
-AsyncWebServer *webserver;
-AsyncWebSocket *websocket;
-
-#endif // COMPILE_AP
-#endif // COMPILE_WIFI
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
-#define AP_CONFIG_SETTING_SIZE 15000
+#define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
 char *settingsCSV; // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
+
+#ifdef COMPILE_WIFI
+#ifdef COMPILE_AP
+
+#include <DNSServer.h> // Needed for the captive portal
+#include <WebServer.h> // Port 80
+#include <esp_http_server.h> // Needed for web sockets only - on port 81
+#include "form.h"
+
+// https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+DNSServer *dnsserver;
+WebServer *webserver;
+
+httpd_handle_t *wsserver = nullptr;
+//httpd_req_t *last_ws_req;
+int last_ws_fd;
+
+TaskHandle_t updateWebServerTaskHandle;
+const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
+const int updateWebServerTaskStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
+const int updateWebSocketStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
+
+#endif // COMPILE_AP
+#endif // COMPILE_WIFI
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // PointPerfect Corrections
@@ -613,18 +645,20 @@ IPAddress ethernetDNS;
 IPAddress ethernetGateway;
 IPAddress ethernetSubnetMask;
 
-class derivedEthernetUDP : public EthernetUDP
-{
-  public:
-    uint8_t getSockIndex()
-    {
-        return sockindex; // sockindex is protected in EthernetUDP. A derived class can access it.
-    }
-};
+// TODO
+// class derivedEthernetUDP : public EthernetUDP
+// {
+//   public:
+//     uint8_t getSockIndex()
+//     {
+//         return sockindex; // sockindex is protected in EthernetUDP. A derived class can access it.
+//     }
+// };
 volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet NTP packet arrived
 bool ntpLogIncreasing;
 #endif // COMPILE_ETHERNET
 
+static bool eth_connected = false;
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -654,12 +688,12 @@ const int updatePplTaskStackSize = 3000;
 
 bool pplNewRtcmNmea = false;
 bool pplNewSpartn = false;
-uint8_t *pplRtcmBuffer;
+uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
 bool pplGnssOutput = false;
 bool pplMqttCorrections = false;
-bool pplLBandCorrections = false; // Raw L-Band - e.g. from mosaic X5
+bool pplLBandCorrections = false;     // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -719,7 +753,7 @@ uint32_t triggerAccEst;    // Global copy - Accuracy estimate in nanoseconds
 bool firstPowerOn = true;  // After boot, apply new settings to GNSS if the user switches between base or rover
 unsigned long splashStart; // Controls how long the splash is displayed for. Currently min of 2s.
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
-bool restartRover;         // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
+bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
@@ -748,19 +782,19 @@ uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
 // Corrections Priorities Support
-std::vector<registeredCorrectionsSource> registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
+std::vector<registeredCorrectionsSource>
+    registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
 correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
-//  Causes setup and loop to skip any code which would cause SPI or interrupts to be initialized.
-//  This is to allow SparkFun_WebServer_ESP32_W5500 to have _exclusive_ access to WiFi, SPI and Interrupts.
+//  Previously, the SparkFun_WebServer_ESP32_W5500 needed _exclusive_ access to SPI and Interrupts.
+//  That's no longer true - thanks to Espressif adding full support for the W5500 within the
+//  arduino-esp32 core (v3.0.0+). But it's easier to leave the code as it is.
 bool configureViaEthernet;
 
-unsigned long lbandTimeFloatStarted; // Monitors the ZED during L-Band reception if a fix takes too long
-int lbandRestarts;
+int floatLockRestarts;
 unsigned long rtkTimeToFixMs;
-unsigned long lbandLastReport;
 
 volatile PeriodicDisplay_t periodicDisplay;
 
@@ -777,6 +811,11 @@ unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl = 0;
 unsigned long lastGnssToPpl = 0;
+
+// Command processing
+int commandCount;
+int16_t *commandIndex;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
@@ -829,12 +868,10 @@ volatile bool deadManWalking;
         settings.debugGnss = true;                                                                                     \
         settings.enableHeapReport = true;                                                                              \
         settings.enableTaskReports = true;                                                                             \
-        settings.enablePrintState = true;                                                                              \
         settings.enablePrintPosition = true;                                                                           \
         settings.enablePrintIdleTime = true;                                                                           \
         settings.enablePrintBatteryMessages = true;                                                                    \
         settings.enablePrintRoverAccuracy = true;                                                                      \
-        settings.enablePrintBadMessages = true;                                                                        \
         settings.enablePrintLogFileMessages = true;                                                                    \
         settings.enablePrintLogFileStatus = true;                                                                      \
         settings.enablePrintRingBufferOffsets = true;                                                                  \
@@ -854,7 +891,7 @@ volatile bool deadManWalking;
         settings.debugNtripServerState = true;                                                                         \
         settings.debugTcpClient = true;                                                                                \
         settings.debugTcpServer = true;                                                                                \
-        settings.debugUdpServer = true;                                                                             \
+        settings.debugUdpServer = true;                                                                                \
         settings.printBootTimes = true;                                                                                \
     }
 
@@ -981,11 +1018,18 @@ void setup()
     DMW_b("identifyBoard");
     identifyBoard(); // Determine what hardware platform we are running on.
 
+    DMW_b("commandIndexFill");
+    if (!commandIndexFill()) // Initialize the command table index
+        reportFatalError("Failed to allocate and fill the commandIndex!");
+
     DMW_b("beginBoard");
     beginBoard(); // Set all pin numbers and pin initial states
 
+    DMW_b("beginSPI");
+    beginSPI(); // Begin SPI as needed
+
     DMW_b("beginFS");
-    beginFS(); // Load NVM settings
+    beginFS(); // Start the LittleFS file system in the spiffs partition
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
@@ -1050,10 +1094,7 @@ void setup()
     beginCharger(); // Configure battery charger
 
     DMW_b("gnssConfigure");
-    gnssConfigure(); // Requires settings. Configure ZED module
-
-    DMW_b("ethernetBegin");
-    ethernetBegin(); // Requires settings. Start up the Ethernet connection
+    gnssConfigure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band
@@ -1065,7 +1106,7 @@ void setup()
     gnssBeginPPS(); // Configure the time pulse output
 
     DMW_b("beginInterrupts");
-    beginInterrupts(); // Begin the TP and W5500 interrupts
+    beginInterrupts(); // Begin the TP interrupts
 
     DMW_b("beginButtons");
     beginButtons(); // Start task for button monitoring.
@@ -1144,20 +1185,8 @@ void setup()
 
 void loop()
 {
-    static uint32_t lastPeriodicDisplay;
-
-    // Determine which items are periodically displayed
-    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
-    {
-        lastPeriodicDisplay = millis();
-        periodicDisplay = settings.periodicDisplay;
-
-        // Reboot the system after a specified timeout
-        if (((lastPeriodicDisplay / 1000) > settings.rebootSeconds) && (!inMainMenu))
-            ESP.restart();
-    }
-    if (deadManWalking)
-        periodicDisplay = (PeriodicDisplay_t)-1;
+    DMW_c("periodicDisplay");
+    updatePeriodicDisplay();
 
     DMW_c("gnssUpdate");
     gnssUpdate();
@@ -1210,7 +1239,16 @@ void loop()
     DMW_c("updateCorrectionsPriorities");
     updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
 
-    delay(10); // A small delay prevents panic if no other I2C or functions are called
+    DMW_c("updateProvisioning");
+    updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction topic etc.
+
+    loopDelay(); // A small delay prevents panic if no other I2C or functions are called
+}
+
+void loopDelay()
+{
+    if (systemState != STATE_NTPSERVER_SYNC) // No delay in NTP mode
+        delay(10);
 }
 
 // Create or close files as needed (startup or as the user changes settings)
@@ -1495,6 +1533,29 @@ void updateRadio()
 #endif // COMPILE_ESPNOW
 }
 
+void updatePeriodicDisplay()
+{
+    static uint32_t lastPeriodicDisplay = 0;
+
+    // Determine which items are periodically displayed
+    if ((millis() - lastPeriodicDisplay) >= settings.periodicDisplayInterval)
+    {
+        lastPeriodicDisplay = millis();
+        periodicDisplay = settings.periodicDisplay;
+
+        // Reboot the system after a specified timeout
+        // Strictly, this will reboot after rebootMinutes plus periodicDisplay. Do we care?
+        if ((settings.rebootMinutes > 0) && ((lastPeriodicDisplay / (1000 * 60)) >= settings.rebootMinutes))
+        {
+            systemPrintln("Automatic system reset");
+            delay(100); // Allow print to complete
+            ESP.restart();
+        }
+    }
+    if (deadManWalking)
+        periodicDisplay = (PeriodicDisplay_t)-1;
+}
+
 // Record who is holding the semaphore
 volatile SemaphoreFunction semaphoreFunction = FUNCTION_NOT_SET;
 
@@ -1577,6 +1638,12 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_FILEMANAGER_UPLOAD3:
         strcpy(functionName, "FileManager Upload3");
+        break;
+    case FUNCTION_FILEMANAGER_DOWNLOAD1:
+        strcpy(functionName, "FileManager Download1");
+        break;
+    case FUNCTION_FILEMANAGER_DOWNLOAD2:
+        strcpy(functionName, "FileManager Download2");
         break;
     case FUNCTION_SDSIZECHECK:
         strcpy(functionName, "SD Size Check");

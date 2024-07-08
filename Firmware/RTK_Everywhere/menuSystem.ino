@@ -98,8 +98,8 @@ void menuSystem()
 #ifdef COMPILE_ETHERNET
         if (present.ethernet_ws5500 == true)
         {
-            systemPrint("Ethernet cable: ");
-            if (Ethernet.linkStatus() == LinkON)
+            systemPrint("Ethernet: ");
+            if (eth_connected)
                 systemPrintln("connected");
             else
                 systemPrintln("disconnected");
@@ -107,7 +107,7 @@ void menuSystem()
             systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
                          ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
             systemPrint("Ethernet IP Address: ");
-            systemPrintln(Ethernet.localIP());
+            systemPrintln(ETH.localIP().toString());
             if (!settings.ethernetDHCP)
             {
                 systemPrint("Ethernet DNS: ");
@@ -193,10 +193,13 @@ void menuSystem()
         else
             systemPrintln("Off");
 
-        if (settings.shutdownNoChargeTimeout_s == 0)
-            systemPrintln("c) Shutdown if not charging: Disabled");
-        else
-            systemPrintf("c) Shutdown if not charging after: %d seconds\r\n", settings.shutdownNoChargeTimeout_s);
+        if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a)
+        {
+            if (settings.shutdownNoChargeTimeout_s == 0)
+                systemPrintln("c) Shutdown if not charging: Disabled");
+            else
+                systemPrintf("c) Shutdown if not charging after: %d seconds\r\n", settings.shutdownNoChargeTimeout_s);
+        }
 
         systemPrintln("d) Debug software");
 
@@ -221,7 +224,8 @@ void menuSystem()
 
         systemPrintln("r) Reset all settings to default");
 
-        systemPrintf("u) Toggle printed measurement scale: %s\r\n", measurementScaleName[settings.measurementScale]);
+        systemPrintf("u) Printed measurement units: %s\r\n",
+                     measurementScaleTable[measurementScaleToIndex(settings.measurementScale)].measurementScaleName);
 
         systemPrintf("z) Set time zone offset: %02d:%02d:%02d\r\n", settings.timeZoneHours, settings.timeZoneMinutes,
                      settings.timeZoneSeconds);
@@ -254,7 +258,8 @@ void menuSystem()
                 settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
             bluetoothStart();
         }
-        else if (incoming == 'c')
+        else if ((incoming == 'c') &&
+                 (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
         {
             getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
                           &settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
@@ -291,7 +296,7 @@ void menuSystem()
         else if (incoming == 'u')
         {
             settings.measurementScale += 1;
-            if (settings.measurementScale >= MEASUREMENT_SCALE_MAX)
+            if (settings.measurementScale >= MEASUREMENT_UNITS_MAX)
                 settings.measurementScale = 0;
         }
         else if (incoming == 'z')
@@ -417,9 +422,6 @@ void menuDebugHardware()
         systemPrintf("%s\r\n", settings.enablePrintSDBuffers ? "Enabled" : "Disabled");
 
         // GNSS
-        systemPrint("8) Print messages with bad checksums or CRCs: ");
-        systemPrintf("%s\r\n", settings.enablePrintBadMessages ? "Enabled" : "Disabled");
-
         systemPrint("9) Print GNSS Debugging: ");
         systemPrintf("%s\r\n", settings.debugGnss ? "Enabled" : "Disabled");
 
@@ -484,8 +486,6 @@ void menuDebugHardware()
         }
         else if (incoming == 7)
             settings.enablePrintSDBuffers ^= 1;
-        else if (incoming == 8)
-            settings.enablePrintBadMessages ^= 1;
         else if (incoming == 9)
         {
             settings.debugGnss ^= 1;
@@ -509,6 +509,13 @@ void menuDebugHardware()
         }
         else if (incoming == 13 && present.gnss_um980)
         {
+            // Note: We cannot increase the bootloading speed beyond 115200 because
+            //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
+            //  This is workable, but the next time the RTK Torch resets, it assumes communication at 115200bps
+            //  This fails and communication is broken. We could program in some logic that attempts comm at 460800
+            //  then reconfigures the UM980 to 115200bps, then resets, but autobaud detection in the UM980 library is
+            //  not yet supported.
+
             // Stop all UART tasks
             tasksStopGnssUart();
 
@@ -615,8 +622,8 @@ void menuDebugNetwork()
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
 
         // WiFi Config
-        systemPrint("4) Debug WiFi Config: ");
-        systemPrintf("%s\r\n", settings.debugWiFiConfig ? "Enabled" : "Disabled");
+        systemPrint("4) Debug Web Config: ");
+        systemPrintf("%s\r\n", settings.debugWebConfig ? "Enabled" : "Disabled");
 
         // Network
         systemPrint("10) Debug network layer: ");
@@ -661,6 +668,12 @@ void menuDebugNetwork()
         systemPrint("29) Debug MQTT client state: ");
         systemPrintf("%s\r\n", settings.debugMqttClientState ? "Enabled" : "Disabled");
 
+        // HTTP Client
+        systemPrint("30) Debug HTTP client data: ");
+        systemPrintf("%s\r\n", settings.debugHttpClientData ? "Enabled" : "Disabled");
+        systemPrint("31) Debug HTTP client state: ");
+        systemPrintf("%s\r\n", settings.debugHttpClientState ? "Enabled" : "Disabled");
+
         systemPrintln("r) Force system reset");
 
         systemPrintln("x) Exit");
@@ -674,7 +687,7 @@ void menuDebugNetwork()
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
         else if (incoming == 4)
-            settings.debugWiFiConfig ^= 1;
+            settings.debugWebConfig ^= 1;
         else if (incoming == 10)
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
@@ -699,6 +712,10 @@ void menuDebugNetwork()
             settings.debugMqttClientData ^= 1;
         else if (incoming == 29)
             settings.debugMqttClientState ^= 1;
+        else if (incoming == 30)
+            settings.debugHttpClientData ^= 1;
+        else if (incoming == 31)
+            settings.debugHttpClientState ^= 1;
 
         // Menu exit control
         else if (incoming == 'r')
@@ -734,6 +751,8 @@ void menuDebugSoftware()
 
         systemPrintf("2) Set level to use PSRAM (bytes): %d\r\n", settings.psramMallocLevel);
 
+        systemPrintf("3) WiFi Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
+
         // Ring buffer - ZED Tx
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
@@ -755,25 +774,24 @@ void menuDebugSoftware()
         systemPrint("31) Print duplicate states: ");
         systemPrintf("%s\r\n", settings.enablePrintDuplicateStates ? "Enabled" : "Disabled");
 
-        systemPrint("32) Reboot RTK after uptime reaches: ");
-        if (settings.rebootSeconds > 4294967)
+        systemPrint("32) Automatic device reboot in minutes: ");
+        if (settings.rebootMinutes == 0)
             systemPrintln("Disabled");
         else
         {
             int days;
             int hours;
             int minutes;
-            int seconds;
 
-            seconds = settings.rebootSeconds;
-            days = seconds / SECONDS_IN_A_DAY;
-            seconds -= days * SECONDS_IN_A_DAY;
-            hours = seconds / SECONDS_IN_AN_HOUR;
-            seconds -= hours * SECONDS_IN_AN_HOUR;
-            minutes = seconds / SECONDS_IN_A_MINUTE;
-            seconds -= minutes * SECONDS_IN_A_MINUTE;
+            const int minutesInADay = 60 * 24;
 
-            systemPrintf("%d (%d days %d:%02d:%02d)\r\n", settings.rebootSeconds, days, hours, minutes, seconds);
+            minutes = settings.rebootMinutes;
+            days = minutes / minutesInADay;
+            minutes -= days * minutesInADay;
+            hours = minutes / 60;
+            minutes -= hours * 60;
+
+            systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
         }
 
         systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
@@ -809,6 +827,10 @@ void menuDebugSoftware()
         {
             getNewSetting("Enter level to use PSRAM in bytes", 0, 65535, &settings.psramMallocLevel);
         }
+        else if (incoming == 3)
+        {
+            getNewSetting("Enter WiFi connect timeout in ms", 1000, 120000, &settings.wifiConnectTimeoutMs);
+        }
         else if (incoming == 10)
             settings.enablePrintRingBufferOffsets ^= 1;
         else if (incoming == 11)
@@ -823,13 +845,14 @@ void menuDebugSoftware()
             settings.enablePrintDuplicateStates ^= 1;
         else if (incoming == 32)
         {
-            systemPrint("Enter uptime seconds before reboot, Disabled = 0, Reboot range (30 - 4294967): ");
-            int rebootSeconds = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((rebootSeconds != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootSeconds != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            // We use millis (uint32_t) to measure the reboot interval. 4294967000 is just less than (2^32 - 1)
+            systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
+            int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
-                if (rebootSeconds < 30 || rebootSeconds > 4294967) // Disable the reboot
+                if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
                 {
-                    settings.rebootSeconds = (uint32_t)-1;
+                    settings.rebootMinutes = 0;
                     systemPrintln("Reset is disabled");
                 }
                 else
@@ -837,20 +860,19 @@ void menuDebugSoftware()
                     int days;
                     int hours;
                     int minutes;
-                    int seconds;
+
+                    const int minutesInADay = 60 * 24;
 
                     // Set the reboot time
-                    settings.rebootSeconds = rebootSeconds;
+                    settings.rebootMinutes = rebootMinutes;
 
-                    seconds = settings.rebootSeconds;
-                    days = seconds / SECONDS_IN_A_DAY;
-                    seconds -= days * SECONDS_IN_A_DAY;
-                    hours = seconds / SECONDS_IN_AN_HOUR;
-                    seconds -= hours * SECONDS_IN_AN_HOUR;
-                    minutes = seconds / SECONDS_IN_A_MINUTE;
-                    seconds -= minutes * SECONDS_IN_A_MINUTE;
+                    minutes = settings.rebootMinutes;
+                    days = minutes / minutesInADay;
+                    minutes -= days * minutesInADay;
+                    hours = minutes / 60;
+                    minutes -= hours * 60;
 
-                    systemPrintf("Reboot after uptime reaches %d days %d:%02d:%02d\r\n", days, hours, minutes, seconds);
+                    systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
                 }
             }
         }
@@ -943,8 +965,15 @@ void menuOperation()
         systemPrintln(settings.uartReceiveBufferSize);
 
         // ZED
-        if(present.gnss_zedf9p)
+        if (present.gnss_zedf9p)
             systemPrintln("10) Mirror ZED-F9x's UART1 settings to USB");
+
+        // PPL Float Lock timeout
+        systemPrint("11) Set PPL RTK Fix Timeout (seconds): ");
+        if (settings.pplFixTimeoutS > 0)
+            systemPrintln(settings.pplFixTimeoutS);
+        else
+            systemPrintln("Disabled - no resets");
 
         systemPrintln("----  Interrupts  ----");
         systemPrint("30) Bluetooth Interrupts Core: ");
@@ -1045,6 +1074,11 @@ void menuOperation()
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
+        }
+        else if (incoming == 11)
+        {
+            getNewSetting("Enter number of seconds in RTK float using PPL, before reset", 0, 3600,
+                          &settings.pplFixTimeoutS); // Arbitrary 60 minute limit
         }
 
         else if (incoming == 30)
@@ -1154,7 +1188,7 @@ void menuPeriodicPrint()
         systemPrintf("%s\r\n", settings.enablePrintPosition ? "Enabled" : "Disabled");
 
         systemPrint("26) RTK state: ");
-        systemPrintf("%s\r\n", settings.enablePrintState ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", settings.enablePrintStates ? "Enabled" : "Disabled");
 
         systemPrintln("------  Clients  -----");
         systemPrint("40) NTP server data: ");
@@ -1199,6 +1233,21 @@ void menuPeriodicPrint()
         systemPrint("53) MQTT client state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_MQTT_CLIENT_STATE) ? "Enabled" : "Disabled");
 
+        systemPrint("54) HTTP client state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_HTTP_CLIENT_STATE) ? "Enabled" : "Disabled");
+
+        systemPrint("55) Provisioning state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_PROVISIONING_STATE) ? "Enabled" : "Disabled");
+
+        systemPrint("56) UDP server state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_UDP_SERVER_STATE) ? "Enabled" : "Disabled");
+
+        systemPrint("57) UDP server data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_UDP_SERVER_DATA) ? "Enabled" : "Disabled");
+
+        systemPrint("58) UDP server broadcast data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_UDP_SERVER_BROADCAST_DATA) ? "Enabled" : "Disabled");
+
         systemPrintln("-------  Tasks  ------");
         systemPrint("70) btReadTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_BLUETOOTH_READ) ? "Enabled" : "Disabled");
@@ -1214,6 +1263,9 @@ void menuPeriodicPrint()
 
         systemPrint("74) sdSizeCheckTask state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_SD_SIZE_CHECK) ? "Enabled" : "Disabled");
+
+        systemPrint("75) WebServerTask state: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_TASK_UPDATE_WEBSERVER) ? "Enabled" : "Disabled");
 
         systemPrintln("x) Exit");
 
@@ -1259,7 +1311,7 @@ void menuPeriodicPrint()
         else if (incoming == 25)
             settings.enablePrintPosition ^= 1;
         else if (incoming == 26)
-            settings.enablePrintState ^= 1;
+            settings.enablePrintStates ^= 1;
 
         else if (incoming == 40)
             PERIODIC_TOGGLE(PD_NTP_SERVER_DATA);
@@ -1289,6 +1341,16 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_MQTT_CLIENT_DATA);
         else if (incoming == 53)
             PERIODIC_TOGGLE(PD_MQTT_CLIENT_STATE);
+        else if (incoming == 54)
+            PERIODIC_TOGGLE(PD_HTTP_CLIENT_STATE);
+        else if (incoming == 55)
+            PERIODIC_TOGGLE(PD_PROVISIONING_STATE);
+        else if (incoming == 56)
+            PERIODIC_TOGGLE(PD_UDP_SERVER_STATE);
+        else if (incoming == 57)
+            PERIODIC_TOGGLE(PD_UDP_SERVER_DATA);
+        else if (incoming == 58)
+            PERIODIC_TOGGLE(PD_UDP_SERVER_BROADCAST_DATA);
 
         else if (incoming == 70)
             PERIODIC_TOGGLE(PD_TASK_BLUETOOTH_READ);
@@ -1300,8 +1362,81 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_TASK_HANDLE_GNSS_DATA);
         else if (incoming == 74)
             PERIODIC_TOGGLE(PD_TASK_SD_SIZE_CHECK);
+        else if (incoming == 75)
+            PERIODIC_TOGGLE(PD_TASK_UPDATE_WEBSERVER);
 
         // Menu exit control
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+// Get the parameters for the antenna height, reference point, and tilt compensation
+void menuInstrument()
+{
+    if (present.imu_im19 == false)
+    {
+        clearBuffer(); // Empty buffer of any newline chars
+        return;
+    }
+
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Instrument Setup");
+
+        // Print the combined APC
+        systemPrintf("Combined Height of Instrument: %0.3fm\r\n",
+                     ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
+
+        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n", settings.antennaHeight_mm / (double)1000.0);
+
+        systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
+
+        systemPrint("3) Report Tip Altitude: ");
+        systemPrintf("%s\r\n", settings.outputTipAltitude ? "Enabled" : "Disabled");
+
+        if (present.imu_im19)
+        {
+            systemPrint("4) Tilt Compensation: ");
+            systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
+        }
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming == 1)
+        {
+            double antennaHeight = 0;
+
+            if (getNewSetting("Enter the antenna height (a.k.a. pole length) in meters", -15.0, 15.0, &antennaHeight) ==
+                INPUT_RESPONSE_VALID)
+                settings.antennaHeight_mm = truncf(antennaHeight * 1000.0);
+        }
+        else if (incoming == 2)
+        {
+            getNewSetting("Enter the antenna phase center (a.k.a. ARP) in millimeters. Common antennas "
+                          "Torch=116mm",
+                          -200.0, 200.0, &settings.antennaPhaseCenter_mm);
+        }
+        else if (incoming == 3)
+        {
+            settings.outputTipAltitude ^= 1;
+        }
+        else if (incoming == 4 && present.imu_im19)
+        {
+            settings.enableTiltCompensation ^= 1;
+        }
+
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -1326,7 +1461,7 @@ void printCurrentConditions()
 
         float hpa = gnssGetHorizontalAccuracy();
         char temp[20];
-        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3);
+        const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3, true);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");

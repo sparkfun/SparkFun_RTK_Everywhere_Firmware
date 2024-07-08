@@ -31,7 +31,7 @@ tcpServer.ino
 
 */
 
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants
@@ -65,7 +65,7 @@ const RtkMode_t tcpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 //----------------------------------------
 
 // TCP server
-static WiFiServer *tcpServer = nullptr;
+static NetworkServer *tcpServer = nullptr;
 static uint8_t tcpServerState;
 static uint32_t tcpServerTimer;
 
@@ -73,7 +73,7 @@ static uint32_t tcpServerTimer;
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
 static volatile uint8_t tcpServerClientWriteError;
-static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
+static RTKNetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
 
@@ -89,13 +89,11 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
     {
         // Update the data sent flag when data successfully sent
         if (length > 0)
-            tcpServerClientDataSent |= 1 << index;
+            tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server wrote %d bytes to %d.%d.%d.%d\r\n", length, tcpServerClientIpAddress[index][0],
-                         tcpServerClientIpAddress[index][1], tcpServerClientIpAddress[index][2],
-                         tcpServerClientIpAddress[index][3]);
+            systemPrintf("TCP server wrote %d bytes to %s\r\n", length, tcpServerClientIpAddress[index].toString());
         }
     }
 
@@ -106,14 +104,13 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server breaking connection %d with client %d.%d.%d.%d\r\n", index,
-                         tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                         tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+            systemPrintf("TCP server breaking connection %d with client %s\r\n", index,
+                         tcpServerClientIpAddress[index].toString());
         }
 
         tcpServerClient[index]->stop();
-        tcpServerClientConnected &= ~(1 << index);
-        tcpServerClientWriteError |= 1 << index;
+        tcpServerClientConnected = tcpServerClientConnected  & (~(1 << index));
+        tcpServerClientWriteError = tcpServerClientWriteError | (1 << index);
         length = 0;
     }
     return length;
@@ -234,15 +231,14 @@ bool tcpServerStart()
         systemPrintln("TCP server starting the server");
 
     // Start the TCP server
-    tcpServer = new WiFiServer(settings.tcpServerPort);
+    tcpServer = new NetworkServer(settings.tcpServerPort, TCP_SERVER_MAX_CLIENTS);
     if (!tcpServer)
         return false;
 
     tcpServer->begin();
     online.tcpServer = true;
-    localIp = wifiGetIpAddress();
-    systemPrintf("TCP server online, IP address %d.%d.%d.%d:%d\r\n", localIp[0], localIp[1], localIp[2], localIp[3],
-                 settings.tcpServerPort);
+    localIp = networkGetIpAddress(networkGetType());
+    systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString(), settings.tcpServerPort);
     return true;
 }
 
@@ -308,15 +304,14 @@ void tcpServerStopClient(int index)
             systemPrintf("TCP Server: No data sent over %d seconds\r\n", TCP_SERVER_CLIENT_DATA_TIMEOUT / 1000);
         if (!connected)
             systemPrintf("TCP Server: Link to client broken\r\n");
-        systemPrintf("TCP server client %d disconnected from %d.%d.%d.%d\r\n", index,
-                     tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                     tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+        systemPrintf("TCP server client %d disconnected from %s\r\n", index,
+                     tcpServerClientIpAddress[index].toString());
     }
 
     // Shutdown the TCP server client link
     tcpServerClient[index]->stop();
-    tcpServerClientConnected &= ~(1 << index);
-    tcpServerClientWriteError &= ~(1 << index);
+    tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
+    tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
 
 // Update the TCP server state
@@ -364,7 +359,7 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer && (!wifiIsConnected()))
+        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer) // Was && (!wifiIsConnected())) - TODO check this
         {
             if (networkUserOpen(NETWORK_USER_TCP_SERVER, NETWORK_TYPE_ACTIVE))
             {
@@ -431,9 +426,8 @@ void tcpServerUpdate()
                     if (PERIODIC_DISPLAY(PD_TCP_SERVER_DATA) && (!inMainMenu))
                     {
                         PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                        systemPrintf("TCP server client %d connected to %d.%d.%d.%d\r\n", index,
-                                     tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                                     tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+                        systemPrintf("TCP server client %d connected to %s\r\n", index,
+                                     tcpServerClientIpAddress[index].toString());
                     }
                 }
 
@@ -449,27 +443,26 @@ void tcpServerUpdate()
             // Determine if the client data structure is in use
             if (!(tcpServerClientConnected & (1 << index)))
             {
-                WiFiClient client;
+                NetworkClient client;
 
                 // Data structure not in use
                 // Check for another TCP server client
-                client = tcpServer->available();
+                client = tcpServer->accept();
 
                 // Done if no TCP server client found
                 if (!client)
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new NetworkWiFiClient(client);
+                tcpServerClient[index] = new RTKNetworkClientType(client, networkGetType());
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
-                tcpServerClientConnected |= 1 << index;
-                tcpServerClientDataSent |= 1 << index;
+                tcpServerClientConnected = tcpServerClientConnected | (1 << index);
+                tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
                 if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
                 {
                     PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
-                    systemPrintf("TCP server client %d connected to %d.%d.%d.%d\r\n", index,
-                                 tcpServerClientIpAddress[index][0], tcpServerClientIpAddress[index][1],
-                                 tcpServerClientIpAddress[index][2], tcpServerClientIpAddress[index][3]);
+                    systemPrintf("TCP server client %d connected to %s\r\n", index,
+                                 tcpServerClientIpAddress[index].toString());
                 }
             }
         }
@@ -515,4 +508,4 @@ void tcpServerZeroTail()
         tcpServerClientTails[index] = 0;
 }
 
-#endif // COMPILE_WIFI
+#endif // COMPILE_NETWORK

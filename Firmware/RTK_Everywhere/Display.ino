@@ -196,7 +196,7 @@ void displayUpdate()
             oled->erase();
 
             std::vector<iconPropertyBlinking> iconPropertyList; // List of icons to be displayed
-            iconPropertyList.clear(); // Redundant?
+            iconPropertyList.clear();                           // Redundant?
 
             switch (systemState)
             {
@@ -261,6 +261,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_NO_FIX):
@@ -269,6 +270,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_FIX):
@@ -277,6 +279,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
@@ -285,6 +288,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
@@ -293,6 +297,7 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
 
@@ -309,27 +314,32 @@ void displayUpdate()
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_SURVEY_STARTED):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
+                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
@@ -398,42 +408,8 @@ void displayUpdate()
                 paintSystemTest();
                 break;
 
-            case (STATE_KEYS_STARTED):
-                paintRTCWait();
-                break;
-            case (STATE_KEYS_NEEDED):
+            case (STATE_KEYS_REQUESTED):
                 // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_WIFI_STARTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_WIFI_CONNECTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_WIFI_TIMEOUT):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_EXPIRED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_DAYS_REMAINING):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_LBAND_CONFIGURE):
-                paintLBandConfigure();
-                break;
-            case (STATE_KEYS_LBAND_ENCRYPTED):
-                // Do nothing. Quick, fall through state.
-                break;
-            case (STATE_KEYS_PROVISION_WIFI_STARTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
-                break;
-            case (STATE_KEYS_PROVISION_WIFI_CONNECTED):
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                paintGettingKeys();
                 break;
 
             case (STATE_ESPNOW_PAIRING_NOT_STARTED):
@@ -792,6 +768,16 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
 
+            if (usbSerialIncomingRtcm)
+            {
+                // Download : Columns 59 - 66
+                iconPropertyBlinking prop;
+                prop.icon = DownloadArrow128x64;
+                prop.duty = 0b11111111;
+                iconList->push_back(prop);
+                usbSerialIncomingRtcm = false;
+            }
+
             if (wifiState == WIFI_STATE_CONNECTED)
             {
                 if (netIncomingRTCM == true) // Download : Columns 59 - 66
@@ -959,8 +945,9 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 prop.icon = ESPNowSymbol2Left64x48;
             else if (espnowRSSI >= -80)
                 prop.icon = ESPNowSymbol1Left64x48;
-            else //if (espnowRSSI > -255)
-                prop.icon = ESPNowSymbol0Left64x48; // Always show the synbol because we've got incoming or outgoing data
+            else // if (espnowRSSI > -255)
+                prop.icon =
+                    ESPNowSymbol0Left64x48; // Always show the synbol because we've got incoming or outgoing data
             iconList->push_back(prop);
 
             // Share the spot. Determine if we need to indicate Up, or Down
@@ -1314,7 +1301,7 @@ void paintClock(std::vector<iconPropertyBlinking> *iconList, bool blinking)
 {
     // Animate icon to show system running. The 2* makes the blink correct
     static uint8_t clockIconDisplayed = (2 * CLOCK_ICON_STATES) - 1;
-    clockIconDisplayed++; // Goto next icon
+    clockIconDisplayed++;                          // Goto next icon
     clockIconDisplayed %= (2 * CLOCK_ICON_STATES); // Wrap
 
     iconPropertyBlinking prop;
@@ -1459,17 +1446,12 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         paintBatteryLevel(iconList);
     else // if (present.ethernet_ws5500 == true)
     {
-        if (online.ethernetStatus == ETH_NOT_STARTED)
-            return; // If Ethernet has not stated because not needed, don't display the icon
+        if (online.ethernetStatus != ETH_CONNECTED)
+            return; // Only display the Ethernet icon if we are successfully connected (no blinking)
 
         iconPropertyBlinking prop;
         prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-
-        if (online.ethernetStatus == ETH_CONNECTED)
-            prop.duty = 0b11111111;
-        else
-            prop.duty = 0b01010101;
-
+        prop.duty = 0b11111111;
         iconList->push_back(prop);
     }
 }
@@ -1795,36 +1777,66 @@ void paintConnectingToNtripCaster()
     printTextwithKerning("Connecting", textX, textY, textKerning);
 }
 
-// Scroll through IP address. Wipe with spaces both ends.
+// Shuttle through IP address
 void paintIPAddress()
 {
-    char ipAddress[32];
-    snprintf(ipAddress, sizeof(ipAddress), "       %d.%d.%d.%d       ",
+    char ipAddress[16];
+    snprintf(ipAddress, sizeof(ipAddress), "%s",
 #ifdef COMPILE_ETHERNET
-             Ethernet.localIP()[0], Ethernet.localIP()[1], Ethernet.localIP()[2], Ethernet.localIP()[3]);
+             ETH.localIP().toString());
 #else  // COMPILE_ETHERNET
-             0, 0, 0, 0);
+             "0.0.0.0");
 #endif // COMPILE_ETHERNET
-
-    static uint8_t ipAddressPosition = 0;
-
-    // Check if IP address is all single digits and can be printed without scrolling
-    if (strlen(ipAddress) <= 21)
-        ipAddressPosition = 7;
-
-    // Print seven characters of IP address
-    char printThis[9];
-    snprintf(printThis, sizeof(printThis), "%c%c%c%c%c%c%c", ipAddress[ipAddressPosition + 0],
-             ipAddress[ipAddressPosition + 1], ipAddress[ipAddressPosition + 2], ipAddress[ipAddressPosition + 3],
-             ipAddress[ipAddressPosition + 4], ipAddress[ipAddressPosition + 5], ipAddress[ipAddressPosition + 6]);
 
     oled->setFont(QW_FONT_5X7); // Set font to smallest
     oled->setCursor(0, 3);
-    oled->print(printThis);
 
-    ipAddressPosition++;                       // Increment the print position
-    if (ipAddress[ipAddressPosition + 7] == 0) // Wrap
-        ipAddressPosition = 0;
+    // If we can print the full IP address without shuttling
+    if (strlen(ipAddress) <= 7)
+    {
+        oled->print(ipAddress);
+    }
+    else
+    {
+        // Print as many characters as we can. Shuttle back and forth to display all.
+        static int startPos = 0;
+        char printThis[7 + 1];
+        int extras = strlen(ipAddress) - 7;
+        int shuttle[(2 * extras) + 2]; // Wait for a double state at each end
+        shuttle[0] = 0;
+        int x;
+        for (x = 0; x <= extras; x++)
+            shuttle[x + 1] = x;
+        shuttle[extras + 2] = extras;
+        x += 2;
+        for (int y = extras - 1; y > 0; y--)
+            shuttle[x++] = y;
+        if (startPos >= (2 * extras) + 2)
+            startPos = 0;
+        snprintf(printThis, sizeof(printThis), &ipAddress[shuttle[startPos]]);
+        startPos++;
+        oled->print(printThis);
+    }
+}
+
+void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom left - 128x64 only
+{
+    if (present.display_type == DISPLAY_128x64)
+    {
+        char myAddress[16];
+
+        uint8_t networkType = networkGetType();
+        IPAddress ipAddress = networkGetIpAddress(networkType);
+
+        if (ipAddress != IPAddress((uint32_t)0))
+        {
+            snprintf(myAddress, sizeof(myAddress), "%s", ipAddress.toString());
+
+            oled->setFont(QW_FONT_5X7); // Set font to smallest
+            oled->setCursor(0, 55);
+            oled->print(ipAddress);
+        }
+    }
 }
 
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
@@ -1901,6 +1913,11 @@ void displayAccountExpired(uint16_t displayTime)
 void displayNotListed(uint16_t displayTime)
 {
     displayMessage("Not Listed", displayTime);
+}
+
+void displayAlreadyRegistered(uint16_t displayTime)
+{
+    displayMessage("Already Registered", displayTime);
 }
 
 void displayUpdateZEDF9P(uint16_t displayTime)
@@ -2104,7 +2121,7 @@ void displayWiFiConfig()
 
     // Convert to string
     char myIP[20] = {'\0'};
-    snprintf(myIP, sizeof(myIP), "%d.%d.%d.%d", myIpAddress[0], myIpAddress[1], myIpAddress[2], myIpAddress[3]);
+    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
 
     char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
     char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
@@ -2274,10 +2291,12 @@ void paintProfile(uint8_t profileUnit)
 
         if (profileNumber >= 0)
         {
-            settings.updateGNSSSettings = true; // When this profile is loaded next, force system to update GNSS settings.
+            settings.updateGNSSSettings =
+                true;               // When this profile is loaded next, force system to update GNSS settings.
             recordSystemSettings(); // Before switching, we need to record the current settings to LittleFS and SD
 
-            recordProfileNumber((uint8_t)profileNumber); // Update internal settings with user's choice, mark unit for config update
+            recordProfileNumber(
+                (uint8_t)profileNumber); // Update internal settings with user's choice, mark unit for config update
 
             log_d("Going to profile number %d from unit %d, name '%s'", profileNumber, profileUnit, profileName);
 
@@ -2472,7 +2491,8 @@ void paintDisplaySetup()
 
     for (auto it = setupButtons.begin(); it != setupButtons.end(); it = std::next(it))
     {
-        if (thisIsButton >= setupSelectedButton) // Should we display this button based on the global setupSelectedButton?
+        if (thisIsButton >=
+            setupSelectedButton) // Should we display this button based on the global setupSelectedButton?
         {
             if (printedButtons < maxButtons) // Do we have room to display it?
             {
@@ -2480,7 +2500,8 @@ void paintDisplaySetup()
                 {
                     int nameWidth = ((present.display_type == DISPLAY_128x64) ? 17 : 9);
                     char miniProfileName[nameWidth] = {0};
-                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile, it->name); // Prefix with index #
+                    snprintf(miniProfileName, sizeof(miniProfileName), "%d_%s", it->newProfile,
+                             it->name); // Prefix with index #
                     printTextCenter(miniProfileName, 12 * printedButtons, QW_FONT_8X16, 1, printedButtons == 0);
                 }
                 else
@@ -2550,7 +2571,8 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
 }
 
 // Given text, and location, print text to the screen
-void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontType, uint8_t kerning) // text, x, y, font type, kearning, inverted
+void printTextAt(const char *text, uint8_t xPos, uint8_t yPos, QwiicFont &fontType,
+                 uint8_t kerning) // text, x, y, font type, kearning, inverted
 {
     oled->setFont(fontType);
     oled->setDrawMode(grROPXOR);
@@ -2713,12 +2735,12 @@ void paintKeyDaysRemaining(int daysRemaining, uint16_t displayTime)
     }
 }
 
-void paintKeyWiFiFail(uint16_t displayTime)
+void paintKeyUpdateFail(uint16_t displayTime)
 {
     // PP
     // Update
     // Failed
-    // No WiFi
+    // No Network
 
     if (online.display == true)
     {
@@ -2738,7 +2760,7 @@ void paintKeyWiFiFail(uint16_t displayTime)
         printTextCenter("Failed", y, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         y += fontHeight + 1;
-        printTextCenter("No WiFi", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("No Network", y, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 
@@ -2791,12 +2813,12 @@ void paintLBandConfigure()
 
 void paintGettingKeys()
 {
-    displayMessage("Getting Keys", 0);
+    displayMessage("Getting Keys", 2000);
 }
 
 void paintGettingEthernetIP()
 {
-    displayMessage("Getting IP", 0);
+    displayMessage("Getting IP", 1000);
 }
 
 // If an L-Band is indoors without reception, we have a ~2s wait for the RTC to come online
@@ -2932,22 +2954,44 @@ void displayNTPFail(uint16_t displayTime)
     }
 }
 
-void displayConfigViaEthNotStarted(uint16_t displayTime)
+void displayConfigViaEthStarting(uint16_t displayTime)
 {
     if (online.display == true)
     {
         oled->erase();
 
-        uint8_t fontHeight = 8;
+        uint8_t fontHeight = 12;
         uint8_t yPos = fontHeight;
 
-        printTextCenter("Configure", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Restart", yPos, QW_FONT_5X7, 1, true); // text, y, font type, kerning, inverted
+        printTextCenter("Starting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+
+        oled->display();
+
+        delay(displayTime);
+    }
+}
+void displayConfigViaEthExiting(uint16_t displayTime)
+{
+    if (online.display == true)
+    {
+        oled->erase();
+
+        uint8_t fontHeight = 12;
+        uint8_t yPos = fontHeight;
+
+        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        yPos += fontHeight;
+        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        yPos += fontHeight;
+        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        yPos += fontHeight;
+        printTextCenter("Exiting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 
@@ -2961,16 +3005,16 @@ void displayConfigViaEthStarted(uint16_t displayTime)
     {
         oled->erase();
 
-        uint8_t fontHeight = 8;
+        uint8_t fontHeight = 12;
         uint8_t yPos = fontHeight;
 
-        printTextCenter("Configure", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
         yPos += fontHeight;
-        printTextCenter("Started", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        printTextCenter("Started", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 
@@ -3004,7 +3048,7 @@ void displayConfigViaEthernet()
 
         char ipAddress[16];
         IPAddress localIP = ETH.localIP();
-        snprintf(ipAddress, sizeof(ipAddress), "%d.%d.%d.%d", localIP[0], localIP[1], localIP[2], localIP[3]);
+        snprintf(ipAddress, sizeof(ipAddress), "%s", localIP.toString());
 
         int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
 

@@ -11,8 +11,8 @@ menuFirmware.ino
 #ifdef COMPILE_OTA_AUTO
 
 static const char *const otaStateNames[] = {"OTA_STATE_OFF",
-                                            "OTA_STATE_START_WIFI",
-                                            "OTA_STATE_WAIT_FOR_WIFI",
+                                            "OTA_STATE_START_NETWORK",
+                                            "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_FIRMWARE_VERSION",
                                             "OTA_STATE_CHECK_FIRMWARE_VERSION",
                                             "OTA_STATE_UPDATE_FIRMWARE"};
@@ -91,7 +91,7 @@ void menuFirmware()
 
         else if (incoming == 'c')
         {
-            if (wifiNetworkCount() == 0)
+            if (networkCanConnect() == false)
             {
                 systemPrintln("Error: Please enter at least one SSID before updating firmware");
             }
@@ -468,66 +468,79 @@ const char *otaGetUrl()
 bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 {
     bool gotVersion = false;
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
     bool previouslyConnected = wifiIsConnected();
 
     bool wasInAPmode;
 
-    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
+    uint8_t networkType = networkGetActiveType();
+    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
     {
-        char versionString[21];
-        getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
-        systemPrintf("Current firmware version: %s\r\n", versionString);
-
-        const char *url = otaGetUrl();
-        systemPrintf("Checking to see if an update is available from %s\r\n", url);
-
-        ESP32OTAPull ota;
-
-        int response = ota.CheckForOTAUpdate(url, versionString, ESP32OTAPull::DONT_DO_UPDATE);
-
-        // We don't care if the library thinks the available firmware is newer, we just need a successful JSON parse
-        if (response == ESP32OTAPull::UPDATE_AVAILABLE || response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
-        {
-            gotVersion = true;
-
-            // Call getVersion after original inquiry
-            String otaVersion = ota.GetVersion();
-            otaVersion.toCharArray(versionAvailable, versionAvailableLength);
-        }
-        else if (response == ESP32OTAPull::HTTP_FAILED)
-        {
-            systemPrintln("Firmware server not available");
-        }
-        else
-        {
-            systemPrintln("OTA failed");
-        }
+        systemPrintln("Error: Please enter at least one SSID before getting keys");
     }
     else
     {
-        systemPrintln("WiFi not available.");
-    }
+        if ((networkType != NETWORK_TYPE_WIFI) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
+                                                   true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+        {
+            char versionString[21];
+            getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
+            systemPrintf("Current firmware version: %s\r\n", versionString);
 
-    // If we were in WIFI_AP mode, return to WIFI_AP mode
-    // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
-    if (wasInAPmode)
-        WiFi.mode(WIFI_AP);
+            const char *url = otaGetUrl();
+            systemPrintf("Checking to see if an update is available from %s\r\n", url);
 
-    if (systemState != STATE_WIFI_CONFIG)
-    {
-        // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode only.
-        // For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station running.
+            ESP32OTAPull ota;
 
-        // If WiFi was originally off, turn it off again
-        if (previouslyConnected == false)
-            WIFI_STOP();
+            int response = ota.CheckForOTAUpdate(url, versionString, ESP32OTAPull::DONT_DO_UPDATE);
+
+            // We don't care if the library thinks the available firmware is newer, we just need a successful JSON parse
+            if (response == ESP32OTAPull::UPDATE_AVAILABLE || response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
+            {
+                gotVersion = true;
+
+                // Call getVersion after original inquiry
+                String otaVersion = ota.GetVersion();
+                otaVersion.toCharArray(versionAvailable, versionAvailableLength);
+            }
+            else if (response == ESP32OTAPull::HTTP_FAILED)
+            {
+                systemPrintln("Firmware server not available");
+            }
+            else
+            {
+                systemPrintln("OTA failed");
+            }
+
+            if (networkType == NETWORK_TYPE_WIFI)
+            {
+                // If we were in WIFI_AP mode, return to WIFI_AP mode
+                // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
+                if (wasInAPmode)
+                    wifiSetApMode();
+
+                if (systemState != STATE_WIFI_CONFIG)
+                {
+                    // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+                    // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+                    // running.
+
+                    // If WiFi was originally off, turn it off again
+                    if (previouslyConnected == false)
+                        WIFI_STOP();
+                }
+            }
+        }
+        else
+        {
+            systemPrintln("Network not available for OTA!");
+        }
     }
 
     if (gotVersion == true)
         log_d("Available OTA firmware version: %s\r\n", versionAvailable);
 
-#endif // COMPILE_WIFI
+#endif // COMPILE_NETWORK
     return (gotVersion);
 }
 
@@ -535,7 +548,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 // Exits by either updating firmware and resetting, or failing to connect
 void overTheAirUpdate()
 {
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
     char versionString[9];
     formatFirmwareVersion(0, 0, versionString, sizeof(versionString), false);
 
@@ -555,7 +568,7 @@ void overTheAirUpdate()
         {
 #ifdef COMPILE_AP
             // Tell AP page to display reset info
-            websocket->textAll("confirmReset,1,");
+            sendStringToWebsocket("confirmReset,1,");
 #endif // COMPILE_AP
         }
         ESP.restart();
@@ -566,29 +579,48 @@ void overTheAirUpdate()
         systemPrintln("OTA Update: Firmware server not available");
     else
         systemPrintln("OTA Update: OTA failed");
-#endif
+#endif // COMPILE_NETWORK
 }
 
 // Start WiFi and perform the over-the-air update
 void otaUpdate()
 {
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
     bool previouslyConnected = wifiIsConnected();
 
     bool wasInAPmode;
 
-    if (wifiConnect(10000, true, &wasInAPmode) == true) // Use WIFI_AP_STA if already in WIFI_AP mode
-        overTheAirUpdate();
+    uint8_t networkType = networkGetActiveType();
+    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+    {
+        systemPrintln("Error: Please enter at least one SSID before getting keys");
+    }
+    else
+    {
+        if ((networkType != NETWORK_TYPE_WIFI)
+            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
+                == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+            overTheAirUpdate();
 
-    // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
-    if (wasInAPmode)
-        WiFi.mode(WIFI_AP);
+        // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
+        if (networkType == NETWORK_TYPE_WIFI)
+        {
+            if (wasInAPmode)
+                wifiSetApMode();
 
-    // Update failed. If WiFi was originally off, turn it off again
-    if (previouslyConnected == false)
-        WIFI_STOP();
+            if (systemState != STATE_WIFI_CONFIG)
+            {
+                // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+                // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+                // running.
 
-#endif // COMPILE_WIFI
+                // If WiFi was originally off, turn it off again
+                if (previouslyConnected == false)
+                    WIFI_STOP();
+            }
+        }
+    }
+#endif // COMPILE_NETWORK
 }
 
 // Called while the OTA Pull update is happening
@@ -623,7 +655,7 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 #ifdef COMPILE_AP
             char myProgress[50];
             snprintf(myProgress, sizeof(myProgress), "otaFirmwareStatus,%d,", percent);
-            websocket->textAll(myProgress);
+            sendStringToWebsocket(myProgress);
 #endif // COMPILE_AP
         }
 
@@ -633,7 +665,7 @@ void otaDisplayPercentage(int bytesWritten, int totalLength, bool alwaysDisplay)
 
 const char *otaPullErrorText(int code)
 {
-#ifdef COMPILE_WIFI
+#ifdef COMPILE_NETWORK
     switch (code)
     {
     case ESP32OTAPull::UPDATE_AVAILABLE:
@@ -657,7 +689,7 @@ const char *otaPullErrorText(int code)
             return "Unexpected HTTP response code";
         break;
     }
-#endif // COMPILE_WIFI
+#endif // COMPILE_NETWORK
     return "Unknown error";
 }
 
@@ -871,7 +903,7 @@ void otaAutoUpdate()
         if ((millis() - otaLastUpdateCheck) >= checkIntervalMillis)
         {
             otaLastUpdateCheck = millis();
-            otaSetState(OTA_STATE_START_WIFI);
+            otaSetState(OTA_STATE_START_NETWORK);
         }
     }
 
@@ -892,20 +924,20 @@ void otaAutoUpdate()
             break;
 
         // Start the WiFi network
-        case OTA_STATE_START_WIFI:
+        case OTA_STATE_START_NETWORK:
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Firmware update starting WiFi");
-            if (!networkUserOpen(NETWORK_USER_OTA_AUTO_UPDATE, NETWORK_TYPE_WIFI))
+            if (!networkUserOpen(NETWORK_USER_OTA_AUTO_UPDATE, NETWORK_TYPE_ACTIVE))
             {
                 systemPrintln("Firmware update failed, unable to start WiFi");
                 otaAutoUpdateStop();
             }
             else
-                otaSetState(OTA_STATE_WAIT_FOR_WIFI);
+                otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
             break;
 
         // Wait for connection to the access point
-        case OTA_STATE_WAIT_FOR_WIFI:
+        case OTA_STATE_WAIT_FOR_NETWORK:
             // Determine if the network has failed
             if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
                 otaAutoUpdateStop();

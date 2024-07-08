@@ -60,7 +60,7 @@ void powerDown(bool displayInfo)
 
     while (1)
     {
-        //We should never get here but good to know if we do
+        // We should never get here but good to know if we do
         systemPrintln("Device powered down");
         delay(250);
     }

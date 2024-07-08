@@ -115,7 +115,7 @@ TcpClient.ino
     * private SNIP NTRIP caster
 */
 
-#if COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
 
 //----------------------------------------
 // Constants
@@ -146,7 +146,7 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 // Locals
 //----------------------------------------
 
-static NetworkClient *tcpClient;
+static RTKNetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
 static uint8_t tcpClientState;
 static volatile RING_BUFFER_OFFSET tcpClientTail;
@@ -194,9 +194,9 @@ int32_t tcpClientSendData(uint16_t dataHead)
                 }
 
                 // Assume all data was sent, wrap the buffer pointer
-                tcpClientTail += bytesSent;
+                tcpClientTail = tcpClientTail + bytesSent;
                 if (tcpClientTail >= settings.gnssHandlerBufferSize)
-                    tcpClientTail -= settings.gnssHandlerBufferSize;
+                    tcpClientTail = tcpClientTail - settings.gnssHandlerBufferSize;
 
                 // Update space available for use in UART task
                 bytesToSend = dataHead - tcpClientTail;
@@ -270,10 +270,10 @@ void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 // Start the TCP client
 bool tcpClientStart()
 {
-    NetworkClient *client;
+    RTKNetworkClient *client;
 
     // Allocate the TCP client
-    client = new NetworkClient(NETWORK_USER_TCP_CLIENT);
+    client = new RTKNetworkClient(NETWORK_USER_TCP_CLIENT);
     if (client)
     {
         // Get the host name
@@ -324,7 +324,7 @@ bool tcpClientStart()
 // Stop the TCP client
 void tcpClientStop()
 {
-    NetworkClient *client;
+    RTKNetworkClient *client;
     IPAddress ipAddress;
 
     client = tcpClient;

@@ -184,6 +184,12 @@ byte wifiGetStatus()
     return WiFi.status();
 }
 
+// Set AP mode
+void wifiSetApMode()
+{
+    WiFi.mode(WIFI_AP);
+}
+
 // Update the state of the WiFi state machine
 void wifiSetState(byte newState)
 {
@@ -280,13 +286,11 @@ bool wifiStartAP(bool forceAP)
         // Start webserver on local WiFi instead of AP
 
         // Attempt to connect to local WiFi with increasing timeouts
-        int timeout = 0;
         int x = 0;
         const int maxTries = 2;
         for (; x < maxTries; x++)
         {
-            timeout += 5000;
-            if (wifiConnect(timeout) == true) // Attempt to connect to any SSID on settings list
+            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
                 wifiPrintNetworkInfo();
                 break;
@@ -343,7 +347,7 @@ void wifiUpdate()
         {
             wifiLastConnectionAttempt = millis();
 
-            if (wifiConnect(10000) == true) // Attempt to connect to any SSID on settings list
+            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
                 // Restart ESPNow if it was previously on
                 if (espnowState > ESPNOW_OFF)
@@ -491,10 +495,14 @@ bool wifiConnect(unsigned long timeout)
 {
     return wifiConnect(timeout, false, nullptr);
 }
+
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 {
-    if (wifiIsConnected())
+    // If WiFi is already connected and AP_STA mode is not needed, then return true now
+    if (wifiIsConnected() && !useAPSTAMode)
+    {
         return (true); // Nothing to do
+    }
 
     displayWiFiConnect();
 
@@ -554,13 +562,15 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     int wifiResponse = WL_DISCONNECTED;
 
     systemPrint("Connecting WiFi... ");
-    WiFiMulti wifiMulti;
+
+    static WiFiMulti wifiMulti;
 
     // Load SSIDs
+    wifiMulti.APlistClean();
     for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
         if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP(settings.wifiNetworks[x].ssid, settings.wifiNetworks[x].password);
+            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid, (const char *)&settings.wifiNetworks[x].password);
     }
 
     wifiResponse = wifiMulti.run(timeout);
@@ -592,6 +602,8 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 // Based on the current settings and system states, determine if we need WiFi on or not
 // This function does not start WiFi. Any service that needs it should call wifiStart().
 // This function is used to turn WiFi off if nothing needs it.
+//
+// TODO: Check if this is still required or needs to be updated. As a minimum, it should be networkIsNeeded ?
 bool wifiIsNeeded()
 {
     if (settings.enablePointPerfectCorrections)
@@ -623,11 +635,6 @@ bool wifiIsNeeded()
         // Keep WiFi on if user presses setup button, enters bubble level, is in AP config mode, etc
         return true;
     }
-
-    if (systemState == STATE_KEYS_WIFI_STARTED || systemState == STATE_KEYS_WIFI_CONNECTED)
-        return true;
-    if (systemState == STATE_KEYS_PROVISION_WIFI_STARTED || systemState == STATE_KEYS_PROVISION_WIFI_CONNECTED)
-        return true;
 
     return false;
 }
@@ -698,21 +705,31 @@ void wifiPrintNetworkInfo()
     systemPrintln();
 }
 
+// Return the gateway IP address for the WiFi controller
 IPAddress wifiGetGatewayIpAddress()
 {
     return WiFi.gatewayIP();
 }
 
+// Return the IP address for the WiFi controller
 IPAddress wifiGetIpAddress()
 {
     return WiFi.localIP();
 }
 
+// Return the subnet mask for the WiFi controller
+IPAddress wifiGetSubnetMask()
+{
+    return WiFi.subnetMask();
+}
+
+// Return the WiFi signal signal strength
 int wifiGetRssi()
 {
     return WiFi.RSSI();
 }
 
+// Return the Wifi station ID
 String wifiGetSsid()
 {
     return WiFi.SSID();

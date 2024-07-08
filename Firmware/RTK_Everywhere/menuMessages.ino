@@ -192,7 +192,7 @@ void menuMessagesBaseRTCM()
 
 // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
 // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
+void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
 {
     while (1)
     {
@@ -207,11 +207,11 @@ void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
         {
             startOfBlock = 0;
             endOfBlock = MAX_UBX_MSG_RTCM;
-            rtcmOffset = getMessageNumberByName("UBX_RTCM_1005");
+            rtcmOffset = zedGetMessageNumberByName("RTCM_1005");
         }
         else
-            setMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
-                              endOfBlock); // Find start and stop of given messageType in message array
+            zedSetMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
+                                 endOfBlock); // Find start and stop of given messageType in message array
 
         for (int x = 0; x < (endOfBlock - startOfBlock); x++)
         {
@@ -480,7 +480,7 @@ void beginLogging(const char *customFileName)
             systemPrintf("Log file name: %s\r\n", logFileName);
             online.logging = true;
         } // online.sd, enable.logging, online.rtc
-    }     // online.logging
+    } // online.logging
 }
 
 // Stop writing to the log file on the microSD card
@@ -594,162 +594,92 @@ bool findLastLog(char *lastLogNamePrt, size_t lastLogNameSize)
     return (foundAFile);
 }
 
-// Given a unique string, find first and last records containing that string in message array
-void setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock)
-{
-    char messageNamePiece[40];                                                   // UBX_RTCM
-    snprintf(messageNamePiece, sizeof(messageNamePiece), "UBX_%s", messageType); // Put UBX_ infront of type
-
-    // Find the first occurrence
-    for (startOfBlock = 0; startOfBlock < MAX_UBX_MSG; startOfBlock++)
-    {
-        if (strstr(localMessage[startOfBlock].msgTextName, messageNamePiece) != nullptr)
-            break;
-    }
-    if (startOfBlock == MAX_UBX_MSG)
-    {
-        // Error out
-        startOfBlock = 0;
-        endOfBlock = 0;
-        return;
-    }
-
-    // Find the last occurrence
-    for (endOfBlock = startOfBlock + 1; endOfBlock < MAX_UBX_MSG; endOfBlock++)
-    {
-        if (strstr(localMessage[endOfBlock].msgTextName, messageNamePiece) == nullptr)
-            break;
-    }
-}
-
-// Count the number of NAV2 messages with rates more than 0. Used for determining if we need the enable
-// the global NAV2 feature.
-uint8_t getNAV2MessageCount()
-{
-    int enabledMessages = 0;
-    int startOfBlock = 0;
-    int endOfBlock = 0;
-
-    setMessageOffsets(&ubxMessages[0], "NAV2", startOfBlock,
-                      endOfBlock); // Find start and stop of given messageType in message array
-
-    for (int x = 0; x < (endOfBlock - startOfBlock); x++)
-    {
-        if (settings.ubxMessageRates[x + startOfBlock] > 0)
-            enabledMessages++;
-    }
-
-    setMessageOffsets(&ubxMessages[0], "NMEANAV2", startOfBlock,
-                      endOfBlock); // Find start and stop of given messageType in message array
-
-    for (int x = 0; x < (endOfBlock - startOfBlock); x++)
-    {
-        if (settings.ubxMessageRates[x + startOfBlock] > 0)
-            enabledMessages++;
-    }
-
-    return (enabledMessages);
-}
-
-// Given the name of a message, find it, and set the rate
-bool setMessageRateByName(const char *msgName, uint8_t msgRate)
-{
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-    {
-        if (strcmp(ubxMessages[x].msgTextName, msgName) == 0)
-        {
-            settings.ubxMessageRates[x] = msgRate;
-            return (true);
-        }
-    }
-
-    systemPrintf("setMessageRateByName: %s not found\r\n", msgName);
-    return (false);
-}
-
-// Given the name of a message, find it, and return the rate
-uint8_t getMessageRateByName(const char *msgName)
-{
-    return (settings.ubxMessageRates[getMessageNumberByName(msgName)]);
-}
-
-// Given the name of a message, return the array number
-uint8_t getMessageNumberByName(const char *msgName)
-{
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-    {
-        if (strcmp(ubxMessages[x].msgTextName, msgName) == 0)
-            return (x);
-    }
-
-    systemPrintf("getMessageNumberByName: %s not found\r\n", msgName);
-    return (0);
-}
-
 // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
 void checkGNSSArrayDefaults()
 {
     bool defaultsApplied = false;
 
-    if (settings.ubxMessageRates[0] == 254)
+    if (present.gnss_zedf9p)
     {
-        defaultsApplied = true;
-
-        // Reset rates to defaults
-        for (int x = 0; x < MAX_UBX_MSG; x++)
+        if (settings.ubxMessageRates[0] == 254)
         {
-            if (ubxMessages[x].msgClass == UBX_RTCM_MSB)
-                settings.ubxMessageRates[x] = 0; // For general rover messages, RTCM should be zero by default.
-                                                 // ubxMessageRatesBase will have the proper defaults.
-            else
-                settings.ubxMessageRates[x] = ubxMessages[x].msgDefaultRate;
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UBX_MSG; x++)
+            {
+                if (ubxMessages[x].msgClass == UBX_RTCM_MSB)
+                    settings.ubxMessageRates[x] = 0; // For general rover messages, RTCM should be zero by default.
+                                                     // ubxMessageRatesBase will have the proper defaults.
+                else
+                    settings.ubxMessageRates[x] = ubxMessages[x].msgDefaultRate;
+            }
+        }
+
+        if (settings.ubxMessageRatesBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset Base rates to defaults
+            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+            for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
+                settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
+        }
+    }
+    else if (present.gnss_um980)
+    {
+        if (settings.um980Constellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
+                settings.um980Constellations[x] = 1;
+        }
+
+        if (settings.um980MessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+                settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+        }
+
+        if (settings.um980MessageRatesRTCMRover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMRover[x] = 0;
+        }
+
+        if (settings.um980MessageRatesRTCMBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
+                settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
         }
     }
 
-    if (settings.ubxMessageRatesBase[0] == 254)
+    // If defaults were applied, also default the non-array settings for this particular GNSS receiver
+    if (defaultsApplied == true)
     {
-        defaultsApplied = true;
-
-        // Reset Base rates to defaults
-        int firstRTCMRecord = getMessageNumberByName("UBX_RTCM_1005");
-        for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-            settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
-    }
-
-    if (settings.um980Constellations[0] == 254)
-    {
-        defaultsApplied = true;
-
-        // Reset constellations to defaults
-        for (int x = 0; x < MAX_UM980_CONSTELLATIONS; x++)
-            settings.um980Constellations[x] = 1;
-    }
-
-    if (settings.um980MessageRatesNMEA[0] == 254)
-    {
-        defaultsApplied = true;
-
-        // Reset rates to defaults
-        for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
-            settings.um980MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
-    }
-
-    if (settings.um980MessageRatesRTCMRover[0] == 254)
-    {
-        defaultsApplied = true;
-
-        // For rovers, RTCM should be zero by default.
-        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            settings.um980MessageRatesRTCMRover[x] = 0;
-    }
-
-    if (settings.um980MessageRatesRTCMBase[0] == 254)
-    {
-        defaultsApplied = true;
-
-        // Reset RTCM rates to defaults
-        for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
-            settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+        if (present.gnss_um980)
+        {
+            settings.minCNO = 10;                    // Default 10 degrees
+            settings.surveyInStartingAccuracy = 2.0; // Default 2m
+            settings.measurementRateMs = 500;        // Default 2Hz.
+        }
+        else if (present.gnss_zedf9p)
+        {
+            settings.minCNO = 6;                     // Default 6 degrees
+            settings.surveyInStartingAccuracy = 1.0; // Default 1m
+            settings.measurementRateMs = 250;        // Default 4Hz.
+        }
     }
 
     if (defaultsApplied == true)
@@ -759,7 +689,7 @@ void checkGNSSArrayDefaults()
 // Determine logging type
 // If user is logging basic 5 sentences, this is 'S'tandard logging
 // If user is logging 7 PPP sentences, this is 'P'PP logging
-// If user has other setences turned on, it's custom logging
+// If user has other sentences turned on, it's custom logging
 // This controls the type of icon displayed
 void setLoggingType()
 {
@@ -768,13 +698,13 @@ void setLoggingType()
     int messageCount = gnssGetActiveMessageCount();
     if (messageCount == 5 || messageCount == 7)
     {
-        if (getMessageRateByName("UBX_NMEA_GGA") > 0 && getMessageRateByName("UBX_NMEA_GSA") > 0 &&
-            getMessageRateByName("UBX_NMEA_GST") > 0 && getMessageRateByName("UBX_NMEA_GSV") > 0 &&
-            getMessageRateByName("UBX_NMEA_RMC") > 0)
+        if (zedGetMessageRateByName("NMEA_GGA") > 0 && zedGetMessageRateByName("NMEA_GSA") > 0 &&
+            zedGetMessageRateByName("NMEA_GST") > 0 && zedGetMessageRateByName("NMEA_GSV") > 0 &&
+            zedGetMessageRateByName("NMEA_RMC") > 0)
         {
             loggingType = LOGGING_STANDARD;
 
-            if (getMessageRateByName("UBX_RXM_RAWX") > 0 && getMessageRateByName("UBX_RXM_SFRBX") > 0)
+            if (zedGetMessageRateByName("RXM_RAWX") > 0 && zedGetMessageRateByName("RXM_SFRBX") > 0)
                 loggingType = LOGGING_PPP;
         }
     }
@@ -784,30 +714,30 @@ void setLoggingType()
 void setLogTestFrequencyMessages(int rate, int messages)
 {
     // Set measurement frequency
-    gnssSetRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRate, settings.navigationRate,
-                             // and GSV message
+    gnssSetRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
+                                     // settings.navigationRate, and GSV message
 
     // Set messages
     setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
     if (messages == 5)
     {
-        setMessageRateByName("UBX_NMEA_GGA", 1);
-        setMessageRateByName("UBX_NMEA_GSA", 1);
-        setMessageRateByName("UBX_NMEA_GST", 1);
-        setMessageRateByName("UBX_NMEA_GSV", rate); // One report per second
-        setMessageRateByName("UBX_NMEA_RMC", 1);
+        zedSetMessageRateByName("NMEA_GGA", 1);
+        zedSetMessageRateByName("NMEA_GSA", 1);
+        zedSetMessageRateByName("NMEA_GST", 1);
+        zedSetMessageRateByName("NMEA_GSV", rate); // One report per second
+        zedSetMessageRateByName("NMEA_RMC", 1);
 
         log_d("Messages: Surveying Defaults (NMEAx5)");
     }
     else if (messages == 7)
     {
-        setMessageRateByName("UBX_NMEA_GGA", 1);
-        setMessageRateByName("UBX_NMEA_GSA", 1);
-        setMessageRateByName("UBX_NMEA_GST", 1);
-        setMessageRateByName("UBX_NMEA_GSV", rate); // One report per second
-        setMessageRateByName("UBX_NMEA_RMC", 1);
-        setMessageRateByName("UBX_RXM_RAWX", 1);
-        setMessageRateByName("UBX_RXM_SFRBX", 1);
+        zedSetMessageRateByName("NMEA_GGA", 1);
+        zedSetMessageRateByName("NMEA_GSA", 1);
+        zedSetMessageRateByName("NMEA_GST", 1);
+        zedSetMessageRateByName("NMEA_GSV", rate); // One report per second
+        zedSetMessageRateByName("NMEA_RMC", 1);
+        zedSetMessageRateByName("RXM_RAWX", 1);
+        zedSetMessageRateByName("RXM_SFRBX", 1);
 
         log_d("Messages: PPP NMEAx5+RXMx2");
     }

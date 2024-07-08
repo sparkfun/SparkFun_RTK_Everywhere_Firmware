@@ -1,5 +1,5 @@
 /*
-  Once RTK Fix is achieved, and the tilt sensor is activated (ie shaken) the tilt sensor
+  Once RTK Fix is achieved, and the tilt sensor is activated (ie rocked back and forth) the tilt sensor
   generates binary-encoded lat/lon/alt values that are tilt-compensated. To get these values to the
   GIS Data Collector software, we need to transmit corrected NMEA sentences over Bluetooth. The
   Data Collector does not know anything is being tilt-compensated. To do this we must intercept
@@ -14,56 +14,6 @@
 */
 
 #ifdef COMPILE_IM19_IMU
-
-// Get the parameters needed for tilt compensation
-void menuTilt()
-{
-    if (present.imu_im19 == false)
-    {
-        clearBuffer(); // Empty buffer of any newline chars
-        return;
-    }
-
-    while (1)
-    {
-        systemPrintln();
-        systemPrintln("Menu: Tilt Compensation");
-        systemPrintln();
-
-        systemPrint("1) Tilt Compensation: ");
-        systemPrintf("%s\r\n", settings.enableTiltCompensation ? "Enabled" : "Disabled");
-
-        if (settings.enableTiltCompensation == true)
-        {
-            systemPrint("2) Pole Length: ");
-            systemPrintf("%0.3fm\r\n", settings.tiltPoleLength);
-        }
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming == 1)
-        {
-            settings.enableTiltCompensation ^= 1;
-        }
-        else if ((settings.enableTiltCompensation == true) && (incoming == 2))
-        {
-            getNewSetting("Enter length of the pole in meters", 0.0, 4.0, &settings.tiltPoleLength);
-        }
-
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
 
 typedef enum
 {
@@ -114,7 +64,7 @@ void tiltUpdate()
         break;
 
     case TILT_STARTED:
-        // Waiting for user to shake unit (RTK Fix required for isInitialized)
+        // Waiting for user to rock unit back and forth (RTK Fix required for isInitialized)
         tiltSensor->update(); // Check for the most recent incoming binary data
 
         // Check IMU state at 1Hz
@@ -122,13 +72,13 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.tiltPoleLength < 0.5)
-                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.tiltPoleLength);
+            if (settings.antennaHeight_mm < 500)
+                systemPrintf("Warning: Short pole length detected: %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
 
-            // Check to see if tilt sensor has been shaken
+            // Check to see if tilt sensor has been rocked
             if (tiltSensor->isInitialized())
             {
                 beepDurationMs(1000); // Audibly indicate the init of tilt
@@ -159,8 +109,8 @@ void tiltUpdate()
         {
             lastTiltCheck = millis();
 
-            if (settings.tiltPoleLength < 0.5)
-                systemPrintf("Warning: Short pole length detected: %0.3f\r\n", settings.tiltPoleLength);
+            if (settings.antennaHeight_mm < 500)
+                systemPrintf("Warning: Short pole length detected: %0.3fm\r\n", settings.antennaHeight_mm / 1000.0);
 
             if (settings.enableImuDebug == true)
                 printTiltDebug();
@@ -347,10 +297,14 @@ void beginTilt()
     // Set the overall length of the GNSS setup in meters: rod length 1800mm + internal length 96.45mm + antenna
     // POC 19.25mm = 1915.7mm
     char clubVector[strlen("CLUB_VECTOR=0,0,1.916") + 1];
-    float arp_m =
-        present.antennaReferencePoint_mm / 1000.0; // Convert mm to m. antennaReferencePoint_mm assigned in begin()
+    // antennaPhaseCenter_mm assigned in begin()
 
-    snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f", settings.tiltPoleLength + arp_m);
+    snprintf(clubVector, sizeof(clubVector), "CLUB_VECTOR=0,0,%0.3f",
+             (settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+    if (settings.enableImuCompensationDebug == true)
+        systemPrintf("Setting club vector to: %s\r\n", clubVector);
+
     result &= tiltSensor->sendCommand(clubVector);
 
     // Configure interface type. This allows IM19 to receive Unicore-style binary messages
@@ -442,8 +396,21 @@ void tiltSensorFactoryReset()
 // Given a NMEA sentence, modify the sentence to use the latest tilt-compensated lat/lon/alt
 // Modifies the sentence directly. Updates sentence CRC.
 // Auto-detects sentence type and will only modify sentences that have lat/lon/alt (ie GGA yes, GSV no)
-void tiltApplyCompensation(char *nmeaSentence, int arraySize)
+// Which sentences have altitude? Yes: GGA, GNS No: RMC, GLL
+// Which sentences have undulation? Yes: GGA, GNS No: RMC, GLL
+// Four possible compensations:
+// If tilt is active, and outputTipAltitude is enabled, then subtract undulation from IMU altitude, and apply LLA
+// compensation. If tilt is active, and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and
+// add pole+ARP. If tilt is off, and outputTipAltitude is enabled, then subtract pole+ARP from altitude. If tilt is off,
+// and outputTipAltitude is disabled, then pass GNSS data without modification. See issues:
+//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+//   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/343
+void nmeaApplyCompensation(char *nmeaSentence, int arraySize)
 {
+    // If tilt is off, and outputTipAltitude is disabled, then pass GNSS data without modification
+    if (tiltIsCorrecting() == false && settings.outputTipAltitude == false)
+        return;
+
     // Verify the sentence is null-terminated
     if (strnlen(nmeaSentence, arraySize) == arraySize)
     {
@@ -459,19 +426,19 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
     // GGA and GNS sentences get modified in the same way
     if (strncmp(sentenceType, "GGA", sizeof(sentenceType)) == 0)
     {
-        tiltApplyCompensationGGA(nmeaSentence, arraySize);
+        applyCompensationGGA(nmeaSentence, arraySize);
     }
     else if (strncmp(sentenceType, "GNS", sizeof(sentenceType)) == 0)
     {
-        tiltApplyCompensationGNS(nmeaSentence, arraySize);
+        applyCompensationGNS(nmeaSentence, arraySize);
     }
     else if (strncmp(sentenceType, "RMC", sizeof(sentenceType)) == 0)
     {
-        tiltApplyCompensationRMC(nmeaSentence, arraySize);
+        applyCompensationRMC(nmeaSentence, arraySize);
     }
     else if (strncmp(sentenceType, "GLL", sizeof(sentenceType)) == 0)
     {
-        tiltApplyCompensationGLL(nmeaSentence, arraySize);
+        applyCompensationGLL(nmeaSentence, arraySize);
     }
     else
     {
@@ -481,15 +448,20 @@ void tiltApplyCompensation(char *nmeaSentence, int arraySize)
 }
 
 // Modify a GNS sentence with tilt compensation
-//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.361,M,,*7D - Original
-//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1580.987,M,-21.361,M,,*7E - Modified
-void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
+//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1574.406,-8.4923,,,S*71 - Original
+//$GNGNS,024034.00,4004.73854216,N,11614.19720023,E,ANAAA,28,0.8,1589.4793,-8.4923,,,S*7E - Modified
+// 1580.987 is what is provided by the IMU and is the ellisoidal height
+// 1580.987 is called 'ellipsoidal height' in SW Maps and includes the MSL + undulation
+// To get mean sea level: 1580.987 - -8.4923 = 1589.4793
+// 1589.4793 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
+void applyCompensationGNS(char *nmeaSentence, int arraySize)
 {
-    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
-
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
+    const int undulationComma = 10;
 
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
@@ -497,7 +469,12 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     uint8_t longitudeStop = 0;
     uint8_t altitudeStart = 0;
     uint8_t altitudeStop = 0;
+    uint8_t undulationStart = 0;
+    uint8_t undulationStop = 0;
     uint8_t checksumStart = 0;
+
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Original GNGNS:\r\n%s\r\n", nmeaSentence);
 
     int commaCount = 0;
     for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
@@ -507,16 +484,20 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
             commaCount++;
             if (commaCount == latitudeComma)
                 latitudeStart = x + 1;
-            else if (commaCount == latitudeComma + 1)
+            if (commaCount == latitudeComma + 1)
                 latitudeStop = x;
-            else if (commaCount == longitudeComma)
+            if (commaCount == longitudeComma)
                 longitudeStart = x + 1;
-            else if (commaCount == longitudeComma + 1)
+            if (commaCount == longitudeComma + 1)
                 longitudeStop = x;
-            else if (commaCount == altitudeComma)
+            if (commaCount == altitudeComma)
                 altitudeStart = x + 1;
-            else if (commaCount == altitudeComma + 1)
+            if (commaCount == altitudeComma + 1)
                 altitudeStop = x;
+            if (commaCount == undulationComma)
+                undulationStart = x + 1;
+            if (commaCount == undulationComma + 1)
+                undulationStop = x;
         }
         if (nmeaSentence[x] == '*')
         {
@@ -526,11 +507,21 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     }
 
     if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || altitudeStart == 0 ||
-        altitudeStop == 0 || checksumStart == 0)
+        altitudeStop == 0 || undulationStart == 0 || undulationStop == 0 || checksumStart == 0)
     {
         systemPrintln("Delineator not found");
         return;
     }
+
+    // Extract the altitude
+    char altitudeStr[strlen("-1602.3481") + 1]; // 4 decimals
+    strncpy(altitudeStr, &nmeaSentence[altitudeStart], altitudeStop - altitudeStart);
+    float altitude = (float)atof(altitudeStr);
+
+    // Extract the undulation
+    char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
+    strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
+    float undulation = (float)atof(undulationStr);
 
     char newSentence[150] = {0};
 
@@ -540,32 +531,66 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
         return;
     }
 
+    char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
+
     // strncat terminates
-    // Add start of message up to latitude
-    strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
+    if (tiltIsCorrecting() == true)
+    {
+        // Add start of message up to latitude
+        strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+        // Convert tilt-compensated latitude to DDMM
+        coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+                               sizeof(coordinateStringDDMM));
 
-    // Add interstitial between end of lat and beginning of lon
-    strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
+        // Add tilt-compensated Latitude
+        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
+        // Add interstitial between end of lat and beginning of lon
+        strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-    // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+        // Convert tilt-compensated longitude to DDMM
+        coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+                               sizeof(coordinateStringDDMM));
 
-    // Add interstitial between end of lon and beginning of alt
-    strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
+        // Add tilt-compensated Longitude
+        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // Add interstitial between end of lon and beginning of alt
+        strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
+    }
+    else // No tilt compensation, no changes to the lat/lon
+    {
+        // Add start of message up to altitude
+        strncat(newSentence, nmeaSentence, altitudeStart);
+    }
+
+    // Calculate newAltitude based on tilt mode and outputTipAltitude setting
+    float newAltitude = 0;
+    if (tiltIsCorrecting() == true)
+    {
+        // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and add
+        // pole+ARP
+        if (settings.outputTipAltitude == false)
+            newAltitude = tiltSensor->getNaviAltitude() - undulation +
+                          ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+        // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
+        else if (settings.outputTipAltitude == true)
+            newAltitude = tiltSensor->getNaviAltitude() - undulation;
+    }
+    else
+    {
+        // If tilt is off and outputTipAltitude is enabled, then subtract pole+ARP from altitude
+        if (settings.outputTipAltitude == true)
+            newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+        // If tilt is off and outputTipAltitude is disabled, then we should not be here
+    }
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", newAltitude);
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
@@ -584,15 +609,31 @@ void tiltApplyCompensationGNS(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
+    if (strlen(newSentence) > arraySize)
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+    }
+
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, arraySize);
+
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Compensated GNGNS:\r\n%s\r\n", nmeaSentence);
 }
 
 // Modify a GLL sentence with tilt compensation
 //$GNGLL,4005.4176871,N,10511.1034563,W,214210.00,A,A*68 - Original
 //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D - Modified
-void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
+void applyCompensationGLL(char *nmeaSentence, int arraySize)
 {
+    // GLL only needs to be changed in tilt mode
+    if (tiltIsCorrecting() == false)
+        return;
+
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Original GNGLL:\r\n%s\r\n", nmeaSentence);
+
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 1;
@@ -674,15 +715,31 @@ void tiltApplyCompensationGLL(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
+    if (strlen(newSentence) > arraySize)
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+    }
+
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, arraySize);
+
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Compensated GNGLL:\r\n%s\r\n", nmeaSentence);
 }
 
 // Modify a RMC sentence with tilt compensation
 //$GNRMC,214210.00,A,4005.4176871,N,10511.1034563,W,0.000,,070923,,,A,V*04 - Original
 //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01 - Modified
-void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
+void applyCompensationRMC(char *nmeaSentence, int arraySize)
 {
+    // RMC only needs to be changed in tilt mode
+    if (tiltIsCorrecting() == false)
+        return;
+
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Original GNRMC:\r\n%s\r\n", nmeaSentence);
+
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     const int latitudeComma = 3;
@@ -764,18 +821,34 @@ void tiltApplyCompensationRMC(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
+    if (strlen(newSentence) > arraySize)
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+    }
+
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, arraySize);
+
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Compensated GNRMC:\r\n%s\r\n", nmeaSentence);
 }
 
 // Modify a GGA sentence with tilt compensation
-//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.361,M,,*7D - Original
-//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1580.987,M,-21.361,M,,*7E - Modified
-void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
+//$GNGGA,213441.00,4005.4176871,N,10511.1034563,W,1,12,99.99,1581.450,M,-21.3612,M,,*7D - Original
+//$GNGGA,213441.00,4005.41769994,N,10507.40740734,W,1,12,99.99,1602.348,M,-21.3612,M,,*4C - Modified
+// 1580.987 is what is provided by the IMU and is the ellisoidal height
+//'Ellipsoidal height' includes the MSL + undulation
+// To get mean sea level: 1580.987 - -21.3612 = 1602.3482
+// 1602.3482 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
+// See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
+// https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
+void applyCompensationGGA(char *nmeaSentence, int arraySize)
 {
     const int latitudeComma = 2;
     const int longitudeComma = 4;
     const int altitudeComma = 9;
+    const int undulationComma = 11;
 
     uint8_t latitudeStart = 0;
     uint8_t latitudeStop = 0;
@@ -783,10 +856,12 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     uint8_t longitudeStop = 0;
     uint8_t altitudeStart = 0;
     uint8_t altitudeStop = 0;
+    uint8_t undulationStart = 0;
+    uint8_t undulationStop = 0;
     uint8_t checksumStart = 0;
 
-    if (settings.enableImuCompensationDebug == true)
-        systemPrintf("Original GNGGA: %s\r\n", nmeaSentence);
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Original GNGGA:\r\n%s\r\n", nmeaSentence);
 
     int commaCount = 0;
     for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
@@ -796,16 +871,20 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
             commaCount++;
             if (commaCount == latitudeComma)
                 latitudeStart = x + 1;
-            else if (commaCount == latitudeComma + 1)
+            if (commaCount == latitudeComma + 1)
                 latitudeStop = x;
-            else if (commaCount == longitudeComma)
+            if (commaCount == longitudeComma)
                 longitudeStart = x + 1;
-            else if (commaCount == longitudeComma + 1)
+            if (commaCount == longitudeComma + 1)
                 longitudeStop = x;
-            else if (commaCount == altitudeComma)
+            if (commaCount == altitudeComma)
                 altitudeStart = x + 1;
-            else if (commaCount == altitudeComma + 1)
+            if (commaCount == altitudeComma + 1)
                 altitudeStop = x;
+            if (commaCount == undulationComma)
+                undulationStart = x + 1;
+            if (commaCount == undulationComma + 1)
+                undulationStop = x;
         }
         if (nmeaSentence[x] == '*')
         {
@@ -815,11 +894,21 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     }
 
     if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0 || altitudeStart == 0 ||
-        altitudeStop == 0 || checksumStart == 0)
+        altitudeStop == 0 || undulationStart == 0 || undulationStop == 0 || checksumStart == 0)
     {
         systemPrintln("Delineator not found");
         return;
     }
+
+    // Extract the altitude
+    char altitudeStr[strlen("-1602.3481") + 1]; // 4 decimals
+    strncpy(altitudeStr, &nmeaSentence[altitudeStart], altitudeStop - altitudeStart);
+    float altitude = (float)atof(altitudeStr);
+
+    // Extract the undulation
+    char undulationStr[strlen("-1602.3481") + 1]; // 4 decimals
+    strncpy(undulationStr, &nmeaSentence[undulationStart], undulationStop - undulationStart);
+    float undulation = (float)atof(undulationStr);
 
     char newSentence[150] = {0};
 
@@ -832,31 +921,63 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     char coordinateStringDDMM[strlen("10511.12345678") + 1] = {0}; // UM980 outputs 8 decimals in GGA sentence
 
     // strncat terminates
-    // Add start of message up to latitude
-    strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Convert tilt-compensated latitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
+    if (tiltIsCorrecting() == true)
+    {
+        // Add start of message up to latitude
+        strncat(newSentence, nmeaSentence, latitudeStart);
 
-    // Add tilt-compensated Latitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+        // Convert tilt-compensated latitude to DDMM
+        coordinateConvertInput(abs(tiltSensor->getNaviLatitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+                               sizeof(coordinateStringDDMM));
 
-    // Add interstitial between end of lat and beginning of lon
-    strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
+        // Add tilt-compensated Latitude
+        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    // Convert tilt-compensated longitude to DDMM
-    coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
-                           sizeof(coordinateStringDDMM));
+        // Add interstitial between end of lat and beginning of lon
+        strncat(newSentence, nmeaSentence + latitudeStop, longitudeStart - latitudeStop);
 
-    // Add tilt-compensated Longitude
-    strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+        // Convert tilt-compensated longitude to DDMM
+        coordinateConvertInput(abs(tiltSensor->getNaviLongitude()), COORDINATE_INPUT_TYPE_DDMM, coordinateStringDDMM,
+                               sizeof(coordinateStringDDMM));
 
-    // Add interstitial between end of lon and beginning of alt
-    strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
+        // Add tilt-compensated Longitude
+        strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
+
+        // Add interstitial between end of lon and beginning of alt
+        strncat(newSentence, nmeaSentence + longitudeStop, altitudeStart - longitudeStop);
+    }
+    else // No tilt compensation, no changes to the lat/lon
+    {
+        // Add start of message up to altitude
+        strncat(newSentence, nmeaSentence, altitudeStart);
+    }
+
+    // Calculate newAltitude based on tilt mode and outputTipAltitude setting
+    float newAltitude = 0;
+    if (tiltIsCorrecting() == true)
+    {
+        // If tilt is active and outputTipAltitude is disabled, then subtract undulation from IMU altitude, and add
+        // pole+ARP
+        if (settings.outputTipAltitude == false)
+            newAltitude = tiltSensor->getNaviAltitude() - undulation +
+                          ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+        // If tilt is active and outputTipAltitude is enabled, then subtract undulation from IMU altitude
+        else if (settings.outputTipAltitude == true)
+            newAltitude = tiltSensor->getNaviAltitude() - undulation;
+    }
+    else
+    {
+        // If tilt is off and outputTipAltitude is enabled, then subtract pole+ARP from altitude
+        if (settings.outputTipAltitude == true)
+            newAltitude = altitude - ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
+
+        // If tilt is off and outputTipAltitude is disabled, then we should not be here
+    }
 
     // Convert altitude double to string
-    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.3f", tiltSensor->getNaviAltitude());
+    snprintf(coordinateStringDDMM, sizeof(coordinateStringDDMM), "%0.4f", newAltitude);
 
     // Add tilt-compensated Altitude
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
@@ -875,11 +996,17 @@ void tiltApplyCompensationGGA(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
+    if (strlen(newSentence) > arraySize)
+    {
+        if (settings.enableImuCompensationDebug == true && !inMainMenu)
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+    }
+
     // Overwrite the original NMEA
     strncpy(nmeaSentence, newSentence, arraySize);
 
-    if (settings.enableImuCompensationDebug == true)
-        systemPrintf("Compensated GNGGA: %s\r\n", nmeaSentence);
+    if (settings.enableImuCompensationDebug == true && !inMainMenu)
+        systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);
 }
 
 #endif // COMPILE_IM19_IMU

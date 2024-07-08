@@ -37,8 +37,8 @@ import os
 import gzip
 import shutil
 
-defaultsource = '../RTK_Surveyor/AP-Config/index.html'
-defaultdest   = '../RTK_Surveyor/form.h'
+defaultsource = '../RTK_Everywhere/AP-Config/index.html'
+defaultdest   = '../RTK_Everywhere/form.h'
 headersearch  = 'static const uint8_t index_html[] PROGMEM = {'
 footersearch  = '}; ///index_html'
 
