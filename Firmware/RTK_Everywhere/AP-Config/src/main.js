@@ -1961,13 +1961,13 @@ function networkCount() {
 }
 
 function checkNewFirmware() {
-    if (networkCount() == 0) {
+    if ((platformPrefix != "EVK") && (networkCount() == 0)) {
         showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
         return;
     }
 
     ge("btnCheckNewFirmware").disabled = true;
-    showMsg('firmwareCheckNewMsg', "Connecting to WiFi", false);
+    showMsg('firmwareCheckNewMsg', "Connecting to network", false);
 
     var settingCSV = "";
 
@@ -2000,7 +2000,7 @@ function checkingNewFirmware() {
 function newFirmwareVersion(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
     if (firmwareVersion == "ERROR") {
-        showMsgError('firmwareCheckNewMsg', "WiFi or Server not available");
+        showMsgError('firmwareCheckNewMsg', "Network or Server not available");
         hide("divGetNewFirmware");
         ge("btnCheckNewFirmware").disabled = false;
         return;
@@ -2021,7 +2021,7 @@ function newFirmwareVersion(firmwareVersion) {
 
 function getNewFirmware() {
 
-    if (networkCount() == 0) {
+    if ((platformPrefix != "EVK") && (networkCount() == 0)) {
         showMsgError('firmwareCheckNewMsg', "WiFi list is empty");
         hide("divGetNewFirmware");
         ge("btnCheckNewFirmware").disabled = false;
