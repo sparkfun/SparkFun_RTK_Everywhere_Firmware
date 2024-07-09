@@ -457,8 +457,9 @@ void mqttClientReceiveMessage(int messageSize)
 
                 settings.pointPerfectNextKeyDuration = (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
 
-                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-                
+                if (online.rtc)
+                    settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
+
                 recordSystemSettings();                   // Record these settings to unit
 
                 if (settings.debugCorrections == true)
