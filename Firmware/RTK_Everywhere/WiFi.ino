@@ -89,9 +89,6 @@ void menuWiFi()
         systemPrint("c) Captive Portal: ");
         systemPrintf("%s\r\n", settings.enableCaptivePortal ? "Enabled" : "Disabled");
 
-        systemPrint("m) MDNS: ");
-        systemPrintf("%s\r\n", settings.mdnsEnable ? "Enabled" : "Disabled");
-
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -123,10 +120,6 @@ void menuWiFi()
         else if (incoming == 'c')
         {
             settings.enableCaptivePortal ^= 1;
-        }
-        else if (incoming == 'm')
-        {
-            settings.mdnsEnable ^= 1;
         }
         else if (incoming == 'x')
             break;
@@ -435,8 +428,7 @@ void wifiStop()
     stopWebServer();
 
     // Stop the multicast domain name server
-    if (settings.mdnsEnable == true)
-        MDNS.end();
+    networkStopMulticastDNS();
 
     // Stop the DNS server if we were using the captive portal
     if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
@@ -578,15 +570,7 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     if (wifiResponse == WL_CONNECTED)
     {
         if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
-        {
-            if (settings.mdnsEnable == true)
-            {
-                if (MDNS.begin("rtk") == false) // This should make the device findable from 'rtk.local' in a browser
-                    systemPrintln("Error setting up MDNS responder!");
-                else
-                    MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
-            }
-        }
+            networkStartMulticastDNS();
 
         systemPrintln();
         return true;

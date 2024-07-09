@@ -1101,6 +1101,7 @@ struct Settings
 
     // Multicast DNS
     bool mdnsEnable = true; // Allows locating of device from browser address 'rtk.local'
+    char mdnsHostName[50] = "rtk";
 
     // Network layer
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
@@ -1621,6 +1622,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Multicast DNS
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.mdnsEnable, "mdnsEnable",  },
+    { 0, 1, 1, 0, 1, 1, 1, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName",  },
 
     // Network layer
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer",  },
