@@ -6,12 +6,15 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 <table class="table table-hover table-striped table-bordered">
   <tr align="center">
    <td><a href="https://www.sparkfun.com/products/24672"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+   <td><a href="https://www.sparkfun.com/products/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
      </tr>
   <tr align="center">
     <td><a href="https://www.sparkfun.com/products/24672">SparkFun RTK Torch (GPS-24672)</a></td>
+    <td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
   </tr>
   <tr align="center">
-    <td><a href="https://learn.sparkfun.com/tutorials/sparkfun-rtk-facet-l-band-hookup-guide">Hookup Guide</a></td>
+    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
+    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
   </tr>
 </table>
 
