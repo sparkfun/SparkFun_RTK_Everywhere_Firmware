@@ -1445,7 +1445,7 @@ void updateProvisioning()
             provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
         }
         break;
-        case PROVISIONING_WAIT_ATTEMPT:
+        case PROVISIONING_WAIT_ATTEMPT: // We may still not have RTC... Or RTC may come online _during_ this state.
         {
             if (settings.requestKeyUpdate)
                 provisioningSetState(PROVISIONING_CHECK_REMAINING);
