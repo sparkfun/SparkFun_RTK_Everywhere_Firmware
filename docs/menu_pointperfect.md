@@ -6,7 +6,7 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 *Configuring PointPerfect settings over serial*
 
-![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK WiFi Config - PointPerfect Menu.png>)
+![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
 
 *PointPerfect Configuration Menu*
 
