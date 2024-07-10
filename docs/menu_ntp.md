@@ -29,7 +29,7 @@ This exchange is repeated typically five times, before the client synchronizes i
 
 Having your own NTP server on your network allows tighter clock synchronization as the network latency is minimized.
 
-Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by pressing the **MODE** button until NTP is highlighted in the display and pausing there.
+Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by clicking the **MODE** button until NTP is highlighted in the display and double-clicking there.
 
 ![Animation of selecting NTP mode](<img/Displays/SparkFun RTK - NTP Select.gif>)
 
