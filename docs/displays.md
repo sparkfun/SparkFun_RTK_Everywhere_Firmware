@@ -80,7 +80,7 @@ Note: During NTRIP transmission WiFi is turned on and Bluetooth is turned off. Y
 
 ## L-Band
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 
@@ -98,9 +98,9 @@ Upon successful reception and decryption of L-Band corrections, the satellite di
 
 ## Antenna Detection
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
-On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection.
+On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection. The images below are for the RTK Reference Station. The same icons are used by the RTK EVK.
 
 ![Reference Station indicating antenna open circuit](img/Displays/Antenna_Open.png)
 
