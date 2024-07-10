@@ -93,7 +93,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server wrote %d bytes to %s\r\n", length, tcpServerClientIpAddress[index].toString());
+            systemPrintf("TCP server wrote %d bytes to %s\r\n", length, tcpServerClientIpAddress[index].toString().c_str());
         }
     }
 
@@ -105,7 +105,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
             systemPrintf("TCP server breaking connection %d with client %s\r\n", index,
-                         tcpServerClientIpAddress[index].toString());
+                         tcpServerClientIpAddress[index].toString().c_str());
         }
 
         tcpServerClient[index]->stop();
@@ -305,7 +305,7 @@ void tcpServerStopClient(int index)
         if (!connected)
             systemPrintf("TCP Server: Link to client broken\r\n");
         systemPrintf("TCP server client %d disconnected from %s\r\n", index,
-                     tcpServerClientIpAddress[index].toString());
+                     tcpServerClientIpAddress[index].toString().c_str());
     }
 
     // Shutdown the TCP server client link
@@ -427,7 +427,7 @@ void tcpServerUpdate()
                     {
                         PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
                         systemPrintf("TCP server client %d connected to %s\r\n", index,
-                                     tcpServerClientIpAddress[index].toString());
+                                     tcpServerClientIpAddress[index].toString().c_str());
                     }
                 }
 
@@ -462,7 +462,7 @@ void tcpServerUpdate()
                 {
                     PERIODIC_CLEAR(PD_TCP_SERVER_DATA);
                     systemPrintf("TCP server client %d connected to %s\r\n", index,
-                                 tcpServerClientIpAddress[index].toString());
+                                 tcpServerClientIpAddress[index].toString().c_str());
                 }
             }
         }

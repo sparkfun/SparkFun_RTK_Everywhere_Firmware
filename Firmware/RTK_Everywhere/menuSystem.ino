@@ -107,15 +107,15 @@ void menuSystem()
             systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
                          ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
             systemPrint("Ethernet IP Address: ");
-            systemPrintln(ETH.localIP().toString());
+            systemPrintln(ETH.localIP().toString().c_str());
             if (!settings.ethernetDHCP)
             {
                 systemPrint("Ethernet DNS: ");
-                systemPrintf("%s\r\n", settings.ethernetDNS.toString());
+                systemPrintf("%s\r\n", settings.ethernetDNS.toString().c_str());
                 systemPrint("Ethernet Gateway: ");
-                systemPrintf("%s\r\n", settings.ethernetGateway.toString());
+                systemPrintf("%s\r\n", settings.ethernetGateway.toString().c_str());
                 systemPrint("Ethernet Subnet Mask: ");
-                systemPrintf("%s\r\n", settings.ethernetSubnet.toString());
+                systemPrintf("%s\r\n", settings.ethernetSubnet.toString().c_str());
             }
         }
 #endif // COMPILE_ETHERNET
