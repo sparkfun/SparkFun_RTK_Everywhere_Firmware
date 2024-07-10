@@ -100,16 +100,13 @@ Upon successful reception and decryption of L-Band corrections, the satellite di
 
 Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
-On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection. The images below are for the RTK Reference Station. The same icons are used by the RTK EVK.
+On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection.
 
-![Reference Station indicating antenna open circuit](img/Displays/Antenna_Open.png)
+![RTK EVK indicating antenna open circuit](img/SparkFun-RTK-EVK-OLED_Antenna_Open_Highlighted.jpg)
 
-*Reference Station with the GNSS antenna disconnected (open circuit)*
+*RTK EVK with the GNSS antenna disconnected (open circuit)*
 
-![Reference Station indicating antenna short circuit](img/Displays/Antenna_Short.png)
+![RTK EVK indicating antenna short circuit](img/SparkFun-RTK-EVK-OLED_Antenna_Short_Highlighted.jpg)
 
-*Reference Station with a GNSS antenna cable fault (short circuit)*
+*RTK EVK with a GNSS antenna cable fault (short circuit)*
 
-When and ethernet-equipped RTK device is in Network Time Protocol (NTP) mode, the display also shows a clock symbol - as shown above. The value next to the clock symbol is the Time Accuracy Estimate (tAcc) from the UBX-NAV-PVT message.
-
-Note: tAcc is the time accuracy estimate for the navigation position solution. The timing accuracy of the TP pulse is significantly better than this. We show the tAcc as we believe it is more meaningful than the TIM-TP time pulse quantization error (qErr) - which is generally zero.
