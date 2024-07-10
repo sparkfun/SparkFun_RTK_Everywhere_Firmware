@@ -6,13 +6,16 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 <table class="table table-hover table-striped table-bordered">
   <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/26250"><img src="img/SparkFun_RTK_Torch.png"></a></td>
+   <td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+   <td><a href="https://www.sparkfun.com/products/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
      </tr>
   <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/26250">SparkFun RTK Torch (GPS-26250)</a></td>
+    <td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
+    <td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
   </tr>
   <tr align="center">
     <td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
+    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
   </tr>
 </table>
 
@@ -24,6 +27,7 @@ There are multiple ways to configure an RTK product:
 * [WiFi](configure_with_wifi.md) - Good for in-field changes
 * [Serial Terminal](configure_with_serial.md) - Requires a computer but allows for all configuration settings
 * [Settings File](configure_with_settings_file.md) - Used for configuring multiple RTK devices identically
+* [Ethernet](configure_with_ethernet.md) - RTK EVK only
 
 The Bluetooth or Serial Terminal methods are recommended for most advanced configurations. Most, but not all settings are also available over WiFi but can be tricky to input via mobile phone.
 

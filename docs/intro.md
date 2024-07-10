@@ -8,3 +8,8 @@ Which device are you using?
 
 * [RTK Torch Quick Start](quickstart-torch.md)
 * [RTK Torch Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_Torch/)
+
+[![RTK EVK](img/SparkFun_RTK_EVK.png)](quickstart-evk.md)
+
+* [RTK EVK Quick Start](quickstart-evk.md)
+* [RTK EVK Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/)
