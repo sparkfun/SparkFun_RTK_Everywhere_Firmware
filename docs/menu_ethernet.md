@@ -14,3 +14,4 @@ By default, the RTK device will use DHCP to request an IP Address from the netwo
 
 *The Reference Station Ethernet menu - with a fixed IP address selected*
 
+When enabled, the "Ethernet / WiFi Failover" option allows the firmware to automatically switch from Ethernet to WiFi should Ethernet become unavailable. Should WiFi become unavailable, the firmware will reconnect to Ethernet if it is now available.
