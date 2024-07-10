@@ -20,7 +20,7 @@ SparkFun RTK devices are equipped to get corrections from a service called Point
 
 PointPerfect has the following benefits and challenges:
 
-* Most SparkFun RTK devices come with either a pre-paid subscription or one month of free access to PointPerfect. Please see the product details for your device. [Go here](https://www.sparkfun.com/rtk_torch_registration) to enable or renew your subscription.
+* Most SparkFun RTK devices come with either a pre-paid subscription or one month of free access to PointPerfect. Please see the product details for your device. [Go here for RTK Torch](https://www.sparkfun.com/rtk_torch_registration) to enable or renew your subscription. [Go here for RTK EVK](https://www.sparkfun.com/rtk_evk_registration) subscriptions.
 * A SparkFun RTK device can obtain RTK Fix anywhere there is [coverage](https://www.u-blox.com/en/pointperfect-service-coverage). This includes the US contiguous 48 states, the EU, Korea, as well as parts of Australia, Brazil, and Canada. Note: L-Band coverage is not available in some of these areas.
 * You don't need to be near a base station - the PPP-RTK model covers entire continents.
 * Because PointPerfect uses a model instead of a dedicated base station, it is cheaper. However, the RTK Fix is not as accurate (3-6cm) as compared to getting corrections from a dedicated base station (2cm or better but depends on the baseline distance).
@@ -30,7 +30,7 @@ PointPerfect corrections are obtained by two methods:
 
 * **L-Band**: Corrections are transmitted from a geosynchronous satellite. Coverage areas are limited to the US contiguous 48 states and the EU. This delivery method requires special equipment (see the [RTK Facet L-Band](https://www.sparkfun.com/products/20000) for more information). No cellular or internet connection is required.
 
-* **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi network. This is most commonly a hotspot on a cell phone so this delivery method is generally confined to areas with cellular and/or WiFi coverage.
+* **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi or Ethernet network. For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is generally confined to areas with cellular and/or other WiFi coverage.
 
 ## Registration
 
@@ -38,7 +38,11 @@ PointPerfect corrections are obtained by two methods:
 
 *Three stickers showing Device ID and QR code to registration page*
 
-All SparkFun RTK products must be registered before they are allowed on the PointPerfect network. To facilitate this, most products ship with a printed Device ID sticker and registration QR code included with the product. The QR code will prefill the registration page with the device's unique ID. If you do not have these materials, don't worry! Please visit the [registration page](https://www.sparkfun.com/rtk_torch_registration) and [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface.
+All SparkFun RTK products must be registered before they are allowed on the PointPerfect network. To facilitate this, most products ship with a printed Device ID sticker and registration QR code included with the product. The QR code will prefill the registration page with the device's unique ID. If you do not have these materials, don't worry!
+
+* **RTK Torch:** please visit the [RTK Torch registration page](https://www.sparkfun.com/rtk_torch_registration) and [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface.
+
+* **RTK EVK:** please visit the [RTK EVK registration page](https://www.sparkfun.com/rtk_evk_registration) and [obtain your device ID](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#obtaining-the-device-id) through the software interface.
 
 ## Keys
 
@@ -70,7 +74,7 @@ The *Days until keys expire* inform the user how many days the unit has until it
 
 * **3** - Trigger an immediate attempt to connect over WiFi and provision the device (if no keys are available) or update the keys (if provisioning has already been completed).
 
-* **4** - Display the Device ID. This is needed when a SparkFun RTK device needs to be added to the PointPerfect system. This is needed when first registering the device, or modifying a subscription. [Go here](https://www.sparkfun.com/rtk_torch_registration) to manage subscriptions.
+* **4** - Display the Device ID. This is needed when a SparkFun RTK device needs to be added to the PointPerfect system. This is needed when first registering the device, or modifying a subscription. [Go here for RTK Torch](https://www.sparkfun.com/rtk_torch_registration) to enable or renew your subscription. [Go here for RTK EVK](https://www.sparkfun.com/rtk_evk_registration) subscriptions.
 
 * **c** - Clear the current keys.
 
@@ -122,7 +126,7 @@ This message is seen when no WiFi network credentials (SSID and password) have b
 
     This device is not whitelisted. Please contact support@sparkfun.com to get your subscription activated. Please reference device ID: [device ID]
 
-This message is seen whenever the PointPerfect service is not aware of the given device. Please use the [subscription form](https://www.sparkfun.com/rtk_torch_registration) or contact support@sparkfun.com with your device ID (see [Obtaining the Device ID](menu_pointperfect.md#obtaining-the-device-id) above).
+This message is seen whenever the PointPerfect service is not aware of the given device. Please use the subscription form or contact support@sparkfun.com with your device ID (see [Obtaining the Device ID](#obtaining-the-device-id) above). [Go here for RTK Torch](https://www.sparkfun.com/rtk_torch_registration) subscriptions. [Go here for RTK EVK](https://www.sparkfun.com/rtk_evk_registration) subscriptions.
 
 ### Device Deactivated
 
