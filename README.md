@@ -5,21 +5,27 @@ The line of RTK Everywhere products offered by SparkFun all run identical firmwa
 
 <table class="table table-hover table-striped table-bordered">
   <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/24672"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+   <td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+   <td><a href="https://www.sparkfun.com/products/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
      </tr>
   <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/24672">SparkFun RTK Torch (GPS-24672)</a></td>
+    <td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
+    <td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
   </tr>
   <tr align="center">
-    <td><a href="https://learn.sparkfun.com/tutorials/sparkfun-rtk-facet-l-band-hookup-guide">Hookup Guide</a></td>
+    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
+    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
   </tr>
 </table>
 
-The [SparkFun RTK Torch](https://www.sparkfun.com/products/24672) is a centimeter-level GNSS receiver. With RTK enabled, these devices can output your location with 8mm horizontal and vertical [*accuracy*](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/) at up to 20Hz!
+The [SparkFun RTK Torch](https://www.sparkfun.com/products/25662) is a centimeter-level GNSS receiver. With RTK enabled, these devices can output your location with 8mm horizontal and vertical [*accuracy*](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/) at up to 20Hz. It supports Galileo E6 HAS and has built-in tilt compensation too!
+
+The [SparkFun RTK EVK](https://www.sparkfun.com/products/24342) is the perfect development platform for your fixed or mobile high-precision positioning and navigation needs. We called it the EVK (Evaluation Kit) as it truly covers all the options: L1 + L2 RTK GNSS, with L-Band correction built-in. Regarding connectivity, the SparkFun RTK EVK has it all: WiFi / Bluetooth®, Ethernet and LTE cellular!
 
 This repo houses the [RTK Product Manual](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware) and the firmware that runs on the SparkFun RTK product line including:
 
-* [SparkFun RTK Torch](https://www.sparkfun.com/products/24672)
+* [SparkFun RTK Torch](https://www.sparkfun.com/products/25662)
+* [SparkFun RTK EVK](https://www.sparkfun.com/products/24342)
 
 For compiled binaries of the firmware, please see [SparkFun RTK Everywhere Firmware Binaries](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries).
 

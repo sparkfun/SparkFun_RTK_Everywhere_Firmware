@@ -1,6 +1,6 @@
 # Ports Menu
 
-Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) 
+Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) / EVK: ![Feature Supported](img/Icons/YellowDot.png)
 
 ![Setting the baud rate of the ports](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg>)
 

@@ -1,6 +1,6 @@
 # Firmware Update Menu
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Firmware update menu](<img/Terminal/SparkFun RTK Everywhere - Firmware Update Menu.png>)
 

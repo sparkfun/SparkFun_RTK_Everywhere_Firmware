@@ -1,6 +1,6 @@
 # User Profiles Menu
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![List of user profiles](<img/Terminal/SparkFun RTK Everywhere - User Profiles Menu.png>)
 

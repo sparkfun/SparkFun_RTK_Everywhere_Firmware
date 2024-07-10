@@ -1,6 +1,6 @@
 # Displays
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 A variety of RTK devices utilize a 0.96" or 1.3" high-contrast OLED display. While small, the display packs various situational data that can be helpful in the field. This section describes each possible display state.
 
@@ -80,7 +80,7 @@ Note: During NTRIP transmission WiFi is turned on and Bluetooth is turned off. Y
 
 ## L-Band
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 
@@ -98,18 +98,15 @@ Upon successful reception and decryption of L-Band corrections, the satellite di
 
 ## Antenna Detection
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection.
 
-![Reference Station indicating antenna open circuit](img/Displays/Antenna_Open.png)
+![RTK EVK indicating antenna open circuit](img/SparkFun-RTK-EVK-OLED_Antenna_Open_Highlighted.jpg)
 
-*Reference Station with the GNSS antenna disconnected (open circuit)*
+*RTK EVK with the GNSS antenna disconnected (open circuit)*
 
-![Reference Station indicating antenna short circuit](img/Displays/Antenna_Short.png)
+![RTK EVK indicating antenna short circuit](img/SparkFun-RTK-EVK-OLED_Antenna_Short_Highlighted.jpg)
 
-*Reference Station with a GNSS antenna cable fault (short circuit)*
+*RTK EVK with a GNSS antenna cable fault (short circuit)*
 
-When and ethernet-equipped RTK device is in Network Time Protocol (NTP) mode, the display also shows a clock symbol - as shown above. The value next to the clock symbol is the Time Accuracy Estimate (tAcc) from the UBX-NAV-PVT message.
-
-Note: tAcc is the time accuracy estimate for the navigation position solution. The timing accuracy of the TP pulse is significantly better than this. We show the tAcc as we believe it is more meaningful than the TIM-TP time pulse quantization error (qErr) - which is generally zero.
