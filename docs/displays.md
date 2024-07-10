@@ -1,6 +1,6 @@
 # Displays
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 A variety of RTK devices utilize a 0.96" or 1.3" high-contrast OLED display. While small, the display packs various situational data that can be helpful in the field. This section describes each possible display state.
 

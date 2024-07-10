@@ -1,6 +1,6 @@
 # Network Time Protocol Menu
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 Ethernet-equipped RTK devices can act as an Ethernet Network Time Protocol (NTP) server.
 
@@ -36,8 +36,6 @@ Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by pressing
 *Selecting NTP mode*
 
 Ethernet-equipped RTK devices will first synchronize its Real Time Clock (RTC) using the very accurate time provided by the u-blox GNSS module. The module's Time Pulse (Pulse-Per-Second) signal is connected to the ESP32 as an interrupt. The ESP32's RTC is synchronized to Universal Time Coordinate (UTC) on the rising edge of the TP signal using the time contained in the UBX-TIM-TP message.
-
-The WIZnet W5500 interrupt signal is also connected to the ESP32, allowing the ESP32 to accurately log when each NTP request arrives.
 
 The RTK device will respond to each NTP request within a few 10s of milliseconds.
 

@@ -55,7 +55,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 
     *Figure 5*
 
-To improve the accuracy (down to 1.6cm), you now need to enable the PointPerfect corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
+To improve the accuracy (down to 1.4cm), you now need to enable the PointPerfect corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
 
 ## iOS
 
@@ -108,7 +108,7 @@ The software options for Apple iOS are much more limited because Apple products 
 
     *Figure 5*
 
-To improve the accuracy (down to 1.6cm), you now need to enable the PointPerfect corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
+To improve the accuracy (down to 1.4cm), you now need to enable the PointPerfect corrections. Continue reading the [RTK Crash Course](#rtk-crash-course).
 
 ## RTK Crash Course
 

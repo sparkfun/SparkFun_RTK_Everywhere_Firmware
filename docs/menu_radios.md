@@ -2,7 +2,7 @@
 
 ## ESP-Now
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Radio menu showing ESP-Now](<img/Terminal/SparkFun RTK Everywhere - Radios Menu.png>)
 

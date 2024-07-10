@@ -4,13 +4,13 @@ Many applications using the RTK products will use a 3rd party GIS application or
 
 ## USB
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 Most SparkFun RTK devices have a USB port for programming and status reports. This USB port can also be configured to output full NMEA/RTCM output that can be used to create a wired connection to an embedded system. See [Output GNSS Data over USB](menu_ports.md#output-gnss-data-over-usb) for more information.
 
 ## DATA Port
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
 
 For this example, we will connect the output from the **DATA** port of an RTK Facet to a [USB to Serial adapter](https://www.sparkfun.com/products/15096) so that we can view the serial data over a terminal connection.
 
@@ -37,7 +37,7 @@ The parsing of NMEA sentences is straightforward and left to the reader. There a
 
 ## External Terminals
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 On devices that support it, external screw terminals provide direct access to the GNSS TX and RX signals via the 3.5mm screw terminal I/O header:
 
@@ -47,4 +47,4 @@ On devices that support it, external screw terminals provide direct access to th
   
 * RX2 : u-blox ZED-F9P UART2 receive: 3.3V INPUT
 
-Please see the [Reference Station Hookup Guide](https://learn.sparkfun.com/tutorials/sparkfun-rtk-reference-station-hookup-guide#hardware-overview) for more details.
+Please see the [EVK Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/hardware_overview/#zed-f9p-secondary-uart-port) for more details.

@@ -1,6 +1,6 @@
 # Corrections Priorities
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![RTK Corrections Priorities Menu](<img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png>)
 

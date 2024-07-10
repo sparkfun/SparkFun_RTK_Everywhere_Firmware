@@ -1,6 +1,6 @@
 # PointPerfect Menu
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![PointPerfect Menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png>)
 
