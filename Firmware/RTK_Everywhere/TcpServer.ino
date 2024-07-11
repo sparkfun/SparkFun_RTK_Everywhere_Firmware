@@ -238,7 +238,7 @@ bool tcpServerStart()
     tcpServer->begin();
     online.tcpServer = true;
     localIp = networkGetIpAddress(networkGetType());
-    systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString(), settings.tcpServerPort);
+    systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), settings.tcpServerPort);
     return true;
 }
 
