@@ -13,10 +13,6 @@ Begin.ino
 
 #define MAX_ADC_VOLTAGE 3300 // Millivolts
 
-// Testing shows the combined ADC+resistors is under a 1% window
-// But the internal ESP32 VRef fuse is not always set correctly
-#define TOLERANCE 4.75 // Percent:  95.25% - 104.75%
-
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -31,7 +27,9 @@ static uint32_t i2cPowerUpDelay;
 // idWithAdc applies resistor tolerance using worst-case tolerances:
 // Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
 // Lower threshold: R1 up by TOLERANCE, R2 down by TOLERANCE
-bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
+// Testing shows the combined ADC+resistors is under a 1% window
+// But the internal ESP32 VRef fuse is not always set correctly
+bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 {
     float lowerThreshold;
     float upperThreshold;
@@ -42,15 +40,17 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
 
     // Return true if the mvMeasured value is within the tolerance range
     // of the mvProduct value
-    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (TOLERANCE / 100.0))) /
-                          ((r1 * (1.0 - (TOLERANCE / 100.0))) + (r2 * (1.0 + (TOLERANCE / 100.0)))));
-    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (TOLERANCE / 100.0))) /
-                           ((r1 * (1.0 + (TOLERANCE / 100.0))) + (r2 * (1.0 - (TOLERANCE / 100.0)))));
+    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
+                          ((r1 * (1.0 - (tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0)))));
+    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (tolerance / 100.0))) /
+                           ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
 
-    // systemPrintf("r1: %0.2f r2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
-    // lowerThreshold, mvMeasured, upperThreshold);
+    bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
+    if (result)
+        systemPrintf("R1: %0.2f R2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
+            lowerThreshold, mvMeasured, upperThreshold);
 
-    return (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
+    return result;
 }
 
 // Use a pair of resistors on pin 35 to ID the board type
@@ -63,27 +63,28 @@ void identifyBoard()
     // Use ADC to check the resistor divider
     int pin_deviceID = 35;
     uint16_t idValue = analogReadMilliVolts(pin_deviceID);
-    log_d("Board ADC ID (mV): %d", idValue);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    systemPrintf("Board ADC ID (mV): %d\r\n", idValue);
 
-    // Order the following ID checks, by millivolt values high to low
+    // Order the following ID checks, by millivolt values low to high
 
-    // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
-    if (idWithAdc(idValue, 10, 10))
+    // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
+    if (idWithAdc(idValue, 12.1, 1.5, 7.5))
         productVariant = RTK_FACET_V2;
 
-    // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
-    else if (idWithAdc(idValue, 10, 100))
-        productVariant = RTK_EVK;
-
-    // Facet mosaic: 1/4.7  -->  2674mV < 2721mV < 2766mV
-    else if (idWithAdc(idValue, 1, 4.7))
+    // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
+    else if (idWithAdc(idValue, 1, 4.7, 5.5))
         productVariant = RTK_FACET_MOSAIC;
+
+    // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
+    else if (idWithAdc(idValue, 1, 10, 17.5))
+        productVariant = RTK_EVK;
 
     // ID resistors do not exist for the following:
     //      Torch
     else
     {
-        log_d("Out of band or nonexistent resistor IDs");
+        systemPrintln("Out of band or nonexistent resistor IDs");
 
         // Check if a bq40Z50 battery manager is on the I2C bus
         if (i2c_0 == nullptr)
@@ -1327,7 +1328,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     }
 
     // Determine if any devices are on the bus
-    if (!deviceFound)
+    if (deviceFound == false)
     {
         systemPrintln("ERROR: No devices found on the I2C bus!");
         return false;
