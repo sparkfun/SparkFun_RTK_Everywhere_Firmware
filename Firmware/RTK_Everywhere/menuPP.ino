@@ -1259,6 +1259,13 @@ void updateProvisioning()
                     systemPrintln("Invalid certificates or keys. Starting provisioning");
                 provisioningSetState(PROVISIONING_CHECK_NETWORK);
             }
+            // If requestKeyUpdate is true, begin provisioning
+            else if (settings.requestKeyUpdate)
+            {
+                if (settings.debugPpCertificate)
+                    systemPrintln("requestKeyUpdate is true. Starting provisioning");
+                provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            }
             // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
             else if (!online.rtc)
             {
@@ -1306,7 +1313,7 @@ void updateProvisioning()
             uint8_t networkType = networkGetActiveType();
             if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
             {
-                displayNoSSIDs(1000);
+                displayNoSSIDs(2000);
                 provisioningSetState(PROVISIONING_KEYS_REMAINING);
             }
             else
@@ -1315,8 +1322,6 @@ void updateProvisioning()
         break;
         case PROVISIONING_STARTING:
         {
-            settings.requestKeyUpdate = false;
-            recordSystemSettings(); // Record these settings to unit
             ztpResponse = ZTP_NOT_STARTED; // HTTP_Client will update this
             httpClientModeNeeded = true; // This will start the HTTP_Client
             provisioningStartTime_millis = millis(); // Record the start time so we can timeout
@@ -1325,6 +1330,7 @@ void updateProvisioning()
         }
         case PROVISIONING_STARTED:
         {
+            // Only leave this state if we timeout or ZTP is complete
             if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
             {
                 httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
@@ -1441,13 +1447,16 @@ void updateProvisioning()
 
             gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
+            settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
+            recordSystemSettings(); // Record these settings to unit
+
             provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
             provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
         }
         break;
         case PROVISIONING_WAIT_ATTEMPT: // We may still not have RTC... Or RTC may come online _during_ this state.
         {
-            if (settings.requestKeyUpdate)
+            if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
                 provisioningSetState(PROVISIONING_CHECK_REMAINING);
             else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
                 provisioningSetState(PROVISIONING_OFF);
