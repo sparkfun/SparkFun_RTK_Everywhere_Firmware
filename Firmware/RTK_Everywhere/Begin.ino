@@ -64,7 +64,15 @@ void identifyBoard()
     int pin_deviceID = 35;
     uint16_t idValue = analogReadMilliVolts(pin_deviceID);
     idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
-    systemPrintf("Board ADC ID (mV): %d\r\n", idValue);
+    char adcId[50];
+    snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
+    for (int i = 0; i < strlen(adcId); i++)
+        systemPrint("=");
+    systemPrintln();
+    systemPrintln(adcId);
+    for (int i = 0; i < strlen(adcId); i++)
+        systemPrint("=");
+    systemPrintln();
 
     // Order the following ID checks, by millivolt values high to low (Torch reads low)
 
@@ -403,7 +411,16 @@ void beginVersion()
 {
     char versionString[21];
     getFirmwareVersion(versionString, sizeof(versionString), true);
-    systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+
+    char title[50];
+    snprintf(title, sizeof(title), "SparkFun RTK %s %s", platformPrefix, versionString);
+    for (int i = 0; i < strlen(title); i++)
+        systemPrint("=");
+    systemPrintln();
+    systemPrintln(title);
+    for (int i = 0; i < strlen(title); i++)
+        systemPrint("=");
+    systemPrintln();
 
 #if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
     static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
