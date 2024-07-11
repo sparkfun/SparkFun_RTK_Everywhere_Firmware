@@ -60,6 +60,23 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 // used in tests accordingly.
 void identifyBoard()
 {
+#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
+    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
+    esp_base_mac_addr_set(developerMacAddress);
+    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
+#endif
+
+    // Get unit MAC address
+    // This was in beginVersion, but is needed earlier so that beginBoard
+    // can print the MAC address if identifyBoard fails.
+    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
+    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
+    btMACAddress[5] +=
+        2; // Convert MAC address to Bluetooth MAC (add 2):
+           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
+    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
+    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
+
     // Use ADC to check the resistor divider
     int pin_deviceID = 35;
     uint16_t idValue = analogReadMilliVolts(pin_deviceID);
@@ -137,7 +154,16 @@ void beginBoard()
 {
     if (productVariant == RTK_UNKNOWN)
     {
-        reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with your device ID and the \"Board ADC ID (mV)\" reported above.");
+        // RTK is unknown. We can not proceed...
+        // We don't know the productVariant, but we do know the MAC address. Print that.
+        char hardwareID[30];
+        snprintf(hardwareID, sizeof(hardwareID), "Device MAC: %02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                    btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+        systemPrintln("========================");
+        systemPrintln(hardwareID);
+        systemPrintln("========================");
+
+        reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with the \"Device MAC\" and the \"Board ADC ID (mV)\" reported above.");
     }
     else if (productVariant == RTK_TORCH)
     {
@@ -421,21 +447,6 @@ void beginVersion()
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();
-
-#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
-    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
-    esp_base_mac_addr_set(developerMacAddress);
-    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
-#endif
-
-    // Get unit MAC address
-    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
-    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    btMACAddress[5] +=
-        2; // Convert MAC address to Bluetooth MAC (add 2):
-           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
-    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
 
     // For all boards, check reset reason. If reset was due to wdt or panic, append the last log
     loadSettingsPartial(); // Loads settings from LFS
