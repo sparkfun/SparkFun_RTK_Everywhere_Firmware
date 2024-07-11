@@ -59,6 +59,7 @@ const char *const platformPrefixTable[] = {
     "Facet L-Band",
     "Reference Station",
     "Facet L-Band Direct",
+    "EVK",
     // Add new values just above this line
     "Unknown",
 };
@@ -68,7 +69,7 @@ const int platformPrefixTableEntries = sizeof(platformPrefixTable) / sizeof(plat
 //When user pauses for X amount of time, system will enter that state
 SystemState setupState = STATE_MARK_EVENT;
 
-typedef enum
+typedef enum // Note: the enum for RTK Everywhere is very different!
 {
   RTK_SURVEYOR = 0,
   RTK_EXPRESS,
@@ -77,6 +78,7 @@ typedef enum
   RTK_FACET_LBAND,
   REFERENCE_STATION,
   RTK_FACET_LBAND_DIRECT,
+  RTK_EVK,
   // Add new values just above this line
   RTK_UNKNOWN,
 } ProductVariant;

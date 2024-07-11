@@ -1,9 +1,6 @@
 
 #define MAX_ADC_VOLTAGE 3300 // Millivolts
 
-// Testing shows the combined ADC+resistors is under a 1% window
-#define TOLERANCE 5.20 // Percent:  94.8% - 105.2%
-
 //----------------------------------------
 // Hardware initialization functions
 //----------------------------------------
@@ -11,7 +8,9 @@
 // idWithAdc applies resistor tolerance using worst-case tolerances:
 // Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
 // Lower threshold: R1 up by TOLERANCE, R2 down by TOLERANCE
-bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
+// Testing shows the combined ADC+resistors is under a 1% window
+// But the internal ESP32 VRef fuse is not always set correctly
+bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 {
   float lowerThreshold;
   float upperThreshold;
@@ -22,10 +21,10 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
 
   // Return true if the mvMeasured value is within the tolerance range
   // of the mvProduct value
-  upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (TOLERANCE / 100.0))) /
-                        ((r1 * (1.0 - (TOLERANCE / 100.0))) + (r2 * (1.0 + (TOLERANCE / 100.0)))));
-  lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (TOLERANCE / 100.0))) /
-                         ((r1 * (1.0 + (TOLERANCE / 100.0))) + (r2 * (1.0 - (TOLERANCE / 100.0)))));
+  upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
+                        ((r1 * (1.0 - (tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0)))));
+  lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (tolerance / 100.0))) /
+                         ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
 
   // Serial.printf("r1: %0.2f r2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
   // lowerThreshold, mvMeasured, upperThreshold);
@@ -42,44 +41,65 @@ void identifyBoard()
 {
   // Use ADC to check the resistor divider
   int pin_deviceID = 35;
+
   uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+  idValue = analogReadMilliVolts(pin_deviceID); // Read twice
+
   Serial.printf("Board ADC ID (mV): %d\r\n", idValue);
 
   // Order the following ID checks, by millivolt values high to low
 
-  // Facet L-Band Direct: 4.7/1  -->  534mV < 579mV < 626mV
-  if (idWithAdc(idValue, 4.7, 1))
+  // Facet L-Band Direct: 4.7/1  -->  528mV < 579mV < 634mV (5.5% tolerance)
+  if (idWithAdc(idValue, 4.7, 1, 5.5))
   {
     Serial.println("Found LBand Direct");
     productVariant = RTK_FACET_LBAND_DIRECT;
   }
 
   // Express: 10/3.3  -->  761mV < 819mV < 879mV
-  else if (idWithAdc(idValue, 10, 3.3))
+  else if (idWithAdc(idValue, 10, 3.3, 4.75))
   {
     Serial.println("Found Express");
     productVariant = RTK_EXPRESS;
   }
 
   // Reference Station: 20/10  -->  1031mV < 1100mV < 1171mV
-  else if (idWithAdc(idValue, 20, 10))
+  else if (idWithAdc(idValue, 20, 10, 4.75))
   {
+    Serial.println("Found Reference Station");
     productVariant = REFERENCE_STATION;
     // We can't auto-detect the ZED version if the firmware is in configViaEthernet mode,
     // so fake it here - otherwise messageSupported always returns false
     zedFirmwareVersionInt = 112;
   }
+
   // Facet: 10/10  -->  1571mV < 1650mV < 1729mV
-  else if (idWithAdc(idValue, 10, 10))
+  else if (idWithAdc(idValue, 10, 10, 4.75))
+  {
+    Serial.println("Found Facet");
     productVariant = RTK_FACET;
+  }
 
   // Facet L-Band: 10/20  -->  2129mV < 2200mV < 2269mV
-  else if (idWithAdc(idValue, 10, 20))
+  else if (idWithAdc(idValue, 10, 20, 4.75))
+  {
+    Serial.println("Found Facet L-Band");
     productVariant = RTK_FACET_LBAND;
+  }
 
   // Express+: 3.3/10  -->  2421mV < 2481mV < 2539mV
-  else if (idWithAdc(idValue, 3.3, 10))
+  else if (idWithAdc(idValue, 3.3, 10, 4.75))
+  {
+    Serial.println("Found Express Plus");
     productVariant = RTK_EXPRESS_PLUS;
+  }
+
+  // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
+  else if (idWithAdc(idValue, 1, 10, 17.5))
+  {
+    Serial.println("Found EVK");
+    productVariant = RTK_EVK;
+  }
 
   // ID resistors do not exist for the following:
   //      Surveyor

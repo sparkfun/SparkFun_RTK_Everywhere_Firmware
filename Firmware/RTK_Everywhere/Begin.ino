@@ -13,10 +13,6 @@ Begin.ino
 
 #define MAX_ADC_VOLTAGE 3300 // Millivolts
 
-// Testing shows the combined ADC+resistors is under a 1% window
-// But the internal ESP32 VRef fuse is not always set correctly
-#define TOLERANCE 4.75 // Percent:  95.25% - 104.75%
-
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -31,7 +27,9 @@ static uint32_t i2cPowerUpDelay;
 // idWithAdc applies resistor tolerance using worst-case tolerances:
 // Upper threshold: R1 down by TOLERANCE, R2 up by TOLERANCE
 // Lower threshold: R1 up by TOLERANCE, R2 down by TOLERANCE
-bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
+// Testing shows the combined ADC+resistors is under a 1% window
+// But the internal ESP32 VRef fuse is not always set correctly
+bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
 {
     float lowerThreshold;
     float upperThreshold;
@@ -42,15 +40,17 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
 
     // Return true if the mvMeasured value is within the tolerance range
     // of the mvProduct value
-    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (TOLERANCE / 100.0))) /
-                          ((r1 * (1.0 - (TOLERANCE / 100.0))) + (r2 * (1.0 + (TOLERANCE / 100.0)))));
-    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (TOLERANCE / 100.0))) /
-                           ((r1 * (1.0 + (TOLERANCE / 100.0))) + (r2 * (1.0 - (TOLERANCE / 100.0)))));
+    upperThreshold = ceil(MAX_ADC_VOLTAGE * (r2 * (1.0 + (tolerance / 100.0))) /
+                          ((r1 * (1.0 - (tolerance / 100.0))) + (r2 * (1.0 + (tolerance / 100.0)))));
+    lowerThreshold = floor(MAX_ADC_VOLTAGE * (r2 * (1.0 - (tolerance / 100.0))) /
+                           ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
 
-    // systemPrintf("r1: %0.2f r2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
-    // lowerThreshold, mvMeasured, upperThreshold);
+    bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
+    if (result && ENABLE_DEVELOPER)
+        systemPrintf("R1: %0.2f R2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
+            lowerThreshold, mvMeasured, upperThreshold);
 
-    return (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
+    return result;
 }
 
 // Use a pair of resistors on pin 35 to ID the board type
@@ -60,30 +60,56 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2)
 // used in tests accordingly.
 void identifyBoard()
 {
+#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
+    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
+    esp_base_mac_addr_set(developerMacAddress);
+    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
+#endif
+
+    // Get unit MAC address
+    // This was in beginVersion, but is needed earlier so that beginBoard
+    // can print the MAC address if identifyBoard fails.
+    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
+    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
+    btMACAddress[5] +=
+        2; // Convert MAC address to Bluetooth MAC (add 2):
+           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
+    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
+    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
+
     // Use ADC to check the resistor divider
     int pin_deviceID = 35;
     uint16_t idValue = analogReadMilliVolts(pin_deviceID);
-    log_d("Board ADC ID (mV): %d", idValue);
+    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+    char adcId[50];
+    snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
+    for (int i = 0; i < strlen(adcId); i++)
+        systemPrint("=");
+    systemPrintln();
+    systemPrintln(adcId);
+    for (int i = 0; i < strlen(adcId); i++)
+        systemPrint("=");
+    systemPrintln();
 
-    // Order the following ID checks, by millivolt values high to low
+    // Order the following ID checks, by millivolt values high to low (Torch reads low)
 
-    // Facet v2: 12.1/1.5  -->  334mV < 364mV < 396mV
-    if (idWithAdc(idValue, 10, 10))
-        productVariant = RTK_FACET_V2;
-
-    // EVK: 10/100  -->  2973mV < 3000mV < 3025mV
-    else if (idWithAdc(idValue, 10, 100))
+    // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
+    if (idWithAdc(idValue, 1, 10, 17.5))
         productVariant = RTK_EVK;
 
-    // Facet mosaic: 1/4.7  -->  2674mV < 2721mV < 2766mV
-    else if (idWithAdc(idValue, 1, 4.7))
+    // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
+    else if (idWithAdc(idValue, 1, 4.7, 5.5))
         productVariant = RTK_FACET_MOSAIC;
 
+    // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
+    else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
+        productVariant = RTK_FACET_V2;
+
     // ID resistors do not exist for the following:
-    //      Torch
+    //      Torch : idValue reads low (100mV - 200mV)
     else
     {
-        log_d("Out of band or nonexistent resistor IDs");
+        systemPrintln("Out of band or nonexistent resistor IDs");
 
         // Check if a bq40Z50 battery manager is on the I2C bus
         if (i2c_0 == nullptr)
@@ -128,7 +154,16 @@ void beginBoard()
 {
     if (productVariant == RTK_UNKNOWN)
     {
-        systemPrintln("Product variant unknown. Assigning no hardware pins.");
+        // RTK is unknown. We can not proceed...
+        // We don't know the productVariant, but we do know the MAC address. Print that.
+        char hardwareID[30];
+        snprintf(hardwareID, sizeof(hardwareID), "Device MAC: %02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                    btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+        systemPrintln("========================");
+        systemPrintln(hardwareID);
+        systemPrintln("========================");
+
+        reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with the \"Device MAC\" and the \"Board ADC ID (mV)\" reported above.");
     }
     else if (productVariant == RTK_TORCH)
     {
@@ -402,22 +437,16 @@ void beginVersion()
 {
     char versionString[21];
     getFirmwareVersion(versionString, sizeof(versionString), true);
-    systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
 
-#if ENABLE_DEVELOPER && defined(DEVELOPER_MAC_ADDRESS)
-    static const uint8_t developerMacAddress[] = {DEVELOPER_MAC_ADDRESS};
-    esp_base_mac_addr_set(developerMacAddress);
-    systemPrintln("\r\nWARNING! The ESP32 Base MAC Address has been overwritten with DEVELOPER_MAC_ADDRESS\r\n");
-#endif
-
-    // Get unit MAC address
-    esp_read_mac(wifiMACAddress, ESP_MAC_WIFI_STA);
-    memcpy(btMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    btMACAddress[5] +=
-        2; // Convert MAC address to Bluetooth MAC (add 2):
-           // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system.html#mac-address
-    memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
-    ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
+    char title[50];
+    snprintf(title, sizeof(title), "SparkFun RTK %s %s", platformPrefix, versionString);
+    for (int i = 0; i < strlen(title); i++)
+        systemPrint("=");
+    systemPrintln();
+    systemPrintln(title);
+    for (int i = 0; i < strlen(title); i++)
+        systemPrint("=");
+    systemPrintln();
 
     // For all boards, check reset reason. If reset was due to wdt or panic, append the last log
     loadSettingsPartial(); // Loads settings from LFS
@@ -1327,7 +1356,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     }
 
     // Determine if any devices are on the bus
-    if (!deviceFound)
+    if (deviceFound == false)
     {
         systemPrintln("ERROR: No devices found on the I2C bus!");
         return false;
