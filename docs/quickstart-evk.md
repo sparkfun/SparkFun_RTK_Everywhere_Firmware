@@ -43,7 +43,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 5. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’. 
 
-6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘EVK Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom left corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok. 
+6. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘EVK Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok. 
 
     ![SW Map list of Bluetooth devices](<img/QuickStart/SparkFun Torch - SW Maps Bluetooth Small.png>)
 
@@ -172,4 +172,4 @@ After the reboot, the device will connect to WiFi using your credentials. If you
 
 * The location reported by the RTK device is the location of the antenna element. Lat and Long are fairly easy to obtain but if you're capturing altitude be sure to do additional reading on ARPs (antenna reference points) and how to account for the antenna height in your data collection software.
 
-* An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). The RTK EVK also supports PointPerfect L-Band through the built-in NEO-D9S corrections receiver. The L-Band corrections are encrypted and keys are required but, once your unit has them, corrections will be available for up to eight weeks. See [Correction Transport](correction_transport.md) for more details.
+* An internet connection is required for most types of RTK. RTCM corrections can be transmitted over other types of connections (such as serial telemetry radios). The RTK EVK also supports PointPerfect L-Band geostationary satellite corrections through the built-in NEO-D9S corrections receiver. The L-Band corrections are encrypted and keys are required but, once your unit has them, corrections will be available for up to eight weeks. See [Correction Transport](correction_transport.md) for more details.

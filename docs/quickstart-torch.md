@@ -36,7 +36,7 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 6. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’. 
 
-7. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Torch Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom left corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok. 
+7. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Torch Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok. 
 
     ![SW Map list of Bluetooth devices](<img/QuickStart/SparkFun Torch - SW Maps Bluetooth Small.png>)
 
