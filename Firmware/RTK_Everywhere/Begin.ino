@@ -46,7 +46,7 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
                            ((r1 * (1.0 + (tolerance / 100.0))) + (r2 * (1.0 - (tolerance / 100.0)))));
 
     bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
-    if (result)
+    if (result && ENABLE_DEVELOPER)
         systemPrintf("R1: %0.2f R2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
             lowerThreshold, mvMeasured, upperThreshold);
 
@@ -66,22 +66,22 @@ void identifyBoard()
     idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
     systemPrintf("Board ADC ID (mV): %d\r\n", idValue);
 
-    // Order the following ID checks, by millivolt values low to high
+    // Order the following ID checks, by millivolt values high to low (Torch reads low)
 
-    // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
-    if (idWithAdc(idValue, 12.1, 1.5, 7.5))
-        productVariant = RTK_FACET_V2;
+    // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
+    if (idWithAdc(idValue, 1, 10, 17.5))
+        productVariant = RTK_EVK;
 
     // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
     else if (idWithAdc(idValue, 1, 4.7, 5.5))
         productVariant = RTK_FACET_MOSAIC;
 
-    // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
-    else if (idWithAdc(idValue, 1, 10, 17.5))
-        productVariant = RTK_EVK;
+    // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
+    else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
+        productVariant = RTK_FACET_V2;
 
     // ID resistors do not exist for the following:
-    //      Torch
+    //      Torch : idValue reads low (100mV - 200mV)
     else
     {
         systemPrintln("Out of band or nonexistent resistor IDs");
@@ -129,7 +129,7 @@ void beginBoard()
 {
     if (productVariant == RTK_UNKNOWN)
     {
-        systemPrintln("Product variant unknown. Assigning no hardware pins.");
+        reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with your device ID and the \"Board ADC ID (mV)\" reported above.");
     }
     else if (productVariant == RTK_TORCH)
     {
