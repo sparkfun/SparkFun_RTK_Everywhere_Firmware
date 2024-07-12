@@ -20,6 +20,15 @@ The *Corrections Priorities* menu allows a user to specify which correction sour
 
 ![RTK Corrections Priorities Menu](<img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png>)
 
-In the serial terminal menu, pressing a letter will increase or decrease the position of a priority. For example, in the image above, pressing **D** will raise the `L-Band` priority above `TCP (NTRIP)`.
+In the serial terminal menu, pressing a letter will increase or decrease the position of a priority. For example, in the image above, pressing **F** will raise the `L-Band` priority above `TCP (NTRIP)`.
+
+In the web config page:
+
+* Clicking a source increases its priority
+* Clicking the highest priority source makes it the lowest priority
+* Clicking 'Reset to Defaults' will restore the priorities to their default setting
+* Click 'Save Configuration', then 'Exit and Reset' to save the changes
+
+![RTK Corrections Priorities Web Config](<img/WiFi Config/SparkFun RTK Corrections Priority.gif>)
 
 Please see [Correction Sources](correction_sources.md) for a description of where to obtain corrections.
