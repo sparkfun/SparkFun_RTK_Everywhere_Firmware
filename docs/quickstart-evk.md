@@ -148,7 +148,7 @@ Steps to use PointPerfect:
 
     *WiFi Menu containing one network*
 
-5. Under the *PointPerfect Configuration* menu, **Enable PointPefect Corrections** and select your **Geographic Region**. If desired, enable **Localized Corrections** and **AssistNow**.
+5. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**. If desired, enable **Localized Corrections** and **AssistNow**.
 
     ![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
 
