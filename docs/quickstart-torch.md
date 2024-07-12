@@ -126,14 +126,15 @@ Steps to use PointPerfect:
 
     *WiFi Menu containing one network*
 
-6. Under the *PointPerfect Configuration* menu, **Enable PointPefect Corrections** and select your **Geographic Region**.
+6. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**. If desired, enable **Localized Corrections** and **AssistNow**.
 
-    ![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK WiFi Config - PointPerfect Menu.png>)
+    ![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
 
     *PointPerfect Configuration Menu*
 
     !!! note
         It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
+
 
 7. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
 
