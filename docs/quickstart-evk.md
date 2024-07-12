@@ -154,6 +154,9 @@ Steps to use PointPerfect:
 
     *PointPerfect Configuration Menu*
 
+    !!! note
+        It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
+
 6. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
 
     ![Saving and All Saved notifications](<img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png>)
