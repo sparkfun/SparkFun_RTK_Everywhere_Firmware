@@ -4,7 +4,7 @@ Torch: ![Feature Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](im
 
 During Ethernet configuration, the RTK device will present a webpage that is viewable from a desktop/laptop connected to the local network.
 
-![SparkFun RTK Ethernet Configuration Interface](<img/WiFi Config/SparkFun RTK Ethernet Config - Main Interface.png>)
+![SparkFun RTK Ethernet Configuration Interface](<img/WiFi Config/SparkFun RTK Ethernet Config - Crop.png>)
 
 *SparkFun RTK Ethernet Configuration Interface*
 
