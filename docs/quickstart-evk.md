@@ -124,7 +124,7 @@ One of the great features of the RTK EVK is that it has the ability to get corre
 
 *PointPerfect Coverage map including L-Band and IP delivery methods*
 
-The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the RTK EVK is compatible with all areas as it supports both L-Band and IP coverage).
+The PointPerfect IP service is available for various areas of the globe including the contiguous US, EU, South Korea, as well as parts of Brazil, Australia, and Canada. See the [coverage map](https://www.u-blox.com/en/pointperfect-service-coverage) for specifics; the RTK EVK is compatible with all areas as it supports both L-Band and IP coverage.
 
 Steps to use PointPerfect:
 
@@ -132,7 +132,7 @@ Steps to use PointPerfect:
     
 2. Put the RTK EVK into WiFi config mode by clicking the Mode button on the front panel. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until **Cfg WiFi** is highlighted, then do a quick double-click to select it.
 
-    ![SparkFun RTK EVK Mode Menu](<img/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
+    ![SparkFun RTK EVK Mode Menu](<img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
 
     *SparkFun RTK EVK Mode Menu*
 
