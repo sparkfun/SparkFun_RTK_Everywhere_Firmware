@@ -6,12 +6,16 @@ An Ethernet-equipped RTK device sends and receives NTRIP correction data via Eth
 
 By default, the RTK device will use DHCP to request an IP Address from the network Gateway. But you can optionally configure it with a fixed IP Address.
 
-![RTK Device in DHCP mode](img/Terminal/Ethernet_DHCP.png)
-
-*The Reference Station Ethernet menu - with DHCP selected*
-
-![Reference Station in fixed IP address mode](img/Terminal/Ethernet_Fixed_IP.png)
-
-*The Reference Station Ethernet menu - with a fixed IP address selected*
-
 When enabled, the "Ethernet / WiFi Failover" option allows the firmware to automatically switch from Ethernet to WiFi should Ethernet become unavailable. Should WiFi become unavailable, the firmware will reconnect to Ethernet if it is now available.
+
+![RTK EVK in DHCP mode](img/Terminal/Ethernet_DHCP.png)
+
+*The RTK EVK Ethernet menu - with DHCP selected*
+
+![RTK EVK in fixed IP address mode](img/Terminal/Ethernet_Fixed_IP.png)
+
+*The RTK EVK Ethernet menu - with a fixed IP address selected*
+
+![RTK EVK Web Config - Ethernet Configuration](<img/WiFi Config/SparkFun RTK Web Config - Ethernet Configuration.png>)
+
+*The RTK EVK Web Config page - Ethernet configuration with fixed IP address*
