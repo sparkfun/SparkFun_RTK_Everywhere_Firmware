@@ -18,8 +18,6 @@ The RTK device supports connection over TCP. The TCP Client sits on top of the n
 
 If either Client or Server is enabled, a port can be designated. By default, the port is 2947 (registered as [*GPS Daemon request/response*](https://tcp-udp-ports.com/port-2948.htm)) but any port 0 to 65535 is supported.
 
-![Ethernet TCP Client configuration](img/Terminal/Ethernet_TCP_Client_1.png)
-
 ![Ethernet TCP Client connection](img/Terminal/TCP_Client.gif)
 
 The above animation was generated using [TCP_Server.py](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/Tools/TCP_Server.py).
