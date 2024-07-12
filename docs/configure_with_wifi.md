@@ -35,7 +35,7 @@ To get into WiFi configuration follow these steps:
 1. Ensure the WiFi / Bluetooth antenna is attached, then connect the RTK EVK to a power source.
 2. Once the device has started, put the RTK EVK into WiFi config mode by clicking the Mode button on the front panel. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until **Cfg WiFi** is highlighted, then do a quick double-click to select it.
 
-    ![SparkFun RTK EVK Mode Menu](<img/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
+    ![SparkFun RTK EVK Mode Menu](<img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
 
     *SparkFun RTK EVK Mode Menu*
 
@@ -59,7 +59,7 @@ Note: Upon connecting, your phone may warn you that this WiFi network has no int
 
 *Connected to the RTK WiFi Setup Page*
 
-Clicking on the category 'carrot' will open or close that section. Clicking on an ‘i’ will give you a brief description of the options within that section.
+Clicking on the category tab will open or close that section. Clicking on an ‘i’ will give you a brief description of the options within that section.
 
 ![Firmware highlighted](<img/WiFi Config/SparkFun RTK WiFi Config - Header Firmware Version.png>)
 
@@ -71,7 +71,7 @@ Please note that the firmware for the RTK device and the firmware for the GNSS r
 
 ![List of files in file manager](<img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20File%20Manager.png>)
 
-On devices that support an external SD card, a file manager is shown if an SD card is detected. This is a handy way to download files to a local device (cell phone or laptop) as well as delete any unneeded files. The SD size and free space are shown. And files may be uploaded to the SD card if needed.
+On devices that support an external SD card, a file manager is shown if an SD card is detected. This is a handy way to download files to a local device (cell phone or laptop) as well as delete any unneeded files. The SD size and free space are shown. Files may be uploaded to the SD card if needed.
 
 Additionally, clicking on the top checkbox will select all files for easy removal of a large number of files.
 
@@ -79,4 +79,4 @@ Additionally, clicking on the top checkbox will select all files for easy remova
 
 ![Save and Exit buttons](<img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png>)
 
-Once settings are input, please press ‘Save Configuration’. This will validate any settings, show any errors that need adjustment, and send the settings to the unit. The page will remain active until the user presses ‘Exit to Rover Mode’ at which point the unit will exit WiFi configuration and return to standard Rover mode.
+Once settings are input, please press ‘Save Configuration’. This will validate any settings, show any errors that need adjustment, and send the settings to the unit. The page will remain active until the user presses ‘Exit and Reset’ at which point the unit will exit WiFi configuration and return to whichever mode was selected in the **System Configuration** tab **System Initial State** drop-down (Base, Rover or NTP).
