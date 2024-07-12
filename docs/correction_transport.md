@@ -34,7 +34,7 @@ Cellular can even be used in Base mode. We have seen some very inventive users u
 
 ## Cellular - Built-In
 
-Torch: ![Feature Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
 
 The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
 

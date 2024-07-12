@@ -1,6 +1,6 @@
 # Data Logging Menu
 
-Torch: ![Feature Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 **Note:** Not all devices support external SD (ie, RTK Torch). This section applies only to devices that support an external SD card, and have one inserted.
 
