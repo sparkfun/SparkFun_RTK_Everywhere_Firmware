@@ -32,6 +32,9 @@ PointPerfect corrections are obtained by two methods:
 
 * **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi or Ethernet network. For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is generally confined to areas with cellular and/or other WiFi coverage.
 
+!!! note
+    It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
+
 ## Localized Corrections
 
 The u-blox PointPerfect Localized correction service via MQTT (IP) offers quick delivery of high precision accuracy by providing your device only the SPARTN corrections applicable to your location. This feature offers several advantages over the traditional continental streams, including significantly reduced bandwidth requirements and seamless transition between regions.
@@ -42,7 +45,7 @@ The u-blox PointPerfect Localized correction service via MQTT (IP) offers quick 
 
 PointPerfect Localized works by dividing the coverage area into a grid of tiles. Each tile contains a set of nodes that are relevant to a user located within that tile. Unlike the continental level approach where a device subscribes to the continental level topic, in the localized approach a device subscribes to the localized node topic based on its location. This ensures that the device receives only the correction data that is relevant to its location, greatly reducing the required bandwidth.
 
-![Comparison of PointPerfect Localized node density](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
+![Comparison of PointPerfect Localized node density](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Localized Distribution.png>)
 
 *Comparison of PointPerfect Localized node density*
 
@@ -72,9 +75,9 @@ To gain access to the PointPerfect system, the device must be given WiFi. Once p
 
 PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK device can operate normally without the need to update keys. However, when the keys are set to expire in 28 days or less, the RTK device will attempt to log in to WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 
-On RTK L-Band equipped devices, if the keys fully expire, the device will continue to receive the L-Band signal but will be unable to decrypt the signal. The RTK Facet L-Band will continue to have extraordinary accuracy (we've seen better than 0.15m HPA) but not the centimeter-level accuracy that comes with RTK.
+On RTK L-Band equipped devices, if the keys fully expire, the device will continue to receive the L-Band signal but will be unable to decrypt the signal. The RTK EVK will continue to have extraordinary accuracy (we've seen better than 0.15m HPA) but not the centimeter-level accuracy that comes with RTK.
 
-**Note:** All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio. 
+**Note:** All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio, WiFi or Ethernet (depending on model). 
 
 ![Display showing 14 days until Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
 
@@ -88,11 +91,11 @@ On devices that have a display, the unit will display various prompts to aid the
 
 *PointPerfect Menu*
 
-The *Days until keys expire* inform the user how many days the unit has until it needs to connect to WiFi to obtain new keys.
+The *Days until keys expire* inform the user how many days the unit has until it needs to connect to WiFi or Ethernet to obtain new keys.
 
 * **1** - Enable / disable the use of PointPerfect corrections.
 
-* **2** - Enable / disable the automatic attempts at WiFi connections when key expiry is less than 28 days.
+* **2** - Enable / disable the automatic attempts at WiFi / Ethernet connections when key expiry is in less than 28 days.
 
 * **3** - Trigger an immediate attempt to connect over WiFi / Ethernet and provision the device (if no keys are available) or update the keys (if provisioning has already been completed). Depending on which RTK product you have and which interfaces are connected, it may be necessary to exit the menus for the provisioning / update to take place.
 
@@ -106,7 +109,7 @@ The *Days until keys expire* inform the user how many days the unit has until it
 
 * **k** - Bring up the Manual Key Entry menu.
 
-* **g** - Set the Geographic Region. The default is US; but EU, Australia, Korea and Japan can also be selected. This is an important setting since it sets both the IP distribution topic (MQTT, IP) and the L-Band frequency (RTK EVK).
+* **g** - Set the Geographic Region. The default is US; but EU, Australia, Korea and Japan can also be selected. This is an important setting since it sets both the IP correction distribution topic (MQTT, IP) and the L-Band frequency (on L-Band-capable models (RTK EVK)).
 
 ## Obtaining the Device ID
 
