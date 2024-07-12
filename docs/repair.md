@@ -1,6 +1,6 @@
 # Disassembly / Repair
 
-Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
+Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
 
 The RTK product line is fully open-source hardware. This allows users to view schematics, code, and repair manuals. This section documents how to safely disassemble the RTK Facet and Torch.
 

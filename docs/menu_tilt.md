@@ -1,6 +1,6 @@
 # Tilt Compensation Menu
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
 
 ![Tilt Compensation menu](<img/Terminal/SparkFun RTK Everywhere - Tilt Menu.png>)
 

@@ -99,7 +99,7 @@ If your RTK 'freezes' after the update, press ```Reset ESP32``` to get it going 
 
 ## Updating Firmware From the SD Card
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 On devices that support it, the firmware can be loaded from an SD card.
 
@@ -173,7 +173,7 @@ Upon completion, your RTK device will reset.
 
 ## Updating u-blox Firmware
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 The following products contain the following u-blox receivers:
 
@@ -243,6 +243,8 @@ As of writing, no additional releases of the NEO-D9S firmware have been made.
 
 ## Updating UM980 Firmware
 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+
 1. Download the latest UM980 firmware. As of writing, the UM980 firmware is [v11833](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/UM980_R4.10Build11833.pkg). See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware.
 
 2. Download and install [UPrecise](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe). UPrecise is the software created by Unicore to configure and view output from Unicore GNSS modules. v2 of the software can be downloaded [here](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe) but newer versions may be available.
@@ -293,9 +295,9 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 
 2. Install the ESP32 core for Arduino:
 
-        arduino-cli core install esp32:esp32@2.0.11
+        arduino-cli core install esp32:esp32@3.0.1
 
-**Note**: Use v2.0.11 of the core. 
+**Note**: Use v3.0.1 of the core. 
 
 **Note:** We use the 'ESP32 Dev Module' for pin numbering. 
 
@@ -305,7 +307,7 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 
 5. Add *RTKEverywhere.csv* partition table to the Arduino partitions folder. It should look something like
 
-        C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.11\tools\partitions\RTKEverywhere.csv
+        C:\Users\\[user name]\AppData\Local\Arduino15\packages\esp32\hardware\esp32\3.0.1\tools\partitions\RTKEverywhere.csv
 
     This will increase the program partitions, as well as the SPIFFs partition to utilize the full 16MB of flash.
 
