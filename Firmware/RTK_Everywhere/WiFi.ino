@@ -427,9 +427,6 @@ void wifiStop()
     // Stop the web server
     stopWebServer();
 
-    // Stop the multicast domain name server
-    networkStopMulticastDNS();
-
     // Stop the DNS server if we were using the captive portal
     if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
@@ -569,9 +566,6 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 
     if (wifiResponse == WL_CONNECTED)
     {
-        if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
-            networkStartMulticastDNS();
-
         systemPrintln();
         return true;
     }

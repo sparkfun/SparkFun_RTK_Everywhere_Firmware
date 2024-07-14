@@ -674,6 +674,10 @@ void menuDebugNetwork()
         systemPrint("31) Debug HTTP client state: ");
         systemPrintf("%s\r\n", settings.debugHttpClientState ? "Enabled" : "Disabled");
 
+        // mDNS Responder
+        systemPrint("32) Debug mDNS responder state: ");
+        systemPrintf("%s\r\n", settings.mdnsDebugState ? "Enabled" : "Disabled");
+
         systemPrintln("r) Force system reset");
 
         systemPrintln("x) Exit");
@@ -716,6 +720,8 @@ void menuDebugNetwork()
             settings.debugHttpClientData ^= 1;
         else if (incoming == 31)
             settings.debugHttpClientState ^= 1;
+        else if (incoming == 32)
+            settings.mdnsDebugState ^= 1;
 
         // Menu exit control
         else if (incoming == 'r')

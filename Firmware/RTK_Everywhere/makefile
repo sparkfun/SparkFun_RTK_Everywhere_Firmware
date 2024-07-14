@@ -138,12 +138,13 @@ ENABLE_DEVELOPER=false
 FIRMWARE_VERSION_MAJOR=99
 FIRMWARE_VERSION_MINOR=99
 POINTPERFECT_TOKEN=
+SKETCH=RTK_Everywhere.ino
 
 form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a
+build/esp32.esp32.esp32/$(SKETCH).bin:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
@@ -152,13 +153,16 @@ RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(
 		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
 		--export-binaries
 
+.PHONY: RTK
+
+RTK:	build/esp32.esp32.esp32/$(SKETCH).bin
+
 ##########
 # Upload the firmware
 ##########
 
 .PHONY: upload
 
-SKETCH=RTK_Everywhere.ino
 ESPTOOL_PATH=~/Arduino/hardware/espressif/esp32/tools/esptool
 TERMINAL_PORT="/dev/ttyUSB0"
 BOOT_LOADER_PATH=~/SparkFun/SparkFun_RTK_Firmware_Uploader/RTK_Firmware_Uploader/resource

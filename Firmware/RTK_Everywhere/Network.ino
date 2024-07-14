@@ -175,6 +175,7 @@ const int networkStateEntries = sizeof(networkState) / sizeof(networkState[0]);
 
 // List of network users
 const char *const networkUser[] = {
+    "mDNS Responder",
     "MQTT Client",
     "NTP Server",
     "NTRIP Client",
@@ -967,6 +968,12 @@ void networkStop(uint8_t networkType)
                     }
                     break;
 
+                case NETWORK_USER_MDNS_RESPONDER:
+                    if (settings.debugNetworkLayer)
+                        systemPrintln("Network layer stopping mDNS responder");
+                    mdnsStop();
+                    break;
+
                 case NETWORK_USER_MQTT_CLIENT:
                     if (settings.debugNetworkLayer)
                         systemPrintln("Network layer stopping MQTT client");
@@ -1307,6 +1314,8 @@ void networkUpdate()
         PERIODIC_CLEAR(PD_NETWORK_STATE);
 
     // Update the network services
+    DMW_c("mdnsUpdate");
+    mdnsUpdate(); // Start or stop multicast DNS
     DMW_c("mqttClientUpdate");
     mqttClientUpdate(); // Process any Point Perfect MQTT messages
     DMW_c("ntpServerUpdate");
@@ -1449,29 +1458,6 @@ const char *networkUserToString(uint8_t userNumber)
     if (userNumber >= networkUserEntries)
         return "Unknown";
     return networkUser[userNumber];
-}
-
-//----------------------------------------
-// Start multicast DNS
-//----------------------------------------
-void networkStartMulticastDNS()
-{
-    if (settings.mdnsEnable == true)
-    {
-        if (MDNS.begin(&settings.mdnsHostName[0]) == false) // This should make the device findable from 'rtk.local' in a browser
-            systemPrintln("Error setting up MDNS responder!");
-        else
-            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
-    }
-}
-
-//----------------------------------------
-// Start multicast DNS
-//----------------------------------------
-void networkStopMulticastDNS()
-{
-    if (settings.mdnsEnable == true)
-        MDNS.end();
 }
 
 //----------------------------------------

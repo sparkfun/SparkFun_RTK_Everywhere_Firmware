@@ -264,7 +264,8 @@ enum NetworkStates
 // Define the network users
 enum NetworkUsers
 {
-    NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
+    NETWORK_USER_MDNS_RESPONDER = 0,    // Multicast DNS responder
+    NETWORK_USER_MQTT_CLIENT,           // MQTT client (Point Perfect)
     NETWORK_USER_NTP_SERVER,            // NTP server
     NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
     NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
@@ -1100,6 +1101,7 @@ struct Settings
     bool debugMqttClientState = false; // Debug the MQTT state machine
 
     // Multicast DNS
+    bool mdnsDebugState = false; // Debug the mDNS state machine
     bool mdnsEnable = true; // Allows locating of device from browser address 'rtk.local'
     char mdnsHostName[50] = "rtk";
 
@@ -1621,6 +1623,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugMqttClientState, "debugMqttClientState",  },
 
     // Multicast DNS
+    { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.mdnsDebugState, "mdnsDebugState",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.mdnsEnable, "mdnsEnable",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName",  },
 
