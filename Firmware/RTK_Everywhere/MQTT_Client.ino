@@ -75,6 +75,10 @@ MQTT_Client.ino
 // When the dict is received, we subscribe to the nearest localized topic and unsubscribe from the continental topic
 // When the AssistNow MGA data arrives, we unsubscribe and subscribe to AssistNow updates
 
+
+String localizedDistributionDictTopic = ""; //Used in menuPP
+String localizedDistributionTileTopic = "";
+
 #ifdef COMPILE_MQTT_CLIENT
 
 //----------------------------------------
@@ -123,9 +127,6 @@ const char localizedPrefix[] = "pp/ip/L"; // The localized distribution topic pr
 
 std::vector<String> mqttSubscribeTopics; // List of MQTT topics to be subscribed to
 std::vector<String> mqttClientSubscribedTopics; // List of topics currently subscribed to
-
-String localizedDistributionDictTopic = "";
-String localizedDistributionTileTopic = "";
 
 static MqttClient *mqttClient;
 

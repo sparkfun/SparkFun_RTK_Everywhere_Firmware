@@ -43,9 +43,10 @@ void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
 NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
 void networkUserClose(uint8_t user) {}
-uint8_t networkGetActiveType() {
-    return (0);
-}
+uint8_t networkGetActiveType() {return (0);}
+uint8_t networkGetType() {return (0);};
+IPAddress networkGetIpAddress(uint8_t networkType) {return("0.0.0.0");}
+bool networkCanConnect() {return(false);}
 
 //----------------------------------------
 // NTRIP client

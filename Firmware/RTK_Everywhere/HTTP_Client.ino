@@ -10,6 +10,8 @@ HTTP_Client.ino
 
 ------------------------------------------------------------------------------*/
 
+ZtpResponse ztpResponse = ZTP_NOT_STARTED; //Used in menuPP
+
 #ifdef COMPILE_HTTP_CLIENT
 
 //----------------------------------------
@@ -54,7 +56,6 @@ static HTTPClient *httpClient = nullptr;
 
 JsonDocument *jsonZtp = nullptr;
 char *tempHolderPtr = nullptr;
-ZtpResponse ztpResponse = ZTP_NOT_STARTED;
 
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
