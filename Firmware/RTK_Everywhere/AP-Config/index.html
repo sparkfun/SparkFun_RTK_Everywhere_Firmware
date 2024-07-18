@@ -1710,14 +1710,25 @@
         <div class="collapse" id="collapseInstrumentConfig">
             <div class="card card-body">
 
-                <div id="tiltConfig" class="form-check mt-3">
-                    <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
-                        Compensation</label>
-                    <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation">
-                    <span class="tt" data-bs-placement="right"
-                        title="Allow tilt compensation mode to be entered. Default: Enabled.">
-                        <span class="icon-info-circle text-primary ms-2"></span>
-                    </span>
+                <div id="tiltConfig">
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="enableTiltCompensation">Enable Tilt
+                            Compensation</label>
+                        <input class="form-check-input" type="checkbox" value="" id="enableTiltCompensation">
+                        <span class="tt" data-bs-placement="right"
+                            title="Allow tilt compensation mode to be entered. Default: Enabled.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="outputTipAltitude">Output Tip Altitude</label>
+                        <input class="form-check-input" type="checkbox" value="" id="outputTipAltitude">
+                        <span class="tt" data-bs-placement="right"
+                            title="Output pole tip altitude instead of antenna altitude. Default: Disabled.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
                 </div>
 
                 <div id="antennaPhaseCenter_mmConfig">
