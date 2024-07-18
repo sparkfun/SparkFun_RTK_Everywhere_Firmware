@@ -1168,6 +1168,9 @@ void beginIdleTasks()
 
 void beginI2C()
 {
+    if (online.i2c == true)
+        return;
+
     TaskHandle_t taskHandle;
 
     if (i2c_0 == nullptr) // i2c_0 could have been instantiated by identifyBoard

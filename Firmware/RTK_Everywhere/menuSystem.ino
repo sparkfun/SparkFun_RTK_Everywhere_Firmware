@@ -8,13 +8,6 @@ void menuSystem()
 
         printTimeStamp();
 
-        if (online.i2c == false)
-        {
-            beginI2C();
-            if (online.i2c == false)
-                systemPrintln("I2C: Offline - Something is causing bus problems");
-        }
-
         systemPrint("GNSS: ");
         if (online.gnss == true)
         {
