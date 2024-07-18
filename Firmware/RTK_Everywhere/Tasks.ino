@@ -1456,7 +1456,12 @@ void buttonCheckTask(void *e)
             // Beep shortly before the shutdown IC takes over
             else if (userBtn->pressedFor(2100))
             {
+                systemPrintln("Shutting down");
+
                 tickerStop(); // Stop controlling LEDs via ticker task
+
+                pinMode(pin_gnssStatusLED, OUTPUT);
+                pinMode(pin_bluetoothStatusLED, OUTPUT);
 
                 gnssStatusLedOn();
                 bluetoothLedOn();
@@ -1470,6 +1475,9 @@ void buttonCheckTask(void *e)
                     delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
                                 // from firing
                 }
+
+                while(1)
+                    ;
             }
         } // End productVariant == Torch
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic

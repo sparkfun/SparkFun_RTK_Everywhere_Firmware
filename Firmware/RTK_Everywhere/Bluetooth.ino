@@ -46,7 +46,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     {
         systemPrintln("BT client Connected");
         bluetoothState = BT_CONNECTED;
-        bluetoothLedOn();
+        //LED is controlled by tickerBluetoothLedUpdate() 
     }
 
     if (event == ESP_SPP_CLOSE_EVT)
@@ -58,7 +58,6 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         printEndpoint = PRINT_ENDPOINT_SERIAL;
 
         bluetoothState = BT_NOTCONNECTED;
-        bluetoothLedOff();
     }
 }
 
