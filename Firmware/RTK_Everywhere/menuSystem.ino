@@ -8,9 +8,12 @@ void menuSystem()
 
         printTimeStamp();
 
-        beginI2C();
         if (online.i2c == false)
-            systemPrintln("I2C: Offline - Something is causing bus problems");
+        {
+            beginI2C();
+            if (online.i2c == false)
+                systemPrintln("I2C: Offline - Something is causing bus problems");
+        }
 
         systemPrint("GNSS: ");
         if (online.gnss == true)
@@ -1397,7 +1400,8 @@ void menuInstrument()
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",
                      ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
 
-        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n", settings.antennaHeight_mm / (double)1000.0);
+        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n",
+                     settings.antennaHeight_mm / (double)1000.0);
 
         systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 
