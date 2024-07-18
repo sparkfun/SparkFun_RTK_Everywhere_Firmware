@@ -48,7 +48,7 @@ bool idWithAdc(uint16_t mvMeasured, float r1, float r2, float tolerance)
     bool result = (upperThreshold > mvMeasured) && (mvMeasured > lowerThreshold);
     if (result && ENABLE_DEVELOPER)
         systemPrintf("R1: %0.2f R2: %0.2f lowerThreshold: %0.0f mvMeasured: %d upperThreshold: %0.0f\r\n", r1, r2,
-            lowerThreshold, mvMeasured, upperThreshold);
+                     lowerThreshold, mvMeasured, upperThreshold);
 
     return result;
 }
@@ -91,26 +91,10 @@ void identifyBoard()
         systemPrint("=");
     systemPrintln();
 
-    // Order the following ID checks, by millivolt values high to low (Torch reads low)
-
-    // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
-    if (idWithAdc(idValue, 1, 10, 17.5))
-        productVariant = RTK_EVK;
-
-    // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
-    else if (idWithAdc(idValue, 1, 4.7, 5.5))
-        productVariant = RTK_FACET_MOSAIC;
-
-    // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
-    else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
-        productVariant = RTK_FACET_V2;
-
-    // ID resistors do not exist for the following:
-    //      Torch : idValue reads low (100mV - 200mV)
-    else
+    // First, test for devices that do not have ID resistors
+    if (productVariant == RTK_UNKNOWN)
     {
-        systemPrintln("Out of band or nonexistent resistor IDs");
-
+        // Torch
         // Check if a bq40Z50 battery manager is on the I2C bus
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
@@ -125,6 +109,26 @@ void identifyBoard()
         if (bq40z50Present)
             productVariant = RTK_TORCH;
     }
+
+    if (productVariant == RTK_UNKNOWN)
+    {
+        // Order the following ID checks, by millivolt values high to low (Torch reads low)
+
+        // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
+        if (idWithAdc(idValue, 1, 10, 17.5))
+            productVariant = RTK_EVK;
+
+        // Facet mosaic: 1/4.7  -->  2666mV < 2721mV < 2772mV (5.5% tolerance)
+        else if (idWithAdc(idValue, 1, 4.7, 5.5))
+            productVariant = RTK_FACET_MOSAIC;
+
+        // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
+        else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
+            productVariant = RTK_FACET_V2;
+    }
+
+    if (ENABLE_DEVELOPER)
+        systemPrintf("Identified variant: %s\r\n", productDisplayNames[productVariant]);
 }
 
 // Turn on power for the display before beginDisplay
@@ -157,13 +161,14 @@ void beginBoard()
         // RTK is unknown. We can not proceed...
         // We don't know the productVariant, but we do know the MAC address. Print that.
         char hardwareID[30];
-        snprintf(hardwareID, sizeof(hardwareID), "Device MAC: %02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                    btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
+        snprintf(hardwareID, sizeof(hardwareID), "Device MAC: %02X%02X%02X%02X%02X%02X", btMACAddress[0],
+                 btMACAddress[1], btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5]);
         systemPrintln("========================");
         systemPrintln(hardwareID);
         systemPrintln("========================");
 
-        reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with the \"Device MAC\" and the \"Board ADC ID (mV)\" reported above.");
+        reportFatalError("Product variant unknown. Unable to proceed. Please contact SparkFun with the \"Device MAC\" "
+                         "and the \"Board ADC ID (mV)\" reported above.");
     }
     else if (productVariant == RTK_TORCH)
     {
@@ -1109,7 +1114,7 @@ void beginSystemState()
 
         // Explicitly set the default network type to avoid printing 'Hardware default'
         // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/360
-        if(settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
+        if (settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
             settings.defaultNetworkType = NETWORK_TYPE_ETHERNET;
     }
     else if (productVariant == RTK_FACET_MOSAIC)
@@ -1129,7 +1134,7 @@ void beginSystemState()
         // Return to either Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
 
-        //If the setting is not set, override with default
+        // If the setting is not set, override with default
         if (settings.antennaPhaseCenter_mm == 0.0)
             settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
     }
