@@ -405,18 +405,11 @@ void tiltSensorFactoryReset()
 // and outputTipAltitude is disabled, then pass GNSS data without modification. See issues:
 //   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
 //   https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/343
-void nmeaApplyCompensation(char *nmeaSentence, int arraySize)
+void nmeaApplyCompensation(char *nmeaSentence, int sentenceLength)
 {
     // If tilt is off, and outputTipAltitude is disabled, then pass GNSS data without modification
     if (tiltIsCorrecting() == false && settings.outputTipAltitude == false)
         return;
-
-    // Verify the sentence is null-terminated
-    if (strnlen(nmeaSentence, arraySize) == arraySize)
-    {
-        systemPrintln("Sentence is not null terminated!");
-        return;
-    }
 
     // Identify sentence type
     char sentenceType[strlen("GGA") + 1] = {0};
@@ -426,19 +419,19 @@ void nmeaApplyCompensation(char *nmeaSentence, int arraySize)
     // GGA and GNS sentences get modified in the same way
     if (strncmp(sentenceType, "GGA", sizeof(sentenceType)) == 0)
     {
-        applyCompensationGGA(nmeaSentence, arraySize);
+        applyCompensationGGA(nmeaSentence, sentenceLength);
     }
     else if (strncmp(sentenceType, "GNS", sizeof(sentenceType)) == 0)
     {
-        applyCompensationGNS(nmeaSentence, arraySize);
+        applyCompensationGNS(nmeaSentence, sentenceLength);
     }
     else if (strncmp(sentenceType, "RMC", sizeof(sentenceType)) == 0)
     {
-        applyCompensationRMC(nmeaSentence, arraySize);
+        applyCompensationRMC(nmeaSentence, sentenceLength);
     }
     else if (strncmp(sentenceType, "GLL", sizeof(sentenceType)) == 0)
     {
-        applyCompensationGLL(nmeaSentence, arraySize);
+        applyCompensationGLL(nmeaSentence, sentenceLength);
     }
     else
     {
@@ -456,7 +449,7 @@ void nmeaApplyCompensation(char *nmeaSentence, int arraySize)
 // 1589.4793 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
 // https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
-void applyCompensationGNS(char *nmeaSentence, int arraySize)
+void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
 {
     const int latitudeComma = 2;
     const int longitudeComma = 4;
@@ -477,7 +470,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
         systemPrintf("Original GNGNS:\r\n%s\r\n", nmeaSentence);
 
     int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
+    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
     {
         if (nmeaSentence[x] == ',')
         {
@@ -525,7 +518,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
 
     char newSentence[150] = {0};
 
-    if (sizeof(newSentence) < arraySize)
+    if (sizeof(newSentence) < sentenceLength)
     {
         systemPrintln("newSentence not big enough!");
         return;
@@ -609,14 +602,14 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    if (strlen(newSentence) > arraySize)
+    if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
     }
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, arraySize);
+    strncpy(nmeaSentence, newSentence, sentenceLength);
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Compensated GNGNS:\r\n%s\r\n", nmeaSentence);
@@ -625,7 +618,7 @@ void applyCompensationGNS(char *nmeaSentence, int arraySize)
 // Modify a GLL sentence with tilt compensation
 //$GNGLL,4005.4176871,N,10511.1034563,W,214210.00,A,A*68 - Original
 //$GNGLL,4005.41769994,N,10507.40740734,W,214210.00,A,A*6D - Modified
-void applyCompensationGLL(char *nmeaSentence, int arraySize)
+void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
 {
     // GLL only needs to be changed in tilt mode
     if (tiltIsCorrecting() == false)
@@ -646,7 +639,7 @@ void applyCompensationGLL(char *nmeaSentence, int arraySize)
     uint8_t checksumStart = 0;
 
     int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
+    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
     {
         if (nmeaSentence[x] == ',')
         {
@@ -674,7 +667,7 @@ void applyCompensationGLL(char *nmeaSentence, int arraySize)
 
     char newSentence[150] = {0};
 
-    if (sizeof(newSentence) < arraySize)
+    if (sizeof(newSentence) < sentenceLength)
     {
         systemPrintln("newSentence not big enough!");
         return;
@@ -715,14 +708,14 @@ void applyCompensationGLL(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    if (strlen(newSentence) > arraySize)
+    if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
     }
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, arraySize);
+    strncpy(nmeaSentence, newSentence, sentenceLength);
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Compensated GNGLL:\r\n%s\r\n", nmeaSentence);
@@ -731,7 +724,7 @@ void applyCompensationGLL(char *nmeaSentence, int arraySize)
 // Modify a RMC sentence with tilt compensation
 //$GNRMC,214210.00,A,4005.4176871,N,10511.1034563,W,0.000,,070923,,,A,V*04 - Original
 //$GNRMC,214210.00,A,4005.41769994,N,10507.40740734,W,0.000,,070923,,,A,V*01 - Modified
-void applyCompensationRMC(char *nmeaSentence, int arraySize)
+void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
 {
     // RMC only needs to be changed in tilt mode
     if (tiltIsCorrecting() == false)
@@ -752,7 +745,7 @@ void applyCompensationRMC(char *nmeaSentence, int arraySize)
     uint8_t checksumStart = 0;
 
     int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
+    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
     {
         if (nmeaSentence[x] == ',')
         {
@@ -780,7 +773,7 @@ void applyCompensationRMC(char *nmeaSentence, int arraySize)
 
     char newSentence[150] = {0};
 
-    if (sizeof(newSentence) < arraySize)
+    if (sizeof(newSentence) < sentenceLength)
     {
         systemPrintln("newSentence not big enough!");
         return;
@@ -821,14 +814,14 @@ void applyCompensationRMC(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    if (strlen(newSentence) > arraySize)
+    if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
     }
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, arraySize);
+    strncpy(nmeaSentence, newSentence, sentenceLength);
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Compensated GNRMC:\r\n%s\r\n", nmeaSentence);
@@ -843,7 +836,7 @@ void applyCompensationRMC(char *nmeaSentence, int arraySize)
 // 1602.3482 is the orthometric height in meters (MSL reference) that we need to insert into the NMEA sentence
 // See issue: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/334
 // https://support.virtual-surveyor.com/support/solutions/articles/1000261349-the-difference-between-ellipsoidal-geoid-and-orthometric-elevations-
-void applyCompensationGGA(char *nmeaSentence, int arraySize)
+void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
 {
     const int latitudeComma = 2;
     const int longitudeComma = 4;
@@ -864,7 +857,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
         systemPrintf("Original GNGGA:\r\n%s\r\n", nmeaSentence);
 
     int commaCount = 0;
-    for (int x = 0; x < strnlen(nmeaSentence, arraySize); x++) // Assumes sentence is null terminated
+    for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
     {
         if (nmeaSentence[x] == ',')
         {
@@ -912,7 +905,7 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
 
     char newSentence[150] = {0};
 
-    if (sizeof(newSentence) < arraySize)
+    if (sizeof(newSentence) < sentenceLength)
     {
         systemPrintln("newSentence not big enough!");
         return;
@@ -996,14 +989,14 @@ void applyCompensationGGA(char *nmeaSentence, int arraySize)
     // Add CRC
     strncat(newSentence, coordinateStringDDMM, sizeof(newSentence) - 1);
 
-    if (strlen(newSentence) > arraySize)
+    if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", arraySize, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
     }
 
     // Overwrite the original NMEA
-    strncpy(nmeaSentence, newSentence, arraySize);
+    strncpy(nmeaSentence, newSentence, sentenceLength);
 
     if (settings.enableImuCompensationDebug == true && !inMainMenu)
         systemPrintf("Compensated GNGGA:\r\n%s\r\n", nmeaSentence);

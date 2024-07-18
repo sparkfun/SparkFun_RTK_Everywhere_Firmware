@@ -479,7 +479,6 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Handle LLA compensation due to tilt or outputTipAltitude setting
     if (type == RTK_NMEA_PARSER_INDEX)
     {
-        parse->buffer[parse->length++] = '\0'; // Null terminate string
         nmeaApplyCompensation((char *)parse->buffer, parse->length);
     }
 
