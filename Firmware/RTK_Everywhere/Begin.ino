@@ -77,20 +77,6 @@ void identifyBoard()
     memcpy(ethernetMACAddress, wifiMACAddress, sizeof(wifiMACAddress));
     ethernetMACAddress[5] += 3; // Convert MAC address to Ethernet MAC (add 3)
 
-    // Use ADC to check the resistor divider
-    int pin_deviceID = 35;
-    uint16_t idValue = analogReadMilliVolts(pin_deviceID);
-    idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
-    char adcId[50];
-    snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
-    for (int i = 0; i < strlen(adcId); i++)
-        systemPrint("=");
-    systemPrintln();
-    systemPrintln(adcId);
-    for (int i = 0; i < strlen(adcId); i++)
-        systemPrint("=");
-    systemPrintln();
-
     // First, test for devices that do not have ID resistors
     if (productVariant == RTK_UNKNOWN)
     {
@@ -112,6 +98,20 @@ void identifyBoard()
 
     if (productVariant == RTK_UNKNOWN)
     {
+        // Use ADC to check the resistor divider
+        int pin_deviceID = 35;
+        uint16_t idValue = analogReadMilliVolts(pin_deviceID);
+        idValue = analogReadMilliVolts(pin_deviceID); // Read twice - just in case
+        char adcId[50];
+        snprintf(adcId, sizeof(adcId), "Board ADC ID (mV): %d", idValue);
+        for (int i = 0; i < strlen(adcId); i++)
+            systemPrint("=");
+        systemPrintln();
+        systemPrintln(adcId);
+        for (int i = 0; i < strlen(adcId); i++)
+            systemPrint("=");
+        systemPrintln();
+
         // Order the following ID checks, by millivolt values high to low (Torch reads low)
 
         // EVK: 1/10  -->  2888mV < 3000mV < 3084mV (17.5% tolerance)
