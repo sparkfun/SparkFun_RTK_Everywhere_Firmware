@@ -435,26 +435,22 @@ void bluetoothStop()
     {
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            bluetoothSerialBle->register_callback(nullptr);
             bluetoothSerialBle->flush(); // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end(); // Release resources
 
-            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->flush(); // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end(); // Release resources
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
-            bluetoothSerialSpp->register_callback(nullptr);
             bluetoothSerialSpp->flush(); // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end(); // Release resources
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
-            bluetoothSerialBle->register_callback(nullptr);
             bluetoothSerialBle->flush(); // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end(); // Release resources
