@@ -151,14 +151,12 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
     // override BLEServerCallbacks
     void onConnect(BLEServer *pServer)
     {
-        // bleConnected = true; Removed until PR is accepted
-        connectionCallback(ESP_SPP_SRV_OPEN_EVT, nullptr);
+        connectionCallback(ESP_SPP_SRV_OPEN_EVT, nullptr); //Trigger callback to bluetoothCallback()
     }
 
     void onDisconnect(BLEServer *pServer)
     {
-        // bleConnected = false; Removed until PR is accepted
-        connectionCallback(ESP_SPP_CLOSE_EVT, nullptr);
+        connectionCallback(ESP_SPP_CLOSE_EVT, nullptr); //Trigger callback to bluetoothCallback()
         Server->startAdvertising();
     }
 
