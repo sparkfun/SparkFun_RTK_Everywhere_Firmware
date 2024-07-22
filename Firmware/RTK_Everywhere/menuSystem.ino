@@ -1,6 +1,8 @@
 // Display current system status
 void menuSystem()
 {
+    BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+
     while (1)
     {
         systemPrintln();
@@ -180,11 +182,11 @@ void menuSystem()
         }
 
         systemPrint("b) Set Bluetooth Mode: ");
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+        if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
             systemPrintln("Dual");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
             systemPrintln("Classic");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
             systemPrintln("BLE");
         else
             systemPrintln("Off");
@@ -243,16 +245,14 @@ void menuSystem()
         else if (incoming == 'b')
         {
             // Change Bluetooth protocol
-            bluetoothStop();
-            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_BLE;
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_OFF;
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
-            bluetoothStart();
+            if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+                bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
+            else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+                bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
+            else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+                bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
+            else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
+                bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
         }
         else if ((incoming == 'c') &&
                  (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
@@ -380,6 +380,14 @@ void menuSystem()
             break;
         else
             printUnknown(incoming);
+    }
+
+    // Restart Bluetooth radio if settings have changed
+    if (bluetoothUserChoice != settings.bluetoothRadioType)
+    {
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        bluetoothStart();
     }
 
     clearBuffer(); // Empty buffer of any newline chars
