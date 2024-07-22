@@ -30,7 +30,6 @@
 static volatile BTState bluetoothState = BT_OFF;
 
 #ifdef COMPILE_BT
-BTSerialInterface *bluetoothSerial;
 BTSerialInterface *bluetoothSerialSpp;
 BTSerialInterface *bluetoothSerialBle;
 
@@ -46,7 +45,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     {
         systemPrintln("BT client Connected");
         bluetoothState = BT_CONNECTED;
-        //LED is controlled by tickerBluetoothLedUpdate() 
+        // LED is controlled by tickerBluetoothLedUpdate()
     }
 
     if (event == ESP_SPP_CLOSE_EVT)
@@ -95,8 +94,10 @@ int bluetoothRead(uint8_t *buffer, int length)
 
         return (bytesRead);
     }
-    else
-        return bluetoothSerial->readBytes(buffer, length);
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        return bluetoothSerialSpp->readBytes(buffer, length);
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        return bluetoothSerialBle->readBytes(buffer, length);
 
     return 0;
 
@@ -117,8 +118,12 @@ uint8_t bluetoothRead()
 
         return (bluetoothSerialSpp->read());
     }
-    else
-        return bluetoothSerial->read();
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        return bluetoothSerialSpp->read();
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        return bluetoothSerialBle->read();
+
+    return 0;
 #else  // COMPILE_BT
     return 0;
 #endif // COMPILE_BT
@@ -136,8 +141,12 @@ bool bluetoothRxDataAvailable()
 
         return (bluetoothSerialSpp->available());
     }
-    else
-        return bluetoothSerial->available();
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        return bluetoothSerialSpp->available();
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        return bluetoothSerialBle->available();
+
+    return (0);
 #else  // COMPILE_BT
     return false;
 #endif // COMPILE_BT
@@ -147,8 +156,6 @@ bool bluetoothRxDataAvailable()
 int bluetoothWrite(const uint8_t *buffer, int length)
 {
 #ifdef COMPILE_BT
-    // BLE write does not handle 0 length requests correctly
-
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         // Write to both interfaces
@@ -162,13 +169,19 @@ int bluetoothWrite(const uint8_t *buffer, int length)
             return (bleWrite);
         return (sppWrite);
     }
-    else
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
-        if (length > 0)
-            return bluetoothSerial->write(buffer, length);
-        else
-            return 0;
+        return bluetoothSerialSpp->write(buffer, length);
     }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        // BLE write does not handle 0 length requests correctly
+        if (length > 0)
+            return bluetoothSerialBle->write(buffer, length);
+        return 0;
+    }
+
+    return (0);
 #else  // COMPILE_BT
     return 0;
 #endif // COMPILE_BT
@@ -191,10 +204,16 @@ int bluetoothWrite(uint8_t value)
             return (bleWrite);
         return (sppWrite);
     }
-    else
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
-        return bluetoothSerial->write(value);
+        return bluetoothSerialSpp->write(value);
     }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        return bluetoothSerialBle->write(value);
+    }
+
+    return (0);
 #else  // COMPILE_BT
     return 0;
 #endif // COMPILE_BT
@@ -209,8 +228,10 @@ void bluetoothFlush()
         bluetoothSerialBle->flush();
         bluetoothSerialSpp->flush();
     }
-    else
-        bluetoothSerial->flush();
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        bluetoothSerialSpp->flush();
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        bluetoothSerialBle->flush();
 #else  // COMPILE_BT
     return;
 #endif // COMPILE_BT
@@ -221,6 +242,9 @@ void bluetoothFlush()
 // This allows multiple units to be on at same time
 void bluetoothStart()
 {
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+        return;
+
 #ifdef COMPILE_BT
     if (!online.bluetooth)
     {
@@ -269,9 +293,9 @@ void bluetoothStart()
             bluetoothSerialBle = new BTLESerial();
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-            bluetoothSerial = new BTClassicSerial();
+            bluetoothSerialSpp = new BTClassicSerial();
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-            bluetoothSerial = new BTLESerial();
+            bluetoothSerialBle = new BTLESerial();
 
         // Not yet implemented
         //  if (pinBluetoothTaskHandle == nullptr)
@@ -290,18 +314,26 @@ void bluetoothStart()
         bool beginSuccess = true;
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            beginSuccess &=
-                bluetoothSerialBle->begin(deviceName, false, false, settings.sppRxQueueSize,
-                                          settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
-            beginSuccess &=
-                bluetoothSerialSpp->begin(deviceName, false, false, settings.sppRxQueueSize,
-                                          settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+            beginSuccess &= bluetoothSerialBle->begin(
+                deviceName, false, false, settings.sppRxQueueSize,
+                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+            beginSuccess &= bluetoothSerialSpp->begin(
+                deviceName, false, false, settings.sppRxQueueSize,
+                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
         }
-        else
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
-            beginSuccess &=
-                bluetoothSerial->begin(deviceName, false, true, settings.sppRxQueueSize,
-                                       settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+            // Disable BLE
+            beginSuccess &= bluetoothSerialSpp->begin(
+                deviceName, false, true, settings.sppRxQueueSize,
+                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
+            // Don't disable BLE
+            beginSuccess &= bluetoothSerialBle->begin(
+                deviceName, false, false, settings.sppRxQueueSize,
+                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
         }
 
         if (beginSuccess == false)
@@ -315,8 +347,8 @@ void bluetoothStart()
         // https://github.com/espressif/esp-idf/issues/1541
         //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         /*
-        // Note: Since version 3.0.0 this library does not support legacy pairing (using fixed PIN consisting of 4 digits).
-        esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
+        // Note: Since version 3.0.0 this library does not support legacy pairing (using fixed PIN consisting of 4
+        digits). esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
 
         esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_NONE; // Requires pin 1234 on old BT dongle, No prompt on new BT dongle
         // esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_OUT; //Works but prompts for either pin (old) or 'Does this 6 pin
@@ -342,10 +374,15 @@ void bluetoothStart()
             bluetoothSerialSpp->register_callback(bluetoothCallback); // Controls BT state and LED
             bluetoothSerialSpp->setTimeout(250);
         }
-        else
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
-            bluetoothSerial->register_callback(bluetoothCallback); // Controls BT state and LED
-            bluetoothSerial->setTimeout(250);
+            bluetoothSerialSpp->register_callback(bluetoothCallback); // Controls BT state and LED
+            bluetoothSerialSpp->setTimeout(250);
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
+            bluetoothSerialBle->register_callback(bluetoothCallback); // Controls BT state and LED
+            bluetoothSerialBle->setTimeout(250);
         }
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
@@ -390,7 +427,7 @@ void bluetoothStart()
 // }
 
 // This function stops BT so that it can be restarted later
-// It also releases as much system resources as possible so that WiFi/caster is more stable
+// It also releases as many system resources as possible so that WiFi/caster is more stable
 void bluetoothStop()
 {
 #ifdef COMPILE_BT
@@ -399,22 +436,28 @@ void bluetoothStop()
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
             bluetoothSerialBle->register_callback(nullptr);
-            bluetoothSerialBle->flush();      // Complete any transfers
+            bluetoothSerialBle->flush(); // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            bluetoothSerialBle->end();        // Release resources
+            bluetoothSerialBle->end(); // Release resources
 
             bluetoothSerialSpp->register_callback(nullptr);
-            bluetoothSerialSpp->flush();      // Complete any transfers
+            bluetoothSerialSpp->flush(); // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->end();        // Release resources
+            bluetoothSerialSpp->end(); // Release resources
         }
-        else
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
-            bluetoothSerial->register_callback(nullptr);
-            bluetoothSerial->flush();      // Complete any transfers
-            bluetoothSerial->disconnect(); // Drop any clients
-            bluetoothSerial->end();        // bluetoothSerial->end() will release significant RAM (~100k!) but a
-                                           // bluetoothSerial->start will crash.
+            bluetoothSerialSpp->register_callback(nullptr);
+            bluetoothSerialSpp->flush(); // Complete any transfers
+            bluetoothSerialSpp->disconnect(); // Drop any clients
+            bluetoothSerialSpp->end(); // Release resources
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
+            bluetoothSerialBle->register_callback(nullptr);
+            bluetoothSerialBle->flush(); // Complete any transfers
+            bluetoothSerialBle->disconnect(); // Drop any clients
+            bluetoothSerialBle->end(); // Release resources
         }
 
         log_d("Bluetooth turned off");
@@ -473,9 +516,14 @@ void bluetoothTest(bool runTest)
     snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
     systemPrint("Bluetooth ");
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-        systemPrint("Low Energy ");
+        systemPrint("SPP and Low Energy ");
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        systemPrint("SPP ");
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         systemPrint("Low Energy ");
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+        systemPrint("Off ");
+
     systemPrint("(");
     systemPrint(macAddress);
     systemPrint("): ");
