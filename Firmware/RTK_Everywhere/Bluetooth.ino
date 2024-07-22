@@ -427,7 +427,6 @@ void bluetoothStart()
 // }
 
 // This function stops BT so that it can be restarted later
-// It also releases as many system resources as possible so that WiFi/caster is more stable
 void bluetoothStop()
 {
 #ifdef COMPILE_BT
@@ -438,22 +437,26 @@ void bluetoothStop()
             bluetoothSerialBle->flush(); // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end(); // Release resources
+            bluetoothSerialBle->register_callback(nullptr);
 
             bluetoothSerialSpp->flush(); // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end(); // Release resources
+            bluetoothSerialSpp->register_callback(nullptr);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
             bluetoothSerialSpp->flush(); // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end(); // Release resources
+            bluetoothSerialSpp->register_callback(nullptr);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             bluetoothSerialBle->flush(); // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end(); // Release resources
+            bluetoothSerialBle->register_callback(nullptr);
         }
 
         log_d("Bluetooth turned off");
