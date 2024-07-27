@@ -81,7 +81,7 @@ void identifyBoard()
     if (productVariant == RTK_UNKNOWN)
     {
         // Torch
-        // Check if a bq40Z50 battery manager is on the I2C bus
+        // Check if unique ICs are on the I2C bus
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
         int pin_SDA = 15;
@@ -90,10 +90,26 @@ void identifyBoard()
         i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
         // 0x0B - BQ40Z50 Li-Ion Battery Pack Manager / Fuel gauge
         bool bq40z50Present = i2cIsDevicePresent(i2c_0, 0x0B);
+
+        // 0x5C - MP2762A Charger
+        bool mp2762aPresent = i2cIsDevicePresent(i2c_0, 0x5C);
+
+        // 0x08 - HUSB238 - USB C PD Sink Controller
+        bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
+
         i2c_0->end();
 
-        if (bq40z50Present)
+        if (bq40z50Present || mp2762aPresent || husb238Present)
             productVariant = RTK_TORCH;
+
+        if (productVariant == RTK_TORCH && bq40z50Present == false)
+            systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
+
+        if (productVariant == RTK_TORCH && mp2762aPresent == false)
+            systemPrintln("Error: Torch ID'd with no MP2762A present");
+
+        if (productVariant == RTK_TORCH && husb238Present == false)
+            systemPrintln("Error: Torch ID'd with no HUSB238 present");
     }
 
     if (productVariant == RTK_UNKNOWN)
@@ -202,7 +218,8 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
-        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 or LoRa
+        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 UART3 or LoRa UART0
+        pin_muxB = 12; // Controls U18 switch between ESP UART0 to LoRa UART2 or UM980 UART1
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
@@ -253,7 +270,10 @@ void beginBoard()
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
         pinMode(pin_muxA, OUTPUT);
-        digitalWrite(pin_muxA, LOW); // Keep ESP UART1 connected to UM980
+        muxSelectUm980(); // Connect ESP UART1 to UM980
+
+        pinMode(pin_muxB, OUTPUT);
+        muxSelectCh340(); // Connect ESP UART0 to CH340 Serial
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
 
