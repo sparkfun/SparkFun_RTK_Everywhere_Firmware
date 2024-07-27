@@ -556,7 +556,7 @@ void menuRadio()
         systemPrint("1) ESP-NOW Radio: ");
         systemPrintf("%s\r\n", settings.enableEspNow ? "Enabled" : "Disabled");
 #else  // COMPILE_ESPNOW
-            systemPrintln("r) **ESP-Now Not Compiled**");
+            systemPrintln("1) **ESP-Now Not Compiled**");
 #endif // COMPILE_ESPNOW
 
         if (settings.enableEspNow == true)
@@ -709,7 +709,7 @@ void menuRadio()
         }
         else if (present.radio_lora == true && settings.enableLora == true && incoming == 11)
         {
-            getNewSetting("Enter the frequency used to coordinate radios in MHz", 902.125, 927.875,
+            getNewSetting("Enter the frequency used to coordinate radios in MHz", 903.0, 927.0,
                           &settings.loraCoordinationFrequency);
         }
 
