@@ -820,7 +820,7 @@ int16_t *commandIndex;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 39
+#define MAX_BOOT_TIME_ENTRIES 40
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1113,6 +1113,9 @@ void setup()
 
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
+
+    DMW_b("beginLora");
+    beginLora(); // Power on radio
 
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
