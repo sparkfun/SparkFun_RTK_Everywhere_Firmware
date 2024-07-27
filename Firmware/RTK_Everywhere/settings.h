@@ -1377,6 +1377,10 @@ struct Settings
 
     bool requestKeyUpdate = false; // Set to true to force a key provisioning attempt
 
+    bool enableLora = false;
+    float loraCoordinationFrequency = 910.000;
+    bool debugLora = false;
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1888,6 +1892,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
 
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
+
+    { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableLora, "enableLora",  },
+    { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.loraCoordinationFrequency, "loraCoordinationFrequency",  },
+    { 0, 0, 0, 0, 0, 0, 0, 1, _bool,    3, & settings.debugLora, "debugLora",  },
+
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

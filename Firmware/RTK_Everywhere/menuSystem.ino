@@ -459,6 +459,9 @@ void menuDebugHardware()
         systemPrint("15) Print ESP-Now Debugging: ");
         systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
 
+        systemPrint("16) Print LoRa Debugging: ");
+        systemPrintf("%s\r\n", settings.debugLora ? "Enabled" : "Disabled");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -573,6 +576,10 @@ void menuDebugHardware()
         else if (incoming == 15)
         {
             settings.debugEspNow ^= 1;
+        }
+        else if (incoming == 16)
+        {
+            settings.debugLora ^= 1;
         }
         else if (incoming == 'e')
         {

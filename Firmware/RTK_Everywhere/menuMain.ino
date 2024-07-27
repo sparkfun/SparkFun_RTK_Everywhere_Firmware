@@ -232,11 +232,7 @@ void menuMain()
 
             systemPrintln("p) Configure PointPerfect");
 
-#ifdef COMPILE_ESPNOW
             systemPrintln("r) Configure Radios");
-#else  // COMPILE_ESPNOW
-            systemPrintln("r) **ESP-Now Not Compiled**");
-#endif // COMPILE_ESPNOW
 
             systemPrintln("s) Configure System");
 
@@ -279,10 +275,8 @@ void menuMain()
                 menuUserProfiles();
             else if (incoming == 'p')
                 menuPointPerfect();
-#ifdef COMPILE_ESPNOW
             else if (incoming == 'r')
                 menuRadio();
-#endif // COMPILE_ESPNOW
             else if (incoming == 's')
                 menuSystem();
             else if (incoming == 't')
@@ -553,14 +547,17 @@ void factoryReset(bool alreadyHasSemaphore)
 // Configure the internal radio, if available
 void menuRadio()
 {
-#ifdef COMPILE_ESPNOW
     while (1)
     {
         systemPrintln();
         systemPrintln("Menu: Radios");
 
+#ifdef COMPILE_ESPNOW
         systemPrint("1) ESP-NOW Radio: ");
         systemPrintf("%s\r\n", settings.enableEspNow ? "Enabled" : "Disabled");
+#else  // COMPILE_ESPNOW
+            systemPrintln("r) **ESP-Now Not Compiled**");
+#endif // COMPILE_ESPNOW
 
         if (settings.enableEspNow == true)
         {
@@ -594,6 +591,17 @@ void menuRadio()
                 systemPrintln("5) Add dummy radio");
                 systemPrintln("6) Send dummy data");
                 systemPrintln("7) Broadcast dummy data");
+            }
+        }
+
+        if (present.radio_lora == true)
+        {
+            systemPrint("10) LoRa Radio: ");
+            systemPrintf("%s\r\n", settings.enableLora ? "Enabled" : "Disabled");
+            
+            if (settings.enableLora == true)
+            {
+                systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
             }
         }
 
@@ -649,6 +657,7 @@ void menuRadio()
                 espnowStart();
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
+#ifdef COMPILE_ESPNOW
             if (esp_now_is_peer_exist(peer1) == true)
                 log_d("Peer already exists");
             else
@@ -664,6 +673,7 @@ void menuRadio()
             }
 
             espnowSetState(ESPNOW_PAIRED);
+#endif
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
@@ -674,7 +684,9 @@ void menuRadio()
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
+#ifdef COMPILE_ESPNOW
             esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+#endif
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
@@ -686,7 +698,19 @@ void menuRadio()
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+#ifdef COMPILE_ESPNOW
             esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+#endif
+        }
+
+        else if (present.radio_lora == true && incoming == 10)
+        {
+            settings.enableLora ^= 1;
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 11)
+        {
+            getNewSetting("Enter the frequency used to coordinate radios in MHz", 902.125, 927.875,
+                          &settings.loraCoordinationFrequency);
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -700,5 +724,4 @@ void menuRadio()
     radioStart();
 
     clearBuffer(); // Empty buffer of any newline chars
-#endif             // COMPILE_ESPNOW
 }
