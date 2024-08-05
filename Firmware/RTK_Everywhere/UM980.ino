@@ -224,6 +224,29 @@ bool um980ConfigureOnce()
 
 bool um980ConfigureRover()
 {
+    if (online.gnss == false)
+    {
+        systemPrintln("GNSS not online");
+        return (false);
+    }
+
+    for (int x = 0; x < 3; x++)
+    {
+        if (um980ConfigureRoverOnce() == true)
+            return (true);
+
+        // If we fail, reset UM980
+        systemPrintln("Resetting UM980 to complete rover configuration");
+
+        um980Reset();
+        delay(500);
+        um980Boot();
+        delay(500);
+    }
+}
+
+bool um980ConfigureRoverOnce()
+{
     /*
         Disable all message traffic
         Cancel any survey-in modes
@@ -278,6 +301,29 @@ bool um980ConfigureRover()
 }
 
 bool um980ConfigureBase()
+{
+    if (online.gnss == false)
+    {
+        systemPrintln("GNSS not online");
+        return (false);
+    }
+
+    for (int x = 0; x < 3; x++)
+    {
+        if (um980ConfigureBaseOnce() == true)
+            return (true);
+
+        // If we fail, reset UM980
+        systemPrintln("Resetting UM980 to complete base configuration");
+
+        um980Reset();
+        delay(500);
+        um980Boot();
+        delay(500);
+    }    
+}
+
+bool um980ConfigureBaseOnce()
 {
     /*
         Disable all messages
