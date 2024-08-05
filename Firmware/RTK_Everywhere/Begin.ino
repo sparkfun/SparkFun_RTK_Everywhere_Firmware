@@ -81,19 +81,36 @@ void identifyBoard()
     if (productVariant == RTK_UNKNOWN)
     {
         // Torch
-        // Check if a bq40Z50 battery manager is on the I2C bus
+        // Check if unique ICs are on the I2C bus
         if (i2c_0 == nullptr)
             i2c_0 = new TwoWire(0);
         int pin_SDA = 15;
         int pin_SCL = 4;
 
         i2c_0->begin(pin_SDA, pin_SCL); // SDA, SCL
+
         // 0x0B - BQ40Z50 Li-Ion Battery Pack Manager / Fuel gauge
         bool bq40z50Present = i2cIsDevicePresent(i2c_0, 0x0B);
+
+        // 0x5C - MP2762A Charger
+        bool mp2762aPresent = i2cIsDevicePresent(i2c_0, 0x5C);
+
+        // 0x08 - HUSB238 - USB C PD Sink Controller
+        bool husb238Present = i2cIsDevicePresent(i2c_0, 0x08);
+
         i2c_0->end();
 
-        if (bq40z50Present)
+        if (bq40z50Present || mp2762aPresent || husb238Present)
             productVariant = RTK_TORCH;
+
+        if (productVariant == RTK_TORCH && bq40z50Present == false)
+            systemPrintln("Error: Torch ID'd with no BQ40Z50 present");
+
+        if (productVariant == RTK_TORCH && mp2762aPresent == false)
+            systemPrintln("Error: Torch ID'd with no MP2762A present");
+
+        if (productVariant == RTK_TORCH && husb238Present == false)
+            systemPrintln("Error: Torch ID'd with no HUSB238 present");
     }
 
     if (productVariant == RTK_UNKNOWN)
