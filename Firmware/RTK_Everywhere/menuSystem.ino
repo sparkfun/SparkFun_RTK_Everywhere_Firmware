@@ -462,6 +462,9 @@ void menuDebugHardware()
         systemPrint("16) Print LoRa Debugging: ");
         systemPrintf("%s\r\n", settings.debugLora ? "Enabled" : "Disabled");
 
+        if (present.radio_lora)
+            systemPrintln("17) STM32 direct connect");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -581,6 +584,47 @@ void menuDebugHardware()
         {
             settings.debugLora ^= 1;
         }
+        else if (incoming == 17 && present.radio_lora)
+        {
+            // Note: STM32 bootloading is not stable above 57600bps
+
+            // Stop all UART1 tasks
+            tasksStopGnssUart();
+
+            // If the radio is off, turn it on
+            if (digitalRead(pin_loraRadio_power) == LOW)
+            {
+                systemPrintln("Turning on radio");
+                loraPowerOn();
+                delay(500); // Allow power to stablize
+            }
+
+            systemPrintln("Entering STM32 direct connect for firmware update. Use STM32CubeProgrammer to update the "
+                          "firmware. Baudrate: 57600bps. Parity: None. RTS/DTR: High. Power cycle RTK Torch to return "
+                          "to normal operation.");
+
+            // Make sure ESP-UART1 is connected to LoRA STM32 UART0
+            muxSelectLora();
+
+            // Change Serial speed of UART0
+            Serial.begin(57600);
+
+            serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX,
+                              pin_GnssUart_TX); // Make sure UART1 is at 115200 for the STM32 comm
+
+            loraEnterBootloader(); // Push boot pin high and reset STM32
+
+            // Push any incoming ESP32 UART0 to UART1 and vice versa
+            while (1)
+            {
+                while (Serial.available())
+                    serialGNSS->write(Serial.read());
+
+                while (serialGNSS->available())
+                    Serial.write(serialGNSS->read());
+            }
+        }
+
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");

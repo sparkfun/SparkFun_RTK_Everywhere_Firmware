@@ -2005,6 +2005,7 @@ struct struct_online
     bool ppl = false;
     bool batteryCharger = false;
     bool httpClient = false;
+    bool loraRadio = false;
 } online;
 
 // Monitor which tasks are running.
