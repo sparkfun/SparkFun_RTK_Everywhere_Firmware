@@ -1404,7 +1404,7 @@ void buttonCheckTask(void *e)
         {
             // Platform has no display and tilt corrections, ie RTK Torch
 
-            // The user button only exits tilt mode
+            // In in tilt mode, exit on button press
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
                 tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
@@ -1475,7 +1475,7 @@ void buttonCheckTask(void *e)
                                 // from firing
                 }
 
-                while(1)
+                while (1)
                     ;
             }
         } // End productVariant == Torch
@@ -1531,7 +1531,7 @@ void buttonCheckTask(void *e)
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
-                    setupSelectedButton = 0; // Highlight the first button
+                    setupSelectedButton = 0;   // Highlight the first button
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
                     break;
 

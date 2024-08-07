@@ -1895,7 +1895,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableLora, "enableLora",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.loraCoordinationFrequency, "loraCoordinationFrequency",  },
-    { 0, 0, 0, 0, 0, 0, 0, 1, _bool,    3, & settings.debugLora, "debugLora",  },
+    { 0, 0, 0, 0, 0, 0, 0, 1, _bool,     3, & settings.debugLora, "debugLora",  },
 
 
     // Add new settings to appropriate group above or create new group

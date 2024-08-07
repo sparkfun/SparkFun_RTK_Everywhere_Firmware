@@ -820,7 +820,7 @@ int16_t *commandIndex;
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 40
+#define MAX_BOOT_TIME_ENTRIES 41
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1031,6 +1031,10 @@ void setup()
     DMW_b("beginFS");
     beginFS(); // Start the LittleFS file system in the spiffs partition
 
+    DMW_b("checkUpdateLoraFirmware");
+    if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
+        beginLoraFirmwareUpdate();
+
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
@@ -1227,8 +1231,11 @@ void loop()
     DMW_c("tiltUpdate");
     tiltUpdate(); // Check if new lat/lon/alt have been calculated
 
-    DMW_c("updateRadio");
-    updateRadio(); // Check if we need to finish sending any RTCM over link radio
+    DMW_c("updateEspnow");
+    updateEspnow(); // Check if we need to finish sending any RTCM over ESP-NOW radio
+
+    DMW_c("updateLora");
+    updateLora(); // Check if we need to finish sending any RTCM over LoRa radio
 
     DMW_c("updatePPL");
     updatePPL(); // Check if we need to get any new RTCM from the PPL
@@ -1243,7 +1250,8 @@ void loop()
     updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
 
     DMW_c("updateProvisioning");
-    updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction topic etc.
+    updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction
+                          // topic etc.
 
     loopDelay(); // A small delay prevents panic if no other I2C or functions are called
 }
@@ -1492,48 +1500,6 @@ void rtcUpdate()
             previousGnssSyncTv.tv_usec = gnssSyncTv.tv_usec;
         }
     }
-}
-
-// Called from main loop
-// Control incoming/outgoing RTCM data from:
-// External radio - this is normally a serial telemetry radio hung off the RADIO port
-// Internal ESP NOW radio - Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
-void updateRadio()
-{
-#ifdef COMPILE_ESPNOW
-    if (settings.enableEspNow == true)
-    {
-        if (espnowState == ESPNOW_PAIRED)
-        {
-            // If it's been longer than a few ms since we last added a byte to the buffer
-            // then we've reached the end of the RTCM stream. Send partial buffer.
-            if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
-            {
-                if (settings.espnowBroadcast == false)
-                    esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
-                else
-                {
-                    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                    esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
-                                 espnowOutgoingSpot); // Send packet via broadcast
-                }
-
-                if (!inMainMenu)
-                {
-                    if (settings.debugEspNow == true)
-                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
-                }
-                espnowBytesSent = 0;
-                espnowOutgoingSpot = 0; // Reset
-            }
-
-            // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
-            // This removes the ESPNOW icon from the display when the link goes down
-            if (millis() - lastEspnowRssiUpdate > 5000 && espnowRSSI > -255)
-                espnowRSSI = -255;
-        }
-    }
-#endif // COMPILE_ESPNOW
 }
 
 void updatePeriodicDisplay()
