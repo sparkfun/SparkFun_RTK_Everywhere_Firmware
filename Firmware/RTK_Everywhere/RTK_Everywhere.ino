@@ -41,7 +41,7 @@
 #define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
 #define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
-#endif // COMPILE_WIFI || COMPILE_ETHERNET
+#endif                      // COMPILE_WIFI || COMPILE_ETHERNET
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -68,33 +68,34 @@
 
 #define NTRIP_SERVER_MAX 4
 
-#ifdef  COMPILE_NETWORK
-#include <NetworkClient.h>
-#include <NetworkClientSecure.h>
-#include <NetworkUdp.h>
-#include <DNSServer.h>    //Built-in.
+#ifdef COMPILE_NETWORK
 #include "ESP32OTAPull.h" //http://librarymanager/All#ESP-OTA-Pull Used for getting new firmware from RTK Binaries repo
+#include <DNSServer.h>    //Built-in.
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
 #include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
-#endif  // COMPILE_NETWORK
+#include <NetworkClient.h>
+#include <NetworkClientSecure.h>
+#include <NetworkUdp.h>
+#endif // COMPILE_NETWORK
 
-bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC = false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
+bool RTK_CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC =
+    false; // Flag used by the special build of libmbedtls (libmbedcrypto) to select external memory
 
 volatile bool httpClientModeNeeded = false; // This is set to true by updateProvisioning
 
-#define THINGSTREAM_SERVER "api.thingstream.io"                                      //!< the thingstream Rest API server domain
-#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials"                          //!< ZTP rest api
+#define THINGSTREAM_SERVER "api.thingstream.io"             //!< the thingstream Rest API server domain
+#define THINGSTREAM_ZTPPATH "/ztp/pointperfect/credentials" //!< ZTP rest api
 static const char THINGSTREAM_ZTPURL[] = "https://" THINGSTREAM_SERVER THINGSTREAM_ZTPPATH; // full ZTP url
-const uint16_t HTTPS_PORT = 443; //!< The HTTPS default port
+const uint16_t HTTPS_PORT = 443;                                                            //!< The HTTPS default port
 
 #ifdef COMPILE_ETHERNET
 #include <ETH.h>
-#endif                                      // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-#include "esp_wifi.h"     //Needed for esp_wifi_set_protocol()
-#include <WiFi.h>         //Built-in.
+#include "esp_wifi.h"         //Needed for esp_wifi_set_protocol()
+#include <WiFi.h>             //Built-in.
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
@@ -286,11 +287,11 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
     }
 #endif // COMPILE_WIFI
 
-#define MQTT_CLIENT_STOP(shutdown)                                                                                      \
-    {                                                                                                                   \
-        if (settings.debugNetworkLayer || settings.debugMqttClientState)                                                \
-            systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);    \
-        mqttClientStop(shutdown);                                                                                       \
+#define MQTT_CLIENT_STOP(shutdown)                                                                                     \
+    {                                                                                                                  \
+        if (settings.debugNetworkLayer || settings.debugMqttClientState)                                               \
+            systemPrintf("mqttClientStop(%s) called by %s %d\r\n", shutdown ? "true" : "false", __FILE__, __LINE__);   \
+        mqttClientStop(shutdown);                                                                                      \
     }
 
 #define OTA_FIRMWARE_JSON_URL_LENGTH 128
@@ -414,8 +415,8 @@ const byte haeNumberOfDecimals = 8;   // Used for printing and transmitting lat/
 unsigned long rtcmLastPacketReceived; // Time stamp of RTCM coming in (from BT, NTRIP, etc)
 // Monitors the last time we received RTCM. Proctors PMP vs RTCM prioritization.
 
-bool usbSerialIncomingRtcm;            // Incoming RTCM over the USB serial port
-#define RTCM_CORRECTION_INPUT_TIMEOUT   (2 * 1000)
+bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
+#define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // GNSS configuration - UM980
@@ -567,7 +568,7 @@ Button *userBtn;
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;
 
-const int shutDownButtonTime = 2000;  // ms press and hold before shutdown
+const int shutDownButtonTime = 2000; // ms press and hold before shutdown
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Webserver for serving config page from ESP32 as Acess Point
@@ -576,7 +577,7 @@ const int shutDownButtonTime = 2000;  // ms press and hold before shutdown
 // Because the incoming string is longer than max len, there are multiple callbacks so we
 // use a global to combine the incoming
 #define AP_CONFIG_SETTING_SIZE 20000 // 10000 isn't enough if the SD card contains many files
-char *settingsCSV; // Push large array onto heap
+char *settingsCSV;                   // Push large array onto heap
 char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
@@ -585,23 +586,25 @@ unsigned long lastDynamicDataUpdate;
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
-#include <DNSServer.h> // Needed for the captive portal
-#include <WebServer.h> // Port 80
-#include <esp_http_server.h> // Needed for web sockets only - on port 81
 #include "form.h"
+#include <DNSServer.h>       // Needed for the captive portal
+#include <WebServer.h>       // Port 80
+#include <esp_http_server.h> // Needed for web sockets only - on port 81
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
 DNSServer *dnsserver;
 WebServer *webserver;
 
 httpd_handle_t *wsserver = nullptr;
-//httpd_req_t *last_ws_req;
+// httpd_req_t *last_ws_req;
 int last_ws_fd;
 
 TaskHandle_t updateWebServerTaskHandle;
 const uint8_t updateWebServerTaskPriority = 0; // 3 being the highest, and 0 being the lowest
-const int updateWebServerTaskStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
-const int updateWebSocketStackSize = AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
+const int updateWebServerTaskStackSize =
+    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the file manager file list
+const int updateWebSocketStackSize =
+    AP_CONFIG_SETTING_SIZE + 3000; // Needs to be large enough to hold the full settings string
 
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
