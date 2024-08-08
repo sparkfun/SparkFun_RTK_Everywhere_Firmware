@@ -2,9 +2,7 @@
 
 Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
-The following products contain the following u-blox receivers:
-
-* RTK EVK: ZED-F9P
+The u-blox ZED-F9P is the GNSS receiver inside the RTK EVK. The RTK EVK also contains the u-blox NEO-D9S for receiving L-Band corrections. The following describes how to update the firmware on the ZED-F9P and NEO-D9S modules.
 
 The firmware loaded onto the ZED-F9P and NEO-D9S receivers is written by u-blox and can vary depending on the manufacture date. The RTK Firmware (that runs on the ESP32) is designed to flexibly work with any u-blox firmware. Upgrading the ZED-F9x/NEO-D9S is a good thing to consider but is not crucial to the use of RTK products.
 

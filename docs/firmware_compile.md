@@ -1,6 +1,8 @@
 # Compiling Source
 
-### Windows
+This is information about how to compile the RTK Everywhere firmware from source. This is for advanced users who would like to modify the functionality of the RTK products.
+
+## Windows
 
 The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v0.35.3](https://github.com/arduino/arduino-cli/releases)). To compile:
 
@@ -40,9 +42,9 @@ You have either not replaced the partition file correctly or failed to include t
 
 **Note:** There are a variety of compile guards (COMPILE_WIFI, COMPILE_AP, etc) at the top of RTK_Everywhere.ino that can be commented out to remove them from compilation. This will greatly reduce the firmware size and allow for faster development of functions that do not rely on these features (serial menus, system configuration, logging, etc).
 
-### Ubuntu 20.04
+## Ubuntu 20.04
 
-#### Virtual Machine
+### Virtual Machine
 
 Execute the following commands to create the Linux virtual machine:
 
@@ -97,7 +99,7 @@ Execute the following commands to create the Linux virtual machine:
         2. ssh-copy-id -o IdentitiesOnly=yes -i ~/.ssh/Sparkfun_RTK_20.04  &lt;username&gt;@&lt;IP address&gt;
         3. ssh -Y &lt;username&gt;@&lt;IP address&gt;
 
-#### Build Environment
+### Build Environment
 
 Execute the following commands to create the build environment for the SparkFun RTK Everywhere Firmware:
 

@@ -2,7 +2,7 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
-The ESP32 firmware is the main firmware of the device and its version is displayed in a variety of places:
+The ESP32 firmware is the main firmware in all RTK devices. The firmware version number is displayed in a variety of places:
 
 * Power On (if a display is supported)
 * Serial Config Menu

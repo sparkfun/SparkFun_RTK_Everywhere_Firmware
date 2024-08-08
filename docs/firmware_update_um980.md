@@ -1,6 +1,8 @@
-## Updating UM980 Firmware
+# Updating UM980 Firmware
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+
+The UM980 is the GNSS receiver inside the RTK Torch. The following describes how to update the firmware on the UM980.
 
 1. Download the latest UM980 firmware. As of writing, the UM980 firmware is [v11833](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/UM980_R4.10Build11833.pkg). See the [RTK Torch repo](https://github.com/sparkfun/SparkFun_RTK_Torch) for the latest firmware.
 
