@@ -159,7 +159,10 @@ nav:
       - menu_userprofiles.md
       - menu_wifi.md
   - Hardware:
-      - firmware_update.md
+      - firmware_update.md:
+        - firmware_update_esp32.md
+        - firmware_update_ublox.md
+        - firmware_update_um980.md
       - displays.md
       - embeddedsystem_connection.md
       - repair.md
