@@ -291,6 +291,12 @@ void muxSelectUm980()
     digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
 }
 
+//Used during firmware updates
+void muxSelectLoRaUart0()
+{
+    digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0
+}
+
 void muxSelectUsb()
 {
     pinMode(pin_muxB, OUTPUT);   // Make really sure we can control this pin
@@ -404,6 +410,17 @@ bool forceLoRaPassthrough()
 
 void beginLoraFirmwareUpdate()
 {
+    systemPrintln();
+    systemPrintln("Entering STM32 direct connect for firmware update. Disconnect this terminal connection. Use "
+                  "'STM32CubeProgrammer' to update the "
+                  "firmware. Baudrate: 57600bps. Parity: None. RTS/DTR: High. Press the power button to return "
+                  "to normal operation.");
+
+    systemFlush(); // Complete prints
+
+    loraPowerOn();
+    delay(500); // Allow power to stabilize
+
     // Change Serial speed of UART0
     Serial.end();        // We must end before we begin otherwise the UART settings are corrupted
     Serial.begin(57600); // Keep this at slower rate
@@ -413,18 +430,8 @@ void beginLoraFirmwareUpdate()
 
     serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX); // Keep this at 115200
 
-    // If the radio is off, turn it on
-    if (digitalRead(pin_loraRadio_power) == LOW)
-    {
-        systemPrintln("Turning on radio");
-        loraPowerOn();
-        delay(500); // Allow power to stablize
-    }
-
-    systemFlush(); // Complete prints
-
     // Make sure ESP-UART1 is connected to LoRA STM32 UART0
-    muxSelectLoRa();
+    muxSelectLoRaUart0();
 
     loraEnterBootloader(); // Push boot pin high and reset STM32
 
@@ -432,14 +439,6 @@ void beginLoraFirmwareUpdate()
 
     while (Serial.available())
         Serial.read();
-
-    systemPrintln();
-    systemPrintln("Entering STM32 direct connect for firmware update. Disconnect this terminal connection. Use "
-                  "'STM32CubeProgrammer' to update the "
-                  "firmware. Baudrate: 57600bps. Parity: None. RTS/DTR: High. Press the power button to return "
-                  "to normal operation.");
-
-    systemFlush(); // Complete prints
 
     // Push any incoming ESP32 UART0 to UART1 and vice versa
     // Infinite loop until button is pressed
@@ -459,20 +458,16 @@ void beginLoraFirmwareUpdate()
             // Remove file and reset to exit LoRa update pass-through mode
             removeUpdateLoraFirmware();
 
-            // Beep if we are not locally compiled or a release candidate
-            if (ENABLE_DEVELOPER == false)
-            {
-                beepOn();
-                delay(300);
-                beepOff();
-                delay(100);
-                beepOn();
-                delay(300);
-                beepOff();
-            }
+            // Beep to indicate exit
+            beepOn();
+            delay(300);
+            beepOff();
+            delay(100);
+            beepOn();
+            delay(300);
+            beepOff();
 
             systemPrintln("Exiting LoRa Firmware update mode");
-
             systemFlush(); // Complete prints
 
             ESP.restart();

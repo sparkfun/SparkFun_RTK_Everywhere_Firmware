@@ -589,9 +589,8 @@ void menuDebugHardware()
             if (forceLoRaPassthrough() == true)
             {
                 systemPrintln();
-                systemPrintln("Passthrough mode has been recorded to LittleFS. Device will now reset. Wait for Bluetooth LED to blink before attempting STM32 communication.");
-
-                delay(50); // Complete prints
+                systemPrintln("Passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemFlush(); // Complete prints
 
                 ESP.restart();
             }
