@@ -485,7 +485,7 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Determine where to send RTCM data
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
-        // Pass data along to NTRIP Server, or ESP-NOW radio
+        // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
         processRTCM(parse->buffer, parse->length);
     }
 

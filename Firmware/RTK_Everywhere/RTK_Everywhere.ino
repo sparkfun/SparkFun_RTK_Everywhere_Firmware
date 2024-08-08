@@ -819,11 +819,14 @@ unsigned long lastGnssToPpl = 0;
 int commandCount;
 int16_t *commandIndex;
 
+bool usbSerialIsSelected = true; //Goes false when switch U18 is moved from CH34x to LoRa
+unsigned long loraLastIncomingSerial; //Last time a user sent a serial command. Used in LoRa timeouts.
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 41
+#define MAX_BOOT_TIME_ENTRIES 40
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1120,9 +1123,6 @@ void setup()
 
     DMW_b("beginSystemState");
     beginSystemState(); // Determine initial system state.
-
-    DMW_b("beginLora");
-    beginLora(); // Power on radio
 
     DMW_b("rtcUpdate");
     rtcUpdate(); // The GNSS likely has a time/date. Update ESP32 RTC to match. Needed for PointPerfect key expiration.
