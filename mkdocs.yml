@@ -162,6 +162,7 @@ nav:
       - Update Torch:
         - firmware_update_esp32.md
         - firmware_update_um980.md
+        - firmware_update_stm32.md
       - Update RTK:
         - firmware_update_esp32.md
         - firmware_update_ublox.md
