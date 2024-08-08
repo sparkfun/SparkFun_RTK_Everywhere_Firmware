@@ -273,18 +273,18 @@ void beginBoard()
         muxSelectUm980(); // Connect ESP UART1 to UM980
 
         pinMode(pin_muxB, OUTPUT);
-        muxSelectCh340(); // Connect ESP UART0 to CH340 Serial
+        muxSelectUsb(); // Connect ESP UART0 to CH340 Serial
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
 
         pinMode(pin_loraRadio_power, OUTPUT);
-        digitalWrite(pin_loraRadio_power, LOW); // Keep LoRa powered down
+        loraPowerOff(); // Keep LoRa powered down for now
 
         pinMode(pin_loraRadio_boot, OUTPUT);
-        digitalWrite(pin_loraRadio_boot, LOW);
+        digitalWrite(pin_loraRadio_boot, LOW); //Exit bootloader, run program
 
         pinMode(pin_loraRadio_reset, OUTPUT);
-        digitalWrite(pin_loraRadio_reset, LOW); // Keep LoRa in reset
+        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
     }
 
     else if (productVariant == RTK_EVK)
@@ -1390,15 +1390,6 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         return false;
     }
     return true;
-}
-
-// Depending on radio settings, begin hardware
-void radioStart()
-{
-    if (settings.enableEspNow == true)
-        espnowStart();
-    else
-        espnowStop();
 }
 
 // Start task to determine SD card size
