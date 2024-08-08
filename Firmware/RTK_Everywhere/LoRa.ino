@@ -291,7 +291,7 @@ void muxSelectUm980()
     digitalWrite(pin_muxA, LOW); // Connect ESP UART1 to UM980
 }
 
-//Used during firmware updates
+// Used during firmware updates
 void muxSelectLoRaUart0()
 {
     digitalWrite(pin_muxA, HIGH); // Connect ESP UART1 to LoRa UART0
@@ -517,7 +517,12 @@ void loraSetup(bool transmit)
         if (configureSuccess == false)
             systemPrintln("LoRa radio failed to configure");
         else
-            systemPrintln("LoRa radio configured");
+        {
+            if (transmit == true)
+                systemPrintln("LoRa radio configured for transmitting");
+            else
+                systemPrintln("LoRa radio configured for receiving");
+        }
     }
     else
         systemPrintln("LoRa radio failed to enter command mode");
