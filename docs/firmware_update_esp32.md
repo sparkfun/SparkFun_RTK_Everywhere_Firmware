@@ -1,4 +1,4 @@
-# Update ESP32 Firmware
+# Updating ESP32 Firmware
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
