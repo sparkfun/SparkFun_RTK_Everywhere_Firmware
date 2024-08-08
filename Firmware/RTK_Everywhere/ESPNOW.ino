@@ -156,6 +156,12 @@ void promiscuous_rx_cb(void *buf, wifi_promiscuous_pkt_type_t type)
 // If the radio is off entirely, start the radio, turn on only the LR protocol
 void espnowStart()
 {
+    if (settings.enableEspNow == false)
+    {
+        espnowStop();
+        return;
+    }
+
 #ifdef COMPILE_ESPNOW
 
     // Before we can issue esp_wifi_() commands WiFi must be started

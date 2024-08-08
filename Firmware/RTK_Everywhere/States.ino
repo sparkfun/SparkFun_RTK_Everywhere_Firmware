@@ -110,7 +110,7 @@ void stateUpdate()
             NETWORK_STOP(NETWORK_TYPE_WIFI);
             WIFI_STOP();      // Stop WiFi, ntripClient will start as needed.
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            radioStart();     // Start internal radio if enabled, otherwise disable
+            espnowStart();     // Start internal radio if enabled, otherwise disable
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
@@ -306,7 +306,7 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                radioStart(); // Start internal radio if enabled, otherwise disable
+                espnowStart(); // Start internal radio if enabled, otherwise disable
 
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
@@ -373,7 +373,7 @@ void stateUpdate()
             {
                 baseStatusLedOn(); // Turn on the base/status LED
 
-                radioStart(); // Start internal radio if enabled, otherwise disable
+                espnowStart(); // Start internal radio if enabled, otherwise disable
 
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }

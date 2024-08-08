@@ -721,7 +721,9 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    radioStart();
+    espnowStart();
+
+    // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 
     clearBuffer(); // Empty buffer of any newline chars
 }
