@@ -13,6 +13,47 @@
       few seconds so a single dropped frame is not critical.
 */
 
+// Called from main loop
+// Control incoming/outgoing RTCM data from internal ESP NOW radio
+// Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
+void updateEspnow()
+{
+#ifdef COMPILE_ESPNOW
+    if (settings.enableEspNow == true)
+    {
+        if (espnowState == ESPNOW_PAIRED)
+        {
+            // If it's been longer than a few ms since we last added a byte to the buffer
+            // then we've reached the end of the RTCM stream. Send partial buffer.
+            if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
+            {
+                if (settings.espnowBroadcast == false)
+                    esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
+                else
+                {
+                    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+                    esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
+                                 espnowOutgoingSpot); // Send packet via broadcast
+                }
+
+                if (!inMainMenu)
+                {
+                    if (settings.debugEspNow == true)
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                }
+                espnowBytesSent = 0;
+                espnowOutgoingSpot = 0; // Reset
+            }
+
+            // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
+            // This removes the ESPNOW icon from the display when the link goes down
+            if (millis() - lastEspnowRssiUpdate > 5000 && espnowRSSI > -255)
+                espnowRSSI = -255;
+        }
+    }
+#endif // COMPILE_ESPNOW
+}
+
 // Create a struct for ESP NOW pairing
 typedef struct PairMessage
 {
@@ -115,6 +156,12 @@ void promiscuous_rx_cb(void *buf, wifi_promiscuous_pkt_type_t type)
 // If the radio is off entirely, start the radio, turn on only the LR protocol
 void espnowStart()
 {
+    if (settings.enableEspNow == false)
+    {
+        espnowStop();
+        return;
+    }
+
 #ifdef COMPILE_ESPNOW
 
     // Before we can issue esp_wifi_() commands WiFi must be started

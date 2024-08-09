@@ -459,6 +459,12 @@ void menuDebugHardware()
         systemPrint("15) Print ESP-Now Debugging: ");
         systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
 
+        systemPrint("16) Print LoRa Debugging: ");
+        systemPrintf("%s\r\n", settings.debugLora ? "Enabled" : "Disabled");
+
+        if (present.radio_lora)
+            systemPrintln("17) STM32 direct connect");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -574,6 +580,22 @@ void menuDebugHardware()
         {
             settings.debugEspNow ^= 1;
         }
+        else if (incoming == 16)
+        {
+            settings.debugLora ^= 1;
+        }
+        else if (incoming == 17 && present.radio_lora)
+        {
+            if (forceLoRaPassthrough() == true)
+            {
+                systemPrintln();
+                systemPrintln("Passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemFlush(); // Complete prints
+
+                ESP.restart();
+            }
+        }
+
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");

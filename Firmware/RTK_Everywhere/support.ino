@@ -5,6 +5,12 @@ int systemAvailable()
 {
     if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH || printEndpoint == PRINT_ENDPOINT_ALL)
         return (bluetoothRxDataAvailable());
+
+    // If the CH34x is disconnected (we are listening to LoRa), avoid reading characters from UART0
+    // as this will trigger the system menu
+    else if (usbSerialIsSelected == false)
+        return(0);
+
     return (Serial.available());
 }
 
@@ -25,7 +31,10 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
 
     // Output data to USB serial if necessary
     if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH) && (!forwardGnssDataToUsbSerial))
-        Serial.write(buffer, length);
+    {
+        if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
+            Serial.write(buffer, length);
+    }
 }
 
 // Forward GNSS data to the USB serial port

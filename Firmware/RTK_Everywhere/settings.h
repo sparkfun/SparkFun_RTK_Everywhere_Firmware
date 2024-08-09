@@ -1377,6 +1377,11 @@ struct Settings
 
     bool requestKeyUpdate = false; // Set to true to force a key provisioning attempt
 
+    bool enableLora = false;
+    float loraCoordinationFrequency = 910.000;
+    bool debugLora = false;
+    int loraSerialInteractionTimeout_s = 30; //Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1889,6 +1894,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
 
+    { 0, 1, 1, 0, 0, 0, 0, 1, _bool,     0, & settings.enableLora, "enableLora",  },
+    { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.loraCoordinationFrequency, "loraCoordinationFrequency",  },
+    { 0, 0, 0, 0, 0, 0, 0, 1, _bool,     3, & settings.debugLora, "debugLora",  },
+    { 0, 1, 1, 0, 0, 0, 0, 1, _int,      3, & settings.loraSerialInteractionTimeout_s, "loraSerialInteractionTimeout_s",  },
+
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
 //                      F
@@ -1996,6 +2007,7 @@ struct struct_online
     bool ppl = false;
     bool batteryCharger = false;
     bool httpClient = false;
+    bool loraRadio = false;
 } online;
 
 // Monitor which tasks are running.

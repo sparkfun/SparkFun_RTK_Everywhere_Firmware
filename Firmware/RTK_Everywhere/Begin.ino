@@ -219,7 +219,8 @@ void beginBoard()
 
         pin_GNSS_TimePulse = 39; // PPS on UM980
 
-        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 or LoRa
+        pin_muxA = 18; // Controls U12 switch between ESP UART1 to UM980 UART3 or LoRa UART0
+        pin_muxB = 12; // Controls U18 switch between ESP UART0 to LoRa UART2 or UM980 UART1
         pin_usbSelect = 21;
         pin_powerAdapterDetect = 36; // Goes low when USB cable is plugged in
 
@@ -270,18 +271,21 @@ void beginBoard()
         digitalWrite(pin_usbSelect, HIGH); // Keep CH340 connected to USB bus
 
         pinMode(pin_muxA, OUTPUT);
-        digitalWrite(pin_muxA, LOW); // Keep ESP UART1 connected to UM980
+        muxSelectUm980(); // Connect ESP UART1 to UM980
+
+        pinMode(pin_muxB, OUTPUT);
+        muxSelectUsb(); // Connect ESP UART0 to CH340 Serial
 
         settings.dataPortBaud = 115200; // Override settings. Use UM980 at 115200bps.
 
         pinMode(pin_loraRadio_power, OUTPUT);
-        digitalWrite(pin_loraRadio_power, LOW); // Keep LoRa powered down
+        loraPowerOff(); // Keep LoRa powered down for now
 
         pinMode(pin_loraRadio_boot, OUTPUT);
-        digitalWrite(pin_loraRadio_boot, LOW);
+        digitalWrite(pin_loraRadio_boot, LOW); //Exit bootloader, run program
 
         pinMode(pin_loraRadio_reset, OUTPUT);
-        digitalWrite(pin_loraRadio_reset, LOW); // Keep LoRa in reset
+        digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
     }
 
     else if (productVariant == RTK_EVK)
@@ -1387,15 +1391,6 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
         return false;
     }
     return true;
-}
-
-// Depending on radio settings, begin hardware
-void radioStart()
-{
-    if (settings.enableEspNow == true)
-        espnowStart();
-    else
-        espnowStop();
 }
 
 // Start task to determine SD card size
