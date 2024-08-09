@@ -606,7 +606,14 @@ void menuRadio()
             else
             {
                 loraGetVersion();
-                systemPrintf("10) LoRa Radio: Enabled - Firmware v%s\r\n", loraFirmwareVersion);
+                if (strlen(loraFirmwareVersion) < 3)
+                {
+                    strncpy(loraFirmwareVersion, "Unknown", sizeof(loraFirmwareVersion));
+                    systemPrintf("10) LoRa Radio: Enabled - Firmware Unknown\r\n");
+                }
+                else
+                    systemPrintf("10) LoRa Radio: Enabled - Firmware v%s\r\n", loraFirmwareVersion);
+
                 systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
                 systemPrintf("12) Seconds without user serial that must elapse before LoRa radio goes into dedicated "
                              "listening mode: %d\r\n",
