@@ -12,7 +12,7 @@ The firmware version number is displayed in the radio menu. If the device does n
 
 Firmware updates to the STM32WLE can only be done over the serial interface. Follow these steps to update the LoRa radio firmware on the RTK Torch.
 
-   ![UI of STM32CubeProgrammer](<img/Firmware/SparkFun RTK Everywhere - STM32CubeProgrammer.png>)
+    ![UI of STM32CubeProgrammer](<img/Firmware/SparkFun RTK Everywhere - STM32CubeProgrammer.png>)
 
 1. Download and install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html). While it *is* available for Windows/Linux/iOS, ST makes it rather difficult to get this software. We're sorry!
 
@@ -23,17 +23,17 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 
 3. Open the main menu and select System (**s**), Hardware Debug (**h**), STM32 direct connect (**17**).
 
-   ![Passthrough mode output on reset](<img/Firmware/SparkFun RTK Everywhere - STM32 Passthrough 1.png>)
+    ![Passthrough mode output on reset](<img/Firmware/SparkFun RTK Everywhere - STM32 Passthrough 1.png>)
 
 4. The device will automatically reset and show instructions. The device is now operating in pass-through mode at 57600bps, and ready to be programmed. If needed, to exit this pass-through mode, press and release the main power button.
 
 5. Close the terminal connection. This will likely cause the device to reset - that is ok.
 
-   ![Settings in STM32CubeProgrammer](<img/Firmware/SparkFun RTK Everywhere - STM32CubeProgrammer Callouts.png>)
+    ![Settings in STM32CubeProgrammer](<img/Firmware/SparkFun RTK Everywhere - STM32CubeProgrammer Callouts.png>)
 
 6. Open STM32CubeProgrammer. Select UART (blue box) and the programming interface. Set the Baudrate to 57600, No parity, RTS and DTR set to high.
 
-   ![Don't select Read Unprotected](<img/Firmware/SparkFun RTK Everywhere - STM32CubeProgrammer Read Unprotected.png>)
+    ![Don't select Read Unprotected](<img/Firmware/SparkFun RTK Everywhere - STM32CubeProgrammer Read Unprotected.png>)
 
 7. Avoid **Read Unprotected**. Do not enable. This setting writes to fuse bits and if there is a problem with serial communication, it can lead to an inoperable bootloader. The device can be repaired but only at SparkFun (we have to use an ST-Link to reprogram the fuse bits over the SWD interface).
 
