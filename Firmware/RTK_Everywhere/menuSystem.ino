@@ -519,59 +519,16 @@ void menuDebugHardware()
         }
         else if (incoming == 13 && present.gnss_um980)
         {
-            // Note: We cannot increase the bootloading speed beyond 115200 because
-            //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
-            //  This is workable, but the next time the RTK Torch resets, it assumes communication at 115200bps
-            //  This fails and communication is broken. We could program in some logic that attempts comm at 460800
-            //  then reconfigures the UM980 to 115200bps, then resets, but autobaud detection in the UM980 library is
-            //  not yet supported.
-
-            // Stop all UART tasks
-            tasksStopGnssUart();
-
-            systemPrintln("Entering UM980 direct connect at 115200bps for firmware update and configuration. Use "
-                          "UPrecise to update "
-                          "the firmware. Power cycle RTK Torch to "
-                          "return to normal operation.");
-
-            // Make sure ESP-UART1 is connected to UM980
-            digitalWrite(pin_muxA, LOW);
-
-            // UPrecise needs to query the device before entering bootload mode
-            // Wait for UPrecise to send bootloader trigger (character T followed by character @) before resetting UM980
-            bool inBootMode = false;
-
-            // Echo everything to/from UM980
-            while (1)
+            // Create a file in LittleFS
+            if (createUm980Passthrough() == true)
             {
-                // Data coming from UM980 to external USB
-                if (serialGNSS->available())
-                    systemWrite(serialGNSS->read());
+                systemPrintln();
+                systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemFlush(); // Complete prints
 
-                // Data coming from external USB to UM980
-                if (systemAvailable())
-                {
-                    byte incoming = systemRead();
-                    serialGNSS->write(incoming);
-
-                    // Detect bootload sequence
-                    if (inBootMode == false && incoming == 'T')
-                    {
-                        byte nextIncoming = Serial.peek();
-                        if (nextIncoming == '@')
-                        {
-                            // Reset UM980
-                            um980Reset();
-                            delay(25);
-                            um980Boot();
-
-                            inBootMode = true;
-                        }
-                    }
-                }
+                ESP.restart();
             }
         }
-
         else if (incoming == 14)
         {
             settings.enablePsram ^= 1;
@@ -586,10 +543,10 @@ void menuDebugHardware()
         }
         else if (incoming == 17 && present.radio_lora)
         {
-            if (forceLoRaPassthrough() == true)
+            if (createLoRaPassthrough() == true)
             {
                 systemPrintln();
-                systemPrintln("Passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemPrintln("STM32 passthrough mode has been recorded to LittleFS. Device will now reset.");
                 systemFlush(); // Complete prints
 
                 ESP.restart();

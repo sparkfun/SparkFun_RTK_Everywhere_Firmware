@@ -1149,3 +1149,148 @@ void um980MenuConstellations()
 }
 
 #endif // COMPILE_UM980
+
+// Check if updateUm980Firmware.txt exists
+bool checkUpdateUm980Firmware()
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists("/updateUm980Firmware.txt"))
+    {
+        if (settings.debugGnss)
+            systemPrintln("LittleFS updateUm980Firmware.txt exists");
+
+        // We do not remove the file here. See removeupdateUm980Firmware().
+
+        return true;
+    }
+
+    return false;
+}
+
+void removeUpdateUm980Firmware()
+{
+    if (online.fs == false)
+        return;
+
+    if (LittleFS.exists("/updateUm980Firmware.txt"))
+    {
+        if (settings.debugGnss)
+            systemPrintln("Removing updateUm980Firmware.txt ");
+
+        LittleFS.remove("/updateUm980Firmware.txt");
+    }
+}
+
+// Force UART connection to UM980 for firmware update on the next boot by creating updateUm980Firmware.txt in
+// LittleFS
+bool createUm980Passthrough()
+{
+    if (online.fs == false)
+        return false;
+
+    if (LittleFS.exists("/updateUm980Firmware.txt"))
+    {
+        if (settings.debugGnss)
+            systemPrintln("LittleFS updateUm980Firmware.txt already exists");
+        return true;
+    }
+
+    File updateUm980Firmware = LittleFS.open("/updateUm980Firmware.txt", FILE_WRITE);
+    updateUm980Firmware.close();
+
+    if (LittleFS.exists("/updateUm980Firmware.txt"))
+        return true;
+
+    if (settings.debugGnss)
+        systemPrintln("Unable to create updateUm980Firmware.txt on LittleFS");
+    return false;
+}
+
+void beginUm980FirmwareUpdate()
+{
+    // Note: We cannot increase the bootloading speed beyond 115200 because
+    //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
+    //  This is workable, but the next time the RTK Torch resets, it assumes communication at 115200bps
+    //  This fails and communication is broken. We could program in some logic that attempts comm at 460800
+    //  then reconfigures the UM980 to 115200bps, then resets, but autobaud detection in the UM980 library is
+    //  not yet supported.
+
+    // Stop all UART tasks
+    tasksStopGnssUart();
+
+    systemPrintln();
+    systemPrintln("Entering UM980 direct connect for firmware update and configuration. Disconnect this terminal "
+                  "connection. Use "
+                  "UPrecise to update the firmware. Baudrate: 115200bps. Press the power button to return "
+                  "to normal operation.");
+    systemFlush();
+
+    // Make sure ESP-UART1 is connected to UM980
+    muxSelectUm980();
+
+    if (serialGNSS == nullptr)
+        serialGNSS = new HardwareSerial(2); // Use UART2 on the ESP32 for communication with the GNSS module
+
+    serialGNSS->begin(115200, SERIAL_8N1, pin_GnssUart_RX, pin_GnssUart_TX);
+
+    // UPrecise needs to query the device before entering bootload mode
+    // Wait for UPrecise to send bootloader trigger (character T followed by character @) before resetting UM980
+    bool inBootMode = false;
+
+    // Echo everything to/from UM980
+    while (1)
+    {
+        // Data coming from UM980 to external USB
+        if (serialGNSS->available())
+            Serial.write(serialGNSS->read());
+
+        // Data coming from external USB to UM980
+        if (Serial.available())
+        {
+            byte incoming = Serial.read();
+            serialGNSS->write(incoming);
+
+            // Detect bootload sequence
+            if (inBootMode == false && incoming == 'T')
+            {
+                byte nextIncoming = Serial.peek();
+                if (nextIncoming == '@')
+                {
+                    // Reset UM980
+                    um980Reset();
+                    delay(25);
+                    um980Boot();
+
+                    inBootMode = true;
+                }
+            }
+        }
+
+        if (digitalRead(pin_powerButton) == HIGH)
+        {
+            while (digitalRead(pin_powerButton) == HIGH)
+                delay(100);
+
+            // Remove file and reset to exit pass-through mode
+            removeUpdateUm980Firmware();
+
+            // Beep to indicate exit
+            beepOn();
+            delay(300);
+            beepOff();
+            delay(100);
+            beepOn();
+            delay(300);
+            beepOff();
+
+            systemPrintln("Exiting UM980 passthrough mode");
+            systemFlush(); // Complete prints
+
+            ESP.restart();
+        }
+    }
+
+    systemFlush(); // Complete prints
+}

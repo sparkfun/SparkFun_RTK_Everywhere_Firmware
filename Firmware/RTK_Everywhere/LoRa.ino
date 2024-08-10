@@ -385,7 +385,7 @@ void removeUpdateLoraFirmware()
 
 // Force UART connection to LoRa radio for firmware update on the next boot by creating updateLoraFirmware.txt in
 // LittleFS
-bool forceLoRaPassthrough()
+bool createLoRaPassthrough()
 {
     if (online.fs == false)
         return false;
