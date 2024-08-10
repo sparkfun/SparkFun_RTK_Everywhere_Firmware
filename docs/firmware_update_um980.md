@@ -8,11 +8,17 @@ The UM980 is the GNSS receiver inside the RTK Torch. The following describes how
 
 2. Download and install [UPrecise](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe). UPrecise is the software created by Unicore to configure and view output from Unicore GNSS modules. v2 of the software can be downloaded [here](https://raw.githubusercontent.com/sparkfun/SparkFun_RTK_Torch/main/UM980_Firmware/uprecise-v2-0.exe) but newer versions may be available.
 
-    ![Serial Configuration via Arduino Serial Terminal](<img/Terminal/SparkFun RTK Everywhere - System Menu UM980 Direct Connect.png>)
+    ![Hardware menu showing pass through option](<img/UPrecise/SparkFun RTK Everywhere - UM980 Passthrough.png>)
 
-    *Serial Configuration via Arduino Serial Terminal* 
+    *Entering direct connect via Serial Configuration* 
 
-3. Put the device into passthrough mode. From the main menu navigate to System 's'->Hardware 'h'->UM980 Direct Connect '13'. This will put the device into a pass-through mode, but with special character monitoring that allows the UM980 to be reset when bootloading is detected. Close the terminal connection so that UPrecise can connect to the COM port. **Note:** Some terminals cause the ESP32 to reset when closing the port. This reset causes the UM980 pass-through mode to exit. TeraTerm is known to cause this issue. To enter pass-through mode we recommend using the Arudino terminal.
+3. Put the device into passthrough mode. From the main menu navigate to System 's'->Hardware 'h'->UM980 Direct Connect '13'. This will put the device into a pass-through mode, but with special character monitoring that allows the UM980 to be reset when bootloading is detected. Close the terminal connection so that UPrecise can connect to the COM port. 
+    
+    ![Startup message showing passthrough mode](<img/UPrecise/SparkFun RTK Everywhere - UM980 Passthrough Startup.png>)
+
+    *Startup message showing passthrough mode*
+
+    **Note:** The RTK device will stay in this passthrough mode until the external power button is pressed and released.
 
     ![Connect button and connection settings in UPrecise](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Connect.png>)
 
