@@ -826,7 +826,7 @@ unsigned long loraLastIncomingSerial; //Last time a user sent a serial command. 
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 40
+#define MAX_BOOT_TIME_ENTRIES 41
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1040,6 +1040,10 @@ void setup()
     DMW_b("checkUpdateLoraFirmware");
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate();
+
+    DMW_b("checkUpdateUm980Firmware");
+    if (checkUpdateUm980Firmware() == true) // Check if updateLoraFirmware.txt exists
+        beginUm980FirmwareUpdate();
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
