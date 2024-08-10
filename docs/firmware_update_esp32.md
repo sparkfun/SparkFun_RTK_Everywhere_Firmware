@@ -14,9 +14,9 @@ The ESP32 firmware is the main firmware in all RTK devices. The firmware version
 
 During power-on, on devices that have a display, the firmware version will be shown.
 
-![Main Menu showing RTK Firmware v3.0-Jan 19 2023](img/Terminal/SparkFun%20RTK%20Main%20Menu.png)
+![Main Menu showing RTK Everywhere Firmware v1.0](<SparkFun RTK Everywhere - Main Menu.png>)
 
-*Main Menu showing RTK Firmware v3.0-Jan 19 2023*
+*Main Menu showing RTK Firmware v1.0*
 
 The firmware is displayed when the main menu is opened over a serial connection.
 
@@ -51,8 +51,6 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 Firmware can be updated in the System Configuration section of the WiFi Config page, or over the Firmware menu of the serial interface. This makes checking and upgrading a unit very easy.
 
 Additionally, users may opt to check for Beta firmware. This is the latest firmware that may have new features and is meant for testing. Beta firmware is not recommended for units deployed into the field as it may not be stable.
-
-If you have a device with firmware lower than v3.0, you will need to use the [GUI](firmware_update.md#updating-firmware-using-the-uploader-gui) or a method listed below to get to v3.x.
 
 Automatic release firmware update is supported over WiFi. Enabling this feature is done using the serial firmware menu. The polling period is specified in minutes and defaults to once a day. The automatic firmware update only checks for and installs the current SparkFun released firmware versions over top of any:
 
