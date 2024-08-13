@@ -14,7 +14,7 @@ The ESP32 firmware is the main firmware in all RTK devices. The firmware version
 
 During power-on, on devices that have a display, the firmware version will be shown.
 
-![Main Menu showing RTK Everywhere Firmware v1.0](<SparkFun RTK Everywhere - Main Menu.png>)
+![Main Menu showing RTK Everywhere Firmware v1.0](<img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
 
 *Main Menu showing RTK Firmware v1.0*
 
