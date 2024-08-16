@@ -2,6 +2,7 @@
 #define __SETTINGS_H__
 
 #include "UM980.h" //Structs of UM980 messages, needed for settings.h
+#include "mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include <vector>
 
 // System can enter a variety of states
@@ -1350,6 +1351,22 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
+
+    // mosaic
+    uint8_t mosaicConstellations[MAX_MOSAIC_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
+    uint8_t mosaicMessageRatesNMEA[MAX_MOSAIC_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Base[MAX_MOSAIC_RTCM_V2_MSG] = {
+        { 65534, false } }; // Mark first record with key so defaults will be applied
+    mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Rover[MAX_MOSAIC_RTCM_V2_MSG] = {
+        { 65534, false } }; // Mark first record with key so defaults will be applied
+    float mosaicMessageIntervalsRTCMv3Base[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
+        999.9 }; // Mark first record with key so defaults will be applied
+    float mosaicMessageIntervalsRTCMv3Rover[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
+        999.9 }; // Mark first record with key so defaults will be applied
+    uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
+        254 }; // Mark first record with key so defaults will be applied
+    uint8_t mosaicMessageEnabledRTCMv3Rover[MAX_MOSAIC_RTCM_V3_MSG] = {
+        254 }; // Mark first record with key so defaults will be applied
 
     // Web Server
     uint16_t httpPort = 80;
