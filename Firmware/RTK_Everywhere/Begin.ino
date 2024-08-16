@@ -359,10 +359,6 @@ void beginBoard()
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
 
-        // Select the I2C 0 data structure
-        if (i2c_0 == nullptr)
-            i2c_0 = new TwoWire(0);
-
         // Disable the Ethernet controller
         DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
         pinMode(pin_Ethernet_CS, OUTPUT);
@@ -417,7 +413,7 @@ void beginBoard()
         digitalWrite(pin_powerFastOff, HIGH); // Stay on
     }
 
-    else if (productVariant == RTK_FACET_MOSAIC)
+    else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.0
     {
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
@@ -429,21 +425,24 @@ void beginBoard()
         present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
+        present.gnss_to_uart = true;
 
-        pin_batteryStatusLED = 34;
-        pin_muxA = 18;
-        pin_muxB = 19;
-        pin_powerSenseAndControl = 32;
-        pin_powerFastOff = 33;
-        pin_muxDAC = 26;
-        pin_muxADC = 39;
-        pin_peripheralPowerControl = 27;
-        pin_I2C0_SDA = 21;
-        pin_I2C0_SCL = 22;
+        pin_GnssLBandUart_RX = 4;
         pin_GnssUart_RX = 13;
         pin_GnssUart_TX = 14;
-        pin_GnssLBandUart_RX = 4;
+        pin_muxA = 18;
+        pin_muxB = 19;
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        pin_GnssOnOff = 23;
         pin_GnssLBandUart_TX = 25;
+        pin_muxDAC = 26;
+        pin_peripheralPowerControl = 27;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_chargerLED = 34;
+        pin_GnssReady = 36;
+        pin_muxADC = 39;
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
@@ -455,8 +454,57 @@ void beginBoard()
         // Turn on power to the mosaic and OLED
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
-        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, USB Hub,
+        peripheralsOn(); // Turn on power to OLED, SD, mosaic
     }
+/*
+    else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.1
+    {
+        present.psram_4mb = true;
+        present.gnss_mosaicX5 = true;
+        present.display_i2c0 = true;
+        present.display_type = DISPLAY_64x48;
+        present.i2c0BusSpeed_400 = true;
+        present.peripheralPowerControl = true;
+        present.button_powerLow = true; // Button is pressed when low
+        present.fuelgauge_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+        present.gnss_to_uart = true;
+
+        pin_muxA = 2;
+        pin_muxB = 12;
+        pin_GnssLBandUart_RX = 4;
+        pin_GnssUart_RX = 13;
+        pin_GnssUart_TX = 14;
+        pin_GnssEvent = 18;
+        pin_chargerLED2 = 19;
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        pin_GnssOnOff = 23;
+        pin_GnssLBandUart_TX = 25;
+        pin_muxDAC = 26;
+        pin_peripheralPowerControl = 27;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_chargerLED = 34;
+        pin_GnssReady = 36;
+        pin_muxADC = 39;
+
+        pin_batteryStatusLED = 34;
+
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
+
+        // pinMode(pin_powerFastOff, OUTPUT);
+        // digitalWrite(pin_powerFastOff, HIGH); // Stay on
+        pinMode(pin_powerFastOff, INPUT);
+
+        // Turn on power to the mosaic and OLED
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, mosaic
+    }
+*/
 }
 
 void beginVersion()
@@ -785,7 +833,7 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
-    if (productVariant == RTK_TORCH)
+    if ((productVariant == RTK_TORCH) || (productVariant == RTK_FACET_MOSAIC))
     {
         // Override user setting. Required because beginGnssUart() is called before beginBoard().
         settings.dataPortBaud = 115200;

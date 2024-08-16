@@ -134,6 +134,12 @@ int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
 int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
 
+int pin_GnssEvent = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssOnOff = PIN_UNDEFINED; // Facet mosaic
+int pin_chargerLED = PIN_UNDEFINED; // Facet mosaic
+int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssReady = PIN_UNDEFINED; // Facet mosaic
+
 int pin_loraRadio_reset = PIN_UNDEFINED;
 int pin_loraRadio_boot = PIN_UNDEFINED;
 int pin_loraRadio_power = PIN_UNDEFINED;
@@ -492,6 +498,7 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serialGNSSLBand; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
