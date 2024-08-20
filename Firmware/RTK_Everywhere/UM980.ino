@@ -672,6 +672,12 @@ float um980GetHorizontalAccuracy()
     float latitudeDeviation = um980->getLatitudeDeviation();
     float longitudeDeviation = um980->getLongitudeDeviation();
 
+    // The binary message may contain all 0xFFs leading to a very large negative number.
+    if (longitudeDeviation < -0.01)
+        longitudeDeviation = 50.0;
+    if (latitudeDeviation < -0.01)
+        latitudeDeviation = 50.0;
+
     if (longitudeDeviation < latitudeDeviation)
         return (longitudeDeviation);
 
