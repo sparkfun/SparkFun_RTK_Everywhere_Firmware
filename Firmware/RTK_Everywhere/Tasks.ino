@@ -837,8 +837,8 @@ void handleGnssDataTask(void *e)
         startMillis = millis();
 
         // Determine BT connection state
-        bool connected = (bluetoothGetState() == BT_CONNECTED) && (systemState != STATE_BASE_TEMP_SETTLE) &&
-                         (systemState != STATE_BASE_TEMP_SURVEY_STARTED);
+        bool connected = (bluetoothGetState() == BT_CONNECTED);
+        
         if (!connected)
             // Discard the data
             btRingBufferTail = dataHead;
