@@ -296,6 +296,10 @@ bool um980ConfigureBase()
 
     bool response = true;
 
+    // Set the dynamic mode. This will cancel any base averaging mode and is needed
+    // to allow a freshly started device to settle in regular GNSS reception mode before issuing um980BaseAverageStart().
+    response &= um980SetModel(settings.dynamicModel);
+
     response &= um980EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
                                        // UNLOG or similar.
 
@@ -312,6 +316,9 @@ bool um980ConfigureBase()
     {
         systemPrintln("UM980 Base failed to configure");
     }
+
+    if (settings.debugGnss)
+        systemPrintln("UM980 Base configured");
 
     return (response);
 }

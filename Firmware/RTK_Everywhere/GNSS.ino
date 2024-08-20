@@ -1260,7 +1260,6 @@ char *gnssGetRtcmLowDataRateString()
 
 float gnssGetSurveyInStartingAccuracy()
 {
-
     return (settings.surveyInStartingAccuracy);
 }
 
