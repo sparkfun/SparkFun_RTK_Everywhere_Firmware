@@ -50,6 +50,7 @@ enum LoraState
 {
     LORA_OFF = 0,
     LORA_NOT_STARTED,
+    LORA_TX_SETTLING,      // Do not transmit while surveying in to avoid RF cross-talk
     LORA_TX,               // Send RTCM over LoRa when it's received from UM980 (share UART0 with prints)
     LORA_RX_DEDICATED,     // No USB cable so disconnect from USB
     LORA_RX_SHARED,        // USB cable connected so share UART0 between prints and data
@@ -90,11 +91,9 @@ void updateLora()
         if (inBaseMode())
         {
             if (settings.debugLora == true)
-                systemPrintln("LoRa: Moving to TX");
+                systemPrintln("LoRa: Moving to TX Settling");
 
-            loraSetupTransmit();
-
-            loraState = LORA_TX;
+            loraState = LORA_TX_SETTLING;
         }
         else if (isUsbAttached() == false)
         {
@@ -121,6 +120,21 @@ void updateLora()
 
             loraState = LORA_RX_SHARED;
         }
+        break;
+
+    case (LORA_TX_SETTLING):
+        // While the survey is running, avoid transmitting over LoRa to allow maximum GNSS reception
+
+        if (gnssIsSurveyComplete() == true)
+        {
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to TX");
+
+            loraSetupTransmit();
+
+            loraState = LORA_TX;
+        }
+
         break;
 
     case (LORA_TX):
