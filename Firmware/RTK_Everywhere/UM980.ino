@@ -42,7 +42,6 @@ void um980Begin()
         //If NMEA GPGGA is turned off, enable BESTNAV messages at power on which may lead to longer UM980 configuration times
         um980->enableBinaryBeforeFix();
 
-
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
         if (settings.debugGnss)
@@ -894,10 +893,11 @@ uint8_t um980GetActiveNmeaMessageCount()
 // Return true if the GPGGA message is active
 bool um980IsGgaActive()
 {
-   // 2 = GPGGA. We could do this with a walking text search but this is sufficient.
-   if(settings.um980MessageRatesNMEA[2] > 0)
-       return (true);
-   return (false);
+    Serial.printf("Nmea test: %d\r\n", um980GetNmeaMessageNumberByName("GPGGA"));
+
+    if (settings.um980MessageRatesNMEA[um980GetNmeaMessageNumberByName("GPGGA")] > 0)
+        return (true);
+    return (false);
 }
 
 uint8_t um980GetActiveRtcmMessageCount()
@@ -1125,17 +1125,17 @@ void um980BaseRtcmLowDataRate()
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
         settings.um980MessageRatesRTCMBase[x] = 0;
 
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1005")] =
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1005")] =
         10; // 1005 0.1Hz - Exclude antenna height
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1124")] = 2;  // 1124 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1033")] = 10; // 1033 0.1Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1124")] = 2;  // 1124 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1033")] = 10; // 1033 0.1Hz
 }
 
-// Given the name of a message, return the array number
-uint8_t um980GetMessageNumberByName(const char *msgName)
+// Given the name of an RTCM message, return the array number
+uint8_t um980GetRtcmMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
     {
@@ -1143,7 +1143,20 @@ uint8_t um980GetMessageNumberByName(const char *msgName)
             return (x);
     }
 
-    systemPrintf("um980GetMessageNumberByName: %s not found\r\n", msgName);
+    systemPrintf("um980GetRtcmMessageNumberByName: %s not found\r\n", msgName);
+    return (0);
+}
+
+// Given the name of an NMEA message, return the array number
+uint8_t um980GetNmeaMessageNumberByName(const char *msgName)
+{
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+    {
+        if (strcmp(umMessagesNMEA[x].msgTextName, msgName) == 0)
+            return (x);
+    }
+
+    systemPrintf("um980GetNmeaMessageNumberByName: %s not found\r\n", msgName);
     return (0);
 }
 
