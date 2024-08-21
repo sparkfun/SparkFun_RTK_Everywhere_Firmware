@@ -1890,6 +1890,8 @@ void writeToString(char *settingValueStr, char *value)
 // Given a settingName, create a string with setting value
 // Used in conjunction with the command line interface
 // The order of variables matches the order found in settings.h
+// $SPGET,[setting name]*FF<CR><LF>
+// Ex: $SPGET,batteryLevelPercent*19
 SettingValueResponse getSettingValue(bool inCommands, const char *settingName, char *settingValueStr)
 {
     int i;
@@ -2262,6 +2264,24 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     else if (strcmp(settingName, "enableRCFirmware") == 0)
     {
         writeToString(settingValueStr, enableRCFirmware);
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "batteryLevelPercent") == 0)
+    {
+        checkBatteryLevels();
+        writeToString(settingValueStr, batteryLevelPercent);
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "batteryVoltage") == 0)
+    {
+        checkBatteryLevels();
+        writeToString(settingValueStr, batteryVoltage);
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "batteryChargingPercentPerHour") == 0)
+    {
+        checkBatteryLevels();
+        writeToString(settingValueStr, batteryChargingPercentPerHour);
         knownSetting = true;
     }
 
