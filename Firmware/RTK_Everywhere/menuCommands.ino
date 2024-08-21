@@ -1228,7 +1228,8 @@ void createSettingsString(char *newSettings)
     }
     else if (present.gnss_mosaicX5)
     {
-        // *** TODO ***
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "mosaic-X5 Firmware: %s ID: %s", gnssFirmwareVersion,
+                 gnssUniqueId);
     }
     stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);

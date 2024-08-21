@@ -1950,6 +1950,7 @@ struct struct_present
     bool ethernet_ws5500 = false;
     bool radio_lora = false;
     bool gnss_to_uart = false;
+    bool gnss_to_uart2 = false;
 
     bool gnss_um980 = false;
     bool gnss_zedf9p = false;

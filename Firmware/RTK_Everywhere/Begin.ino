@@ -415,6 +415,21 @@ void beginBoard()
 
     else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.0
     {
+        // How it works:
+        // The mosaic COM ports COM1 and COM4 are connected to the ESP32
+        // (mosaic COM2 is connected to the Radio connector)
+        // (mosaic COM3 is connected to the Data connector - via the multiplexer)
+        // To keep things ~similar to the Torch and the original Facet:
+        //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic
+        //   The RTCM and NMEA will be encapsulated in SBF format - this makes it easier to parse
+        //   COM1 TX will also output LBandBeam1 when PointPerfect (L-Band) is enabled
+        //   LBandBeam1 is not encapsulated; it is a raw data stream containing SPARTN
+        //     The SBF-encapsulated RTCM and NMEA appears 'randomly' in the raw data stream
+        //   Careful parsing allows the encapsulated SBF to be disentangled from the raw L-Band beam
+        //   COM1 RX carries RTCM messages from PPL / NTRIP to the mosaic
+        //   COM4 is used to configure the mosaic using CMD Command Line commands
+        //   COM4 TX only carries plain text Command Replies
+
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
         present.display_i2c0 = true;
@@ -426,8 +441,9 @@ void beginBoard()
         present.portDataMux = true;
         present.fastPowerOff = true;
         present.gnss_to_uart = true;
+        present.gnss_to_uart2 = true;
 
-        pin_GnssLBandUart_RX = 4;
+        pin_GnssUart2_RX = 4;
         pin_GnssUart_RX = 13;
         pin_GnssUart_TX = 14;
         pin_muxA = 18;
@@ -435,7 +451,7 @@ void beginBoard()
         pin_I2C0_SDA = 21;
         pin_I2C0_SCL = 22;
         pin_GnssOnOff = 23;
-        pin_GnssLBandUart_TX = 25;
+        pin_GnssUart2_TX = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
         pin_powerSenseAndControl = 32;
@@ -459,6 +475,21 @@ void beginBoard()
 /*
     else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.1
     {
+        // How it works:
+        // The mosaic COM ports COM1 and COM4 are connected to the ESP32
+        // (mosaic COM2 is connected to the Radio connector)
+        // (mosaic COM3 is connected to the Data connector - via the multiplexer)
+        // To keep things ~similar to the Torch and the original Facet:
+        //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic
+        //   The RTCM and NMEA will be encapsulated in SBF format - this makes it easier to parse
+        //   COM1 TX will also output LBandBeam1 when PointPerfect (L-Band) is enabled
+        //   LBandBeam1 is not encapsulated; it is a raw data stream containing SPARTN
+        //     The SBF-encapsulated RTCM and NMEA appears 'randomly' in the raw data stream
+        //   Careful parsing allows the encapsulated SBF to be disentangled from the raw L-Band beam
+        //   COM1 RX carries RTCM messages from PPL / NTRIP to the mosaic
+        //   COM4 is used to configure the mosaic using CMD Command Line commands
+        //   COM4 TX only carries plain text Command Replies
+
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
         present.display_i2c0 = true;
@@ -470,10 +501,11 @@ void beginBoard()
         present.portDataMux = true;
         present.fastPowerOff = true;
         present.gnss_to_uart = true;
+        present.gnss_to_uart2 = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
-        pin_GnssLBandUart_RX = 4;
+        pin_GnssUart2_RX = 4;
         pin_GnssUart_RX = 13;
         pin_GnssUart_TX = 14;
         pin_GnssEvent = 18;
@@ -481,7 +513,7 @@ void beginBoard()
         pin_I2C0_SDA = 21;
         pin_I2C0_SCL = 22;
         pin_GnssOnOff = 23;
-        pin_GnssLBandUart_TX = 25;
+        pin_GnssUart2_TX = 25;
         pin_muxDAC = 26;
         pin_peripheralPowerControl = 27;
         pin_powerSenseAndControl = 32;
@@ -862,6 +894,26 @@ void pinGnssUartTask(void *pvParameters)
         systemPrintln("Task pinGnssUartTask stopped");
     task.gnssUartPinnedTaskRunning = false;
     vTaskDelete(nullptr); // Delete task once it has run once
+}
+
+void beginGnssUart2()
+{
+    if (present.gnss_to_uart2 == false)
+        return;
+
+    // Skip if going into configure-via-ethernet mode
+    if (configureViaEthernet)
+    {
+        if (settings.debugNetworkLayer)
+            systemPrintln("configureViaEthernet: skipping beginGnssUart2");
+        return;
+    }
+
+    serial2GNSS = new HardwareSerial(1); // Use UART1 on the ESP32 to communicate with the mosaic
+
+    serial2GNSS->setRxBufferSize(1024 * 1);
+
+    serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_RX);
 }
 
 void beginFS()

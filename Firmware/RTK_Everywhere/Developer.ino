@@ -264,6 +264,68 @@ void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageTy
 #endif  // COMPILE_UM980
 
 //----------------------------------------
+// mosaic-X5
+//----------------------------------------
+
+#ifndef  COMPILE_MOSAICX5
+
+bool     mosaicX5BaseAverageStart() {return false;}
+void     mosaicX5Begin() {systemPrintln("**mosaicX5 not compiled**");}
+bool     mosaicX5Configure() {return false;}
+bool     mosaicX5ConfigureBase() {return false;}
+bool     mosaicX5ConfigureRover() {return false;}
+void     mosaicX5DisableDebugging() {}
+void     mosaicX5EnableDebugging() {}
+void     mosaicX5FactoryReset() {}
+uint16_t mosaicX5FixAgeMilliseconds() {return 65000;}
+bool     mosaicX5FixedBaseStart() {return false;}
+double   mosaicX5GetAltitude() {return 0;}
+uint8_t  mosaicX5GetDay() {return 0;}
+int      mosaicX5GetHorizontalAccuracy() {return false;}
+uint8_t  mosaicX5GetHour() {return 0;}
+double   mosaicX5GetLatitude() {return 0;}
+double   mosaicX5GetLongitude() {return 0;}
+uint8_t  mosaicX5GetMillisecond() {return 0;}
+uint8_t  mosaicX5GetMinute() {return 0;}
+uint8_t  mosaicX5GetMonth() {return 0;}
+uint8_t  mosaicX5GetPositionType() {return 0;}
+uint8_t  mosaicX5GetSatellitesInView() {return 0;}
+uint8_t  mosaicX5GetSecond() {return 0;}
+uint8_t  mosaicX5GetSolutionStatus() {return 0;}
+uint32_t mosaicX5GetTimeDeviation() {return 0;}
+uint16_t mosaicX5GetYear() {return 0;}
+bool     mosaicX5IsFullyResolved() {return false;}
+bool     mosaicX5IsValidDate() {return false;}
+bool     mosaicX5IsValidTime() {return false;}
+void     mosaicX5PrintInfo() {}
+int      mosaicX5PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
+bool     mosaicX5SaveConfiguration() {return false;}
+bool     mosaicX5SetBaudRateCOM3(uint32_t baudRate) {return false;}
+bool     mosaicX5SetConstellations() {return false;}
+void     mosaicX5SetMinCNO(uint8_t cnoValue) {}
+void     mosaicX5SetMinElevation(uint8_t elevationDegrees) {}
+void     mosaicX5SetModel(uint8_t modelNumber) {}
+bool     mosaicX5SetModeRoverSurvey() {return false;}
+bool     mosaicX5SetRate(double secondsBetweenSolutions) {return false;}
+void     mosaicX5UnicoreHandler(uint8_t * buffer, int length) {}
+char*    mosaicX5GetId() {return ((char*)"No compiled");}
+void     mosaicX5Boot() {}
+void     mosaicX5Reset() {}
+uint8_t  mosaicX5GetLeapSeconds() {return (0);}
+bool     mosaicX5IsBlocking() {return(false);}
+uint8_t  mosaicX5GetActiveMessageCount() {return(0);}
+void     mosaicX5MenuMessages(){}
+void     mosaicX5BaseRtcmDefault(){}
+void     mosaicX5BaseRtcmLowDataRate(){}
+char *   mosaicX5GetRtcmDefaultString() {return ((char*)"Not compiled");}
+char *   mosaicX5GetRtcmLowDataRateString() {return ((char*)"Not compiled");}
+void     mosaicX5MenuConstellations(){}
+double   mosaicX5GetRateS() {return(0.0);}
+void     mosaicX5MenuMessagesSubtype(float *localMessageRate, const char *messageType){}
+
+#endif  // COMPILE_MOSAICX5
+
+//----------------------------------------
 // PointPerfect Library
 //----------------------------------------
 

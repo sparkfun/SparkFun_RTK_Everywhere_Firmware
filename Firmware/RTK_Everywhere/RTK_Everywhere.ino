@@ -35,6 +35,7 @@
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+//#define COMPILE_MOSAICX5             // Comment out to remove mosaic-X5 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
@@ -166,8 +167,8 @@ int pin_I2C1_SCL = PIN_UNDEFINED;
 int pin_GnssUart_RX = PIN_UNDEFINED;
 int pin_GnssUart_TX = PIN_UNDEFINED;
 
-int pin_GnssLBandUart_RX = PIN_UNDEFINED;
-int pin_GnssLBandUart_TX = PIN_UNDEFINED;
+int pin_GnssUart2_RX = PIN_UNDEFINED;
+int pin_GnssUart2_TX = PIN_UNDEFINED;
 
 int pin_Cellular_RX = PIN_UNDEFINED;
 int pin_Cellular_TX = PIN_UNDEFINED;
@@ -437,9 +438,9 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Note: GnssPlatform gnssPlatform has been replaced by present.gnss_zedf9p etc.
-char gnssFirmwareVersion[20];
+char gnssFirmwareVersion[21]; // mosaic-X5 could be 20 digits
 int gnssFirmwareVersionInt;
-char gnssUniqueId[20]; // um980 ID is 16 digits
+char gnssUniqueId[21]; // um980 ID is 16 digits. mosaic-X5 could be 20 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Battery fuel gauge and PWM LEDs
@@ -498,7 +499,7 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform we're on
-HardwareSerial *serialGNSSLBand; // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
@@ -810,7 +811,7 @@ volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer;
 
-unsigned long um980BaseStartTimer; // Tracks how long the base averaging mode has been running
+unsigned long autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
 RtkMode_t rtkMode; // Mode of operation
 
@@ -1081,6 +1082,9 @@ void setup()
     DMW_b("beginGnssUart");
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).
+
+    DMW_b("beginGnssUart2");
+    beginGnssUart2();
 
     DMW_b("gnssBegin");
     gnssBegin(); // Requires settings. Connect to GNSS to get module type
