@@ -292,9 +292,6 @@ void ethernetUpdate()
             // We should fall straight through this as eth_connected indicates we already have an IP address
             if (eth_connected)
             {
-                // Start the multicast DNS server
-                networkStartMulticastDNS();
-
                 if (settings.debugNetworkLayer)
                     systemPrintln("Ethernet started with DHCP");
                 online.ethernetStatus = ETH_CONNECTED;
@@ -305,9 +302,6 @@ void ethernetUpdate()
     case (ETH_CONNECTED):
         if (!eth_connected)
         {
-            // Stop the multicast domain name server
-            networkStopMulticastDNS();
-
             if (settings.debugNetworkLayer)
                 systemPrintln("Ethernet disconnected!");
             online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
