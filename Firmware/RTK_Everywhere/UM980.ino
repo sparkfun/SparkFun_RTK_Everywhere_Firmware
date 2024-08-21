@@ -33,7 +33,15 @@ void um980Begin()
     if (settings.debugGnss == true)
         um980EnableDebugging();
 
-    um980->disableBinaryBeforeFix(); // Block the start of BESTNAV and RECTIME until 3D fix is achieved
+    // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D fix is achieved
+    // However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
+    if (um980IsGgaActive() == true)
+        //If NMEA GPGGA is turned on, suppress BESTNAV messages until GPGGA reports a 3D fix
+        um980->disableBinaryBeforeFix();
+    else
+        //If NMEA GPGGA is turned off, enable BESTNAV messages at power on which may lead to longer UM980 configuration times
+        um980->enableBinaryBeforeFix();
+
 
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
@@ -297,7 +305,8 @@ bool um980ConfigureBase()
     bool response = true;
 
     // Set the dynamic mode. This will cancel any base averaging mode and is needed
-    // to allow a freshly started device to settle in regular GNSS reception mode before issuing um980BaseAverageStart().
+    // to allow a freshly started device to settle in regular GNSS reception mode before issuing
+    // um980BaseAverageStart().
     response &= um980SetModel(settings.dynamicModel);
 
     response &= um980EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
@@ -832,6 +841,8 @@ bool um980SetModeRoverSurvey()
     return (um980->setModeRoverSurvey());
 }
 
+// If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
+// we can pass data back into the Unicore library to allow it to update its own variables
 void um980UnicoreHandler(uint8_t *buffer, int length)
 {
     um980->unicoreHandler(buffer, length);
@@ -862,9 +873,36 @@ uint8_t um980GetActiveMessageCount()
 {
     uint8_t count = 0;
 
+    count += um980GetActiveNmeaMessageCount();
+
+    count += um980GetActiveRtcmMessageCount();
+
+    return (count);
+}
+
+uint8_t um980GetActiveNmeaMessageCount()
+{
+    uint8_t count = 0;
+
     for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
         if (settings.um980MessageRatesNMEA[x] > 0)
             count++;
+
+    return (count);
+}
+
+// Return true if the GPGGA message is active
+bool um980IsGgaActive()
+{
+   // 2 = GPGGA. We could do this with a walking text search but this is sufficient.
+   if(settings.um980MessageRatesNMEA[2] > 0)
+       return (true);
+   return (false);
+}
+
+uint8_t um980GetActiveRtcmMessageCount()
+{
+    uint8_t count = 0;
 
     // Determine which state we are in
     if (um980InRoverMode() == true)
