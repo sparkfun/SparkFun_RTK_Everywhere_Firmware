@@ -33,13 +33,14 @@ void um980Begin()
     if (settings.debugGnss == true)
         um980EnableDebugging();
 
-    // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D fix is achieved
-    // However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
+    // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D
+    // fix is achieved However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
     if (um980IsGgaActive() == true)
-        //If NMEA GPGGA is turned on, suppress BESTNAV messages until GPGGA reports a 3D fix
+        // If NMEA GPGGA is turned on, suppress BESTNAV messages until GPGGA reports a 3D fix
         um980->disableBinaryBeforeFix();
     else
-        //If NMEA GPGGA is turned off, enable BESTNAV messages at power on which may lead to longer UM980 configuration times
+        // If NMEA GPGGA is turned off, enable BESTNAV messages at power on which may lead to longer UM980 configuration
+        // times
         um980->enableBinaryBeforeFix();
 
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
@@ -169,48 +170,6 @@ bool um980ConfigureOnce()
         }
     }
 
-    // Enable E6 and PPP if enabled and possible
-    if (settings.enableGalileoHas == true)
-    {
-        // E6 reception requires version 11833 or greater
-        int um980Version = String(um980->getVersion()).toInt(); // Convert the string response to a value
-        if (um980Version >= 11833)
-        {
-            if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
-            {
-                if (um980->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
-                    systemPrintln("Galileo E6 service enabled");
-                else
-                    systemPrintln("Galileo E6 service config error");
-
-                if (um980->sendCommand("CONFIG PPP DATUM WGS84") == true)
-                    systemPrintln("WGS84 Datum applied");
-                else
-                    systemPrintln("WGS84 Datum error");
-            }
-        }
-        else
-        {
-            systemPrintf(
-                "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
-                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
-                um980Version);
-        }
-    }
-    else
-    {
-        // Turn off HAS/E6
-        if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
-        {
-            if (um980->sendCommand("CONFIG PPP DISABLE") == true)
-            {
-                // systemPrintln("Galileo E6 service disabled");
-            }
-            else
-                systemPrintln("Galileo E6 service config error");
-        }
-    }
-
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now
@@ -252,6 +211,10 @@ bool um980ConfigureRover()
     response &= um980SetModel(settings.dynamicModel); // This will cancel any base averaging mode
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
+
+    response &= um980SetMultipathMitigation(settings.enableMultipathMitigation);
+
+    response &= um980SetHighAccuracyService(settings.enableGalileoHas);
 
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
     response &= um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
@@ -307,6 +270,10 @@ bool um980ConfigureBase()
     // to allow a freshly started device to settle in regular GNSS reception mode before issuing
     // um980BaseAverageStart().
     response &= um980SetModel(settings.dynamicModel);
+
+    response &= um980SetMultipathMitigation(settings.enableMultipathMitigation);
+
+    response &= um980SetHighAccuracyService(settings.enableGalileoHas);
 
     response &= um980EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
                                        // UNLOG or similar.
@@ -584,6 +551,97 @@ bool um980SetModel(uint8_t modelNumber)
     else if (modelNumber == UM980_DYN_MODEL_AUTOMOTIVE)
         return (um980->setModeRoverAutomotive());
     return (false);
+}
+
+bool um980SetMultipathMitigation(bool enableMultipathMitigation)
+{
+    bool result = true;
+
+    // Enable MMP as required
+    if (enableMultipathMitigation == true)
+    {
+        if (um980->isConfigurationPresent("CONFIG MMP ENABLE") == false)
+        {
+            if (um980->sendCommand("CONFIG MMP ENABLE") == true)
+                systemPrintln("Multipath Mitigation enabled");
+            else
+            {
+                systemPrintln("Multipath Mitigation failed to enable");
+                result = false;
+            }
+        }
+    }
+    else
+    {
+        // Turn off MMP
+        if (um980->isConfigurationPresent("CONFIG MMP ENABLE") == true)
+        {
+            if (um980->sendCommand("CONFIG MMP DISABLE") == true)
+                systemPrintln("Multipath Mitigation disabled");
+            else
+            {
+                systemPrintln("Multipath Mitigation failed to disable");
+                result = false;
+            }
+        }
+    }
+    return (result);
+}
+
+bool um980SetHighAccuracyService(bool enableGalileoHas)
+{
+    bool result = true;
+
+    // Enable E6 and PPP if enabled and possible
+    if (settings.enableGalileoHas == true)
+    {
+        // E6 reception requires version 11833 or greater
+        int um980Version = String(um980->getVersion()).toInt(); // Convert the string response to a value
+        if (um980Version >= 11833)
+        {
+            if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
+            {
+                if (um980->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
+                    systemPrintln("Galileo E6 service enabled");
+                else
+                {
+                    systemPrintln("Galileo E6 service failed to enable");
+                    result = false;
+                }
+
+                if (um980->sendCommand("CONFIG PPP DATUM WGS84") == true)
+                    systemPrintln("WGS84 Datum applied");
+                else
+                {
+                    systemPrintln("WGS84 Datum failed to apply");
+                    result = false;
+                }
+            }
+        }
+        else
+        {
+            systemPrintf(
+                "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
+                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
+                um980Version);
+            // Don't fail the result. Module is still configured, just without HAS.
+        }
+    }
+    else
+    {
+        // Turn off HAS/E6
+        if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
+        {
+            if (um980->sendCommand("CONFIG PPP DISABLE") == true)
+                systemPrintln("Galileo E6 service disabled");
+            else
+            {
+                systemPrintln("Galileo E6 service failed to disable");
+                result = false;
+            }
+        }
+    }
+    return (result);
 }
 
 void um980FactoryReset()
