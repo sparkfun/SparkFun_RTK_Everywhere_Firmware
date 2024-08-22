@@ -893,8 +893,6 @@ uint8_t um980GetActiveNmeaMessageCount()
 // Return true if the GPGGA message is active
 bool um980IsGgaActive()
 {
-    Serial.printf("Nmea test: %d\r\n", um980GetNmeaMessageNumberByName("GPGGA"));
-
     if (settings.um980MessageRatesNMEA[um980GetNmeaMessageNumberByName("GPGGA")] > 0)
         return (true);
     return (false);
