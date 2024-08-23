@@ -198,7 +198,15 @@ void updateLora()
             else
             {
                 if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemFlush();  // Complete prints
+                    muxSelectUsb(); // Connect USB
+
                     systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                    systemFlush(); // Allow print to complete
+
+                    muxSelectLoRa(); // Disconnect from USB
+                }
             }
         }
 
@@ -278,7 +286,15 @@ void updateLora()
             else
             {
                 if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemFlush();  // Complete prints
+                    muxSelectUsb(); // Connect USB
+
                     systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                    systemFlush(); // Allow print to complete
+
+                    muxSelectLoRa(); // Disconnect from USB
+                }
             }
         }
 
