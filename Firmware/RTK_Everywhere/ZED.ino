@@ -1705,7 +1705,7 @@ char *zedGetRtcmDefaultString()
 }
 char *zedGetRtcmLowDataRateString()
 {
-    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1230 0.1Hz");
+    return ((char *)"1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz");
 }
 
 int ubxConstellationIDToIndex(int id)

@@ -1163,7 +1163,7 @@ char *um980GetRtcmDefaultString()
 }
 char *um980GetRtcmLowDataRateString()
 {
-    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1033 0.1Hz");
+    return ((char *)"1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz");
 }
 
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz)
