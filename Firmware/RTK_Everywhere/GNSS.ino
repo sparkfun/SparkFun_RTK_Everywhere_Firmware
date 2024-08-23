@@ -1200,6 +1200,10 @@ void gnssEnableDebugging()
         {
             um980EnableDebugging();
         }
+        else if (present.gnss_mosaicX5)
+        {
+            ; // TODO
+        }
     }
 }
 void gnssDisableDebugging()
@@ -1216,7 +1220,7 @@ void gnssDisableDebugging()
         }
         else if (present.gnss_mosaicX5)
         {
-            mosaicX5DisableDebugging();
+            ; // TODO
         }
     }
 }

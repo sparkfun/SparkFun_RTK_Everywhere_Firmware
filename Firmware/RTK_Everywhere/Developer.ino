@@ -276,8 +276,6 @@ void     mosaicX5EnableRTCMTest() {}
 bool     mosaicX5Configure() {return false;}
 bool     mosaicX5ConfigureBase() {return false;}
 bool     mosaicX5ConfigureRover() {return false;}
-void     mosaicX5DisableDebugging() {}
-void     mosaicX5EnableDebugging() {}
 void     mosaicX5FactoryReset() {}
 uint16_t mosaicX5FixAgeMilliseconds() {return 65000;}
 bool     mosaicX5FixedBaseStart() {return false;}
@@ -305,7 +303,6 @@ bool     mosaicX5IsValidTime() {return false;}
 void     mosaicX5PrintInfo() {}
 int      mosaicX5PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
 bool     mosaicX5SaveConfiguration() {return false;}
-bool     mosaicX5SetBaudRateCOM3(uint32_t baudRate) {return false;}
 bool     mosaicX5SetConstellations() {return false;}
 void     mosaicX5SetMinCNO(uint8_t cnoValue) {}
 void     mosaicX5SetMinElevation(uint8_t elevationDegrees) {}
@@ -314,8 +311,6 @@ bool     mosaicX5SetModeRoverSurvey() {return false;}
 bool     mosaicX5SetRate(double secondsBetweenSolutions) {return false;}
 void     mosaicX5UnicoreHandler(uint8_t * buffer, int length) {}
 char*    mosaicX5GetId() {return ((char*)"No compiled");}
-void     mosaicX5Boot() {}
-void     mosaicX5Reset() {}
 uint8_t  mosaicX5GetLeapSeconds() {return (0);}
 bool     mosaicX5IsBlocking() {return(false);}
 uint8_t  mosaicX5GetActiveMessageCount() {return(0);}

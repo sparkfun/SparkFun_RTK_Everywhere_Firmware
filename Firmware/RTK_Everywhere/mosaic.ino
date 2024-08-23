@@ -184,7 +184,7 @@ bool mosaicX5Configure()
     // Skip configuring the MOSAICX5 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
     {
-        systemPrintln("MOSAICX5 configuration maintained");
+        systemPrintln("mosaic-X5 configuration maintained");
         return (true);
     }
 
@@ -192,28 +192,15 @@ bool mosaicX5Configure()
     {
         if (mosaicX5ConfigureOnce() == true)
             return (true);
-
-        // If we fail, reset MOSAICX5
-        systemPrintln("Resetting MOSAICX5 to complete configuration");
-
-        mosaicX5Reset();
-        delay(500);
-        mosaicX5Boot();
-        delay(500);
     }
 
-    systemPrintln("MOSAICX5 failed to configure");
+    systemPrintln("mosaic-X5 failed to configure");
     return (false);
 }
 
 bool mosaicX5ConfigureOnce()
 {
     /*
-    Disable all message traffic
-    Set COM port baud rates,
-      MOSAICX5 COM1 - Direct to USB, 115200
-      MOSAICX5 COM2 - To IMU. From settings.
-      MOSAICX5 COM3 - BT, config and LoRa Radio. Configured for 115200 from begin().
     Set minCNO
     Set elevationAngle
     Set Constellations
@@ -222,21 +209,11 @@ bool mosaicX5ConfigureOnce()
       Enable selected RTCM messages on COM3
 */
 
-    if (settings.debugGnss)
-        mosaicX5EnableDebugging(); // Print all debug to Serial
-
-    mosaicX5DisableAllOutput(); // Disable COM1/2/3
-
     bool response = true;
-    response &= mosaicX5->setPortBaudrate("COM1", 115200); // COM1 is connected to switch, then USB
-    response &= mosaicX5->setPortBaudrate("COM2", 115200); // COM2 is connected to the IMU
-    response &= mosaicX5->setPortBaudrate("COM3", 115200); // COM3 is connected to the switch, then ESP32
 
-    // For now, let's not change the baud rate of the interface. We'll be using the default 115200 for now.
-    response &= mosaicX5SetBaudRateCOM3(settings.dataPortBaud); // COM3 is connected to ESP UART2
+    response &= mosaicX5SetBaudRateCOM1(settings.dataPortBaud); // COM1 is connected to ESP
 
-    // Enable PPS signal with a width of 200ms, and a period of 1 second
-    response &= mosaicX5->enablePPS(200000, 1000); // widthMicroseconds, periodMilliseconds
+    // YOU ARE HERE
 
     response &= mosaicX5SetMinElevation(settings.minElev); // MOSAICX5 default is 5 degrees. Our default is 10.
 
@@ -323,6 +300,51 @@ bool mosaicX5ConfigureOnce()
         online.gnss = false; // Take it offline
 
     return (response);
+}
+
+bool mosaicX5BeginPPS()
+{
+    if (online.gnss == false)
+        return (false);
+
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.updateGNSSSettings == false)
+    {
+        systemPrintln("Skipping mosaicX5BeginPPS");
+        return (true);
+    }
+
+    if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
+        return (true); // No need to configure PPS if port is not selected
+
+    // Call setPPSParameters
+
+    // Are pulses enabled?
+    if (settings.enableExternalPulse)
+    {
+        // Find the current pulse Interval
+        int i;
+        for (i = 0; i < MAX_MOSAIC_PPS_INTERVALS; i++)
+        {
+            if (settings.externalPulseTimeBetweenPulse_us == mosaicPPSIntervals[i].interval_us)
+                break;
+        }
+
+        if (i == MAX_MOSAIC_PPS_INTERVALS) // pulse interval not found!
+        {
+            settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC1].interval_us; // Default to sec1
+            i = MOSAIC_PPS_INTERVAL_SEC1;
+        }
+
+        String interval = String(mosaicPPSIntervals[i].name);
+        String polarity = (settings.externalPulsePolarity ? String("Low2High") : String("High2Low"));
+        String width = String(((float)settings.externalPulseLength_us) / 1000.0);
+        String setting = String("spps," + interval + "," + polarity + ",0.0,UTC,60," + width + "\n\r");
+        return (mosaicX5sendWithResponse(setting, "PPSParameters"));
+    }
+
+    // Pulses are disabled
+    return (mosaicX5sendWithResponse("spps,off\n\r", "PPSParameters"));
 }
 
 bool mosaicX5ConfigureRover()
@@ -751,15 +773,20 @@ int mosaicX5PushRawData(uint8_t *dataToSend, int dataLength)
     return (serialGNSS->write(dataToSend, dataLength));
 }
 
-// Set the baud rate of the MOSAICX5 com port 3
+// Set the baud rate of mosaic-X5 COM1
 // This is used during the Bluetooth test
-bool mosaicX5SetBaudRateCOM3(uint32_t baudRate)
+bool mosaicX5SetBaudRateCOM1(uint32_t baudRate)
 {
-    bool response = true;
+    for (int i = 0; i < MAX_MOSAIC_COM_RATES; i++)
+    {
+        if (baudRate == mosaicComRates[i].rate)
+        {
+            String setting = String("scs,COM1," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
+            return (mosaicX5sendWithResponse(setting, "COMSettings"));
+        }
+    }
 
-    response &= mosaicX5->setPortBaudrate("COM3", baudRate);
-
-    return (response);
+    return false; // Invalid baud
 }
 
 // Return the lower of the two Lat/Long deviations
@@ -900,16 +927,6 @@ bool mosaicX5SaveConfiguration()
     return (mosaicX5->saveConfiguration());
 }
 
-void mosaicX5EnableDebugging()
-{
-    mosaicX5->enableDebugging();       // Print all debug to Serial
-    mosaicX5->enablePrintRxMessages(); // Print incoming processed messages from SEMP
-}
-void mosaicX5DisableDebugging()
-{
-    mosaicX5->disableDebugging();
-}
-
 bool mosaicX5SetModeRoverSurvey()
 {
     return (mosaicX5->setModeRoverSurvey());
@@ -923,15 +940,6 @@ void mosaicX5UnicoreHandler(uint8_t *buffer, int length)
 char *mosaicX5GetId()
 {
     return (mosaicX5->getID());
-}
-
-void mosaicX5Boot()
-{
-    digitalWrite(pin_GNSS_DR_Reset, HIGH); // Tell MOSAICX5 and DR to boot
-}
-void mosaicX5Reset()
-{
-    digitalWrite(pin_GNSS_DR_Reset, LOW); // Tell MOSAICX5 and DR to reset
 }
 
 // Query GNSS for current leap seconds

@@ -865,7 +865,7 @@ void pinGnssUartTask(void *pvParameters)
     if (settings.printTaskStartStop)
         systemPrintln("Task pinGnssUartTask started");
 
-    if ((productVariant == RTK_TORCH) || (productVariant == RTK_FACET_MOSAIC))
+    if (productVariant == RTK_TORCH)
     {
         // Override user setting. Required because beginGnssUart() is called before beginBoard().
         settings.dataPortBaud = 115200;

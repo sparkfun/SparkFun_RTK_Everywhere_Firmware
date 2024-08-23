@@ -855,7 +855,7 @@ bool zedBeginPPS()
     // If our settings haven't changed, trust ZED's settings
     if (settings.updateGNSSSettings == false)
     {
-        log_d("Skipping ZED Trigger configuration");
+        systemPrintln("Skipping ZED Trigger configuration");
         return (true);
     }
 

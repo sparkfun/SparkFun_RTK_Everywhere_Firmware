@@ -310,23 +310,50 @@ void menuPortHardwareTriggers()
         }
         else if (incoming == 2 && settings.enableExternalPulse == true)
         {
-            systemPrint("Time between pulses in milliseconds: ");
-            long pulseTime = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-            if (pulseTime != INPUT_RESPONSE_GETNUMBER_TIMEOUT && pulseTime != INPUT_RESPONSE_GETNUMBER_EXIT)
+            if (present.gnss_mosaicX5)
             {
-                if (pulseTime < 1 || pulseTime > 60000) // 60s max
-                    systemPrintln("Error: Time between pulses out of range");
+                // Find the current pulse Interval
+                int i;
+                for (i = 0; i < MAX_MOSAIC_PPS_INTERVALS; i++)
+                {
+                    if (settings.externalPulseTimeBetweenPulse_us == mosaicPPSIntervals[i].interval_us)
+                        break;
+                }
+
+                if (i == MAX_MOSAIC_PPS_INTERVALS) // pulse interval not found!
+                {
+                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC].interval_us; // Default to sec1
+                }
                 else
                 {
-                    settings.externalPulseTimeBetweenPulse_us = pulseTime * 1000;
+                    i++; // Increment pointer
+                    if (i == MAX_MOSAIC_PPS_INTERVALS)
+                        i = 0; // Wrap around
+                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[i].interval_us;
+                }
 
-                    if (pulseTime <
-                        (settings.externalPulseLength_us / 1000)) // pulseTime must be longer than pulseLength
-                        settings.externalPulseLength_us = settings.externalPulseTimeBetweenPulse_us /
-                                                          2; // Force pulse length to be 1/2 time between pulses
+                updateSettings = true;
+            }
+            else
+            {
+                systemPrint("Time between pulses in milliseconds: ");
+                long pulseTime = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-                    updateSettings = true;
+                if (pulseTime != INPUT_RESPONSE_GETNUMBER_TIMEOUT && pulseTime != INPUT_RESPONSE_GETNUMBER_EXIT)
+                {
+                    if (pulseTime < 1 || pulseTime > 60000) // 60s max
+                        systemPrintln("Error: Time between pulses out of range");
+                    else
+                    {
+                        settings.externalPulseTimeBetweenPulse_us = pulseTime * 1000;
+
+                        if (pulseTime <
+                            (settings.externalPulseLength_us / 1000)) // pulseTime must be longer than pulseLength
+                            settings.externalPulseLength_us = settings.externalPulseTimeBetweenPulse_us /
+                                                            2; // Force pulse length to be 1/2 time between pulses
+
+                        updateSettings = true;
+                    }
                 }
             }
         }

@@ -1,6 +1,87 @@
 #ifndef _RTK_EVERYWHERE_MOSAIC_H
 #define _RTK_EVERYWHERE_MOSAIC_H
 
+enum mosaicCOMBaud {
+    MOSAIC_COM_RATE_BAUD4800 = 0,
+    MOSAIC_COM_RATE_BAUD9600,
+    MOSAIC_COM_RATE_BAUD19200,
+    MOSAIC_COM_RATE_BAUD38400,
+    MOSAIC_COM_RATE_BAUD57600,
+    MOSAIC_COM_RATE_BAUD115200,
+    MOSAIC_COM_RATE_BAUD230400,
+    MOSAIC_COM_RATE_BAUD460800,
+    MOSAIC_COM_RATE_BAUD921600,
+
+    MOSAIC_NUM_COM_RATES // Must be last
+};
+
+// Each baud rate will have its config command text, enable, and a visible rate
+typedef struct
+{
+    const char name[12];
+    const uint32_t rate;
+} mosaicComRate;
+
+const mosaicComRate mosaicComRates[] = {
+    { "baud4800", 4800 },
+    { "baud9600", 9600 },
+    { "baud19200", 19200 },
+    { "baud38400", 38400 },
+    { "baud57600", 57600 },
+    { "baud115200", 115200 },
+    { "baud230400", 230400 },
+    { "baud460800", 460800 },
+    { "baud921600", 921600 },
+};
+
+#define MAX_MOSAIC_COM_RATES (sizeof(mosaicComRates) / sizeof(mosaicComRate))
+
+enum mosaicPpsIntervals {
+    // OFF is dealt with by settings.enableExternalPulse
+    MOSAIC_PPS_INTERVAL_MSEC10 = 0,
+    MOSAIC_PPS_INTERVAL_MSEC20,
+    MOSAIC_PPS_INTERVAL_MSEC50,
+    MOSAIC_PPS_INTERVAL_MSEC100,
+    MOSAIC_PPS_INTERVAL_MSEC200,
+    MOSAIC_PPS_INTERVAL_MSEC250,
+    MOSAIC_PPS_INTERVAL_MSEC500,
+    MOSAIC_PPS_INTERVAL_SEC1,
+    MOSAIC_PPS_INTERVAL_SEC2,
+    MOSAIC_PPS_INTERVAL_SEC4,
+    MOSAIC_PPS_INTERVAL_SEC5,
+    MOSAIC_PPS_INTERVAL_SEC10,
+    MOSAIC_PPS_INTERVAL_SEC30,
+    MOSAIC_PPS_INTERVAL_SEC60,
+
+    MOSAIC_NUM_PPS_INTERVALS // Must be last
+};
+
+// Each PPS interval will have its config command text, enable, and a visible rate
+typedef struct
+{
+    const char name[8];
+    const uint32_t interval_us;
+} mosaicPPSInterval;
+
+const mosaicPPSInterval mosaicPPSIntervals[] = {
+    { "msec10", 10000 },
+    { "msec20", 20000 },
+    { "msec50", 50000 },
+    { "msec100", 100000 },
+    { "msec200", 200000 },
+    { "msec250", 250000 },
+    { "msec500", 500000 },
+    { "sec1", 1000000 },
+    { "sec2", 2000000 },
+    { "sec4", 4000000 },
+    { "sec5", 5000000 },
+    { "sec10", 10000000 },
+    { "sec30", 30000000 },
+    { "sec60", 60000000 },
+};
+
+#define MAX_MOSAIC_PPS_INTERVALS (sizeof(mosaicPPSIntervals) / sizeof(mosaicPPSInterval))
+
 enum mosaicConstellations {
     MOSAIC_SIGNAL_CONSTELLATION_GPS = 0,
     MOSAIC_SIGNAL_CONSTELLATION_GLONASS,
