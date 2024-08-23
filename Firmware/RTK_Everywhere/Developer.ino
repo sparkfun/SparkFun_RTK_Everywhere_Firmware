@@ -269,8 +269,10 @@ void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageTy
 
 #ifndef  COMPILE_MOSAICX5
 
-bool     mosaicX5BaseAverageStart() {return false;}
+bool     mosaicX5AutoBaseStart() {return false;}
+bool     mosaicX5AutoBaseComplete() {return false;}
 void     mosaicX5Begin() {systemPrintln("**mosaicX5 not compiled**");}
+void     mosaicX5EnableRTCMTest() {}
 bool     mosaicX5Configure() {return false;}
 bool     mosaicX5ConfigureBase() {return false;}
 bool     mosaicX5ConfigureRover() {return false;}
@@ -282,6 +284,9 @@ bool     mosaicX5FixedBaseStart() {return false;}
 double   mosaicX5GetAltitude() {return 0;}
 uint8_t  mosaicX5GetDay() {return 0;}
 int      mosaicX5GetHorizontalAccuracy() {return false;}
+bool     mosaicX5BeginExternalEvent() {return false;}
+bool     mosaicX5BeginPPS() {return false;}
+void     mosaicX5SetBaudRateCOM1(uint32_t baud) {}
 uint8_t  mosaicX5GetHour() {return 0;}
 double   mosaicX5GetLatitude() {return 0;}
 double   mosaicX5GetLongitude() {return 0;}
@@ -322,7 +327,11 @@ char *   mosaicX5GetRtcmLowDataRateString() {return ((char*)"Not compiled");}
 void     mosaicX5MenuConstellations(){}
 double   mosaicX5GetRateS() {return(0.0);}
 void     mosaicX5MenuMessagesSubtype(float *localMessageRate, const char *messageType){}
-
+void     mosaicX5SetTalkerGNGGA() {}
+void     mosaicX5EnableGgaForNtrip() {}
+bool     mosaicX5SetMessages(int maxRetries) {return false;}
+bool     mosaicX5SetMessagesUsb(int maxRetries) {return false;}
+void     mosaicX5MessageRatesRTCMBase() {}
 #endif  // COMPILE_MOSAICX5
 
 //----------------------------------------

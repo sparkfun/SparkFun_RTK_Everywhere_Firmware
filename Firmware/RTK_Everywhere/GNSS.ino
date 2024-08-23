@@ -1039,7 +1039,7 @@ uint8_t gnssGetDay()
         {
             return (um980GetDay());
         }
-        else if (present.mosaicX5)
+        else if (present.gnss_mosaicX5)
         {
             return (mosaicX5GetDay());
         }
@@ -1514,7 +1514,7 @@ void gnssMenuMessageBaseRtcm()
     }
     else if (present.gnss_mosaicX5)
     {
-        mosaicX5MenuMessagesSubtype(settings.mosaicX5MessageRatesRTCMBase, "RTCMBase");
+        mosaicX5MenuMessagesSubtype(settings.mosaicMessageIntervalsRTCMv3Base, "RTCMBase");
     }
 }
 
