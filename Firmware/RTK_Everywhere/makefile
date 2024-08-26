@@ -8,6 +8,8 @@
 # Source files
 ##########
 
+SKETCH=RTK_Everywhere.ino
+
 # Uncomment all five lines for a complete update
 #EXECUTABLES = arduino-config lib-update
 EXECUTABLES += RTK
@@ -20,6 +22,7 @@ CLEAR=cls
 COPY=copy
 DIR_LISTING=dir
 TERMINAL_APP=
+TERMINAL_PORT=
 TERMINAL_PARAMS=
 
 # Windows NT generic paths
@@ -37,13 +40,22 @@ BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)\ESP32_BleSerial\src\
 MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
 
+# Windows Sketch path
+BUILD_PATH=build\esp32.esp32.esp32\
+RTK_BIN_PATH=$(BUILD_PATH)$(SKETCH).bin
+
+# Windows upload support
+BOOT_LOADER_PATH=$(USER_DIRECTORY_PATH)\SparkFun\SparkFun_RTK_Firmware_Uploader\RTK_Firmware_Uploader\resource\
+ESPTOOL_PATH=$(USER_DIRECTORY_PATH)\Arduino\hardware\espressif\esp32\tools\esptool\
+
 else
 # Linux utilities
 CLEAR=clear
 COPY=cp
 DIR_LISTING=ls
 TERMINAL_APP=minicom
-TERMINAL_PARAMS=-b 115200 -8 -D /dev/ttyUSB0 < /dev/tty
+TERMINAL_PORT=/dev/ttyUSB0
+TERMINAL_PARAMS=-b 115200 -8 -D $(TERMINAL_PORT) < /dev/tty
 
 # Linux generic paths
 USER_DIRECTORY_PATH=~
@@ -59,6 +71,14 @@ PATCH_SRC_PATH=Patch/
 BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)/ESP32_BleSerial/src/
 MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
+
+# Linux Sketch path
+BUILD_PATH=build/esp32.esp32.esp32/
+RTK_BIN_PATH=$(BUILD_PATH)$(SKETCH).bin
+
+# Linux upload support
+BOOT_LOADER_PATH=~/SparkFun/SparkFun_RTK_Firmware_Uploader/RTK_Firmware_Uploader/resource/
+ESPTOOL_PATH=~/Arduino/hardware/espressif/esp32/tools/esptool/
 
 endif
 
@@ -143,7 +163,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a
+$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
@@ -152,19 +172,16 @@ RTK:	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(
 		--build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_TOKEN=$(POINTPERFECT_TOKEN)\" \"-DFIRMWARE_VERSION_MAJOR=$(FIRMWARE_VERSION_MAJOR)\" \"-DFIRMWARE_VERSION_MINOR=$(FIRMWARE_VERSION_MINOR)\" \"-DENABLE_DEVELOPER=$(ENABLE_DEVELOPER)\"" \
 		--export-binaries
 
+RTK:	$(RTK_BIN_PATH)
+
 ##########
 # Upload the firmware
 ##########
 
 .PHONY: upload
 
-SKETCH=RTK_Everywhere.ino
-ESPTOOL_PATH=~/Arduino/hardware/espressif/esp32/tools/esptool
-TERMINAL_PORT="/dev/ttyUSB0"
-BOOT_LOADER_PATH=~/SparkFun/SparkFun_RTK_Firmware_Uploader/RTK_Firmware_Uploader/resource
-
-upload:	build/esp32.esp32.esp32/$(SKETCH).bin
-	python3 $(ESPTOOL_PATH)/esptool.py \
+upload:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
         --chip   esp32 \
         --port   $(TERMINAL_PORT) \
         --baud   921600 \
@@ -175,10 +192,15 @@ upload:	build/esp32.esp32.esp32/$(SKETCH).bin
         --flash_freq 80m \
         --flash_size detect \
         --compress \
-         0x1000   $(BOOT_LOADER_PATH)/RTK_Surveyor.ino.bootloader.bin \
-         0x8000   $(BOOT_LOADER_PATH)/RTK_Surveyor_Partitions_16MB.bin \
-         0xe000   $(BOOT_LOADER_PATH)/boot_app0.bin \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
         0x10000   $<
+	$(TERMINAL_APP) $(TERMINAL_PARAMS)
+
+.PHONY:	terminal
+
+terminal:
 	$(TERMINAL_APP) $(TERMINAL_PARAMS)
 
 ########
