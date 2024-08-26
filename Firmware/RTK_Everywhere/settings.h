@@ -348,7 +348,7 @@ typedef struct _NTRIP_SERVER_DATA
 typedef enum
 {
     ESPNOW_OFF,
-    ESPNOW_ON,
+    ESPNOW_BROADCASTING,
     ESPNOW_PAIRING,
     ESPNOW_MAC_RECEIVED,
     ESPNOW_PAIRED,
@@ -1059,7 +1059,6 @@ struct Settings
     // ESP Now
     bool debugEspNow = false;
     bool enableEspNow = false;
-    bool espnowBroadcast = false;       // When true, overrides peers and sends all data via broadcast
     uint8_t espnowPeerCount = 0;
     uint8_t espnowPeers[ESPNOW_MAX_PEERS][6] = {0}; // Contains the MAC addresses (6 bytes) of paired units
 
@@ -1553,7 +1552,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // ESP Now
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugEspNow, "debugEspNow",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enableEspNow, "enableEspNow",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.espnowBroadcast, "espnowBroadcast",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.espnowPeerCount, "espnowPeerCount",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, tEspNowPr, ESPNOW_MAX_PEERS, & settings.espnowPeers[0][0], "espnowPeer_",  },
 

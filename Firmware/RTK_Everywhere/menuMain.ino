@@ -557,17 +557,15 @@ void menuRadio()
         systemPrintln();
         systemPrintln("Menu: Radios");
 
-#ifdef COMPILE_ESPNOW
-        systemPrint("1) ESP-NOW Radio: ");
-        systemPrintf("%s\r\n", settings.enableEspNow ? "Enabled" : "Disabled");
-#else  // COMPILE_ESPNOW
+#ifndef COMPILE_ESPNOW
         systemPrintln("1) **ESP-Now Not Compiled**");
-#endif // COMPILE_ESPNOW
+#else  // COMPILE_ESPNOW
+        if (settings.enableEspNow == false)
+            systemPrintln("1) ESP-NOW Radio: Disabled");
 
-        if (settings.enableEspNow == true)
+        else // ESP-NOW enabled
         {
-            // Pretty print the MAC of all radios
-            systemPrint("  Radio MAC: ");
+            systemPrint("1) ESP-NOW Radio: Enabled - MAC ");
             for (int x = 0; x < 5; x++)
                 systemPrintf("%02X:", wifiMACAddress[x]);
             systemPrintf("%02X\r\n", wifiMACAddress[5]);
@@ -584,7 +582,7 @@ void menuRadio()
                 }
             }
             else
-                systemPrintln("  No Paired Radios");
+                systemPrintln("  No Paired Radios - Broadcast Enabled");
 
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
@@ -598,6 +596,7 @@ void menuRadio()
                 systemPrintln("7) Broadcast dummy data");
             }
         }
+#endif // COMPILE_ESPNOW
 
         if (present.radio_lora == true)
         {
@@ -717,7 +716,7 @@ void menuRadio()
                 "nearing 200 characters but needs to be near 250.";
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #ifdef COMPILE_ESPNOW
-            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet over broadcast
 #endif
         }
 
