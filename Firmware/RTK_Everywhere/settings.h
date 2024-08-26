@@ -124,9 +124,10 @@ typedef enum
     CORR_ESPNOW,        // 1, 100 m Baseline, ESPNOW.ino
     CORR_RADIO_LORA,    // 2,   1 km Baseline, UM980 only? Does data go direct from LoRa to UM980?
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
-    CORR_TCP,           // 4,  10+km Baseline, NtripClient.ino
-    CORR_LBAND,         // 5, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
-    CORR_IP,            // 6, 100+km Baseline, MQTT_Client.ino
+    CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
+    CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
+    CORR_LBAND,         // 6, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_IP,            // 7, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
@@ -141,6 +142,7 @@ const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
     "ESP-Now",
     "LoRa Radio",
     "Bluetooth",
+    "USB Serial",
     "TCP (NTRIP)",
     "L-Band",
     "IP (PointPerfect/MQTT)",
