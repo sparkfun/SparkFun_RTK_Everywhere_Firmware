@@ -265,8 +265,7 @@ void addToGnssBuffer(uint8_t incoming)
 // Push the buffered data in bulk to the GNSS
 void sendGnssBuffer()
 {
-    updateCorrectionsLastSeen(CORR_BLUETOOTH);
-    if (isHighestRegisteredCorrectionsSource(CORR_BLUETOOTH))
+    if (correctionLastSeen(CORR_BLUETOOTH))
     {
         if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {

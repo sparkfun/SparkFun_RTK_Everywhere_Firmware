@@ -170,16 +170,7 @@ void updateLora()
             rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
 
             // We've just received data. We assume this is RTCM and push it directly to the GNSS.
-            // BUT we need to consider the Corrections Priorities.
-            // Step 1: check if CORR_RADIO_LORA is registered as a correction source. If not, register it.
-            // Step 2: check if CORR_RADIO_LORA is the highest - actually LOWEST - registered correction source.
-            //         If it is, push the data. If not, discard the data.
-
-            // Step 1
-            updateCorrectionsLastSeen(CORR_RADIO_LORA); // This will (re)register the correction source if needed
-
-            // Step 2
-            if (isHighestRegisteredCorrectionsSource(CORR_RADIO_LORA))
+            if (correctionLastSeen(CORR_RADIO_LORA))
             {
                 // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
                 gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
@@ -258,16 +249,7 @@ void updateLora()
             rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
 
             // We've just received data. We assume this is RTCM and push it directly to the GNSS.
-            // BUT we need to consider the Corrections Priorities.
-            // Step 1: check if CORR_RADIO_LORA is registered as a correction source. If not, register it.
-            // Step 2: check if CORR_RADIO_LORA is the highest - actually LOWEST - registered correction source.
-            //         If it is, push the data. If not, discard the data.
-
-            // Step 1
-            updateCorrectionsLastSeen(CORR_RADIO_LORA); // This will (re)register the correction source if needed
-
-            // Step 2
-            if (isHighestRegisteredCorrectionsSource(CORR_RADIO_LORA))
+            if (correctionLastSeen(CORR_RADIO_LORA))
             {
                 // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
                 gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
