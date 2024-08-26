@@ -1342,7 +1342,7 @@ bool parseLine(char *str)
                     if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
                         (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
                     {
-                        settings.settings.mosaicMessageEnabledRTCMv3Rover[x] = d;
+                        settings.mosaicMessageEnabledRTCMv3Rover[x] = d;
                         knownSetting = true;
                         break;
                     }
@@ -1355,7 +1355,7 @@ bool parseLine(char *str)
                     if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
                         (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
                     {
-                        settings.settings.mosaicMessageEnabledRTCMv3Base[x] = d;
+                        settings.mosaicMessageEnabledRTCMv3Base[x] = d;
                         knownSetting = true;
                         break;
                     }

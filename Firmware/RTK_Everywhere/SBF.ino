@@ -220,7 +220,7 @@ bool checkSBFID(uint16_t ID, const uint8_t *buffer)
     uint16_t id = *ptr; // Extract the ID
     ptr++;
     id |= ((uint16_t)(*ptr)) << 8; // Extract the ID
-    return ((id & 0x1FFF) == ID)   // Check for a match
+    return ((id & 0x1FFF) == ID);  // Check for a match
 }
 
 #endif // /COMPILE_MOSAICX5

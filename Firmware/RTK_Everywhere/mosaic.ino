@@ -376,35 +376,32 @@ bool mosaicX5ConfigureBase()
 }
 
 // Start a Self-optimizing Base Station
-// We do not use the distance parameter (settings.observationPositionAccuracy) because that
-// setting on the MOSAICX5 is related to automatically restarting base mode
-// at power on (very different from ZED-F9P).
-bool mosaicX5BaseAverageStart()
+bool mosaicX5AutoBaseStart()
 {
-    bool response = true;
-
-    response &=
-        mosaicX5->setModeBaseAverage(settings.observationSeconds); // Average for a number of seconds (default is 60)
+    bool response = mosaicX5sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
 
     autoBaseStartTimer = millis(); // Stamp when averaging began
 
     if (response == false)
     {
         systemPrintln("Survey start failed");
-        return (false);
     }
 
     return (response);
 }
 
 // Start the base using fixed coordinates
+// TODO: support alternate Datums (ETRS89, NAD83, NAD83_PA, NAD83_MA, GDA94, GDA2020)
 bool mosaicX5FixedBaseStart()
 {
     bool response = true;
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
-        mosaicX5->setModeBaseECEF(settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
+        String setting = String("sspc,Cartesian1," + String(settings.fixedEcefX) + "," +
+                                String(settings.fixedEcefY) + "," + String(settings.fixedEcefZ) + ",WGS84\n\r" );
+        response &= mosaicX5sendWithResponse(setting, "StaticPosCartesian");
+        response &= mosaicX5sendWithResponse("spm,Static,,Cartesian1\n\r", "PVTMode");
     }
     else if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
     {
@@ -413,11 +410,54 @@ bool mosaicX5FixedBaseStart()
         // For example, if HAE is at 100.0m, + 2m stick + 73mm APC = 102.073
         float totalFixedAltitude =
             settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
-
-        mosaicX5->setModeBaseGeodetic(settings.fixedLat, settings.fixedLong, totalFixedAltitude);
+        String setting = String("sspg,Geodetic1," + String(settings.fixedLat) + "," +
+                                String(settings.fixedLong) + "," + String(totalFixedAltitude) + ",WGS84\n\r" );
+        response &= mosaicX5sendWithResponse(setting, "StaticPosGeodetic");
+        response &= mosaicX5sendWithResponse("spm,Static,,Geodetic1\n\r", "PVTMode");
     }
 
     return (response);
+}
+
+bool mosaicX5BeginExternalEvent()
+{
+    // TODO. X5 logs the data directly.
+    // sep (Set Event Parameters) sets polarity
+    // SBF ExtEvent block contains the event timing
+    // Add ExtEvent to the logging stream?
+
+    return false;
+}
+
+bool mosaicX5SetTalkerGNGGA()
+{
+    return mosaicX5sendWithResponse("snti,GN\n\r", "NMEATalkerID");
+}
+
+bool mosaicX5EnableGgaForNtrip()
+{
+    bool response = mosaicX5sendWithResponse("snti,GP\n\r", "NMEATalkerID");
+    response &= mosaicX5sendWithResponse("sno,Stream1,COM1,+GGA,sec1\n\r", "NMEAOutput");
+    return response;
+}
+
+bool mosaicX5SetMessages(int maxRetries)
+{
+    // TODO : do we need this?
+    return (true);
+}
+
+bool mosaicX5SetMessagesUsb(int maxRetries)
+{
+    // TODO : do we need this?
+    return (true);
+}
+
+bool mosaicX5AutoBaseComplete()
+{
+            // Bit 6: Set if the user has entered the command setPVTMode, Static, , auto
+            // and the receiver is still in the process of determining its fixed position.        
+            return ();
 }
 
 // Turn on all the enabled NMEA messages on COM3

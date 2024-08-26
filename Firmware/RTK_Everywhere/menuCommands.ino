@@ -1632,7 +1632,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tMosaicMRRvRT: {
+            case tMosaicMIRvRT: {
                 // Record Mosaic Rover RTCM intervals
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1643,7 +1643,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tMosaicMRBaRT: {
+            case tMosaicMIBaRT: {
                 // Record Mosaic Base RTCM intervals
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {

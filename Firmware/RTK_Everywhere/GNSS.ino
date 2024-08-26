@@ -332,10 +332,6 @@ bool gnssBeginExternalEvent()
         else if (present.gnss_mosaicX5)
         {
             return (mosaicX5BeginExternalEvent());
-            // TODO. X5 logs the data directly.
-            // sep (Set Event Parameters) sets polarity
-            // SBF ExtEvent block contains the event timing
-            // Add ExtEvent to the logging stream?
         }
     }
     return (false);
