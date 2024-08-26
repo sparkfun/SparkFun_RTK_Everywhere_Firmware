@@ -38,7 +38,8 @@ void terminalUpdate()
             length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
 
             // Push RTCM to GNSS module over I2C / SPI
-            gnssPushRawData((uint8_t *)buffer, length);
+            if (correctionLastSeen(CORR_USB))
+                gnssPushRawData((uint8_t *)buffer, length);
         }
 
         // Does incoming data consist of RTCM correction messages
@@ -56,7 +57,8 @@ void terminalUpdate()
             length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
 
             // Push RTCM to GNSS module over I2C / SPI
-            gnssPushRawData((uint8_t *)buffer, length);
+            if (correctionLastSeen(CORR_USB))
+                gnssPushRawData((uint8_t *)buffer, length);
         }
         else
         {
