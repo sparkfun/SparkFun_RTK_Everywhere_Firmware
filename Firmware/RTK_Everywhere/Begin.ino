@@ -919,7 +919,7 @@ void tickerBegin()
     }
 
     // Beep at power on if we are not locally compiled or a release candidate
-    // if (ENABLE_DEVELOPER == false)
+    if (ENABLE_DEVELOPER == false)
     {
         beepOn();
         delay(250);
