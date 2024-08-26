@@ -725,9 +725,7 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 {
     uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
 
-    updateCorrectionsLastSeen(CORR_LBAND); // This will (re)register the correction source if needed
-
-    if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
+    if (correctionLastSeen(CORR_LBAND))
     {
         updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
 

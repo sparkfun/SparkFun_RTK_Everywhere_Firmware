@@ -785,9 +785,7 @@ uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
 // Corrections Priorities Support
-std::vector<registeredCorrectionsSource>
-    registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
-correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
+CORRECTION_ID_T pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
@@ -1010,9 +1008,6 @@ void setup()
 
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
-
-    DMW_b("initializeCorrectionsPriorities");
-    initializeCorrectionsPriorities(); // Initialize (clear) the registeredCorrectionsSources vector
 
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
@@ -1253,8 +1248,8 @@ void loop()
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();
 
-    DMW_c("updateCorrectionsPriorities");
-    updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
+    DMW_c("correctionUpdateSource");
+    correctionUpdateSource(); // Retire expired sources
 
     DMW_c("updateProvisioning");
     updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction

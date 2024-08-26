@@ -655,6 +655,12 @@ void stringHumanReadableSize(String &returnText, uint64_t bytes)
     returnText = String(readableSize);
 }
 
+// Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+void checkArrayDefaults()
+{
+    correctionPriorityValidation();
+}
+
 // Verify table sizes match enum definitions
 void verifyTables()
 {
@@ -687,6 +693,7 @@ void verifyTables()
     tasksValidateTables();
     httpClientValidateTables();
     provisioningVerifyTables();
+    correctionVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");

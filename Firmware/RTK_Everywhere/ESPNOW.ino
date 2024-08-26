@@ -108,16 +108,8 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
         espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
 
         // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
-        // BUT we need to consider the Corrections Priorities.
-        // Step 1: check if CORR_ESPNOW is registered as a correction source. If not, register it.
-        // Step 2: check if CORR_ESPNOW is the highest - actually LOWEST - registered correction source.
-        //         If it is, push the data. If not, discard the data.
-
-        // Step 1
-        updateCorrectionsLastSeen(CORR_ESPNOW); // This will (re)register the correction source if needed
-
-        // Step 2
-        if (isHighestRegisteredCorrectionsSource(CORR_ESPNOW))
+        // Determine if ESPNOW is the correction source
+        if (correctionLastSeen(CORR_ESPNOW))
         {
             // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
             gnssPushRawData((uint8_t *)incomingData, len);

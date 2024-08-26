@@ -481,9 +481,8 @@ void mqttClientReceiveMessage(int messageSize)
                     && (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0))
                 )
                 {
-                    // SPARTN
-                    updateCorrectionsLastSeen(CORR_IP);
-                    if (isHighestRegisteredCorrectionsSource(CORR_IP))
+                    // Determine if MQTT (SPARTN data) is the correction source
+                    if (correctionLastSeen(CORR_IP))
                     {
                         if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
                             !inMainMenu)

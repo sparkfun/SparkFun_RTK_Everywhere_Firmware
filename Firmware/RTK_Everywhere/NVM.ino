@@ -492,7 +492,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             {
                 char tempString[80]; // correctionsPriority_Ethernet_IP_(PointPerfect/MQTT)=99
                 snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         correctionsSourceNames[x], settings.correctionsSourcesPriority[x]);
+                         correctionGetName(x), settings.correctionsSourcesPriority[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -1198,7 +1198,7 @@ bool parseLine(char *str)
             case tCorrSPri: {
                 for (int x = 0; x < qualifier; x++)
                 {
-                    if ((suffix[0] == correctionsSourceNames[x][0]) && (strcmp(suffix, correctionsSourceNames[x]) == 0))
+                    if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
                     {
                         settings.correctionsSourcesPriority[x] = d;
                         knownSetting = true;

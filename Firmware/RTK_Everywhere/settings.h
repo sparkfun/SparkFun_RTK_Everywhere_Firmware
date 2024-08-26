@@ -131,6 +131,9 @@ typedef enum
     CORR_NUM
 } correctionsSource;
 
+typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
+typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
+
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
     // These must match correctionsSource above
@@ -143,11 +146,7 @@ const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
     "IP (PointPerfect/MQTT)",
     // Add new correction sources just above this line
 };
-
-typedef struct {
-    correctionsSource source;
-    unsigned long lastSeen;
-} registeredCorrectionsSource;
+const int correctionsSourceNamesEntries = sizeof(correctionsSourceNames) / sizeof(correctionsSourceNames[0]);
 
 // Setup Buttons
 typedef struct
@@ -1049,7 +1048,7 @@ struct Settings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
-    int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
+    CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
 
     // Display
