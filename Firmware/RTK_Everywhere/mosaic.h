@@ -98,18 +98,17 @@ enum mosaicConstellations {
 typedef struct
 {
     const char name[8];
-    const uint8_t num;
 } mosaicSignalConstellation;
 
 // Constellations monitored/used for fix
 const mosaicSignalConstellation mosaicSignalConstellations[] = {
-    {"GPS", MOSAIC_SIGNAL_CONSTELLATION_GPS},
-    {"GLONASS", MOSAIC_SIGNAL_CONSTELLATION_GLONASS},
-    {"GALILEO", MOSAIC_SIGNAL_CONSTELLATION_GALILEO},
-    {"SBAS", MOSAIC_SIGNAL_CONSTELLATION_SBAS},
-    {"BEIDOU", MOSAIC_SIGNAL_CONSTELLATION_BEIDOU},
-    {"QZSS", MOSAIC_SIGNAL_CONSTELLATION_QZSS},
-    {"NAVIC", MOSAIC_SIGNAL_CONSTELLATION_NAVIC},
+    {"GPS"},
+    {"GLONASS"},
+    {"GALILEO"},
+    {"SBAS"},
+    {"BEIDOU"},
+    {"QZSS"},
+    {"NAVIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
@@ -146,33 +145,32 @@ enum mosaicMessageRates {
 typedef struct
 {
     const char name[9];
-    const uint8_t num;
 } mosaicMsgRate;
 
 // Static array containing all the mosaic message rates
 const mosaicMsgRate mosaicMsgRates[] = {
-    { "off", MOSAIC_MSG_RATE_OFF },
-    { "OnChange", MOSAIC_MSG_RATE_ONCHANGE },
-    { "msec10", MOSAIC_MSG_RATE_MSEC10 },
-    { "msec20", MOSAIC_MSG_RATE_MSEC20 },
-    { "msec40", MOSAIC_MSG_RATE_MSEC40 },
-    { "msec50", MOSAIC_MSG_RATE_MSEC50 },
-    { "msec100", MOSAIC_MSG_RATE_MSEC100 },
-    { "msec200", MOSAIC_MSG_RATE_MSEC200 },
-    { "msec500", MOSAIC_MSG_RATE_MSEC500 },
-    { "sec1", MOSAIC_MSG_RATE_SEC1 },
-    { "sec2", MOSAIC_MSG_RATE_SEC2 },
-    { "sec5", MOSAIC_MSG_RATE_SEC5 },
-    { "sec10", MOSAIC_MSG_RATE_SEC10 },
-    { "sec15", MOSAIC_MSG_RATE_SEC15 },
-    { "sec30", MOSAIC_MSG_RATE_SEC30 },
-    { "sec60", MOSAIC_MSG_RATE_SEC60 },
-    { "min2", MOSAIC_MSG_RATE_MIN2 },
-    { "min5", MOSAIC_MSG_RATE_MIN5 },
-    { "min10", MOSAIC_MSG_RATE_MIN10 },
-    { "min15", MOSAIC_MSG_RATE_MIN15 },
-    { "min30", MOSAIC_MSG_RATE_MIN30 },
-    { "min60", MOSAIC_MSG_RATE_MIN60 },
+    { "off"},
+    { "OnChange"},
+    { "msec10"},
+    { "msec20"},
+    { "msec40"},
+    { "msec50"},
+    { "msec100"},
+    { "msec200"},
+    { "msec500"},
+    { "sec1"},
+    { "sec2"},
+    { "sec5"},
+    { "sec10"},
+    { "sec15"},
+    { "sec30"},
+    { "sec60"},
+    { "min2"},
+    { "min5"},
+    { "min10"},
+    { "min15"},
+    { "min30"},
+    { "min60"},
 };
 
 // Check MAX_MOSAIC_MSG_RATES == MOSAIC_NUM_MSG_RATES
@@ -204,6 +202,8 @@ const mosaicNMEAMsg mosaicMessagesNMEA[] = {
 
 #define MAX_MOSAIC_NMEA_MSG (sizeof(mosaicMessagesNMEA) / sizeof(mosaicNMEAMsg))
 
+/* Do we need RTCMv2?
+
 typedef struct 
 {
     const char msgName[10];
@@ -228,6 +228,8 @@ const mosaicRTCMv2Msg mosaicMessagesRTCMv2[] = {
 };
 
 #define MAX_MOSAIC_RTCM_V2_MSG (sizeof(mosaicMessagesRTCMv2) / sizeof(mosaicRTCMv2Msg))
+
+*/
 
 enum mosaicRTCMv3IntervalGroups {
     MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1001_2 = 0,
@@ -260,43 +262,42 @@ enum mosaicRTCMv3IntervalGroups {
 typedef struct
 {
     const char name[12];
-    const uint8_t num;
     const float defaultInterval;
 } mosaicRTCMv3MsgIntervalGroup;
 
 const mosaicRTCMv3MsgIntervalGroup mosaicRTCMv3MsgIntervalGroups[] = {
-    { "RTCM1001|2", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1001_2, 1.0 },
-    { "RTCM1003|4", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1003_4, 1.0 },
-    { "RTCM1005|6", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1005_6, 1.0 },
-    { "RTCM1007|8", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1007_8, 1.0 },
-    { "RTCM1009|10", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1009_10, 1.0 },
-    { "RTCM1011|12", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1011_12, 1.0 },
-    { "RTCM1013", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1013, 1.0 },
-    { "RTCM1019", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1019, 1.0 },
-    { "RTCM1020", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1020, 1.0 },
-    { "RTCM1029", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1029, 1.0 },
-    { "RTCM1033", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1033, 1.0 },
-    { "RTCM1042", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1042, 1.0 },
-    { "RTCM1044", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1044, 1.0 },
-    { "RTCM1045", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1045, 1.0 },
-    { "RTCM1046", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1046, 1.0 },
-    { "MSM1", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, 1.0 },
-    { "MSM2", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, 1.0 },
-    { "MSM3", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, 1.0 },
-    { "MSM4", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, 1.0 },
-    { "MSM5", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, 1.0 },
-    { "MSM6", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, 1.0 },
-    { "MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, 1.0 },
-    { "RTCM1230", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1230, 1.0 },
+    { "RTCM1001|2", 1.0 },
+    { "RTCM1003|4", 1.0 },
+    { "RTCM1005|6", 1.0 },
+    { "RTCM1007|8", 1.0 },
+    { "RTCM1009|10", 1.0 },
+    { "RTCM1011|12", 1.0 },
+    { "RTCM1013", 1.0 },
+    { "RTCM1019", 1.0 },
+    { "RTCM1020", 1.0 },
+    { "RTCM1029", 1.0 },
+    { "RTCM1033", 1.0 },
+    { "RTCM1042", 1.0 },
+    { "RTCM1044", 1.0 },
+    { "RTCM1045", 1.0 },
+    { "RTCM1046", 1.0 },
+    { "MSM1", 1.0 },
+    { "MSM2", 1.0 },
+    { "MSM3", 1.0 },
+    { "MSM4", 1.0 },
+    { "MSM5", 1.0 },
+    { "MSM6", 1.0 },
+    { "MSM7", 1.0 },
+    { "RTCM1230", 1.0 },
 };
 
 #define MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS (sizeof(mosaicRTCMv3MsgIntervalGroups) / sizeof(mosaicRTCMv3MsgIntervalGroup))
 
 typedef struct 
 {
-    const char msgName[9];
+    const char name[9];
     const uint8_t intervalGroup;
-    const bool enabled;
+    const bool defaultEnabled;
 } mosaicRTCMv3Msg;
 
 const mosaicRTCMv3Msg mosaicMessagesRTCMv3[] = {
@@ -322,6 +323,14 @@ const mosaicRTCMv3Msg mosaicMessagesRTCMv3[] = {
     {"RTCM1044", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1044, false},
     {"RTCM1045", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1045, false},
     {"RTCM1046", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1046, false},
+    {"MSM1", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
+    {"MSM2", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
+    {"MSM3", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
+    {"MSM4", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM4, false},
+    {"MSM5", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
+    {"MSM6", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
+    {"MSM7", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+/*
     {"RTCM1071", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM1, false},
     {"RTCM1072", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM2, false},
     {"RTCM1073", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM3, false},
@@ -371,6 +380,7 @@ const mosaicRTCMv3Msg mosaicMessagesRTCMv3[] = {
     {"RTCM1135", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM5, false},
     {"RTCM1136", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM6, false},
     {"RTCM1137", MOSAIC_RTCM_V3_INTERVAL_GROUP_MSM7, false},
+*/
     {"RTCM1230", MOSAIC_RTCM_V3_INTERVAL_GROUP_RTCM1230, false},
 };
 
@@ -393,18 +403,19 @@ enum mosaic_Dynamics
 typedef struct
 {
     const char name[15];
-    const uint8_t dynamics;
 } mosaicReceiverDynamic;
 
 const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
-    {"Static", MOSAIC_DYN_MODEL_STATIC},
-    {"Quasistatic", MOSAIC_DYN_MODEL_QUASISTATIC},
-    {"Pedestrian", MOSAIC_DYN_MODEL_PEDESTRIAN},
-    {"Automotive", MOSAIC_DYN_MODEL_AUTOMOTIVE},
-    {"RaceCar", MOSAIC_DYN_MODEL_RACECAR},
-    {"HeavyMachinery", MOSAIC_DYN_MODEL_HEAVYMACHINERY},
-    {"UAV", MOSAIC_DYN_MODEL_UAV},
-    {"Unlimited", MOSAIC_DYN_MODEL_UNLIMITED},
+    {"Static"},
+    {"Quasistatic"},
+    {"Pedestrian"},
+    {"Automotive"},
+    {"RaceCar"},
+    {"HeavyMachinery"},
+    {"UAV"},
+    {"Unlimited"},
 };
+
+#define MAX_MOSAIC_RX_DYNAMICS (sizeof(mosaicReceiverDynamics) / sizeof(mosaicReceiverDynamic))
 
 #endif

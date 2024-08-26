@@ -327,6 +327,7 @@ void     mosaicX5EnableGgaForNtrip() {}
 bool     mosaicX5SetMessages(int maxRetries) {return false;}
 bool     mosaicX5SetMessagesUsb(int maxRetries) {return false;}
 void     mosaicX5MessageRatesRTCMBase() {}
+void     mosaicVerifyTables() {}
 #endif  // COMPILE_MOSAICX5
 
 //----------------------------------------

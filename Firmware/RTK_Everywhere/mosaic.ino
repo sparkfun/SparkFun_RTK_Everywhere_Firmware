@@ -127,7 +127,6 @@ bool mosaicX5EnableRTCMTest()
 
 bool mosaicX5Begin()
 {
-    // The GNSS UART is already started. We can now pass it to the library.
     if (serial2GNSS == nullptr)
     {
         systemPrintln("GNSS UART 2 not started");
@@ -213,86 +212,21 @@ bool mosaicX5ConfigureOnce()
 
     response &= mosaicX5SetBaudRateCOM1(settings.dataPortBaud); // COM1 is connected to ESP
 
-    // YOU ARE HERE
-
-    response &= mosaicX5SetMinElevation(settings.minElev); // MOSAICX5 default is 5 degrees. Our default is 10.
+    response &= mosaicX5SetMinElevation(settings.minElev);
 
     response &= mosaicX5SetMinCNO(settings.minCNO);
 
     response &= mosaicX5SetConstellations();
 
-    if (mosaicX5->isConfigurationPresent("CONFIG SIGNALGROUP 2") == false)
-    {
-        if (mosaicX5->sendCommand("CONFIG SIGNALGROUP 2") == false)
-            systemPrintln("Signal group 2 command failed");
-        else
-        {
-            systemPrintln("Enabling additional reception on MOSAICX5. This can take a few seconds.");
-
-            while (1)
-            {
-                delay(1000); // Wait for device to reboot
-                if (mosaicX5->isConnected() == true)
-                    break;
-                else
-                    systemPrintln("MOSAICX5 rebooting");
-            }
-
-            systemPrintln("MOSAICX5 has completed reboot.");
-        }
-    }
-
-    // Enable E6 and PPP if enabled and possible
-    if (settings.enableGalileoHas == true)
-    {
-        // E6 reception requires version 11833 or greater
-        int mosaicX5Version = String(mosaicX5->getVersion()).toInt(); // Convert the string response to a value
-        if (mosaicX5Version >= 11833)
-        {
-            if (mosaicX5->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
-            {
-                if (mosaicX5->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
-                    systemPrintln("Galileo E6 service enabled");
-                else
-                    systemPrintln("Galileo E6 service config error");
-
-                if (mosaicX5->sendCommand("CONFIG PPP DATUM WGS84") == true)
-                    systemPrintln("WGS84 Datum applied");
-                else
-                    systemPrintln("WGS84 Datum error");
-            }
-        }
-        else
-        {
-            systemPrintf(
-                "Current MOSAICX5 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
-                "firmware on your MOSAICX5 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-mosaicX5-update\r\n",
-                mosaicX5Version);
-        }
-    }
-    else
-    {
-        // Turn off HAS/E6
-        if (mosaicX5->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
-        {
-            if (mosaicX5->sendCommand("CONFIG PPP DISABLE") == true)
-            {
-                // systemPrintln("Galileo E6 service disabled");
-            }
-            else
-                systemPrintln("Galileo E6 service config error");
-        }
-    }
-
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now
 
-        systemPrintln("MOSAICX5 configuration updated");
+        systemPrintln("mosaic-X5 configuration updated");
 
         // Save the current configuration into non-volatile memory (NVM)
         // We don't need to re-configure the MOSAICX5 at next boot
-        bool settingsWereSaved = mosaicX5->saveConfiguration();
+        bool settingsWereSaved = mosaicX5SaveConfiguration();
         if (settingsWereSaved)
             settings.updateGNSSSettings = false;
     }
@@ -369,7 +303,7 @@ bool mosaicX5ConfigureRover()
 
     response &= mosaicX5SetModel(settings.dynamicModel); // This will cancel any base averaging mode
 
-    response &= mosaicX5SetMinElevation(settings.minElev); // MOSAICX5 default is 5 degrees. Our default is 10.
+    response &= mosaicX5SetMinElevation(settings.minElev);
 
     // Configure MOSAICX5 to output binary reports out COM2, connected to IM19 COM3
     response &= mosaicX5->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
@@ -618,33 +552,20 @@ bool mosaicX5EnableRTCMBase()
 // Turn on all the enabled Constellations
 bool mosaicX5SetConstellations()
 {
-    bool response = true;
+    String enabledConstellations = "";
 
-    for (int constellationNumber = 0; constellationNumber < MAX_MOSAICX5_CONSTELLATIONS; constellationNumber++)
+    for (int constellation = 0; constellation < MAX_MOSAIC_CONSTELLATIONS; constellation++)
     {
-        if (settings.mosaicX5Constellations[constellationNumber] == true)
+        if (settings.mosaicConstellations[constellation] == true)
         {
-            if (mosaicX5->enableConstellation(mosaicX5ConstellationCommands[constellationNumber].textCommand) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable constellation failed at constellationNumber %d %s.", constellationNumber,
-                                 mosaicX5ConstellationCommands[constellationNumber].textName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
-        }
-        else
-        {
-            if (mosaicX5->disableConstellation(mosaicX5ConstellationCommands[constellationNumber].textCommand) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Disable constellation failed at constellationNumber %d %s.", constellationNumber,
-                                 mosaicX5ConstellationCommands[constellationNumber].textName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
+            if (enabledConstellations.length() > 0)
+                enabledConstellations += String("+");
+            enabledConstellations += String(mosaicSignalConstellations[constellation].name);
         }
     }
 
-    return (response);
+    String setting = String("sst," + enabledConstellations + "\n\r");
+    return (mosaicX5sendWithResponse(setting, "SatelliteTracking"));
 }
 
 // Turn off all NMEA and RTCM
@@ -677,12 +598,20 @@ void mosaicX5DisableRTCM()
 
 bool mosaicX5SetMinElevation(uint8_t elevation)
 {
-    return (mosaicX5->setElevationAngle(elevation));
+    if (elevation > 90)
+        elevation = 90;
+    String elev = String(elevation);
+    String setting = String("sem,PVT," + elev + "\n\r");
+    return (mosaicX5sendWithResponse(setting, "ElevationMask"));
 }
 
 bool mosaicX5SetMinCNO(uint8_t minCNO)
 {
-    return (mosaicX5->setMinCNO(minCNO));
+    if (minCNO > 60)
+        minCNO = 60;
+    String cn0 = String(minCNO);
+    String setting = String("scm,all," + cn0 + "\n\r");
+    return (mosaicX5sendWithResponse(setting, "CN0Mask"));
 }
 
 bool mosaicX5SetModel(uint8_t modelNumber)
@@ -924,7 +853,7 @@ uint16_t mosaicX5FixAgeMilliseconds()
 
 bool mosaicX5SaveConfiguration()
 {
-    return (mosaicX5->saveConfiguration());
+    return mosaicX5sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile");
 }
 
 bool mosaicX5SetModeRoverSurvey()
@@ -1156,43 +1085,69 @@ bool mosaicX5InRoverMode()
 
 char *mosaicX5GetRtcmDefaultString()
 {
-    return ((char *)"1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz");
+    return ((char *)"1005/MSM4 1Hz & 1033 0.1Hz");
 }
 char *mosaicX5GetRtcmLowDataRateString()
 {
-    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1033 0.1Hz");
+    return ((char *)"MSM4 0.5Hz & 1005/1033 0.1Hz");
 }
 
-// Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz)
+// Set RTCM for base mode to defaults (1005/MSM4 1Hz & 1033 0.1Hz)
 void mosaicX5BaseRtcmDefault()
 {
-    // Reset RTCM rates to defaults
-    for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-        settings.mosaicX5MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+    // Reset RTCM intervals to defaults
+    for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+        settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+    
+    // Reset RTCM enabled to defaults
+    for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+        settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
+    
+    // Now update intervals and enabled for the selected messages
+    int msg = mosaicX5GetMessageNumberByName("RTCM1005");
+    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 1.0;
+
+    msg = mosaicX5GetMessageNumberByName("MSM4");
+    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 1.0;
+
+    msg = mosaicX5GetMessageNumberByName("RTCM1033");
+    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
 }
 
-// Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz)
+// Reset to Low Bandwidth Link (MSM4 0.5Hz & 1005/1033 0.1Hz)
 void mosaicX5BaseRtcmLowDataRate()
 {
-    // Zero out everything
-    for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-        settings.mosaicX5MessageRatesRTCMBase[x] = 0;
+    // Reset RTCM intervals to defaults
+    for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+        settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+    
+    // Reset RTCM enabled to defaults
+    for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+        settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
+    
+    // Now update intervals and enabled for the selected messages
+    int msg = mosaicX5GetMessageNumberByName("RTCM1005");
+    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
 
-    settings.mosaicX5MessageRatesRTCMBase[mosaicX5GetMessageNumberByName("RTCM1005")] =
-        10; // 1005 0.1Hz - Exclude antenna height
-    settings.mosaicX5MessageRatesRTCMBase[mosaicX5GetMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
-    settings.mosaicX5MessageRatesRTCMBase[mosaicX5GetMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
-    settings.mosaicX5MessageRatesRTCMBase[mosaicX5GetMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
-    settings.mosaicX5MessageRatesRTCMBase[mosaicX5GetMessageNumberByName("RTCM1124")] = 2;  // 1124 0.5Hz
-    settings.mosaicX5MessageRatesRTCMBase[mosaicX5GetMessageNumberByName("RTCM1033")] = 10; // 1033 0.1Hz
+    msg = mosaicX5GetMessageNumberByName("MSM4");
+    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 2.0; // Interval = 2.0s = 0.5Hz
+
+    msg = mosaicX5GetMessageNumberByName("RTCM1033");
+    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
 }
 
 // Given the name of a message, return the array number
-uint8_t mosaicX5GetMessageNumberByName(const char *msgName)
+int mosaicX5GetMessageNumberByName(const char *msgName)
 {
-    for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
+    for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
     {
-        if (strcmp(umMessagesRTCM[x].msgTextName, msgName) == 0)
+        if (strcmp(mosaicMessagesRTCMv3[x].name, msgName) == 0)
             return (x);
     }
 
@@ -1208,35 +1163,25 @@ void mosaicX5MenuConstellations()
         systemPrintln();
         systemPrintln("Menu: Constellations");
 
-        for (int x = 0; x < MAX_MOSAICX5_CONSTELLATIONS; x++)
+        for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
         {
-            systemPrintf("%d) Constellation %s: ", x + 1, mosaicX5ConstellationCommands[x].textName);
-            if (settings.mosaicX5Constellations[x] > 0)
+            systemPrintf("%d) Constellation %s: ", x + 1, mosaicSignalConstellations[x].name);
+            if (settings.mosaicConstellations[x] > 0)
                 systemPrint("Enabled");
             else
                 systemPrint("Disabled");
             systemPrintln();
         }
 
-        if (present.galileoHasCapable)
-        {
-            systemPrintf("%d) Galileo E6 Corrections: %s\r\n", MAX_MOSAICX5_CONSTELLATIONS + 1,
-                         settings.enableGalileoHas ? "Enabled" : "Disabled");
-        }
-
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming >= 1 && incoming <= MAX_MOSAICX5_CONSTELLATIONS)
+        if (incoming >= 1 && incoming <= MAX_MOSAIC_CONSTELLATIONS)
         {
             incoming--; // Align choice to constellation array of 0 to 5
 
-            settings.mosaicX5Constellations[incoming] ^= 1;
-        }
-        else if ((incoming == MAX_MOSAICX5_CONSTELLATIONS + 1) && present.galileoHasCapable)
-        {
-            settings.enableGalileoHas ^= 1;
+            settings.mosaicConstellations[incoming] ^= 1;
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;
@@ -1250,6 +1195,23 @@ void mosaicX5MenuConstellations()
     gnssSetConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+void mosaicVerifyTables()
+{
+    // Verify the table lengths
+    if (MOSAIC_NUM_COM_RATES != MAX_MOSAIC_COM_RATES)
+        reportFatalError("Fix mosaicCOMBaud to match mosaicComRates");
+    if (MOSAIC_NUM_PPS_INTERVALS != MAX_MOSAIC_PPS_INTERVALS)
+        reportFatalError("Fix mosaicPpsIntervals to match mosaicPPSIntervals");
+    if (MOSAIC_NUM_SIGNAL_CONSTELLATIONS != MAX_MOSAIC_CONSTELLATIONS)
+        reportFatalError("Fix mosaicConstellations to match mosaicSignalConstellations");
+    if (MOSAIC_NUM_MSG_RATES != MAX_MOSAIC_MSG_RATES)
+        reportFatalError("Fix mosaicMessageRates to match mosaicMsgRates");
+    if (MOSAIC_NUM_RTCM_V3_INTERVAL_GROUPS != MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS)
+        reportFatalError("Fix mosaicRTCMv3IntervalGroups to match mosaicRTCMv3MsgIntervalGroups");
+    if (MOSAIC_NUM_DYN_MODELS != MAX_MOSAIC_RX_DYNAMICS)
+        reportFatalError("Fix mosaic_Dynamics to match mosaicReceiverDynamics");
 }
 
 #endif // COMPILE_MOSAICX5

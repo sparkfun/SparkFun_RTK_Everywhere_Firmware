@@ -322,7 +322,7 @@ void menuPortHardwareTriggers()
 
                 if (i == MAX_MOSAIC_PPS_INTERVALS) // pulse interval not found!
                 {
-                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC].interval_us; // Default to sec1
+                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC1].interval_us; // Default to sec1
                 }
                 else
                 {

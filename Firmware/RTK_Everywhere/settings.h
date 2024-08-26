@@ -1355,17 +1355,17 @@ struct Settings
     // mosaic
     uint8_t mosaicConstellations[MAX_MOSAIC_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     uint8_t mosaicMessageRatesNMEA[MAX_MOSAIC_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
-    mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Base[MAX_MOSAIC_RTCM_V2_MSG] = {
-        { 65534, false } }; // Mark first record with key so defaults will be applied
-    mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Rover[MAX_MOSAIC_RTCM_V2_MSG] = {
-        { 65534, false } }; // Mark first record with key so defaults will be applied
-    float mosaicMessageIntervalsRTCMv3Base[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
-        999.9 }; // Mark first record with key so defaults will be applied
+    //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Rover[MAX_MOSAIC_RTCM_V2_MSG] = {
+    //    { 65534, false } }; // Mark first record with key so defaults will be applied
+    //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Base[MAX_MOSAIC_RTCM_V2_MSG] = {
+    //    { 65534, false } }; // Mark first record with key so defaults will be applied
     float mosaicMessageIntervalsRTCMv3Rover[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
         999.9 }; // Mark first record with key so defaults will be applied
-    uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
-        254 }; // Mark first record with key so defaults will be applied
+    float mosaicMessageIntervalsRTCMv3Base[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
+        999.9 }; // Mark first record with key so defaults will be applied
     uint8_t mosaicMessageEnabledRTCMv3Rover[MAX_MOSAIC_RTCM_V3_MSG] = {
+        254 }; // Mark first record with key so defaults will be applied
+    uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
         254 }; // Mark first record with key so defaults will be applied
 
     // Web Server
@@ -1449,6 +1449,12 @@ typedef enum {
     tUmConst,
     tCorrSPri,
     tRegCorTp,
+    tMosaicConst,
+    tMosaicMRNmea,
+    tMosaicMIRvRT,
+    tMosaicMIBaRT,
+    tMosaicMERvRT,
+    tMosaicMEBaRT,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
@@ -1637,6 +1643,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 0, _int,      0, & settings.maxLogLength_minutes, "maxLogLength",  },
     { 0, 1, 1, 0, 1, 1, 1, 0, _int,      0, & settings.maxLogTime_minutes, "maxLogTime"},
     { 0, 0, 0, 0, 1, 1, 1, 0, _bool,     0, & settings.runLogTest, "runLogTest",  }, // Not stored in NVM
+
+    // Mosaic
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMRNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageRatesNMEA, "messageRateNMEA_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
 
     // MQTT
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData",  },

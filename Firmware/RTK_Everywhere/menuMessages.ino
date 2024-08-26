@@ -664,6 +664,58 @@ void checkGNSSArrayDefaults()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
         }
     }
+    else if (present.gnss_mosaicX5)
+    {
+        if (settings.mosaicConstellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+                settings.mosaicConstellations[x] = 1;
+        }
+
+        if (settings.mosaicMessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+                settings.mosaicMessageRatesNMEA[x] = mosaicMessagesNMEA[x].msgDefaultRate;
+        }
+
+        if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 999.9)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Rover[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+        }
+
+        if (settings.mosaicMessageIntervalsRTCMv3Base[0] == 999.9)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+        }
+
+        if (settings.mosaicMessageEnabledRTCMv3Rover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Rover[x] = 0;
+        }
+
+        if (settings.mosaicMessageEnabledRTCMv3Base[0] == 254)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
+        }
+    }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
