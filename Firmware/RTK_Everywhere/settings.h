@@ -590,6 +590,8 @@ enum PeriodDisplayValues
     PD_HTTP_CLIENT_STATE,       // 35
 
     PD_PROVISIONING_STATE,      // 36
+
+    PD_CORRECTION_SOURCE,       // 37
     // Add new values before this line
 };
 

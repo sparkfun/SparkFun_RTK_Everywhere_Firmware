@@ -44,8 +44,8 @@
 //----------------------------------------
 // Locals
 //----------------------------------------
-static CORRECTION_ID_T correctionSourceId;  // ID of correction source
-static CORRECTION_MASK_T correctionActive;  // Bitmap of active correction sources
+static CORRECTION_ID_T correctionSourceId;        // ID of correction source
+static CORRECTION_MASK_T correctionActive;        // Bitmap of active correction sources
 static uint32_t correctionLastSeenMsec[CORR_NUM]; // Time when correction was last received
 
 //----------------------------------------
@@ -60,20 +60,17 @@ static uint32_t correctionLastSeenMsec[CORR_NUM]; // Time when correction was la
 void correctionSetSourceId(CORRECTION_ID_T id)
 {
     // When the source priority changes, is new prioity the highest
-    if ((correctionSourceId >= CORR_NUM)
-        || ((correctionActive & (1 << correctionSourceId)) == 0)
-        || (settings.correctionsSourcesPriority[id] < settings.correctionsSourcesPriority[correctionSourceId]))
+    if ((correctionSourceId >= CORR_NUM) || ((correctionActive & (1 << correctionSourceId)) == 0) ||
+        (settings.correctionsSourcesPriority[id] < settings.correctionsSourcesPriority[correctionSourceId]))
     {
         // Display the correction source transition
         if (settings.debugCorrections)
         {
             if ((correctionSourceId <= CORR_NUM) && (correctionActive & (1 << correctionSourceId)))
-                systemPrintf("Correction Source: %s --> %s\r\n",
-                             correctionsSourceNames[correctionSourceId],
+                systemPrintf("Correction Source: %s --> %s\r\n", correctionsSourceNames[correctionSourceId],
                              correctionsSourceNames[id]);
             else
-                systemPrintf("Correction Source: None --> %s\r\n",
-                             correctionsSourceNames[id]);
+                systemPrintf("Correction Source: None --> %s\r\n", correctionsSourceNames[id]);
         }
 
         // Set the new correction source
@@ -87,22 +84,23 @@ void correctionSetSourceId(CORRECTION_ID_T id)
 //    id: correctionsSource value, ID of the correction source
 //    priority: Priority of the correction source
 //----------------------------------------
-void correctionPriorityUpdateSource(CORRECTION_ID_T id,
-                                    CORRECTION_ID_T priority)
+void correctionPriorityUpdateSource(CORRECTION_ID_T id, CORRECTION_ID_T priority)
 {
     CORRECTION_MASK_T bitMask;
 
     // Validate the id value
     if (id >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionPriorityUpdateSource invalid correction id value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf("ERROR: correctionPriorityUpdateSource invalid correction id value %d, valid range (0 - %d)!\r\n",
+                     id, CORR_NUM - 1);
         return;
     }
 
     // Validate the id value
     if (priority >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionPriorityUpdateSource invalid priority value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf("ERROR: correctionPriorityUpdateSource invalid priority value %d, valid range (0 - %d)!\r\n", id,
+                     CORR_NUM - 1);
         return;
     }
 
@@ -128,7 +126,8 @@ void correctionPriorityDecrease(CORRECTION_ID_T oldPriority)
     // Validate the priority value
     if (oldPriority >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionPriorityDecrease invalid correction id value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf("ERROR: correctionPriorityDecrease invalid correction id value %d, valid range (0 - %d)!\r\n", id,
+                     CORR_NUM - 1);
         return;
     }
 
@@ -171,16 +170,12 @@ void correctionPriorityDecrease(CORRECTION_ID_T oldPriority)
         if (settings.correctionsSourcesPriority[index] == newPriority)
         {
             if (settings.debugCorrections)
-                systemPrintf("%s: %d --> %d\r\n",
-                             correctionsSourceNames[index],
-                             settings.correctionsSourcesPriority[index],
-                             oldPriority);
+                systemPrintf("%s: %d --> %d\r\n", correctionsSourceNames[index],
+                             settings.correctionsSourcesPriority[index], oldPriority);
             settings.correctionsSourcesPriority[index] = oldPriority;
         }
     if (settings.debugCorrections)
-        systemPrintf("%s: %d --> %d\r\n",
-                     correctionsSourceNames[id],
-                     settings.correctionsSourcesPriority[id],
+        systemPrintf("%s: %d --> %d\r\n", correctionsSourceNames[id], settings.correctionsSourcesPriority[id],
                      newPriority);
     settings.correctionsSourcesPriority[id] = newPriority;
 
@@ -202,7 +197,9 @@ void correctionPriorityIncrease(CORRECTION_ID_T oldPriority)
     // Validate the id value
     if (oldPriority >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionPriorityIncrease invalid correction priority value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf(
+            "ERROR: correctionPriorityIncrease invalid correction priority value %d, valid range (0 - %d)!\r\n", id,
+            CORR_NUM - 1);
         return;
     }
 
@@ -245,16 +242,12 @@ void correctionPriorityIncrease(CORRECTION_ID_T oldPriority)
         if (settings.correctionsSourcesPriority[index] == newPriority)
         {
             if (settings.debugCorrections)
-                systemPrintf("%s: %d --> %d\r\n",
-                             correctionsSourceNames[index],
-                             settings.correctionsSourcesPriority[index],
-                             oldPriority);
+                systemPrintf("%s: %d --> %d\r\n", correctionsSourceNames[index],
+                             settings.correctionsSourcesPriority[index], oldPriority);
             settings.correctionsSourcesPriority[index] = oldPriority;
         }
     if (settings.debugCorrections)
-        systemPrintf("%s: %d --> %d\r\n",
-                     correctionsSourceNames[id],
-                     settings.correctionsSourcesPriority[id],
+        systemPrintf("%s: %d --> %d\r\n", correctionsSourceNames[id], settings.correctionsSourcesPriority[id],
                      newPriority);
     settings.correctionsSourcesPriority[id] = newPriority;
 
@@ -332,7 +325,7 @@ void menuCorrectionsPriorities()
 void correctionDisplayPriorityTable(bool menu)
 {
     //                         "a / A) "
-    const char * blankString = "       ";
+    const char *blankString = "       ";
     uint32_t currentMsec;
     CORRECTION_ID_T id;
     char menuString[strlen(blankString) + 1];
@@ -375,20 +368,15 @@ void correctionDisplayPriorityTable(bool menu)
 
         // Display the priority table
         if ((id < CORR_NUM) && correctionIsSourceActive(id))
-            systemPrintf("%s %c %2d     active     %4d.%03d Sec   %s\r\n",
-                         menuString,
-                         (correctionSourceId == id) ? '*' : ' ',
-                         settings.correctionsSourcesPriority[id],
-                         seconds, milliseconds,
-                         correctionsSourceNames[id]);
+            systemPrintf("%s %c %2d     active     %4d.%03d Sec   %s\r\n", menuString,
+                         (correctionSourceId == id) ? '*' : ' ', settings.correctionsSourcesPriority[id], seconds,
+                         milliseconds, correctionsSourceNames[id]);
         else if (id < CORR_NUM)
-            systemPrintf("%s   %2d     inactive                  %s\r\n",
-                         menuString,
-                         settings.correctionsSourcesPriority[id],
-                         correctionsSourceNames[id]);
+            systemPrintf("%s   %2d     inactive                  %s\r\n", menuString,
+                         settings.correctionsSourcesPriority[id], correctionsSourceNames[id]);
         else
-            systemPrintf("%s   %2d     inactive                  %s (%d)\r\n",
-                         menu ? blankString : "", -1, "Unknown", id);
+            systemPrintf("%s   %2d     inactive                  %s (%d)\r\n", menu ? blankString : "", -1, "Unknown",
+                         id);
     }
 }
 
@@ -400,12 +388,16 @@ void correctionDisplayPriorityTable(bool menu)
 //    Returns the address of a zero terminated constant name string or
 //    nullptr when id is invalid
 //----------------------------------------
-const char * correctionGetName(CORRECTION_ID_T id)
+const char *correctionGetName(CORRECTION_ID_T id)
 {
+    if (id == CORR_NUM)
+        return "None";
+
     // Validate the id value
-    if (id >= CORR_NUM)
+    if (id > CORR_NUM)
     {
-        systemPrintf("ERROR: correctionGetName invalid correction id value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf("ERROR: correctionGetName invalid correction id value %d, valid range (0 - %d)!\r\n", id,
+                     CORR_NUM - 1);
         return nullptr;
     }
 
@@ -428,9 +420,9 @@ CORRECTION_ID_T correctionGetSource()
 // Outputs:
 //    Returns the correctionsSource ID providing corrections
 //----------------------------------------
-const char * correctionGetSourceName()
+const char *correctionGetSourceName()
 {
-    const char * name;
+    const char *name;
 
     name = correctionGetName(correctionSourceId);
     if (!name)
@@ -457,7 +449,8 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
     // Validate the id value
     if (id >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionIsSourceActive invalid correction id value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf("ERROR: correctionIsSourceActive invalid correction id value %d, valid range (0 - %d)!\r\n", id,
+                     CORR_NUM - 1);
         return false;
     }
 
@@ -480,8 +473,7 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
             newPriority = CORR_NUM;
             newSource = CORR_NUM;
             for (index = 0; index < CORR_NUM; index++)
-                if ((correctionActive & (1 << index))
-                    && (settings.correctionsSourcesPriority[index] < newPriority))
+                if ((correctionActive & (1 << index)) && (settings.correctionsSourcesPriority[index] < newPriority))
                 {
                     newPriority = settings.correctionsSourcesPriority[index];
                     newSource = index;
@@ -494,12 +486,10 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
             if (settings.debugCorrections)
             {
                 if (newSource < CORR_NUM)
-                    systemPrintf("Correction Source: %s --> %s\r\n",
-                                 correctionsSourceNames[id],
+                    systemPrintf("Correction Source: %s --> %s\r\n", correctionsSourceNames[id],
                                  correctionsSourceNames[newSource]);
                 else
-                    systemPrintf("Correction Source: %s --> None\r\n",
-                                 correctionsSourceNames[id]);
+                    systemPrintf("Correction Source: %s --> None\r\n", correctionsSourceNames[id]);
             }
         }
     }
@@ -523,7 +513,8 @@ bool correctionLastSeen(CORRECTION_ID_T id)
     // Validate the id value
     if (id >= CORR_NUM)
     {
-        systemPrintf("ERROR: correctionLastSeen invalid correction id value %d, valid range (0 - %d)!\r\n", id, CORR_NUM - 1);
+        systemPrintf("ERROR: correctionLastSeen invalid correction id value %d, valid range (0 - %d)!\r\n", id,
+                     CORR_NUM - 1);
         return false;
     }
 
@@ -598,6 +589,15 @@ void correctionUpdateSource()
 
     for (id = 0; id < CORR_NUM; id++)
         correctionPriorityUpdateSource(id, settings.correctionsSourcesPriority[id]);
+
+    // Display the current correction source
+    if (PERIODIC_DISPLAY(PD_CORRECTION_SOURCE) && !inMainMenu)
+    {
+        PERIODIC_CLEAR(PD_CORRECTION_SOURCE);
+        systemPrintf("Correction Source: %s\r\n", correctionGetSourceName());
+
+        // systemPrintf("%s\r\n", PERIODIC_SETTING(PD_RING_BUFFER_MILLIS) ? "Active" : "Inactive");
+    }
 }
 
 //----------------------------------------
