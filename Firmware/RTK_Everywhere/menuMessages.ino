@@ -675,13 +675,13 @@ void checkGNSSArrayDefaults()
                 settings.mosaicConstellations[x] = 1;
         }
 
-        if (settings.mosaicMessageRatesNMEA[0] == 254)
+        if (settings.mosaicMessageStreamNMEA[0] == 254)
         {
             defaultsApplied = true;
 
             // Reset rates to defaults
             for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
-                settings.mosaicMessageRatesNMEA[x] = mosaicMessagesNMEA[x].msgDefaultRate;
+                settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultRate;
         }
 
         if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 999.9)

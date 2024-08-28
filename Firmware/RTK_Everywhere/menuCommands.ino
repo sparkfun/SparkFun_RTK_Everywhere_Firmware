@@ -898,16 +898,26 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tMosaicMRNmea: {
+        case tMosaicMSNmea: {
             for (int x = 0; x < qualifier; x++)
             {
                 if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
                     (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
                 {
-                    settings.mosaicMessageRatesNMEA[x] = settingValue;
+                    settings.mosaicMessageStreamNMEA[x] = settingValue;
                     knownSetting = true;
                     break;
                 }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                settings.mosaicStreamIntervalsNMEA[stream] = settingValue;
+                knownSetting = true;
+                break;
             }
         }
         break;
@@ -1621,13 +1631,24 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tMosaicMRNmea: {
-                // Record Mosaic NMEA rates
+            case tMosaicMSNmea: {
+                // Record Mosaic NMEA message streams
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    char tempString[50]; // messageRateNMEA__GGA=1
+                    char tempString[50]; // messageRateNMEA_GGA,1,
                     snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name,
-                             mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageRatesNMEA[x]);
+                             mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicSINmea: {
+                // Record Mosaic NMEA stream intervals
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50]; // streamIntervalNMEA_1,10,
+                    snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[i].name,
+                             x, settings.mosaicStreamIntervalsNMEA[x]);
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -2397,16 +2418,26 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
-        case tMosaicMRNmea: {
+        case tMosaicMSNmea: {
             for (int x = 0; x < qualifier; x++)
             {
                 if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
                     (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
                 {
-                    writeToString(settingValueStr, settings.mosaicMessageRatesNMEA[x]);
+                    writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
                     knownSetting = true;
                     break;
                 }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
+                knownSetting = true;
+                break;
             }
         }
         break;
@@ -2859,12 +2890,24 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
-    case tMosaicMRNmea: {
-        // Record Mosaic NMEA rates
+    case tMosaicMSNmea: {
+        // Record Mosaic NMEA message streams
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
                      mosaicMessagesNMEA[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tMosaicSINmea: {
+        // Record Mosaic NMEA stream intervals
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name,
+                     x);
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);

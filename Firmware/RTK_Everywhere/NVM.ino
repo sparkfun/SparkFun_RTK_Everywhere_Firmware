@@ -517,13 +517,24 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
-        case tMosaicMRNmea: {
-            // Record Mosaic NMEA rates
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // messageRateNMEA_GGA=1
+                char tempString[50]; // messageStreamNMEA_GGA=1
                 snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageRatesNMEA[x]);
+                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // streamIntervalNMEA_1=1
+                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[i].name,
+                         x, settings.mosaicStreamIntervalsNMEA[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -1297,16 +1308,26 @@ bool parseLine(char *str)
                 }
             }
             break;
-            case tMosaicMRNmea: {
+            case tMosaicMSNmea: {
                 for (int x = 0; x < qualifier; x++)
                 {
                     if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
                         (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
                     {
-                        settings.mosaicMessageRatesNMEA[x] = d;
+                        settings.mosaicMessageStreamNMEA[x] = d;
                         knownSetting = true;
                         break;
                     }
+                }
+            }
+            break;
+            case tMosaicSINmea: {
+                int stream;
+                if (sscanf(suffix, "%d", &stream) == 1)
+                {
+                    settings.mosaicStreamIntervalsNMEA[stream] = d;
+                    knownSetting = true;
+                    break;
                 }
             }
             break;

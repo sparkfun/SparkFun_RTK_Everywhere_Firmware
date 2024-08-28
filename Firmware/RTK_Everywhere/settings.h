@@ -1354,7 +1354,15 @@ struct Settings
 
     // mosaic
     uint8_t mosaicConstellations[MAX_MOSAIC_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
-    uint8_t mosaicMessageRatesNMEA[MAX_MOSAIC_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    // Each Stream has one connection descriptor and one interval.
+    // If a NMEA message is disabled, its entry in mosaicMessageStreamNMEA is 0.
+    // If a NMEA message is allocated to Stream1, its entry in mosaicMessageStreamNMEA is 1.
+    // Etc..
+    uint8_t mosaicMessageStreamNMEA[MAX_MOSAIC_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    // mosaicStreamIntervalsNMEA contains the interval for each of the MOSAIC_NUM_NMEA_STREAMS NMEA Streams
+    // It should be an array of mosaicMessageRates (enum). But we'll make life easy for ourselves and use uint8_t
+    // The interval will not be "off"
+    uint8_t mosaicStreamIntervalsNMEA[MOSAIC_NUM_NMEA_STREAMS] = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
     //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Rover[MAX_MOSAIC_RTCM_V2_MSG] = {
     //    { 65534, false } }; // Mark first record with key so defaults will be applied
     //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Base[MAX_MOSAIC_RTCM_V2_MSG] = {
@@ -1450,7 +1458,8 @@ typedef enum {
     tCorrSPri,
     tRegCorTp,
     tMosaicConst,
-    tMosaicMRNmea,
+    tMosaicMSNmea,
+    tMosaicSINmea,
     tMosaicMIRvRT,
     tMosaicMIBaRT,
     tMosaicMERvRT,
@@ -1646,7 +1655,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Mosaic
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
-    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMRNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageRatesNMEA, "messageRateNMEA_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },

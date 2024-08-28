@@ -1,6 +1,14 @@
 #ifndef _RTK_EVERYWHERE_MOSAIC_H
 #define _RTK_EVERYWHERE_MOSAIC_H
 
+// "A Stream is defined as a list of messages that should be output with the same interval on one
+//  connection descriptor (Cd). In other words, one Stream is associated with one Cd and one Interval."
+// Allocate this many streams for NMEA messages: Stream1, Stream2, etc.
+#define MOSAIC_NUM_NMEA_STREAMS 2
+#define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500,MOSAIC_MSG_RATE_SEC1}
+
+// TODO: allocate equivalent Streams for SBF
+
 enum mosaicCOMBaud {
     MOSAIC_COM_RATE_BAUD4800 = 0,
     MOSAIC_COM_RATE_BAUD9600,
@@ -114,10 +122,12 @@ const mosaicSignalConstellation mosaicSignalConstellations[] = {
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))
 
 // Enum to define message output rates
+// Don't allow rate to be "off"
+// If the user wants to disable a message, the stream (mosaicStreamIntervalsNMEA etc.) should be set to 0 instead
 enum mosaicMessageRates {
-    MOSAIC_MSG_RATE_OFF,
-    MOSAIC_MSG_RATE_ONCHANGE,
-    MOSAIC_MSG_RATE_MSEC10,
+    // MOSAIC_MSG_RATE_OFF = 0,
+    // MOSAIC_MSG_RATE_ONCHANGE,
+    MOSAIC_MSG_RATE_MSEC10 = 0,
     MOSAIC_MSG_RATE_MSEC20,
     MOSAIC_MSG_RATE_MSEC40,
     MOSAIC_MSG_RATE_MSEC50,
@@ -149,8 +159,8 @@ typedef struct
 
 // Static array containing all the mosaic message rates
 const mosaicMsgRate mosaicMsgRates[] = {
-    { "off"},
-    { "OnChange"},
+    // { "off"},
+    // { "OnChange"},
     { "msec10"},
     { "msec20"},
     { "msec40"},

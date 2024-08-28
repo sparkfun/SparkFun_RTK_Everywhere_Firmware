@@ -460,36 +460,33 @@ bool mosaicX5AutoBaseComplete()
             return ();
 }
 
-// Turn on all the enabled NMEA messages on COM3
+// Turn on all the enabled NMEA messages on COM1
 bool mosaicX5EnableNMEA()
 {
     bool response = true;
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
 
-    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_NMEA_MSG; messageNumber++)
+    String streams[MOSAIC_NUM_NMEA_STREAMS]; // Built a string for each stream
+    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_NMEA_MSG; messageNumber++) // For each NMEA message
     {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.mosaicX5MessageRatesNMEA[messageNumber] > 0)
+        int stream = settings.mosaicMessageStreamNMEA[messageNumber];
+        if (stream > 0)
         {
-            if (mosaicX5->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
-                                          settings.mosaicX5MessageRatesNMEA[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
-                                 umMessagesNMEA[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
+            stream--;
+
+            if (streams[stream].length() > 0)
+                streams[stream] += String("+");
+            streams[stream] += String(mosaicMessagesNMEA[messageNumber].msgTextName);
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
             if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
             {
                 // Mark PPL requied messages as enabled if rate > 0
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
+                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
                     gpggaEnabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
+                if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
                     gpzdaEnabled = true;
             }
         }
@@ -499,10 +496,42 @@ bool mosaicX5EnableNMEA()
     {
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
-            response &= mosaicX5->setNMEAPortMessage("GPGGA", "COM3", 1);
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("GGA");
+            gpggaEnabled = true;
+        }
         if (gpzdaEnabled == false)
-            response &= mosaicX5->setNMEAPortMessage("GPZDA", "COM3", 1);
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("ZDA");
+            gpzdaEnabled = true;
+        }
     }
+
+    if (settings.ntripClient_TransmitGGA == true)
+    {
+        // Force on GGA if needed for NTRIP
+        if (gpggaEnabled == false)
+        {
+            if (streams[0].length() > 0)
+                streams[0] += String("+");
+            streams[0] += String("GGA");
+            gpggaEnabled = true;
+        }
+    }
+
+    for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+    {
+        if (streams[stream].length == 0)
+            streams[stream] = String("none");
+
+        String setting = String("sno,Stream" + String(stream) + ",COM1," + streams[stream] + "," + String(mosaicMsgRates[setings.mosaicStreamIntervalsNMEA[setting]]));
+        response &= mosaicX5sendWithResponse(setting, "SatelliteTracking"));
+    }
+
 
     return (response);
 }
