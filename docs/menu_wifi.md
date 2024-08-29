@@ -1,6 +1,6 @@
 # WiFi Menu
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![WiFi Network Entry](<img/Terminal/SparkFun RTK Everywhere - WiFi Menu.png>)
 

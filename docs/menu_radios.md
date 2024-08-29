@@ -2,7 +2,7 @@
 
 ## ESP-Now
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Radio menu showing ESP-Now](<img/Terminal/SparkFun RTK Everywhere - Radios Menu.png>)
 
@@ -28,7 +28,7 @@ ESP-Now is a free radio included in every RTK product and works well, but it has
 
 ![Pairing Menu](img/Displays/SparkFun%20RTK%20Radio%20E-Pair.png)
 
-On devices that have a display, pressing the Power/Setup button will display the various submenus. Pausing on E-Pair will put the unit into ESP-Now pairing mode. If another RTK device is detected nearby in pairing mode, they will exchange MAC addresses and pair with each other. Multiple Rover units can be paired to a Base in the same fashion.
+On devices that have a display, clicking the Mode button will display the various submenus. Double-clicking on E-Pair will put the unit into ESP-Now pairing mode. If another RTK device is detected nearby in pairing mode, they will exchange MAC addresses and pair with each other. Multiple Rover units can be paired to a Base in the same fashion.
 
 ![Radio menu during AP-Config](<img/WiFi Config/SparkFun%20RTK%20Radio%20Config.png>)
 

@@ -1,8 +1,12 @@
 # Displays
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 A variety of RTK devices utilize a 0.96" or 1.3" high-contrast OLED display. While small, the display packs various situational data that can be helpful in the field. This section describes each possible display state.
+
+![RTK EVK - 1.3" OLED](img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)
+
+*Rover mode on the RTK EVK's 1.3" OLED display*
 
 ## Power On/Off
 
@@ -28,6 +32,10 @@ If the power state of a device is not known (for example, because a display may 
 
 *Rover with location fix*
 
+![RTK EVK with location fix and Ethernet connected](img/Displays/SparkFun_RTK_EVK_-_Main_Display_Icons.jpg)
+
+*RTK EVK with location fix and Ethernet connected*
+
 Upon power up the device will enter either Rover mode or Base mode. Above, the Rover mode is displayed.
 
 * **MAC:** The MAC address of the internal Bluetooth module. This is helpful knowledge when attempting to connect to the device from your phone. This will change to a Bluetooth symbol once connected.
@@ -38,12 +46,17 @@ Upon power up the device will enter either Rover mode or Base mode. Above, the R
     * Standard (three lines) is shown when the standard 5 NMEA messages are being logged
     * PPP (capital P) is shown when the standard 5 NMEA + RAWX and SFRBX messages are recorded. This is most often used for post process positioning (PPP) and 12 to 24-hour logs for [fixed permanent bases](permanent_base.md).
     * Custom (capital C) is shown when a custom set of messages are being recorded (not standard, and not PPP).
+* **IP Address:** On the RTK EVK 1.3" OLED, the full Ethernet or WiFi IP Address is shown at the bottom left of the display.
 
 ## Rover RTK Fix
 
 ![Rover with RTK Fix and Bluetooth connected](img/Displays/SparkFun_RTK_Express_-_Display_-_Rover_RTK_Fixed.jpg)
 
 *Rover with RTK Fix and Bluetooth connected*
+
+![RTK EVK with RTK Fix and Ethernet connected](img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)
+
+*RTK EVK with RTK Fix and Ethernet connected*
 
 Once NTRIP is enabled on your phone or RTCM data is being streamed into the **Radio** port the device will gain an RTK Fix. You should see the HPA drop to 14mm with a double circle bulls-eye as shown above.
 
@@ -80,7 +93,7 @@ Note: During NTRIP transmission WiFi is turned on and Bluetooth is turned off. Y
 
 ## L-Band
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 
@@ -94,22 +107,23 @@ The unit will display various messages to aid the user in obtaining keys as need
 
 *Three-pronged satellite dish indicating L-Band reception*
 
+![Three-pronged satellite dish indicating L-Band reception on RTK EVK](img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)
+
+*Three-pronged satellite dish indicating L-Band reception on RTK EVK*
+
 Upon successful reception and decryption of L-Band corrections, the satellite dish icon will increase to a three-pronged icon. As the unit's fix increases the cross-hair will indicate a basic 3D solution, a double blinking cross-hair will indicate a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution.
 
 ## Antenna Detection
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png)
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 On devices that support it, open circuit and short circuit detection is available on the GNSS antenna connection.
 
-![Reference Station indicating antenna open circuit](img/Displays/Antenna_Open.png)
+![RTK EVK indicating antenna open circuit](img/Displays/SparkFun-RTK-EVK-OLED_Antenna_Open_Highlighted.jpg)
 
-*Reference Station with the GNSS antenna disconnected (open circuit)*
+*RTK EVK with the GNSS antenna disconnected (open circuit)*
 
-![Reference Station indicating antenna short circuit](img/Displays/Antenna_Short.png)
+![RTK EVK indicating antenna short circuit](img/Displays/SparkFun-RTK-EVK-OLED_Antenna_Short_Highlighted.jpg)
 
-*Reference Station with a GNSS antenna cable fault (short circuit)*
+*RTK EVK with a GNSS antenna cable fault (short circuit)*
 
-When and ethernet-equipped RTK device is in Network Time Protocol (NTP) mode, the display also shows a clock symbol - as shown above. The value next to the clock symbol is the Time Accuracy Estimate (tAcc) from the UBX-NAV-PVT message.
-
-Note: tAcc is the time accuracy estimate for the navigation position solution. The timing accuracy of the TP pulse is significantly better than this. We show the tAcc as we believe it is more meaningful than the TIM-TP time pulse quantization error (qErr) - which is generally zero.
