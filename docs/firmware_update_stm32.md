@@ -4,9 +4,9 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Support
 
 The STM32WLE firmware runs the 915MHz LoRa radio inside the RTK Torch. 
 
-![Menu showing firmware version 2.0.1](<img/Firmware/SparkFun RTK Everywhere - STM32 Firmware.png>)
+![Menu showing firmware version 2.0.2](<img/Firmware/SparkFun RTK Everywhere - STM32 Firmware.png>)
 
-*RTK Torch LoRa radio firmware version 2.0.1*
+*RTK Torch LoRa radio firmware version 2.0.2*
 
 The firmware version number is displayed in the radio menu. If the device does not show this menu option the [ESP32 firmware](firmware_update_esp32.md) will need to be updated first.
 
@@ -16,7 +16,7 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 
 1. Download and install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html). While it *is* available for Windows/Linux/iOS, ST makes it rather difficult to get this software. We're sorry!
 
-2. Download the latest STM32 LoRa binary from the [RTK Everywhere Firmware Binaries](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/STM32_LoRa) repo. As of writing, this is **RTK_Torch_STM32_LoRa_v2_0_1.bin**.
+2. Download the latest STM32 LoRa binary from the [RTK Everywhere Firmware Binaries](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/STM32_LoRa) repo. As of writing, this is **RTK_Torch_STM32_LoRa_v2_0_2.bin**.
 
     ![Debug menu showing the STM32 direct connect option](<img/Firmware/SparkFun RTK Everywhere - STM32 Passthrough Menu.png>)
 
@@ -56,6 +56,6 @@ Firmware updates to the STM32WLE can only be done over the serial interface. Fol
 
 13. Now press and release the power button on the Torch. The device will beep indicating it has exited pass-through mode. You can now use your device normally.
 
-    ![Menu showing firmware version 2.0.1](<img/Firmware/SparkFun RTK Everywhere - STM32 Firmware.png>)
+    ![Menu showing firmware version 2.0.2](<img/Firmware/SparkFun RTK Everywhere - STM32 Firmware.png>)
 
-14. To confirm the version, open the Radio menu and enable the radio. Above, version 2.0.1 is seen.
+14. To confirm the version, open the Radio menu and enable the radio. Above, version 2.0.2 is seen.
