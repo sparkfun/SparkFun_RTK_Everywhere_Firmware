@@ -75,8 +75,7 @@ MQTT_Client.ino
 // When the dict is received, we subscribe to the nearest localized topic and unsubscribe from the continental topic
 // When the AssistNow MGA data arrives, we unsubscribe and subscribe to AssistNow updates
 
-
-String localizedDistributionDictTopic = ""; //Used in menuPP
+String localizedDistributionDictTopic = ""; // Used in menuPP
 String localizedDistributionTileTopic = "";
 
 #ifdef COMPILE_MQTT_CLIENT
@@ -116,7 +115,7 @@ const int mqttClientStateNameEntries = sizeof(mqttClientStateName) / sizeof(mqtt
 
 const RtkMode_t mqttClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 
-const String MQTT_TOPIC_ASSISTNOW = "/pp/ubx/mga"; // AssistNow (MGA) topic
+const String MQTT_TOPIC_ASSISTNOW = "/pp/ubx/mga";                 // AssistNow (MGA) topic
 const String MQTT_TOPIC_ASSISTNOW_UPDATES = "/pp/ubx/mga/updates"; // AssistNow (MGA) topic - updates only
 // Note: the key and correction topics are now stored in settings - extracted from ZTP
 const char localizedPrefix[] = "pp/ip/L"; // The localized distribution topic prefix. Note: starts with "pp", not "/pp"
@@ -125,13 +124,13 @@ const char localizedPrefix[] = "pp/ip/L"; // The localized distribution topic pr
 // Locals
 //----------------------------------------
 
-std::vector<String> mqttSubscribeTopics; // List of MQTT topics to be subscribed to
+std::vector<String> mqttSubscribeTopics;        // List of MQTT topics to be subscribed to
 std::vector<String> mqttClientSubscribedTopics; // List of topics currently subscribed to
 
 static MqttClient *mqttClient;
 
 static char *mqttClientCertificateBuffer = nullptr; // Buffer for client certificate
-static char *mqttClientPrivateKeyBuffer = nullptr; // Buffer for client private key
+static char *mqttClientPrivateKeyBuffer = nullptr;  // Buffer for client private key
 
 // Throttle the time between connection attempts
 static int mqttClientConnectionAttempts; // Count the number of connection attempts between restarts
@@ -329,8 +328,8 @@ void mqttClientReceiveMessage(int messageSize)
         if (mqttCount > 0)
         {
             // Check for localizedDistributionDictTopic
-            if ((localizedDistributionDictTopic.length() > 0)
-                && (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
+            if ((localizedDistributionDictTopic.length() > 0) &&
+                (strcmp(topic, localizedDistributionDictTopic.c_str()) == 0))
             {
                 // We should be using a JSON library to read the nodes. But JSON is
                 // heavy on RAM and the dict could be 25KB for Level 3.
@@ -363,7 +362,7 @@ void mqttClientReceiveMessage(int messageSize)
                     float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
                     char *preservedTile;
                     char *tile = strtok_r(nodes, ",", &preservedTile);
-                    int latitude = int(gnssGetLatitude() * 100.0); // Centidegrees
+                    int latitude = int(gnssGetLatitude() * 100.0);   // Centidegrees
                     int longitude = int(gnssGetLongitude() * 100.0); // Centidegrees
                     while (tile != nullptr)
                     {
@@ -375,15 +374,18 @@ void mqttClientReceiveMessage(int messageSize)
                                 lat = 0 - lat;
                             if (ew == 'W')
                                 lon = 0 - lon;
-                            float factorLon = cos(radians(latitude / 100.0));                                            // Scale lon by the lat
-                            float distScaled = pow(pow(lat - latitude, 2) + pow((lon - longitude) * factorLon, 2), 0.5); // Calculate distance to tile center in centidegrees
+                            float factorLon = cos(radians(latitude / 100.0)); // Scale lon by the lat
+                            float distScaled = pow(pow(lat - latitude, 2) + pow((lon - longitude) * factorLon, 2),
+                                                   0.5); // Calculate distance to tile center in centidegrees
                             if (distScaled < minDist)
                             {
                                 minDist = distScaled;
                                 tile[12] = 0; // Convert the second quote to NULL for snprintf
                                 char tileTopic[50];
                                 snprintf(tileTopic, sizeof(tileTopic), "%s", localizedDistributionDictTopic.c_str());
-                                snprintf(&tileTopic[strlen(localizedPrefix) + 13], sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s", tile + 1); // Start after the first quote
+                                snprintf(&tileTopic[strlen(localizedPrefix) + 13],
+                                         sizeof(tileTopic) - (strlen(localizedPrefix) + 13), "%s",
+                                         tile + 1); // Start after the first quote
                                 localizedDistributionTileTopic = tileTopic;
                             }
                         }
@@ -398,16 +400,17 @@ void mqttClientReceiveMessage(int messageSize)
             // Is this the full AssistNow MGA data? If so, unsubscribe and subscribe to updates
             if (strcmp(topic, MQTT_TOPIC_ASSISTNOW.c_str()) == 0)
             {
-                std::vector<String>::iterator pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
+                std::vector<String>::iterator pos =
+                    std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), MQTT_TOPIC_ASSISTNOW);
                 if (pos != mqttSubscribeTopics.end())
                     mqttSubscribeTopics.erase(pos);
-                
+
                 mqttSubscribeTopics.push_back(MQTT_TOPIC_ASSISTNOW_UPDATES);
             }
 
             // Are these keys? If so, update our local copy
-            if ((strlen(settings.pointPerfectKeyDistributionTopic) > 0 )
-                && (strcmp(topic, settings.pointPerfectKeyDistributionTopic) == 0))
+            if ((strlen(settings.pointPerfectKeyDistributionTopic) > 0) &&
+                (strcmp(topic, settings.pointPerfectKeyDistributionTopic) == 0))
             {
                 // Separate the UBX message into its constituent Key/ToW/Week parts
                 uint8_t *payLoad = &mqttData[6];
@@ -444,7 +447,8 @@ void mqttClientReceiveMessage(int messageSize)
                 WeekToWToUnixEpoch(&settings.pointPerfectCurrentKeyStart, currentWeek, currentToW);
                 WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
 
-                settings.pointPerfectCurrentKeyStart -= gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+                settings.pointPerfectCurrentKeyStart -=
+                    gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
                 settings.pointPerfectNextKeyStart -= gnssGetLeapSeconds();
 
                 settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
@@ -453,14 +457,16 @@ void mqttClientReceiveMessage(int messageSize)
                 settings.pointPerfectCurrentKeyDuration =
                     settings.pointPerfectNextKeyStart - settings.pointPerfectCurrentKeyStart - 1;
                 // settings.pointPerfectNextKeyDuration =
-                //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current key
-                //     duration because we have to
+                //     settings.pointPerfectCurrentKeyDuration; // We assume next key duration is the same as current
+                //     key duration because we have to
 
-                settings.pointPerfectNextKeyDuration = (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
+                settings.pointPerfectNextKeyDuration =
+                    (1000LL * 60 * 60 * 24 * 28) - 1; // Assume next key duration is 28 days
 
-                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-                
-                recordSystemSettings();                   // Record these settings to unit
+                if (online.rtc)
+                    settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
+                    
+                recordSystemSettings();                       // Record these settings to unit
 
                 if (settings.debugCorrections == true)
                     pointperfectPrintKeyInformation();
@@ -472,13 +478,11 @@ void mqttClientReceiveMessage(int messageSize)
                 // Only push SPARTN if the priority says we can
                 if (
                     // We can get correction data from the continental topic
-                    ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0)
-                    && (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0))
-                    ||
+                    ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
+                     (strcmp(topic, settings.regionalCorrectionTopics[settings.geographicRegion]) == 0)) ||
                     // Or from the localized distribution tile topic
-                    ((localizedDistributionTileTopic.length() > 0)
-                    && (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0))
-                )
+                    ((localizedDistributionTileTopic.length() > 0) &&
+                     (strcmp(topic, localizedDistributionTileTopic.c_str()) == 0)))
                 {
                     // Determine if MQTT (SPARTN data) is the correction source
                     if (correctionLastSeen(CORR_IP))
@@ -504,8 +508,7 @@ void mqttClientReceiveMessage(int messageSize)
                 else
                 {
                     // KEYS or MGA
-                    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) &&
-                        !inMainMenu)
+                    if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
                         systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
                     gnssPushRawData(mqttData, mqttCount);
@@ -615,7 +618,7 @@ void mqttClientStop(bool shutdown)
     {
         if (settings.debugMqttClientState)
             systemPrintln("Freeing mqttSecureClient");
-        //delete mqttSecureClient; // Don't. This causes issue #335
+        // delete mqttSecureClient; // Don't. This causes issue #335
         mqttSecureClient = nullptr;
         reportHeapNow(settings.debugMqttClientState);
     }
@@ -652,9 +655,9 @@ void mqttClientStop(bool shutdown)
     if (shutdown)
     {
         mqttClientSetState(MQTT_CLIENT_OFF);
-        //settings.enablePointPerfectCorrections = false;
+        // settings.enablePointPerfectCorrections = false;
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        //cannot be restarted without opening the menu or web configuration page...
+        // cannot be restarted without opening the menu or web configuration page...
         mqttClientConnectionAttempts = 0;
         mqttClientConnectionAttemptTimeout = 0;
     }
@@ -785,7 +788,8 @@ void mqttClientUpdate()
         {
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no certificate available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry with no timeout
+            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
+                                 // with no timeout
             break;
         }
         mqttSecureClient->setCertificate(mqttClientCertificateBuffer);
@@ -796,7 +800,8 @@ void mqttClientUpdate()
         {
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT_CLIENT_CONNECTING_2_SERVER no private key available");
-            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry with no timeout
+            mqttClientRestart(); // This does need a restart. Was mqttClientShutdown, but that causes an immediate retry
+                                 // with no timeout
             break;
         }
         mqttSecureClient->setPrivateKey(mqttClientPrivateKeyBuffer);
@@ -828,7 +833,7 @@ void mqttClientUpdate()
         // The MQTT server is now connected
         mqttClient->onMessage(mqttClientReceiveMessage);
 
-        mqttSubscribeTopics.clear(); // Clear the list of MQTT topics to be subscribed to
+        mqttSubscribeTopics.clear();        // Clear the list of MQTT topics to be subscribed to
         mqttClientSubscribedTopics.clear(); // Clear the list of topics currently subscribed to
         localizedDistributionDictTopic = "";
         localizedDistributionTileTopic = "";
@@ -850,11 +855,12 @@ void mqttClientUpdate()
             if (settings.debugMqttClientState)
                 systemPrintln("MQTT client - no corrections topic. Continuing...");
         }
-        // Subscribing to the localized distribution dictionary and local tile is handled by MQTT_CLIENT_SERVICES_CONNECTED
-        // since we need a 3D fix for those
+        // Subscribing to the localized distribution dictionary and local tile is handled by
+        // MQTT_CLIENT_SERVICES_CONNECTED since we need a 3D fix for those
 
-        mqttClientLastDataReceived = millis(); // Prevent MQTT_CLIENT_SERVICES_CONNECTED from going immediately into timeout
-        
+        mqttClientLastDataReceived =
+            millis(); // Prevent MQTT_CLIENT_SERVICES_CONNECTED from going immediately into timeout
+
         reportHeapNow(settings.debugMqttClientState);
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
 
@@ -886,8 +892,10 @@ void mqttClientUpdate()
         for (auto it = mqttSubscribeTopics.begin(); it != mqttSubscribeTopics.end(); it = std::next(it))
         {
             String topic = *it;
-            std::vector<String>::iterator pos = std::find(mqttClientSubscribedTopics.begin(), mqttClientSubscribedTopics.end(), topic);
-            if (pos == mqttClientSubscribedTopics.end()) // The mqttSubscribeTopics is not in mqttClientSubscribedTopics, so subscribe
+            std::vector<String>::iterator pos =
+                std::find(mqttClientSubscribedTopics.begin(), mqttClientSubscribedTopics.end(), topic);
+            if (pos == mqttClientSubscribedTopics
+                           .end()) // The mqttSubscribeTopics is not in mqttClientSubscribedTopics, so subscribe
             {
                 if (settings.debugMqttClientState)
                     systemPrintf("MQTT_Client subscribing to topic %s\r\n", topic.c_str());
@@ -914,8 +922,10 @@ void mqttClientUpdate()
         for (auto it = mqttClientSubscribedTopics.begin(); it != mqttClientSubscribedTopics.end(); it = std::next(it))
         {
             String topic = *it;
-            std::vector<String>::iterator pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), topic);
-            if (pos == mqttSubscribeTopics.end()) // The mqttClientSubscribedTopics is not in mqttSubscribeTopics, so unsubscribe
+            std::vector<String>::iterator pos =
+                std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), topic);
+            if (pos == mqttSubscribeTopics
+                           .end()) // The mqttClientSubscribedTopics is not in mqttSubscribeTopics, so unsubscribe
             {
                 if (settings.debugMqttClientState)
                     systemPrintf("MQTT_Client unsubscribing from topic %s\r\n", topic.c_str());
@@ -939,38 +949,39 @@ void mqttClientUpdate()
             break; // Break out of this state
 
         // Check if localized distribution is enabled
-        if ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) && (settings.useLocalizedDistribution))
+        if ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
+            (settings.useLocalizedDistribution))
         {
             uint8_t fixType = gnssGetFixType();
-            double latitude = gnssGetLatitude(); // degrees
+            double latitude = gnssGetLatitude();   // degrees
             double longitude = gnssGetLongitude(); // degrees
-            if (fixType >= 3) // If we have a 3D fix
+            if (fixType >= 3)                      // If we have a 3D fix
             {
                 // If both the dict and tile topics are empty, prepare to subscribe to the dict topic
                 if ((localizedDistributionDictTopic.length() == 0) && (localizedDistributionTileTopic.length() == 0))
                 {
                     float tileDelta = 2.5; // 2.5 degrees (10 degrees and 5 degrees are also possible)
-                    if ((settings.localizedDistributionTileLevel == 0) || (settings.localizedDistributionTileLevel == 3))
+                    if ((settings.localizedDistributionTileLevel == 0) ||
+                        (settings.localizedDistributionTileLevel == 3))
                         tileDelta = 10.0;
-                    if ((settings.localizedDistributionTileLevel == 1) || (settings.localizedDistributionTileLevel == 4))
+                    if ((settings.localizedDistributionTileLevel == 1) ||
+                        (settings.localizedDistributionTileLevel == 4))
                         tileDelta = 5.0;
 
-                    float lat = latitude; // Degrees
+                    float lat = latitude;                     // Degrees
                     lat = floor(lat / tileDelta) * tileDelta; // Calculate the tile center in degrees
                     lat += tileDelta / 2.0;
                     int lat_i = round(lat * 100.0); // integer centidegrees
 
-                    float lon = longitude; // Degrees
+                    float lon = longitude;                    // Degrees
                     lon = floor(lon / tileDelta) * tileDelta; // Calculate the tile center in degrees
                     lon += tileDelta / 2.0;
                     int lon_i = round(lon * 100.0); // integer centidegrees
 
                     char dictTopic[50];
-                    snprintf(dictTopic, sizeof(dictTopic), "%s%c%c%04d%c%05d/dict",
-                        localizedPrefix, char(0x30 + settings.localizedDistributionTileLevel),
-                        (lat_i < 0) ? 'S' : 'N', abs(lat_i),
-                        (lon_i < 0) ? 'W' : 'E', abs(lon_i));
-
+                    snprintf(dictTopic, sizeof(dictTopic), "%s%c%c%04d%c%05d/dict", localizedPrefix,
+                             char(0x30 + settings.localizedDistributionTileLevel), (lat_i < 0) ? 'S' : 'N', abs(lat_i),
+                             (lon_i < 0) ? 'W' : 'E', abs(lon_i));
 
                     localizedDistributionDictTopic = dictTopic;
                     mqttSubscribeTopics.push_back(localizedDistributionDictTopic);
@@ -986,24 +997,24 @@ void mqttClientUpdate()
                     // Subscribe to the localizedDistributionTileTopic
                     mqttSubscribeTopics.push_back(localizedDistributionTileTopic);
                     // Unsubscribe from the localizedDistributionDictTopic
-                    std::vector<String>::iterator pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), localizedDistributionDictTopic);
+                    std::vector<String>::iterator pos = std::find(
+                        mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), localizedDistributionDictTopic);
                     if (pos != mqttSubscribeTopics.end())
-                            mqttSubscribeTopics.erase(pos);
+                        mqttSubscribeTopics.erase(pos);
                     // Unsubscribe from the continental corrections
-                    pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(), String(settings.regionalCorrectionTopics[settings.geographicRegion]));
+                    pos = std::find(mqttSubscribeTopics.begin(), mqttSubscribeTopics.end(),
+                                    String(settings.regionalCorrectionTopics[settings.geographicRegion]));
                     if (pos != mqttSubscribeTopics.end())
-                            mqttSubscribeTopics.erase(pos);
+                        mqttSubscribeTopics.erase(pos);
 
-                    localizedDistributionDictTopic = ""; // Empty localizedDistributionDictTopic to prevent this state being repeated
+                    localizedDistributionDictTopic =
+                        ""; // Empty localizedDistributionDictTopic to prevent this state being repeated
                     breakOut = true;
                 }
-
-
             }
         }
         if (breakOut)
             break; // Break out of this state
-
 
         // Add any new state checking above this line
         break;
