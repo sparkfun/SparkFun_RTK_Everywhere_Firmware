@@ -1209,8 +1209,8 @@ void provisioningSetState(uint8_t newState)
     }
 }
 
-unsigned long provisioningStartTime;
-const unsigned long provisioningTimeout = 120000;
+unsigned long provisioningStartTime_millis;
+const unsigned long provisioningTimeout_ms = 120000;
 
 void updateProvisioning()
 {
@@ -1228,12 +1228,14 @@ void updateProvisioning()
     {
     default:
     case PROVISIONING_OFF: {
-        provisioningStartTime = millis(); // Record the start time so we can timeout
+        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
         provisioningSetState(PROVISIONING_WAIT_RTC);
     }
     break;
     case PROVISIONING_WAIT_RTC: {
-        if ((online.rtc) || (millis() > (provisioningStartTime + provisioningTimeout)) || (settings.requestKeyUpdate))
+        if ((online.rtc)
+            // If RTC is not online after provisioningTimeout_ms, try to provision anyway
+            || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) || (settings.requestKeyUpdate))
             provisioningSetState(PROVISIONING_NOT_STARTED);
     }
     break;
@@ -1269,7 +1271,7 @@ void updateProvisioning()
         }
         else
         {
-            // Determine days until next key expires
+            // RTC is online. Determine days until next key expires
             int daysRemaining =
                 daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
 
@@ -1277,9 +1279,9 @@ void updateProvisioning()
                 systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
 
             if (daysRemaining > 28)
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
+                provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
             else
-                provisioningSetState(PROVISIONING_CHECK_ATTEMPT);
+                provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
         }
     }
     break;
@@ -1313,9 +1315,9 @@ void updateProvisioning()
     }
     break;
     case PROVISIONING_STARTING: {
-        ztpResponse = ZTP_NOT_STARTED;    // HTTP_Client will update this
-        httpClientModeNeeded = true;      // This will start the HTTP_Client
-        provisioningStartTime = millis(); // Record the start time so we can timeout
+        ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
+        httpClientModeNeeded = true;             // This will start the HTTP_Client
+        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
         paintGettingKeys();
         provisioningSetState(PROVISIONING_STARTED);
     }
@@ -1329,8 +1331,8 @@ void updateProvisioning()
         }
         else if (ztpResponse == ZTP_SUCCESS)
         {
-            httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
-            recordSystemSettings();
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up
+            recordSystemSettings();       // Make sure the new cert and keys are recorded
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_DEACTIVATED)
@@ -1354,7 +1356,7 @@ void updateProvisioning()
                          "subscription. Please reference device ID: %s\r\n",
                          landingPageUrl, hardwareID);
 
-            httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAccountExpired(5000);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
@@ -1380,7 +1382,7 @@ void updateProvisioning()
                          "activated. Please reference device ID: %s\r\n",
                          landingPageUrl, hardwareID);
 
-            httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayNotListed(5000);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
@@ -1396,7 +1398,7 @@ void updateProvisioning()
                          "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
                          hardwareID);
 
-            httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
             displayAlreadyRegistered(5000);
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
@@ -1405,7 +1407,7 @@ void updateProvisioning()
         {
             systemPrintln("updateProvisioning: ZTP_UNKNOWN_ERROR");
 
-            httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
 
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
@@ -1449,15 +1451,12 @@ void updateProvisioning()
         else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
             provisioningSetState(PROVISIONING_OFF);
         // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-        // else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? (15 * 60) : (60 * 60
-        // * 24))))
+        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (1000 * 60 * 15) : (1000 * 60 * 60 *
+        // 24))))
         // When did we last try to get keys? Attempt every 24 hours
-        else if (online.rtc && (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24)))
-        {
-            settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-            recordSystemSettings();                   // Record these settings to unit
-            provisioningSetState(PROVISIONING_STARTING);
-        }
+        else if (millis() >
+                 (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
+            provisioningSetState(PROVISIONING_CHECK_REMAINING);
     }
     break;
     }
