@@ -60,7 +60,7 @@ void menuSystem()
         {
             systemPrint("NEO-D9S L-Band: ");
 
-            if (online.lband == true)
+            if (online.lband_neo == true)
                 systemPrintln("Online - ");
             else
                 systemPrintln("Offline - ");
@@ -80,6 +80,27 @@ void menuSystem()
             systemPrint(" - ");
 
             printNEOInfo();
+        }
+
+        if (present.gnss_mosaicX5 == true)
+        {
+            systemPrint("mosaic-X5 L-Band: ");
+
+            if (online.lband_gnss == true)
+                systemPrintln("Online - ");
+            else
+                systemPrintln("Offline - ");
+
+            if (online.lbandCorrections == true)
+                systemPrint("Keys Good");
+            else
+                systemPrint("No Keys");
+
+            systemPrint(" / Corrections Received");
+            if (lbandCorrectionsReceived == false)
+                systemPrint(" Failed");
+
+            // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
         }
 
         // Display the Bluetooth status

@@ -442,6 +442,7 @@ void beginBoard()
         present.fastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
 
         pin_GnssUart2_RX = 4;
         pin_GnssUart_RX = 13;
@@ -502,6 +503,7 @@ void beginBoard()
         present.fastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
 
         pin_muxA = 2;
         pin_muxB = 12;

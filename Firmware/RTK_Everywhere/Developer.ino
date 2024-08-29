@@ -309,8 +309,6 @@ void     mosaicX5SetMinElevation(uint8_t elevationDegrees) {}
 void     mosaicX5SetModel(uint8_t modelNumber) {}
 bool     mosaicX5SetModeRoverSurvey() {return false;}
 bool     mosaicX5SetRate(double secondsBetweenSolutions) {return false;}
-void     mosaicX5UnicoreHandler(uint8_t * buffer, int length) {}
-char*    mosaicX5GetId() {return ((char*)"No compiled");}
 uint8_t  mosaicX5GetLeapSeconds() {return (0);}
 bool     mosaicX5IsBlocking() {return(false);}
 uint8_t  mosaicX5GetActiveMessageCount() {return(0);}

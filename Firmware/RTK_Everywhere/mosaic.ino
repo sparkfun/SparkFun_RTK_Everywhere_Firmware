@@ -1,5 +1,32 @@
 #ifdef COMPILE_MOSAICX5
 
+// These globals are updated regularly via the SBF parser
+double mosaicLatitude; // PVTGeodetic Latitude
+double mosaicLongitude; // PVTGeodetic Longitude
+float mosaicAltitude; // PVTGeodetic Latitude Height
+float mosaicHorizontalAccuracy; // PVTGeodetic Latitude HAccuracy
+
+uint8_t mosaicDay; // ReceiverTime UTCDay
+uint8_t mosaicMonth; // ReceiverTime UTCMonth
+uint16_t mosaicYear; // ReceiverTime UTCYear
+uint8_t mosaicHour; // ReceiverTime UTCHour
+uint8_t mosaicMinute; // ReceiverTime UTCMin
+uint8_t mosaicSecond; // ReceiverTime UTCSec
+uint16_t mosaicMillisecond; // ReceiverTime TOW % 1000
+
+uint8_t mosaicSatellitesInView; // PVTGeodetic NrSV
+uint8_t mosaicFixType; // PVTGeodetic Mode Bits 0-3
+bool mosaicDeterminingFixedPosition; // PVTGeodetic Mode Bit 6
+
+bool mosaicValidDate; // ReceiverTime SyncLevel Bit 0 (WNSET)
+bool mosaicValidTime; // ReceiverTime SyncLevel Bit 1 (TOWSET)
+bool mosaicFullyResolved; // ReceiverTime SyncLevel Bit 2 (FINETIME)
+double mosaicClkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
+uint8_t mosaicLeapSeconds = 18; // ReceiverTime DeltaLS
+
+unsigned long mosaicPvtArrivalMillis = 0;
+bool mosaicPvtUpdated = false;
+
 void mosaicX5flushRX(unsigned long timeout = 0); // Header
 void mosaicX5flushRX(unsigned long timeout)
 {
@@ -174,6 +201,7 @@ bool mosaicX5Begin()
 
 bool mosaicX5IsBlocking()
 {
+    // TODO - do we need this?
     return false;
 }
 
@@ -200,23 +228,44 @@ bool mosaicX5Configure()
 bool mosaicX5ConfigureOnce()
 {
     /*
+    Configure COM1
     Set minCNO
     Set elevationAngle
     Set Constellations
-    Set messages
-      Enable selected NMEA messages on COM3
-      Enable selected RTCM messages on COM3
+
+    NMEA Messages are enabled by mosaicX5EnableNMEA
+    RTCMv3 messages are enabled by mosaicX5EnableRTCMRover / mosaicX5EnableRTCMBase
+
 */
 
     bool response = true;
 
     response &= mosaicX5SetBaudRateCOM1(settings.dataPortBaud); // COM1 is connected to ESP
 
+    // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
+    String settings = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
+    if (settings.enablePointPerfectCorrections)
+        settings += String("+LBandBeam1");
+    settings += String("\n\r");
+    response &= mosaicX5sendWithResponse(settings, "DataInOut");
+
+    // Output SBF PVTGeodetic and ReceiverTime on their own stream
+    // TODO : make the interval adjustable
+    // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
+    settings = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    response &= mosaicX5sendWithResponse(settings, "SBFOutput");
+
     response &= mosaicX5SetMinElevation(settings.minElev);
 
     response &= mosaicX5SetMinCNO(settings.minCNO);
 
     response &= mosaicX5SetConstellations();
+
+    // Mark L5 as healthy
+    response &= mosaicX5sendWithResponse("shm,Tracking,off\n\r", "HealthMask");
+    response &= mosaicX5sendWithResponse("shm,PVT,off\n\r", "HealthMask");
+    response &= mosaicX5sendWithResponse("snt,+GPSL5\n\r", "SignalTracking");
+    response &= mosaicX5sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage");
 
     if (response == true)
     {
@@ -284,12 +333,10 @@ bool mosaicX5BeginPPS()
 bool mosaicX5ConfigureRover()
 {
     /*
-        Disable all message traffic
-        Cancel any survey-in modes
         Set mode to Rover + dynamic model
         Set minElevation
-        Enable RTCM messages on COM3
-        Enable NMEA on COM3
+        Enable RTCM messages on COM1
+        Enable NMEA on COM1
     */
     if (online.gnss == false)
     {
@@ -297,29 +344,19 @@ bool mosaicX5ConfigureRover()
         return (false);
     }
 
-    mosaicX5DisableAllOutput();
-
     bool response = true;
 
-    response &= mosaicX5SetModel(settings.dynamicModel); // This will cancel any base averaging mode
+    // TODO : check if all is the correct RoverMode
+    // Should it be StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed+RTK - i.e. no PPP?
+    // TODO : check if RefPos should be auto
+    response &= mosaicX5sendWithResponse("spm,Rover,all\n\r", "PVTMode");
+
+    response &= mosaicX5SetModel(settings.dynamicModel);
 
     response &= mosaicX5SetMinElevation(settings.minElev);
 
-    // Configure MOSAICX5 to output binary reports out COM2, connected to IM19 COM3
-    response &= mosaicX5->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
-    response &= mosaicX5->sendCommand("PSRVELB COM2 0.2");
-
-    // Configure MOSAICX5 to output NMEA reports out COM2, connected to IM19 COM3
-    response &= mosaicX5->setNMEAPortMessage("GPGGA", "COM2", 0.2); // 5Hz
-
-    // Enable the NMEA sentences and RTCM on COM3 last. This limits the traffic on the config
-    // interface port during config.
-
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
     response &= mosaicX5EnableRTCMRover();
-    // TODO consider reducing the GSV sentence to 1/4 of the GPGGA setting
 
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
     response &= mosaicX5EnableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
@@ -330,7 +367,7 @@ bool mosaicX5ConfigureRover()
 
     if (response == false)
     {
-        systemPrintln("MOSAICX5 Rover failed to configure");
+        systemPrintln("mosaic-X5 Rover failed to configure");
     }
 
     return (response);
@@ -339,10 +376,12 @@ bool mosaicX5ConfigureRover()
 bool mosaicX5ConfigureBase()
 {
     /*
-        Disable all messages
-        Start base
+        Set mode to Static + dynamic model
         Enable RTCM Base messages
         Enable NMEA messages
+
+        mosaicX5AutoBaseStart() will start "survey-in"
+        mosaicX5FixedBaseStart() will start fixed base
     */
 
     if (online.gnss == false)
@@ -351,14 +390,14 @@ bool mosaicX5ConfigureBase()
         return (false);
     }
 
-    mosaicX5DisableAllOutput();
-
     bool response = true;
 
-    response &= mosaicX5EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
-                                       // UNLOG or similar.
+    response &= mosaicX5SetModel(MOSAIC_DYN_MODEL_STATIC);
 
-    // Only turn on messages, do not turn off messages. We assume the caller has UNLOG or similar.
+    response &= mosaicX5SetMinElevation(settings.minElev);
+
+    response &= mosaicX5EnableRTCMBase();
+
     response &= mosaicX5EnableNMEA();
 
     // Save the current configuration into non-volatile memory (NVM)
@@ -369,7 +408,7 @@ bool mosaicX5ConfigureBase()
 
     if (response == false)
     {
-        systemPrintln("MOSAICX5 Base failed to configure");
+        systemPrintln("mosaic-X5 Base failed to configure");
     }
 
     return (response);
@@ -416,6 +455,11 @@ bool mosaicX5FixedBaseStart()
         response &= mosaicX5sendWithResponse("spm,Static,,Geodetic1\n\r", "PVTMode");
     }
 
+    if (response == false)
+    {
+        systemPrintln("Fixed base start failed");
+    }
+
     return (response);
 }
 
@@ -436,9 +480,9 @@ bool mosaicX5SetTalkerGNGGA()
 
 bool mosaicX5EnableGgaForNtrip()
 {
-    bool response = mosaicX5sendWithResponse("snti,GP\n\r", "NMEATalkerID");
-    response &= mosaicX5sendWithResponse("sno,Stream1,COM1,+GGA,sec1\n\r", "NMEAOutput");
-    return response;
+    // Set the talker ID to GP
+    // mosaicX5EnableNMEA() will enable GGA if needed
+    return mosaicX5sendWithResponse("snti,GP\n\r", "NMEATalkerID");
 }
 
 bool mosaicX5SetMessages(int maxRetries)
@@ -455,19 +499,18 @@ bool mosaicX5SetMessagesUsb(int maxRetries)
 
 bool mosaicX5AutoBaseComplete()
 {
-            // Bit 6: Set if the user has entered the command setPVTMode, Static, , auto
-            // and the receiver is still in the process of determining its fixed position.        
-            return ();
+    // PVTGeodetic Mode Bit 6 is set if the user has entered the command
+    // "setPVTMode, Static, , auto" and the receiver is still in the process of determining its fixed position.
+    return (!mosaicDeterminingFixedPosition);
 }
 
 // Turn on all the enabled NMEA messages on COM1
 bool mosaicX5EnableNMEA()
 {
-    bool response = true;
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
 
-    String streams[MOSAIC_NUM_NMEA_STREAMS]; // Built a string for each stream
+    String streams[MOSAIC_NUM_NMEA_STREAMS]; // Build a string for each stream
     for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_NMEA_MSG; messageNumber++) // For each NMEA message
     {
         int stream = settings.mosaicMessageStreamNMEA[messageNumber];
@@ -483,7 +526,7 @@ bool mosaicX5EnableNMEA()
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
             if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
             {
-                // Mark PPL requied messages as enabled if rate > 0
+                // Mark PPL requied messages as enabled if stream > 0
                 if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
                     gpggaEnabled = true;
                 if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
@@ -497,6 +540,9 @@ bool mosaicX5EnableNMEA()
         // Force on any messages that are needed for PPL
         if (gpggaEnabled == false)
         {
+            // Add GGA to Stream1 (streams[0])
+            // TODO: We may need to be cleverer about which stream we choose,
+            //       depending on the stream intervals. Maybe GGA needs its own stream?
             if (streams[0].length() > 0)
                 streams[0] += String("+");
             streams[0] += String("GGA");
@@ -523,15 +569,17 @@ bool mosaicX5EnableNMEA()
         }
     }
 
+    bool response = true;
+
     for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
     {
         if (streams[stream].length == 0)
             streams[stream] = String("none");
 
-        String setting = String("sno,Stream" + String(stream) + ",COM1," + streams[stream] + "," + String(mosaicMsgRates[setings.mosaicStreamIntervalsNMEA[setting]]));
-        response &= mosaicX5sendWithResponse(setting, "SatelliteTracking"));
+        String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
+                                String(mosaicMsgRates[setings.mosaicStreamIntervalsNMEA[setting]]) + "\n\r");
+        response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
     }
-
 
     return (response);
 }
@@ -545,33 +593,36 @@ bool mosaicX5EnableRTCMRover()
     bool rtcm1042Enabled = false;
     bool rtcm1046Enabled = false;
 
-    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_RTCM_MSG; messageNumber++)
+    // Set RTCMv3 Intervals
+    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
     {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.mosaicX5MessageRatesRTCMRover[messageNumber] > 0)
+        String setting = String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," +
+                                String(settings.mosaicMessageIntervalsRTCMv3Rover[group]) + "\n\r");
+        response &= mosaicX5sendWithResponse(setting, "RTCMv3Interval");
+    }
+
+    // Enable RTCMv3
+    String messages = String("");
+    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
+    {
+        if (settings.mosaicMessageEnabledRTCMv3Rover[message])
         {
-            if (mosaicX5->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                          settings.mosaicX5MessageRatesRTCMRover[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                                 umMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String(mosaicMessagesRTCMv3[message].name);
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
             if (settings.enablePointPerfectCorrections)
             {
                 // Mark PPL required messages as enabled if rate > 0
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1019") == 0)
                     rtcm1019Enabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1020") == 0)
                     rtcm1020Enabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
+                if (mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
                     rtcm1042Enabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
+                if (mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
                     rtcm1046Enabled = true;
             }
         }
@@ -581,14 +632,36 @@ bool mosaicX5EnableRTCMRover()
     {
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
-            response &= mosaicX5->setRTCMPortMessage("RTCM1019", "COM3", 1);
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1019");
+        }
         if (rtcm1020Enabled == false)
-            response &= mosaicX5->setRTCMPortMessage("RTCM1020", "COM3", 1);
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1020");
+        }
         if (rtcm1042Enabled == false)
-            response &= mosaicX5->setRTCMPortMessage("RTCM1042", "COM3", 1);
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1042");
+        }
         if (rtcm1046Enabled == false)
-            response &= mosaicX5->setRTCMPortMessage("RTCM1046", "COM3", 1);
+        {
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String("RTCM1046");
+        }
     }
+
+    if (messages.length() == 0)
+        messages = String("none");
+
+    String setting = String("sr3o,COM1," + messages + "\n\r");
+    response &= mosaicX5sendWithResponse(setting, "RTCMv3Output");
 
     return (response);
 }
@@ -598,22 +671,31 @@ bool mosaicX5EnableRTCMBase()
 {
     bool response = true;
 
-    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_RTCM_MSG; messageNumber++)
+    // Set RTCMv3 Intervals
+    for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
     {
-        // Only turn on messages, do not turn off messages set to 0. This saves on command sending. We assume the caller
-        // has UNLOG or similar.
-        if (settings.mosaicX5MessageRatesRTCMBase[messageNumber] > 0)
+        String setting = String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," +
+                                String(settings.mosaicMessageIntervalsRTCMv3Base[group]) + "\n\r");
+        response &= mosaicX5sendWithResponse(setting, "RTCMv3Interval");
+    }
+
+    // Enable RTCMv3
+    String messages = String("");
+    for (int message = 0; message < MAX_MOSAIC_RTCM_V3_MSG; message++)
+    {
+        if (settings.mosaicMessageEnabledRTCMv3Base[message])
         {
-            if (mosaicX5->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                          settings.mosaicX5MessageRatesRTCMBase[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                                 umMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
+            if (messages.length() > 0)
+                messages += String("+");
+            messages += String(mosaicMessagesRTCMv3[message].name);
         }
     }
+
+    if (messages.length() == 0)
+        messages = String("none");
+
+    String setting = String("sr3o,COM1," + messages + "\n\r");
+    response &= mosaicX5sendWithResponse(setting, "RTCMv3Output");
 
     return (response);
 }
@@ -633,36 +715,11 @@ bool mosaicX5SetConstellations()
         }
     }
 
+    if (enabledConstellations.length() == 0)
+        enabledConstellations = String("none");
+
     String setting = String("sst," + enabledConstellations + "\n\r");
     return (mosaicX5sendWithResponse(setting, "SatelliteTracking"));
-}
-
-// Turn off all NMEA and RTCM
-void mosaicX5DisableAllOutput()
-{
-    if (settings.debugGnss)
-        systemPrintln("MOSAICX5 disable output");
-
-    // Turn off local noise before moving to other ports
-    mosaicX5->disableOutput();
-
-    // Re-attempt as necessary
-    for (int x = 0; x < 3; x++)
-    {
-        bool response = true;
-        response &= mosaicX5->disableOutputPort("COM1");
-        response &= mosaicX5->disableOutputPort("COM2");
-        response &= mosaicX5->disableOutputPort("COM3");
-        if (response == true)
-            break;
-    }
-}
-
-// Disable all output, then re-enable
-void mosaicX5DisableRTCM()
-{
-    mosaicX5DisableAllOutput();
-    mosaicX5EnableNMEA();
 }
 
 bool mosaicX5SetMinElevation(uint8_t elevation)
@@ -685,87 +742,49 @@ bool mosaicX5SetMinCNO(uint8_t minCNO)
 
 bool mosaicX5SetModel(uint8_t modelNumber)
 {
-    if (modelNumber == MOSAICX5_DYN_MODEL_SURVEY)
-        return (mosaicX5->setModeRoverSurvey());
-    else if (modelNumber == MOSAICX5_DYN_MODEL_UAV)
-        return (mosaicX5->setModeRoverUAV());
-    else if (modelNumber == MOSAICX5_DYN_MODEL_AUTOMOTIVE)
-        return (mosaicX5->setModeRoverAutomotive());
-    return (false);
+    if (modelNumber >= MOSAIC_NUM_DYN_MODELS)
+    {
+        systemPrintf("Invalid dynamic model %d\r\n", modelNumber);
+        return false;
+    }
+
+    // TODO : support different Levels (Max, HIgh, Moderate, Low)
+    String setting = String("srd,Moderate," + String(mosaicReceiverDynamics[modelNumber] + "\n\r"));
+
+    return (mosaicX5sendWithResponse(setting, "ReceiverDynamics"));
 }
 
 void mosaicX5FactoryReset()
 {
-    mosaicX5->factoryReset();
-
-    //   systemPrintln("Waiting for MOSAICX5 to reboot");
-    //   while (1)
-    //   {
-    //     delay(1000); //Wait for device to reboot
-    //     if (mosaicX5->isConnected() == true) break;
-    //     else systemPrintln("Device still rebooting");
-    //   }
-    //   systemPrintln("MOSAICX5 has been factory reset");
+    mosaicX5sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile");
+    mosaicX5sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile");
 }
 
-// The MOSAICX5 does not have a rate setting. Instead the report rate of
-// the GNSS messages can be set. For example, 0.5 is 2Hz, 0.2 is 5Hz.
-// We assume, if the user wants to set the 'rate' to 5Hz, they want all
-// messages set to that rate.
-// All NMEA/RTCM for a rover will be based on the measurementRateMs setting
-// ie, if a message != 0, then it will be output at the measurementRate.
-// All RTCM for a base will be based on a measurementRateMs of 1000 with messages
-// that can be reported more slowly than that (ie 1 per 10 seconds).
+// The mosaic-X5 does not have a rate setting.
+// Instead the NMEA and RTCM messages are set to the desired interval
+// NMEA messages are allocated to streams Stream1, Stream2 etc..
+// The interval of each stream can be adjusted from msec10 to min60
+// RTCMv3 messages have their own intervals
+// The interval of each message or 'group' can be adjusted from 0.1s to 600s
+// RTCMv3 messages are enabled separately
+//
+// It's messy, but we could use secondsBetweenSolutions to set the intervals
+// For now, let's ignore this... TODO!
 bool mosaicX5SetRate(double secondsBetweenSolutions)
 {
-    bool response = true;
-
-    mosaicX5DisableAllOutput();
-
-    // Overwrite any enabled messages with this rate
-    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_NMEA_MSG; messageNumber++)
-    {
-        if (settings.mosaicX5MessageRatesNMEA[messageNumber] > 0)
-        {
-            settings.mosaicX5MessageRatesNMEA[messageNumber] = secondsBetweenSolutions;
-        }
-    }
-    response &= mosaicX5EnableNMEA(); // Enact these rates
-
-    // TODO We don't know what state we are in, so we don't
-    // know which RTCM settings to update. Assume we are
-    // in rover for now
-    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_RTCM_MSG; messageNumber++)
-    {
-        if (settings.mosaicX5MessageRatesRTCMRover[messageNumber] > 0)
-        {
-            settings.mosaicX5MessageRatesRTCMRover[messageNumber] = secondsBetweenSolutions;
-        }
-    }
-    response &= mosaicX5EnableRTCMRover(); // Enact these rates
-
-    // If we successfully set rates, only then record to settings
-    if (response == true)
-    {
-        uint16_t msBetweenSolutions = secondsBetweenSolutions * 1000;
-        settings.measurementRateMs = msBetweenSolutions;
-    }
-    else
-    {
-        systemPrintln("Failed to set measurement and navigation rates");
-        return (false);
-    }
-
     return (true);
 }
 
 // Returns the seconds between measurements
+// The intervals of NMEA and RTCM can be set independently
+// What value should we return?
+// TODO!
 double mosaicX5GetRateS()
 {
-    return (((double)settings.measurementRateMs) / 1000.0);
+    return (1.0);
 }
 
-// Send data directly from ESP GNSS UART1 to MOSAICX5 UART3
+// Send data directly from ESP GNSS UART1 to mosaic-X5 COM1
 int mosaicX5PushRawData(uint8_t *dataToSend, int dataLength)
 {
     return (serialGNSS->write(dataToSend, dataLength));
@@ -790,122 +809,124 @@ bool mosaicX5SetBaudRateCOM1(uint32_t baudRate)
 // Return the lower of the two Lat/Long deviations
 float mosaicX5GetHorizontalAccuracy()
 {
-    float latitudeDeviation = mosaicX5->getLatitudeDeviation();
-    float longitudeDeviation = mosaicX5->getLongitudeDeviation();
-
-    if (longitudeDeviation < latitudeDeviation)
-        return (longitudeDeviation);
-
-    return (latitudeDeviation);
+    return (mosaicHorizontalAccuracy);
 }
 
 int mosaicX5GetSatellitesInView()
 {
-    return (mosaicX5->getSIV());
+    return (mosaicSatellitesInView);
 }
 
 double mosaicX5GetLatitude()
 {
-    return (mosaicX5->getLatitude());
+    return (mosaicLatitude);
 }
 
 double mosaicX5GetLongitude()
 {
-    return (mosaicX5->getLongitude());
+    return (mosaicLongitude);
 }
 
 double mosaicX5GetAltitude()
 {
-    return (mosaicX5->getAltitude());
+    return (mosaicAltitude);
 }
 
 bool mosaicX5IsValidTime()
 {
-    if (mosaicX5->getTimeStatus() == 0) // 0 = valid, 3 = invalid
-        return (true);
-    return (false);
+    return (mosaicValidTime);
 }
 
 bool mosaicX5IsValidDate()
 {
-    if (mosaicX5->getDateStatus() == 1) // 0 = Invalid, 1 = valid, 2 = leap second warning
-        return (true);
-    return (false);
+    return (mosaicValidDate);
 }
 
 uint8_t mosaicX5GetSolutionStatus()
 {
-    return (mosaicX5->getSolutionStatus()); // 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 =
-                                         // Covariance trace
+    // Bits 0-3: type of PVT solution:
+    //     0: No GNSS PVT available
+    //     1: Stand-Alone PVT
+    //     2: Differential PVT
+    //     3: Fixed location
+    //     4: RTK with fixed ambiguities
+    //     5: RTK with float ambiguities
+    //     6: SBAS aided PVT
+    //     7: moving-base RTK with fixed ambiguities
+    //     8: moving-base RTK with float ambiguities
+    //     9: Reserved
+    //     10: Precise Point Positioning (PPP)
+    //     12: Reserved
+
+    if (mosaicFixType == 4)
+        return 2; // RTK Fix
+    if (mosaicFixType == 5)
+        return 1; // RTK Float
+    return 0;
 }
 
 bool mosaicX5IsFullyResolved()
 {
-    // MOSAICX5 does not have this feature directly.
-    // getSolutionStatus: 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
-    if (mosaicX5GetSolutionStatus() == 0)
-        return (true);
-    return (false);
+    return (mosaicFullyResolved); // PVT FINETIME
 }
 
-// Standard deviation of the receiver clock offset, s.
-// MOSAICX5 returns seconds, ZED returns nanoseconds. We convert here to ns.
-// Return just ns in uint32_t form
+// Standard deviation of the receiver clock offset
+// Return ns in uint32_t form
+// Note the RxClkBias will be a sawtooth unless clock steering is enabled
+// See setTimingSystem
+// Note : only relevant for NTP with TP interrupts
 uint32_t mosaicX5GetTimeDeviation()
 {
-    double timeDeviation_s = mosaicX5->getTimeOffsetDeviation();
-    // systemPrintf("mosaicX5 timeDeviation_s: %0.10f\r\n", timeDeviation_s);
-    if (timeDeviation_s > 1.0)
-        return (999999999);
-
-    uint32_t timeDeviation_ns = timeDeviation_s * 1000000000L; // Convert to nanoseconds
-    // systemPrintf("mosaicX5 timeDeviation_ns: %d\r\n", timeDeviation_ns);
-    return (timeDeviation_ns);
+    uint32_t nanos = (uint32_t)fabs(mosaicClkBias_ms * 1000000.0);
+    return nanos;
 }
 
-// 0 = None
-// 16 = 3D Fix (Single)
-// 49 = RTK Float (Presumed) (Wide-lane fixed solution)
-// 50 = RTK Fixed (Narrow-lane fixed solution)
-// Other position types, not yet seen
-// 1 = FixedPos, 8 = DopplerVelocity,
-// 17 = Pseudorange differential solution, 18 = SBAS, 32 = L1 float, 33 = Ionosphere-free float solution
-// 34 = Narrow-land float solution, 48 = L1 fixed solution
-// 68 = Precise Point Positioning solution converging
-// 69 = Precise Point Positioning
+// Bits 0-3: type of PVT solution:
+//     0: No GNSS PVT available
+//     1: Stand-Alone PVT
+//     2: Differential PVT
+//     3: Fixed location
+//     4: RTK with fixed ambiguities
+//     5: RTK with float ambiguities
+//     6: SBAS aided PVT
+//     7: moving-base RTK with fixed ambiguities
+//     8: moving-base RTK with float ambiguities
+//     9: Reserved
+//     10: Precise Point Positioning (PPP)
+//     12: Reserved
 uint8_t mosaicX5GetPositionType()
 {
-    return (mosaicX5->getPositionType());
+    return (mosaicFixType);
 }
 
 // Return full year, ie 2023, not 23.
 uint16_t mosaicX5GetYear()
 {
-    return (mosaicX5->getYear());
+    return (mosaicYear);
 }
 uint8_t mosaicX5GetMonth()
 {
-    return (mosaicX5->getMonth());
+    return (mosaicMonth);
 }
 uint8_t mosaicX5GetDay()
 {
-    return (mosaicX5->getDay());
+    return (mosaicDay);
 }
 uint8_t mosaicX5GetHour()
 {
-    return (mosaicX5->getHour());
+    return (mosaicHour);
 }
 uint8_t mosaicX5GetMinute()
 {
-    return (mosaicX5->getMinute());
+    return (mosaicMinute);
 }
 uint8_t mosaicX5GetSecond()
 {
-    return (mosaicX5->getSecond());
+    return (mosaicSecond);
 }
 uint8_t mosaicX5GetMillisecond()
 {
-    return (mosaicX5->getMillisecond());
+    return (mosaicMillisecond);
 }
 
 // Print the module type and firmware version
@@ -917,7 +938,7 @@ void mosaicX5PrintInfo()
 // Return the number of milliseconds since the data was updated
 uint16_t mosaicX5FixAgeMilliseconds()
 {
-    return (mosaicX5->getFixAgeMilliseconds());
+    return (millis() - mosaicPvtArrivalMillis);
 }
 
 bool mosaicX5SaveConfiguration()
@@ -927,45 +948,34 @@ bool mosaicX5SaveConfiguration()
 
 bool mosaicX5SetModeRoverSurvey()
 {
-    return (mosaicX5->setModeRoverSurvey());
-}
-
-void mosaicX5UnicoreHandler(uint8_t *buffer, int length)
-{
-    mosaicX5->unicoreHandler(buffer, length);
-}
-
-char *mosaicX5GetId()
-{
-    return (mosaicX5->getID());
+    return (mosaicX5ConfigureRover());
 }
 
 // Query GNSS for current leap seconds
 uint8_t mosaicX5GetLeapSeconds()
 {
-    // TODO Need to find leap seconds in MOSAICX5
-    return (18); // Default to 18
+    return (mosaicLeapSeconds); // Default to 18
 }
 
 uint8_t mosaicX5GetActiveMessageCount()
 {
     uint8_t count = 0;
 
-    for (int x = 0; x < MAX_MOSAICX5_NMEA_MSG; x++)
-        if (settings.mosaicX5MessageRatesNMEA[x] > 0)
+    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+        if (settings.mosaicMessageStreamNMEA[x] > 0)
             count++;
 
     // Determine which state we are in
     if (mosaicX5InRoverMode() == true)
     {
-        for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-            if (settings.mosaicX5MessageRatesRTCMRover[x] > 0)
+        for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+            if (settings.mosaicMessageEnabledRTCMv3Rover[x] > 0)
                 count++;
     }
     else
     {
-        for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-            if (settings.mosaicX5MessageRatesRTCMBase[x] > 0)
+        for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+            if (settings.mosaicMessageEnabledRTCMv3Base[x] > 0)
                 count++;
     }
 
@@ -993,24 +1003,27 @@ void mosaicX5MenuMessages()
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
-            mosaicX5MenuMessagesSubtype(settings.mosaicX5MessageRatesNMEA, "NMEA");
+            mosaicX5MenuMessagesNMEA();
         else if (incoming == 2)
-            mosaicX5MenuMessagesSubtype(settings.mosaicX5MessageRatesRTCMRover, "RTCMRover");
+            mosaicX5MenuMessagesRTCM(true);
         else if (incoming == 3)
-            mosaicX5MenuMessagesSubtype(settings.mosaicX5MessageRatesRTCMBase, "RTCMBase");
+            mosaicX5MenuMessagesRTCM(false);
         else if (incoming == 10)
         {
-            // Reset rates to defaults
-            for (int x = 0; x < MAX_MOSAICX5_NMEA_MSG; x++)
-                settings.mosaicX5MessageRatesNMEA[x] = umMessagesNMEA[x].msgDefaultRate;
+            // Reset intervals to default
+            mosaicStreamIntervalsNMEA = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
+
+            // Reset NMEA streams to defaults
+            for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+                settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultStream;
 
             // For rovers, RTCM should be zero by default.
-            for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-                settings.mosaicX5MessageRatesRTCMRover[x] = 0;
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Rover[x] = 0;
 
             // Reset RTCM rates to defaults
-            for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-                settings.mosaicX5MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
             systemPrintln("Reset to Defaults");
         }
@@ -1032,101 +1045,127 @@ void mosaicX5MenuMessages()
         restartBase = true;
 }
 
-// Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
-// Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-void mosaicX5MenuMessagesSubtype(float *localMessageRate, const char *messageType)
+void mosaicX5MenuMessagesNMEA()
 {
     while (1)
     {
         systemPrintln();
-        systemPrintf("Menu: Message %s\r\n", messageType);
+        systemPrintln("Menu: Message NMEA\r\n");
 
-        int endOfBlock = 0;
-
-        if (strcmp(messageType, "NMEA") == 0)
+        for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
         {
-            endOfBlock = MAX_MOSAICX5_NMEA_MSG;
-
-            for (int x = 0; x < MAX_MOSAICX5_NMEA_MSG; x++)
-                systemPrintf("%d) Message %s: %g\r\n", x + 1, umMessagesNMEA[x].msgTextName,
-                             settings.mosaicX5MessageRatesNMEA[x]);
+            if (settings.mosaicMessageStreamNMEA[x] > 0)
+                systemPrintf("%d) Message %s : Stream%d\r\n", x + 1, mosaicMessagesNMEA[x].msgTextName,
+                                settings.mosaicMessageStreamNMEA[x]);
+            else
+                systemPrintf("%d) Message %s : Off\r\n", x + 1, mosaicMessagesNMEA[x].msgTextName);
         }
-        else if (strcmp(messageType, "RTCMRover") == 0)
-        {
-            endOfBlock = MAX_MOSAICX5_RTCM_MSG;
 
-            for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-                systemPrintf("%d) Message %s: %g\r\n", x + 1, umMessagesRTCM[x].msgTextName,
-                             settings.mosaicX5MessageRatesRTCMRover[x]);
-        }
-        else if (strcmp(messageType, "RTCMBase") == 0)
-        {
-            endOfBlock = MAX_MOSAICX5_RTCM_MSG;
+        systemPrintln();
 
-            for (int x = 0; x < MAX_MOSAICX5_RTCM_MSG; x++)
-                systemPrintf("%d) Message %s: %g\r\n", x + 1, umMessagesRTCM[x].msgTextName,
-                             settings.mosaicX5MessageRatesRTCMBase[x]);
-        }
+        for (int x = 0; x < MOSAIC_NUM_NMEA_STREAMS; x++)
+            systemPrintf("%d) Stream%d : Interval %s\r\n", x + MAX_MOSAIC_NMEA_MSG + 1, x + 1,
+                            mosaicMsgRates[mosaicStreamIntervalsNMEA[x]].name);
+
+        systemPrintln();
 
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming >= 1 && incoming <= endOfBlock)
+        if (incoming >= 1 && incoming <= MAX_MOSAIC_NMEA_MSG) // Message Streams
         {
             // Adjust incoming to match array start of 0
             incoming--;
 
-            // Create user prompt
-            char messageString[100] = "";
-            if (strcmp(messageType, "NMEA") == 0)
-            {
-                sprintf(messageString, "Enter number of seconds between %s messages (0 to disable)",
-                        umMessagesNMEA[incoming].msgTextName);
-            }
-            else if ((strcmp(messageType, "RTCMRover") == 0) || (strcmp(messageType, "RTCMBase") == 0))
-            {
-                sprintf(messageString, "Enter number of seconds between %s messages (0 to disable)",
-                        umMessagesRTCM[incoming].msgTextName);
-            }
+            settings.mosaicMessageStreamNMEA[incoming] += 1;
+            if (settings.mosaicMessageStreamNMEA[incoming] > MOSAIC_NUM_NMEA_STREAMS)
+                settings.mosaicMessageStreamNMEA[incoming] = 0; // Wrap around
 
-            double newSetting = 0.0;
+        }
+        else if (incoming > MAX_MOSAIC_NMEA_MSG && incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
+        {
+            incoming--;
+            incoming -= MAX_MOSAIC_NMEA_MSG;
+            systemPrintf("Select interval for Stream%d:\r\n\r\n", incoming + 1);
 
-            // Message rates are 0.05s to 65s
-            if (getNewSetting(messageString, 0, 65.0, &newSetting) == INPUT_RESPONSE_VALID)
+            for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
+                systemPrintf("%d) %s\r\n", y + 1, mosaicMsgRates[y].name);
+
+            systemPrintln("x) Abort");
+
+            int interval = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (interval >= 1 && interval <= MAX_MOSAIC_MSG_RATES)
             {
-                // Allowed values:
-                // 1, 0.5, 0.2, 0.1, 0.05 corresponds to 1Hz, 2Hz, 5Hz, 10Hz, 20Hz respectively.
-                // 1, 2, 5 corresponds to 1Hz, 0.5Hz, 0.2Hz respectively.
-                if (newSetting == 0.0)
-                {
-                    // Allow it
-                }
-                else if (newSetting < 1.0)
-                {
-                    // Deal with 0.0001 to 1.0
-                    if (newSetting <= 0.05)
-                        newSetting = 0.05; // 20Hz
-                    else if (newSetting <= 0.1)
-                        newSetting = 0.1; // 10Hz
-                    else if (newSetting <= 0.2)
-                        newSetting = 0.2; // 5Hz
-                    else if (newSetting <= 0.5)
-                        newSetting = 0.5; // 2Hz
-                    else
-                        newSetting = 1.0; // 1Hz
-                }
-                // 2.7 is not allowed. Change to 2.0.
-                else if (newSetting >= 1.0)
-                    newSetting = floor(newSetting);
-
-                if (strcmp(messageType, "NMEA") == 0)
-                    settings.mosaicX5MessageRatesNMEA[incoming] = (float)newSetting;
-                if (strcmp(messageType, "RTCMRover") == 0)
-                    settings.mosaicX5MessageRatesRTCMRover[incoming] = (float)newSetting;
-                if (strcmp(messageType, "RTCMBase") == 0)
-                    settings.mosaicX5MessageRatesRTCMBase[incoming] = (float)newSetting;
+                settings.mosaicStreamIntervalsNMEA[incoming] = interval - 1;
             }
+        }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    settings.updateGNSSSettings = true; // Update the GNSS config at the next boot
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+void mosaicX5MenuMessagesRTCM(bool rover)
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintf("Menu: Message RTCM %s\r\n\r\n", rover ? "Rover" : "Base");
+
+        float *intervalPtr;
+        if (rover)
+            intervalPtr = settings.mosaicMessageIntervalsRTCMv3Rover;
+        else
+            intervalPtr = settings.mosaicMessageIntervalsRTCMv3Base;
+
+        uint8_t *enabledPtr;
+        if (rover)
+            enabledPtr = settings.mosaicMessageEnabledRTCMv3Rover;
+        else
+            enabledPtr = settings.mosaicMessageEnabledRTCMv3Base;
+
+        for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+            systemPrintf("%d) Message Group %s: Interval %f\r\n", x + 1, mosaicRTCMv3MsgIntervalGroups[x].name,
+                            intervalPtr[x]);
+
+        systemPrintln();
+
+        for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+            systemPrintf("%d) Message %s: %s\r\n", x + MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS + 1,
+                            mosaicMessagesRTCMv3[x].name,
+                            enabledPtr[x] ? "Enabled" : "Disabled");
+
+        systemPrintln();
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming >= 1 && incoming <= MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS)
+        {
+            incoming--;
+
+            systemPrintf("Enter interval for %s:\r\n", mosaicRTCMv3MsgIntervalGroups[incoming].name);
+
+            double interval;
+            if (getUserInputDouble(&interval) == INPUT_RESPONSE_VALID) // Returns EXIT, TIMEOUT, or long
+                intervalPtr[incoming] = interval;
+        }
+        else if (incoming > MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS &&
+                 incoming <= (MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS + MAX_MOSAIC_RTCM_V3_MSG))
+        {
+            incoming--;
+            incoming -= MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS;
+            enablePtr[incoming] ^= 1;
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;

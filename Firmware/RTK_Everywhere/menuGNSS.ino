@@ -83,6 +83,25 @@ void menuGNSS()
                 break;
             }
         }
+        else if (present.gnss_mosaicX5)
+        {
+            switch (settings.dynamicModel)
+            {
+            default:
+                systemPrint("Unknown");
+                break;
+            case MOSAIC_DYN_MODEL_STATIC:
+            case MOSAIC_DYN_MODEL_QUASISTATIC:
+            case MOSAIC_DYN_MODEL_PEDESTRIAN:
+            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+            case MOSAIC_DYN_MODEL_RACECAR:
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+            case MOSAIC_DYN_MODEL_UAV:
+            case MOSAIC_DYN_MODEL_UNLIMITED:
+                systemPrint(mosaicReceiverDynamics[mosaicReceiverDynamics]);
+                break;
+            }
+        }
         systemPrintln();
 
         systemPrintln("4) Set Constellations");
@@ -183,6 +202,12 @@ void menuGNSS()
                 systemPrintln("2) UAV");
                 systemPrintln("3) Automotive");
             }
+            else if (present.gnss_mosaicX5)
+            {
+                systemPrintln("Enter the dynamic model to use: ");
+                for (int i = 0; i < MAX_MOSAIC_RX_DYNAMICS; i++)
+                systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i]);
+            }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
@@ -210,6 +235,18 @@ void menuGNSS()
                     else
                     {
                         dynamicModel -= 1;                    // Align to 0 to 2
+                        settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
+
+                        gnssSetModel(settings.dynamicModel);
+                    }
+                }
+                else if (present.gnss_mosaicX5)
+                {
+                    if (dynamicModel < 1 || dynamicModel > MAX_MOSAIC_RX_DYNAMICS)
+                        systemPrintln("Error: Dynamic model out of range");
+                    else
+                    {
+                        dynamicModel -= 1;                    // Align to 0 to MAX_MOSAIC_RX_DYNAMICS - 1
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
                         gnssSetModel(settings.dynamicModel);

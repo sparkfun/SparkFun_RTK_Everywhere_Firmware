@@ -7,6 +7,9 @@
 #define MOSAIC_NUM_NMEA_STREAMS 2
 #define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500,MOSAIC_MSG_RATE_SEC1}
 
+// Output SBF PVTGeodetic and ReceiverTime on this stream
+#define MOSAIC_SBF_PVT_STREAM (MOSAIC_NUM_NMEA_STREAMS + 1)
+
 // TODO: allocate equivalent Streams for SBF
 
 enum mosaicCOMBaud {
@@ -191,23 +194,24 @@ const mosaicMsgRate mosaicMsgRates[] = {
 typedef struct
 {
     const char msgTextName[8];
-    const uint8_t msgDefaultRate;
+    const uint8_t msgDefaultStream;
 } mosaicNMEAMsg;
 
 // Static array containing all the compatible messages
-// Make the default rates the same as the UM980
+// Make the default streams (intervals) the same as the UM980
+// Stream 0 is off; stream 1 defaults to MSEC500; stream 2 defaults to SEC1
 const mosaicNMEAMsg mosaicMessagesNMEA[] = {
     // NMEA
-    {"ALM", MOSAIC_MSG_RATE_OFF}, {"AVR", MOSAIC_MSG_RATE_OFF}, {"DTM", MOSAIC_MSG_RATE_OFF},
-    {"GBS", MOSAIC_MSG_RATE_OFF}, {"GFA", MOSAIC_MSG_RATE_OFF}, {"GGA", MOSAIC_MSG_RATE_MSEC500},
-    {"GGK", MOSAIC_MSG_RATE_OFF}, {"GGQ", MOSAIC_MSG_RATE_OFF}, {"GLL", MOSAIC_MSG_RATE_OFF},
-    {"GMP", MOSAIC_MSG_RATE_OFF}, {"GNS", MOSAIC_MSG_RATE_OFF}, {"GRS", MOSAIC_MSG_RATE_OFF},
-    {"GSA", MOSAIC_MSG_RATE_MSEC500}, {"GST", MOSAIC_MSG_RATE_MSEC500}, {"GSV", MOSAIC_MSG_RATE_SEC1},
-    {"HDT", MOSAIC_MSG_RATE_OFF}, {"HRP", MOSAIC_MSG_RATE_OFF}, {"LLK", MOSAIC_MSG_RATE_OFF},
-    {"LLQ", MOSAIC_MSG_RATE_OFF}, {"RBD", MOSAIC_MSG_RATE_OFF}, {"RBP", MOSAIC_MSG_RATE_OFF},
-    {"RBV", MOSAIC_MSG_RATE_OFF}, {"RMC", MOSAIC_MSG_RATE_MSEC500}, {"ROT", MOSAIC_MSG_RATE_OFF},
-    {"SNC", MOSAIC_MSG_RATE_OFF}, {"TFM", MOSAIC_MSG_RATE_OFF}, {"THS", MOSAIC_MSG_RATE_OFF},
-    {"TXTbase", MOSAIC_MSG_RATE_OFF}, {"VTG", MOSAIC_MSG_RATE_OFF}, {"ZDA", MOSAIC_MSG_RATE_OFF},
+    {"ALM", 0}, {"AVR", 0}, {"DTM", 0},
+    {"GBS", 0}, {"GFA", 0}, {"GGA", 1},
+    {"GGK", 0}, {"GGQ", 0}, {"GLL", 0},
+    {"GMP", 0}, {"GNS", 0}, {"GRS", 0},
+    {"GSA", 1}, {"GST", 1}, {"GSV", 2},
+    {"HDT", 0}, {"HRP", 0}, {"LLK", 0},
+    {"LLQ", 0}, {"RBD", 0}, {"RBP", 0},
+    {"RBV", 0}, {"RMC", 1}, {"ROT", 0},
+    {"SNC", 0}, {"TFM", 0}, {"THS", 0},
+    {"TXTbase", 0}, {"VTG", 0}, {"ZDA", 0},
 };
 
 #define MAX_MOSAIC_NMEA_MSG (sizeof(mosaicMessagesNMEA) / sizeof(mosaicNMEAMsg))

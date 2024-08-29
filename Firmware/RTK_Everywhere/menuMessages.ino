@@ -601,6 +601,9 @@ void checkGNSSArrayDefaults()
 
     if (present.gnss_zedf9p)
     {
+        if (settings.dynamicModel == 254)
+            settings.dynamicModel = DYN_MODEL_PORTABLE;
+
         if (settings.ubxMessageRates[0] == 254)
         {
             defaultsApplied = true;
@@ -628,6 +631,9 @@ void checkGNSSArrayDefaults()
     }
     else if (present.gnss_um980)
     {
+        if (settings.dynamicModel == 254)
+            settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
+            
         if (settings.um980Constellations[0] == 254)
         {
             defaultsApplied = true;
@@ -666,6 +672,9 @@ void checkGNSSArrayDefaults()
     }
     else if (present.gnss_mosaicX5)
     {
+        if (settings.dynamicModel == 254)
+            settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
+            
         if (settings.mosaicConstellations[0] == 254)
         {
             defaultsApplied = true;

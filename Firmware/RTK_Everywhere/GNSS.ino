@@ -849,6 +849,7 @@ bool gnssIsDgpsFixed()
 
 // ZED: 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
 // UM980: 0 = Solution computed, 1 = Insufficient observation, 3 = No convergence, 4 = Covariance trace
+// mosaic-X5: 0 = No RTK, 1 = RTK Float (Mode = 5), 2 = RTK Fixed (Mode = 4)
 uint8_t gnssGetCarrierSolution()
 {
     if (online.gnss == true)
@@ -1425,7 +1426,7 @@ char *gnssGetId()
         }
         else if (present.gnss_mosaicX5)
         {
-            return (mosaicX5GetId());
+            return (gnssUniqueId);
         }
     }
 

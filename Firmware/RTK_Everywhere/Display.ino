@@ -2469,7 +2469,7 @@ void paintSystemTest()
 
             oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
             oled->print("LBand:");
-            if (online.lband == true)
+            if (online.lband_neo == true)
                 oled->print("OK");
             else
                 oled->print("FAIL");

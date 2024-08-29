@@ -1269,7 +1269,7 @@ struct Settings
         1024 * 4; // This buffer is filled from the UART receive buffer, and is then written to SD
 
     // Rover operation
-    uint8_t dynamicModel = DYN_MODEL_PORTABLE;
+    uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
     int16_t minCNO = 6;                 // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
@@ -1361,7 +1361,7 @@ struct Settings
     uint8_t mosaicMessageStreamNMEA[MAX_MOSAIC_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     // mosaicStreamIntervalsNMEA contains the interval for each of the MOSAIC_NUM_NMEA_STREAMS NMEA Streams
     // It should be an array of mosaicMessageRates (enum). But we'll make life easy for ourselves and use uint8_t
-    // The interval will not be "off"
+    // The interval will never be "off". To disable a message, set the stream to 0.
     uint8_t mosaicStreamIntervalsNMEA[MOSAIC_NUM_NMEA_STREAMS] = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
     //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Rover[MAX_MOSAIC_RTCM_V2_MSG] = {
     //    { 65534, false } }; // Mark first record with key so defaults will be applied
@@ -1978,7 +1978,7 @@ struct struct_present
 
     bool gnss_um980 = false;
     bool gnss_zedf9p = false;
-    bool gnss_mosaicX5 = false;
+    bool gnss_mosaicX5 = false; // L-Band is implicit
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second
@@ -2034,7 +2034,8 @@ struct struct_online
     bool batteryFuelGauge = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
-    bool lband = false;
+    bool lband_neo = false;
+    bool lband_gnss = false;
     bool lbandCorrections = false;
     bool i2c = false;
     bool tcpClient = false;
