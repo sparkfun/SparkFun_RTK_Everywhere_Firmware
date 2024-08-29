@@ -265,22 +265,20 @@ void addToGnssBuffer(uint8_t incoming)
 // Push the buffered data in bulk to the GNSS
 void sendGnssBuffer()
 {
-    updateCorrectionsLastSeen(CORR_BLUETOOTH);
-    if (isHighestRegisteredCorrectionsSource(CORR_BLUETOOTH))
+    if (correctionLastSeen(CORR_BLUETOOTH))
     {
         if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
-            if (settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX))
+            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
             {
                 PERIODIC_CLEAR(PD_ZED_DATA_TX);
                 systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
             }
-            // log_d("Pushed %d bytes RTCM to GNSS", bluetoothOutgoingToGnssHead);
         }
     }
     else
     {
-        if (settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX))
+        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
         {
             PERIODIC_CLEAR(PD_ZED_DATA_TX);
             systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
@@ -480,14 +478,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // Handle LLA compensation due to tilt or outputTipAltitude setting
     if (type == RTK_NMEA_PARSER_INDEX)
     {
-        parse->buffer[parse->length++] = '\0'; // Null terminate string
         nmeaApplyCompensation((char *)parse->buffer, parse->length);
     }
 
     // Determine where to send RTCM data
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
-        // Pass data along to NTRIP Server, or ESP-NOW radio
+        // Pass data along to NTRIP Server, ESP-NOW radio, or LoRa
         processRTCM(parse->buffer, parse->length);
     }
 
@@ -839,8 +836,8 @@ void handleGnssDataTask(void *e)
         startMillis = millis();
 
         // Determine BT connection state
-        bool connected = (bluetoothGetState() == BT_CONNECTED) && (systemState != STATE_BASE_TEMP_SETTLE) &&
-                         (systemState != STATE_BASE_TEMP_SURVEY_STARTED);
+        bool connected = (bluetoothGetState() == BT_CONNECTED);
+        
         if (!connected)
             // Discard the data
             btRingBufferTail = dataHead;
@@ -1406,7 +1403,7 @@ void buttonCheckTask(void *e)
         {
             // Platform has no display and tilt corrections, ie RTK Torch
 
-            // The user button only exits tilt mode
+            // In in tilt mode, exit on button press
             if ((singleTap || doubleTap) && (tiltIsCorrecting() == true))
             {
                 tiltRequestStop(); // Don't force the hardware off here as it may be in use in another task
@@ -1457,7 +1454,12 @@ void buttonCheckTask(void *e)
             // Beep shortly before the shutdown IC takes over
             else if (userBtn->pressedFor(2100))
             {
+                systemPrintln("Shutting down");
+
                 tickerStop(); // Stop controlling LEDs via ticker task
+
+                pinMode(pin_gnssStatusLED, OUTPUT);
+                pinMode(pin_bluetoothStatusLED, OUTPUT);
 
                 gnssStatusLedOn();
                 bluetoothLedOn();
@@ -1471,6 +1473,9 @@ void buttonCheckTask(void *e)
                     delay(500); // We will be shutting off during this delay but this prevents another beepMultiple()
                                 // from firing
                 }
+
+                while (1)
+                    ;
             }
         } // End productVariant == Torch
         else // RTK EVK, RTK Facet v2, RTK Facet mosaic
@@ -1525,7 +1530,7 @@ void buttonCheckTask(void *e)
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
-                    setupSelectedButton = 0; // Highlight the first button
+                    setupSelectedButton = 0;   // Highlight the first button
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
                     break;
 

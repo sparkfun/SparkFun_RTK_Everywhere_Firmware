@@ -34,8 +34,7 @@ void updatePplTask(void *e)
             {
                 if (rtcmLength > 0)
                 {
-                    updateCorrectionsLastSeen(pplCorrectionsSource);
-                    if (isHighestRegisteredCorrectionsSource(pplCorrectionsSource))
+                    if (correctionLastSeen(pplCorrectionsSource))
                     {
                         // Set ZED SOURCE to 1 (L-Band) if needed
                         // Note: this is almost certainly redundant. It would only be used if we

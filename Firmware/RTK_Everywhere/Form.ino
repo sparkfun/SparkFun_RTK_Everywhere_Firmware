@@ -261,15 +261,8 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             if (wifiStartAP() == false) // Exits calling wifiConnect()
                 break;
 
-        if (settings.mdnsEnable == true)
-        {
-            if (MDNS.begin("rtk") == false) // This should make the module findable from 'rtk.local' in browser
-            {
-                systemPrintln("Error setting up MDNS responder!");
-            }
-            else
-                MDNS.addService("http", "tcp", 80); // Add service to MDNS-SD
-        }
+        // Start the multicast DNS server
+        networkStartMulticastDNS();
 
         // Freed by stopWebServer
         if (online.psram == true)
@@ -578,6 +571,9 @@ void stopWebServer()
         free(webserver);
         webserver = nullptr;
     }
+
+    // Stop the multicast DNS server
+    networkStopMulticastDNS();
 
     if (settingsCSV != nullptr)
     {

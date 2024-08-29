@@ -12,6 +12,8 @@ void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
     for (int x = 0; x < dataLength; x++)
         espnowProcessRTCM(rtcmData[x]);
 
+    loraProcessRTCM(rtcmData, dataLength);
+
     rtcmLastPacketSent = millis();
     rtcmPacketsSent++;
 

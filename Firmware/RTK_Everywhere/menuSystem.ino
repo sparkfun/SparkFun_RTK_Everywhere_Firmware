@@ -1,16 +1,14 @@
 // Display current system status
 void menuSystem()
 {
+    BluetoothRadioType_e bluetoothUserChoice = settings.bluetoothRadioType;
+
     while (1)
     {
         systemPrintln();
         systemPrintln("System Status");
 
         printTimeStamp();
-
-        beginI2C();
-        if (online.i2c == false)
-            systemPrintln("I2C: Offline - Something is causing bus problems");
 
         systemPrint("GNSS: ");
         if (online.gnss == true)
@@ -107,15 +105,15 @@ void menuSystem()
             systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
                          ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
             systemPrint("Ethernet IP Address: ");
-            systemPrintln(ETH.localIP().toString());
+            systemPrintln(ETH.localIP().toString().c_str());
             if (!settings.ethernetDHCP)
             {
                 systemPrint("Ethernet DNS: ");
-                systemPrintf("%s\r\n", settings.ethernetDNS.toString());
+                systemPrintf("%s\r\n", settings.ethernetDNS.toString().c_str());
                 systemPrint("Ethernet Gateway: ");
-                systemPrintf("%s\r\n", settings.ethernetGateway.toString());
+                systemPrintf("%s\r\n", settings.ethernetGateway.toString().c_str());
                 systemPrint("Ethernet Subnet Mask: ");
-                systemPrintf("%s\r\n", settings.ethernetSubnet.toString());
+                systemPrintf("%s\r\n", settings.ethernetSubnet.toString().c_str());
             }
         }
 #endif // COMPILE_ETHERNET
@@ -184,11 +182,11 @@ void menuSystem()
         }
 
         systemPrint("b) Set Bluetooth Mode: ");
-        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+        if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
             systemPrintln("Dual");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
             systemPrintln("Classic");
-        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
             systemPrintln("BLE");
         else
             systemPrintln("Off");
@@ -247,16 +245,14 @@ void menuSystem()
         else if (incoming == 'b')
         {
             // Change Bluetooth protocol
-            bluetoothStop();
-            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP;
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_BLE;
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_OFF;
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-                settings.bluetoothRadioType = BLUETOOTH_RADIO_SPP_AND_BLE;
-            bluetoothStart();
+            if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP_AND_BLE)
+                bluetoothUserChoice = BLUETOOTH_RADIO_SPP;
+            else if (bluetoothUserChoice == BLUETOOTH_RADIO_SPP)
+                bluetoothUserChoice = BLUETOOTH_RADIO_BLE;
+            else if (bluetoothUserChoice == BLUETOOTH_RADIO_BLE)
+                bluetoothUserChoice = BLUETOOTH_RADIO_OFF;
+            else if (bluetoothUserChoice == BLUETOOTH_RADIO_OFF)
+                bluetoothUserChoice = BLUETOOTH_RADIO_SPP_AND_BLE;
         }
         else if ((incoming == 'c') &&
                  (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
@@ -386,6 +382,14 @@ void menuSystem()
             printUnknown(incoming);
     }
 
+    // Restart Bluetooth radio if settings have changed
+    if (bluetoothUserChoice != settings.bluetoothRadioType)
+    {
+        bluetoothStop();
+        settings.bluetoothRadioType = bluetoothUserChoice;
+        bluetoothStart();
+    }
+
     clearBuffer(); // Empty buffer of any newline chars
 }
 
@@ -455,6 +459,12 @@ void menuDebugHardware()
         systemPrint("15) Print ESP-Now Debugging: ");
         systemPrintf("%s\r\n", settings.debugEspNow ? "Enabled" : "Disabled");
 
+        systemPrint("16) Print LoRa Debugging: ");
+        systemPrintf("%s\r\n", settings.debugLora ? "Enabled" : "Disabled");
+
+        if (present.radio_lora)
+            systemPrintln("17) STM32 direct connect");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -509,59 +519,16 @@ void menuDebugHardware()
         }
         else if (incoming == 13 && present.gnss_um980)
         {
-            // Note: We cannot increase the bootloading speed beyond 115200 because
-            //  we would need to alter the UM980 baud, then save to NVM, then allow the UM980 to reset.
-            //  This is workable, but the next time the RTK Torch resets, it assumes communication at 115200bps
-            //  This fails and communication is broken. We could program in some logic that attempts comm at 460800
-            //  then reconfigures the UM980 to 115200bps, then resets, but autobaud detection in the UM980 library is
-            //  not yet supported.
-
-            // Stop all UART tasks
-            tasksStopGnssUart();
-
-            systemPrintln("Entering UM980 direct connect at 115200bps for firmware update and configuration. Use "
-                          "UPrecise to update "
-                          "the firmware. Power cycle RTK Torch to "
-                          "return to normal operation.");
-
-            // Make sure ESP-UART1 is connected to UM980
-            digitalWrite(pin_muxA, LOW);
-
-            // UPrecise needs to query the device before entering bootload mode
-            // Wait for UPrecise to send bootloader trigger (character T followed by character @) before resetting UM980
-            bool inBootMode = false;
-
-            // Echo everything to/from UM980
-            while (1)
+            // Create a file in LittleFS
+            if (createUm980Passthrough() == true)
             {
-                // Data coming from UM980 to external USB
-                if (serialGNSS->available())
-                    systemWrite(serialGNSS->read());
+                systemPrintln();
+                systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemFlush(); // Complete prints
 
-                // Data coming from external USB to UM980
-                if (systemAvailable())
-                {
-                    byte incoming = systemRead();
-                    serialGNSS->write(incoming);
-
-                    // Detect bootload sequence
-                    if (inBootMode == false && incoming == 'T')
-                    {
-                        byte nextIncoming = Serial.peek();
-                        if (nextIncoming == '@')
-                        {
-                            // Reset UM980
-                            um980Reset();
-                            delay(25);
-                            um980Boot();
-
-                            inBootMode = true;
-                        }
-                    }
-                }
+                ESP.restart();
             }
         }
-
         else if (incoming == 14)
         {
             settings.enablePsram ^= 1;
@@ -570,6 +537,22 @@ void menuDebugHardware()
         {
             settings.debugEspNow ^= 1;
         }
+        else if (incoming == 16)
+        {
+            settings.debugLora ^= 1;
+        }
+        else if (incoming == 17 && present.radio_lora)
+        {
+            if (createLoRaPassthrough() == true)
+            {
+                systemPrintln();
+                systemPrintln("STM32 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                systemFlush(); // Complete prints
+
+                ESP.restart();
+            }
+        }
+
         else if (incoming == 'e')
         {
             systemPrintln("Erasing LittleFS and resetting");
@@ -612,10 +595,6 @@ void menuDebugNetwork()
         // Ethernet
         systemPrint("1) Print Ethernet diagnostics: ");
         systemPrintf("%s\r\n", settings.enablePrintEthernetDiag ? "Enabled" : "Disabled");
-
-        // ESP-Now
-        systemPrint("2) ESP-Now Broadcast Override: ");
-        systemPrintf("%s\r\n", settings.espnowBroadcast ? "Enabled" : "Disabled");
 
         // WiFi
         systemPrint("3) Debug WiFi state: ");
@@ -682,8 +661,6 @@ void menuDebugNetwork()
 
         if (incoming == 1)
             settings.enablePrintEthernetDiag ^= 1;
-        else if (incoming == 2)
-            settings.espnowBroadcast ^= 1;
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
         else if (incoming == 4)
@@ -1190,6 +1167,9 @@ void menuPeriodicPrint()
         systemPrint("26) RTK state: ");
         systemPrintf("%s\r\n", settings.enablePrintStates ? "Enabled" : "Disabled");
 
+        systemPrint("27) RTK correction source: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_CORRECTION_SOURCE) ? "Enabled" : "Disabled");
+
         systemPrintln("------  Clients  -----");
         systemPrint("40) NTP server data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NTP_SERVER_DATA) ? "Enabled" : "Disabled");
@@ -1312,6 +1292,8 @@ void menuPeriodicPrint()
             settings.enablePrintPosition ^= 1;
         else if (incoming == 26)
             settings.enablePrintStates ^= 1;
+        else if (incoming == 27)
+            PERIODIC_TOGGLE(PD_CORRECTION_SOURCE);
 
         else if (incoming == 40)
             PERIODIC_TOGGLE(PD_NTP_SERVER_DATA);
@@ -1397,7 +1379,8 @@ void menuInstrument()
         systemPrintf("Combined Height of Instrument: %0.3fm\r\n",
                      ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0));
 
-        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n", settings.antennaHeight_mm / (double)1000.0);
+        systemPrintf("1) Set Antenna Height (a.k.a. Pole Length): %0.3lfm\r\n",
+                     settings.antennaHeight_mm / (double)1000.0);
 
         systemPrintf("2) Set Antenna Phase Center (a.k.a. ARP): %0.1fmm\r\n", settings.antennaPhaseCenter_mm);
 

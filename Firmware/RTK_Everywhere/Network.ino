@@ -235,6 +235,14 @@ void menuTcpUdp()
             systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
         //------------------------------
+        // Display the mDNS server menu items
+        //------------------------------
+
+        systemPrintf("m) MDNS: %s\r\n", settings.mdnsEnable ? "Enabled" : "Disabled");
+        if (settings.mdnsEnable)
+            systemPrintf("n) MDNS host name: %s\r\n", settings.mdnsHostName);
+
+        //------------------------------
         // Finish the menu and get the input
         //------------------------------
 
@@ -303,6 +311,22 @@ void menuTcpUdp()
         else if (incoming == 7 && settings.enableUdpServer)
         {
             getNewSetting("Enter the UDP port to use", 0, 65535, &settings.udpServerPort);
+        }
+
+        //------------------------------
+        // Get the mDNS server parameters
+        //------------------------------
+
+        else if (incoming == 'm')
+        {
+            settings.mdnsEnable ^= 1;
+        }
+
+        else if (settings.mdnsEnable && (incoming == 'n'))
+        {
+            systemPrint("Enter RTK host name: ");
+            getUserInputString((char *)&settings.mdnsHostName,
+                               sizeof(settings.mdnsHostName));
         }
 
         //------------------------------
@@ -1425,6 +1449,29 @@ const char *networkUserToString(uint8_t userNumber)
     if (userNumber >= networkUserEntries)
         return "Unknown";
     return networkUser[userNumber];
+}
+
+//----------------------------------------
+// Start multicast DNS
+//----------------------------------------
+void networkStartMulticastDNS()
+{
+    if (settings.mdnsEnable == true)
+    {
+        if (MDNS.begin(&settings.mdnsHostName[0]) == false) // This should make the device findable from 'rtk.local' in a browser
+            systemPrintln("Error setting up MDNS responder!");
+        else
+            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+    }
+}
+
+//----------------------------------------
+// Start multicast DNS
+//----------------------------------------
+void networkStopMulticastDNS()
+{
+    if (settings.mdnsEnable == true)
+        MDNS.end();
 }
 
 //----------------------------------------

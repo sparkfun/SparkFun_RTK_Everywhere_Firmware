@@ -13,6 +13,47 @@
       few seconds so a single dropped frame is not critical.
 */
 
+// Called from main loop
+// Control incoming/outgoing RTCM data from internal ESP NOW radio
+// Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
+void updateEspnow()
+{
+#ifdef COMPILE_ESPNOW
+    if (settings.enableEspNow == true)
+    {
+        if (espnowState == ESPNOW_PAIRED || espnowState == ESPNOW_BROADCASTING)
+        {
+            // If it's been longer than a few ms since we last added a byte to the buffer
+            // then we've reached the end of the RTCM stream. Send partial buffer.
+            if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
+            {
+                if (espnowState == ESPNOW_PAIRED)
+                    esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
+                else // if (espnowState == ESPNOW_BROADCASTING)
+                {
+                    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+                    esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
+                                 espnowOutgoingSpot); // Send packet via broadcast
+                }
+
+                if (!inMainMenu)
+                {
+                    if (settings.debugEspNow == true)
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                }
+                espnowBytesSent = 0;
+                espnowOutgoingSpot = 0; // Reset
+            }
+
+            // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
+            // This removes the ESPNOW icon from the display when the link goes down
+            if (millis() - lastEspnowRssiUpdate > 5000 && espnowRSSI > -255)
+                espnowRSSI = -255;
+        }
+    }
+#endif // COMPILE_ESPNOW
+}
+
 // Create a struct for ESP NOW pairing
 typedef struct PairMessage
 {
@@ -67,16 +108,8 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
         espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
 
         // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
-        // BUT we need to consider the Corrections Priorities.
-        // Step 1: check if CORR_ESPNOW is registered as a correction source. If not, register it.
-        // Step 2: check if CORR_ESPNOW is the highest - actually LOWEST - registered correction source.
-        //         If it is, push the data. If not, discard the data.
-
-        // Step 1
-        updateCorrectionsLastSeen(CORR_ESPNOW); // This will (re)register the correction source if needed
-
-        // Step 2
-        if (isHighestRegisteredCorrectionsSource(CORR_ESPNOW))
+        // Determine if ESPNOW is the correction source
+        if (correctionLastSeen(CORR_ESPNOW))
         {
             // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
             gnssPushRawData((uint8_t *)incomingData, len);
@@ -115,6 +148,12 @@ void promiscuous_rx_cb(void *buf, wifi_promiscuous_pkt_type_t type)
 // If the radio is off entirely, start the radio, turn on only the LR protocol
 void espnowStart()
 {
+    if (settings.enableEspNow == false)
+    {
+        espnowStop();
+        return;
+    }
+
 #ifdef COMPILE_ESPNOW
 
     // Before we can issue esp_wifi_() commands WiFi must be started
@@ -150,8 +189,8 @@ void espnowStart()
     // If WiFi is on but ESP NOW is off, then enable LR protocol
     else if (wifiState > WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
     {
-        // // Enable WiFi + ESP-Now
-        // // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
+        // Enable WiFi + ESP-Now
+        // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
         if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR))
         {
             response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N |
@@ -205,11 +244,35 @@ void espnowStart()
 
     if (settings.espnowPeerCount == 0)
     {
-        espnowSetState(ESPNOW_ON);
+        // Enter broadcast mode
+
+        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+        if (esp_now_is_peer_exist(broadcastMac) == true)
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("Broadcast peer already exists");
+        }
+        else
+        {
+            esp_err_t result = espnowAddPeer(broadcastMac, false); // Encryption not support for broadcast MAC
+            if (result != ESP_OK)
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("Failed to add broadcast peer");
+            }
+            else
+            {
+                if (settings.debugEspNow == true)
+                    systemPrintln("Broadcast peer added");
+            }
+        }
+
+        espnowSetState(ESPNOW_BROADCASTING);
     }
     else
     {
-        // If we already have peers, move to paired state
+        // If we have peers, move to paired state
         espnowSetState(ESPNOW_PAIRED);
 
         if (settings.debugEspNow == true)
@@ -230,32 +293,6 @@ void espnowStart()
                     if (settings.debugEspNow == true)
                         systemPrintf("Failed to add peer #%d\r\n", x);
                 }
-            }
-        }
-    }
-
-    if (settings.espnowBroadcast == true)
-    {
-        // Add broadcast peer if override is turned on
-        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-        if (esp_now_is_peer_exist(broadcastMac) == true)
-        {
-            if (settings.debugEspNow == true)
-                systemPrintln("Broadcast peer already exists");
-        }
-        else
-        {
-            esp_err_t result = espnowAddPeer(broadcastMac, false); // Encryption not support for broadcast MAC
-            if (result != ESP_OK)
-            {
-                if (settings.debugEspNow == true)
-                    systemPrintln("Failed to add broadcast peer");
-            }
-            else
-            {
-                if (settings.debugEspNow == true)
-                    systemPrintln("Broadcast peer added");
             }
         }
     }
@@ -362,13 +399,9 @@ bool espnowIsPaired()
 #ifdef COMPILE_ESPNOW
     if (espnowState == ESPNOW_MAC_RECEIVED)
     {
-
-        if (settings.espnowBroadcast == false)
-        {
-            // Remove broadcast peer
-            uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-            espnowRemovePeer(broadcastMac);
-        }
+        // Remove broadcast peer
+        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+        espnowRemovePeer(broadcastMac);
 
         if (esp_now_is_peer_exist(receivedMAC) == true)
         {
@@ -486,8 +519,8 @@ void espnowSetState(ESPNOWState newState)
         case ESPNOW_OFF:
             systemPrintln("ESPNOW_OFF");
             break;
-        case ESPNOW_ON:
-            systemPrintln("ESPNOW_ON");
+        case ESPNOW_BROADCASTING:
+            systemPrintln("ESPNOW_BROADCASTING");
             break;
         case ESPNOW_PAIRING:
             systemPrintln("ESPNOW_PAIRING");
@@ -508,31 +541,35 @@ void espnowSetState(ESPNOWState newState)
 void espnowProcessRTCM(byte incoming)
 {
 #ifdef COMPILE_ESPNOW
-    if (espnowState == ESPNOW_PAIRED)
+    // If we are paired,
+    // Or if the radio is broadcasting
+    // Then add bytes to the outgoing buffer
+    if (espnowState == ESPNOW_PAIRED || espnowState == ESPNOW_BROADCASTING)
     {
         // Move this byte into ESP NOW to send buffer
         espnowOutgoing[espnowOutgoingSpot++] = incoming;
         espnowLastAdd = millis();
+    }
 
-        if (espnowOutgoingSpot == sizeof(espnowOutgoing))
+    // Send buffer when full
+    if (espnowOutgoingSpot == sizeof(espnowOutgoing))
+    {
+        espnowOutgoingSpot = 0; // Wrap
+
+        if (espnowState == ESPNOW_PAIRED)
+            esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
+        else // if (espnowState == ESPNOW_BROADCASTING)
         {
-            espnowOutgoingSpot = 0; // Wrap
-
-            if (settings.espnowBroadcast == false)
-                esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
-            else
-            {
-                uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
-                             sizeof(espnowOutgoing)); // Send packet via broadcast
-            }
-
-            delay(10); // We need a small delay between sending multiple packets
-
-            espnowBytesSent += sizeof(espnowOutgoing);
-
-            espnowOutgoingRTCM = true;
+            uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+            esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
+                         sizeof(espnowOutgoing)); // Send packet via broadcast
         }
+
+        delay(10); // We need a small delay between sending multiple packets
+
+        espnowBytesSent += sizeof(espnowOutgoing);
+
+        espnowOutgoingRTCM = true;
     }
 #endif // COMPILE_ESPNOW
 }

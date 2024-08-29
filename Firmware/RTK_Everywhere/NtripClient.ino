@@ -827,8 +827,7 @@ void ntripClientUpdate()
 
                         netIncomingRTCM = true;
 
-                        updateCorrectionsLastSeen(CORR_TCP);
-                        if (isHighestRegisteredCorrectionsSource(CORR_TCP))
+                        if (correctionLastSeen(CORR_TCP))
                         {
                             // Push RTCM to GNSS module over I2C / SPI
                             gnssPushRawData(rtcmData, rtcmCount);

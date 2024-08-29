@@ -5,6 +5,12 @@ int systemAvailable()
 {
     if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH || printEndpoint == PRINT_ENDPOINT_ALL)
         return (bluetoothRxDataAvailable());
+
+    // If the CH34x is disconnected (we are listening to LoRa), avoid reading characters from UART0
+    // as this will trigger the system menu
+    else if (usbSerialIsSelected == false)
+        return(0);
+
     return (Serial.available());
 }
 
@@ -25,7 +31,10 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
 
     // Output data to USB serial if necessary
     if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH) && (!forwardGnssDataToUsbSerial))
-        Serial.write(buffer, length);
+    {
+        if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
+            Serial.write(buffer, length);
+    }
 }
 
 // Forward GNSS data to the USB serial port
@@ -115,7 +124,7 @@ void systemPrint(int value, uint8_t printType)
 // Pretty print IP addresses
 void systemPrint(IPAddress ipaddress)
 {
-    systemPrint(ipaddress.toString());
+    systemPrint(ipaddress.toString().c_str());
 }
 void systemPrintln(IPAddress ipaddress)
 {
@@ -468,6 +477,7 @@ const double WGS84_A = 6378137;           // https://geographiclib.sourceforge.i
 const double WGS84_E = 0.081819190842622; // http://docs.ros.org/en/hydro/api/gps_common/html/namespacegps__common.html
                                           // and https://gist.github.com/uhho/63750c4b54c7f90f37f958cc8af0c718
 
+// Convert LLH (geodetic) to ECEF
 // From: https://stackoverflow.com/questions/19478200/convert-latitude-and-longitude-to-ecef-coordinates-system
 void geodeticToEcef(double lat, double lon, double alt, double *x, double *y, double *z)
 {
@@ -483,6 +493,7 @@ void geodeticToEcef(double lat, double lon, double alt, double *x, double *y, do
     *z = (N * (1.0 - WGS84_E * WGS84_E) + alt) * slat;
 }
 
+// Convert ECEF to LLH (geodetic)
 // From: https://danceswithcode.net/engineeringnotes/geodetic_to_ecef/geodetic_to_ecef.html
 void ecefToGeodetic(double x, double y, double z, double *lat, double *lon, double *alt)
 {
@@ -646,6 +657,12 @@ void stringHumanReadableSize(String &returnText, uint64_t bytes)
     returnText = String(readableSize);
 }
 
+// Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+void checkArrayDefaults()
+{
+    correctionPriorityValidation();
+}
+
 // Verify table sizes match enum definitions
 void verifyTables()
 {
@@ -678,6 +695,7 @@ void verifyTables()
     tasksValidateTables();
     httpClientValidateTables();
     provisioningVerifyTables();
+    correctionVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");

@@ -38,7 +38,8 @@ void terminalUpdate()
             length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
 
             // Push RTCM to GNSS module over I2C / SPI
-            gnssPushRawData((uint8_t *)buffer, length);
+            if (correctionLastSeen(CORR_USB))
+                gnssPushRawData((uint8_t *)buffer, length);
         }
 
         // Does incoming data consist of RTCM correction messages
@@ -56,7 +57,8 @@ void terminalUpdate()
             length = Serial.readBytes(&buffer[1], sizeof(buffer) - 1) + 1;
 
             // Push RTCM to GNSS module over I2C / SPI
-            gnssPushRawData((uint8_t *)buffer, length);
+            if (correctionLastSeen(CORR_USB))
+                gnssPushRawData((uint8_t *)buffer, length);
         }
         else
         {
@@ -232,11 +234,7 @@ void menuMain()
 
             systemPrintln("p) Configure PointPerfect");
 
-#ifdef COMPILE_ESPNOW
             systemPrintln("r) Configure Radios");
-#else  // COMPILE_ESPNOW
-            systemPrintln("r) **ESP-Now Not Compiled**");
-#endif // COMPILE_ESPNOW
 
             systemPrintln("s) Configure System");
 
@@ -279,10 +277,8 @@ void menuMain()
                 menuUserProfiles();
             else if (incoming == 'p')
                 menuPointPerfect();
-#ifdef COMPILE_ESPNOW
             else if (incoming == 'r')
                 menuRadio();
-#endif // COMPILE_ESPNOW
             else if (incoming == 's')
                 menuSystem();
             else if (incoming == 't')
@@ -340,6 +336,9 @@ void menuMain()
 
     // Change the USB serial output behavior if necessary
     forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+
+    // While in LoRa mode, we need to know when the last serial interaction was
+    loraLastIncomingSerial = millis();
 }
 
 // Change system wide settings based on current user profile
@@ -553,19 +552,20 @@ void factoryReset(bool alreadyHasSemaphore)
 // Configure the internal radio, if available
 void menuRadio()
 {
-#ifdef COMPILE_ESPNOW
     while (1)
     {
         systemPrintln();
         systemPrintln("Menu: Radios");
 
-        systemPrint("1) ESP-NOW Radio: ");
-        systemPrintf("%s\r\n", settings.enableEspNow ? "Enabled" : "Disabled");
+#ifndef COMPILE_ESPNOW
+        systemPrintln("1) **ESP-Now Not Compiled**");
+#else  // COMPILE_ESPNOW
+        if (settings.enableEspNow == false)
+            systemPrintln("1) ESP-NOW Radio: Disabled");
 
-        if (settings.enableEspNow == true)
+        else // ESP-NOW enabled
         {
-            // Pretty print the MAC of all radios
-            systemPrint("  Radio MAC: ");
+            systemPrint("1) ESP-NOW Radio: Enabled - MAC ");
             for (int x = 0; x < 5; x++)
                 systemPrintf("%02X:", wifiMACAddress[x]);
             systemPrintf("%02X\r\n", wifiMACAddress[5]);
@@ -582,7 +582,7 @@ void menuRadio()
                 }
             }
             else
-                systemPrintln("  No Paired Radios");
+                systemPrintln("  No Paired Radios - Broadcast Enabled");
 
             systemPrintln("2) Pair radios");
             systemPrintln("3) Forget all radios");
@@ -594,6 +594,31 @@ void menuRadio()
                 systemPrintln("5) Add dummy radio");
                 systemPrintln("6) Send dummy data");
                 systemPrintln("7) Broadcast dummy data");
+            }
+        }
+#endif // COMPILE_ESPNOW
+
+        if (present.radio_lora == true)
+        {
+            if (settings.enableLora == false)
+            {
+                systemPrintln("10) LoRa Radio: Disabled");
+            }
+            else
+            {
+                loraGetVersion();
+                if (strlen(loraFirmwareVersion) < 3)
+                {
+                    strncpy(loraFirmwareVersion, "Unknown", sizeof(loraFirmwareVersion));
+                    systemPrintf("10) LoRa Radio: Enabled - Firmware Unknown\r\n");
+                }
+                else
+                    systemPrintf("10) LoRa Radio: Enabled - Firmware v%s\r\n", loraFirmwareVersion);
+
+                systemPrintf("11) LoRa Coordination Frequency: %0.3f\r\n", settings.loraCoordinationFrequency);
+                systemPrintf("12) Seconds without user serial that must elapse before LoRa radio goes into dedicated "
+                             "listening mode: %d\r\n",
+                             settings.loraSerialInteractionTimeout_s);
             }
         }
 
@@ -649,6 +674,7 @@ void menuRadio()
                 espnowStart();
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
+#ifdef COMPILE_ESPNOW
             if (esp_now_is_peer_exist(peer1) == true)
                 log_d("Peer already exists");
             else
@@ -664,6 +690,7 @@ void menuRadio()
             }
 
             espnowSetState(ESPNOW_PAIRED);
+#endif
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
@@ -674,7 +701,9 @@ void menuRadio()
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
+#ifdef COMPILE_ESPNOW
             esp_now_send(0, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+#endif
         }
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
@@ -686,7 +715,25 @@ void menuRadio()
                 "need a much longer sentence if I want to get a long amount of data into one transmission. This is "
                 "nearing 200 characters but needs to be near 250.";
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet to all peers
+#ifdef COMPILE_ESPNOW
+            esp_now_send(broadcastMac, (uint8_t *)&espnowData, sizeof(espnowData)); // Send packet over broadcast
+#endif
+        }
+
+        else if (present.radio_lora == true && incoming == 10)
+        {
+            settings.enableLora ^= 1;
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 11)
+        {
+            getNewSetting("Enter the frequency used to coordinate radios in MHz", 903.0, 927.0,
+                          &settings.loraCoordinationFrequency);
+        }
+        else if (present.radio_lora == true && settings.enableLora == true && incoming == 12)
+        {
+            getNewSetting("Enter the number of seconds without user serial that must elapse before LoRa radio goes "
+                          "into dedicated listening mode",
+                          10, 600, &settings.loraSerialInteractionTimeout_s);
         }
 
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -697,8 +744,9 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    radioStart();
+    espnowStart();
+
+    // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 
     clearBuffer(); // Empty buffer of any newline chars
-#endif             // COMPILE_ESPNOW
 }

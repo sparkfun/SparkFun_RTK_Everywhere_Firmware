@@ -866,7 +866,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         case tCorrSPri: {
             for (int x = 0; x < qualifier; x++)
             {
-                if ((suffix[0] == correctionsSourceNames[x][0]) && (strcmp(suffix, correctionsSourceNames[x]) == 0))
+                if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
                 {
                     settings.correctionsSourcesPriority[x] = settingValue;
                     knownSetting = true;
@@ -1514,7 +1514,7 @@ void createSettingsString(char *newSettings)
                 {
                     char tempString[80]; // correctionsPriority.Ethernet_IP_(PointPerfect/MQTT)=99
                     snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name,
-                             correctionsSourceNames[x], settings.correctionsSourcesPriority[x]);
+                             correctionGetName(x), settings.correctionsSourcesPriority[x]);
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -1890,6 +1890,8 @@ void writeToString(char *settingValueStr, char *value)
 // Given a settingName, create a string with setting value
 // Used in conjunction with the command line interface
 // The order of variables matches the order found in settings.h
+// $SPGET,[setting name]*FF<CR><LF>
+// Ex: $SPGET,batteryLevelPercent*19
 SettingValueResponse getSettingValue(bool inCommands, const char *settingName, char *settingValueStr)
 {
     int i;
@@ -2218,7 +2220,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         case tCorrSPri: {
             for (int x = 0; x < qualifier; x++)
             {
-                if ((suffix[0] == correctionsSourceNames[x][0]) && (strcmp(suffix, correctionsSourceNames[x]) == 0))
+                if ((suffix[0] == correctionGetName(x)[0]) && (strcmp(suffix, correctionGetName(x)) == 0))
                 {
                     writeToString(settingValueStr, settings.correctionsSourcesPriority[x]);
                     knownSetting = true;
@@ -2262,6 +2264,24 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
     else if (strcmp(settingName, "enableRCFirmware") == 0)
     {
         writeToString(settingValueStr, enableRCFirmware);
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "batteryLevelPercent") == 0)
+    {
+        checkBatteryLevels();
+        writeToString(settingValueStr, batteryLevelPercent);
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "batteryVoltage") == 0)
+    {
+        checkBatteryLevels();
+        writeToString(settingValueStr, batteryVoltage);
+        knownSetting = true;
+    }
+    else if (strcmp(settingName, "batteryChargingPercentPerHour") == 0)
+    {
+        checkBatteryLevels();
+        writeToString(settingValueStr, batteryChargingPercentPerHour);
         knownSetting = true;
     }
 
@@ -2604,7 +2624,7 @@ void commandList(bool inCommands, int i)
         // Record corrections priorities
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionsSourceNames[x]);
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, correctionGetName(x));
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "int", settingValue);
