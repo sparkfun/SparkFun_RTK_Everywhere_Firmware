@@ -95,12 +95,6 @@ jobs:
           "SparkFun IM19 IMU Arduino Library"@1.0.1
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
 
-      # https://github.com/avinabmalla/ESP32_BleSerial/issues/15
-      - name: Patch ESP32_BleSerial BLECharacteristic
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp BleSerial.cpp /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
-
       - name: Patch libmbedtls
         run: |
           cd Firmware/RTK_Everywhere/Patch/
