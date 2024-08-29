@@ -6,7 +6,7 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 *Entering Command line mode*
 
-For advanced applications, the RTK device can be queried and configured using a command line interface (CLI). This mode can be entered from the main serial menu using '**+**' or over Bluetooth by sending 10 dashes ('**----------**'). To exit CLI, type 'exit' or use the `$SPEXE,EXIT*77` command.
+For advanced applications, the RTK device can be queried and configured using a command line interface (CLI). This mode can be entered from the main serial menu using '**+**' or over Bluetooth by sending 10 dashes ('**----------**'). To exit CLI, type `exit` or use the `$SPEXE,EXIT*77` command.
 
 The commands and their responses are implemented as an extension to the standard NMEA format. This allows the use of the same parser to parse NMEA sentences and the SparkFun commands/replies.
 
@@ -106,7 +106,7 @@ Receive:
 
     $SPSET,ntripClientCasterUserPW,"pwWith\"quote",OK*04
 
-*ntripClientCasterUserPW* will be set to: pwWith"quote
+*ntripClientCasterUserPW* will be set to: `pwWith"quote`
 
 Below, commas are allowed within the string but must be between two quotes:
 
@@ -118,7 +118,7 @@ Receive:
 
     $SPSET,ntripClientCasterUserPW,"complex,password",OK*76
 
-*ntripClientCasterUserPW* will be set to: complex,password
+*ntripClientCasterUserPW* will be set to: `complex,password`
 
 Below is a combination of an internal escaped quote, and comma within a setting:
 
@@ -130,7 +130,7 @@ Receive:
 
     $SPSET,ntripClientCasterUserPW,"a55G\"e,e#",OK*72
 
-*ntripClientCasterUserPW* set to: a55G"e,e#
+*ntripClientCasterUserPW* set to: `a55G"e,e#`
 
 ## Receiver Actions
 
@@ -174,13 +174,13 @@ The data type contains whether the field is a char[n], int, bool, or float.
 
 Example response:
 
-    $SPLST,enableSD,bool,true*FF<CR><LF>
-    $SPLST,enableDisplay,bool,true*FF<CR><LF>
-    $SPLST,maxLogTime_minutes,int,1*FF<CR><LF>
-    $SPLST,maxLogLength_minutes,int,10*FF<CR><LF>
-    $SPLST,observationSeconds,int,10*FF<CR><LF>
-    $SPLST,observationPositionAccuracy,float,0.5*FF<CR><LF>
+    $SPLST,enableSD,bool,true*6A<CR><LF>
+    $SPLST,enableDisplay,bool,true*27<CR><LF>
+    $SPLST,maxLogTime_minutes,int,1*01<CR><LF>
+    $SPLST,maxLogLength_minutes,int,10*38<CR><LF>
+    $SPLST,observationSeconds,int,10*37<CR><LF>
+    $SPLST,observationPositionAccuracy,float,0.5*59<CR><LF>
     .
     .
     .
-    $SPEXE,LIST,OK*FF<CR><LF>
+    $SPEXE,LIST,OK*5D<CR><LF>
