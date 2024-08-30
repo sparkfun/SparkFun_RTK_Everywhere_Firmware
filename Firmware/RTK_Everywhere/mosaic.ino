@@ -194,12 +194,6 @@ bool mosaicX5Begin()
     return false;
 }
 
-bool mosaicX5IsBlocking()
-{
-    // TODO - do we need this?
-    return false;
-}
-
 // Attempt 3 tries on MOSAICX5 config
 bool mosaicX5Configure()
 {

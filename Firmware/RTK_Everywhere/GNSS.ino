@@ -1622,7 +1622,7 @@ bool gnssIsBlocking()
         }
         else if (present.gnss_mosaicX5)
         {
-            return (mosaicX5IsBlocking());
+            return (false);
         }
     }
     return (false);

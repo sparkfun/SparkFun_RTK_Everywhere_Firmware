@@ -310,7 +310,6 @@ void     mosaicX5SetModel(uint8_t modelNumber) {}
 bool     mosaicX5SetModeRoverSurvey() {return false;}
 bool     mosaicX5SetRate(double secondsBetweenSolutions) {return false;}
 uint8_t  mosaicX5GetLeapSeconds() {return (0);}
-bool     mosaicX5IsBlocking() {return(false);}
 uint8_t  mosaicX5GetActiveMessageCount() {return(0);}
 void     mosaicX5MenuMessages(){}
 void     mosaicX5BaseRtcmDefault(){}
