@@ -1,6 +1,6 @@
 # System Menu
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![System Menu accessed over serial](<img/Terminal/SparkFun RTK Everywhere - System Menu.png>)
 

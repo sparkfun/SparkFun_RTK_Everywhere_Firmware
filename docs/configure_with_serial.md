@@ -1,6 +1,6 @@
 # Configure with Serial
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 **Note:** Any serial menu that is shown below can also be accessed over Bluetooth. This makes any configuration of a device much easier in the field. Please see [Configure With Bluetooth](configure_with_bluetooth.md) for more information.
 

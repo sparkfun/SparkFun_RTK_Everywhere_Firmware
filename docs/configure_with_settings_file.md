@@ -1,6 +1,6 @@
 # Configure with Settings File
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![SparkFun RTK Facet Settings File](img/SparkFun_RTK_Express_-_Settings_File.jpg)
 

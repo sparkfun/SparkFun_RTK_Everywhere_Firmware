@@ -125,12 +125,16 @@ typedef enum
     CORR_ESPNOW,        // 1, 100 m Baseline, ESPNOW.ino
     CORR_RADIO_LORA,    // 2,   1 km Baseline, UM980 only? Does data go direct from LoRa to UM980?
     CORR_BLUETOOTH,     // 3,  10+km Baseline, Tasks.ino (sendGnssBuffer)
-    CORR_TCP,           // 4,  10+km Baseline, NtripClient.ino
-    CORR_LBAND,         // 5, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
-    CORR_IP,            // 6, 100+km Baseline, MQTT_Client.ino
+    CORR_USB,           // 4,                  menuMain.ino (terminalUpdate)
+    CORR_TCP,           // 5,  10+km Baseline, NtripClient.ino
+    CORR_LBAND,         // 6, 100 km Baseline, menuPP.ino for PMP - PointPerfectLibrary.ino for PPL
+    CORR_IP,            // 7, 100+km Baseline, MQTT_Client.ino
     // Add new correction sources just above this line
     CORR_NUM
 } correctionsSource;
+
+typedef uint8_t CORRECTION_ID_T;    // Type holding a correction ID or priority
+typedef uint8_t CORRECTION_MASK_T;  // Type holding a bitmask of correction IDs
 
 const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
 {
@@ -139,16 +143,13 @@ const char * const correctionsSourceNames[correctionsSource::CORR_NUM] =
     "ESP-Now",
     "LoRa Radio",
     "Bluetooth",
+    "USB Serial",
     "TCP (NTRIP)",
     "L-Band",
     "IP (PointPerfect/MQTT)",
     // Add new correction sources just above this line
 };
-
-typedef struct {
-    correctionsSource source;
-    unsigned long lastSeen;
-} registeredCorrectionsSource;
+const int correctionsSourceNamesEntries = sizeof(correctionsSourceNames) / sizeof(correctionsSourceNames[0]);
 
 // Setup Buttons
 typedef struct
@@ -348,7 +349,7 @@ typedef struct _NTRIP_SERVER_DATA
 typedef enum
 {
     ESPNOW_OFF,
-    ESPNOW_ON,
+    ESPNOW_BROADCASTING,
     ESPNOW_PAIRING,
     ESPNOW_MAC_RECEIVED,
     ESPNOW_PAIRED,
@@ -590,6 +591,8 @@ enum PeriodDisplayValues
     PD_HTTP_CLIENT_STATE,       // 35
 
     PD_PROVISIONING_STATE,      // 36
+
+    PD_CORRECTION_SOURCE,       // 37
     // Add new values before this line
 };
 
@@ -1050,7 +1053,7 @@ struct Settings
 
     // Corrections
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
-    int correctionsSourcesPriority[correctionsSource::CORR_NUM] = { -1 }; // -1 indicates array is uninitialized
+    CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
 
     // Display
@@ -1059,7 +1062,6 @@ struct Settings
     // ESP Now
     bool debugEspNow = false;
     bool enableEspNow = false;
-    bool espnowBroadcast = false;       // When true, overrides peers and sends all data via broadcast
     uint8_t espnowPeerCount = 0;
     uint8_t espnowPeers[ESPNOW_MAX_PEERS][6] = {0}; // Contains the MAC addresses (6 bytes) of paired units
 
@@ -1406,6 +1408,7 @@ struct Settings
     float loraCoordinationFrequency = 910.000;
     bool debugLora = false;
     int loraSerialInteractionTimeout_s = 30; //Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode
+    bool enableMultipathMitigation = true; //Multipath mitigation. UM980 specific.
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1583,7 +1586,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     // ESP Now
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugEspNow, "debugEspNow",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.enableEspNow, "enableEspNow",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.espnowBroadcast, "espnowBroadcast",  },
     { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.espnowPeerCount, "espnowPeerCount",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, tEspNowPr, ESPNOW_MAX_PEERS, & settings.espnowPeers[0][0], "espnowPeer_",  },
 
@@ -1939,7 +1941,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 1, _float,    3, & settings.loraCoordinationFrequency, "loraCoordinationFrequency",  },
     { 0, 0, 0, 0, 0, 0, 0, 1, _bool,     3, & settings.debugLora, "debugLora",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, _int,      3, & settings.loraSerialInteractionTimeout_s, "loraSerialInteractionTimeout_s",  },
-
+    { 1, 1, 1, 0, 0, 0, 0, 1, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

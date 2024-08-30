@@ -249,13 +249,6 @@ void beginBoard()
         batteryStatusLedOn();
 
         pinMode(pin_beeper, OUTPUT);
-
-        // Beep at power on if we are not locally compiled or a release candidate
-        if (ENABLE_DEVELOPER == false)
-        {
-            beepOn();
-            delay(250);
-        }
         beepOff();
 
         pinMode(pin_powerButton, INPUT);
@@ -282,7 +275,7 @@ void beginBoard()
         loraPowerOff(); // Keep LoRa powered down for now
 
         pinMode(pin_loraRadio_boot, OUTPUT);
-        digitalWrite(pin_loraRadio_boot, LOW); //Exit bootloader, run program
+        digitalWrite(pin_loraRadio_boot, LOW); // Exit bootloader, run program
 
         pinMode(pin_loraRadio_reset, OUTPUT);
         digitalWrite(pin_loraRadio_reset, LOW); // Reset STM32/radio
@@ -1026,6 +1019,14 @@ void tickerBegin()
         beepTask.detach();                                          // Turn off any previous task
         beepTask.attach(1.0 / beepTaskUpdatesHz, tickerBeepUpdate); // Rate in seconds, callback
     }
+
+    // Beep at power on if we are not locally compiled or a release candidate
+    if (ENABLE_DEVELOPER == false)
+    {
+        beepOn();
+        delay(250);
+    }
+    beepOff();
 }
 
 // Stop any ticker tasks and PWM control
@@ -1521,29 +1522,6 @@ void deleteSDSizeCheckTask()
         sdSizeCheckTaskComplete = false;
         log_d("sdSizeCheck Task deleted");
     }
-}
-
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// Corrections Priorities Housekeeping
-void initializeCorrectionsPriorities()
-{
-    clearRegisteredCorrectionsSources(); // Clear (initialize) the vector of corrections sources. Probably redundant...?
-}
-
-void updateCorrectionsPriorities()
-{
-    checkRegisteredCorrectionsSources(); // Delete any expired corrections sources
-}
-
-// =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-// Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
-// TODO: find a better home for this
-void checkArrayDefaults()
-{
-    if (!validateCorrectionPriorities())
-        initializeCorrectionPriorities();
-    if (!validateCorrectionPriorities())
-        reportFatalError("initializeCorrectionPriorities failed.");
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

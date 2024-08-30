@@ -477,6 +477,7 @@ const double WGS84_A = 6378137;           // https://geographiclib.sourceforge.i
 const double WGS84_E = 0.081819190842622; // http://docs.ros.org/en/hydro/api/gps_common/html/namespacegps__common.html
                                           // and https://gist.github.com/uhho/63750c4b54c7f90f37f958cc8af0c718
 
+// Convert LLH (geodetic) to ECEF
 // From: https://stackoverflow.com/questions/19478200/convert-latitude-and-longitude-to-ecef-coordinates-system
 void geodeticToEcef(double lat, double lon, double alt, double *x, double *y, double *z)
 {
@@ -492,6 +493,7 @@ void geodeticToEcef(double lat, double lon, double alt, double *x, double *y, do
     *z = (N * (1.0 - WGS84_E * WGS84_E) + alt) * slat;
 }
 
+// Convert ECEF to LLH (geodetic)
 // From: https://danceswithcode.net/engineeringnotes/geodetic_to_ecef/geodetic_to_ecef.html
 void ecefToGeodetic(double x, double y, double z, double *lat, double *lon, double *alt)
 {
@@ -655,6 +657,12 @@ void stringHumanReadableSize(String &returnText, uint64_t bytes)
     returnText = String(readableSize);
 }
 
+// Check and initialize any arrays that won't be initialized by gnssConfigure (checkGNSSArrayDefaults)
+void checkArrayDefaults()
+{
+    correctionPriorityValidation();
+}
+
 // Verify table sizes match enum definitions
 void verifyTables()
 {
@@ -688,6 +696,7 @@ void verifyTables()
     httpClientValidateTables();
     provisioningVerifyTables();
     mosaicVerifyTables();
+    correctionVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))
         reportFatalError("Too many correction sources");

@@ -617,10 +617,6 @@ void menuDebugNetwork()
         systemPrint("1) Print Ethernet diagnostics: ");
         systemPrintf("%s\r\n", settings.enablePrintEthernetDiag ? "Enabled" : "Disabled");
 
-        // ESP-Now
-        systemPrint("2) ESP-Now Broadcast Override: ");
-        systemPrintf("%s\r\n", settings.espnowBroadcast ? "Enabled" : "Disabled");
-
         // WiFi
         systemPrint("3) Debug WiFi state: ");
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
@@ -686,8 +682,6 @@ void menuDebugNetwork()
 
         if (incoming == 1)
             settings.enablePrintEthernetDiag ^= 1;
-        else if (incoming == 2)
-            settings.espnowBroadcast ^= 1;
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
         else if (incoming == 4)
@@ -1194,6 +1188,9 @@ void menuPeriodicPrint()
         systemPrint("26) RTK state: ");
         systemPrintf("%s\r\n", settings.enablePrintStates ? "Enabled" : "Disabled");
 
+        systemPrint("27) RTK correction source: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_CORRECTION_SOURCE) ? "Enabled" : "Disabled");
+
         systemPrintln("------  Clients  -----");
         systemPrint("40) NTP server data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_NTP_SERVER_DATA) ? "Enabled" : "Disabled");
@@ -1316,6 +1313,8 @@ void menuPeriodicPrint()
             settings.enablePrintPosition ^= 1;
         else if (incoming == 26)
             settings.enablePrintStates ^= 1;
+        else if (incoming == 27)
+            PERIODIC_TOGGLE(PD_CORRECTION_SOURCE);
 
         else if (incoming == 40)
             PERIODIC_TOGGLE(PD_NTP_SERVER_DATA);

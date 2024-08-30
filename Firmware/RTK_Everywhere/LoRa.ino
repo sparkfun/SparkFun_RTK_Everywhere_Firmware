@@ -50,6 +50,7 @@ enum LoraState
 {
     LORA_OFF = 0,
     LORA_NOT_STARTED,
+    LORA_TX_SETTLING,      // Do not transmit while surveying in to avoid RF cross-talk
     LORA_TX,               // Send RTCM over LoRa when it's received from UM980 (share UART0 with prints)
     LORA_RX_DEDICATED,     // No USB cable so disconnect from USB
     LORA_RX_SHARED,        // USB cable connected so share UART0 between prints and data
@@ -90,11 +91,9 @@ void updateLora()
         if (inBaseMode())
         {
             if (settings.debugLora == true)
-                systemPrintln("LoRa: Moving to TX");
+                systemPrintln("LoRa: Moving to TX Settling");
 
-            loraSetupTransmit();
-
-            loraState = LORA_TX;
+            loraState = LORA_TX_SETTLING;
         }
         else if (isUsbAttached() == false)
         {
@@ -123,6 +122,24 @@ void updateLora()
         }
         break;
 
+    case (LORA_TX_SETTLING):
+        // While the survey is running, avoid transmitting over LoRa to allow maximum GNSS reception
+
+        if (gnssIsSurveyComplete() == true)
+        {
+            if (settings.debugLora == true)
+                systemPrintln("LoRa: Moving to TX");
+
+            loraSetupTransmit();
+
+            loraState = LORA_TX;
+        }
+
+        if (inBaseMode() == false)
+            loraState = LORA_NOT_STARTED; // Force restart to move to other modes
+
+        break;
+
     case (LORA_TX):
         // Incoming RTCM to send out over LoRa is handled by processUart1Message() task and loraProcessRTCM()
         if (inMainMenu == false)
@@ -137,6 +154,9 @@ void updateLora()
                     loraBytesSent = 0;
                 }
             }
+
+            if (inBaseMode() == false)
+                loraState = LORA_NOT_STARTED; // Force restart to move to other modes
         }
 
         break;
@@ -149,28 +169,34 @@ void updateLora()
 
             rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
 
-            gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
-
-            if (settings.debugLora == true)
+            // We've just received data. We assume this is RTCM and push it directly to the GNSS.
+            if (correctionLastSeen(CORR_RADIO_LORA))
             {
-                static unsigned long lastReport = 0;
-                static int loraRtcmCount = 0;
+                // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
+                gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
-                loraRtcmCount += rtcmCount;
-
-                if (millis() - lastReport > 3000)
+                if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
                 {
-                    lastReport = millis();
-
                     systemFlush();  // Complete prints
                     muxSelectUsb(); // Connect USB
 
-                    systemPrintf("Bytes received from LoRa: %d\r\n", loraRtcmCount);
+                    systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
                     systemFlush(); // Allow print to complete
 
                     muxSelectLoRa(); // Disconnect from USB
+                }
+            }
+            else
+            {
+                if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemFlush();  // Complete prints
+                    muxSelectUsb(); // Connect USB
 
-                    loraRtcmCount = 0;
+                    systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                    systemFlush(); // Allow print to complete
+
+                    muxSelectLoRa(); // Disconnect from USB
                 }
             }
         }
@@ -222,28 +248,34 @@ void updateLora()
 
             rtcmCount = Serial.readBytes(rtcmData, sizeof(rtcmData));
 
-            gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
-
-            if (settings.debugLora == true)
+            // We've just received data. We assume this is RTCM and push it directly to the GNSS.
+            if (correctionLastSeen(CORR_RADIO_LORA))
             {
-                static unsigned long lastReport = 0;
-                static int loraRtcmCount = 0;
+                // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
+                gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
-                loraRtcmCount += rtcmCount;
-
-                if (millis() - lastReport > 3000)
+                if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
                 {
-                    lastReport = millis();
-
                     systemFlush();  // Complete prints
                     muxSelectUsb(); // Connect USB
 
-                    systemPrintf("Bytes received from LoRa: %d\r\n", loraRtcmCount);
+                    systemPrintf("LoRa received %d RTCM bytes, pushed to GNSS\r\n", rtcmCount);
                     systemFlush(); // Allow print to complete
 
                     muxSelectLoRa(); // Disconnect from USB
+                }
+            }
+            else
+            {
+                if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemFlush();  // Complete prints
+                    muxSelectUsb(); // Connect USB
 
-                    loraRtcmCount = 0;
+                    systemPrintf("LoRa received %d RTCM bytes, NOT pushed due to priority\r\n", rtcmCount);
+                    systemFlush(); // Allow print to complete
+
+                    muxSelectLoRa(); // Disconnect from USB
                 }
             }
         }

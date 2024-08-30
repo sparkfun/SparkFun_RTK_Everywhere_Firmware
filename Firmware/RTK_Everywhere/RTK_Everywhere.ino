@@ -793,9 +793,7 @@ uint16_t failedParserMessages_RTCM;
 uint16_t failedParserMessages_NMEA;
 
 // Corrections Priorities Support
-std::vector<registeredCorrectionsSource>
-    registeredCorrectionsSources; // vector (linked list) of registered corrections sources for this device
-correctionsSource pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
+CORRECTION_ID_T pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
 // configureViaEthernet:
 //  Set to true if configureViaEthernet.txt exists in LittleFS.
@@ -1019,9 +1017,6 @@ void setup()
     DMW_b("verifyTables");
     verifyTables(); // Verify the consistency of the internal tables
 
-    DMW_b("initializeCorrectionsPriorities");
-    initializeCorrectionsPriorities(); // Initialize (clear) the registeredCorrectionsSources vector
-
     DMW_b("findSpiffsPartition");
     if (!findSpiffsPartition())
     {
@@ -1045,6 +1040,13 @@ void setup()
     DMW_b("beginFS");
     beginFS(); // Start the LittleFS file system in the spiffs partition
 
+    // At this point product variants are known, except early RTK products that lacked ID resistors
+    DMW_b("loadSettingsPartial");
+    loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
+
+    DMW_b("tickerBegin");
+    tickerBegin(); // Start ticker tasks for LEDs and beeper
+
     DMW_b("checkUpdateLoraFirmware");
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate();
@@ -1056,10 +1058,6 @@ void setup()
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
         checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
-
-    // At this point product variants are known, except early RTK products that lacked ID resistors
-    DMW_b("loadSettingsPartial");
-    loadSettingsPartial(); // Must be after the product variant is known so the correct setting file name is loaded.
 
     DMW_b("beginPsram");
     beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
@@ -1091,9 +1089,6 @@ void setup()
 
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
-
-    DMW_b("tickerBegin");
-    tickerBegin(); // Start ticker tasks for LEDs and beeper
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1264,8 +1259,8 @@ void loop()
     DMW_c("otaAutoUpdate");
     otaAutoUpdate();
 
-    DMW_c("updateCorrectionsPriorities");
-    updateCorrectionsPriorities(); // Update registeredCorrectionsSources, delete expired sources
+    DMW_c("correctionUpdateSource");
+    correctionUpdateSource(); // Retire expired sources
 
     DMW_c("updateProvisioning");
     updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction

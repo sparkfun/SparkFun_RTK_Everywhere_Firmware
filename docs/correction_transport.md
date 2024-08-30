@@ -6,7 +6,7 @@ RTK calculations require RTCM data to be delivered approximately once per second
 
 ## WiFi
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![NTRIP Server setup](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg>)
 
@@ -20,9 +20,9 @@ WiFi broadcasting is the most common transport method of getting RTCM correction
 
 Similarly, any SparkFun RTK device can be set up as an [NTRIP Client](menu_gnss.md#ntrip-client). The RTK device will connect to the local WiFi and begin downloading the RTCM data from the given NTRIP Caster and RTK Fix will be achieved. This is useful only if the Rover remains in RF range of a WiFi access point. Because of the limited range, we recommend using a cell phone's hotspot feature rather than a stationary WiFi access point for NTRIP Clients.
 
-## Cellular
+## Cellular - Via Cellphone
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) 
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![SW Maps NTRIP Client](img/SWMaps/SW_Maps_-_NTRIP_Client.jpg)
 
@@ -32,9 +32,18 @@ Shown above are SW Map's NTRIP Client Settings. Nearly all GIS applications have
 
 Cellular can even be used in Base mode. We have seen some very inventive users use an old cell phone as a WiFi access point. The base unit is configured as an NTRIP Server with the cellphone's WiFi AP credentials. The base performs a survey-in, connects to the WiFi, and the RTCM data is pushed over WiFi, over cellular, to an NTRIP Caster.
 
+## Cellular - Built-In
+
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
+
+The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
+
+    * [EVK example 8_5_PointPerfect_MQTT](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_5_PointPerfect_MQTT)
+    * [EVK example 8_6_PointPerfect_MQTT_WiFi_ETH_Cellular](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_6_PointPerfect_MQTT_WiFi_ETH_Cellular)
+
 ## L-Band
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 What if you are in the field, far away from WiFi, cellular, radio, or any other data connection? Look to the sky! 
 
@@ -42,11 +51,11 @@ A variety of companies provide GNSS RTK corrections broadcast from satellites ov
 
 These corrections are not as accurate as a fixed base station, and the corrections can require a monthly subscription fee, but you cannot beat the ease of use!
 
-L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. Currently, the [RTK Facet L-Band](https://www.sparkfun.com/products/20000) is the only product that supports L-Band correction reception.
+L-Band reception requires specialized RF receivers capable of demodulating the satellite transmissions. The RTK EVK has a built-in NEO-D9S corrections receiver. The RTK Everywhere firmware supports this and will tune the NEO-D9S to the correct frequency if you are in the US or EU. The PointPerfect L-Band corrections are encrypted and require a subscription and valid keys in order to work. The EVK comes with a one month free subscription to PointPerfect L-Band + IP, providing built-in support for L-Band corrections and IP corrections via Ethernet or WiFi.
 
 ## Serial Radios
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 ![Two serial radios](img/Corrections/19032-SiK_Telemetry_Radio_V3_-_915MHz__100mW-01.jpg)
 
@@ -58,6 +67,8 @@ On SparkFun RTK products that have an external radio port, a [4-pin to 6-pin cab
 
 ![Radio attached to RTK device](img/Corrections/SparkFun_RTK_Surveyor_-_Radio.jpg)
 
+The RTK EVK has screw cage terminals providing access to the ZED-F9P UART2 TX2 and RX2 pins. 3.3V power is provided too, but not 5V. For 5V radios, you may need an additional power source.
+
 These radios attach nicely to the back or bottom of an RTK device.
 
 The benefit of a serial telemetry radio link is that you do not need to configure anything; simply plug two radios onto two RTK devices and turn them on. 
@@ -66,7 +77,7 @@ The downside to serial telemetry radios is that they generally have a much short
 
 ## Ethernet
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 Ethernet-equipped RTK devices send and receive correction data via Ethernet.
 

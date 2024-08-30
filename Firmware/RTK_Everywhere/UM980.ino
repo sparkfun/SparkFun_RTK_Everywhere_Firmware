@@ -31,7 +31,15 @@ void um980Begin()
     if (settings.debugGnss == true)
         um980EnableDebugging();
 
-    um980->disableBinaryBeforeFix(); // Block the start of BESTNAV and RECTIME until 3D fix is achieved
+    // In order to reduce UM980 configuration time, the UM980 library blocks the start of BESTNAV and RECTIME until 3D
+    // fix is achieved However, if all NMEA messages are disabled, the UM980 will never detect a 3D fix.
+    if (um980IsGgaActive() == true)
+        // If NMEA GPGGA is turned on, suppress BESTNAV messages until GPGGA reports a 3D fix
+        um980->disableBinaryBeforeFix();
+    else
+        // If NMEA GPGGA is turned off, enable BESTNAV messages at power on which may lead to longer UM980 configuration
+        // times
+        um980->enableBinaryBeforeFix();
 
     if (um980->begin(*serialGNSS) == false) // Give the serial port over to the library
     {
@@ -160,48 +168,6 @@ bool um980ConfigureOnce()
         }
     }
 
-    // Enable E6 and PPP if enabled and possible
-    if (settings.enableGalileoHas == true)
-    {
-        // E6 reception requires version 11833 or greater
-        int um980Version = String(um980->getVersion()).toInt(); // Convert the string response to a value
-        if (um980Version >= 11833)
-        {
-            if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
-            {
-                if (um980->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
-                    systemPrintln("Galileo E6 service enabled");
-                else
-                    systemPrintln("Galileo E6 service config error");
-
-                if (um980->sendCommand("CONFIG PPP DATUM WGS84") == true)
-                    systemPrintln("WGS84 Datum applied");
-                else
-                    systemPrintln("WGS84 Datum error");
-            }
-        }
-        else
-        {
-            systemPrintf(
-                "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
-                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
-                um980Version);
-        }
-    }
-    else
-    {
-        // Turn off HAS/E6
-        if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
-        {
-            if (um980->sendCommand("CONFIG PPP DISABLE") == true)
-            {
-                // systemPrintln("Galileo E6 service disabled");
-            }
-            else
-                systemPrintln("Galileo E6 service config error");
-        }
-    }
-
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now
@@ -243,6 +209,10 @@ bool um980ConfigureRover()
     response &= um980SetModel(settings.dynamicModel); // This will cancel any base averaging mode
 
     response &= um980SetMinElevation(settings.minElev); // UM980 default is 5 degrees. Our default is 10.
+
+    response &= um980SetMultipathMitigation(settings.enableMultipathMitigation);
+
+    response &= um980SetHighAccuracyService(settings.enableGalileoHas);
 
     // Configure UM980 to output binary reports out COM2, connected to IM19 COM3
     response &= um980->sendCommand("BESTPOSB COM2 0.2"); // 5Hz
@@ -294,6 +264,15 @@ bool um980ConfigureBase()
 
     bool response = true;
 
+    // Set the dynamic mode. This will cancel any base averaging mode and is needed
+    // to allow a freshly started device to settle in regular GNSS reception mode before issuing
+    // um980BaseAverageStart().
+    response &= um980SetModel(settings.dynamicModel);
+
+    response &= um980SetMultipathMitigation(settings.enableMultipathMitigation);
+
+    response &= um980SetHighAccuracyService(settings.enableGalileoHas);
+
     response &= um980EnableRTCMBase(); // Only turn on messages, do not turn off messages. We assume the caller has
                                        // UNLOG or similar.
 
@@ -310,6 +289,9 @@ bool um980ConfigureBase()
     {
         systemPrintln("UM980 Base failed to configure");
     }
+
+    if (settings.debugGnss)
+        systemPrintln("UM980 Base configured");
 
     return (response);
 }
@@ -569,6 +551,97 @@ bool um980SetModel(uint8_t modelNumber)
     return (false);
 }
 
+bool um980SetMultipathMitigation(bool enableMultipathMitigation)
+{
+    bool result = true;
+
+    // Enable MMP as required
+    if (enableMultipathMitigation == true)
+    {
+        if (um980->isConfigurationPresent("CONFIG MMP ENABLE") == false)
+        {
+            if (um980->sendCommand("CONFIG MMP ENABLE") == true)
+                systemPrintln("Multipath Mitigation enabled");
+            else
+            {
+                systemPrintln("Multipath Mitigation failed to enable");
+                result = false;
+            }
+        }
+    }
+    else
+    {
+        // Turn off MMP
+        if (um980->isConfigurationPresent("CONFIG MMP ENABLE") == true)
+        {
+            if (um980->sendCommand("CONFIG MMP DISABLE") == true)
+                systemPrintln("Multipath Mitigation disabled");
+            else
+            {
+                systemPrintln("Multipath Mitigation failed to disable");
+                result = false;
+            }
+        }
+    }
+    return (result);
+}
+
+bool um980SetHighAccuracyService(bool enableGalileoHas)
+{
+    bool result = true;
+
+    // Enable E6 and PPP if enabled and possible
+    if (settings.enableGalileoHas == true)
+    {
+        // E6 reception requires version 11833 or greater
+        int um980Version = String(um980->getVersion()).toInt(); // Convert the string response to a value
+        if (um980Version >= 11833)
+        {
+            if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == false)
+            {
+                if (um980->sendCommand("CONFIG PPP ENABLE E6-HAS") == true)
+                    systemPrintln("Galileo E6 service enabled");
+                else
+                {
+                    systemPrintln("Galileo E6 service failed to enable");
+                    result = false;
+                }
+
+                if (um980->sendCommand("CONFIG PPP DATUM WGS84") == true)
+                    systemPrintln("WGS84 Datum applied");
+                else
+                {
+                    systemPrintln("WGS84 Datum failed to apply");
+                    result = false;
+                }
+            }
+        }
+        else
+        {
+            systemPrintf(
+                "Current UM980 firmware: v%d. Galileo E6 reception requires v11833 or newer. Please update the "
+                "firmware on your UM980 to allow for HAS operation. Please see https://bit.ly/sfe-rtk-um980-update\r\n",
+                um980Version);
+            // Don't fail the result. Module is still configured, just without HAS.
+        }
+    }
+    else
+    {
+        // Turn off HAS/E6
+        if (um980->isConfigurationPresent("CONFIG PPP ENABLE E6-HAS") == true)
+        {
+            if (um980->sendCommand("CONFIG PPP DISABLE") == true)
+                systemPrintln("Galileo E6 service disabled");
+            else
+            {
+                systemPrintln("Galileo E6 service failed to disable");
+                result = false;
+            }
+        }
+    }
+    return (result);
+}
+
 void um980FactoryReset()
 {
     um980->factoryReset();
@@ -662,6 +735,12 @@ float um980GetHorizontalAccuracy()
 {
     float latitudeDeviation = um980->getLatitudeDeviation();
     float longitudeDeviation = um980->getLongitudeDeviation();
+
+    // The binary message may contain all 0xFFs leading to a very large negative number.
+    if (longitudeDeviation < -0.01)
+        longitudeDeviation = 50.0;
+    if (latitudeDeviation < -0.01)
+        latitudeDeviation = 50.0;
 
     if (longitudeDeviation < latitudeDeviation)
         return (longitudeDeviation);
@@ -817,6 +896,8 @@ bool um980SetModeRoverSurvey()
     return (um980->setModeRoverSurvey());
 }
 
+// If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
+// we can pass data back into the Unicore library to allow it to update its own variables
 void um980UnicoreHandler(uint8_t *buffer, int length)
 {
     um980->unicoreHandler(buffer, length);
@@ -847,9 +928,35 @@ uint8_t um980GetActiveMessageCount()
 {
     uint8_t count = 0;
 
+    count += um980GetActiveNmeaMessageCount();
+
+    count += um980GetActiveRtcmMessageCount();
+
+    return (count);
+}
+
+uint8_t um980GetActiveNmeaMessageCount()
+{
+    uint8_t count = 0;
+
     for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
         if (settings.um980MessageRatesNMEA[x] > 0)
             count++;
+
+    return (count);
+}
+
+// Return true if the GPGGA message is active
+bool um980IsGgaActive()
+{
+    if (settings.um980MessageRatesNMEA[um980GetNmeaMessageNumberByName("GPGGA")] > 0)
+        return (true);
+    return (false);
+}
+
+uint8_t um980GetActiveRtcmMessageCount()
+{
+    uint8_t count = 0;
 
     // Determine which state we are in
     if (um980InRoverMode() == true)
@@ -1054,7 +1161,7 @@ char *um980GetRtcmDefaultString()
 }
 char *um980GetRtcmLowDataRateString()
 {
-    return ((char *)"1074/1084/1094/1124 1Hz & 1005/1033 0.1Hz");
+    return ((char *)"1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz");
 }
 
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz)
@@ -1072,17 +1179,17 @@ void um980BaseRtcmLowDataRate()
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
         settings.um980MessageRatesRTCMBase[x] = 0;
 
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1005")] =
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1005")] =
         10; // 1005 0.1Hz - Exclude antenna height
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1124")] = 2;  // 1124 0.5Hz
-    settings.um980MessageRatesRTCMBase[um980GetMessageNumberByName("RTCM1033")] = 10; // 1033 0.1Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1074")] = 2;  // 1074 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1084")] = 2;  // 1084 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1094")] = 2;  // 1094 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1124")] = 2;  // 1124 0.5Hz
+    settings.um980MessageRatesRTCMBase[um980GetRtcmMessageNumberByName("RTCM1033")] = 10; // 1033 0.1Hz
 }
 
-// Given the name of a message, return the array number
-uint8_t um980GetMessageNumberByName(const char *msgName)
+// Given the name of an RTCM message, return the array number
+uint8_t um980GetRtcmMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
     {
@@ -1090,7 +1197,20 @@ uint8_t um980GetMessageNumberByName(const char *msgName)
             return (x);
     }
 
-    systemPrintf("um980GetMessageNumberByName: %s not found\r\n", msgName);
+    systemPrintf("um980GetRtcmMessageNumberByName: %s not found\r\n", msgName);
+    return (0);
+}
+
+// Given the name of an NMEA message, return the array number
+uint8_t um980GetNmeaMessageNumberByName(const char *msgName)
+{
+    for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
+    {
+        if (strcmp(umMessagesNMEA[x].msgTextName, msgName) == 0)
+            return (x);
+    }
+
+    systemPrintf("um980GetNmeaMessageNumberByName: %s not found\r\n", msgName);
     return (0);
 }
 

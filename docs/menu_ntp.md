@@ -1,6 +1,6 @@
 # Network Time Protocol Menu
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) 
+Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
 Ethernet-equipped RTK devices can act as an Ethernet Network Time Protocol (NTP) server.
 
@@ -29,15 +29,17 @@ This exchange is repeated typically five times, before the client synchronizes i
 
 Having your own NTP server on your network allows tighter clock synchronization as the network latency is minimized.
 
-Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by pressing the **MODE** button until NTP is highlighted in the display and pausing there.
+Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by clicking the **MODE** button until NTP is highlighted in the display and double-clicking there.
 
 ![Animation of selecting NTP mode](<img/Displays/SparkFun RTK - NTP Select.gif>)
 
 *Selecting NTP mode*
 
-Ethernet-equipped RTK devices will first synchronize its Real Time Clock (RTC) using the very accurate time provided by the u-blox GNSS module. The module's Time Pulse (Pulse-Per-Second) signal is connected to the ESP32 as an interrupt. The ESP32's RTC is synchronized to Universal Time Coordinate (UTC) on the rising edge of the TP signal using the time contained in the UBX-TIM-TP message.
+An Ethernet-equipped RTK device will first synchronize its Real Time Clock (RTC) using the very accurate time provided by the u-blox GNSS module. The module's Time Pulse (Pulse-Per-Second) signal is connected to the ESP32 as an interrupt. The ESP32's RTC is synchronized to Universal Time Coordinate (UTC) on the rising edge of the TP signal using the time contained in the UBX-TIM-TP message.
 
-The WIZnet W5500 interrupt signal is also connected to the ESP32, allowing the ESP32 to accurately log when each NTP request arrives.
+When an Ethernet-equipped RTK device is in Network Time Protocol (NTP) mode, the display also shows a clock symbol - as shown above. The value next to the clock symbol is the Time Accuracy Estimate (tAcc) from the UBX-NAV-PVT message.
+
+Note: tAcc is the time accuracy estimate for the navigation position solution. The timing accuracy of the TP pulse is significantly better than this. We show the tAcc as we believe it is more meaningful than the TIM-TP time pulse quantization error (qErr) - which is generally zero.
 
 The RTK device will respond to each NTP request within a few 10s of milliseconds.
 

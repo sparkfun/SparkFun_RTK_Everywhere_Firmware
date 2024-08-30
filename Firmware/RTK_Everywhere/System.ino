@@ -66,6 +66,7 @@ void beepOff()
 
 // Update battery levels every 5 seconds
 // Update battery charger as needed
+// Output serial message if enabled
 void updateBattery()
 {
     if (online.batteryFuelGauge == true)
@@ -77,13 +78,19 @@ void updateBattery()
 
             checkBatteryLevels();
 
-            // tickerBatteryLedUpdate will take care of this. Doing it here creates error "IO 0 is not set as GPIO"
-            //if (present.fuelgauge_bq40z50 == true)
-            //{
-            //    // Turn on green battery LED if battery is above 50%
-            //    if (batteryLevelPercent > 50)
-            //        batteryStatusLedOn();
-            //}
+            // Display the battery data
+            if (settings.enablePrintBatteryMessages)
+            {
+                char tempStr[25];
+                if (isCharging())
+                    snprintf(tempStr, sizeof(tempStr), "C");
+                else
+                    snprintf(tempStr, sizeof(tempStr), "Disc");
+
+                systemPrintf("Batt (%d%%): Voltage: %0.02fV", batteryLevelPercent, batteryVoltage);
+
+                systemPrintf(" %sharging: %0.02f%%/hr\r\n", tempStr, batteryChargingPercentPerHour);
+            }
         }
     }
 
@@ -113,11 +120,25 @@ void updateBattery()
                 }
             }
         }
+
+        // Check if we need to shutdown due to no charging
+        if (settings.shutdownNoChargeTimeout_s > 0)
+        {
+            if (isCharging() == false)
+            {
+                int secondsSinceLastCharger = (millis() - shutdownNoChargeTimer) / 1000;
+                if (secondsSinceLastCharger > settings.shutdownNoChargeTimeout_s)
+                    powerDown(true);
+            }
+            else
+            {
+                shutdownNoChargeTimer = millis(); // Reset timer because power is attached
+            }
+        }
     }
 }
 
-// When called, checks level of battery
-// And outputs a serial message to USB
+// Updates global variables with battery levels
 void checkBatteryLevels()
 {
     if (online.batteryFuelGauge == false)
@@ -140,35 +161,6 @@ void checkBatteryLevels()
             (float)bq40z50Battery->getAverageCurrentMa() / bq40z50Battery->getFullChargeCapacityMah() * 100.0;
     }
 #endif // COMPILE_BQ40Z50
-
-    // Display the battery data
-    if (settings.enablePrintBatteryMessages)
-    {
-        char tempStr[25];
-        if (isCharging())
-            snprintf(tempStr, sizeof(tempStr), "C");
-        else
-            snprintf(tempStr, sizeof(tempStr), "Disc");
-
-        systemPrintf("Batt (%d%%): Voltage: %0.02fV", batteryLevelPercent, batteryVoltage);
-
-        systemPrintf(" %sharging: %0.02f%%/hr\r\n", tempStr, batteryChargingPercentPerHour);
-    }
-
-    // Check if we need to shutdown due to no charging
-    if (settings.shutdownNoChargeTimeout_s > 0)
-    {
-        if (isCharging() == false)
-        {
-            int secondsSinceLastCharger = (millis() - shutdownNoChargeTimer) / 1000;
-            if (secondsSinceLastCharger > settings.shutdownNoChargeTimeout_s)
-                powerDown(true);
-        }
-        else
-        {
-            shutdownNoChargeTimer = millis(); // Reset timer because power is attached
-        }
-    }
 }
 
 // Ping an I2C device and see if it responds
@@ -356,8 +348,8 @@ void printReports()
         lastPrintPosition = millis();
     }
 
-    if ((settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000))
-        || (PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)))
+    if ((settings.enablePrintRoverAccuracy && (millis() - lastPrintRoverAccuracy > 2000)) ||
+        (PERIODIC_DISPLAY(PD_MQTT_CLIENT_DATA)))
     {
         lastPrintRoverAccuracy = millis();
         PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);

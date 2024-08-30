@@ -143,6 +143,12 @@ void menuGNSS()
                 systemPrintln("Disabled");
         }
 
+        if (present.gnss_um980)
+        {
+            systemPrintf("15) Multipath Mitigation: %s\r\n",
+                         settings.enableMultipathMitigation ? "Enabled" : "Disabled");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -325,6 +331,12 @@ void menuGNSS()
         else if ((incoming == 14) && settings.enableNtripClient == true)
         {
             settings.ntripClient_TransmitGGA ^= 1;
+            restartRover = true;
+        }
+
+        else if ((incoming == 15) && present.gnss_um980)
+        {
+            settings.enableMultipathMitigation ^= 1;
             restartRover = true;
         }
 

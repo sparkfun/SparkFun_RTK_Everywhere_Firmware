@@ -128,6 +128,7 @@ nav:
   - Introduction: index.md
   - Quick Start:
     - quickstart-torch.md
+    - quickstart-evk.md
   - connecting_bluetooth.md
   - GIS Software:
       - gis_software_android.md
@@ -139,6 +140,7 @@ nav:
       - configure_with_settings_file.md
       - configure_with_ucenter.md
       - configure_with_wifi.md
+      - configure_with_ethernet.md
   - Configuration Menus:
       - menu_base.md
       - menu_corrections_priorities.md
@@ -157,10 +159,17 @@ nav:
       - menu_userprofiles.md
       - menu_wifi.md
   - Hardware:
-      - firmware_update.md
+      - Update Torch:
+        - firmware_update_esp32.md
+        - firmware_update_um980.md
+        - firmware_update_stm32.md
+      - Update EVK:
+        - firmware_update_esp32.md
+        - firmware_update_ublox.md
       - displays.md
       - embeddedsystem_connection.md
       - repair.md
+      - firmware_compile.md
   - RTK Corrections:
       - correction_sources.md
       - correction_transport.md

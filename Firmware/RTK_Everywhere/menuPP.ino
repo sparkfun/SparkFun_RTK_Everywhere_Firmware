@@ -1,5 +1,5 @@
-#include "mbedtls/ssl.h" //Needed for certificate validation
 #include "mbedtls/ctr_drbg.h"
+#include "mbedtls/ssl.h" //Needed for certificate validation
 
 //----------------------------------------
 // Locals - compiled out
@@ -221,8 +221,7 @@ void createZtpRequest(String &str)
     // Get the hardware ID
     char hardwareID[15];
     snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5],
-             productVariant);
+             btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
 
     // Get the firmware version string
     char versionString[9];
@@ -463,7 +462,8 @@ bool checkPrivateKeyValidity(char *privateKey, int privateKeySize)
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ctr_drbg_init(&ctr_drbg);
 
-    int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
+    int result_code = mbedtls_pk_parse_key(&pk, (unsigned char *)privateKey, privateKeySize + 1, nullptr, 0,
+                                           mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_pk_free(&pk);
     mbedtls_ctr_drbg_free(&ctr_drbg);
 
@@ -725,9 +725,7 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 {
     uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
 
-    updateCorrectionsLastSeen(CORR_LBAND); // This will (re)register the correction source if needed
-
-    if (isHighestRegisteredCorrectionsSource(CORR_LBAND))
+    if (correctionLastSeen(CORR_LBAND))
     {
         updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
 
@@ -1010,7 +1008,7 @@ void menuPointPerfect()
 
         if (pointPerfectIsEnabled())
         {
-#ifdef  COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
             systemPrint("2) Toggle Auto Key Renewal: ");
             if (settings.autoKeyRenewal == true)
                 systemPrintln("Enabled");
@@ -1042,7 +1040,7 @@ void menuPointPerfect()
                 else
                     systemPrintln("Disabled");
             }
-#endif  // COMPILE_NETWORK
+#endif // COMPILE_NETWORK
 
             systemPrintln("c) Clear the Keys");
 
@@ -1065,7 +1063,7 @@ void menuPointPerfect()
             settings.requestKeyUpdate = settings.enablePointPerfectCorrections; // Force a key update - or don't
         }
 
-#ifdef  COMPILE_NETWORK
+#ifdef COMPILE_NETWORK
         else if (incoming == 2 && pointPerfectIsEnabled())
         {
             settings.autoKeyRenewal ^= 1;
@@ -1089,7 +1087,7 @@ void menuPointPerfect()
         {
             settings.useAssistNow ^= 1;
         }
-#endif  // COMPILE_NETWORK
+#endif // COMPILE_NETWORK
         else if (incoming == 'c' && pointPerfectIsEnabled())
         {
             settings.pointPerfectCurrentKey[0] = 0;
@@ -1286,247 +1284,239 @@ void updateProvisioning()
 
     switch (provisioningState)
     {
-        default:
-        case PROVISIONING_OFF:
+    default:
+    case PROVISIONING_OFF: {
+        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
+        provisioningSetState(PROVISIONING_WAIT_RTC);
+    }
+    break;
+    case PROVISIONING_WAIT_RTC: {
+        if ((online.rtc)
+            // If RTC is not online after provisioningTimeout_ms, try to provision anyway
+            || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) || (settings.requestKeyUpdate))
+            provisioningSetState(PROVISIONING_NOT_STARTED);
+    }
+    break;
+    case PROVISIONING_NOT_STARTED: {
+        if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
         {
-            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-            provisioningSetState(PROVISIONING_WAIT_RTC);
+            provisioningSetState(PROVISIONING_CHECK_REMAINING);
         }
-        break;
-        case PROVISIONING_WAIT_RTC:
+    }
+    break;
+    case PROVISIONING_CHECK_REMAINING: {
+        // If we don't have certs or keys, begin zero touch provisioning
+        if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 ||
+            strlen(settings.pointPerfectNextKey) == 0)
         {
-            if  ((online.rtc)
-                // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-                || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
-                || (settings.requestKeyUpdate))
-                provisioningSetState(PROVISIONING_NOT_STARTED);
+            if (settings.debugPpCertificate)
+                systemPrintln("Invalid certificates or keys. Starting provisioning");
+            provisioningSetState(PROVISIONING_CHECK_NETWORK);
         }
-        break;
-        case PROVISIONING_NOT_STARTED:
+        // If requestKeyUpdate is true, begin provisioning
+        else if (settings.requestKeyUpdate)
         {
-            if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
-            {
-                provisioningSetState(PROVISIONING_CHECK_REMAINING);
-            }
+            if (settings.debugPpCertificate)
+                systemPrintln("requestKeyUpdate is true. Starting provisioning");
+            provisioningSetState(PROVISIONING_CHECK_NETWORK);
         }
-        break;
-        case PROVISIONING_CHECK_REMAINING:
+        // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
+        else if (!online.rtc)
         {
-            // If we don't have certs or keys, begin zero touch provisioning
-            if (!checkCertificates() || strlen(settings.pointPerfectCurrentKey) == 0 || strlen(settings.pointPerfectNextKey) == 0)
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("Invalid certificates or keys. Starting provisioning");
-                provisioningSetState(PROVISIONING_CHECK_NETWORK);
-            }
-            // If requestKeyUpdate is true, begin provisioning
-            else if (settings.requestKeyUpdate)
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("requestKeyUpdate is true. Starting provisioning");
-                provisioningSetState(PROVISIONING_CHECK_NETWORK);
-            }
-            // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
-            else if (!online.rtc)
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("No RTC. Starting provisioning");
-                provisioningSetState(PROVISIONING_CHECK_NETWORK);
-            }
+            if (settings.debugPpCertificate)
+                systemPrintln("No RTC. Starting provisioning");
+            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+        }
+        else
+        {
+            // RTC is online. Determine days until next key expires
+            int daysRemaining =
+                daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+
+            if (settings.debugPpCertificate)
+                systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
+
+            if (daysRemaining > 28)
+                provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
             else
+                provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
+        }
+    }
+    break;
+    case PROVISIONING_CHECK_ATTEMPT: {
+        // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
+        // if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : (60 * 60 * 24)))
+        // When did we last try to get keys? Attempt every 24 hours
+        if (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24))
+        {
+            settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
+            recordSystemSettings();                   // Record these settings to unit
+            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+        }
+        else
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("Already tried to obtain keys for today");
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+    }
+    break;
+    case PROVISIONING_CHECK_NETWORK: {
+        uint8_t networkType = networkGetActiveType();
+        if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+        {
+            displayNoSSIDs(2000);
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+        else
+            provisioningSetState(PROVISIONING_STARTING);
+    }
+    break;
+    case PROVISIONING_STARTING: {
+        ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
+        httpClientModeNeeded = true;             // This will start the HTTP_Client
+        provisioningStartTime_millis = millis(); // Record the start time so we can timeout
+        paintGettingKeys();
+        provisioningSetState(PROVISIONING_STARTED);
+    }
+    case PROVISIONING_STARTED: {
+        // Only leave this state if we timeout or ZTP is complete
+        if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
+        {
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
+            paintKeyUpdateFail(5000);
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+        else if (ztpResponse == ZTP_SUCCESS)
+        {
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up
+            recordSystemSettings();       // Make sure the new cert and keys are recorded
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+        else if (ztpResponse == ZTP_DEACTIVATED)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            char landingPageUrl[200] = "";
+            if (productVariant == RTK_TORCH)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
+            else if (productVariant == RTK_EVK)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else
+                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
+            systemPrintf("This device has been deactivated. Please contact "
+                         "support@sparkfun.com %sto renew the PointPerfect "
+                         "subscription. Please reference device ID: %s\r\n",
+                         landingPageUrl, hardwareID);
+
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
+            displayAccountExpired(5000);
+
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+        else if (ztpResponse == ZTP_NOT_WHITELISTED)
+        {
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            char landingPageUrl[200] = "";
+            if (productVariant == RTK_TORCH)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_torch_registration ");
+            else if (productVariant == RTK_EVK)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else
+                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+
+            systemPrintf("This device is not whitelisted. Please contact "
+                         "support@sparkfun.com %sto get the subscription "
+                         "activated. Please reference device ID: %s\r\n",
+                         landingPageUrl, hardwareID);
+
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
+            displayNotListed(5000);
+
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+        else if (ztpResponse == ZTP_ALREADY_REGISTERED)
+        {
+            // Device is already registered to a different ZTP profile.
+            char hardwareID[15];
+            snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
+                     btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
+
+            systemPrintf("This device is registered on a different profile. Please contact "
+                         "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
+                         hardwareID);
+
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
+            displayAlreadyRegistered(5000);
+
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+        else if (ztpResponse == ZTP_UNKNOWN_ERROR)
+        {
+            systemPrintln("updateProvisioning: ZTP_UNKNOWN_ERROR");
+
+            httpClientModeNeeded = false; // Tell HTTP_Client to give up.
+
+            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+        }
+    }
+    break;
+    case PROVISIONING_KEYS_REMAINING: {
+        if (online.rtc == true)
+        {
+            if (settings.pointPerfectNextKeyStart > 0)
             {
-                // RTC is online. Determine days until next key expires
                 int daysRemaining =
                     daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-
-                if (settings.debugPpCertificate)
-                    systemPrintf("Days until keys expire: %d\r\n", daysRemaining);
-
-                if (daysRemaining > 28)
-                    provisioningSetState(PROVISIONING_KEYS_REMAINING); // Don't need new keys
-                else
-                    provisioningSetState(PROVISIONING_CHECK_ATTEMPT); // Do need new keys
-            }
-        }
-        break;
-        case PROVISIONING_CHECK_ATTEMPT: // Requires RTC to be online
-        {
-            // When did we last try to get keys? Attempt every 24 hours - or always for DEVELOPER
-            //if (rtc.getEpoch() - settings.lastKeyAttempt > ( ENABLE_DEVELOPER ? 0 : (60 * 60 * 24)))
-            // When did we last try to get keys? Attempt every 24 hours
-            if (rtc.getEpoch() - settings.lastKeyAttempt > (60 * 60 * 24))
-            {
-                settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
-                recordSystemSettings();                   // Record these settings to unit
-                provisioningSetState(PROVISIONING_CHECK_NETWORK);
-            }
-            else
-            {
-                if (settings.debugPpCertificate)
-                    systemPrintln("Already tried to obtain keys for today");
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-        }
-        break;
-        case PROVISIONING_CHECK_NETWORK:
-        {
-            uint8_t networkType = networkGetActiveType();
-            if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
-            {
-                displayNoSSIDs(2000);
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-            else
-                provisioningSetState(PROVISIONING_STARTING);
-        }
-        break;
-        case PROVISIONING_STARTING:
-        {
-            ztpResponse = ZTP_NOT_STARTED; // HTTP_Client will update this
-            httpClientModeNeeded = true; // This will start the HTTP_Client
-            provisioningStartTime_millis = millis(); // Record the start time so we can timeout
-            paintGettingKeys();
-            provisioningSetState(PROVISIONING_STARTED);
-        }
-        case PROVISIONING_STARTED:
-        {
-            // Only leave this state if we timeout or ZTP is complete
-            if (millis() > (provisioningStartTime_millis + provisioningTimeout_ms))
-            {
-                httpClientModeNeeded = false; // Tell HTTP_Client to give up. (But it probably already has...)
-                paintKeyUpdateFail(5000);
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-            else if (ztpResponse == ZTP_SUCCESS)
-            {
-                httpClientModeNeeded = false; // Tell HTTP_Client to give up
-                recordSystemSettings(); // Make sure the new cert and keys are recorded
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-            else if (ztpResponse == ZTP_DEACTIVATED)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                            btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                char landingPageUrl[200] = "";
-                if (productVariant == RTK_TORCH)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                                "or goto https://www.sparkfun.com/rtk_torch_registration ");
-                else if (productVariant == RTK_EVK)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                                "or goto https://www.sparkfun.com/rtk_evk_registration ");
-                else
-                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
-
-                systemPrintf("This device has been deactivated. Please contact "
-                                "support@sparkfun.com %sto renew the PointPerfect "
-                                "subscription. Please reference device ID: %s\r\n",
-                                landingPageUrl, hardwareID);
-
-                httpClientModeNeeded = false; // Tell HTTP_Client to give up
-                displayAccountExpired(5000);
-
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-            else if (ztpResponse == ZTP_NOT_WHITELISTED)
-            {
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                            btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                char landingPageUrl[200] = "";
-                if (productVariant == RTK_TORCH)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                                "or goto https://www.sparkfun.com/rtk_torch_registration ");
-                else if (productVariant == RTK_EVK)
-                    snprintf(landingPageUrl, sizeof(landingPageUrl),
-                                "or goto https://www.sparkfun.com/rtk_evk_registration ");
-                else
-                    systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
-
-                systemPrintf("This device is not whitelisted. Please contact "
-                                "support@sparkfun.com %sto get the subscription "
-                                "activated. Please reference device ID: %s\r\n",
-                                landingPageUrl, hardwareID);
-
-                httpClientModeNeeded = false; // Tell HTTP_Client to give up
-                displayNotListed(5000);
-
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-            else if (ztpResponse == ZTP_ALREADY_REGISTERED)
-            {
-                // Device is already registered to a different ZTP profile.
-                char hardwareID[15];
-                snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X%02X%02X%02X%02X", btMACAddress[0], btMACAddress[1],
-                            btMACAddress[2], btMACAddress[3], btMACAddress[4], btMACAddress[5], productVariant);
-
-                systemPrintf("This device is registered on a different profile. Please contact "
-                                "support@sparkfun.com for more assistance. Please reference device ID: %s\r\n",
-                                hardwareID);
-                
-                httpClientModeNeeded = false; // Tell HTTP_Client to give up
-                displayAlreadyRegistered(5000);
-
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-            else if (ztpResponse == ZTP_UNKNOWN_ERROR)
-            {
-                systemPrintln("updateProvisioning: ZTP_UNKNOWN_ERROR");
-
-                httpClientModeNeeded = false; // Tell HTTP_Client to give up
-                
-                provisioningSetState(PROVISIONING_KEYS_REMAINING);
-            }
-        }
-        break;
-        case PROVISIONING_KEYS_REMAINING:
-        {
-            if (online.rtc == true)
-            {
-                if (settings.pointPerfectNextKeyStart > 0)
+                systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
+                if (daysRemaining >= 0)
                 {
-                    int daysRemaining =
-                        daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-                    systemPrintf("Days until PointPerfect keys expire: %d\r\n", daysRemaining);
-                    if (daysRemaining >= 0)
-                    {
-                        paintKeyDaysRemaining(daysRemaining, 2000);
-                    }
-                    else
-                    {
-                        paintKeysExpired();
-                    }
+                    paintKeyDaysRemaining(daysRemaining, 2000);
+                }
+                else
+                {
+                    paintKeysExpired();
                 }
             }
-            paintLBandConfigure();
-
-            // Be sure we ignore any external RTCM sources
-            gnssDisableRtcmOnGnss();
-
-            gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
-
-            settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
-            recordSystemSettings(); // Record these settings to unit
-
-            provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
-            provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
         }
-        break;
-        case PROVISIONING_WAIT_ATTEMPT: // We may still not have RTC... Or RTC may come online _during_ this state.
-        {
-            if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
-                provisioningSetState(PROVISIONING_CHECK_REMAINING);
-            else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
-                provisioningSetState(PROVISIONING_OFF);
-            // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
-            //else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (1000 * 60 * 15) : (1000 * 60 * 60 * 24))))
-            // When did we last try to get keys? Attempt every 24 hours
-            else if (millis() > (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
-                provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        }
-        break;
+        paintLBandConfigure();
+
+        // Be sure we ignore any external RTCM sources
+        gnssDisableRtcmOnGnss();
+
+        gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
+
+        settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
+        recordSystemSettings();            // Record these settings to unit
+
+        provisioningStartTime_millis = millis(); // Record the time so we can restart after 24 hours
+        provisioningSetState(PROVISIONING_WAIT_ATTEMPT);
+    }
+    break;
+    case PROVISIONING_WAIT_ATTEMPT: {
+        if (settings.requestKeyUpdate) // requestKeyUpdate can be set via the menu, mode button or web config
+            provisioningSetState(PROVISIONING_CHECK_REMAINING);
+        else if (!settings.enablePointPerfectCorrections || !settings.autoKeyRenewal)
+            provisioningSetState(PROVISIONING_OFF);
+        // When did we last try to get keys? Attempt every 24 hours - or every 15 mins for DEVELOPER
+        // else if (millis() > (provisioningStartTime_millis + ( ENABLE_DEVELOPER ? (1000 * 60 * 15) : (1000 * 60 * 60 *
+        // 24))))
+        // When did we last try to get keys? Attempt every 24 hours
+        else if (millis() >
+                 (provisioningStartTime_millis + (1000 * 60 * 60 * 24))) // Don't use settings.lastKeyAttempt (#419)
+            provisioningSetState(PROVISIONING_CHECK_REMAINING);
+    }
+    break;
     }
 
     // Periodically display the provisioning state
