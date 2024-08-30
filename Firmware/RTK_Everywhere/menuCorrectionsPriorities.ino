@@ -46,7 +46,7 @@
 //----------------------------------------
 // Locals
 //----------------------------------------
-static CORRECTION_ID_T correctionSourceId;        // ID of correction source
+static CORRECTION_ID_T correctionSourceId = CORR_NUM; // ID of correction source (default: None)
 static CORRECTION_MASK_T correctionActive;        // Bitmap of active correction sources
 static uint32_t correctionLastSeenMsec[CORR_NUM]; // Time when correction was last received
 
