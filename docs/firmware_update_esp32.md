@@ -40,7 +40,7 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 
 ## Updating Firmware Over-The-Air
 
-![Updating Firmware from WiFi config page](<img/WiFi Config/RTK-Firmware-Update-OTA.gif>)
+![Updating Firmware from WiFi config page](<img/WiFi Config/SparkFun RTK Everywhere - Firmware Update System Menu.gif>)
 
 *Updating the firmware via WiFi config page*
 
