@@ -64,7 +64,7 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Support
 
 *RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna*
 
-The RTK Torch has a built-in 1W LoRa radio that allows Base to Rover communication. This radio is based on the STM32WLE5CC which contains a microcontroller and a LoRa radio. Attached to this radio is a 1W power amplifier. The radio transmits in the ISM band from 902 to 928MHz and is legal to use in North America, South America, Australia, and New Zealand. The radio implements frequency hopping spread spectrum (FHSS) techniques as well as LoRa modulation to maximize transmission distance while switching frequencies to abide by FCC requirements. Additionally, the LoRa system supports multipoint allowing one Base to communicate with dozens of Rovers.
+The RTK Torch has a built-in 1W LoRa radio that allows Base to Rover communication. This radio is based on the STM32WLE5CC which contains a microcontroller and a LoRa radio. Attached to this radio is a 1W power amplifier. The radio transmits in the ISM band from 902 to 928MHz and is legal to use in North America and South America. The radio implements frequency hopping spread spectrum (FHSS) techniques as well as LoRa modulation to maximize transmission distance while switching frequencies to abide by FCC requirements. Additionally, the LoRa system supports multipoint allowing one Base to communicate with dozens of Rovers.
 
 **Note:** RTK Torch LoRa radio uses a different frequency hopping algorithm from other radios that SparkFun sells. Therefore, RTK Torches are currently only compatible with each other and cannot be used interoperably with other LoRa or 915MHz radios.
 
