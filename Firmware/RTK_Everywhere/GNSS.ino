@@ -1515,7 +1515,7 @@ void gnssMenuMessageBaseRtcm()
     }
     else if (present.gnss_mosaicX5)
     {
-        mosaicX5MenuMessagesSubtype(settings.mosaicMessageIntervalsRTCMv3Base, "RTCMBase");
+        mosaicX5MenuMessagesRTCM(false);
     }
 }
 

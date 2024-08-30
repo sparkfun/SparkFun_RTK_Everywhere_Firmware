@@ -27,7 +27,6 @@ uint8_t mosaicLeapSeconds = 18; // ReceiverTime DeltaLS
 unsigned long mosaicPvtArrivalMillis = 0;
 bool mosaicPvtUpdated = false;
 
-void mosaicX5flushRX(unsigned long timeout = 0); // Header
 void mosaicX5flushRX(unsigned long timeout)
 {
     if (timeout > 0)
@@ -44,7 +43,6 @@ void mosaicX5flushRX(unsigned long timeout)
     }
 }
 
-bool mosaicX5waitCR(unsigned long timeout = 100); // Header
 bool mosaicX5waitCR(unsigned long timeout)
 {
     unsigned long startTime = millis();
@@ -60,7 +58,6 @@ bool mosaicX5waitCR(unsigned long timeout)
     return false;
 }
 
-bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 100); // Header
 bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout, unsigned long wait)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
@@ -94,17 +91,15 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
     }
 
     if (replySeen == strlen(reply)) // If the reply was seen
-        return waitCR(wait);        // wait for a carriage return
+        return mosaicX5waitCR(wait);        // wait for a carriage return
 
     return false;
 }
-bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 100); // Header
 bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout, unsigned long wait)
 {
     return mosaicX5sendWithResponse(message.c_str(), reply, timeout, wait);
 }
 
-bool waitForSBF(uint16_t ID, const uint8_t * * buffer, unsigned long timeout = 1000); // Header
 bool waitForSBF(uint16_t ID, const uint8_t * * buffer, unsigned long timeout)
 {
     unsigned long startTime = millis();
@@ -157,7 +152,7 @@ bool mosaicX5Begin()
     if (serial2GNSS == nullptr)
     {
         systemPrintln("GNSS UART 2 not started");
-        return;
+        return false;
     }
 
     // Mosaic could still be starting up, so allow many retries
@@ -243,17 +238,17 @@ bool mosaicX5ConfigureOnce()
     response &= mosaicX5SetBaudRateCOM1(settings.dataPortBaud); // COM1 is connected to ESP
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
-    String settings = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
+    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
     if (settings.enablePointPerfectCorrections)
-        settings += String("+LBandBeam1");
-    settings += String("\n\r");
-    response &= mosaicX5sendWithResponse(settings, "DataInOut");
+        setting += String("+LBandBeam1");
+    setting += String("\n\r");
+    response &= mosaicX5sendWithResponse(setting, "DataInOut");
 
     // Output SBF PVTGeodetic and ReceiverTime on their own stream
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
-    settings = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
-    response &= mosaicX5sendWithResponse(settings, "SBFOutput");
+    setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    response &= mosaicX5sendWithResponse(setting, "SBFOutput");
 
     response &= mosaicX5SetMinElevation(settings.minElev);
 
@@ -361,7 +356,7 @@ bool mosaicX5ConfigureRover()
 
     // Save the current configuration into non-volatile memory (NVM)
     // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = mosaicX5->saveConfiguration();
+    bool settingsWereSaved = mosaicX5SaveConfiguration();
     if (settingsWereSaved)
         settings.updateGNSSSettings = false;
 
@@ -402,7 +397,7 @@ bool mosaicX5ConfigureBase()
 
     // Save the current configuration into non-volatile memory (NVM)
     // We don't need to re-configure the MOSAICX5 at next boot
-    bool settingsWereSaved = mosaicX5->saveConfiguration();
+    bool settingsWereSaved = mosaicX5SaveConfiguration();
     if (settingsWereSaved)
         settings.updateGNSSSettings = false;
 
@@ -511,7 +506,7 @@ bool mosaicX5EnableNMEA()
     bool gpzdaEnabled = false;
 
     String streams[MOSAIC_NUM_NMEA_STREAMS]; // Build a string for each stream
-    for (int messageNumber = 0; messageNumber < MAX_MOSAICX5_NMEA_MSG; messageNumber++) // For each NMEA message
+    for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
     {
         int stream = settings.mosaicMessageStreamNMEA[messageNumber];
         if (stream > 0)
@@ -573,11 +568,11 @@ bool mosaicX5EnableNMEA()
 
     for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
     {
-        if (streams[stream].length == 0)
+        if (streams[stream].length() == 0)
             streams[stream] = String("none");
 
         String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
-                                String(mosaicMsgRates[setings.mosaicStreamIntervalsNMEA[setting]]) + "\n\r");
+                                String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
         response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
     }
 
@@ -620,9 +615,9 @@ bool mosaicX5EnableRTCMRover()
                     rtcm1019Enabled = true;
                 if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1020") == 0)
                     rtcm1020Enabled = true;
-                if (mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1042") == 0)
                     rtcm1042Enabled = true;
-                if (mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
+                if (strcmp(mosaicMessagesRTCMv3[message].name, "RTCM1046") == 0)
                     rtcm1046Enabled = true;
             }
         }
@@ -748,8 +743,8 @@ bool mosaicX5SetModel(uint8_t modelNumber)
         return false;
     }
 
-    // TODO : support different Levels (Max, HIgh, Moderate, Low)
-    String setting = String("srd,Moderate," + String(mosaicReceiverDynamics[modelNumber] + "\n\r"));
+    // TODO : support different Levels (Max, High, Moderate, Low)
+    String setting = String("srd,Moderate," + String(mosaicReceiverDynamics[modelNumber].name) + "\n\r");
 
     return (mosaicX5sendWithResponse(setting, "ReceiverDynamics"));
 }
@@ -1011,7 +1006,8 @@ void mosaicX5MenuMessages()
         else if (incoming == 10)
         {
             // Reset intervals to default
-            mosaicStreamIntervalsNMEA = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
+            uint8_t mosaicStreamIntervalsNMEA[MOSAIC_NUM_NMEA_STREAMS] = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
+            memcpy(settings.mosaicStreamIntervalsNMEA, mosaicStreamIntervalsNMEA, sizeof(mosaicStreamIntervalsNMEA));
 
             // Reset NMEA streams to defaults
             for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
@@ -1065,7 +1061,7 @@ void mosaicX5MenuMessagesNMEA()
 
         for (int x = 0; x < MOSAIC_NUM_NMEA_STREAMS; x++)
             systemPrintf("%d) Stream%d : Interval %s\r\n", x + MAX_MOSAIC_NMEA_MSG + 1, x + 1,
-                            mosaicMsgRates[mosaicStreamIntervalsNMEA[x]].name);
+                            mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[x]].name);
 
         systemPrintln();
 
@@ -1165,7 +1161,7 @@ void mosaicX5MenuMessagesRTCM(bool rover)
         {
             incoming--;
             incoming -= MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS;
-            enablePtr[incoming] ^= 1;
+            enabledPtr[incoming] ^= 1;
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
             break;

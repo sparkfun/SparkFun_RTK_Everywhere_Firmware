@@ -690,7 +690,7 @@ void checkGNSSArrayDefaults()
 
             // Reset rates to defaults
             for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
-                settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultRate;
+                settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultStream;
         }
 
         if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 999.9)

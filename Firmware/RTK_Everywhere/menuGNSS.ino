@@ -98,7 +98,7 @@ void menuGNSS()
             case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
             case MOSAIC_DYN_MODEL_UAV:
             case MOSAIC_DYN_MODEL_UNLIMITED:
-                systemPrint(mosaicReceiverDynamics[mosaicReceiverDynamics]);
+                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].name);
                 break;
             }
         }

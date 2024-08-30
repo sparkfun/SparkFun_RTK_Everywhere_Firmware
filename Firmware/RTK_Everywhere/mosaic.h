@@ -432,4 +432,10 @@ const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
 
 #define MAX_MOSAIC_RX_DYNAMICS (sizeof(mosaicReceiverDynamics) / sizeof(mosaicReceiverDynamic))
 
+void mosaicX5flushRX(unsigned long timeout = 0); // Header
+bool mosaicX5waitCR(unsigned long timeout = 100); // Header
+bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 100); // Header
+bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 100); // Header
+bool waitForSBF(uint16_t ID, const uint8_t * * buffer, unsigned long timeout = 1000); // Header
+
 #endif
