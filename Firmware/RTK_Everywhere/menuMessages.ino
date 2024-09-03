@@ -693,7 +693,7 @@ void checkGNSSArrayDefaults()
                 settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultStream;
         }
 
-        if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 999.9)
+        if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 0.0)
         {
             defaultsApplied = true;
 
@@ -701,7 +701,7 @@ void checkGNSSArrayDefaults()
                 settings.mosaicMessageIntervalsRTCMv3Rover[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
         }
 
-        if (settings.mosaicMessageIntervalsRTCMv3Base[0] == 999.9)
+        if (settings.mosaicMessageIntervalsRTCMv3Base[0] == 0.0)
         {
             defaultsApplied = true;
 

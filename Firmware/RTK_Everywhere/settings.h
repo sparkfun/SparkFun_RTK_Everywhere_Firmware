@@ -1370,9 +1370,9 @@ struct Settings
     //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Base[MAX_MOSAIC_RTCM_V2_MSG] = {
     //    { 65534, false } }; // Mark first record with key so defaults will be applied
     float mosaicMessageIntervalsRTCMv3Rover[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
-        999.9 }; // Mark first record with key so defaults will be applied
+        0.0 }; // Mark first record with illegal value so defaults will be applied
     float mosaicMessageIntervalsRTCMv3Base[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
-        999.9 }; // Mark first record with key so defaults will be applied
+        0.0 }; // Mark first record with illegal value so defaults will be applied
     uint8_t mosaicMessageEnabledRTCMv3Rover[MAX_MOSAIC_RTCM_V3_MSG] = {
         254 }; // Mark first record with key so defaults will be applied
     uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
