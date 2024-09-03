@@ -391,8 +391,9 @@ void gnssReadTask(void *e)
         // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
         sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
 
-        if (settings.debugGnss)
-            sempEnableDebugOutput(sbfParse);
+        // Uncomment the next line to enable SBF parser debug
+        // But be careful - you get a lot of "SEMP: Sbf SBF, 0x0002 (2) bytes, invalid preamble2"
+        //if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
 
         // Initialize the SPARTN parser for the mosaic-X5
         spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
