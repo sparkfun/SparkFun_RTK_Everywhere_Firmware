@@ -908,7 +908,7 @@ void beginGnssUart2()
 
     serial2GNSS->setRxBufferSize(1024 * 1);
 
-    serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_RX);
+    serial2GNSS->begin(115200, SERIAL_8N1, pin_GnssUart2_RX, pin_GnssUart2_TX);
 }
 
 void beginFS()
