@@ -77,5 +77,5 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Support
 
 *Menu for controlling Multipath Mitigation*
 
-On devices that support it, *Multipath Mitigation* can be enabled (default) or disabled.
+On devices that support it, *Multipath Mitigation* can be enabled (default) or disabled. Multipath Mitigation allows the GNSS receiver to filter signals more rigorously, which aids accuracy in urban or high multipath environments, but may increase processing times in an open environment.
 
