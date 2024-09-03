@@ -1484,6 +1484,10 @@ uint8_t gnssGetActiveMessageCount()
     {
         return (um980GetActiveMessageCount());
     }
+    else if (present.gnss_mosaicX5)
+    {
+        return (mosaicX5GetActiveMessageCount());
+    }
     return (0);
 }
 
