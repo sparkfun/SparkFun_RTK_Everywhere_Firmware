@@ -1295,7 +1295,12 @@ void mosaicX5MenuMessagesRTCM(bool rover)
 
             double interval;
             if (getUserInputDouble(&interval) == INPUT_RESPONSE_VALID) // Returns EXIT, TIMEOUT, or long
-                intervalPtr[incoming] = interval;
+            {
+                if ((interval >= 0.1) && (interval <= 600.0))
+                    intervalPtr[incoming] = interval;
+                else
+                    systemPrintln("Invalid interval: Min 0.1; Max 600.0")
+            }
         }
         else if (incoming > MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS &&
                  incoming <= (MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS + MAX_MOSAIC_RTCM_V3_MSG))
