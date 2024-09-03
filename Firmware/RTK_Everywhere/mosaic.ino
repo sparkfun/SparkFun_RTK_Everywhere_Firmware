@@ -27,6 +27,8 @@ uint8_t mosaicLeapSeconds = 18; // ReceiverTime DeltaLS
 unsigned long mosaicPvtArrivalMillis = 0;
 bool mosaicPvtUpdated = false;
 
+bool mosaicReceiverSetupSeen = false;
+
 // Call back from within the SBF parser, for end of valid message
 // Process a complete message incoming from parser
 // The data is SBF. It could be:
@@ -68,13 +70,6 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
         mosaicLeapSeconds = sempSbfGetU1(parse, 20);
     }
 
-    // If this is ReceiverSetup, extract some data
-    if (sempSbfGetBlockNumber(parse) == 5902)
-    {
-        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
-        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", sempSbfGetString(parse, 196)); // Extract RXVersion
-    }
-
     // If this is encapsulated NMEA or RTCMv3, pass it to the main parser
     if (sempSbfIsEncapsulatedNMEA(parse) || sempSbfIsEncapsulatedRTCMv3(parse))
     {
@@ -109,19 +104,76 @@ void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
     sendAuxSpartnToPpl(parse->buffer, parse->length);
 }
 
+void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
+{
+    // If this is ReceiverSetup, extract some data
+    if (sempSbfGetBlockNumber(parse) == 5902)
+    {
+        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", sempSbfGetString(parse, 196)); // Extract RXVersion
+
+        mosaicReceiverSetupSeen = true;
+    }
+}
+
+void mosaicX5WaitSBFReceiverSetup(unsigned long timeout)
+{
+    SEMP_PARSE_ROUTINE const sbfParserTable[] = {
+        sempSbfPreamble
+    };
+    const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
+    const char *const sbfParserNames[] = {
+        "SBF",
+    };
+    const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
+
+    SEMP_PARSE_STATE *sbfParse;
+
+    // Initialize the SBF parser for the mosaic-X5
+    sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
+                            0,                       // Scratchpad bytes
+                            500,                     // Buffer length
+                            processSBFReceiverSetup, // eom Call Back
+                            "Sbf");                  // Parser Name
+    if (!sbfParse)
+        reportFatalError("Failed to initialize the SBF parser");
+
+    unsigned long startTime = millis();
+    while ((millis() < (startTime + timeout)) && (mosaicReceiverSetupSeen == false))
+    {
+        if (serial2GNSS->available())
+        {
+            // Update the parser state based on the incoming byte
+            sempParseNextByte(sbfParse, serial2GNSS->read());
+        }
+    }
+
+    sempStopParser(&sbfParse);
+}
+
 void mosaicX5flushRX(unsigned long timeout)
 {
     if (timeout > 0)
     {
         unsigned long startTime = millis();
         while (millis() < (startTime + timeout))
+        {
             if (serial2GNSS->available())
-                serial2GNSS->read();
+            {
+                uint8_t c = serial2GNSS->read();
+                if (settings.debugGnss == true)
+                    systemPrintf("%c", (char)c);
+            }
+        }
     }
     else
     {
         while (serial2GNSS->available())
-            serial2GNSS->read();
+        {
+            uint8_t c = serial2GNSS->read();
+            if (settings.debugGnss == true)
+                systemPrintf("%c", (char)c);
+        }
     }
 }
 
@@ -133,6 +185,8 @@ bool mosaicX5waitCR(unsigned long timeout)
         if (serial2GNSS->available())
         {
             uint8_t c = serial2GNSS->read();
+            if (settings.debugGnss == true)
+                systemPrintf("%c", (char)c);
             if (c == '\r')
                 return true;
         }
@@ -145,6 +199,9 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
+    if (settings.debugGnss == true)
+        systemPrintf("mosaicX5sendWithResponse: sending %s\r\n", message);
+
     if (strlen(message) > 0)
         serial2GNSS->write(message, strlen(message)); // Send the message
 
@@ -156,8 +213,10 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
     {
         if (serial2GNSS->available()) // If a char is available
         {
-            uint8_t chr = serial2GNSS->read(); // Read it
-            if (chr == *(reply + replySeen)) // Is it a char from reply?
+            uint8_t c = serial2GNSS->read(); // Read it
+            if (settings.debugGnss == true)
+                systemPrintf("%c", (char)c);
+            if (c == *(reply + replySeen)) // Is it a char from reply?
                 replySeen++;
             else
                 replySeen = 0; // Reset replySeen on an unexpected char
@@ -173,7 +232,11 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
     }
 
     if (replySeen == strlen(reply)) // If the reply was seen
-        return mosaicX5waitCR(wait);        // wait for a carriage return
+    {
+        //return mosaicX5waitCR(wait); // wait for a carriage return
+        mosaicX5flushRX(wait); // Wait for any residual serial data
+        return true;
+    }
 
     return false;
 }
@@ -219,7 +282,7 @@ bool mosaicX5Begin()
 
     // Mosaic could still be starting up, so allow many retries
     int retries = 0;
-    const int retryLimit = 20;
+    int retryLimit = 20;
 
     // Set COM4 to: CMD input (only), SBF output (only)
     while (!mosaicX5sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
@@ -231,21 +294,39 @@ bool mosaicX5Begin()
     }
 
     if (retries == retryLimit)
+    {
+        systemPrintln("Could not communicate with mosaic-X5!");
         return false;
+    }
 
-    // Clear the gnssUniqueId
-    gnssUniqueId[0] = 0;
+    retries = 0;
+    retryLimit = 3;
 
-    // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM1
-    if (!mosaicX5sendWithResponse("esoc,COM1,ReceiverSetup\n\r", "SBFOnce"))
+    // Set COM1 baud rate
+    while (!mosaicX5SetBaudRateCOM1(settings.dataPortBaud))
+    {
+        if (retries == retryLimit)
+            break;
+        retries++;
+        mosaicX5sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+    }
+
+    if (retries == retryLimit)
+    {
+        systemPrintln("Could not set mosaic-X5 COM1 baud!");
         return false;
+    }
 
-    // Wait for up to 5 seconds for the gnssUniqueId to be updated
-    unsigned long startTime = millis();
-    while ((millis() < (startTime + 5000)) && (strlen(gnssUniqueId) == 0))
-        delay(10);
+    mosaicReceiverSetupSeen = false;
 
-    if (strlen(gnssUniqueId) > 0) // Check for 5902 ReceiverSetup
+    // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM4
+    String request = "esoc,COM4,ReceiverSetup\n\r";
+    serial2GNSS->write(request.c_str(), request.length());
+
+    // Wait for up to 5 seconds for the Receiver Setup
+    mosaicX5WaitSBFReceiverSetup(5000);
+
+    if (mosaicReceiverSetupSeen) // Check 5902 ReceiverSetup was seen
     {
         systemPrintln("GNSS mosaic-X5 online");
 
@@ -256,6 +337,8 @@ bool mosaicX5Begin()
 
         return true;
     }
+
+    systemPrintln("GNSS mosaic-X5 offline!");
 
     return false;
 }
@@ -294,8 +377,6 @@ bool mosaicX5ConfigureOnce()
 */
 
     bool response = true;
-
-    response &= mosaicX5SetBaudRateCOM1(settings.dataPortBaud); // COM1 is connected to ESP
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
     String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
