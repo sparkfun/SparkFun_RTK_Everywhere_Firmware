@@ -1,10 +1,10 @@
 #ifdef COMPILE_MOSAICX5
 
 // These globals are updated regularly via the SBF parser
-double mosaicLatitude; // PVTGeodetic Latitude
-double mosaicLongitude; // PVTGeodetic Longitude
-float mosaicAltitude; // PVTGeodetic Latitude Height
-float mosaicHorizontalAccuracy; // PVTGeodetic Latitude HAccuracy
+double mosaicLatitude; // PVTGeodetic Latitude (deg)
+double mosaicLongitude; // PVTGeodetic Longitude (deg)
+float mosaicAltitude; // PVTGeodetic Latitude Height (m)
+float mosaicHorizontalAccuracy; // PVTGeodetic Latitude HAccuracy (m)
 
 uint8_t mosaicDay; // ReceiverTime UTCDay
 uint8_t mosaicMonth; // ReceiverTime UTCMonth
@@ -26,6 +26,88 @@ uint8_t mosaicLeapSeconds = 18; // ReceiverTime DeltaLS
 
 unsigned long mosaicPvtArrivalMillis = 0;
 bool mosaicPvtUpdated = false;
+
+// Call back from within the SBF parser, for end of valid message
+// Process a complete message incoming from parser
+// The data is SBF. It could be:
+//   PVTGeodetic
+//   ReceiverTime
+//   Encapsulated NMEA
+//   Encapsulated RTCMv3
+void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
+{
+
+    // If this is PVTGeodetic, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4007)
+    {
+        mosaicLatitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
+        mosaicLongitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
+        mosaicAltitude = (float)sempSbfGetF8(parse, 32);
+        mosaicHorizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
+        mosaicSatellitesInView = sempSbfGetU1(parse, 74);
+        mosaicFixType = sempSbfGetU1(parse, 14) & 0x0F;
+        mosaicDeterminingFixedPosition = (sempSbfGetU1(parse, 14) >> 6) & 0x01;
+        mosaicClkBias_ms = sempSbfGetF8(parse, 60);
+        mosaicPvtArrivalMillis = millis();
+        mosaicPvtUpdated = true;
+    }
+
+    // If this is ReceiverTime, extract some data
+    if (sempSbfGetBlockNumber(parse) == 5914)
+    {
+        mosaicDay = sempSbfGetU1(parse, 16);
+        mosaicMonth = sempSbfGetU1(parse, 15);
+        mosaicYear = (uint16_t)sempSbfGetU1(parse, 14) + 2000;
+        mosaicHour = sempSbfGetU1(parse, 17);
+        mosaicMinute = sempSbfGetU1(parse, 18);
+        mosaicSecond = sempSbfGetU1(parse, 19);
+        mosaicMillisecond = sempSbfGetU4(parse, 8) % 1000;
+        mosaicValidDate = sempSbfGetU1(parse, 21) & 0x01;
+        mosaicValidTime = (sempSbfGetU1(parse, 21) >> 1) & 0x01;
+        mosaicFullyResolved = (sempSbfGetU1(parse, 21) >> 2) & 0x01;
+        mosaicLeapSeconds = sempSbfGetU1(parse, 20);
+    }
+
+    // If this is ReceiverSetup, extract some data
+    if (sempSbfGetBlockNumber(parse) == 5902)
+    {
+        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", sempSbfGetString(parse, 196)); // Extract RXVersion
+    }
+
+    // If this is encapsulated NMEA or RTCMv3, pass it to the main parser
+    if (sempSbfIsEncapsulatedNMEA(parse) || sempSbfIsEncapsulatedRTCMv3(parse))
+    {
+        uint16_t len = sempSbfGetEncapsulatedPayloadLength(parse);
+        const uint8_t *ptr = sempSbfGetEncapsulatedPayload(parse);
+        for (uint16_t i = 0; i < len; i++)
+            sempParseNextByte(parse, *ptr++);
+    }
+}
+
+// This function mops up any non-SBF data rejected by the SBF parser
+// It is raw L-Band (containing SPARTN), so pass it to the SPARTN parser
+void processNonSBFData(SEMP_PARSE_STATE *parse)
+{
+    for (uint32_t dataOffset = 0; dataOffset < parse->length; dataOffset++)
+    {
+        // Update the SPARTN parser state based on the non-SBF byte
+        sempParseNextByte(spartnParse, parse->buffer[dataOffset]);
+    }
+}
+
+// Call back for valid SPARTN data from L-Band
+void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
+{
+    if ((settings.debugCorrections == true) && !inMainMenu)
+        systemPrintf("Pushing %d SPARTN (L-Band) bytes to PPL for mosaic-X5\r\n", parse->length);
+
+    if (online.ppl == false && settings.debugCorrections == true)
+        systemPrintln("Warning: PPL is offline");
+
+    // Pass the SPARTN to the PPL
+    sendAuxSpartnToPpl(parse->buffer, parse->length);
+}
 
 void mosaicX5flushRX(unsigned long timeout)
 {
@@ -100,26 +182,6 @@ bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long t
     return mosaicX5sendWithResponse(message.c_str(), reply, timeout, wait);
 }
 
-bool waitForSBF(uint16_t ID, const uint8_t * * buffer, unsigned long timeout)
-{
-    unsigned long startTime = millis();
-
-    while (millis() < (startTime + timeout)) // While not timed out and ID not seen
-    {
-        if (serial2GNSS->available()) // If a char is available
-        {
-            bool valid;
-            size_t numDataBytes;
-            *buffer = parseSBF(serial2GNSS->read(), valid, numDataBytes); // parse it
-            if ((*buffer != nullptr) && valid) // If SBF is valid
-                if (checkSBFID(ID, *buffer)) // Does the ID match?
-                    return true;
-        }
-    }
-
-    return false;
-}
-
 // Enable RTCM1230 on COM2 (Radio connector)
 bool mosaicX5EnableRTCMTest()
 {
@@ -171,16 +233,20 @@ bool mosaicX5Begin()
     if (retries == retryLimit)
         return false;
 
-    // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM4
-    if (!mosaicX5sendWithResponse("esoc,COM4,ReceiverSetup\n\r", "SBFOnce"))
+    // Clear the gnssUniqueId
+    gnssUniqueId[0] = 0;
+
+    // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM1
+    if (!mosaicX5sendWithResponse("esoc,COM1,ReceiverSetup\n\r", "SBFOnce"))
         return false;
 
-    const uint8_t *buffer;
-    if (waitForSBF(5902, &buffer)) // Wait for 5902 ReceiverSetup
-    {
-        snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", buffer + 176); // Extract RxSerialNumber
-        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", buffer + 216); // Extract RXVersion
+    // Wait for up to 5 seconds for the gnssUniqueId to be updated
+    unsigned long startTime = millis();
+    while ((millis() < (startTime + 5000)) && (strlen(gnssUniqueId) == 0))
+        delay(10);
 
+    if (strlen(gnssUniqueId) > 0) // Check for 5902 ReceiverSetup
+    {
         systemPrintln("GNSS mosaic-X5 online");
 
         // Check firmware version and print info

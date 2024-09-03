@@ -430,9 +430,13 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
-#else
+#endif // COMPILE_UM980
+
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
-#endif                                          // COMPILE_UM980
+SEMP_PARSE_STATE *parse = nullptr;
+SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
+SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
@@ -820,6 +824,7 @@ unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl = 0;
 unsigned long lastGnssToPpl = 0;
+unsigned long lastSpartnToPpl = 0;
 
 // Command processing
 int commandCount;

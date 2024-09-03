@@ -256,10 +256,14 @@ void updatePPL()
                 }
 
                 // Report which data source may be fouling the RTCM generation from the PPL
-                if ((millis() - lastMqttToPpl) > 5000)
+                // SPARTN correction data can be coming from MQTT (IP) or mosaic-X5 L-Band
+                // (NEO-D9S L-Band SPARTN goes straight to the ZED-F9P, not via the PPL)
+                if ((lastMqttToPpl > 0) && ((millis() - lastMqttToPpl) > 5000))
                     systemPrintln("PPL MQTT Data is stale");
                 if ((millis() - lastGnssToPpl) > 5000)
                     systemPrintln("PPL GNSS Data is stale");
+                if ((lastSpartnToPpl > 0) && ((millis() - lastSpartnToPpl) > 5000))
+                    systemPrintln("PPL SPARTN Data is stale");
             }
         }
 
@@ -441,7 +445,7 @@ bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
                 systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
-        lastMqttToPpl = millis();
+        lastSpartnToPpl = millis();
         return true;
     }
     else

@@ -325,6 +325,10 @@ bool     mosaicX5SetMessages(int maxRetries) {return false;}
 bool     mosaicX5SetMessagesUsb(int maxRetries) {return false;}
 void     mosaicX5MessageRatesRTCMBase() {}
 void     mosaicVerifyTables() {}
+void     mosaicX5MenuMessagesRTCM(bool rover) {}
+void     processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void     processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void     processNonSBFData(SEMP_PARSE_STATE *parse) {}
 #endif  // COMPILE_MOSAICX5
 
 //----------------------------------------
@@ -337,6 +341,7 @@ void beginPPL() {systemPrintln("**PPL Not Compiled**");}
 void updatePPL() {}
 bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY

@@ -10,7 +10,7 @@ Tasks.ino
                            .--------+--------.
                            |                 |
                            v                 v
-                          SPI       or      I2C
+                          UART      or      I2C
                            |                 |
                            |                 |
                            '------->+<-------'
@@ -85,6 +85,25 @@ const char *const parserNames[] = {
     "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
+
+// We need a separate parsers for the mosaic-X5: to allow SBF to be separated from L-Band SPARTN;
+// and to allow encapsulated NMEA and RTCMv3 to be parsed without upsetting the SPARTN parser.
+SEMP_PARSE_ROUTINE const sbfParserTable[] = {
+    sempSbfPreamble
+};
+const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
+const char *const sbfParserNames[] = {
+    "SBF",
+};
+const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
+SEMP_PARSE_ROUTINE const spartnParserTable[] = {
+    sempSpartnPreamble
+};
+const int spartnParserCount = sizeof(spartnParserTable) / sizeof(spartnParserTable[0]);
+const char *const spartnParserNames[] = {
+    "SPARTN",
+};
+const int spartnParserNameCount = sizeof(spartnParserNames) / sizeof(spartnParserNames[0]);
 
 //----------------------------------------
 // Locals
@@ -341,14 +360,12 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
-    static SEMP_PARSE_STATE *parse;
-
     // Start notification
     task.gnssReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask started");
 
-    // Initialize the parser
+    // Initialize the main parser
     parse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
                             0,                   // Scratchpad bytes
                             3000,                // Buffer length
@@ -359,6 +376,36 @@ void gnssReadTask(void *e)
 
     if (settings.debugGnss)
         sempEnableDebugOutput(parse);
+
+    if (present.gnss_mosaicX5)
+    {
+        // Initialize the SBF parser for the mosaic-X5
+        sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
+                                0,                   // Scratchpad bytes
+                                3000,                // Buffer length
+                                processUart1SBF,     // eom Call Back - in mosaic.ino
+                                "Sbf");              // Parser Name
+        if (!sbfParse)
+            reportFatalError("Failed to initialize the SBF parser");
+
+        // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
+        sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
+
+        if (settings.debugGnss)
+            sempEnableDebugOutput(sbfParse);
+
+        // Initialize the SPARTN parser for the mosaic-X5
+        spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
+                                0,                   // Scratchpad bytes
+                                3000,                // Buffer length
+                                processUart1SPARTN,  // eom Call Back - in mosaic.ino 
+                                "Spartn");           // Parser Name
+        if (!spartnParse)
+            reportFatalError("Failed to initialize the SPARTN parser");
+
+        if (settings.debugGnss)
+            sempEnableDebugOutput(spartnParse);
+    }
 
     // Run task until a request is raised
     task.gnssReadTaskStopRequest = false;
@@ -378,6 +425,18 @@ void gnssReadTask(void *e)
         // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
         // If the Unicore library does not need lone access, then read from serial port
+
+        // For the mosaic-X5, things are different. The mosaic-X5 outputs a raw stream of L-Band bytes,
+        // interspersed with periodic SBF blocks. The SBF blocks can contain encapsulated NMEA and RTCMv3.
+        // We need to pass each incoming byte to a SBF parser first, so it can pick out any SBF blocks.
+        // The SBF parser needs to 'give up' (return) any bytes which are not SBF. We do that using the
+        // invalidDataCallback. Any data that is not SBF is then parsed by a separate SPARTN parser.
+        // The SPARTN parser extracts SPARTN packets from the raw LBand data so they can be passed to the PPL.
+        // Encapsulated NMEA nad RTCMv3 are passed to the the main SEMP parser.
+        // At some point in the future, Septentrio will (hopefully) add the ability to encapsulate the
+        // raw L-Band data in SBF format. This will make life SO much easier as the SEMP will then be able
+        // to parse everything and the separate SBF and SPARTN parsers won't be required.
+
         if (gnssIsBlocking() == false)
         {
             // Determine if serial data is available
@@ -390,7 +449,7 @@ void gnssReadTask(void *e)
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
-                    sempParseNextByte(parse, incomingData[x]);
+                    sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : parse, incomingData[x]);
                 }
             }
         }
