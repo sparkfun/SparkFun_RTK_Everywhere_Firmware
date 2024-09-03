@@ -212,7 +212,7 @@ void menuGNSS()
             {
                 systemPrintln("Enter the dynamic model to use: ");
                 for (int i = 0; i < MAX_MOSAIC_RX_DYNAMICS; i++)
-                systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i]);
+                    systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i].name);
             }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
