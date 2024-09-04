@@ -148,7 +148,12 @@ void beginPPL()
 
     bool successfulInit = true;
 
-    ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_DEFAULT_CFG); // IP and L-Band support
+    uint32_t pplConfigOptionsMask;
+    if (present.gnss_mosaicX5)
+        pplConfigOptionsMask = PPL_CFG_ENABLE_AUX_CHANNEL; // auxiliary channel support
+    else
+        pplConfigOptionsMask = PPL_CFG_DEFAULT_CFG; // IP and L-Band support
+    ePPL_ReturnStatus result = PPL_Initialize(pplConfigOptionsMask);
 
     if (result != ePPL_Success)
     {
