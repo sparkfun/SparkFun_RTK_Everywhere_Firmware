@@ -732,8 +732,10 @@ bool mosaicX5EnableRTCMRover()
     // Set RTCMv3 Intervals
     for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
     {
+        char flt[10];
+        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Rover[group]);
         String setting = String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," +
-                                String(settings.mosaicMessageIntervalsRTCMv3Rover[group]) + "\n\r");
+                                String(flt) + "\n\r");
         response &= mosaicX5sendWithResponse(setting, "RTCMv3Interval");
     }
 
@@ -1299,7 +1301,7 @@ void mosaicX5MenuMessagesRTCM(bool rover)
                 if ((interval >= 0.1) && (interval <= 600.0))
                     intervalPtr[incoming] = interval;
                 else
-                    systemPrintln("Invalid interval: Min 0.1; Max 600.0")
+                    systemPrintln("Invalid interval: Min 0.1; Max 600.0");
             }
         }
         else if (incoming > MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS &&
