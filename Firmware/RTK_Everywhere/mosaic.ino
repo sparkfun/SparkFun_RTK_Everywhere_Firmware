@@ -843,7 +843,7 @@ bool mosaicX5SetConstellations()
 
     for (int constellation = 0; constellation < MAX_MOSAIC_CONSTELLATIONS; constellation++)
     {
-        if (settings.mosaicConstellations[constellation] == true)
+        if (settings.mosaicConstellations[constellation] > 0) // == true
         {
             if (enabledConstellations.length() > 0)
                 enabledConstellations += String("+");

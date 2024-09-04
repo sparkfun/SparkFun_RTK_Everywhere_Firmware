@@ -513,7 +513,6 @@ void recordSystemSettingsToFile(File *settingsFile)
                 snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
                         mosaicSignalConstellations[x].name, settings.mosaicConstellations[x]);
                 settingsFile->println(tempString);
-                break;
             }
         }
         break;

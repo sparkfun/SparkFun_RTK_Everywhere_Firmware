@@ -1627,7 +1627,6 @@ void createSettingsString(char *newSettings)
                                 mosaicSignalConstellations[x].name,
                                 ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
                     stringRecord(newSettings, tempString);
-                    break;
                 }
             }
             break;
