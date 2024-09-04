@@ -225,14 +225,14 @@ void updatePPL()
 
     static unsigned long pplTime3dFixStarted;
 
-    if (online.ppl == false && settings.enablePointPerfectCorrections && gnssIsFixed())
+    if ((online.ppl == false) && (settings.enablePointPerfectCorrections) && (gnssIsFixed()))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
-        // connected. Don't restart the PPL if we've already tried
+        // connected or L-Band SPARTN is being received. Don't restart the PPL if we've already tried
         if (pplAttemptedStart == false)
         {
             if ((strlen(settings.pointPerfectCurrentKey) > 0) && (pplGnssOutput == true) &&
-                (pplMqttCorrections == true))
+                ((pplMqttCorrections == true) || (pplLBandCorrections == true)))
             {
                 pplAttemptedStart = true;
 

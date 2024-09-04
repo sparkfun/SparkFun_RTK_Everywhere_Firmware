@@ -366,23 +366,23 @@ void gnssReadTask(void *e)
         systemPrintln("Task gnssReadTask started");
 
     // Initialize the main parser
-    parse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
+    rtkParse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
                             0,                   // Scratchpad bytes
                             3000,                // Buffer length
                             processUart1Message, // eom Call Back
                             "Log");              // Parser Name
-    if (!parse)
+    if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
-        sempEnableDebugOutput(parse);
+        sempEnableDebugOutput(rtkParse);
 
     if (present.gnss_mosaicX5)
     {
         // Initialize the SBF parser for the mosaic-X5
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
                                 0,                   // Scratchpad bytes
-                                3000,                // Buffer length
+                                10000,                // Buffer length - 3000 isn't enough!
                                 processUart1SBF,     // eom Call Back - in mosaic.ino
                                 "Sbf");              // Parser Name
         if (!sbfParse)
@@ -398,7 +398,7 @@ void gnssReadTask(void *e)
         // Initialize the SPARTN parser for the mosaic-X5
         spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
                                 0,                   // Scratchpad bytes
-                                3000,                // Buffer length
+                                1200,                // Buffer length
                                 processUart1SPARTN,  // eom Call Back - in mosaic.ino 
                                 "Spartn");           // Parser Name
         if (!spartnParse)
@@ -451,7 +451,7 @@ void gnssReadTask(void *e)
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
-                    sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : parse, incomingData[x]);
+                    sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : rtkParse, incomingData[x]);
                 }
             }
         }
@@ -461,7 +461,7 @@ void gnssReadTask(void *e)
     }
 
     // Done parsing incoming data, free the parse buffer
-    sempStopParser(&parse);
+    sempStopParser(&rtkParse);
 
     // Stop notification
     if (settings.printTaskStartStop)
@@ -549,39 +549,42 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         processRTCM(parse->buffer, parse->length);
     }
 
-    // Determine if we are using the PPL
-    if (present.gnss_um980)
+    // Determine if we are using the PPL - UM980 or mosaic-X5
+    bool usingPPL = false;
+    // UM980 : Determine if we want to use corrections, and are connected to the broker
+    if ((present.gnss_um980) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+        usingPPL = true;
+    // mosaic-X5 : Determine if we want to use corrections
+    if ((present.gnss_mosaicX5) && (settings.enablePointPerfectCorrections))
+        usingPPL = true;
+    if (usingPPL)
     {
-        // Determine if we want to use corrections, and are connected to the broker
-        if (settings.enablePointPerfectCorrections && mqttClientIsConnected() == true)
+        bool passToPpl = false;
+
+        // Only messages GPGGA/ZDA, and RTCM1019/1020/1042/1046 need to be passed to PPL
+        if (type == RTK_NMEA_PARSER_INDEX)
         {
-            bool passToPpl = false;
+            if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                passToPpl = true;
+            else if (strstr(sempNmeaGetSentenceName(parse), "ZDA") != nullptr)
+                passToPpl = true;
+        }
+        else if (type == RTK_RTCM_PARSER_INDEX)
+        {
+            if (sempRtcmGetMessageNumber(parse) == 1019)
+                passToPpl = true;
+            else if (sempRtcmGetMessageNumber(parse) == 1020)
+                passToPpl = true;
+            else if (sempRtcmGetMessageNumber(parse) == 1042)
+                passToPpl = true;
+            else if (sempRtcmGetMessageNumber(parse) == 1046)
+                passToPpl = true;
+        }
 
-            // Only messages GPGGA/ZDA, and RTCM1019/1020/1042/1046 need to be passed to PPL
-            if (type == RTK_NMEA_PARSER_INDEX)
-            {
-                if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
-                    passToPpl = true;
-                else if (strstr(sempNmeaGetSentenceName(parse), "ZDA") != nullptr)
-                    passToPpl = true;
-            }
-            else if (type == RTK_RTCM_PARSER_INDEX)
-            {
-                if (sempRtcmGetMessageNumber(parse) == 1019)
-                    passToPpl = true;
-                else if (sempRtcmGetMessageNumber(parse) == 1020)
-                    passToPpl = true;
-                else if (sempRtcmGetMessageNumber(parse) == 1042)
-                    passToPpl = true;
-                else if (sempRtcmGetMessageNumber(parse) == 1046)
-                    passToPpl = true;
-            }
-
-            if (passToPpl == true)
-            {
-                pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
-                sendGnssToPpl(parse->buffer, parse->length);
-            }
+        if (passToPpl == true)
+        {
+            pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
+            sendGnssToPpl(parse->buffer, parse->length);
         }
     }
 

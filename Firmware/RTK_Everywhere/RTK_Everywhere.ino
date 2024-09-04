@@ -433,7 +433,7 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #endif // COMPILE_UM980
 
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
-SEMP_PARSE_STATE *parse = nullptr;
+SEMP_PARSE_STATE *rtkParse = nullptr;
 SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
 SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
 

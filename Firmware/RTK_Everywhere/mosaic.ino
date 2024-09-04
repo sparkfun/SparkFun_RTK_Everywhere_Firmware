@@ -38,6 +38,8 @@ bool mosaicReceiverSetupSeen = false;
 //   Encapsulated RTCMv3
 void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
+    //if ((settings.debugGnss == true) && !inMainMenu)
+    //    systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse), parse->length);
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
@@ -76,7 +78,7 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
         uint16_t len = sempSbfGetEncapsulatedPayloadLength(parse);
         const uint8_t *ptr = sempSbfGetEncapsulatedPayload(parse);
         for (uint16_t i = 0; i < len; i++)
-            sempParseNextByte(parse, *ptr++);
+            sempParseNextByte(rtkParse, *ptr++);
     }
 }
 
