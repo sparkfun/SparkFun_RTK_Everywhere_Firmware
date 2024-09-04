@@ -816,7 +816,20 @@ bool gnssIsFixed()
         }
         else if (present.gnss_mosaicX5)
         {
-            if (mosaicX5GetPositionType() == 1)
+            // Bits 0-3: type of PVT solution:
+            // 0: No GNSS PVT available
+            // 1: Stand-Alone PVT
+            // 2: Differential PVT
+            // 3: Fixed location
+            // 4: RTK with fixed ambiguities
+            // 5: RTK with float ambiguities
+            // 6: SBAS aided PVT
+            // 7: moving-base RTK with fixed ambiguities
+            // 8: moving-base RTK with float ambiguities
+            // 9: Reserved
+            // 10: Precise Point Positioning (PPP)
+            // 12: Reserved
+            if (mosaicX5GetPositionType() > 0)
                 return (true);
         }
     }
@@ -840,6 +853,8 @@ bool gnssIsDgpsFixed()
         }
         else if (present.gnss_mosaicX5)
         {
+            // 2: Differential PVT
+            // 6: SBAS aided PVT
             if ((mosaicX5GetPositionType() == 2) || (mosaicX5GetPositionType() == 6))
                 return (true);
         }
@@ -888,6 +903,7 @@ bool gnssIsRTKFix()
         }
         else if (present.gnss_mosaicX5)
         {
+            // 4: RTK with fixed ambiguities
             if (mosaicX5GetPositionType() == 4)
                 return (true);
         }
@@ -914,6 +930,7 @@ bool gnssIsRTKFloat()
         }
         else if (present.gnss_mosaicX5)
         {
+            // 5: RTK with float ambiguities
             if (mosaicX5GetPositionType() == 5)
                 return (true);
         }
@@ -936,6 +953,7 @@ bool gnssIsPppConverging()
         }
         else if (present.gnss_mosaicX5)
         {
+            // 10: Precise Point Positioning (PPP) ? Is this what we want? TODO
             if (mosaicX5GetPositionType() == 10)
                 return (true);
         }
@@ -958,6 +976,7 @@ bool gnssIsPppConverged()
         }
         else if (present.gnss_mosaicX5)
         {
+            // 10: Precise Point Positioning (PPP) ? Is this what we want? TODO
             if (mosaicX5GetPositionType() == 10)
                 return (true);
         }
