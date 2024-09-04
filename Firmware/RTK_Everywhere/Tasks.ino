@@ -404,8 +404,9 @@ void gnssReadTask(void *e)
         if (!spartnParse)
             reportFatalError("Failed to initialize the SPARTN parser");
 
-        if (settings.debugGnss)
-            sempEnableDebugOutput(spartnParse);
+        // Uncomment the next line to enable SPARTN parser debug
+        // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
+        //if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
     }
 
     // Run task until a request is raised
