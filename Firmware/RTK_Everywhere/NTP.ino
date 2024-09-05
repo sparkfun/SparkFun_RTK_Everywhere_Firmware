@@ -698,7 +698,7 @@ bool configureUbloxModuleNTP()
         return (false);
 
     // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
-    // Unless this is a Ref Syn - where the GNSS has no battery-backed RAM
+    // Unless this is an EVK - where the GNSS has no battery-backed RAM
     if ((productVariant != RTK_EVK) && (settings.updateGNSSSettings == false) && (firstPowerOn == true))
     {
         firstPowerOn = false; // Next time user switches modes, new settings will be applied

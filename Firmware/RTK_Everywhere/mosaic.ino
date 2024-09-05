@@ -405,8 +405,8 @@ bool mosaicX5ConfigureOnce()
     // Mark L5 as healthy
     response &= mosaicX5sendWithResponse("shm,Tracking,off\n\r", "HealthMask");
     response &= mosaicX5sendWithResponse("shm,PVT,off\n\r", "HealthMask");
-    response &= mosaicX5sendWithResponse("snt,+GPSL5\n\r", "SignalTracking");
-    response &= mosaicX5sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage");
+    response &= mosaicX5sendWithResponse("snt,+GPSL5\n\r", "SignalTracking", 1000, 200);
+    response &= mosaicX5sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage", 1000, 200);
 
     if (response == true)
     {
@@ -862,7 +862,7 @@ bool mosaicX5SetConstellations()
         enabledConstellations = String("none");
 
     String setting = String("sst," + enabledConstellations + "\n\r");
-    return (mosaicX5sendWithResponse(setting, "SatelliteTracking"));
+    return (mosaicX5sendWithResponse(setting, "SatelliteTracking", 1000, 200));
 }
 
 bool mosaicX5SetMinElevation(uint8_t elevation)
@@ -880,7 +880,7 @@ bool mosaicX5SetMinCNO(uint8_t minCNO)
         minCNO = 60;
     String cn0 = String(minCNO);
     String setting = String("scm,all," + cn0 + "\n\r");
-    return (mosaicX5sendWithResponse(setting, "CN0Mask"));
+    return (mosaicX5sendWithResponse(setting, "CN0Mask", 1000, 200));
 }
 
 bool mosaicX5SetModel(uint8_t modelNumber)
@@ -1153,7 +1153,7 @@ void mosaicX5MenuMessages()
             mosaicX5MenuMessagesRTCM(false);
         else if (incoming == 10)
         {
-            // Reset intervals to default
+            // Reset NMEA intervals to default
             uint8_t mosaicStreamIntervalsNMEA[MOSAIC_NUM_NMEA_STREAMS] = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
             memcpy(settings.mosaicStreamIntervalsNMEA, mosaicStreamIntervalsNMEA, sizeof(mosaicStreamIntervalsNMEA));
 
@@ -1161,11 +1161,17 @@ void mosaicX5MenuMessages()
             for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
                 settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultStream;
 
-            // For rovers, RTCM should be zero by default.
+            // Reset RTCMv3 intervals
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Rover[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+
+            // Reset RTCMv3 messages
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Rover[x] = 0;
 
-            // Reset RTCM rates to defaults
             for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
 
@@ -1278,7 +1284,7 @@ void mosaicX5MenuMessagesRTCM(bool rover)
             enabledPtr = settings.mosaicMessageEnabledRTCMv3Base;
 
         for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
-            systemPrintf("%d) Message Group %s: Interval %f\r\n", x + 1, mosaicRTCMv3MsgIntervalGroups[x].name,
+            systemPrintf("%d) Message Group %s: Interval %.1f\r\n", x + 1, mosaicRTCMv3MsgIntervalGroups[x].name,
                             intervalPtr[x]);
 
         systemPrintln();
@@ -1359,19 +1365,6 @@ void mosaicX5BaseRtcmDefault()
     // Reset RTCM enabled to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
         settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
-    
-    // Now update intervals and enabled for the selected messages
-    int msg = mosaicX5GetMessageNumberByName("RTCM1005");
-    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
-    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 1.0;
-
-    msg = mosaicX5GetMessageNumberByName("MSM4");
-    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
-    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 1.0;
-
-    msg = mosaicX5GetMessageNumberByName("RTCM1033");
-    settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
-    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
 }
 
 // Reset to Low Bandwidth Link (MSM4 0.5Hz & 1005/1033 0.1Hz)
