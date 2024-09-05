@@ -147,7 +147,7 @@ void menuPortsMultiplexed()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set Radio port serial baud rate: ");
-        systemPrint(theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE));
+        systemPrint(gnssGetRadioBaudRate());
         systemPrintln(" bps");
 
         systemPrint("2) Set Data port connections: ");
@@ -171,11 +171,14 @@ void menuPortsMultiplexed()
             systemPrintln("3) Configure External Triggers");
         }
 
-        systemPrint("4) GNSS UART2 UBX Protocol In: ");
-        if (settings.enableUART2UBXIn == true)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
+        if (present.gnss_zedf9p)
+        {
+            systemPrint("4) GNSS UART2 UBX Protocol In: ");
+            if (settings.enableUART2UBXIn == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+        }
 
         systemPrintln("x) Exit");
 
@@ -238,11 +241,11 @@ void menuPortsMultiplexed()
                 }
             }
         }
-        else if (incoming == 3 && settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
+        else if ((incoming == 3) && (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER))
         {
             menuPortHardwareTriggers();
         }
-        else if (incoming == 4)
+        else if ((incoming == 4) && (present.gnss_zedf9p))
         {
             settings.enableUART2UBXIn ^= 1;
             systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart.");

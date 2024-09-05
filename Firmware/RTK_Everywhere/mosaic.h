@@ -434,7 +434,7 @@ const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
 
 void mosaicX5flushRX(unsigned long timeout = 0); // Header
 bool mosaicX5waitCR(unsigned long timeout = 25); // Header
-bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25); // Header
-bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25); // Header
+bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25, char *response = nullptr, size_t responseSize = 0); // Header
+bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25, char *response = nullptr, size_t responseSize = 0); // Header
 
 #endif

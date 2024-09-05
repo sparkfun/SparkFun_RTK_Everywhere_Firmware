@@ -199,7 +199,7 @@ bool mosaicX5waitCR(unsigned long timeout)
     return false;
 }
 
-bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout, unsigned long wait)
+bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout, unsigned long wait, char *response, size_t responseSize)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -222,7 +222,14 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
             if (settings.debugGnss == true)
                 systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
+            {
+                if (response && (replySeen < (responseSize - 1)))
+                {
+                    response[replySeen] = c;
+                    response[replySeen + 1] = 0;
+                }
                 replySeen++;
+            }
             else
                 replySeen = 0; // Reset replySeen on an unexpected char
         }
@@ -245,9 +252,9 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
 
     return false;
 }
-bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout, unsigned long wait)
+bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout, unsigned long wait, char *response, size_t responseSize)
 {
-    return mosaicX5sendWithResponse(message.c_str(), reply, timeout, wait);
+    return mosaicX5sendWithResponse(message.c_str(), reply, timeout, wait, response, responseSize);
 }
 
 // Enable RTCM1230 on COM2 (Radio connector)
@@ -935,18 +942,22 @@ int mosaicX5PushRawData(uint8_t *dataToSend, int dataLength)
 
 // Set the baud rate of mosaic-X5 COM1
 // This is used during the Bluetooth test
-bool mosaicX5SetBaudRateCOM1(uint32_t baudRate)
+bool mosaicX5SetBaudRateCOM(uint8_t port, uint32_t baudRate)
 {
     for (int i = 0; i < MAX_MOSAIC_COM_RATES; i++)
     {
         if (baudRate == mosaicComRates[i].rate)
         {
-            String setting = String("scs,COM1," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
+            String setting = String("scs,COM" + String (port) + "," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
             return (mosaicX5sendWithResponse(setting, "COMSettings"));
         }
     }
 
     return false; // Invalid baud
+}
+bool mosaicX5SetBaudRateCOM1(uint32_t baudRate)
+{
+    return mosaicX5SetBaudRateCOM(1, baudRate);
 }
 
 // Return the lower of the two Lat/Long deviations
@@ -1462,6 +1473,27 @@ void mosaicVerifyTables()
         reportFatalError("Fix mosaicRTCMv3IntervalGroups to match mosaicRTCMv3MsgIntervalGroups");
     if (MOSAIC_NUM_DYN_MODELS != MAX_MOSAIC_RX_DYNAMICS)
         reportFatalError("Fix mosaic_Dynamics to match mosaicReceiverDynamics");
+}
+
+// (mosaic COM2 is connected to the Radio connector)
+// (mosaic COM3 is connected to the Data connector - via the multiplexer)
+uint32_t mosaicX5GetCOMBaudRate(uint8_t port) // returns 0 if the get fails
+{
+    char response[40];
+    String setting = "gcs,COM" + String(port) + "\n\r";
+    if (!mosaicX5sendWithResponse(setting, "COMSettings", 1000, 25, &response[0], sizeof(response)))
+        return 0;
+    int baud = 0;
+    sscanf(response, ",baud%d,", &baud);
+    return (uint32_t)baud;
+}
+uint32_t mosaicX5GetRadioBaudRate()
+{
+    return (mosaicX5GetCOMBaudRate(2));
+}
+uint32_t mosaicX5GetDataBaudRate()
+{
+    return (mosaicX5GetCOMBaudRate(3));
 }
 
 #endif // COMPILE_MOSAICX5

@@ -1650,3 +1650,23 @@ bool gnssIsBlocking()
     }
     return (false);
 }
+
+uint32_t gnssGetRadioBaudRate()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return (theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE));
+        }
+        else if (present.gnss_um980)
+        {
+            return (0); // UM980 has no multiplexer
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return (mosaicX5GetRadioBaudRate());
+        }
+    }
+    return (false);
+}

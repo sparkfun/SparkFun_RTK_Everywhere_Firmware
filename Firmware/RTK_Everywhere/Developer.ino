@@ -329,6 +329,10 @@ void     mosaicX5MenuMessagesRTCM(bool rover) {}
 void     processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
 void     processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
 void     processNonSBFData(SEMP_PARSE_STATE *parse) {}
+uint32_t mosaicX5GetCOMBaudRate(uint8_t port) {return 0;}
+uint32_t mosaicX5GetRadioBaudRate() {return 0;}
+uint32_t mosaicX5GetDataBaudRate() {return 0;}
+
 #endif  // COMPILE_MOSAICX5
 
 //----------------------------------------
