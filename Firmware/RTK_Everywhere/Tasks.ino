@@ -370,7 +370,7 @@ void gnssReadTask(void *e)
                             0,                   // Scratchpad bytes
                             3000,                // Buffer length
                             processUart1Message, // eom Call Back
-                            "Log");              // Parser Name
+                            "rtkParse");         // Parser Name
     if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
@@ -381,10 +381,10 @@ void gnssReadTask(void *e)
     {
         // Initialize the SBF parser for the mosaic-X5
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                                0,                   // Scratchpad bytes
-                                10000,                // Buffer length - 3000 isn't enough!
-                                processUart1SBF,     // eom Call Back - in mosaic.ino
-                                "Sbf");              // Parser Name
+                                0,                      // Scratchpad bytes
+                                sempGnssReadBufferSize, // Buffer length - 3000 isn't enough!
+                                processUart1SBF,        // eom Call Back - in mosaic.ino
+                                "sbfParse");            // Parser Name
         if (!sbfParse)
             reportFatalError("Failed to initialize the SBF parser");
 
@@ -400,7 +400,7 @@ void gnssReadTask(void *e)
                                 0,                   // Scratchpad bytes
                                 1200,                // Buffer length
                                 processUart1SPARTN,  // eom Call Back - in mosaic.ino 
-                                "Spartn");           // Parser Name
+                                "spartnParse");      // Parser Name
         if (!spartnParse)
             reportFatalError("Failed to initialize the SPARTN parser");
 
