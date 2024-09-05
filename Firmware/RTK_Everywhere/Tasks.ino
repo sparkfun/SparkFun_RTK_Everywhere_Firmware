@@ -398,7 +398,7 @@ void gnssReadTask(void *e)
         // Initialize the SPARTN parser for the mosaic-X5
         spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
                                 0,                   // Scratchpad bytes
-                                1200,                // Buffer length
+                                1200,                // Buffer length - SPARTN payload is 1024 bytes max
                                 processUart1SPARTN,  // eom Call Back - in mosaic.ino 
                                 "spartnParse");      // Parser Name
         if (!spartnParse)

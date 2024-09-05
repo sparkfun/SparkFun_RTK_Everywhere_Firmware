@@ -19,12 +19,14 @@ void updatePplTask(void *e)
             systemPrintln("UpdatePplTask running");
         }
 
-        if (pplNewRtcmNmea || pplNewSpartn) // Decide when to call PPL_GetRTCMOutput
+        if (pplNewRtcmNmea || pplNewSpartnMqtt || pplNewSpartnMqtt) // Decide when to call PPL_GetRTCMOutput
         {
             if (pplNewRtcmNmea)
                 pplNewRtcmNmea = false;
-            if (pplNewSpartn)
-                pplNewSpartn = false;
+            if (pplNewSpartnMqtt)
+                pplNewSpartnMqtt = false;
+            if (pplNewSpartnLBand)
+                pplNewSpartnLBand = false;
 
             uint32_t rtcmLength;
 
@@ -45,7 +47,7 @@ void updatePplTask(void *e)
                         gnssPushRawData(pplRtcmBuffer, rtcmLength);
 
                         if (settings.debugCorrections == true && !inMainMenu)
-                            systemPrintf("Received %d RTCM bytes from PPL. Pushing to the GNSS.\r\n", rtcmLength);
+                            systemPrintf("Received %d RTCM bytes from PPL. Pushed to the GNSS.\r\n", rtcmLength);
                         else if (!inMainMenu)
                             systemPrintln("PointPerfect corrections sent to GNSS.");
                     }
@@ -263,10 +265,13 @@ void updatePPL()
                 // Report which data source may be fouling the RTCM generation from the PPL
                 // SPARTN correction data can be coming from MQTT (IP) or mosaic-X5 L-Band
                 // (NEO-D9S L-Band SPARTN goes straight to the ZED-F9P, not via the PPL)
-                if ((lastMqttToPpl > 0) && ((millis() - lastMqttToPpl) > 5000))
-                    systemPrintln("PPL MQTT Data is stale");
+                // For Torch, we get GNSS + MQTT
+                // For mosaic-X5, we get GNSS + L-Band SPARTN
+                // Only print the MQTT / SPARTN stale messages if corrections have been received at least once
                 if ((millis() - lastGnssToPpl) > 5000)
                     systemPrintln("PPL GNSS Data is stale");
+                if ((lastMqttToPpl > 0) && ((millis() - lastMqttToPpl) > 5000))
+                    systemPrintln("PPL MQTT Data is stale");
                 if ((lastSpartnToPpl > 0) && ((millis() - lastSpartnToPpl) > 5000))
                     systemPrintln("PPL SPARTN Data is stale");
             }
@@ -437,6 +442,11 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
 }
 
 // Send raw L-Band Spartn packets from mosaic X5 to PPL
+// Note: for the mosaic-X5 we are parsing SPARTN from the raw L-Band stream.
+//   Because the SPARTN is parsed and validated, we should (probably) be using
+//   PPL_SendSpartn instead of PPL_SendAuxSpartn.
+//   Or, we could disable spartnParse and instead pass the unprocessed raw
+//   L-Band bytes using PPL_SendAuxSpartn.
 bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
 {
     if (online.ppl == true)

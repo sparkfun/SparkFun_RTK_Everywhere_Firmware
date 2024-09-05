@@ -104,6 +104,9 @@ void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Pass the SPARTN to the PPL
     sendAuxSpartnToPpl(parse->buffer, parse->length);
+
+    // Set the flag so updatePplTask knows it should call PPL_GetRTCMOutput
+    pplNewSpartnLBand = true;
 }
 
 void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)

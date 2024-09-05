@@ -533,7 +533,9 @@ void mqttClientReceiveMessage(int messageSize)
             mqttClientLastDataReceived = millis();
 
             // Set flag for main loop updatePPL()
-            pplNewSpartn = true;
+            // pplNewSpartnMqtt will be set true when SPARTN or Keys or MGA arrive...
+            // That's OK. It just means we're calling PPL_GetRTCMOutput slightly too often.
+            pplNewSpartnMqtt = true;
         }
     }
 }

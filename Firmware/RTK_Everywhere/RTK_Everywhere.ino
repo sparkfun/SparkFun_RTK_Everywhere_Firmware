@@ -703,7 +703,8 @@ const int updatePplTaskStackSize = 3000;
 #endif // COMPILE_POINTPERFECT_LIBRARY
 
 bool pplNewRtcmNmea = false;
-bool pplNewSpartn = false;
+bool pplNewSpartnMqtt = false; // MQTT
+bool pplNewSpartnLBand = false; // L-Band (mosaic-X5)
 uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
