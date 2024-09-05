@@ -11,13 +11,20 @@ void menuGNSS()
         systemPrintln();
         systemPrintln("Menu: GNSS Receiver");
 
-        systemPrint("1) Set measurement rate in Hz: ");
-        systemPrintln(1.0 / gnssGetRateS(), 5);
+        if (!present.gnss_mosaicX5)
+        {
+            systemPrint("1) Set measurement rate in Hz: ");
+            systemPrintln(1.0 / gnssGetRateS(), 5);
 
-        systemPrint("2) Set measurement rate in seconds between measurements: ");
-        systemPrintln(gnssGetRateS(), 5);
+            systemPrint("2) Set measurement rate in seconds between measurements: ");
+            systemPrintln(gnssGetRateS(), 5);
 
-        systemPrintln("        Note: The measurement rate is overridden to 1Hz when in Base mode.");
+            systemPrintln("       Note: The measurement rate is overridden to 1Hz when in Base mode.");
+        }
+        else
+        {
+            systemPrintln("      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
+        }
 
         systemPrint("3) Set dynamic model: ");
         if (present.gnss_zedf9p)
@@ -153,7 +160,7 @@ void menuGNSS()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming == 1)
+        if ((incoming == 1) && (!present.gnss_mosaicX5))
         {
             float rate = 0.0;
             if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
@@ -163,7 +170,7 @@ void menuGNSS()
                                          // settings.navigationRate, and GSV message
             }
         }
-        else if (incoming == 2)
+        else if ((incoming == 2) && (!present.gnss_mosaicX5))
         {
             float rate = 0.0;
             float minRate = 1.0;
@@ -276,8 +283,9 @@ void menuGNSS()
         else if (incoming == 6)
         {
             int minCNO = 0;
-            // Arbitrary 90 dBHz max
-            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 90, &minCNO) ==
+            // Arbitrary 90 dBHz max. mosaic-X5 is 60dBHz max.
+            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0,
+                present.gnss_mosaicX5 ? 60 : 90, &minCNO) ==
                 INPUT_RESPONSE_VALID)
             {
                 gnssSetMinCno(minCNO); // Set the setting and configure the GNSS receiver
