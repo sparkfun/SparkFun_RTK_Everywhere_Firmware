@@ -2419,7 +2419,7 @@ void paintSystemTest()
             {
                 systemPrintln("GNSS test");
 
-                setMuxport(MUX_UBLOX_NMEA); // Set mux to UART so we can debug over data port
+                setMuxport(MUX_GNSS_UART); // Set mux to UART so we can debug over data port
                 delay(20);
 
                 // Clear out buffer before starting

@@ -284,7 +284,9 @@ uint8_t  mosaicX5GetDay() {return 0;}
 int      mosaicX5GetHorizontalAccuracy() {return false;}
 bool     mosaicX5BeginExternalEvent() {return false;}
 bool     mosaicX5BeginPPS() {return false;}
-void     mosaicX5SetBaudRateCOM1(uint32_t baud) {}
+bool     mosaicX5SetBaudRateCOM(uint8_t port, uint32_t baud) {}
+bool     mosaicX5SetRadioBaudRate(uint32_t baud) {}
+bool     mosaicX5SetDataBaudRate(uint32_t baud) {}
 uint8_t  mosaicX5GetHour() {return 0;}
 double   mosaicX5GetLatitude() {return 0;}
 double   mosaicX5GetLongitude() {return 0;}

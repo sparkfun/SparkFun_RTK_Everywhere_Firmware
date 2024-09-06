@@ -378,8 +378,8 @@ void gnssSetBaudrate(uint32_t baudRate)
         }
         else if (present.gnss_mosaicX5)
         {
-            // Set the baud rate on COM1 of the UM980
-            mosaicX5SetBaudRateCOM1(baudRate);
+            // Set the baud rate on COM1 of the X5
+            mosaicX5SetBaudRateCOM(1, baudRate);
         }
     }
 }
@@ -1657,7 +1657,7 @@ uint32_t gnssGetRadioBaudRate()
     {
         if (present.gnss_zedf9p)
         {
-            return (theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE));
+            return (zedGetRadioBaudRate());
         }
         else if (present.gnss_um980)
         {
@@ -1668,5 +1668,65 @@ uint32_t gnssGetRadioBaudRate()
             return (mosaicX5GetRadioBaudRate());
         }
     }
-    return (false);
+    return (0);
+}
+
+bool gnssSetRadioBaudRate(uint32_t baud)
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return (zedSetRadioBaudRate(baud));
+        }
+        else if (present.gnss_um980)
+        {
+            return false; // UM980 has no multiplexer
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return (mosaicX5SetRadioBaudRate(baud));
+        }
+    }
+    return false;
+}
+
+uint32_t gnssGetDataBaudRate()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return (zedGetDataBaudRate());
+        }
+        else if (present.gnss_um980)
+        {
+            return (0); // UM980 has no multiplexer
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return (mosaicX5GetDataBaudRate());
+        }
+    }
+    return (0);
+}
+
+bool gnssSetDataBaudRate(uint32_t baud)
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return (zedSetDataBaudRate(baud));
+        }
+        else if (present.gnss_um980)
+        {
+            return false; // UM980 has no multiplexer
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return (mosaicX5SetDataBaudRate(baud));
+        }
+    }
+    return false;
 }

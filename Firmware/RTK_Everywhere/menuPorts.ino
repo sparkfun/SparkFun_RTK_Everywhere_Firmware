@@ -57,11 +57,11 @@ void menuPortsNoMux()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set serial baud rate for Radio Port: ");
-        systemPrint(theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE));
+        systemPrint(gnssGetRadioBaudRate());
         systemPrintln(" bps");
 
         systemPrint("2) Set serial baud rate for Data Port: ");
-        systemPrint(theGNSS->getVal32(UBLOX_CFG_UART1_BAUDRATE));
+        systemPrint(gnssGetDataBaudRate());
         systemPrintln(" bps");
 
         systemPrint("3) GNSS UART2 UBX Protocol In: ");
@@ -87,7 +87,7 @@ void menuPortsNoMux()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud);
+                        gnssSetRadioBaudRate(newBaud);
                 }
                 else
                 {
@@ -106,7 +106,7 @@ void menuPortsNoMux()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART1_BAUDRATE, settings.dataPortBaud);
+                        gnssSetDataBaudRate(newBaud);
                 }
                 else
                 {
@@ -151,7 +151,7 @@ void menuPortsMultiplexed()
         systemPrintln(" bps");
 
         systemPrint("2) Set Data port connections: ");
-        if (settings.dataPortChannel == MUX_UBLOX_NMEA)
+        if (settings.dataPortChannel == MUX_GNSS_UART)
             systemPrintln("NMEA TX Out/RX In");
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
             systemPrintln("PPS OUT/Event Trigger In");
@@ -160,10 +160,10 @@ void menuPortsMultiplexed()
         else if (settings.dataPortChannel == MUX_ADC_DAC)
             systemPrintln("ESP32 DAC Out/ADC In");
 
-        if (settings.dataPortChannel == MUX_UBLOX_NMEA)
+        if (settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("3) Set Data port serial baud rate: ");
-            systemPrint(theGNSS->getVal32(UBLOX_CFG_UART1_BAUDRATE));
+            systemPrint(gnssGetDataBaudRate());
             systemPrintln(" bps");
         }
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
@@ -178,6 +178,10 @@ void menuPortsMultiplexed()
                 systemPrintln("Enabled");
             else
                 systemPrintln("Disabled");
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            systemPrintf("4) Output GNSS data to USB1 serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -195,7 +199,7 @@ void menuPortsMultiplexed()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud);
+                        gnssSetRadioBaudRate(newBaud);
                 }
                 else
                 {
@@ -206,7 +210,7 @@ void menuPortsMultiplexed()
         else if (incoming == 2)
         {
             systemPrintln("\r\nEnter the pin connection to use (1 to 4) for Data Port: ");
-            systemPrintln("1) NMEA TX Out/RX In");
+            systemPrintln("1) GNSS UART TX Out/RX In");
             systemPrintln("2) PPS OUT/Event Trigger In");
             systemPrintln("3) I2C SDA/SCL");
             systemPrintln("4) ESP32 DAC Out/ADC In");
@@ -222,7 +226,7 @@ void menuPortsMultiplexed()
                 setMuxport(settings.dataPortChannel);
             }
         }
-        else if (incoming == 3 && settings.dataPortChannel == MUX_UBLOX_NMEA)
+        else if (incoming == 3 && settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -233,7 +237,7 @@ void menuPortsMultiplexed()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART1_BAUDRATE, settings.dataPortBaud);
+                        gnssSetDataBaudRate(newBaud);
                 }
                 else
                 {
@@ -249,6 +253,10 @@ void menuPortsMultiplexed()
         {
             settings.enableUART2UBXIn ^= 1;
             systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart.");
+        }
+        else if ((incoming == 4) && (present.gnss_mosaicX5))
+        {
+            settings.enableGnssToUsbSerial ^= 1;
         }
         else if (incoming == 'x')
             break;

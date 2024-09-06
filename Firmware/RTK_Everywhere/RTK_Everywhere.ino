@@ -1207,7 +1207,11 @@ void setup()
 
     // If necessary, switch to sending GNSS data out the USB serial port
     // to the PC
-    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+    //
+    // The mosaic-X5 has separate USB COM ports. NMEA and RTCM will be output on USB1 if
+    // settings.enableGnssToUsbSerial is true. forwardGnssDataToUsbSerial is never set true.
+    if (!present.gnss_mosaicX5)
+        forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 }
 
 void loop()

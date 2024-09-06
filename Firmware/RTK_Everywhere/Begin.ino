@@ -410,8 +410,6 @@ void beginBoard()
     {
         // How it works:
         // The mosaic COM ports COM1 and COM4 are connected to the ESP32
-        // (mosaic COM2 is connected to the Radio connector)
-        // (mosaic COM3 is connected to the Data connector - via the multiplexer)
         // To keep things ~similar to the Torch and the original Facet:
         //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic
         //   The RTCM and NMEA will be encapsulated in SBF format - this makes it easier to parse
@@ -422,6 +420,11 @@ void beginBoard()
         //   COM1 RX carries RTCM messages from PPL / NTRIP to the mosaic
         //   COM4 is used to configure the mosaic using CMD Command Line commands
         //   COM4 TX only carries plain text Command Replies
+        // mosaic COM2 is connected to the Radio connector
+        // mosaic COM2 will output NMEA and/or RTCM (unencapsulated) at the same rate as COM1
+        // mosaic COM2 input is "auto" - it will accept RTCMv3 corrections
+        // mosaic COM3 is connected to the Data connector - via the multiplexer
+        // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
@@ -471,8 +474,6 @@ void beginBoard()
     {
         // How it works:
         // The mosaic COM ports COM1 and COM4 are connected to the ESP32
-        // (mosaic COM2 is connected to the Radio connector)
-        // (mosaic COM3 is connected to the Data connector - via the multiplexer)
         // To keep things ~similar to the Torch and the original Facet:
         //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic
         //   The RTCM and NMEA will be encapsulated in SBF format - this makes it easier to parse
@@ -483,6 +484,11 @@ void beginBoard()
         //   COM1 RX carries RTCM messages from PPL / NTRIP to the mosaic
         //   COM4 is used to configure the mosaic using CMD Command Line commands
         //   COM4 TX only carries plain text Command Replies
+        // mosaic COM2 is connected to the Radio connector
+        // mosaic COM2 will output NMEA and/or RTCM (unencapsulated) at the same rate as COM1
+        // mosaic COM2 input is "auto" - it will accept RTCMv3 corrections
+        // mosaic COM3 is connected to the Data connector - via the multiplexer
+        // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;

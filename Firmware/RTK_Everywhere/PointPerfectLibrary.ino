@@ -426,7 +426,7 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
         ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
         if (result != ePPL_Success)
         {
-            if (settings.debugCorrections == true)
+            if ((settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ERROR PPL_SendSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
@@ -456,7 +456,7 @@ bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
         ePPL_ReturnStatus result = PPL_SendAuxSpartn(buffer, numDataBytes);
         if (result != ePPL_Success)
         {
-            if (settings.debugCorrections == true)
+            if ((settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }

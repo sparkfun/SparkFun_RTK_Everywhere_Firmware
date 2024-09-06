@@ -335,7 +335,11 @@ void menuMain()
     inMainMenu = false;
 
     // Change the USB serial output behavior if necessary
-    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+    //
+    // The mosaic-X5 has separate USB COM ports. NMEA and RTCM will be output on USB1 if
+    // settings.enableGnssToUsbSerial is true. forwardGnssDataToUsbSerial is never set true.
+    if (!present.gnss_mosaicX5)
+        forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 
     // While in LoRa mode, we need to know when the last serial interaction was
     loraLastIncomingSerial = millis();

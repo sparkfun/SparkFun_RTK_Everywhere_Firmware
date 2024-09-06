@@ -1894,3 +1894,44 @@ uint8_t zedGetMessageNumberByName(const char *msgName)
     systemPrintf("zedGetMessageNumberByName: %s not found\r\n", msgName);
     return (0);
 }
+
+uint32_t zedGetRadioBaudRate()
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE);
+    }
+
+    return (0);
+}
+
+bool zedSetRadioBaudRate(uint32_t baud)
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->setVal32(UBLOX_CFG_UART2_BAUDRATE, baud);
+    }
+
+    return false;
+}
+
+uint32_t zedGetDataBaudRate()
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->getVal32(UBLOX_CFG_UART1_BAUDRATE);
+    }
+
+    return (0);
+}
+
+bool zedSetDataBaudRate(uint32_t baud)
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->setVal32(UBLOX_CFG_UART1_BAUDRATE, baud);
+    }
+
+    return false;
+}
+

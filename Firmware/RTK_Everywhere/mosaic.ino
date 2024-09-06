@@ -225,8 +225,8 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
             {
                 if (response && (replySeen < (responseSize - 1)))
                 {
-                    response[replySeen] = c;
-                    response[replySeen + 1] = 0;
+                    *(response + replySeen) = c;
+                    *(response + replySeen + 1) = 0;
                 }
                 replySeen++;
             }
@@ -245,8 +245,23 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
 
     if (replySeen == strlen(reply)) // If the reply was seen
     {
-        //return mosaicX5waitCR(wait); // wait for a carriage return
-        mosaicX5flushRX(wait); // Wait for any residual serial data
+        startTime = millis();
+        while (millis() < (startTime + wait))
+        {
+            if (serial2GNSS->available())
+            {
+                uint8_t c = serial2GNSS->read();
+                if (settings.debugGnss == true)
+                    systemPrintf("%c", (char)c);
+                if (response && (replySeen < (responseSize - 1)))
+                {
+                    *(response + replySeen) = c;
+                    *(response + replySeen + 1) = 0;
+                }
+                replySeen++;
+            }
+        }
+
         return true;
     }
 
@@ -315,7 +330,7 @@ bool mosaicX5Begin()
     retryLimit = 3;
 
     // Set COM1 baud rate
-    while (!mosaicX5SetBaudRateCOM1(settings.dataPortBaud))
+    while (!mosaicX5SetBaudRateCOM(1, settings.dataPortBaud))
     {
         if (retries == retryLimit)
             break;
@@ -328,6 +343,10 @@ bool mosaicX5Begin()
         systemPrintln("Could not set mosaic-X5 COM1 baud!");
         return false;
     }
+
+    // Set COM2 (Radio) and COM3 (Data) baud rates
+    gnssSetRadioBaudRate(settings.radioPortBaud);
+    gnssSetDataBaudRate(settings.dataPortBaud);
 
     mosaicReceiverSetupSeen = false;
 
@@ -385,8 +404,7 @@ bool mosaicX5ConfigureOnce()
 
     NMEA Messages are enabled by mosaicX5EnableNMEA
     RTCMv3 messages are enabled by mosaicX5EnableRTCMRover / mosaicX5EnableRTCMBase
-
-*/
+    */
 
     bool response = true;
 
@@ -397,7 +415,14 @@ bool mosaicX5ConfigureOnce()
     setting += String("\n\r");
     response &= mosaicX5sendWithResponse(setting, "DataInOut");
 
-    // Output SBF PVTGeodetic and ReceiverTime on their own stream
+    // Configure COM2 for NMEA and RTCMv3. No L-Band. Not encapsulated.
+    response &= mosaicX5sendWithResponse("sdio,COM2,auto,RTCMv3+NMEA\n\r", "DataInOut");
+
+    // Configure USB1 for NMEA and RTCMv3. No L-Band. Not encapsulated.
+    if (settings.enableGnssToUsbSerial)
+        response &= mosaicX5sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
+
+    // Output SBF PVTGeodetic and ReceiverTime on their own stream - on COM1 only
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
     setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
@@ -727,12 +752,29 @@ bool mosaicX5EnableNMEA()
         String setting = String("sno,Stream" + String(stream + 1) + ",COM1," + streams[stream] + "," +
                                 String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
         response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
+
+        setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] + "," +
+                         String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
+
+        if (settings.enableGnssToUsbSerial)
+        {
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + MOSAIC_NUM_NMEA_STREAMS + 1) + ",USB1," + streams[stream] + "," +
+                                    String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
+        }
+        else
+        {
+            // Disable the USB1 NMEA streams if settings.enableGnssToUsbSerial is not enabled
+            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + MOSAIC_NUM_NMEA_STREAMS + 1) + ",USB1,none,off\n\r");
+            response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
+        }
     }
 
     return (response);
 }
 
-// Turn on all the enabled RTCM Rover messages on COM3
+// Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
 bool mosaicX5EnableRTCMRover()
 {
     bool response = true;
@@ -810,13 +852,21 @@ bool mosaicX5EnableRTCMRover()
     if (messages.length() == 0)
         messages = String("none");
 
-    String setting = String("sr3o,COM1," + messages + "\n\r");
+    String setting = String("sr3o,COM1+COM2");
+    if (settings.enableGnssToUsbSerial)
+        setting += String("+USB1");
+    setting += String("," + messages + "\n\r");
     response &= mosaicX5sendWithResponse(setting, "RTCMv3Output");
+
+    if (!settings.enableGnssToUsbSerial)
+    {
+        response &= mosaicX5sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
+    }
 
     return (response);
 }
 
-// Turn on all the enabled RTCM Base messages on COM3
+// Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
 bool mosaicX5EnableRTCMBase()
 {
     bool response = true;
@@ -844,8 +894,16 @@ bool mosaicX5EnableRTCMBase()
     if (messages.length() == 0)
         messages = String("none");
 
-    String setting = String("sr3o,COM1," + messages + "\n\r");
+    String setting = String("sr3o,COM1+COM2");
+    if (settings.enableGnssToUsbSerial)
+        setting += String("+USB1");
+    setting += String("," + messages + "\n\r");
     response &= mosaicX5sendWithResponse(setting, "RTCMv3Output");
+
+    if (!settings.enableGnssToUsbSerial)
+    {
+        response &= mosaicX5sendWithResponse("sr3o,USB1,none\n\r", "RTCMv3Output");
+    }
 
     return (response);
 }
@@ -954,10 +1012,6 @@ bool mosaicX5SetBaudRateCOM(uint8_t port, uint32_t baudRate)
     }
 
     return false; // Invalid baud
-}
-bool mosaicX5SetBaudRateCOM1(uint32_t baudRate)
-{
-    return mosaicX5SetBaudRateCOM(1, baudRate);
 }
 
 // Return the lower of the two Lat/Long deviations
@@ -1484,7 +1538,11 @@ uint32_t mosaicX5GetCOMBaudRate(uint8_t port) // returns 0 if the get fails
     if (!mosaicX5sendWithResponse(setting, "COMSettings", 1000, 25, &response[0], sizeof(response)))
         return 0;
     int baud = 0;
-    sscanf(response, ",baud%d,", &baud);
+    char *ptr = strstr(response, ", baud");
+    if (ptr == nullptr)
+        return 0;
+    ptr += strlen(", baud");
+    sscanf(ptr, "%d,", &baud);
     return (uint32_t)baud;
 }
 uint32_t mosaicX5GetRadioBaudRate()
@@ -1494,6 +1552,14 @@ uint32_t mosaicX5GetRadioBaudRate()
 uint32_t mosaicX5GetDataBaudRate()
 {
     return (mosaicX5GetCOMBaudRate(3));
+}
+bool mosaicX5SetRadioBaudRate(uint32_t baud)
+{
+    return (mosaicX5SetBaudRateCOM(2, baud));
+}
+bool mosaicX5SetDataBaudRate(uint32_t baud)
+{
+    return (mosaicX5SetBaudRateCOM(3, baud));
 }
 
 #endif // COMPILE_MOSAICX5

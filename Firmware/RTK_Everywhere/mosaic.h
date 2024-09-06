@@ -4,11 +4,13 @@
 // "A Stream is defined as a list of messages that should be output with the same interval on one
 //  connection descriptor (Cd). In other words, one Stream is associated with one Cd and one Interval."
 // Allocate this many streams for NMEA messages: Stream1, Stream2, etc.
-#define MOSAIC_NUM_NMEA_STREAMS 2
+// We actually need three times this many as COM1, COM2 and USB1 need their own individual streams
+// COM1 uses streams 1 & 2; COM2 uses 3 & 4; USB1 uses 5 & 6
+#define MOSAIC_NUM_NMEA_STREAMS 2 // Max is 3 : X5 supports 10 streams max
 #define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500,MOSAIC_MSG_RATE_SEC1}
 
-// Output SBF PVTGeodetic and ReceiverTime on this stream
-#define MOSAIC_SBF_PVT_STREAM (MOSAIC_NUM_NMEA_STREAMS + 1)
+// Output SBF PVTGeodetic and ReceiverTime on this stream - on COM1 only
+#define MOSAIC_SBF_PVT_STREAM ((3 * MOSAIC_NUM_NMEA_STREAMS) + 1)
 
 // TODO: allocate equivalent Streams for SBF
 

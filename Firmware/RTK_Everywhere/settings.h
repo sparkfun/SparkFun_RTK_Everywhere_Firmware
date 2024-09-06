@@ -192,7 +192,7 @@ ButtonState buttonPreviousState = BUTTON_ROVER;
 // Data port mux (RTK Facet) can enter one of four different connections
 typedef enum
 {
-    MUX_UBLOX_NMEA = 0,
+    MUX_GNSS_UART = 0,
     MUX_PPS_EVENTTRIGGER,
     MUX_I2C_WT,
     MUX_ADC_DAC,
@@ -1257,7 +1257,7 @@ struct Settings
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
 
     // Radio
-    muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
+    muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
     bool debugGnss = false;                          // Turn on to display GNSS library debug messages
     bool enablePrintPosition = false;
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
