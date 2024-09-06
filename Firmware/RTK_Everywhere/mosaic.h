@@ -3,16 +3,69 @@
 
 // "A Stream is defined as a list of messages that should be output with the same interval on one
 //  connection descriptor (Cd). In other words, one Stream is associated with one Cd and one Interval."
-// Allocate this many streams for NMEA messages: Stream1, Stream2, etc.
-// We actually need three times this many as COM1, COM2 and USB1 need their own individual streams
-// COM1 uses streams 1 & 2; COM2 uses 3 & 4; USB1 uses 5 & 6
-#define MOSAIC_NUM_NMEA_STREAMS 2 // Max is 3 : X5 supports 10 streams max
+// Allocate this many streams for NMEA messages: Stream1, Stream2
+// We actually need four times this many as COM1, COM2, USB1 and DSK1 all need their own individual streams
+// COM1 uses streams 1 & 2; COM2 uses 3 & 4; USB1 uses 5 & 6; DSK1 uses 7 & 8
+#define MOSAIC_NUM_NMEA_STREAMS 2 // X5 supports 10 streams in total
 #define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500,MOSAIC_MSG_RATE_SEC1}
 
 // Output SBF PVTGeodetic and ReceiverTime on this stream - on COM1 only
-#define MOSAIC_SBF_PVT_STREAM ((3 * MOSAIC_NUM_NMEA_STREAMS) + 1)
+#define MOSAIC_SBF_PVT_STREAM ((4 * MOSAIC_NUM_NMEA_STREAMS) + 1)
 
-// TODO: allocate equivalent Streams for SBF
+enum mosaicFileDuration_e {
+    MOSAIC_FILE_DURATION_HOUR1 = 0,
+    MOSAIC_FILE_DURATION_HOUR6,
+    MOSAIC_FILE_DURATION_HOUR24,
+    MOSAIC_FILE_DURATION_MINUTE15,
+
+    MOSAIC_NUM_FILE_DURATIONS // Must be last
+};
+
+typedef struct
+{
+    const char name[9];
+    const char namingType[7];
+    const uint16_t minutes;
+} mosaicFileDuration;
+
+const mosaicFileDuration mosaicFileDurations[] = {
+    { "hour1", "IGS1H", 60 },
+    { "hour6", "IGS6H", 360 },
+    { "hour24", "IGS24H", 1440 },
+    { "minute15", "IGS15M", 15 },
+};
+
+#define MAX_MOSAIC_FILE_DURATIONS (sizeof(mosaicFileDurations) / sizeof(mosaicFileDuration))
+
+enum mosaicObsInterval_e {
+    MOSAIC_OBS_INTERVAL_SEC1 = 0,
+    MOSAIC_OBS_INTERVAL_SEC2,
+    MOSAIC_OBS_INTERVAL_SEC5,
+    MOSAIC_OBS_INTERVAL_SEC10,
+    MOSAIC_OBS_INTERVAL_SEC15,
+    MOSAIC_OBS_INTERVAL_SEC30,
+    MOSAIC_OBS_INTERVAL_SEC60,
+
+    MOSAIC_NUM_OBS_INTERVALS // Must be last
+};
+
+typedef struct
+{
+    const char name[6];
+    const uint8_t seconds;
+} mosaicObsInterval;
+
+const mosaicObsInterval mosaicObsIntervals[] = {
+    { "sec1", 1 },
+    { "sec2", 2 },
+    { "sec5", 5 },
+    { "sec10", 10 },
+    { "sec15", 15 },
+    { "sec30", 30 },
+    { "sec60", 60 },
+};
+
+#define MAX_MOSAIC_OBS_INTERVALS (sizeof(mosaicObsIntervals) / sizeof(mosaicObsInterval))
 
 enum mosaicCOMBaud {
     MOSAIC_COM_RATE_BAUD4800 = 0,

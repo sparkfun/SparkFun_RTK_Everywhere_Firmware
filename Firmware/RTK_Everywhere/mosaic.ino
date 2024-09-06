@@ -440,6 +440,29 @@ bool mosaicX5ConfigureOnce()
     response &= mosaicX5sendWithResponse("snt,+GPSL5\n\r", "SignalTracking", 1000, 200);
     response &= mosaicX5sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage", 1000, 200);
 
+    // Configure logging
+    if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
+    {
+        response &= mosaicX5sendWithResponse("sdfa,DSK1,DeleteOldest\n\r", "DiskFullAction");
+        setting = String("sfn,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].namingType) + "\n\r");
+        response &= mosaicX5sendWithResponse(setting, "FileNaming");
+        response &= mosaicX5sendWithResponse("suoc,off\n\r", "MSDOnConnect");
+        response &= mosaicX5sendWithResponse("emd,DSK1,Mount\n\r", "ManageDisk");
+    }
+
+    if (settings.enableLoggingRINEX)
+    {
+        setting = String("srxl,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].name) + "," +
+                         String(mosaicObsIntervals[settings.RINEXObsInterval].name) + ",all\n\r");
+        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
+    }
+    else
+    {
+        // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
+        setting = String("srxl,DSK1,none\n\r");
+        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
+    }
+
     if (response == true)
     {
         online.gnss = true; // If we failed before, mark as online now
@@ -759,14 +782,27 @@ bool mosaicX5EnableNMEA()
 
         if (settings.enableGnssToUsbSerial)
         {
-            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + MOSAIC_NUM_NMEA_STREAMS + 1) + ",USB1," + streams[stream] + "," +
+            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] + "," +
                                     String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
             response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
         }
         else
         {
             // Disable the USB1 NMEA streams if settings.enableGnssToUsbSerial is not enabled
-            setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + MOSAIC_NUM_NMEA_STREAMS + 1) + ",USB1,none,off\n\r");
+            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
+            response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
+        }
+
+        if (settings.enableLogging)
+        {
+            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] + "," +
+                                    String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
+        }
+        else
+        {
+            // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
+            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1,none,off\n\r");
             response &= mosaicX5sendWithResponse(setting, "NMEAOutput");
         }
     }
@@ -1515,6 +1551,10 @@ void mosaicX5MenuConstellations()
 void mosaicVerifyTables()
 {
     // Verify the table lengths
+    if (MOSAIC_NUM_FILE_DURATIONS != MAX_MOSAIC_FILE_DURATIONS)
+        reportFatalError("Fix mosaicFileDuration_e to match mosaicFileDurations");
+    if (MOSAIC_NUM_OBS_INTERVALS != MAX_MOSAIC_OBS_INTERVALS)
+        reportFatalError("Fix mosaicObsInterval_e to match mosaicObsIntervals");
     if (MOSAIC_NUM_COM_RATES != MAX_MOSAIC_COM_RATES)
         reportFatalError("Fix mosaicCOMBaud to match mosaicComRates");
     if (MOSAIC_NUM_PPS_INTERVALS != MAX_MOSAIC_PPS_INTERVALS)
@@ -1560,6 +1600,74 @@ bool mosaicX5SetRadioBaudRate(uint32_t baud)
 bool mosaicX5SetDataBaudRate(uint32_t baud)
 {
     return (mosaicX5SetBaudRateCOM(3, baud));
+}
+
+// Control the messages that get logged to SD
+void menuLogMosaic()
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintln("Menu: Logging");
+
+        systemPrint("1) Log NMEA to microSD: ");
+        if (settings.enableLogging == true)
+            systemPrintln("Enabled");
+        else
+            systemPrintln("Disabled");
+
+        systemPrint("2) Log RINEX to microSD: ");
+        if (settings.enableLoggingRINEX == true)
+            systemPrintln("Enabled");
+        else
+            systemPrintln("Disabled");
+
+        if (settings.enableLoggingRINEX == true)
+        {
+            systemPrint("3) Set RINEX file duration: ");
+            systemPrint(mosaicFileDurations[settings.RINEXFileDuration].minutes);
+            systemPrintln(" minutes");
+
+            systemPrint("4) Set RINEX observation interval: ");
+            systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].seconds);
+            systemPrintln(" seconds");
+        }
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming == 1)
+        {
+            settings.enableLogging ^= 1;
+        }
+        else if (incoming == 2)
+        {
+            settings.enableLoggingRINEX ^= 1;
+        }
+        else if (incoming == 3 && settings.enableLoggingRINEX == true)
+        {
+            settings.RINEXFileDuration += 1;
+            if (settings.RINEXFileDuration == MAX_MOSAIC_FILE_DURATIONS)
+                settings.RINEXFileDuration = 0;
+        }
+        else if (incoming == 4 && settings.enableLoggingRINEX == true)
+        {
+            settings.RINEXObsInterval += 1;
+            if (settings.RINEXObsInterval == MAX_MOSAIC_OBS_INTERVALS)
+                settings.RINEXObsInterval = 0;
+        }
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
 }
 
 #endif // COMPILE_MOSAICX5

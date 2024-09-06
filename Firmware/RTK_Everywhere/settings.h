@@ -1377,6 +1377,11 @@ struct Settings
         254 }; // Mark first record with key so defaults will be applied
     uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
         254 }; // Mark first record with key so defaults will be applied
+    // We use enableLogging to control the logging of NMEA streams
+    // RINEX logging needs its own enable
+    bool enableLoggingRINEX = false;
+    uint8_t RINEXFileDuration = MOSAIC_FILE_DURATION_HOUR24;
+    uint8_t RINEXObsInterval = MOSAIC_OBS_INTERVAL_SEC30;
 
     // Web Server
     uint16_t httpPort = 80;
@@ -1663,6 +1668,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
     { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
 
     // MQTT
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData",  },
