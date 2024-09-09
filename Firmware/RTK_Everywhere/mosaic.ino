@@ -501,6 +501,19 @@ bool mosaicX5ConfigureLogging()
         response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
     }
 
+    if (settings.enableExternalHardwareEventLogging)
+    {
+        setting = String("sso,Stream" + String(MOSAIC_SBF_EXTEVENT_STREAM) + ",DSK1,ExtEvent,OnChange\n\r");
+        response &= mosaicX5sendWithResponse(setting, "SBFOutput");
+    }
+    else
+    {
+        // Disable the ExtEvent stream if settings.enableExternalHardwareEventLogging is not enabled
+        setting = String("sso,Stream" + String(MOSAIC_SBF_EXTEVENT_STREAM) + ",none,none,off\n\r");
+        response &= mosaicX5sendWithResponse(setting, "SBFOutput");
+    }
+
+
     return response;
 }
 
@@ -631,10 +644,7 @@ bool mosaicX5ConfigureRover()
 
     bool response = true;
 
-    // TODO : check if all is the correct RoverMode
-    // Should it be StandAlone+SBAS+DGNSS+RTKFloat+RTKFixed+RTK - i.e. no PPP?
-    // TODO : check if RefPos should be auto
-    response &= mosaicX5sendWithResponse("spm,Rover,all\n\r", "PVTMode");
+    response &= mosaicX5sendWithResponse("spm,Rover,all,auto\n\r", "PVTMode");
 
     response &= mosaicX5SetModel(settings.dynamicModel);
 
@@ -754,12 +764,28 @@ bool mosaicX5FixedBaseStart()
 
 bool mosaicX5BeginExternalEvent()
 {
-    // TODO. X5 logs the data directly.
     // sep (Set Event Parameters) sets polarity
     // SBF ExtEvent block contains the event timing
-    // Add ExtEvent to the logging stream?
+    // ExtEvent gets its own logging stream (MOSAIC_SBF_EXTEVENT_STREAM)
+    // TODO : make polarity and delay configurable
 
-    return false;
+    // Note: You can't disable events via sep. Event cannot be set to "none"...
+    //       All you can do is disable the ExtEvent stream
+
+    if (online.gnss == false)
+        return (false);
+
+    // If our settings haven't changed, trust GNSS's settings
+    if (settings.updateGNSSSettings == false)
+    {
+        systemPrintln("Skipping mosaic-X5 event configuration");
+        return (true);
+    }
+
+    if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
+        return (true); // No need to configure PPS if port is not selected
+
+    return mosaicX5sendWithResponse("sep,EventA,Low2High,0\n\r", "EventParameters");
 }
 
 bool mosaicX5SetTalkerGNGGA()
@@ -831,7 +857,7 @@ bool mosaicX5EnableNMEA()
         {
             // Add GGA to Stream1 (streams[0])
             // TODO: We may need to be cleverer about which stream we choose,
-            //       depending on the stream intervals. Maybe GGA needs its own stream?
+            //       depending on the stream intervals
             if (streams[0].length() > 0)
                 streams[0] += String("+");
             streams[0] += String("GGA");
@@ -1099,14 +1125,11 @@ void mosaicX5FactoryReset()
 
 // The mosaic-X5 does not have a rate setting.
 // Instead the NMEA and RTCM messages are set to the desired interval
-// NMEA messages are allocated to streams Stream1, Stream2 etc..
+// NMEA messages are allocated to streams Stream1 or Stream2
 // The interval of each stream can be adjusted from msec10 to min60
 // RTCMv3 messages have their own intervals
 // The interval of each message or 'group' can be adjusted from 0.1s to 600s
 // RTCMv3 messages are enabled separately
-//
-// It's messy, but we could use secondsBetweenSolutions to set the intervals
-// For now, let's ignore this... TODO!
 bool mosaicX5SetRate(double secondsBetweenSolutions)
 {
     return (true);
@@ -1755,7 +1778,7 @@ void menuLogMosaic()
         {
             systemPrint("3) Set RINEX file duration: ");
             systemPrint(mosaicFileDurations[settings.RINEXFileDuration].minutes);
-            if (mosaicFileDurations[settings.RINEXFileDuration].minutes < = 60)
+            if (mosaicFileDurations[settings.RINEXFileDuration].minutes <= 60)
                 systemPrintln(" minutes");
             else 
             {

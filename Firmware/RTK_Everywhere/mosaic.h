@@ -12,6 +12,11 @@
 // Output SBF PVTGeodetic and ReceiverTime on this stream - on COM1 only
 #define MOSAIC_SBF_PVT_STREAM ((4 * MOSAIC_NUM_NMEA_STREAMS) + 1)
 
+// Output ExtEvent event timing messages - to DSK1 only
+// EventA is available on the Data port - via the multiplexer
+// EventB is connected to ESP32 Pin 18 (on v1.1 PCB only)
+#define MOSAIC_SBF_EXTEVENT_STREAM (MOSAIC_SBF_PVT_STREAM + 1)
+
 enum mosaicFileDuration_e {
     MOSAIC_FILE_DURATION_HOUR1 = 0,
     MOSAIC_FILE_DURATION_HOUR6,
