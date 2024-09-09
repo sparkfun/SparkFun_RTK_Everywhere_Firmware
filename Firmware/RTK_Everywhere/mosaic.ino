@@ -1029,8 +1029,10 @@ bool mosaicX5EnableRTCMBase()
     // Set RTCMv3 Intervals
     for (int group = 0; group < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; group++)
     {
+        char flt[10];
+        snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Base[group]);
         String setting = String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," +
-                                String(settings.mosaicMessageIntervalsRTCMv3Base[group]) + "\n\r");
+                                String(flt) + "\n\r");
         response &= mosaicX5sendWithResponse(setting, "RTCMv3Interval");
     }
 
