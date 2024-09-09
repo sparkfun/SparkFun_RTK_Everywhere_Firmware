@@ -152,7 +152,7 @@ void menuPortsMultiplexed()
 
         systemPrint("2) Set Data port connections: ");
         if (settings.dataPortChannel == MUX_GNSS_UART)
-            systemPrintln("NMEA TX Out/RX In");
+            systemPrintln("GNSS TX Out/RX In");
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
             systemPrintln("PPS OUT/Event Trigger In");
         else if (settings.dataPortChannel == MUX_I2C_WT)

@@ -1755,11 +1755,21 @@ void menuLogMosaic()
         {
             systemPrint("3) Set RINEX file duration: ");
             systemPrint(mosaicFileDurations[settings.RINEXFileDuration].minutes);
-            systemPrintln(" minutes");
+            if (mosaicFileDurations[settings.RINEXFileDuration].minutes < = 60)
+                systemPrintln(" minutes");
+            else 
+            {
+                systemPrint(" minutes (");
+                systemPrint(mosaicFileDurations[settings.RINEXFileDuration].minutes / 60);
+                systemPrintln(" hours)");
+            }
 
             systemPrint("4) Set RINEX observation interval: ");
             systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].seconds);
-            systemPrintln(" seconds");
+            if (settings.RINEXObsInterval == MOSAIC_OBS_INTERVAL_SEC1)
+                systemPrintln(" second");
+            else
+                systemPrintln(" seconds");
         }
 
         systemPrintln("x) Exit");
@@ -1803,7 +1813,7 @@ void menuLogMosaic()
     // Apply changes
     if (applyChanges)
     {
-        mosaicX5ConfigureLogging();
+        mosaicX5ConfigureLogging(); // This will enable / disable RINEX logging
         mosaicX5EnableNMEA(); // Enable NMEA messages - this will enable/disable the DSK1 streams
         setLoggingType(); // Update Standard, PPP, or custom for icon selection
     }
