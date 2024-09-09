@@ -394,6 +394,37 @@ bool mosaicX5Configure()
     return (false);
 }
 
+bool mosaicX5ConfigureLogging()
+{
+    bool response = true;
+    String setting;
+
+    // Configure logging
+    if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
+    {
+        response &= mosaicX5sendWithResponse("sdfa,DSK1,DeleteOldest\n\r", "DiskFullAction");
+        setting = String("sfn,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].namingType) + "\n\r");
+        response &= mosaicX5sendWithResponse(setting, "FileNaming");
+        response &= mosaicX5sendWithResponse("suoc,off\n\r", "MSDOnConnect");
+        response &= mosaicX5sendWithResponse("emd,DSK1,Mount\n\r", "ManageDisk");
+    }
+
+    if (settings.enableLoggingRINEX)
+    {
+        setting = String("srxl,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].name) + "," +
+                         String(mosaicObsIntervals[settings.RINEXObsInterval].name) + ",all\n\r", 1000, 100);
+        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
+    }
+    else
+    {
+        // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
+        setting = String("srxl,DSK1,none\n\r");
+        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
+    }
+
+    return response;
+}
+
 bool mosaicX5ConfigureOnce()
 {
     /*
@@ -440,28 +471,7 @@ bool mosaicX5ConfigureOnce()
     response &= mosaicX5sendWithResponse("snt,+GPSL5\n\r", "SignalTracking", 1000, 200);
     response &= mosaicX5sendWithResponse("snu,+GPSL5,+GPSL5\n\r", "SignalUsage", 1000, 200);
 
-    // Configure logging
-    if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
-    {
-        response &= mosaicX5sendWithResponse("sdfa,DSK1,DeleteOldest\n\r", "DiskFullAction");
-        setting = String("sfn,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].namingType) + "\n\r");
-        response &= mosaicX5sendWithResponse(setting, "FileNaming");
-        response &= mosaicX5sendWithResponse("suoc,off\n\r", "MSDOnConnect");
-        response &= mosaicX5sendWithResponse("emd,DSK1,Mount\n\r", "ManageDisk");
-    }
-
-    if (settings.enableLoggingRINEX)
-    {
-        setting = String("srxl,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].name) + "," +
-                         String(mosaicObsIntervals[settings.RINEXObsInterval].name) + ",all\n\r");
-        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
-    }
-    else
-    {
-        // Disable the DSK1 NMEA streams if settings.enableLogging is not enabled
-        setting = String("srxl,DSK1,none\n\r");
-        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
-    }
+    mosaicX5ConfigureLogging();
 
     if (response == true)
     {
@@ -1605,6 +1615,8 @@ bool mosaicX5SetDataBaudRate(uint32_t baud)
 // Control the messages that get logged to SD
 void menuLogMosaic()
 {
+    bool applyChanges = false;
+
     while (1)
     {
         systemPrintln();
@@ -1640,22 +1652,26 @@ void menuLogMosaic()
         if (incoming == 1)
         {
             settings.enableLogging ^= 1;
+            applyChanges = true;
         }
         else if (incoming == 2)
         {
             settings.enableLoggingRINEX ^= 1;
+            applyChanges = true;
         }
         else if (incoming == 3 && settings.enableLoggingRINEX == true)
         {
             settings.RINEXFileDuration += 1;
             if (settings.RINEXFileDuration == MAX_MOSAIC_FILE_DURATIONS)
                 settings.RINEXFileDuration = 0;
+            applyChanges = true;
         }
         else if (incoming == 4 && settings.enableLoggingRINEX == true)
         {
             settings.RINEXObsInterval += 1;
             if (settings.RINEXObsInterval == MAX_MOSAIC_OBS_INTERVALS)
                 settings.RINEXObsInterval = 0;
+            applyChanges = true;
         }
         else if (incoming == 'x')
             break;
@@ -1665,6 +1681,13 @@ void menuLogMosaic()
             break;
         else
             printUnknown(incoming);
+    }
+
+    // Apply changes
+    if (applyChanges)
+    {
+        mosaicX5ConfigureLogging();
+        mosaicX5EnableNMEA(); // Enable NMEA messages - this will enable/disable the DSK1 streams
     }
 
     clearBuffer(); // Empty buffer of any newline chars
