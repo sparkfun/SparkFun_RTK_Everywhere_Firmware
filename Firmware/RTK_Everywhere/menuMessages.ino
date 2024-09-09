@@ -759,13 +759,11 @@ void setLoggingType()
     int messageCount = gnssGetActiveMessageCount();
     if (messageCount == 5 || messageCount == 7)
     {
-        if (zedGetMessageRateByName("NMEA_GGA") > 0 && zedGetMessageRateByName("NMEA_GSA") > 0 &&
-            zedGetMessageRateByName("NMEA_GST") > 0 && zedGetMessageRateByName("NMEA_GSV") > 0 &&
-            zedGetMessageRateByName("NMEA_RMC") > 0)
+        if (checkGnssNMEARates())
         {
             loggingType = LOGGING_STANDARD;
 
-            if (zedGetMessageRateByName("RXM_RAWX") > 0 && zedGetMessageRateByName("RXM_SFRBX") > 0)
+            if (checkGnssPPPRates())
                 loggingType = LOGGING_PPP;
         }
     }

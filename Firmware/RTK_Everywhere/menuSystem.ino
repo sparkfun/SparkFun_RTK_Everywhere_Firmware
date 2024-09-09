@@ -97,7 +97,7 @@ void menuSystem()
                 systemPrint("No Keys");
 
             systemPrint(" / Corrections Received");
-            if (lbandCorrectionsReceived == false)
+            if (spartnCorrectionsReceived == false)
                 systemPrint(" Failed");
 
             // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?

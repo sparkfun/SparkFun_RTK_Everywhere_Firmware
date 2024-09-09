@@ -99,7 +99,7 @@ void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
     if ((settings.debugCorrections == true) && !inMainMenu)
         systemPrintf("Pushing %d SPARTN (L-Band) bytes to PPL for mosaic-X5\r\n", parse->length);
 
-    if (online.ppl == false && settings.debugCorrections == true)
+    if (online.ppl == false && settings.debugCorrections == true  && (!inMainMenu))
         systemPrintln("Warning: PPL is offline");
 
     // Pass the SPARTN to the PPL
@@ -107,6 +107,10 @@ void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
 
     // Set the flag so updatePplTask knows it should call PPL_GetRTCMOutput
     pplNewSpartnLBand = true;
+
+    spartnCorrectionsReceived = true;
+    lastSpartnReception = millis();
+
 }
 
 void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
@@ -166,7 +170,7 @@ void mosaicX5flushRX(unsigned long timeout)
             if (serial2GNSS->available())
             {
                 uint8_t c = serial2GNSS->read();
-                if (settings.debugGnss == true)
+                if ((settings.debugGnss == true) && (!inMainMenu))
                     systemPrintf("%c", (char)c);
             }
         }
@@ -176,7 +180,7 @@ void mosaicX5flushRX(unsigned long timeout)
         while (serial2GNSS->available())
         {
             uint8_t c = serial2GNSS->read();
-            if (settings.debugGnss == true)
+            if ((settings.debugGnss == true) && (!inMainMenu))
                 systemPrintf("%c", (char)c);
         }
     }
@@ -190,7 +194,7 @@ bool mosaicX5waitCR(unsigned long timeout)
         if (serial2GNSS->available())
         {
             uint8_t c = serial2GNSS->read();
-            if (settings.debugGnss == true)
+            if ((settings.debugGnss == true) && (!inMainMenu))
                 systemPrintf("%c", (char)c);
             if (c == '\r')
                 return true;
@@ -199,12 +203,16 @@ bool mosaicX5waitCR(unsigned long timeout)
     return false;
 }
 
+// Send message. Wait for up to timeout millis for reply to arrive
+// If the reply has started to be received when timeout is reached, wait for a further wait millis
+// If the reply is seen, wait for a further wait millis
+// During wait, keep reading incoming serial. If response is defined, copy up to responseSize bytes
 bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout, unsigned long wait, char *response, size_t responseSize)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
-    if (settings.debugGnss == true)
+    if ((settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("mosaicX5sendWithResponse: sending %s\r\n", message);
 
     if (strlen(message) > 0)
@@ -219,7 +227,7 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
         if (serial2GNSS->available()) // If a char is available
         {
             uint8_t c = serial2GNSS->read(); // Read it
-            if (settings.debugGnss == true)
+            if ((settings.debugGnss == true) && (!inMainMenu))
                 systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
@@ -251,7 +259,7 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
             if (serial2GNSS->available())
             {
                 uint8_t c = serial2GNSS->read();
-                if (settings.debugGnss == true)
+                if ((settings.debugGnss == true) && (!inMainMenu))
                     systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
@@ -270,6 +278,74 @@ bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned l
 bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout, unsigned long wait, char *response, size_t responseSize)
 {
     return mosaicX5sendWithResponse(message.c_str(), reply, timeout, wait, response, responseSize);
+}
+
+// Send message. Wait for up to timeout millis for reply to arrive
+// If the reply is received, keep reading bytes until the serial port has been idle for idle millis
+// If response is defined, copy up to responseSize bytes
+bool mosaicX5sendAndWaitForIdle(const char *message, const char *reply, unsigned long timeout, unsigned long idle, char *response, size_t responseSize)
+{
+    if (strlen(reply) == 0) // Reply can't be zero-length
+        return false;
+
+    if ((settings.debugGnss == true) && (!inMainMenu))
+        systemPrintf("mosaicX5sendAndWaitForIdle: sending %s\r\n", message);
+
+    if (strlen(message) > 0)
+        serial2GNSS->write(message, strlen(message)); // Send the message
+
+    unsigned long startTime = millis();
+    size_t replySeen = 0;
+
+    while ((millis() < (startTime + timeout)) && (replySeen < strlen(reply))) // While not timed out and reply not seen
+    {
+        if (serial2GNSS->available()) // If a char is available
+        {
+            uint8_t c = serial2GNSS->read(); // Read it
+            if ((settings.debugGnss == true) && (!inMainMenu))
+                systemPrintf("%c", (char)c);
+            if (c == *(reply + replySeen)) // Is it a char from reply?
+            {
+                if (response && (replySeen < (responseSize - 1)))
+                {
+                    *(response + replySeen) = c;
+                    *(response + replySeen + 1) = 0;
+                }
+                replySeen++;
+            }
+            else
+                replySeen = 0; // Reset replySeen on an unexpected char
+        }
+    }
+
+    if (replySeen == strlen(reply)) // If the reply was seen
+    {
+        startTime = millis();
+        while (millis() < (startTime + idle))
+        {
+            if (serial2GNSS->available())
+            {
+                uint8_t c = serial2GNSS->read();
+                if ((settings.debugGnss == true) && (!inMainMenu))
+                    systemPrintf("%c", (char)c);
+                if (response && (replySeen < (responseSize - 1)))
+                {
+                    *(response + replySeen) = c;
+                    *(response + replySeen + 1) = 0;
+                }
+                replySeen++;
+                startTime = millis();
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+bool mosaicX5sendAndWaitForIdle(String message, const char *reply, unsigned long timeout, unsigned long idle, char *response, size_t responseSize)
+{
+    return mosaicX5sendAndWaitForIdle(message.c_str(), reply, timeout, idle, response, responseSize);
 }
 
 // Enable RTCM1230 on COM2 (Radio connector)
@@ -348,6 +424,8 @@ bool mosaicX5Begin()
     gnssSetRadioBaudRate(settings.radioPortBaud);
     gnssSetDataBaudRate(settings.dataPortBaud);
 
+    mosaicX5UpdateSD(); // Check card size and free space
+
     mosaicReceiverSetupSeen = false;
 
     // Request the ReceiverSetup SBF block using a esoc (exeSBFOnce) command on COM4
@@ -402,7 +480,8 @@ bool mosaicX5ConfigureLogging()
     // Configure logging
     if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
     {
-        response &= mosaicX5sendWithResponse("sdfa,DSK1,DeleteOldest\n\r", "DiskFullAction");
+        // Stop logging if the disk is full
+        response &= mosaicX5sendWithResponse("sdfa,DSK1,StopLogging\n\r", "DiskFullAction");
         setting = String("sfn,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].namingType) + "\n\r");
         response &= mosaicX5sendWithResponse(setting, "FileNaming");
         response &= mosaicX5sendWithResponse("suoc,off\n\r", "MSDOnConnect");
@@ -412,8 +491,8 @@ bool mosaicX5ConfigureLogging()
     if (settings.enableLoggingRINEX)
     {
         setting = String("srxl,DSK1," + String(mosaicFileDurations[settings.RINEXFileDuration].name) + "," +
-                         String(mosaicObsIntervals[settings.RINEXObsInterval].name) + ",all\n\r", 1000, 100);
-        response &= mosaicX5sendWithResponse(setting, "RINEXLogging");
+                         String(mosaicObsIntervals[settings.RINEXObsInterval].name) + ",all\n\r");
+        response &= mosaicX5sendWithResponse(setting, "RINEXLogging", 1000, 100);
     }
     else
     {
@@ -565,6 +644,8 @@ bool mosaicX5ConfigureRover()
 
     response &= mosaicX5EnableNMEA();
 
+    setLoggingType(); // Update Standard, PPP, or custom for icon selection
+
     // Save the current configuration into non-volatile memory (NVM)
     // We don't need to re-configure the MOSAICX5 at next boot
     bool settingsWereSaved = mosaicX5SaveConfiguration();
@@ -605,6 +686,8 @@ bool mosaicX5ConfigureBase()
     response &= mosaicX5EnableRTCMBase();
 
     response &= mosaicX5EnableNMEA();
+
+    setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
     // We don't need to re-configure the MOSAICX5 at next boot
@@ -1299,6 +1382,8 @@ void mosaicX5MenuMessages()
 
     clearBuffer(); // Empty buffer of any newline chars
 
+    setLoggingType(); // Update Standard, PPP, or custom for icon selection
+
     // Apply these changes at menu exit
     if (mosaicX5InRoverMode() == true)
         restartRover = true;
@@ -1490,21 +1575,21 @@ void mosaicX5BaseRtcmLowDataRate()
         settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
     
     // Now update intervals and enabled for the selected messages
-    int msg = mosaicX5GetMessageNumberByName("RTCM1005");
+    int msg = mosaicX5GetRTCMMessageNumberByName("RTCM1005");
     settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
     settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
 
-    msg = mosaicX5GetMessageNumberByName("MSM4");
+    msg = mosaicX5GetRTCMMessageNumberByName("MSM4");
     settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
     settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 2.0; // Interval = 2.0s = 0.5Hz
 
-    msg = mosaicX5GetMessageNumberByName("RTCM1033");
+    msg = mosaicX5GetRTCMMessageNumberByName("RTCM1033");
     settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
     settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
 }
 
 // Given the name of a message, return the array number
-int mosaicX5GetMessageNumberByName(const char *msgName)
+int mosaicX5GetRTCMMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
     {
@@ -1512,8 +1597,27 @@ int mosaicX5GetMessageNumberByName(const char *msgName)
             return (x);
     }
 
-    systemPrintf("mosaicX5GetMessageNumberByName: %s not found\r\n", msgName);
+    systemPrintf("mosaicX5GetRTCMMessageNumberByName: %s not found\r\n", msgName);
     return (0);
+}
+
+// Given the name of a message, return the array number
+int mosaicX5GetNMEAMessageNumberByName(const char *msgName)
+{
+    for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+    {
+        if (strcmp(mosaicMessagesNMEA[x].msgTextName, msgName) == 0)
+            return (x);
+    }
+
+    systemPrintf("mosaicX5GetNMEAMessageNumberByName: %s not found\r\n", msgName);
+    return (0);
+}
+
+bool mosaicX5IsNMEAMessageEnabled(const char *msgName)
+{
+    int msg = mosaicX5GetNMEAMessageNumberByName(msgName);
+    return (settings.mosaicMessageStreamNMEA[msg] > 0);
 }
 
 // Controls the constellations that are used to generate a fix and logged
@@ -1622,6 +1726,19 @@ void menuLogMosaic()
         systemPrintln();
         systemPrintln("Menu: Logging");
 
+        char sdCardSizeChar[20];
+        String cardSize;
+        stringHumanReadableSize(cardSize, sdCardSize);
+        cardSize.toCharArray(sdCardSizeChar, sizeof(sdCardSizeChar));
+        char sdFreeSpaceChar[20];
+        String freeSpace;
+        stringHumanReadableSize(freeSpace, sdFreeSpace);
+        freeSpace.toCharArray(sdFreeSpaceChar, sizeof(sdFreeSpaceChar));
+
+        char myString[70];
+        snprintf(myString, sizeof(myString), "SD card size: %s / Free space: %s", sdCardSizeChar, sdFreeSpaceChar);
+        systemPrintln(myString);
+
         systemPrint("1) Log NMEA to microSD: ");
         if (settings.enableLogging == true)
             systemPrintln("Enabled");
@@ -1688,9 +1805,74 @@ void menuLogMosaic()
     {
         mosaicX5ConfigureLogging();
         mosaicX5EnableNMEA(); // Enable NMEA messages - this will enable/disable the DSK1 streams
+        setLoggingType(); // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+}
+
+void mosaicX5Housekeeping() // Periodic updates - without using tasks
+{
+    // Update the SD card size, free space and logIncreasing
+    static unsigned long sdCardSizeLastCheck = 0;
+    const unsigned long sdCardSizeCheckInterval = 5000; // Matches the interval in logUpdate
+    static unsigned long sdCardLastFreeChange = millis(); // X5 is slow to update free. Seems to be about every ~20s?
+    static uint64_t previousFreeSpace = 0;
+    if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
+    {
+        mosaicX5UpdateSD();
+        if (previousFreeSpace == 0)
+            previousFreeSpace = sdFreeSpace;
+        if (sdFreeSpace < previousFreeSpace)
+        {
+            previousFreeSpace = sdFreeSpace;
+            logIncreasing = true;
+            sdCardLastFreeChange = millis();
+        }
+        else
+        {
+            if (millis() > (sdCardLastFreeChange + 30000)) // X5 is slow to update free. Seems to be about every ~20s?
+                logIncreasing = false;
+        }
+        sdCardSizeLastCheck = millis();
+    }
+
+    // Update spartnCorrectionsReceived
+    if (millis() > (lastSpartnReception + 5000))
+        spartnCorrectionsReceived = false;
+}
+
+bool mosaicX5UpdateSD()
+{
+    char diskInfo[200];
+    bool response = mosaicX5sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo));
+    if (response)
+    {
+        char *ptr = strstr(diskInfo, " total=\"");
+        if (ptr == nullptr)
+            return false;
+        ptr += strlen(" total=\"");
+        sscanf(ptr, "%llu\"", &sdCardSize);
+        ptr = strstr(ptr, " free=\"");
+        if (ptr == nullptr)
+            return false;
+        ptr += strlen(" free=\"");
+        sscanf(ptr, "%llu\"", &sdFreeSpace);
+    }
+
+    return response;
+}
+
+bool mosaicX5Standby()
+{
+    return (mosaicX5sendWithResponse("epwm,Standby\n\r", "PowerMode"));
+}
+
+bool mosaicX5CheckGnssNMEARates()
+{
+    return (mosaicX5IsNMEAMessageEnabled("GGA") && mosaicX5IsNMEAMessageEnabled("GSA") &&
+            mosaicX5IsNMEAMessageEnabled("GST") && mosaicX5IsNMEAMessageEnabled("GSV") &&
+            mosaicX5IsNMEAMessageEnabled("RMC"));
 }
 
 #endif // COMPILE_MOSAICX5

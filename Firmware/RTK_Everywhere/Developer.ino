@@ -19,6 +19,8 @@ void ethernetVerifyTables() {}
 void ethernetWebServerStartESP32W5500() {}
 void ethernetWebServerStopESP32W5500() {}
 
+bool ntpLogIncreasing = false;
+
 //----------------------------------------
 // NTP: Network Time Protocol
 //----------------------------------------
@@ -334,6 +336,8 @@ void     processNonSBFData(SEMP_PARSE_STATE *parse) {}
 uint32_t mosaicX5GetCOMBaudRate(uint8_t port) {return 0;}
 uint32_t mosaicX5GetRadioBaudRate() {return 0;}
 uint32_t mosaicX5GetDataBaudRate() {return 0;}
+void     mosaicX5Housekeeping() {}
+bool     mosaicX5Standby() {}
 
 #endif  // COMPILE_MOSAICX5
 

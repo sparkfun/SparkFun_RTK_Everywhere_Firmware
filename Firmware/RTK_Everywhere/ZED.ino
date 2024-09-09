@@ -1935,3 +1935,24 @@ bool zedSetDataBaudRate(uint32_t baud)
     return false;
 }
 
+bool zedCheckGnssNMEARates()
+{
+    if (present.gnss_zedf9p)
+    {
+        return (zedGetMessageRateByName("NMEA_GGA") > 0 && zedGetMessageRateByName("NMEA_GSA") > 0 &&
+                zedGetMessageRateByName("NMEA_GST") > 0 && zedGetMessageRateByName("NMEA_GSV") > 0 &&
+                zedGetMessageRateByName("NMEA_RMC") > 0);
+    }
+
+    return false;
+}
+
+bool zedCheckGnssPPPRates()
+{
+    if (present.gnss_zedf9p)
+    {
+        return (zedGetMessageRateByName("RXM_RAWX") > 0 && zedGetMessageRateByName("RXM_SFRBX") > 0);
+    }
+
+    return false;
+}

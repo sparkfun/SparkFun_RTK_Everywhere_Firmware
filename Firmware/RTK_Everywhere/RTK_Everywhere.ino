@@ -773,8 +773,8 @@ bool restartBase;          // If the user modifies any NTRIP Server settings, we
 bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
-bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
-unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message
+bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S only)
+unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
 uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
@@ -782,6 +782,9 @@ uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking a
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
 uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
+
+bool spartnCorrectionsReceived = false; // Used to display L-Band SIV icon when L-Band SPARTN corrections are received by mosaic-X5
+unsigned long lastSpartnReception = 0;  // Timestamp of last SPARTN reception
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;

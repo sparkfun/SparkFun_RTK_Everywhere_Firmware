@@ -95,6 +95,7 @@ void gnssUpdate()
         else if (present.gnss_mosaicX5)
         {
             // We don't check serial data here; the gnssReadTask takes care of serial consumption
+            mosaicX5Housekeeping(); // Housekeeping - update sdFreeSpace, logIncreasing etc.
         }
     }
 }
@@ -1726,6 +1727,66 @@ bool gnssSetDataBaudRate(uint32_t baud)
         else if (present.gnss_mosaicX5)
         {
             return (mosaicX5SetDataBaudRate(baud));
+        }
+    }
+    return false;
+}
+
+bool gnssStandby()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return true; // TODO - this would be a perfect plave for Save-On-Shutdown
+        }
+        else if (present.gnss_um980)
+        {
+            return true;
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return mosaicX5Standby();
+        }
+    }
+    return false;
+}
+
+bool checkGnssNMEARates()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return zedCheckGnssNMEARates();
+        }
+        else if (present.gnss_um980)
+        {
+            return false;
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return mosaicX5CheckGnssNMEARates();
+        }
+    }
+    return false;
+}
+
+bool checkGnssPPPRates()
+{
+    if (online.gnss == true)
+    {
+        if (present.gnss_zedf9p)
+        {
+            return zedCheckGnssPPPRates();
+        }
+        else if (present.gnss_um980)
+        {
+            return false;
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            return settings.enableLoggingRINEX;
         }
     }
     return false;
