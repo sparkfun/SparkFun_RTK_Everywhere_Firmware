@@ -1091,11 +1091,11 @@ void setup()
     DMW_b("beginGnssUart2");
     beginGnssUart2();
 
-    DMW_b("gnssBegin");
-    gnssBegin(); // Requires settings. Connect to GNSS to get module type
-
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
+
+    DMW_b("gnssBegin");
+    gnssBegin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
