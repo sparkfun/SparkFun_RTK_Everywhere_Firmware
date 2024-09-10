@@ -759,9 +759,10 @@ bool mosaicX5FixedBaseStart()
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
-        String setting = String("sspc,Cartesian1," + String(settings.fixedEcefX) + "," +
-                                String(settings.fixedEcefY) + "," + String(settings.fixedEcefZ) + ",WGS84\n\r" );
-        response &= mosaicX5sendWithResponse(setting, "StaticPosCartesian");
+        char pos[100];
+        snprintf(pos, sizeof(pos), "sspc,Cartesian1,%.4f,%.4f,%.4f,WGS84\n\r",
+                 settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
+        response &= mosaicX5sendWithResponse(pos, "StaticPosCartesian");
         response &= mosaicX5sendWithResponse("spm,Static,,Cartesian1\n\r", "PVTMode");
     }
     else if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
@@ -771,9 +772,10 @@ bool mosaicX5FixedBaseStart()
         // For example, if HAE is at 100.0m, + 2m stick + 73mm APC = 102.073
         float totalFixedAltitude =
             settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
-        String setting = String("sspg,Geodetic1," + String(settings.fixedLat) + "," +
-                                String(settings.fixedLong) + "," + String(totalFixedAltitude) + ",WGS84\n\r" );
-        response &= mosaicX5sendWithResponse(setting, "StaticPosGeodetic");
+        char pos[100];
+        snprintf(pos, sizeof(pos), "sspg,Geodetic1,%.8f,%.8f,%.4f,WGS84\n\r",
+                 settings.fixedLat, settings.fixedLong, totalFixedAltitude);
+        response &= mosaicX5sendWithResponse(pos, "StaticPosGeodetic");
         response &= mosaicX5sendWithResponse("spm,Static,,Geodetic1\n\r", "PVTMode");
     }
 
@@ -1190,7 +1192,7 @@ bool mosaicX5SetBaudRateCOM(uint8_t port, uint32_t baudRate)
     {
         if (baudRate == mosaicComRates[i].rate)
         {
-            String setting = String("scs,COM" + String (port) + "," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
+            String setting = String("scs,COM" + String(port) + "," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
             return (mosaicX5sendWithResponse(setting, "COMSettings"));
         }
     }
