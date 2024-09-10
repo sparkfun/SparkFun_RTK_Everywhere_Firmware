@@ -77,7 +77,7 @@ const char * const productDisplayNames[] =
 {
     "EVK",
     "Facet v2",
-    "Facet mo",
+    "Facet X5",
     "Torch",
     // Add new values just above this line
     "Unknown"
@@ -99,7 +99,7 @@ const char * const platformPrefixTable[] =
 {
     "EVK",
     "Facet v2",
-    "Facet mosaic",
+    "Facet mosaicX5",
     "Torch",
     // Add new values just above this line
     "Unknown"
@@ -110,7 +110,7 @@ const char * const platformProvisionTable[] =
 {
     "EVK",
     "Facet v2",
-    "Facet mosaic",
+    "Facet mosaicX5",
     "Torch",
     // Add new values just above this line
     "Unknown"
