@@ -1382,6 +1382,7 @@ struct Settings
     bool enableLoggingRINEX = false;
     uint8_t RINEXFileDuration = MOSAIC_FILE_DURATION_HOUR24;
     uint8_t RINEXObsInterval = MOSAIC_OBS_INTERVAL_SEC30;
+    bool externalEventPolarity = false; // false == Low2High; true == High2Low
 
     // Web Server
     uint16_t httpPort = 80;
@@ -1671,6 +1672,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 0, 0, 0, 1, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX",  },
     { 1, 1, 1, 0, 0, 0, 1, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
     { 1, 1, 1, 0, 0, 0, 1, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _bool,     0, & settings.externalEventPolarity, "externalEventPolarity",  },
 
     // MQTT
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData",  },

@@ -787,7 +787,7 @@ bool mosaicX5BeginExternalEvent()
     // sep (Set Event Parameters) sets polarity
     // SBF ExtEvent block contains the event timing
     // ExtEvent gets its own logging stream (MOSAIC_SBF_EXTEVENT_STREAM)
-    // TODO : make polarity and delay configurable
+    // TODO : make delay configurable
 
     // Note: You can't disable events via sep. Event cannot be set to "none"...
     //       All you can do is disable the ExtEvent stream
@@ -805,7 +805,13 @@ bool mosaicX5BeginExternalEvent()
     if (settings.dataPortChannel != MUX_PPS_EVENTTRIGGER)
         return (true); // No need to configure PPS if port is not selected
 
-    return mosaicX5sendWithResponse("sep,EventA,Low2High,0\n\r", "EventParameters");
+    String setting;
+    if (settings.externalEventPolarity == false)
+        setting = String("sep,EventA,Low2High,0\n\r");
+    else
+        setting = String("sep,EventA,High2Low,0\n\r");
+
+    return mosaicX5sendWithResponse(setting, "EventParameters");
 }
 
 bool mosaicX5SetTalkerGNGGA()

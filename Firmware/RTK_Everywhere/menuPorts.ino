@@ -310,6 +310,16 @@ void menuPortHardwareTriggers()
         else
             systemPrintln("Disabled");
 
+        // On the mosaic-X5, we can set the event polarity
+        if ((settings.enableExternalHardwareEventLogging == true) && present.gnss_mosaicX5)
+        {
+            systemPrint("6) External Event Polarity: ");
+            if (settings.externalEventPolarity == false)
+                systemPrintln("Low2High");
+            else
+                systemPrintln("High2Low");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -396,6 +406,11 @@ void menuPortHardwareTriggers()
         else if (incoming == 5)
         {
             settings.enableExternalHardwareEventLogging ^= 1;
+            updateSettings = true;
+        }
+        else if ((incoming == 6) && (settings.enableExternalHardwareEventLogging == true) && present.gnss_mosaicX5)
+        {
+            settings.externalEventPolarity ^= 1;
             updateSettings = true;
         }
         else if (incoming == 'x')
