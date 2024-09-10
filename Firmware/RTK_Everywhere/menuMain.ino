@@ -238,7 +238,8 @@ void menuMain()
 
             systemPrintln("s) Configure System");
 
-            systemPrintln("t) Configure Instrument Setup");
+            if (present.imu_im19)
+                systemPrintln("t) Configure Instrument Setup");
 
             systemPrintln("u) Configure User Profiles");
 
@@ -283,7 +284,7 @@ void menuMain()
                 menuRadio();
             else if (incoming == 's')
                 menuSystem();
-            else if (incoming == 't')
+            else if ((incoming == 't') && present.imu_im19)
                 menuInstrument();
             else if (incoming == 'b' && btPrintEcho == true)
             {
