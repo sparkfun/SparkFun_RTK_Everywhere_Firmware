@@ -16,7 +16,7 @@ uint16_t mosaicMillisecond; // ReceiverTime TOW % 1000
 
 uint8_t mosaicSatellitesInView; // PVTGeodetic NrSV
 uint8_t mosaicFixType; // PVTGeodetic Mode Bits 0-3
-bool mosaicDeterminingFixedPosition; // PVTGeodetic Mode Bit 6
+bool mosaicDeterminingFixedPosition = true; // PVTGeodetic Mode Bit 6
 
 bool mosaicValidDate; // ReceiverTime SyncLevel Bit 0 (WNSET)
 bool mosaicValidTime; // ReceiverTime SyncLevel Bit 1 (TOWSET)
@@ -28,6 +28,24 @@ unsigned long mosaicPvtArrivalMillis = 0;
 bool mosaicPvtUpdated = false;
 
 bool mosaicReceiverSetupSeen = false;
+
+// Notes about Septentrio log file formats:
+// Files are stored in directory "SSN/GRB0051"
+// Files are stored in daily sub-directories:
+//   the first two digits are the year;
+//   the next three digits are the day of year.
+//   E.g. 24253 is 2024, September 9th
+// Filenames follow the IGS/RINEX2.11 naming convention:
+//   the first 4 characters are the station identifier (default is "sept" for Septentrio);
+//   the next three digits are the day of year;
+//   the next character represents the starting hour in UTC (a is 00:00, b is 01:00, ..., x is 23:00);
+//   "0" represents a 24-hour data set;
+//   the first two digits of the suffix are the year;
+//   the final character of the suffix represents the file type.
+//   File type "_" is Septentrio SBF binary containing e.g. ExtEvent data
+//   File type "o" is a GNSS observation file (RINEX format)
+//   File type "p" is GNSS navigation data (RINEX format)
+//   File type "1" is NMEA
 
 // Call back from within the SBF parser, for end of valid message
 // Process a complete message incoming from parser
@@ -503,7 +521,7 @@ bool mosaicX5ConfigureLogging()
 
     if (settings.enableExternalHardwareEventLogging)
     {
-        setting = String("sso,Stream" + String(MOSAIC_SBF_EXTEVENT_STREAM) + ",DSK1,ExtEvent,OnChange\n\r");
+        setting = String("sso,Stream" + String(MOSAIC_SBF_EXTEVENT_STREAM) + ",DSK1,ExtEvent+ExtEventPVTCartesian,OnChange\n\r");
         response &= mosaicX5sendWithResponse(setting, "SBFOutput");
     }
     else
@@ -717,6 +735,8 @@ bool mosaicX5ConfigureBase()
 bool mosaicX5AutoBaseStart()
 {
     bool response = mosaicX5sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
+
+    mosaicDeterminingFixedPosition = true; // Ensure flag is set initially
 
     autoBaseStartTimer = millis(); // Stamp when averaging began
 
