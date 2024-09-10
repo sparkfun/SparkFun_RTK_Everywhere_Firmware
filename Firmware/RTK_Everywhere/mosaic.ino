@@ -531,7 +531,6 @@ bool mosaicX5ConfigureLogging()
         response &= mosaicX5sendWithResponse(setting, "SBFOutput");
     }
 
-
     return response;
 }
 
@@ -672,6 +671,8 @@ bool mosaicX5ConfigureRover()
 
     response &= mosaicX5EnableNMEA();
 
+    response &= mosaicX5ConfigureLogging();
+
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
     // Save the current configuration into non-volatile memory (NVM)
@@ -714,6 +715,8 @@ bool mosaicX5ConfigureBase()
     response &= mosaicX5EnableRTCMBase();
 
     response &= mosaicX5EnableNMEA();
+
+    response &= mosaicX5ConfigureLogging();
 
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
 
@@ -785,8 +788,9 @@ bool mosaicX5FixedBaseStart()
 bool mosaicX5BeginExternalEvent()
 {
     // sep (Set Event Parameters) sets polarity
-    // SBF ExtEvent block contains the event timing
-    // ExtEvent gets its own logging stream (MOSAIC_SBF_EXTEVENT_STREAM)
+    // SBF ExtEvent contains the event timing
+    // SBF ExtEventPVTCartesian contains the position at the time of the event
+    // ExtEvent+ExtEventPVTCartesian gets its own logging stream (MOSAIC_SBF_EXTEVENT_STREAM)
     // TODO : make delay configurable
 
     // Note: You can't disable events via sep. Event cannot be set to "none"...
