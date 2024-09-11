@@ -488,11 +488,11 @@ void gnssReadTask(void *e)
                             {
                                 sbfParse->state = sempFirstByte;
                                 spartnParse->state = sempFirstByte;
-                                //if (settings.debugGnss)
+                                if (settings.debugGnss)
                                     systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n", scratchPad->sbf.sbfID);
                                 // We could pass the rejected bytes to the SPARTN parser but this is ~risky
                                 // as the L-Band data could overlap the start of actual SBF. I think it's
-                                // safer to discard the data and let both parsers re-sync?
+                                // probably safer to discard the data and let both parsers re-sync?
                                 // for (uint32_t dataOffset = 0; dataOffset < 8; dataOffset++)
                                 // {
                                 //     // Update the SPARTN parser state based on the non-SBF byte
@@ -525,12 +525,12 @@ void gnssReadTask(void *e)
                             {
                                 sbfParse->state = sempFirstByte;
                                 spartnParse->state = sempFirstByte;
-                                //if (settings.debugGnss)
+                                if (settings.debugGnss)
                                     systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
                                 // We could pass the rejected bytes to the SPARTN parser but this is ~risky
                                 // as the L-Band data could overlap the start of actual SBF. I think it's
-                                // safer to discard the data and let both parsers re-sync?
-                                // for (uint32_t dataOffset = 0; dataOffset < 8; dataOffset++)
+                                // probably safer to discard the data and let both parsers re-sync?
+                                // for (uint32_t dataOffset = 0; dataOffset < 18; dataOffset++)
                                 // {
                                 //     // Update the SPARTN parser state based on the non-SBF byte
                                 //     sempParseNextByte(spartnParse, sbfParse->buffer[dataOffset]);
