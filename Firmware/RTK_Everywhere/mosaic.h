@@ -184,17 +184,18 @@ enum mosaicConstellations {
 typedef struct
 {
     const char name[8];
+    const char configName[8];
 } mosaicSignalConstellation;
 
 // Constellations monitored/used for fix
 const mosaicSignalConstellation mosaicSignalConstellations[] = {
-    {"GPS"},
-    {"GLONASS"},
-    {"GALILEO"},
-    {"SBAS"},
-    {"BEIDOU"},
-    {"QZSS"},
-    {"NAVIC"},
+    {"GPS","GPS"},
+    {"GLONASS","GLONASS"},
+    {"GALILEO","Galileo"},
+    {"SBAS","SBAS"},
+    {"BEIDOU","BeiDou"},
+    {"QZSS","QZSS"},
+    {"NAVIC","NAVIC"},
 };
 
 #define MAX_MOSAIC_CONSTELLATIONS (sizeof(mosaicSignalConstellations) / sizeof(mosaicSignalConstellation))

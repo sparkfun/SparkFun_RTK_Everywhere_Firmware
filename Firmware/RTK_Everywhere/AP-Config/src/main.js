@@ -110,6 +110,7 @@ function parseIncoming(msg) {
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("useAssistNowCheckbox");
+                show("measurementRateInput");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -123,8 +124,9 @@ function parseIncoming(msg) {
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("useAssistNowCheckbox");
+                show("measurementRateInput");
             }
-            else if (platformPrefix == "Facet mosaic") {
+            else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
@@ -132,9 +134,31 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
                 show("logToSDCard");
+                hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("useAssistNowCheckbox");
+                hide("measurementRateInput");
+
+                select = ge("dynamicModel");
+                let newOption = new Option('Static', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Quasistatic', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Pedestrian', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Automotive', '3');
+                select.add(newOption, undefined);
+                newOption = new Option('RaceCar', '4');
+                select.add(newOption, undefined);
+                newOption = new Option('HeavyMachinery', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('UAV', '6');
+                select.add(newOption, undefined);
+                newOption = new Option('Unlimited', '7');
+                select.add(newOption, undefined);
+
+                ge("messageRateInfoText").title = "The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages."
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -149,6 +173,7 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on UM980
 
                 show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
+                show("measurementRateInput");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -320,6 +345,22 @@ function parseIncoming(msg) {
             // messagRatesRTCMBase_RTCM1001
             var messageName = id;
             var messageRate = parseFloat(val);
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-group row' id='msg" + messageName + "'>";
+            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
+            messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
+            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
+            messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
+            messageText += "</div></div>";
+        }
+        else if (id.includes("messageStreamNMEA")) {
+            // messageStreamNMEA_GGA
+            var messageName = id;
+            var messageRate = val;
             var messageNameLabel = "";
 
             var messageData = messageName.split('_');
@@ -1326,7 +1367,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaic") || (platformPrefix == "Facet v2")) {
+            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2")) {
                 ge("antennaPhaseCenter_mm").value = 61.4;
             }
             else if (platformPrefix == "Torch") {

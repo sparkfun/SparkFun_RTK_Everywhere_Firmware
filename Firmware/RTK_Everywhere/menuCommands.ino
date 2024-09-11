@@ -888,8 +888,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         case tMosaicConst: {
             for (int x = 0; x < qualifier; x++)
             {
-                if ((suffix[0] == mosaicSignalConstellations[x].name[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].name) == 0))
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
                 {
                     settings.mosaicConstellations[x] = settingValue;
                     knownSetting = true;
@@ -1624,7 +1624,7 @@ void createSettingsString(char *newSettings)
                 {
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
-                                mosaicSignalConstellations[x].name,
+                                mosaicSignalConstellations[x].configName,
                                 ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
                     stringRecord(newSettings, tempString);
                 }
@@ -2409,8 +2409,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         case tMosaicConst: {
             for (int x = 0; x < qualifier; x++)
             {
-                if ((suffix[0] == mosaicSignalConstellations[x].name[0]) &&
-                    (strcmp(suffix, mosaicSignalConstellations[x].name) == 0))
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
                 {
                     writeToString(settingValueStr, settings.mosaicConstellations[x]);
                     knownSetting = true;
@@ -2902,7 +2902,7 @@ void commandList(bool inCommands, int i)
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
             snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
-                     mosaicSignalConstellations[x].name);
+                     mosaicSignalConstellations[x].configName);
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);

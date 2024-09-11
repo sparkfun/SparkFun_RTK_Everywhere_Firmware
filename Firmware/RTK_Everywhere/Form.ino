@@ -1072,6 +1072,20 @@ void createMessageList(String &returnText)
         }
     }
 
+    else if (present.gnss_mosaicX5)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
+        {
+            returnText += "messageStreamNMEA_" + String(mosaicMessagesNMEA[messageNumber].msgTextName) + "," +
+                          String(settings.mosaicMessageStreamNMEA[messageNumber]) + ",";
+        }
+        for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
+        {
+            returnText += "streamIntervalNMEA_" + String(stream) + "," +
+                          String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
+        }
+    }
+
     if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }

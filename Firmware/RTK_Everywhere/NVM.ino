@@ -511,7 +511,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             {
                 char tempString[50]; // constellation_GLONASS=1
                 snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                        mosaicSignalConstellations[x].name, settings.mosaicConstellations[x]);
+                        mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -1297,8 +1297,8 @@ bool parseLine(char *str)
             case tMosaicConst: {
                 for (int x = 0; x < qualifier; x++)
                 {
-                    if ((suffix[0] == mosaicSignalConstellations[x].name[0]) &&
-                        (strcmp(suffix, mosaicSignalConstellations[x].name) == 0))
+                    if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                        (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
                     {
                         settings.mosaicConstellations[x] = d;
                         knownSetting = true;
