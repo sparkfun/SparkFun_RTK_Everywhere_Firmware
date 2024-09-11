@@ -1,6 +1,21 @@
 #ifndef _RTK_EVERYWHERE_MOSAIC_H
 #define _RTK_EVERYWHERE_MOSAIC_H
 
+typedef struct {
+    const uint16_t ID;
+    const bool fixedLength;
+    const uint16_t length; // Padded to modulo-4
+    const char name[19];
+} mosaicExpectedID;
+
+const mosaicExpectedID mosaicExpectedIDs[] = {
+    { 4007, true, 96, "PVTGeodetic" },
+    { 4097, false, 0, "EncapsulatedOutput" },
+    { 5914, true, 24, "ReceiverTime" },
+};
+
+#define MAX_MOSAIC_EXPECTED_SBF (sizeof(mosaicExpectedIDs) / sizeof(mosaicExpectedID))
+
 // "A Stream is defined as a list of messages that should be output with the same interval on one
 //  connection descriptor (Cd). In other words, one Stream is associated with one Cd and one Interval."
 // Allocate this many streams for NMEA messages: Stream1, Stream2

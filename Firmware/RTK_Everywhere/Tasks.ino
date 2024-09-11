@@ -434,10 +434,15 @@ void gnssReadTask(void *e)
         // The SBF parser needs to 'give up' (return) any bytes which are not SBF. We do that using the
         // invalidDataCallback. Any data that is not SBF is then parsed by a separate SPARTN parser.
         // The SPARTN parser extracts SPARTN packets from the raw LBand data so they can be passed to the PPL.
-        // Encapsulated NMEA nad RTCMv3 are passed to the the main SEMP parser.
+        // Encapsulated NMEA and RTCMv3 is extracted and passed to the the main SEMP parser.
         // At some point in the future, Septentrio will (hopefully) add the ability to encapsulate the
         // raw L-Band data in SBF format. This will make life SO much easier as the SEMP will then be able
         // to parse everything and the separate SBF and SPARTN parsers won't be required.
+        //
+        // We need to be clever about this though. The raw L-Band data can manifest as SBF data. When that
+        // happens, it can cause sbfParse to 'stick' - parsing a (long!) ghost SBF block. We need to add
+        // extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
+        // Here we check that the SBF ID and length are expected / valid too.
 
         if (gnssIsBlocking() == false)
         {
@@ -451,7 +456,87 @@ void gnssReadTask(void *e)
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
+                    // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
                     sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : rtkParse, incomingData[x]);
+
+                    // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and lengths
+                    // to help prevent raw L-Band data being misidentified as SBF
+                    if (present.gnss_mosaicX5)
+                    {
+                        SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
+
+                        // Check if this is Length MSB
+                        // Also check parser is running - as invalidDataCallback may have just been called
+                        if ((sbfParse->state != sempFirstByte) && (sbfParse->type == 0) && (sbfParse->length == 8))
+                        {
+                            bool expected = false;
+                            for (int b = 0; b < MAX_MOSAIC_EXPECTED_SBF; b++) // For each expected SBF block
+                            {
+                                if (mosaicExpectedIDs[b].ID == scratchPad->sbf.sbfID) // Check for ID match
+                                {
+                                    expected = true;
+                                    if (mosaicExpectedIDs[b].fixedLength)
+                                    {
+                                        // Check for length match if fixed
+                                        if (mosaicExpectedIDs[b].length != scratchPad->sbf.length)
+                                            expected = false;
+                                    }
+                                }
+                            }
+                            if (!expected) // SBF is not expected so restart the parsers
+                            {
+                                sbfParse->state = sempFirstByte;
+                                spartnParse->state = sempFirstByte;
+                                //if (settings.debugGnss)
+                                    systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n", scratchPad->sbf.sbfID);
+                                // We could pass the rejected bytes to the SPARTN parser but this is ~risky
+                                // as the L-Band data could overlap the start of actual SBF. I think it's
+                                // safer to discard the data and let both parsers re-sync?
+                                // for (uint32_t dataOffset = 0; dataOffset < 8; dataOffset++)
+                                // {
+                                //     // Update the SPARTN parser state based on the non-SBF byte
+                                //     sempParseNextByte(spartnParse, sbfParse->buffer[dataOffset]);
+                                // }
+                            }
+                        }
+
+                        // Extra checks for EncapsulatedOutput - length is variable but we can compare the length to the payload length
+                        if ((sbfParse->type == 0) && (sbfParse->length == 18) && (scratchPad->sbf.sbfID == 4097))
+                        {
+                            bool expected = true;
+                            if ((sbfParse->buffer[14] != 2) && (sbfParse->buffer[14] != 4)) // Check Mode for RTCMv3 and NMEA
+                                expected = false;
+                            
+                            // SBF block length should be 20 more than N (payload length) - with padding
+                            if (expected)
+                            {
+                                uint16_t N = sbfParse->buffer[16];
+                                N |= ((uint16_t)sbfParse->buffer[17]) << 8;
+                                uint16_t expectedLength = N + 20; // Expected length
+                                uint16_t remainder = ((N + 20) % 4);
+                                if (remainder > 0)
+                                    expectedLength += 4 - remainder; // Include the padding
+                                if (scratchPad->sbf.length != expectedLength)
+                                    expected = false;
+                            }
+                            
+                            if (!expected) // SBF is not expected so restart the parsers
+                            {
+                                sbfParse->state = sempFirstByte;
+                                spartnParse->state = sempFirstByte;
+                                //if (settings.debugGnss)
+                                    systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
+                                // We could pass the rejected bytes to the SPARTN parser but this is ~risky
+                                // as the L-Band data could overlap the start of actual SBF. I think it's
+                                // safer to discard the data and let both parsers re-sync?
+                                // for (uint32_t dataOffset = 0; dataOffset < 8; dataOffset++)
+                                // {
+                                //     // Update the SPARTN parser state based on the non-SBF byte
+                                //     sempParseNextByte(spartnParse, sbfParse->buffer[dataOffset]);
+                                // }
+                            }
+                        }
+                    }
                 }
             }
         }
