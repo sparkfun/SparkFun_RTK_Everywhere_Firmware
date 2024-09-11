@@ -20,6 +20,35 @@ Select **World Imagery**.
 
 Field Maps will use the device's internal location as its default location provider. With GNSS Master or Lefebure providing the connection and corrections to the RTK device, and a mock location to the phone, Field Maps will have a super precise GNSS location and data collection can begin.
 
+## ArcGIS QuickCapture
+
+ArcGIS QuickCapture[https://play.google.com/store/apps/details?id=com.esri.arcgisquickcapture&hl=en_US] by Esri is a popular GIS app. Unfortunately it does not allow Bluetooth connections to 3rd party RTK devices. To enable a connection to a SparkFun RTK device, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
+
+Once a [mock location](connecting_bluetooth.md/#enable-mock-location) provider is setup, open Field Maps.
+
+![QuickCapture Main Window](<img/QuickCapture/SparkFun RTK QuickCapture - Main Window.png>)
+
+For the purposes of this demonstration, click *Continue without signing in*.
+
+![Add project button](<img/QuickCapture/SparkFun RTK QuickCapture - Workspace.png>)
+
+Select the **+** then **Browse Projects**.
+
+![Select BioBlitz](<img/QuickCapture/SparkFun RTK QuickCapture - Select Project.png>)
+
+Select a project.
+
+![BioBlitz options](<img/QuickCapture/SparkFun RTK QuickCapture - BioBlitz.png>)
+
+From the BioBlitz project screen we can see we have a GPS accuracy of less than 1 ft. The RTK device has RTK fix and is providing extremely accurate (better than 20mm or 1") positional data.
+
+Click the map icon in the upper right.
+
+![BioBlitz Map](<img/QuickCapture/SparkFun RTK QuickCapture - BioBlitz Map.png>)
+
+The location of the receiver is shown on a map. You can now start recording data with very high accuracy.
+
+
 ## Diamond Maps
 
 [Diamond Maps](https://diamondmaps.com/) is a great solution for utilities and municipalities. $20/month GIS software with many great features.
