@@ -22,6 +22,35 @@ When powered on, the RTK product will broadcast itself as either '[Platform] Rov
 
 **Note:** For devices with a built-in display, *B022* is the last four digits of your unit's MAC address and will be unique to the device in front of you. This is helpful in case there are multiple RTK devices within Bluetooth range.
 
+### Enable Mock Location
+
+Most GIS applications will gracefully handle the Bluetooth connection to the RTK device and provide an NTRIP Client for getting the RTCM corrections so this section can be skipped. If, in the rare case, a GIS app does not allow NTRIP corrections, Mock Locations can be enabled under Android. Then a data provide like Lefebure or GNSS Master can be used to act as a middle-man.
+
+Before proceeding, it is recommended to have the mock location provider app already installed. So if you haven't already, consider installing Lefebure, GNSS Master, etc.
+
+To enable **Mock Locations**, *Developer Mode* in Android must be enabled. It is best to google the [most recent procedure for this](https://www.google.com/search?q=how+to+allow+mock+location+on+android) but the following procedure should work:
+
+1) Open Android settings ![alt text](<img/MockLocation/SparkFun RTK Mock Location - Settings.png>)
+2) Open *About phone*
+
+    ![Build Number box](<img/MockLocation/SparkFun RTK Mock Location - Build Number.png>)
+
+3) Scroll to the bottom and click on *Build number* five or more times. The device will prompt as more taps are required.
+
+Once Developer Mode is enabled:
+
+1) Open Android settings ![alt text](<img/MockLocation/SparkFun RTK Mock Location - Settings.png>)
+2) Open *System*
+    
+    ![Develop options menu](<img/MockLocation/SparkFun RTK Mock Location - Developer Options.png>)
+
+3) Open *Developer options*
+
+    ![Mock Location button](<img/MockLocation/SparkFun RTK Mock Location - Select Mock Location App.png>)
+
+4) Scroll all the way to the bottom of a very long list of developer options. 
+5) Select the app to use for Mock Location. This is usually Lefebure or GNSS Master but can be tailored as needed.
+
 ## Windows
 
 Open settings and navigate to Bluetooth. Click **Add device**.
