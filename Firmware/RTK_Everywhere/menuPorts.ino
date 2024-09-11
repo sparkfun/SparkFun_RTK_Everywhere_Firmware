@@ -269,6 +269,15 @@ void menuPortsMultiplexed()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+
+    if (present.gnss_mosaicX5)
+    {
+        // Apply these changes at menu exit - to enable message output on USB1
+        if (mosaicX5InRoverMode() == true)
+            restartRover = true;
+        else
+            restartBase = true;
+    }
 }
 
 // Configure the behavior of the PPS and INT pins on the ZED-F9P
