@@ -440,8 +440,9 @@ void gnssReadTask(void *e)
         // to parse everything and the separate SBF and SPARTN parsers won't be required.
         //
         // We need to be clever about this though. The raw L-Band data can manifest as SBF data. When that
-        // happens, it can cause sbfParse to 'stick' - parsing a (long!) ghost SBF block. We need to add
-        // extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
+        // happens, it can cause sbfParse to 'stick' - parsing a long ghost SBF block. This prevents RTCM
+        // from being parsed from valid SBF blocks and causes the NTRIP server connection to break. We need
+        // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
 
         if (gnssIsBlocking() == false)
