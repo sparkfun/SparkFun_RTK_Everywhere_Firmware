@@ -110,6 +110,10 @@ Select 'Done' then from the main menu select 'Survey' to begin using the device.
 
 Now you can begin using the SparkFun RTK device with Field Genius.
 
+## GNSS Master
+
+[GNSS Master](https://play.google.com/store/apps/details?id=com.gnssmaster&hl=en_US) is a great utility when a given GIS app does not have an NTRIP Client. GNSS Master connects to a RTK device over Bluetooth (or Bluetooth BLE) as well as any correction source (NTRIP, PointPerfect, even USB Serial), and then acts as the phone's location using Mock Location.
+
 ## QField
 
 ![Opening page of QField](img/QField/SparkFun%20RTK%20QField%20-%20Open%20Project.png)
