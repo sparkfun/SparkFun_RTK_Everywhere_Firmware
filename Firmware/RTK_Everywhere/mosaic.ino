@@ -559,8 +559,7 @@ bool mosaicX5ConfigureOnce()
     response &= mosaicX5sendWithResponse("sdio,COM2,auto,RTCMv3+NMEA\n\r", "DataInOut");
 
     // Configure USB1 for NMEA and RTCMv3. No L-Band. Not encapsulated.
-    if (settings.enableGnssToUsbSerial)
-        response &= mosaicX5sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
+    response &= mosaicX5sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
 
     // Output SBF PVTGeodetic and ReceiverTime on their own stream - on COM1 only
     // TODO : make the interval adjustable
