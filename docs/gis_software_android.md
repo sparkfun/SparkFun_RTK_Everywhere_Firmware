@@ -4,6 +4,42 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 While we recommend [SW Maps for Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/#sw-maps), there are a variety of 3rd party apps available for GIS and surveying for [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/), [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_ios/), and [Windows](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_windows/). We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.
 
+## Diamond Maps
+
+[Diamond Maps](https://diamondmaps.com/) is a great solution for utilities and municipalities. $20/month GIS software with many great features.
+
+Be sure your device is [paired over Bluetooth](connecting_bluetooth.md#android).
+
+![Home Screen](<img/DiamondMaps/SparkFun RTK Diamond Maps - Home Screen.png>)
+
+From the Home Screen, click on the 'hamburger' settings button in the top left corner.
+
+![Settings Menu](<img/DiamondMaps/SparkFun RTK Diamond Maps - Settings Menu.png>)
+
+Select **GPS Status**.
+
+![Click GPS Source](<img/DiamondMaps/SparkFun RTK Diamond Maps - GNSS Source.png>)
+
+Click on the **Select a GPS Source** box and select the RTK device that was previously paired with.
+
+![GPS details](<img/DiamondMaps/SparkFun RTK Diamond Maps - GNSS Source Selected.png>)
+
+Once a receiver is selected, its status will be shown in the GPS Setup window. Additionally, an NTRIP Client is available for corrections.
+
+**NTRIP Client**
+
+If you’re using a serial radio to connect a Base to a Rover for your correction data, or if you're using the RTK Facet L-Band with built-in corrections, you can skip this part.
+
+![NTRIP Settings](<img/DiamondMaps/SparkFun RTK Diamond Maps - NTRIP Settings.png>)
+
+From this window, an NTRIP Client can be configured. Enter your NTRIP Caster information then click on **START**. Click *Close* to exit out to the main window.
+
+![RTK Fix at SparkFun](<img/DiamondMaps/SparkFun RTK Diamond Maps - RTK Fix.png>)
+
+*0.04ft accuracy shown in green*
+
+Closing the GPS Source window will show the map as well as the relative accuracy in feet. 
+
 ## Field Genius
 
 [Field Genius for Android](https://www.microsurvey.com/products/fieldgenius-for-android/) is another good solution, albeit a lot more expensive than free. 
