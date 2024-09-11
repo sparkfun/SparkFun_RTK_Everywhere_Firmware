@@ -86,19 +86,22 @@ void menuBase()
         }
         else
         {
-            systemPrint("2) Set minimum observation time: ");
-            systemPrint(settings.observationSeconds);
-            systemPrintln(" seconds");
-
-            if (present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
+            if (!present.gnss_mosaicX5) // None of this applies to the X5
             {
-                systemPrint("3) Set required Mean 3D Standard Deviation: ");
-                systemPrint(settings.observationPositionAccuracy, 2);
-                systemPrintln(" meters");
-            }
+                systemPrint("2) Set minimum observation time: ");
+                systemPrint(settings.observationSeconds);
+                systemPrintln(" seconds");
 
-            systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
-                         gnssGetSurveyInStartingAccuracy());
+                if (present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
+                {
+                    systemPrint("3) Set required Mean 3D Standard Deviation: ");
+                    systemPrint(settings.observationPositionAccuracy, 2);
+                    systemPrintln(" meters");
+                }
+
+                systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
+                            gnssGetSurveyInStartingAccuracy());
+            }
         }
 
         systemPrintln("7) Set RTCM Message Rates");
@@ -240,7 +243,7 @@ void menuBase()
                           -200.0, 200.0, &settings.antennaPhaseCenter_mm);
         }
 
-        else if (settings.fixedBase == false && incoming == 2)
+        else if (settings.fixedBase == false && incoming == 2 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 10 minute limit
             getNewSetting("Enter the number of seconds for survey-in obseration time", 60, 60 * 10,
@@ -253,7 +256,7 @@ void menuBase()
             getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
                           (double)maxObservationPositionAccuracy, &settings.observationPositionAccuracy);
         }
-        else if (settings.fixedBase == false && incoming == 4)
+        else if (settings.fixedBase == false && incoming == 4 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 0.1m minimum
 
