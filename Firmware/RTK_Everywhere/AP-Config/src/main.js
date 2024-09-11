@@ -111,6 +111,7 @@ function parseIncoming(msg) {
                 hide("beeperControl");
                 show("useAssistNowCheckbox");
                 show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -125,6 +126,7 @@ function parseIncoming(msg) {
                 hide("beeperControl");
                 show("useAssistNowCheckbox");
                 show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
             }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
@@ -139,6 +141,7 @@ function parseIncoming(msg) {
                 hide("beeperControl");
                 hide("useAssistNowCheckbox");
                 hide("measurementRateInput");
+                show("mosaicNMEAStreamDropdowns");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
@@ -158,7 +161,7 @@ function parseIncoming(msg) {
                 newOption = new Option('Unlimited', '7');
                 select.add(newOption, undefined);
 
-                ge("messageRateInfoText").title = "The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages."
+                ge("messageRateInfoText").title = "The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message or 0 to disable, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages."
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
