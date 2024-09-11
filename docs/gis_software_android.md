@@ -18,11 +18,11 @@ Select **World Imagery**.
 
 *ArcGIS Field Maps with 12mm accuracy*
 
-Field Maps will use the device's internal location as its default location provider. With GNSS Master or Lefebure providing the connection and corrections to the RTK device, and a mock location to the phone, Field Maps will have a super precise GNSS location and data collection can begin.
+Field Maps will use the device's internal location as its default location provider. With GNSS Master or Lefebure providing the mock location to the phone, Field Maps will have a super precise GNSS location and data collection can begin.
 
 ## ArcGIS QuickCapture
 
-ArcGIS QuickCapture[https://play.google.com/store/apps/details?id=com.esri.arcgisquickcapture&hl=en_US] by Esri is a popular GIS app. Unfortunately it does not allow Bluetooth connections to 3rd party RTK devices. To enable a connection to a SparkFun RTK device, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
+[ArcGIS QuickCapture](https://play.google.com/store/apps/details?id=com.esri.arcgisquickcapture&hl=en_US) by Esri is a popular GIS app. Unfortunately it does not allow Bluetooth connections to 3rd party RTK devices. To enable a connection to a SparkFun RTK device, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
 
 Once a [mock location](connecting_bluetooth.md/#enable-mock-location) provider is setup, open Field Maps.
 
@@ -46,8 +46,7 @@ Click the map icon in the upper right.
 
 ![BioBlitz Map](<img/QuickCapture/SparkFun RTK QuickCapture - BioBlitz Map.png>)
 
-The location of the receiver is shown on a map. You can now start recording data with very high accuracy.
-
+The location of the receiver is shown on a map. With GNSS Master or Lefebure providing the mock location to the phone, QuickCapture will have a super precise GNSS location and data collection can begin.
 
 ## Diamond Maps
 
@@ -157,7 +156,7 @@ Now you can begin using the SparkFun RTK device with Field Genius.
 
 ## GNSS Master
 
-[GNSS Master](https://play.google.com/store/apps/details?id=com.gnssmaster&hl=en_US) is a great utility when a given GIS app does not have an NTRIP Client. GNSS Master connects to a RTK device over Bluetooth (or Bluetooth BLE) as well as any correction source (NTRIP, PointPerfect, even USB Serial), and then acts as the phone's location using Mock Location.
+[GNSS Master](https://play.google.com/store/apps/details?id=com.gnssmaster&hl=en_US) is a great utility when a given GIS app does not have an NTRIP Client or a way to connect over Bluetooth. GNSS Master connects to a RTK device over Bluetooth (or Bluetooth BLE) as well as any correction source (NTRIP, PointPerfect, even USB Serial), and then acts as the phone's location using [Mock Location](connecting_bluetooth.md/#enable-mock-location).
 
 **Note:** Most GIS apps will not need GNSS Master or Mock Location enabled and this section can be skipped.
 
@@ -165,7 +164,7 @@ Read how to [Enable Mock Location](connecting_bluetooth.md/#enable-mock-location
 
 ![GNSS Master main menu](<img/GNSSMaster/SparkFun RTK GNSS Master - Main.png>)
 
-From the GNSS Master main screen, select *GNSS Receiver Connection*.
+From the GNSS Master main screen, select **GNSS Receiver Connection**.
 
 ![GNSS Receiver Selection](<img/GNSSMaster/SparkFun RTK GNSS Master - Receiver Selection.png>)
 
@@ -177,15 +176,15 @@ Select **Correction Input** to setup an NTRIP Client.
 
 ![Corrections List](<img/GNSSMaster/SparkFun RTK GNSS Master - Correction Source List.png>)
 
-This is one of the powerful features of GNSS Master - multiple connections can be entered. This is helpful if you switch between locations or NTRIP Casters and your GIS software only allows entry of a single NTRIP source. GNSS Master supports corrections from NTRIP Casters but also PointPerfect and a direct serial connection to a GNSS receiver. This can be really helpful in advanced setups.
+This is one of the powerful features of GNSS Master - multiple connections can be entered. This is helpful if you regularly switch between locations or NTRIP Casters and your GIS software only allows entry of a single NTRIP source. GNSS Master supports corrections from NTRIP Casters but also PointPerfect and a direct serial connection to a GNSS receiver. This can be really helpful in advanced setups.
 
 ![NTRIP Client information](<img/GNSSMaster/SparkFun RTK GNSS Master - NTRIP Client Input.png>)
 
-Enter your NTRIP Caster information then click **SAVE**.
+Enter your NTRIP Client information then click **SAVE**.
 
 ![Data from Caster](<img/GNSSMaster/SparkFun RTK GNSS Master - Correction Source Data Flowing.png>)
 
-Once connected the **Data Rate** should increase above 0 bytes per second.  Return to the home screen by hitting the back button.
+Once connected the *Data Rate* should increase above 0 bytes per second.  Return to the home screen by hitting the back button.
 
 ![Enable Mock Location](<img/GNSSMaster/SparkFun RTK GNSS Master - Mock Location.png>)
 
@@ -195,7 +194,7 @@ Once enabled, any GIS app that selects 'Internal' or 'Phone Location' as its sou
 
 ## Lefebure 
 
-[Lefebure NTRIP Client](https://play.google.com/store/apps/details?id=com.lefebure.ntripclient&hl=en_US) is the original app for getting correction from an NTRIP caster and down over Bluetooth. 
+[Lefebure NTRIP Client](https://play.google.com/store/apps/details?id=com.lefebure.ntripclient&hl=en_US) is the *original* app for getting correction from an NTRIP caster and down over Bluetooth. It's an oldie but a goodie.
 
 **Note:** Most GIS apps will not need Lefebure or Mock Location enabled and this section can be skipped.
 
