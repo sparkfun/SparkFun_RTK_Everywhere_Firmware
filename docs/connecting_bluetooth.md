@@ -31,22 +31,24 @@ Before proceeding, it is recommended to have the mock location provider app alre
 To enable **Mock Locations**, *Developer Mode* in Android must be enabled. It is best to google the [most recent procedure for this](https://www.google.com/search?q=how+to+allow+mock+location+on+android) but the following procedure should work:
 
 1) Open Android settings ![alt text](<img/MockLocation/SparkFun RTK Mock Location - Settings.png>)
+
 2) Open *About phone*
 
-    ![Build Number box](<img/MockLocation/SparkFun RTK Mock Location - Build Number.png>)
+   ![Build Number box](<img/MockLocation/SparkFun RTK Mock Location - Build Number.png>)
 
 3) Scroll to the bottom and click on *Build number* five or more times. The device will prompt as more taps are required.
 
 Once Developer Mode is enabled:
 
 1) Open Android settings ![alt text](<img/MockLocation/SparkFun RTK Mock Location - Settings.png>)
+
 2) Open *System*
     
-    ![Develop options menu](<img/MockLocation/SparkFun RTK Mock Location - Developer Options.png>)
+   ![Develop options menu](<img/MockLocation/SparkFun RTK Mock Location - Developer Options.png>)
 
 3) Open *Developer options*
 
-    ![Mock Location button](<img/MockLocation/SparkFun RTK Mock Location - Select Mock Location App.png>)
+   ![Mock Location button](<img/MockLocation/SparkFun RTK Mock Location - Select Mock Location App.png>)
 
 4) Scroll all the way to the bottom of a very long list of developer options. 
 5) Select the app to use for Mock Location. This is usually Lefebure or GNSS Master but can be tailored as needed.

@@ -4,6 +4,22 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 While we recommend [SW Maps for Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/#sw-maps), there are a variety of 3rd party apps available for GIS and surveying for [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/), [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_ios/), and [Windows](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_windows/). We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.
 
+## AcrGIS Field Maps
+
+[ArcGIS Field Maps](https://play.google.com/store/apps/details?id=com.esri.fieldmaps&hl=en_US) by Esri is a popular GIS app. Unfortunately it does not have a built in NTRIP Client to allow high precision corrections down to the RTK device. To enable high-precision, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
+
+Once a [mock location](connecting_bluetooth.md/#enable-mock-location) provider is setup, open Field Maps.
+
+![Field Maps main menu](<img/FieldMaps/SparkFun RTK Field Maps - Main.png>)
+
+Select **World Imagery**.
+
+![ArcGIS Field Maps with 12mm accuracy](<img/FieldMaps/SparkFun RTK Field Maps - RTK Fix.png>)
+
+*ArcGIS Field Maps with 12mm accuracy*
+
+Field Maps will use the device's internal location as its default location provider. With GNSS Master or Lefebure providing the connection and corrections to the RTK device, and a mock location to the phone, Field Maps will have a super precise GNSS location and data collection can begin.
+
 ## Diamond Maps
 
 [Diamond Maps](https://diamondmaps.com/) is a great solution for utilities and municipalities. $20/month GIS software with many great features.
