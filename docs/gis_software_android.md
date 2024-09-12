@@ -72,7 +72,7 @@ The location of the receiver is shown on a map. With GNSS Master or Lefebure pro
 
 ## Diamond Maps
 
-[Diamond Maps](https://diamondmaps.com/) is a great solution for utilities and municipalities. $20/month GIS software with many great features.
+[Diamond Maps](https://diamondmaps.com/) is a great solution for utilities and municipalities. $20/month GIS software with many great features. Get the Android app [here](https://play.google.com/store/apps/details?id=com.diamondmaps.OfflineApp&hl=en_US).
 
 Be sure your device is [paired over Bluetooth](connecting_bluetooth.md#android).
 
