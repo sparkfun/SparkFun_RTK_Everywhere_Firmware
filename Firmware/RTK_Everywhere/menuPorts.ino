@@ -342,27 +342,20 @@ void menuPortHardwareTriggers()
         {
             if (present.gnss_mosaicX5)
             {
-                // Find the current pulse Interval
-                int i;
-                for (i = 0; i < MAX_MOSAIC_PPS_INTERVALS; i++)
-                {
-                    if (settings.externalPulseTimeBetweenPulse_us == mosaicPPSIntervals[i].interval_us)
-                        break;
-                }
+                systemPrintln("Select PPS interval:\r\n");
 
-                if (i == MAX_MOSAIC_PPS_INTERVALS) // pulse interval not found!
-                {
-                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC1].interval_us; // Default to sec1
-                }
-                else
-                {
-                    i++; // Increment pointer
-                    if (i == MAX_MOSAIC_PPS_INTERVALS)
-                        i = 0; // Wrap around
-                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[i].interval_us;
-                }
+                for (int y = 0; y < MAX_MOSAIC_PPS_INTERVALS; y++)
+                    systemPrintf("%d) %s\r\n", y + 1, mosaicPPSIntervals[y].humanName);
 
-                updateSettings = true;
+                systemPrintln("x) Abort");
+
+                int interval = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+                if (interval >= 1 && interval <= MAX_MOSAIC_PPS_INTERVALS)
+                {
+                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[interval - 1].interval_us;
+                    updateSettings = true;
+                }
             }
             else
             {

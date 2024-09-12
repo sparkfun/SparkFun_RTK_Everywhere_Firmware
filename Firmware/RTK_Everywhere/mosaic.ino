@@ -1467,7 +1467,7 @@ void mosaicX5MenuMessagesNMEA()
 
         for (int x = 0; x < MOSAIC_NUM_NMEA_STREAMS; x++)
             systemPrintf("%d) Stream%d : Interval %s\r\n", x + MAX_MOSAIC_NMEA_MSG + 1, x + 1,
-                            mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[x]].name);
+                            mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[x]].humanName);
 
         systemPrintln();
 
@@ -1492,7 +1492,7 @@ void mosaicX5MenuMessagesNMEA()
             systemPrintf("Select interval for Stream%d:\r\n\r\n", incoming + 1);
 
             for (int y = 0; y < MAX_MOSAIC_MSG_RATES; y++)
-                systemPrintf("%d) %s\r\n", y + 1, mosaicMsgRates[y].name);
+                systemPrintf("%d) %s\r\n", y + 1, mosaicMsgRates[y].humanName);
 
             systemPrintln("x) Abort");
 
@@ -1810,22 +1810,10 @@ void menuLogMosaic()
         if (settings.enableLoggingRINEX == true)
         {
             systemPrint("3) Set RINEX file duration: ");
-            systemPrint(mosaicFileDurations[settings.RINEXFileDuration].minutes);
-            if (mosaicFileDurations[settings.RINEXFileDuration].minutes <= 60)
-                systemPrintln(" minutes");
-            else 
-            {
-                systemPrint(" minutes (");
-                systemPrint(mosaicFileDurations[settings.RINEXFileDuration].minutes / 60);
-                systemPrintln(" hours)");
-            }
+            systemPrintln(mosaicFileDurations[settings.RINEXFileDuration].humanName);
 
             systemPrint("4) Set RINEX observation interval: ");
-            systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].seconds);
-            if (settings.RINEXObsInterval == MOSAIC_OBS_INTERVAL_SEC1)
-                systemPrintln(" second");
-            else
-                systemPrintln(" seconds");
+            systemPrint(mosaicObsIntervals[settings.RINEXObsInterval].humanName);
         }
 
         systemPrintln("x) Exit");
@@ -1844,17 +1832,37 @@ void menuLogMosaic()
         }
         else if (incoming == 3 && settings.enableLoggingRINEX == true)
         {
-            settings.RINEXFileDuration += 1;
-            if (settings.RINEXFileDuration == MAX_MOSAIC_FILE_DURATIONS)
-                settings.RINEXFileDuration = 0;
-            applyChanges = true;
+            systemPrintln("Select RINEX file duration:\r\n");
+
+            for (int y = 0; y < MAX_MOSAIC_FILE_DURATIONS; y++)
+                systemPrintf("%d) %s\r\n", y + 1, mosaicFileDurations[y].humanName);
+
+            systemPrintln("x) Abort");
+
+            int duration = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (duration >= 1 && duration <= MAX_MOSAIC_FILE_DURATIONS)
+            {
+                settings.RINEXFileDuration = duration - 1;
+                applyChanges = true;
+            }
         }
         else if (incoming == 4 && settings.enableLoggingRINEX == true)
         {
-            settings.RINEXObsInterval += 1;
-            if (settings.RINEXObsInterval == MAX_MOSAIC_OBS_INTERVALS)
-                settings.RINEXObsInterval = 0;
-            applyChanges = true;
+            systemPrintln("Select RINEX observation interval:\r\n");
+
+            for (int y = 0; y < MAX_MOSAIC_OBS_INTERVALS; y++)
+                systemPrintf("%d) %s\r\n", y + 1, mosaicObsIntervals[y].humanName);
+
+            systemPrintln("x) Abort");
+
+            int interval = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+            if (interval >= 1 && interval <= MAX_MOSAIC_OBS_INTERVALS)
+            {
+                settings.RINEXObsInterval = interval - 1;
+                applyChanges = true;
+            }
         }
         else if (incoming == 'x')
             break;

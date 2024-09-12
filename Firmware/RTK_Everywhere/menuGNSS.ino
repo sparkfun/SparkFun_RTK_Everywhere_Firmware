@@ -105,7 +105,7 @@ void menuGNSS()
             case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
             case MOSAIC_DYN_MODEL_UAV:
             case MOSAIC_DYN_MODEL_UNLIMITED:
-                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].name);
+                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
                 break;
             }
         }
@@ -219,7 +219,7 @@ void menuGNSS()
             {
                 systemPrintln("Enter the dynamic model to use: ");
                 for (int i = 0; i < MAX_MOSAIC_RX_DYNAMICS; i++)
-                    systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i].name);
+                    systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i].humanName);
             }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long

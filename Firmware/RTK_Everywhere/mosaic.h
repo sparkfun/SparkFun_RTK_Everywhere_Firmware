@@ -45,14 +45,15 @@ typedef struct
 {
     const char name[9];
     const char namingType[7];
+    const char humanName[6];
     const uint16_t minutes;
 } mosaicFileDuration;
 
 const mosaicFileDuration mosaicFileDurations[] = {
-    { "hour1", "IGS1H", 60 },
-    { "hour6", "IGS6H", 360 },
-    { "hour24", "IGS24H", 1440 },
-    { "minute15", "IGS15M", 15 },
+    { "hour1", "IGS1H", "1h", 60 },
+    { "hour6", "IGS6H", "6h", 360 },
+    { "hour24", "IGS24H", "24h", 1440 },
+    { "minute15", "IGS15M", "15min", 15 },
 };
 
 #define MAX_MOSAIC_FILE_DURATIONS (sizeof(mosaicFileDurations) / sizeof(mosaicFileDuration))
@@ -72,17 +73,18 @@ enum mosaicObsInterval_e {
 typedef struct
 {
     const char name[6];
+    const char humanName[4];
     const uint8_t seconds;
 } mosaicObsInterval;
 
 const mosaicObsInterval mosaicObsIntervals[] = {
-    { "sec1", 1 },
-    { "sec2", 2 },
-    { "sec5", 5 },
-    { "sec10", 10 },
-    { "sec15", 15 },
-    { "sec30", 30 },
-    { "sec60", 60 },
+    { "sec1", "1s", 1 },
+    { "sec2", "2s", 2 },
+    { "sec5", "5s", 5 },
+    { "sec10", "10s", 10 },
+    { "sec15", "15s", 15 },
+    { "sec30", "30s", 30 },
+    { "sec60", "60s", 60 },
 };
 
 #define MAX_MOSAIC_OBS_INTERVALS (sizeof(mosaicObsIntervals) / sizeof(mosaicObsInterval))
@@ -146,24 +148,25 @@ enum mosaicPpsIntervals {
 typedef struct
 {
     const char name[8];
+    const char humanName[6];
     const uint32_t interval_us;
 } mosaicPPSInterval;
 
 const mosaicPPSInterval mosaicPPSIntervals[] = {
-    { "msec10", 10000 },
-    { "msec20", 20000 },
-    { "msec50", 50000 },
-    { "msec100", 100000 },
-    { "msec200", 200000 },
-    { "msec250", 250000 },
-    { "msec500", 500000 },
-    { "sec1", 1000000 },
-    { "sec2", 2000000 },
-    { "sec4", 4000000 },
-    { "sec5", 5000000 },
-    { "sec10", 10000000 },
-    { "sec30", 30000000 },
-    { "sec60", 60000000 },
+    { "msec10", "10ms", 10000 },
+    { "msec20", "20ms", 20000 },
+    { "msec50", "50ms", 50000 },
+    { "msec100", "100ms", 100000 },
+    { "msec200", "200ms", 200000 },
+    { "msec250", "250ms", 250000 },
+    { "msec500", "500ms", 500000 },
+    { "sec1", "1s", 1000000 },
+    { "sec2", "2s", 2000000 },
+    { "sec4", "4s", 4000000 },
+    { "sec5", "5s", 5000000 },
+    { "sec10", "10s", 10000000 },
+    { "sec30", "30s", 30000000 },
+    { "sec60", "60s", 60000000 },
 };
 
 #define MAX_MOSAIC_PPS_INTERVALS (sizeof(mosaicPPSIntervals) / sizeof(mosaicPPSInterval))
@@ -234,32 +237,33 @@ enum mosaicMessageRates {
 typedef struct
 {
     const char name[9];
+    const char humanName[6];
 } mosaicMsgRate;
 
 // Static array containing all the mosaic message rates
 const mosaicMsgRate mosaicMsgRates[] = {
     // { "off"},
     // { "OnChange"},
-    { "msec10"},
-    { "msec20"},
-    { "msec40"},
-    { "msec50"},
-    { "msec100"},
-    { "msec200"},
-    { "msec500"},
-    { "sec1"},
-    { "sec2"},
-    { "sec5"},
-    { "sec10"},
-    { "sec15"},
-    { "sec30"},
-    { "sec60"},
-    { "min2"},
-    { "min5"},
-    { "min10"},
-    { "min15"},
-    { "min30"},
-    { "min60"},
+    { "msec10", "10ms" },
+    { "msec20", "20ms" },
+    { "msec40", "40ms" },
+    { "msec50", "50ms" },
+    { "msec100", "100ms" },
+    { "msec200", "200ms" },
+    { "msec500", "500ms" },
+    { "sec1", "1s" },
+    { "sec2", "2s" },
+    { "sec5", "5s" },
+    { "sec10", "10s" },
+    { "sec15", "15s" },
+    { "sec30", "30s" },
+    { "sec60", "60s" },
+    { "min2", "2min" },
+    { "min5", "5min" },
+    { "min10", "10min" },
+    { "min15", "15min" },
+    { "min30", "30min" },
+    { "min60", "60min" },
 };
 
 // Check MAX_MOSAIC_MSG_RATES == MOSAIC_NUM_MSG_RATES
@@ -493,17 +497,18 @@ enum mosaic_Dynamics
 typedef struct
 {
     const char name[15];
+    const char humanName[16];
 } mosaicReceiverDynamic;
 
 const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
-    {"Static"},
-    {"Quasistatic"},
-    {"Pedestrian"},
-    {"Automotive"},
-    {"RaceCar"},
-    {"HeavyMachinery"},
-    {"UAV"},
-    {"Unlimited"},
+    { "Static", "Static" },
+    { "Quasistatic","Quasistatic" },
+    { "Pedestrian","Pedestrian" },
+    { "Automotive", "Automotive" },
+    { "RaceCar", "Race Car" },
+    { "HeavyMachinery", "Heavy Machinery" },
+    { "UAV", "UAV" },
+    { "Unlimited", "Unlimited" },
 };
 
 #define MAX_MOSAIC_RX_DYNAMICS (sizeof(mosaicReceiverDynamics) / sizeof(mosaicReceiverDynamic))
