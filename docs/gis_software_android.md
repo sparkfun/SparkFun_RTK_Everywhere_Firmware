@@ -4,7 +4,7 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 While we recommend [SW Maps for Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/#sw-maps), there are a variety of 3rd party apps available for GIS and surveying for [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/), [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_ios/), and [Windows](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_windows/). We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.
 
-## AcrGIS Field Maps
+## ArcGIS Field Maps
 
 [ArcGIS Field Maps](https://play.google.com/store/apps/details?id=com.esri.fieldmaps&hl=en_US) by Esri is a popular GIS app. Unfortunately it does not have a built in NTRIP Client to allow high precision corrections down to the RTK device. To enable high-precision, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
 

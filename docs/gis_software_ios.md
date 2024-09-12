@@ -6,6 +6,14 @@ There are a variety of 3rd party apps available for GIS and surveying for [Andro
 
 The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support additional connection options including TCP and Bluetooth Low Energy (BLE).
 
+## ArcGIS Field Maps
+
+For reasons unknown, Esri removed TCP support from Field Maps for iOS and is therefore not usable by SparkFun RTK devices at this time. 
+
+If you must use iOS, checkout [SW Maps](gis_software_ios.md/#sw-maps), [ArcGIS QuickCapture](gis_software_ios.md/#arcgis-quickcapture), or [ArcGIS Survey123](gis_software_ios.md/#arcgis-survey123). 
+
+[Field Maps for Android](gis_software_android.md/#arcgis-field-maps) is supported.
+
 ## ArcGIS QuickCapture
 
 ![ArcGIS QuickCapture splash screen](<img/QuickCapture/SparkFun RTK QuickCapture - Main Window.png>)
