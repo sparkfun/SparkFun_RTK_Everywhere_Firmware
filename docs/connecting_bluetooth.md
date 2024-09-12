@@ -96,6 +96,6 @@ If necessary, you can open a terminal connection to one of the COM ports. Becaus
 
 ## Apple iOS
 
-Please see [iOS GIS Software](docs/gis_software_ios.md) for information about how to connect to individual GIS apps. Some require a BLE connection and some require a WiFi hotspot connection.
+Please see [iOS GIS Software](gis_software_ios.md) for information about how to connect to individual GIS apps. Some require a BLE connection and some require a WiFi hotspot connection.
 
 More information is available on the [System Menu](menu_system.md) for switching between Bluetooth SPP and BLE.
