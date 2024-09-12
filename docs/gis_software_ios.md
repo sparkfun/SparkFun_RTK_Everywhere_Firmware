@@ -6,6 +6,69 @@ There are a variety of 3rd party apps available for GIS and surveying for [Andro
 
 The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support additional connection options including TCP and Bluetooth Low Energy (BLE).
 
+## ArcGIS QuickCapture
+
+![ArcGIS QuickCapture splash screen](<img/QuickCapture/SparkFun RTK QuickCapture - Main Window.png>)
+
+[ArcGIS QuickCapture](https://apps.apple.com/us/app/arcgis-quickcapture/id1451433781) is a popular offering from Esri that works well with SparkFun RTK products.
+
+ArcGIS QuickCapture connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running QuickCapture. Generally, this is an iPhone or iPad operating as a hotspot.
+
+**Note:** The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
+
+![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+
+![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
+
+The RTK device must use WiFi to connect to the iPhone or iPad. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
+
+![TCP Server Enabled on port 2948](<img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png>)
+
+
+Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
+
+![RTK device showing IP address](<img/QuickCapture/iOS/SparkFun RTK QuickCapture iOS - IP Address.png>)
+
+Once the RTK device connects to the WiFi hotspot, its IP address can be found in the [System Menu](menu_system.md). This is the number that needs to be entered into QuickCapture. You can now proceed to the QuickCapture app to set up the software connection.
+
+![Main screen](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Main Screen.png>)
+
+From the main screen, press the hamburger icon in the top left corner. 
+
+![Settings button](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Settings Menu.png>)
+
+Press the **Settings** button.
+
+![Location Provider button](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Settings Menu Location Provider.png>)
+
+Select the **Location Provider** option.
+
+Select **Via Network**.
+
+![TCP Network Information](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - TCP Settings.png>)
+
+Enter the IP address and port previously obtained from the RTK device and click **ADD**.
+
+![List of providers showing TCP connection](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - TCP Added.png>)
+
+That provider should now be shown connected.
+
+![Browse project button](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Main Add Project.png>)
+
+From the main screen, click on the plus in the lower left corner and then **BROWSE PROJECTS**.
+
+![List of projects](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Add Project.png>)
+
+For this example, add the BioBlitz project.
+
+![GPS Accuracy and map in BioBlitz project](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - BioBlitz Project.png>)
+
+Above, we can see the GPS accuracy is better than 1ft. Click on the map icon in the top right corner.
+
+![QuickCapture map](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Map.png>)
+
+From the map view, we can see our location with very high accuracy. We can now begin gathering point information with millimeter accuracy.
+
 ## ArcGIS Survey123
 
 ![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
@@ -90,6 +153,14 @@ The SparkFun RTK device's data should now be seen. Click on the *Map* icon to re
 *ArcGIS Survey123 Map Interface*
 
 Returning to the map view, we can now begin gathering point information with millimeter accuracy.
+
+## Hotspot Settings
+
+Apple released an iOS update in mid 2024 that changed the default hotspot frequency to 5.5GHz. The RTK product line uses 2.4GHz for WiFi and will not be able to communicate at this frequency. This can be fix by opening *Settings* then **Personal Hotspot**.
+
+![iOS Hotspot settings](<img/iOS/SparkFun RTK iOS - Hotspot Settings.png>)
+
+Be sure to enable *Maximize Compatibility*. This will force the hotspot to use 2.4GHz.
 
 ## QField
 

@@ -96,8 +96,6 @@ If necessary, you can open a terminal connection to one of the COM ports. Becaus
 
 ## Apple iOS
 
-Please see the [Apple iOS](gis_software.md#apple-ios) example of connecting to SW Maps.
-
-Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK devices support Bluetooth Low Energy (BLE) which does work with iOS.
+Please see [iOS GIS Software](docs/gis_software_ios.md) for information about how to connect to individual GIS apps. Some require a BLE connection and some require a WiFi hotspot connection.
 
 More information is available on the [System Menu](menu_system.md) for switching between Bluetooth SPP and BLE.
