@@ -54,6 +54,12 @@ Once Developer Mode is enabled:
 
 5) Select the app to use for Mock Location. This is usually [Lefebure](gis_software_android.md/#lefebure) or [GNSS Master](gis_software_android.md/#gnss-master) but can be tailored as needed.
 
+## Apple iOS
+
+Please see [iOS GIS Software](gis_software_ios.md) for information about how to connect to individual GIS apps. Some require a BLE connection and some require a WiFi hotspot connection.
+
+More information is available on the [System Menu](menu_system.md) for switching between Bluetooth SPP and BLE.
+
 ## Windows
 
 Open settings and navigate to Bluetooth. Click **Add device**.
@@ -93,9 +99,3 @@ The device is now paired and a series of COM ports will be added under 'Device M
 *NMEA received over the Bluetooth COM port*
 
 If necessary, you can open a terminal connection to one of the COM ports. Because the Bluetooth driver creates multiple COM ports, it's impossible to tell which is the serial stream so it's easiest to just try each port until you see a stream of NMEA sentences (shown above). You're all set! Be sure to close out the terminal window so that other software can use that COM port.
-
-## Apple iOS
-
-Please see [iOS GIS Software](gis_software_ios.md) for information about how to connect to individual GIS apps. Some require a BLE connection and some require a WiFi hotspot connection.
-
-More information is available on the [System Menu](menu_system.md) for switching between Bluetooth SPP and BLE.
