@@ -50,7 +50,7 @@ var sendDataTimeout;
 var checkNewFirmwareTimeout;
 var getNewFirmwareTimeout;
 
-const numCorrectionsSources = 7;
+const numCorrectionsSources = 8;
 var correctionsSourceNames = [];
 var correctionsSourcePriorities = [];
 
@@ -152,16 +152,16 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Automotive', '3');
                 select.add(newOption, undefined);
-                newOption = new Option('RaceCar', '4');
+                newOption = new Option('Race Car', '4');
                 select.add(newOption, undefined);
-                newOption = new Option('HeavyMachinery', '5');
+                newOption = new Option('Heavy Machinery', '5');
                 select.add(newOption, undefined);
                 newOption = new Option('UAV', '6');
                 select.add(newOption, undefined);
                 newOption = new Option('Unlimited', '7');
                 select.add(newOption, undefined);
 
-                ge("messageRateInfoText").title = "The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message or 0 to disable, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages."
+                ge("messageRateInfoText").innerHTML = "The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.";
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -174,6 +174,7 @@ function parseIncoming(msg) {
                 hide("logToSDCard");
 
                 hide("constellationSbas"); //Not supported on UM980
+                hide("constellationNavic"); //Not supported on UM980
 
                 show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
                 show("measurementRateInput");
@@ -363,18 +364,21 @@ function parseIncoming(msg) {
         else if (id.includes("messageStreamNMEA")) {
             // messageStreamNMEA_GGA
             var messageName = id;
-            var messageRate = val;
             var messageNameLabel = "";
 
             var messageData = messageName.split('_');
             messageNameLabel = messageData[1];
 
-            messageText += "<div class='form-group row' id='msg" + messageName + "'>";
+            messageText += "<div id='msg" + messageName + "'>";
             messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
-            messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
-            messageText += " id='" + messageName + "' value='" + messageRate + "'>";
-            messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
-            messageText += "</div></div>";
+            messageText += "<select name='" + messageName + "' id='" + messageName + "' class='form-dropdown mb-2'>";
+            messageText += "<option value='0'>Off</option>";
+            messageText += "<option value='1'>Stream1</option>";
+            messageText += "<option value='2'>Stream2</option>";
+            messageText += "</select>";
+            messageText += "</div>";
+
+            ge(messageName).value = val; 
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
@@ -1133,6 +1137,12 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
+    //match messageStreamNMEA_
+    messages = document.querySelectorAll('input[id^=messageStreamNMEA_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).value = 0;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1165,6 +1175,15 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GPGST").value = 0.5;
         ge("messageRateNMEA_GPGSV").value = 1.0;
         ge("messageRateNMEA_GPRMC").value = 0.5;
+    }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("messageStreamNMEA_GGA").value = 1;
+        ge("messageStreamNMEA_GSA").value = 1;
+        ge("messageStreamNMEA_GST").value = 1;
+        ge("messageStreamNMEA_GSV").value = 2;
+        ge("messageStreamNMEA_RMC").value = 1;
+        ge("streamIntervalNMEA_0").value = 6; //msec500
+        ge("streamIntervalNMEA_1").value = 7; //sec1
     }
 }
 function resetToLoggingDefaults() {

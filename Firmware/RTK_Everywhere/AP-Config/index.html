@@ -330,6 +330,10 @@
                             <label class="form-check-label" for="constellation_GPS">GPS</label>
                             <input class="form-check-input" type="checkbox" value="" id="constellation_GPS">
                         </div>
+                        <div id="constellationNavic" class="form-check mt-3 box-margin20">
+                            <label class="form-check-label" for="constellation_MAVIC">NAVIC</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_NAVIC">
+                        </div>
                         <div id="constellationQzss" class="form-check mt-3 box-margin20">
                             <label class="form-check-label" for="constellation_QZSS">QZSS</label>
                             <input class="form-check-input" type="checkbox" value="" id="constellation_QZSS">
@@ -457,14 +461,9 @@
                                     onClick="resetToLoggingDefaults()">Reset to Logging Defaults</button>
                             </div>
                             <br>
-                            <div id="messageList">
-
-                                
-                            </div>
-                            <br>
                             <div id="mosaicNMEAStreamDropdowns">
                                 <div id="mosaicNMEAStream1Dropdown">
-                                    <label for="streamIntervalNMEA_0">NMEA Stream 1 interval:</label>
+                                    <label for="streamIntervalNMEA_0">NMEA Stream1 interval: </label>
                                     <select name="streamIntervalNMEA_0" id="streamIntervalNMEA_0" class="form-dropdown mb-2">
                                         <option value="0">10ms</option>
                                         <option value="1">20ms</option>
@@ -488,14 +487,14 @@
                                         <option value="19">60min</option>
                                     </select>
                                     <span class="tt" data-bs-placement="right"
-                                        title="Select the interval for NMEA stream 1">
+                                        title="Select the interval for NMEA Stream1">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                     <br>
                                 </div>
                                 <br>
                                 <div id="mosaicNMEAStream2Dropdown">
-                                    <label for="streamIntervalNMEA_1">NMEA Stream 2 interval:</label>
+                                    <label for="streamIntervalNMEA_1">NMEA Stream2 interval: </label>
                                     <select name="streamIntervalNMEA_1" id="streamIntervalNMEA_1" class="form-dropdown mb-2">
                                         <option value="0">10ms</option>
                                         <option value="1">20ms</option>
@@ -519,11 +518,15 @@
                                         <option value="19">60min</option>
                                     </select>
                                     <span class="tt" data-bs-placement="right"
-                                        title="Select the interval for NMEA stream 2">
+                                        title="Select the interval for NMEA Stream2">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
-                                    <br>
                                 </div>
+                                <br>
+                            </div>
+                            <div id="messageList">
+
+                                
                             </div>
                         </div>
                     </div>
@@ -1747,6 +1750,7 @@
                     <button type="button" class="btn btn-primary" id="corrPrioButton4">4</button>
                     <button type="button" class="btn btn-primary" id="corrPrioButton5">5</button>
                     <button type="button" class="btn btn-primary" id="corrPrioButton6">6</button>
+                    <button type="button" class="btn btn-primary" id="corrPrioButton7">7</button>
                     <br>
                     <button type="button" id="correctionsPriorityDefaults" class="btn btn-primary"
                         onClick="resetToCorrectionsPriorityDefaults()">Reset to Defaults</button>
