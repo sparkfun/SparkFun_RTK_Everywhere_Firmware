@@ -24,7 +24,7 @@ Field Maps will use the device's internal location as its default location provi
 
 [ArcGIS QuickCapture](https://play.google.com/store/apps/details?id=com.esri.arcgisquickcapture&hl=en_US) by Esri is a popular GIS app. Unfortunately it does not allow Bluetooth connections to 3rd party RTK devices. To enable a connection to a SparkFun RTK device, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
 
-Once a [mock location](connecting_bluetooth.md/#enable-mock-location) provider is setup, open Field Maps.
+Once a [mock location](connecting_bluetooth.md/#enable-mock-location) provider is setup, open QuickCapture.
 
 ![QuickCapture Main Window](<img/QuickCapture/SparkFun RTK QuickCapture - Main Window.png>)
 
@@ -46,7 +46,29 @@ Click the map icon in the upper right.
 
 ![BioBlitz Map](<img/QuickCapture/SparkFun RTK QuickCapture - BioBlitz Map.png>)
 
-The location of the receiver is shown on a map. With GNSS Master or Lefebure providing the mock location to the phone, QuickCapture will have a super precise GNSS location and data collection can begin.
+The location of the receiver is shown on a map. With GNSS Master or Lefebure providing the mock location to the phone, QuickCapture will have a very precise GNSS location and data collection can begin.
+
+## ArcGIS Survey123
+
+[ArcGIS Survey123](https://play.google.com/store/apps/details?id=com.esri.survey123&hl=en_US) by Esri is a popular GIS app. Unfortunately it does not allow Bluetooth connections to 3rd party RTK devices. To enable a connection to a SparkFun RTK device, a [mock location](connecting_bluetooth.md/#enable-mock-location) and an intermediary app such as [GNSS Master](gis_software_android.md/#gnss-master) or [Lefebure](gis_software_android.md/#lefebure) is needed.
+
+Once a [mock location](connecting_bluetooth.md/#enable-mock-location) provider is setup, open Survey123.
+
+![Survey123 Splash](<img/Survey123/SparkFun RTK Survey123 - Splash.png>)
+
+For the purposes of this demonstration, click *Continue without signing in*.
+
+![Main window](<img/Survey123/SparkFun RTK Survey123 - Main.png>)
+
+Select the satellite icon in the upper right corner.
+
+![Location status showing RTK Fix](<img/Survey123/SparkFun RTK Survey123 - Location Status.png>)
+
+If the mock location provider app is running, you should see the Lat/Lon/Alt from the RTK device. In the above image, RTK Fix is achieved with 0.033ft (10mm) accuracy. Click on the map icon.
+
+![Survey123 Map](<img/Survey123/SparkFun RTK Survey123 - Map.png>)
+
+The location of the receiver is shown on a map. With GNSS Master or Lefebure providing the mock location to the phone, Survey123 will have a very precise GNSS location and data collection can begin.
 
 ## Diamond Maps
 
