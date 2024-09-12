@@ -102,7 +102,7 @@ From this window, an NTRIP Client can be configured. Enter your NTRIP Caster inf
 
 ![RTK Fix at SparkFun](<img/DiamondMaps/SparkFun RTK Diamond Maps - RTK Fix.png>)
 
-*0.04ft accuracy shown in green*
+*0.03ft accuracy shown in green*
 
 Closing the GPS Source window will show the map as well as the relative accuracy in feet. 
 
