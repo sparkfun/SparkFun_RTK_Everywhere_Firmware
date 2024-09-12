@@ -175,7 +175,7 @@ Be sure to enable *Maximize Compatibility*. This will force the hotspot to use 2
 
 ![Opening page of QField](<img/QField/SparkFun RTK QField - Opening Page.png>)
 
-[QField](https://docs.qfield.org/get-started/) is a free iOS app that runs QGIS.
+[QField](https://docs.qfield.org/get-started/) is a free iOS app that runs QGIS. 
 
 ![Modified NMEA messages on RTK Torch](<img/QField/SparkFun RTK QField - NMEA Messages.png>)
 
@@ -199,7 +199,9 @@ These NMEA message settings can be found under the [Messages menu](menu_messages
 
 *Adding WiFi network to settings*
 
-Next, the RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
+QField connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
+
+**Note:** The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
 ![TCP Server Enabled on port 9000](<img/QField/SparkFun RTK QField - TCP Server.png>)
 
