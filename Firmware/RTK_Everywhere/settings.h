@@ -285,22 +285,6 @@ const int networkTableEntries = sizeof(networkTable) / sizeof(networkTable[0]);
 
 #define NETWORK_OFFLINE     networkTableEntries
 
-
-// Define the types of network
-enum NetworkTypes
-{
-    NETWORK_TYPE_WIFI = 0,
-    NETWORK_TYPE_ETHERNET,
-    // Last hardware network type
-    NETWORK_TYPE_MAX,
-
-    // Special cases
-    NETWORK_TYPE_USE_DEFAULT = NETWORK_TYPE_MAX,
-    NETWORK_TYPE_ACTIVE,
-    // Last network type
-    NETWORK_TYPE_LAST,
-};
-
 // Define the states of the network device
 enum NetworkStates
 {
