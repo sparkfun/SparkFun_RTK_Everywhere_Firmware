@@ -1138,8 +1138,6 @@ struct Settings
 
     // Network layer
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
-    uint8_t defaultNetworkType = NETWORK_TYPE_USE_DEFAULT;
-    bool enableNetworkFailover = true; // Enable failover between Ethernet / WiFi
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
 
     // NTP
@@ -1714,8 +1712,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Network layer
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer",  },
-    { 0, 1, 1, 0, 1, 1, 1, 0, _uint8_t,  0, & settings.defaultNetworkType, "defaultNetworkType",  },
-    { 0, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableNetworkFailover, "enableNetworkFailover",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus",  },
 
 //                      F

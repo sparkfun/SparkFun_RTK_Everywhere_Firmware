@@ -47,13 +47,6 @@ void menuEthernet()
         // Display the network layer menu items
         //------------------------------
 
-        systemPrint("d) Default network: ");
-        networkPrintName(settings.defaultNetworkType);
-        systemPrintln();
-
-        systemPrint("f) Ethernet / WiFi Failover: ");
-        systemPrintf("%s\r\n", settings.enableNetworkFailover ? "Enabled" : "Disabled");
-
         systemPrintln("x) Exit");
 
         byte incoming = getUserInputCharacterNumber();
@@ -114,23 +107,6 @@ void menuEthernet()
             }
             else
                 systemPrint("Error: invalid Subnet Mask");
-        }
-
-        //------------------------------
-        // Get the network layer parameters
-        //------------------------------
-
-        else if (incoming == 'd')
-        {
-            // Toggle the network type
-            settings.defaultNetworkType += 1;
-            if (settings.defaultNetworkType >= NETWORK_TYPE_MAX)
-                settings.defaultNetworkType = 0;
-        }
-        else if (incoming == 'f')
-        {
-            // Toggle failover support
-            settings.enableNetworkFailover ^= 1;
         }
 
         else if (incoming == 'x')

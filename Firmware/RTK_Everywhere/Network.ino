@@ -483,13 +483,6 @@ void networkValidatePriority(NetPriority_t priority)
 #define NETWORK_MAX_IDLE_TIME 500              // Maximum network idle time before shutdown
 #define NETWORK_MAX_RETRIES 7                  // 7.5, 15, 30, 60, 2m, 4m, 8m
 
-// Specify which network to use next when a network failure occurs
-const uint8_t networkFailover[] = {
-    NETWORK_TYPE_ETHERNET, // WiFi     --> Ethernet
-    NETWORK_TYPE_WIFI,     // Ethernet --> WiFi
-};
-const int networkFailoverEntries = sizeof(networkFailover) / sizeof(networkFailover[0]);
-
 // List of network names
 const char *const networkName[] = {
     "WiFi",             // NETWORK_TYPE_WIFI
@@ -860,15 +853,6 @@ uint8_t networkGetType()
     if (network && (network->type < NETWORK_TYPE_MAX))
         return network->type;
 
-    // Network type not determined yet
-    // Determine if this type will be Ethernet
-    if (present.ethernet_ws5500)
-    {
-        if ((settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
-            || (settings.defaultNetworkType == NETWORK_TYPE_ETHERNET))
-            return NETWORK_TYPE_ETHERNET;
-    }
-
     // Type will be WiFi
     return NETWORK_TYPE_WIFI;
 }
@@ -1074,24 +1058,6 @@ void networkRetry(NETWORK_DATA *network, uint8_t previousNetworkType)
 
     // Compute the delay between retries
     network->timeout = NETWORK_DELAY_BEFORE_RETRY << (network->connectionAttempt - 1);
-
-    // Determine if failover is possible
-    if ((present.ethernet_ws5500 == true) && (wifiNetworkCount() > 0) && settings.enableNetworkFailover &&
-        (network->requestedNetwork >= NETWORK_TYPE_MAX))
-    {
-        // Get the next failover network
-        networkType = networkFailover[previousNetworkType];
-        if (settings.debugNetworkLayer || settings.printNetworkStatus)
-        {
-            systemPrint("Network failover: ");
-            systemPrint(networkName[previousNetworkType]);
-            systemPrint("-->");
-            systemPrintln(networkName[networkType]);
-        }
-
-        // Initialize the network
-        network->requestedNetwork = networkType;
-    }
 
     // Display the delay
     if ((settings.debugNetworkLayer || settings.printNetworkStatus) && network->timeout)
@@ -1401,8 +1367,6 @@ uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
 
     // Get the default network type
     newNetworkType = networkType;
-    if ((newNetworkType == NETWORK_TYPE_USE_DEFAULT) || (translateActive && (newNetworkType == NETWORK_TYPE_ACTIVE)))
-        newNetworkType = settings.defaultNetworkType;
 
     // Translate the default network type
     if (newNetworkType == NETWORK_TYPE_USE_DEFAULT)
@@ -1800,8 +1764,6 @@ void networkStopMulticastDNS()
 void networkVerifyTables()
 {
     // Verify the table lengths
-    if (networkFailoverEntries != NETWORK_TYPE_MAX)
-        reportFatalError("Fix networkFailover table to match NetworkTypes");
     if (networkNameEntries != NETWORK_TYPE_LAST)
         reportFatalError("Fix networkName table to match NetworkTypes");
     if (networkStateEntries != NETWORK_STATE_MAX)
