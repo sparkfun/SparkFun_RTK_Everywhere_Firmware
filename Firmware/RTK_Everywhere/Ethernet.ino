@@ -298,6 +298,7 @@ void ethernetUpdate()
                 if (settings.debugNetworkLayer)
                     systemPrintln("Ethernet started with DHCP");
                 online.ethernetStatus = ETH_CONNECTED;
+                networkMarkOnline(NETWORK_ETHERNET);
             }
         }
         break;
@@ -311,6 +312,7 @@ void ethernetUpdate()
             if (settings.debugNetworkLayer)
                 systemPrintln("Ethernet disconnected!");
             online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
+            networkMarkOffline(NETWORK_ETHERNET);
         }
         break;
 

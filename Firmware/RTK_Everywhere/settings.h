@@ -236,6 +236,56 @@ typedef enum
     ERROR_GPS_CONFIG_FAIL,
 } t_errorNumber;
 
+typedef uint8_t NetIndex_t;     // Index into the networkTable
+typedef uint32_t NetMask_t;      // One bit for each network interface
+typedef int8_t NetPriority_t;  // Index into networkPriorityTable
+                                // Value 0 (highest) - 255 (lowest) priority
+
+// Routine to poll a network interface
+// Inputs:
+//     index: Index into the networkTable
+//     parameter: Arbitrary parameter to the poll routine
+typedef void (* NETWORK_POLL_ROUTINE)(NetPriority_t index, uintptr_t parameter, bool debug);
+
+// Sequence entry specifying a poll routine call for a network interface
+typedef struct _NETWORK_POLL_SEQUENCE
+{
+    NETWORK_POLL_ROUTINE routine; // Address of poll routine, nullptr at end of table
+    uintptr_t parameter;          // Parameter passed to poll routine
+    const char * description;     // Description of operation
+} NETWORK_POLL_SEQUENCE;
+
+// networkTable entry
+typedef struct _NETWORK_PRIORITY
+{
+    NetworkInterface * netif;       // Network interface object address
+    const char * name;              // Name of the network interface
+    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
+} NETWORK_PRIORITY;
+
+#define NETWORK_ETHERNET    ((NetIndex_t)0)
+#define NETWORK_WIFI        ((NetIndex_t)1)
+#define NETWORK_CELLULAR    ((NetIndex_t)2)
+
+// List of networks
+// Multiple networks may running in parallel with highest priority being
+// set to the default network.  The start routine is called as the priority
+// drops to that level.  The stop routine is called as the priority rises
+// above that level.  The priority will continue to fall or rise until a
+// network is found that is online.
+const NETWORK_PRIORITY networkTable[] =
+{ // Interface  Name            Boot Sequence           Start Sequence      Stop Sequence
+    {&ETH,      "Ethernet",     nullptr,                nullptr,            nullptr},
+    {&WiFi.STA, "WiFi",         nullptr,                nullptr,            nullptr},
+//    {&PPP,      "Cellular",     laraBootSequence,       laraOnSequence,     laraOffSequence},
+};
+const int networkTableEntries = sizeof(networkTable) / sizeof(networkTable[0]);
+
+#define NETWORK_OFFLINE     networkTableEntries
+
+
 // Define the types of network
 enum NetworkTypes
 {

@@ -139,6 +139,273 @@ Network.ino
 
 #ifdef COMPILE_NETWORK
 
+#define NETWORK_DEBUG_STATE         settings.debugNetworkLayer
+
+//----------------------------------------
+// External and forward declarations
+//----------------------------------------
+
+// Network support routines
+bool networkIsInterfaceOnline(uint8_t priority);
+void networkMarkOffline(int priority);
+void networkMarkOnline(int priority);
+uint8_t networkPriorityGet(NetworkInterface *netif);
+void networkPriorityValidation(uint8_t priority);
+void networkSequenceBoot(uint8_t priority);
+void networkSequenceNextEntry(uint8_t priority);
+
+// Poll routines
+void cellularAttached(uint8_t priority, uintptr_t parameter, bool debug);
+void cellularSetup(uint8_t priority, uintptr_t parameter, bool debug);
+void cellularStart(uint8_t priority, uintptr_t parameter, bool debug);
+void networkDelay(uint8_t priority, uintptr_t parameter, bool debug);
+void networkStartDelayed(uint8_t priority, uintptr_t parameter, bool debug);
+
+// Poll sequences
+extern NETWORK_POLL_SEQUENCE laraBootSequence[];
+extern NETWORK_POLL_SEQUENCE laraOnSequence[];
+extern NETWORK_POLL_SEQUENCE laraOffSequence[];
+
+//----------------------------------------
+// Constants
+//----------------------------------------
+
+//----------------------------------------
+// Locals
+//----------------------------------------
+
+// Priority of each of the networks in the networkTable
+// Index by networkTable index to get network interface priority
+NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
+
+// Index by priority to get the networkTable index
+NetIndex_t networkIndexTable[NETWORK_OFFLINE];
+
+// Priority of the default network interface
+NetPriority_t networkPriority = NETWORK_OFFLINE;  // Index into networkPriorityTable
+
+// The following entries have one bit per interface
+// Each bit represents an index into the networkTable
+NetMask_t networkOnline;  // Track the online networks
+
+NetMask_t networkSeqStarting;       // Track the starting sequences
+NetMask_t networkSeqStopping;       // Track the stopping sequences
+NetMask_t networkSeqNext;           // Determine the next sequence to invoke
+NetMask_t networkSeqRequest;        // Request another sequence (bit value 0: stop, 1: start)
+NetMask_t networkStarted;           // Track the running networks
+
+// Active network sequence, may be nullptr
+NETWORK_POLL_SEQUENCE * networkSequence[NETWORK_OFFLINE];
+
+//----------------------------------------
+// Initialize the network layer
+//----------------------------------------
+void networkBegin()
+{
+    int index;
+
+    // Set the network priority values
+    // Normally these would come from settings
+    for (int index = 0; index < networkTableEntries; index++)
+        networkPriorityTable[index] = index;
+
+    // Set the network index values based upon the priorities
+    for (int index = 0; index < networkTableEntries; index++)
+        networkIndexTable[networkPriorityTable[index]] = index;
+}
+
+//----------------------------------------
+// Get the network name by table index
+//----------------------------------------
+const char * networkGetNameByIndex(NetIndex_t index)
+{
+    if (index < NETWORK_OFFLINE)
+        return networkTable[index].name;
+    return "None";
+}
+
+//----------------------------------------
+// Get the network name by priority
+//----------------------------------------
+const char * networkGetNameByPriority(NetPriority_t priority)
+{
+    if (priority < NETWORK_OFFLINE)
+    {
+        // Translate the priority into an index
+        NetIndex_t index = networkPriorityTable[priority];
+        return networkGetNameByIndex(index);
+    }
+    return "None";
+}
+
+//----------------------------------------
+// Determine if the network is available
+//----------------------------------------
+bool networkIsConnected(NetPriority_t * clientPriority)
+{
+    // If the client is using the highest priority network and that
+    // network is still available then continue as normal
+    if (networkOnline && (*clientPriority == networkPriority))
+        return true;
+
+    // The network has changed, notify the client of the change
+    *clientPriority = networkPriority;
+    return false;
+}
+
+//----------------------------------------
+// Determine if the network interface is online
+//----------------------------------------
+bool networkIsInterfaceOnline(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the network interface state
+    return (networkOnline & (1 << index)) ? true : false;
+}
+
+//----------------------------------------
+// Mark network offline
+//----------------------------------------
+void networkMarkOffline(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    NetPriority_t previousPriority;
+    NetPriority_t priority;
+
+    // Validate the index
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
+    networkValidateIndex(index);
+
+    // Mark this network as offline
+    networkOnline &= ~(1 << index);
+
+    // Did the highest priority network just fail?
+    if (networkPriorityTable[index] == networkPriority)
+    {
+        // The highest priority network just failed
+        // Leave this network on in hopes that it will regain a connection
+        previousPriority = networkPriority;
+
+        // Search in decending priority order for the next online network
+        priority = networkPriorityTable[index];
+        for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
+        {
+            // Is the network online?
+            index = networkIndexTable[priority];
+            bitMask = 1 << index;
+            if (networkOnline & bitMask)
+                // Successfully found an online network
+                break;
+
+            // No, does this network need starting
+//            networkStart(index, NETWORK_DEBUG_SEQUENCE);
+        }
+
+        // Set the new network priority
+        networkPriority = priority;
+        if (priority < NETWORK_OFFLINE)
+            Network.setDefaultInterface(*networkTable[index].netif);
+
+        // Display the transition
+        if (settings.debugNetworkLayer)
+            systemPrintf("Default Network Interface: %s --> %s\r\n",
+                         networkGetNameByPriority(previousPriority),
+                         networkGetNameByIndex(index));
+    }
+}
+
+//----------------------------------------
+// Mark network online
+//----------------------------------------
+void networkMarkOnline(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    NetPriority_t previousPriority;
+    NetPriority_t priority;
+
+    // Validate the index
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
+    networkValidateIndex(index);
+
+    // Mark this network as online
+    networkOnline |= 1 << index;
+
+    // Raise the network priority if necessary
+    previousPriority = networkPriority;
+    priority = networkPriorityTable[index];
+    if (priority < networkPriority)
+        networkPriority = priority;
+
+    // The network layer changes the default network interface when a
+    // network comes online which can place things out of priority order.
+    // Always set the highest priority network as the default
+    Network.setDefaultInterface(*networkTable[networkIndexTable[networkPriority]].netif);
+
+    // Stop lower priority networks when the priority is raised
+    if (previousPriority > priority)
+    {
+        // Display the transition
+        systemPrintf("Default Network Interface: %s --> %s\r\n",
+                     networkGetNameByPriority(previousPriority),
+                     networkGetNameByIndex(index));
+
+        // Set a valid previousPriority value
+        if (previousPriority >= NETWORK_OFFLINE)
+            previousPriority = NETWORK_OFFLINE - 1;
+
+        // Stop any lower priority network interfaces
+        for (; previousPriority > priority; previousPriority--)
+        {
+            // Determine if the previous network should be stopped
+            index = networkIndexTable[previousPriority];
+            bitMask = 1 << index;
+            if (networkTable[index].stop
+                && (networkStarted & bitMask))
+            {
+                // Stop the previous network
+                systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
+//                networkSequenceStop(index, NETWORK_DEBUG_SEQUENCE);
+            }
+        }
+    }
+}
+
+//----------------------------------------
+// Validate the network index
+//----------------------------------------
+void networkValidateIndex(NetIndex_t index)
+{
+    // Validate the index
+    if (index >= networkTableEntries)
+    {
+        systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n",
+                     index, networkTableEntries - 1);
+        reportFatalError("Invalid index value!");
+    }
+}
+
+//----------------------------------------
+// Validate the network priority
+//----------------------------------------
+void networkValidatePriority(NetPriority_t priority)
+{
+    // Validate the priority
+    if (priority >= networkTableEntries)
+    {
+        systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n",
+                     priority, networkTableEntries - 1);
+        reportFatalError("Invalid priority value!");
+    }
+}
+
+//======================================================================
+// New API above this line
+//======================================================================
+
 //----------------------------------------
 // Constants
 //----------------------------------------

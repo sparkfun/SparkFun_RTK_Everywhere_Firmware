@@ -351,7 +351,7 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                if (online.ethernetStatus == ETH_CONNECTED)
+                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
                     prop.duty = 0b01010101;
@@ -368,7 +368,7 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                if (online.ethernetStatus == ETH_CONNECTED)
+                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
                     prop.duty = 0b01010101;
@@ -778,7 +778,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
-            if (wifiState == WIFI_STATE_CONNECTED)
+            if (networkIsInterfaceOnline(NETWORK_WIFI))
             {
                 if (netIncomingRTCM == true) // Download : Columns 59 - 66
                 {
@@ -1007,7 +1007,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (wifiState == WIFI_STATE_CONNECTED)
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1083,7 +1083,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (wifiState == WIFI_STATE_CONNECTED)
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1168,7 +1168,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.xPos = (oled->getWidth() / 2) - (icon.icon.width / 2);
         icon.icon.yPos = 0;
 
-        if (wifiState == WIFI_STATE_CONNECTED)
+        if (networkIsInterfaceOnline(NETWORK_WIFI))
             icon.duty = 0b11111111;
         else
             icon.duty = 0b01010101;
@@ -1446,7 +1446,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         paintBatteryLevel(iconList);
     else // if (present.ethernet_ws5500 == true)
     {
-        if (online.ethernetStatus != ETH_CONNECTED)
+        if (!networkIsInterfaceOnline(NETWORK_ETHERNET))
             return; // Only display the Ethernet icon if we are successfully connected (no blinking)
 
         iconPropertyBlinking prop;

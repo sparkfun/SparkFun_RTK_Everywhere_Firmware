@@ -62,6 +62,9 @@ static uint32_t lastWifiState;
 // DNS server for Captive Portal
 static DNSServer dnsServer;
 
+// Previous WiFi status
+bool wifiPreviouslyConnected;
+
 //----------------------------------------
 // WiFi Routines
 //----------------------------------------
@@ -476,7 +479,18 @@ void wifiShutdown()
 
 bool wifiIsConnected()
 {
-    return (wifiGetStatus() == WL_CONNECTED);
+    bool connected;
+
+    connected = (wifiGetStatus() == WL_CONNECTED);
+    if (wifiPreviouslyConnected != connected)
+    {
+        wifiPreviouslyConnected = connected;
+        if (connected)
+            networkMarkOnline(NETWORK_WIFI);
+        else
+            networkMarkOffline(NETWORK_WIFI);
+    }
+    return connected;
 }
 
 // Attempts a connection to all provided SSIDs
@@ -566,21 +580,30 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     }
 
     wifiResponse = wifiMulti.run(timeout);
+    bool connected = (wifiGetStatus() == wifiResponse);
+    if (wifiPreviouslyConnected != connected)
+    {
+        wifiPreviouslyConnected = connected;
+        if (connected)
+        {
+            systemPrintln();
+            networkMarkOnline(NETWORK_WIFI);
+        }
+        else
+            networkMarkOffline(NETWORK_WIFI);
+    }
 
-    if (wifiResponse == WL_CONNECTED)
+    if (connected)
     {
         if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
             networkStartMulticastDNS();
-
-        systemPrintln();
-        return true;
     }
     else if (wifiResponse == WL_DISCONNECTED)
         systemPrint("No friendly WiFi networks detected.\r\n");
     else
         systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiResponse);
 
-    return false;
+    return connected;
 }
 
 // Based on the current settings and system states, determine if we need WiFi on or not
