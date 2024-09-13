@@ -94,6 +94,8 @@ static RTKNetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
+static NetPriority_t udpServerPriority;
+
 //----------------------------------------
 // UDP Server handleGnssDataTask Support Routines
 //----------------------------------------
@@ -105,7 +107,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkIsMediaConnected(networkGetUserNetwork(NETWORK_USER_UDP_SERVER)))
+    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
     {
         IPAddress broadcastAddress = networkGetBroadcastIpAddress(networkGetType(NETWORK_USER_UDP_SERVER));
         udpServer->beginPacket( broadcastAddress, settings.udpServerPort);
@@ -319,6 +321,7 @@ void udpServerUpdate()
             {
                 if (settings.debugUdpServer && (!inMainMenu))
                     systemPrintln("UDP server starting the network");
+                udpServerPriority = NETWORK_OFFLINE;
                 udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
             }
         }
@@ -327,12 +330,12 @@ void udpServerUpdate()
     // Wait until the network is connected
     case UDP_SERVER_STATE_NETWORK_STARTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_UDP_SERVER))
+        if (!networkIsConnected(&udpServerPriority))
             // Failed to connect to to the network, attempt to restart the network
             udpServerStop();
 
-        // Wait for the network to connect to the media
-        else if (networkUserConnected(NETWORK_USER_UDP_SERVER))
+        // The network is connect to the media
+        else
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -350,7 +353,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableUdpServer) || networkIsShuttingDown(NETWORK_USER_UDP_SERVER))
+        if ((!settings.enableUdpServer) || (!networkIsConnected(&udpServerPriority)))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

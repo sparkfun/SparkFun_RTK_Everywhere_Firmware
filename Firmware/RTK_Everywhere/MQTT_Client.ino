@@ -138,6 +138,7 @@ static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
+static NetPriority_t mqttClientPriority = NETWORK_OFFLINE;
 
 static RTKNetworkSecureClient *mqttSecureClient;
 
@@ -724,7 +725,10 @@ void mqttClientUpdate()
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
             if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
+            {
+                mqttClientPriority = NETWORK_OFFLINE;
                 mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+            }
         }
         break;
     }
@@ -732,13 +736,12 @@ void mqttClientUpdate()
     // Wait for a network media connection
     case MQTT_CLIENT_NETWORK_STARTED: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
-            // The network is available for the MQTT client
+        // The network is available for the MQTT client
+        else
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -746,7 +749,7 @@ void mqttClientUpdate()
     // Connect to the MQTT server
     case MQTT_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
@@ -889,7 +892,7 @@ void mqttClientUpdate()
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart

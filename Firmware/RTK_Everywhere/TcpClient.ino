@@ -148,6 +148,7 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 
 static RTKNetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
+static NetPriority_t tcpClientPriority = NETWORK_OFFLINE;
 static uint8_t tcpClientState;
 static volatile RING_BUFFER_OFFSET tcpClientTail;
 static volatile bool tcpClientWriteError;
@@ -414,6 +415,7 @@ void tcpClientUpdate()
             if (networkUserOpen(NETWORK_USER_TCP_CLIENT, NETWORK_TYPE_ACTIVE))
             {
                 timer = 0;
+                tcpClientPriority = NETWORK_OFFLINE;
                 tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
             }
         }
@@ -422,10 +424,11 @@ void tcpClientUpdate()
     // Wait until the network is connected
     case TCP_CLIENT_STATE_NETWORK_STARTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_CLIENT))
+        if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 
+        // The network is connected to the media
         // Determine if WiFi is required
         else if ((!strlen(settings.tcpClientHost)) && (networkGetType(NETWORK_TYPE_ACTIVE) != NETWORK_TYPE_WIFI))
         {
@@ -437,10 +440,9 @@ void tcpClientUpdate()
             }
         }
 
-        // Wait for the network to connect to the media
-        else if (networkUserConnected(NETWORK_USER_TCP_CLIENT))
+        // The network type and host provide a valid configuration
+        else
         {
-            // The network type and host provide a valid configuration
             timer = millis();
             tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
         }
@@ -449,7 +451,7 @@ void tcpClientUpdate()
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_CLIENT))
+        if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 
@@ -494,7 +496,7 @@ void tcpClientUpdate()
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_CLIENT))
+        if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 

@@ -167,10 +167,6 @@ extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 
 //----------------------------------------
-// Constants
-//----------------------------------------
-
-//----------------------------------------
 // Locals
 //----------------------------------------
 

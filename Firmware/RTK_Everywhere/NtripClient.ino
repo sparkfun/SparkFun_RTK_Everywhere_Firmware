@@ -187,6 +187,7 @@ static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 static int ntripClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t ntripClientConnectionAttemptTimeout;
 static int ntripClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
+static NetPriority_t ntripClientPriority = NETWORK_OFFLINE;
 
 // NTRIP client timer usage:
 //  * Reconnection delay
@@ -565,18 +566,21 @@ void ntripClientUpdate()
     // Start the network
     case NTRIP_CLIENT_ON:
         if (networkUserOpen(NETWORK_USER_NTRIP_CLIENT, NETWORK_TYPE_ACTIVE))
+        {
+            ntripClientPriority = NETWORK_OFFLINE;
             ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
+        }
         break;
 
     // Wait for a network media connection
     case NTRIP_CLIENT_NETWORK_STARTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_NTRIP_CLIENT))
+        // The network is connected to the media
+        else
         {
             // Allocate the ntripClient structure
             ntripClient = new RTKNetworkClient(NETWORK_USER_NTRIP_CLIENT);
@@ -598,7 +602,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
@@ -631,7 +635,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_WAIT_RESPONSE:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
@@ -751,7 +755,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 

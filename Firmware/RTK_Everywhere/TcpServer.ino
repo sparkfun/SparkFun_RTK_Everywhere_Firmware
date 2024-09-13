@@ -76,6 +76,7 @@ static volatile uint8_t tcpServerClientWriteError;
 static RTKNetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
+static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // TCP Server handleGnssDataTask Support Routines
@@ -365,6 +366,7 @@ void tcpServerUpdate()
             {
                 if (settings.debugTcpServer && (!inMainMenu))
                     systemPrintln("TCP server starting the network");
+                tcpServerPriority = NETWORK_OFFLINE;
                 tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
             }
         }
@@ -373,12 +375,12 @@ void tcpServerUpdate()
     // Wait until the network is connected
     case TCP_SERVER_STATE_NETWORK_STARTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_SERVER))
+        if (!networkIsConnected(&tcpServerPriority))
             // Failed to connect to to the network, attempt to restart the network
             tcpServerStop();
 
         // Wait for the network to connect to the media
-        else if (networkUserConnected(NETWORK_USER_TCP_SERVER))
+        else
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -396,7 +398,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableTcpServer) || networkIsShuttingDown(NETWORK_USER_TCP_SERVER))
+        if ((!settings.enableTcpServer) || (!networkIsConnected(&tcpServerPriority)))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {

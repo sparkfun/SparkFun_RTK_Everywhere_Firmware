@@ -23,6 +23,7 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 //----------------------------------------
 
 static uint32_t otaLastUpdateCheck;
+static NetPriority_t otaPriority = NETWORK_OFFLINE;
 static OtaState otaState;
 
 #endif // COMPILE_OTA_AUTO
@@ -933,17 +934,20 @@ void otaAutoUpdate()
                 otaAutoUpdateStop();
             }
             else
+            {
+                otaPriority = NETWORK_OFFLINE;
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
+            }
             break;
 
         // Wait for connection to the access point
         case OTA_STATE_WAIT_FOR_NETWORK:
             // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
+            if (!networkIsConnected(&otaPriority))
                 otaAutoUpdateStop();
 
-            // Determine if the network is connected to the media
-            else if (networkUserConnected(NETWORK_USER_OTA_AUTO_UPDATE))
+            // The network is connected to the media
+            else
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update connected to WiFi");
@@ -956,7 +960,7 @@ void otaAutoUpdate()
         // Check for newer firmware
         case OTA_STATE_GET_FIRMWARE_VERSION:
             // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
+            if (!networkIsConnected(&otaPriority))
                 otaAutoUpdateStop();
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Firmware update checking SparkFun released firmware version");
@@ -998,7 +1002,7 @@ void otaAutoUpdate()
         // Update the firmware
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
+            if (!networkIsConnected(&otaPriority))
                 otaAutoUpdateStop();
             else
             {
