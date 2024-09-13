@@ -48,8 +48,9 @@ void updatePplTask(void *e)
 
                         if (settings.debugCorrections == true && !inMainMenu)
                             systemPrintf("Received %d RTCM bytes from PPL. Pushed to the GNSS.\r\n", rtcmLength);
-                        else if (!inMainMenu)
-                            systemPrintln("PointPerfect corrections sent to GNSS.");
+                        // Do we need to see this? I vote no...
+                        //else if (!inMainMenu)
+                        //    systemPrintln("PointPerfect corrections sent to GNSS.");
                     }
                     else
                     {
