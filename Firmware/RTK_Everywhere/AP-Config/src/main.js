@@ -522,9 +522,11 @@ function parseIncoming(msg) {
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
         ge("enablePointPerfectCorrections").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
+        ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
         ge("antennaPhaseCenter_mm").dispatchEvent(new CustomEvent('change'));
         ge("enableLogging").dispatchEvent(new CustomEvent('change'));
+        ge("enableLoggingRINEX").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
