@@ -1538,7 +1538,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 0, 1, 1, 1, 1, _double,   9, & settings.fixedLong, "fixedLong",  },
     { 1, 1, 1, 0, 1, 1, 1, 1, _int,      0, & settings.observationSeconds, "observationSeconds",  },
     { 1, 1, 1, 0, 1, 1, 1, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy",  },
-    { 1, 1, 1, 0, 1, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
+    { 1, 1, 1, 0, 1, 1, 0, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
 
     // Battery
     { 0, 0, 0, 0, 0, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
@@ -1941,8 +1941,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.outputTipAltitude, "outputTipAltitude",  },
 
     // Localized distribution
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
+    { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
+    { 0, 1, 1, 0, 1, 1, 0, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
     { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
 
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
