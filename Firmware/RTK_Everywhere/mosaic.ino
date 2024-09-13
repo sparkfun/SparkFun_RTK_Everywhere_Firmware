@@ -29,6 +29,9 @@ bool mosaicPvtUpdated = false;
 
 bool mosaicReceiverSetupSeen = false;
 
+float mosaicLatStdDev = 999.9;
+float mosaicLonStdDev = 999.9;
+
 // Notes about Septentrio log file formats:
 // Files are stored in directory "SSN/GRB0051"
 // Files are stored in daily sub-directories:
@@ -855,6 +858,7 @@ bool mosaicX5EnableNMEA()
 {
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
+    bool gpgstEnabled = false;
 
     String streams[MOSAIC_NUM_NMEA_STREAMS]; // Build a string for each stream
     for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
@@ -878,6 +882,9 @@ bool mosaicX5EnableNMEA()
                 if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
                     gpzdaEnabled = true;
             }
+
+            if (strcmp(mosaicMessagesNMEA[messageNumber].msgTextName, "GST") == 0)
+                gpgstEnabled = true;
         }
     }
 
@@ -913,6 +920,15 @@ bool mosaicX5EnableNMEA()
             streams[0] += String("GGA");
             gpggaEnabled = true;
         }
+    }
+
+    // Force GST on so we can extract the lat and lon standard deviations
+    if (gpgstEnabled == false)
+    {
+        if (streams[0].length() > 0)
+            streams[0] += String("+");
+        streams[0] += String("GST");
+        gpgstEnabled = true;
     }
 
     bool response = true;
@@ -1202,7 +1218,11 @@ bool mosaicX5SetBaudRateCOM(uint8_t port, uint32_t baudRate)
 // Return the lower of the two Lat/Long deviations
 float mosaicX5GetHorizontalAccuracy()
 {
-    return (mosaicHorizontalAccuracy);
+    if ((mosaicLatStdDev > 999.0) || (mosaicLonStdDev > 999.0))
+        return mosaicHorizontalAccuracy;
+    if (mosaicLatStdDev < mosaicLonStdDev)
+        return mosaicLatStdDev;
+    return mosaicLonStdDev;
 }
 
 int mosaicX5GetSatellitesInView()
@@ -1947,6 +1967,61 @@ bool mosaicX5CheckGnssNMEARates()
     return (mosaicX5IsNMEAMessageEnabled("GGA") && mosaicX5IsNMEAMessageEnabled("GSA") &&
             mosaicX5IsNMEAMessageEnabled("GST") && mosaicX5IsNMEAMessageEnabled("GSV") &&
             mosaicX5IsNMEAMessageEnabled("RMC"));
+}
+
+void nmeaExtractStdDeviations(char *nmeaSentence, int sentenceLength)
+{
+    // Identify sentence type
+    char sentenceType[strlen("GST") + 1] = {0};
+    strncpy(sentenceType, &nmeaSentence[3],
+            3); // Copy three letters, starting in spot 3. Null terminated from array initializer.
+
+    // Look for GST
+    if (strncmp(sentenceType, "GST", sizeof(sentenceType)) == 0)
+    {
+        const int latitudeComma = 6;
+        const int longitudeComma = 7;
+
+        uint8_t latitudeStart = 0;
+        uint8_t latitudeStop = 0;
+        uint8_t longitudeStart = 0;
+        uint8_t longitudeStop = 0;
+
+        int commaCount = 0;
+        for (int x = 0; x < strnlen(nmeaSentence, sentenceLength); x++) // Assumes sentence is null terminated
+        {
+            if (nmeaSentence[x] == ',')
+            {
+                commaCount++;
+                if (commaCount == latitudeComma)
+                    latitudeStart = x + 1;
+                if (commaCount == latitudeComma + 1)
+                    latitudeStop = x;
+                if (commaCount == longitudeComma)
+                    longitudeStart = x + 1;
+                if (commaCount == longitudeComma + 1)
+                    longitudeStop = x;
+            }
+            if (nmeaSentence[x] == '*')
+            {
+                break;
+            }
+        }
+
+        if (latitudeStart == 0 || latitudeStop == 0 || longitudeStart == 0 || longitudeStop == 0)
+        {
+            return;
+        }
+
+        // Extract the latitude std. dev.
+        char stdDev[strlen("-10000.000") + 1]; // 3 decimals
+        strncpy(stdDev, &nmeaSentence[latitudeStart], latitudeStop - latitudeStart);
+        mosaicLatStdDev = (float)atof(stdDev);
+
+        // Extract the longitude std. dev.
+        strncpy(stdDev, &nmeaSentence[longitudeStart], longitudeStop - longitudeStart);
+        mosaicLonStdDev = (float)atof(stdDev);
+    }
 }
 
 #endif // COMPILE_MOSAICX5

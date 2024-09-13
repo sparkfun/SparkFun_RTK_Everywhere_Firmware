@@ -338,6 +338,7 @@ uint32_t mosaicX5GetRadioBaudRate() {return 0;}
 uint32_t mosaicX5GetDataBaudRate() {return 0;}
 void     mosaicX5Housekeeping() {}
 bool     mosaicX5Standby() {}
+void     nmeaExtractStdDeviations(char *nmeaSentence, int arraySize) {}
 
 #endif  // COMPILE_MOSAICX5
 

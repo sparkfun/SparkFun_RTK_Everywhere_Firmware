@@ -628,6 +628,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         nmeaApplyCompensation((char *)parse->buffer, parse->length);
     }
 
+    // Handle GST - extract the lat and lon standard deviations - on mosaic-X5 only
+    if ((present.gnss_mosaicX5) && (type == RTK_NMEA_PARSER_INDEX))
+    {
+        nmeaExtractStdDeviations((char *)parse->buffer, parse->length);
+    }
+
     // Determine where to send RTCM data
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
