@@ -307,10 +307,6 @@ bool ntripClientConnectLimitReached()
     // Retry the connection a few times
     bool limitReached = (ntripClientConnectionAttempts >= MAX_NTRIP_CLIENT_CONNECTION_ATTEMPTS);
 
-    // Attempt to restart the network if possible
-    if (settings.enableNtripClient && (!limitReached))
-        networkRestart(NETWORK_USER_NTRIP_CLIENT);
-
     // Restart the NTRIP client
     ntripClientStop(limitReached || (!settings.enableNtripClient));
 
@@ -511,14 +507,8 @@ void ntripClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (ntripClientState > NTRIP_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         ntripClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_NTRIP_CLIENT))
-            networkUserClose(NETWORK_USER_NTRIP_CLIENT);
-    }
 
     // Return the Main Talker ID to "GN".
     gnssSetTalkerGNGGA();
@@ -565,11 +555,8 @@ void ntripClientUpdate()
 
     // Start the network
     case NTRIP_CLIENT_ON:
-        if (networkUserOpen(NETWORK_USER_NTRIP_CLIENT, NETWORK_TYPE_ACTIVE))
-        {
-            ntripClientPriority = NETWORK_OFFLINE;
-            ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
-        }
+        ntripClientPriority = NETWORK_OFFLINE;
+        ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
         break;
 
     // Wait for a network media connection

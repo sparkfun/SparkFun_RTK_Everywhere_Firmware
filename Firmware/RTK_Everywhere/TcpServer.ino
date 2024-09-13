@@ -278,8 +278,6 @@ void tcpServerStop()
     // Stop using the network
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
-        networkUserClose(NETWORK_USER_TCP_SERVER);
-
         // The TCP server is now off
         tcpServerSetState(TCP_SERVER_STATE_OFF);
         tcpServerTimer = millis();
@@ -362,13 +360,10 @@ void tcpServerUpdate()
         // Determine if the TCP server should be running
         if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer) // Was && (!wifiIsConnected())) - TODO check this
         {
-            if (networkUserOpen(NETWORK_USER_TCP_SERVER, NETWORK_TYPE_ACTIVE))
-            {
-                if (settings.debugTcpServer && (!inMainMenu))
-                    systemPrintln("TCP server starting the network");
-                tcpServerPriority = NETWORK_OFFLINE;
-                tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
-            }
+            if (settings.debugTcpServer && (!inMainMenu))
+                systemPrintln("TCP server starting the network");
+            tcpServerPriority = NETWORK_OFFLINE;
+            tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
         }
         break;
 

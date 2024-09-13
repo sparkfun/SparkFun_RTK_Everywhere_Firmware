@@ -881,8 +881,6 @@ void otaAutoUpdateStop()
         // Stop WiFi
         systemPrintln("Firmware update stopping WiFi");
         online.otaFirmwareUpdate = false;
-        if (networkGetUserNetwork(NETWORK_USER_OTA_AUTO_UPDATE))
-            networkUserClose(NETWORK_USER_OTA_AUTO_UPDATE);
 
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);
@@ -928,12 +926,6 @@ void otaAutoUpdate()
         case OTA_STATE_START_NETWORK:
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Firmware update starting WiFi");
-            if (!networkUserOpen(NETWORK_USER_OTA_AUTO_UPDATE, NETWORK_TYPE_ACTIVE))
-            {
-                systemPrintln("Firmware update failed, unable to start WiFi");
-                otaAutoUpdateStop();
-            }
-            else
             {
                 otaPriority = NETWORK_OFFLINE;
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);

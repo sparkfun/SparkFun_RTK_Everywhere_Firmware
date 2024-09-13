@@ -168,10 +168,6 @@ bool mqttClientConnectLimitReached()
     if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
 
-    // Attempt to restart the network if possible
-    if (enableMqttClient && (!limitReached))
-        networkRestart(NETWORK_USER_MQTT_CLIENT);
-
     // Restart the MQTT client
     MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
 
@@ -652,14 +648,8 @@ void mqttClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         mqttClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_MQTT_CLIENT))
-            networkUserClose(NETWORK_USER_MQTT_CLIENT);
-    }
 
     // Determine the next MQTT client state
     online.mqttClient = false;
@@ -724,11 +714,8 @@ void mqttClientUpdate()
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
-            {
-                mqttClientPriority = NETWORK_OFFLINE;
-                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
-            }
+            mqttClientPriority = NETWORK_OFFLINE;
+            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
         }
         break;
     }

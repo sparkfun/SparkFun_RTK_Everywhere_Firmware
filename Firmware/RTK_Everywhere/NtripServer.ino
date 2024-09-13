@@ -241,10 +241,6 @@ bool ntripServerConnectLimitReached(int serverIndex)
     // Retry the connection a few times
     bool limitReached = (ntripServer->connectionAttempts >= MAX_NTRIP_SERVER_CONNECTION_ATTEMPTS);
 
-    // Attempt to restart the network if possible
-    if (settings.enableNtripServer && (!limitReached))
-        networkRestart(NETWORK_USER_NTRIP_SERVER + serverIndex);
-
     // Shutdown the NTRIP server
     ntripServerStop(serverIndex, limitReached || (!settings.enableNtripServer));
 
@@ -515,14 +511,8 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Increase timeouts if we started the network
     if (ntripServer->state > NTRIP_SERVER_ON)
-    {
         // Mark the Server stop so that we don't immediately attempt re-connect to Caster
         ntripServer->timer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_NTRIP_SERVER + serverIndex))
-            networkUserClose(NETWORK_USER_NTRIP_SERVER + serverIndex);
-    }
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
@@ -602,11 +592,8 @@ void ntripServerUpdate(int serverIndex)
 
     // Start the network
     case NTRIP_SERVER_ON:
-        if (networkUserOpen(NETWORK_USER_NTRIP_SERVER + serverIndex, NETWORK_TYPE_ACTIVE))
-        {
-            ntripServerPriority = NETWORK_OFFLINE;
-            ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_STARTED);
-        }
+        ntripServerPriority = NETWORK_OFFLINE;
+        ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_STARTED);
         break;
 
     // Wait for a network media connection
@@ -852,8 +839,6 @@ void ntripServerValidateTables()
 {
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
-    if (NETWORK_USER_MAX > (sizeof(NETWORK_USER) * 8))
-        reportFatalError("Increase the NETWORK_USER type");
 }
 
 #endif // COMPILE_NETWORK

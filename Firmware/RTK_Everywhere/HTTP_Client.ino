@@ -93,10 +93,6 @@ bool httpClientConnectLimitReached()
     if (!settings.enablePointPerfectCorrections)
         enableHttpClient = false;
 
-    // Attempt to restart the network if possible
-    if (enableHttpClient && (!limitReached))
-        networkRestart(NETWORK_USER_HTTP_CLIENT);
-
     // Restart the HTTP client
     httpClientStop(limitReached || (!enableHttpClient));
 
@@ -235,14 +231,8 @@ void httpClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (httpClientState > HTTP_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         httpClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_HTTP_CLIENT))
-            networkUserClose(NETWORK_USER_HTTP_CLIENT);
-    }
 
     // Determine the next HTTP client state
     online.httpClient = false;
@@ -290,11 +280,8 @@ void httpClientUpdate()
     case HTTP_CLIENT_ON: {
         if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
         {
-            if (networkUserOpen(NETWORK_USER_HTTP_CLIENT, NETWORK_TYPE_ACTIVE))
-            {
-                httpClientPriority = NETWORK_OFFLINE;
-                httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
-            }
+            httpClientPriority = NETWORK_OFFLINE;
+            httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
         }
         break;
     }

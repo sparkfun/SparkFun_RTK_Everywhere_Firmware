@@ -348,10 +348,6 @@ void tcpClientStop()
                          settings.tcpClientPort);
     }
 
-    // Done with the network
-    if (tcpClientState != TCP_CLIENT_STATE_OFF)
-        networkUserClose(NETWORK_USER_TCP_CLIENT);
-
     // Initialize the TCP client
     tcpClientWriteError = false;
     if (settings.debugTcpClient)
@@ -412,12 +408,9 @@ void tcpClientUpdate()
         // Determine if the TCP client should be running
         if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
         {
-            if (networkUserOpen(NETWORK_USER_TCP_CLIENT, NETWORK_TYPE_ACTIVE))
-            {
-                timer = 0;
-                tcpClientPriority = NETWORK_OFFLINE;
-                tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
-            }
+            timer = 0;
+            tcpClientPriority = NETWORK_OFFLINE;
+            tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
         }
         break;
 

@@ -499,23 +499,6 @@ const char *const networkState[] = {
 };
 const int networkStateEntries = sizeof(networkState) / sizeof(networkState[0]);
 
-// List of network users
-const char *const networkUser[] = {
-    "MQTT Client",
-    "NTP Server",
-    "NTRIP Client",
-    "OTA Firmware Update",
-    "TCP Client",
-    "TCP Server",
-    "UDP Server",
-    "HTTP Client",
-    "NTRIP Server 0",
-    "NTRIP Server 1",
-    "NTRIP Server 2",
-    "NTRIP Server 3",
-};
-const int networkUserEntries = sizeof(networkUser) / sizeof(networkUser[0]);
-
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -698,25 +681,6 @@ void networkDisplayIpAddress(uint8_t networkType)
 }
 
 //----------------------------------------
-// Display the network users
-//----------------------------------------
-void networkDisplayUsers(NETWORK_USER users)
-{
-    uint8_t userNumber = 0;
-    uint32_t mask;
-
-    while (users)
-    {
-        mask = 1 << userNumber;
-        if (users & mask)
-        {
-            users &= ~mask;
-            systemPrintf("    0x%08x: %s\r\n", mask, networkUserToString(userNumber));
-        }
-    }
-}
-
-//----------------------------------------
 // Get the network type
 //----------------------------------------
 NETWORK_DATA *networkGet(uint8_t networkType, bool updateRequestedNetwork)
@@ -858,61 +822,21 @@ uint8_t networkGetType()
 }
 
 //----------------------------------------
-// Get the network type for a network user
-//----------------------------------------
-uint8_t networkGetType(uint8_t user)
-{
-    NETWORK_DATA *network;
-
-    network = networkGetUserNetwork(user);
-    if (network)
-        return network->type;
-    return NETWORK_TYPE_WIFI;
-}
-
-//----------------------------------------
-// Get the network with this active user
-//----------------------------------------
-NETWORK_DATA *networkGetUserNetwork(NETWORK_USER user)
-{
-    NETWORK_DATA *network;
-    int networkType;
-    NETWORK_USER userMask;
-
-    // Locate the network for this user
-    userMask = 1 << user;
-    for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
-    {
-        network = networkGet(networkType, false);
-        if (network && ((network->activeUsers & userMask) || (network->userOpens & userMask)))
-            return network;
-    }
-
-    return nullptr; // User is not active on any network
-}
-
-//----------------------------------------
 // Perform the common network initialization
 //----------------------------------------
 void networkInitialize(NETWORK_DATA *network)
 {
     uint8_t requestedNetwork;
-    NETWORK_USER userOpens;
 
     // Save the values
-    requestedNetwork = network->requestedNetwork;
     if (settings.debugNetworkLayer && (requestedNetwork != network->type))
         systemPrintf("networkInitialize, network->type: %s --> %s\r\n", networkName[network->type],
                      networkName[requestedNetwork]);
-    userOpens = network->userOpens;
 
     // Initialize the network
     memset(network, 0, sizeof(*network));
 
     // Complete the initialization
-    network->requestedNetwork = requestedNetwork;
-    network->type = requestedNetwork;
-    network->userOpens = userOpens;
     network->timeout = 2;
     network->timerStart = millis();
 }
@@ -983,17 +907,6 @@ bool networkIsOff(uint8_t networkType)
 }
 
 //----------------------------------------
-// Determine if the network is shutting down
-//----------------------------------------
-bool networkIsShuttingDown(uint8_t user)
-{
-    NETWORK_DATA *network;
-
-    network = networkGetUserNetwork(user);
-    return network && (network->state == NETWORK_STATE_WAIT_NO_USERS);
-}
-
-//----------------------------------------
 // Periodically display the IP address
 //----------------------------------------
 void networkPeriodicallyDisplayIpAddress()
@@ -1026,12 +939,6 @@ void networkPrintName(uint8_t networkType)
 //----------------------------------------
 // Attempt to restart the network
 //----------------------------------------
-void networkRestart(uint8_t user)
-{
-    // Determine if restart is possible
-    networkRestartNetwork(networkGetUserNetwork(user));
-}
-
 void networkRestartNetwork(NETWORK_DATA *network)
 {
     // Determine if restart is possible
@@ -1181,13 +1088,6 @@ void networkStatus(uint8_t networkType)
     network = &networkData;
 
     // Display the network status
-    systemPrintf("requestedNetwork: %d (%s)\r\n", network->requestedNetwork,
-                 networkTypeToString(network->requestedNetwork));
-    systemPrintf("type: %d (%s)\r\n", network->type, networkTypeToString(network->type));
-    systemPrintf("activeUsers: 0x%08x\r\n", network->activeUsers);
-    networkDisplayUsers(network->activeUsers);
-    systemPrintf("userOpens: 0x%08x\r\n", network->userOpens);
-    networkDisplayUsers(network->userOpens);
     systemPrintf("connectionAttempt: %d\r\n", network->connectionAttempt);
     systemPrintf("restart: %s\r\n", network->restart ? "true" : "false");
     systemPrintf("shutdown: %s\r\n", network->shutdown ? "true" : "false");
@@ -1203,9 +1103,6 @@ void networkStop(uint8_t networkType)
 {
     NETWORK_DATA *network;
     bool restart;
-    int serverIndex;
-    bool shutdown;
-    int user;
 
     do
     {
@@ -1227,88 +1124,8 @@ void networkStop(uint8_t networkType)
             // The network is already stopped
             break;
 
-        // Save the shutdown status
-        shutdown = network->shutdown;
-
-        // Stop the clients of this network
-        for (user = 0; user < (sizeof(network->activeUsers) * 8); user++)
-        {
-            // Determine if the network client is active
-            if (network->activeUsers & (1 << user))
-            {
-                // When user calls networkUserClose don't recursively
-                // call networkStop
-                network->shutdown = false;
-
-                // Stop the network client
-                switch (user)
-                {
-                default:
-                    if ((user >= NETWORK_USER_NTRIP_SERVER) && (user < (NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX)))
-                    {
-                        serverIndex = user - NETWORK_USER_NTRIP_SERVER;
-                        if (settings.debugNetworkLayer)
-                            systemPrintln("Network layer stopping NTRIP server");
-                        ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-                    }
-                    break;
-
-                case NETWORK_USER_MQTT_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping MQTT client");
-                    MQTT_CLIENT_STOP(true); // Was mqttClientRestart(); - #StopVsRestart
-                    break;
-
-                case NETWORK_USER_NTP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping NTP server");
-                    ntpServerStop();
-                    break;
-
-                case NETWORK_USER_NTRIP_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping NTRIP client");
-                    ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
-                    break;
-
-                case NETWORK_USER_OTA_AUTO_UPDATE:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping automatic OTA firmware update");
-                    otaAutoUpdateStop();
-                    break;
-
-                case NETWORK_USER_TCP_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping TCP client");
-                    tcpClientStop();
-                    break;
-
-                case NETWORK_USER_TCP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping TCP server");
-                    tcpServerStop();
-                    break;
-
-                case NETWORK_USER_UDP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping UDP server");
-                    udpServerStop();
-                    break;
-
-                case NETWORK_USER_HTTP_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping HTTP client");
-                    httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
-                    break;
-                }
-            }
-        }
-
-        // Restore the shutdown status
-        network->shutdown = shutdown;
-
         // Determine if the network can be stopped now
-        if ((network->state < NETWORK_STATE_IN_USE) || (!network->activeUsers))
+        if (network->state < NETWORK_STATE_IN_USE)
         {
             // Remember the current network info
             restart = network->restart;
@@ -1321,8 +1138,6 @@ void networkStop(uint8_t networkType)
             // Initialize the network layer
             // requestedNetwork is set below upon entry to NETWORK_STATE_CONNECTING and
             //    indicates the network desired upon restart
-            // userOpens may be non-zero and indicates users waiting for network restart
-            // activeUsers is already zero
             // Don't initialize connectionAttempt
             // networkRetry or networkStart initializes:
             //      connectionAttempt
@@ -1566,8 +1381,7 @@ void networkTypeUpdate(uint8_t networkType)
 
     case NETWORK_STATE_WAIT_NO_USERS:
         // Stop the network when all the users are removed
-        if (!network->activeUsers)
-            NETWORK_STOP(network->type);
+        NETWORK_STOP(network->type);
         break;
     }
 
@@ -1614,128 +1428,6 @@ void networkUpdate()
 }
 
 //----------------------------------------
-// Stop a user of the network
-//----------------------------------------
-void networkUserClose(uint8_t user)
-{
-    char errorText[64];
-    NETWORK_DATA *network;
-    NETWORK_USER userMask;
-
-    // Verify the user number
-    if (user >= NETWORK_USER_MAX)
-    {
-        sprintf(errorText, "Invalid network user (%d)", user);
-        reportFatalError(errorText);
-    }
-    else
-    {
-        // Verify that this user is running
-        userMask = 1 << user;
-        network = networkGetUserNetwork(user);
-        if (network && (network->userOpens & userMask))
-        {
-            // Done with this network user
-            network->activeUsers &= ~userMask;
-            network->userOpens &= ~userMask;
-            if (settings.debugNetworkLayer)
-            {
-                systemPrintf("Network stopping user %s", networkUser[user]);
-                if (network->state != NETWORK_STATE_OFF)
-                    systemPrintf(" on %s", networkName[network->type]);
-                systemPrintln();
-            }
-
-            // Shutdown the network if requested
-            if (network->shutdown && (!network->activeUsers))
-                NETWORK_STOP(network->type);
-        }
-
-        // The network user is not running
-        else
-        {
-            sprintf(errorText, "Network user %s is already idle", networkUser[user]);
-            reportFatalError(errorText);
-        }
-    }
-}
-
-//----------------------------------------
-// Determine if the network user is connected to the media
-//----------------------------------------
-bool networkUserConnected(NETWORK_USER user)
-{
-    NETWORK_DATA *network;
-
-    network = networkGetUserNetwork(user);
-    if (network && (network->state != NETWORK_STATE_WAIT_NO_USERS))
-        return networkIsConnected(network);
-    return false;
-}
-
-//----------------------------------------
-// Start a user of the network
-//----------------------------------------
-bool networkUserOpen(uint8_t user, uint8_t networkType)
-{
-    char errorText[64];
-    NETWORK_DATA *network;
-    NETWORK_USER userMask;
-
-    do
-    {
-        // Verify the user number
-        if (user >= NETWORK_USER_MAX)
-        {
-            sprintf(errorText, "Invalid network user (%d)", user);
-            reportFatalError(errorText);
-            break;
-        }
-
-        // Determine if the network is available
-        network = networkGet(networkType, true);
-        if (network && (network->state != NETWORK_STATE_WAIT_NO_USERS) && (!network->shutdown))
-        {
-            userMask = 1 << user;
-            if ((network->activeUsers >> user) & 1)
-            {
-                reportFatalError("Network user already started!");
-                break;
-            }
-
-            // Start the user
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network starting user %s on %s\r\n", networkUser[user], networkName[network->type]);
-            switch (network->state)
-            {
-            case NETWORK_STATE_OFF:
-                networkStart(network->type);
-                break;
-
-            case NETWORK_STATE_IN_USE:
-                network->activeUsers |= userMask;
-                break;
-            }
-            network->userOpens |= userMask;
-            return true;
-        }
-    } while (0);
-
-    // The network user was not started
-    return false;
-}
-
-//----------------------------------------
-// Translate user into a string
-//----------------------------------------
-const char *networkUserToString(uint8_t userNumber)
-{
-    if (userNumber >= networkUserEntries)
-        return "Unknown";
-    return networkUser[userNumber];
-}
-
-//----------------------------------------
 // Start multicast DNS
 //----------------------------------------
 void networkStartMulticastDNS()
@@ -1768,8 +1460,6 @@ void networkVerifyTables()
         reportFatalError("Fix networkName table to match NetworkTypes");
     if (networkStateEntries != NETWORK_STATE_MAX)
         reportFatalError("Fix networkState table to match NetworkStates");
-    if (networkUserEntries != NETWORK_USER_MAX)
-        reportFatalError("Fix networkUser table to match NetworkUsers");
 }
 
 // Returns true if this platform has the potential to connect to the internet

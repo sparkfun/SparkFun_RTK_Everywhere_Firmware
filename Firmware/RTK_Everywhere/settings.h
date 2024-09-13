@@ -313,32 +313,8 @@ enum NetworkStates
     NETWORK_STATE_MAX
 };
 
-// Define the network users
-enum NetworkUsers
-{
-    NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
-    NETWORK_USER_NTP_SERVER,            // NTP server
-    NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
-    NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
-    NETWORK_USER_TCP_CLIENT,            // TCP client
-    NETWORK_USER_TCP_SERVER,            // PTCP server
-    NETWORK_USER_UDP_SERVER,            // UDP server
-    NETWORK_USER_HTTP_CLIENT,           // HTTP Client (Point Perfect ZTP)
-
-    // Add new users above this line
-    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
-    // Last network user
-    NETWORK_USER_MAX = NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX
-};
-
-typedef uint16_t NETWORK_USER;
-
 typedef struct _NETWORK_DATA
 {
-    uint8_t requestedNetwork;  // Type of network requested
-    uint8_t type;              // Type of network
-    NETWORK_USER activeUsers;  // Active users of this network device
-    NETWORK_USER userOpens;    // Users requesting access to this network
     uint8_t connectionAttempt; // Number of previous connection attempts
     bool restart;              // Set if restart is allowed
     bool shutdown;             // Network is shutting down

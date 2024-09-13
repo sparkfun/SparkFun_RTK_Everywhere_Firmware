@@ -824,10 +824,6 @@ void ntpServerStop()
             reportHeapNow(settings.debugNtp);
     }
 
-    // Release the network resources
-    if (networkGetUserNetwork(NETWORK_USER_NTP_SERVER))
-        networkUserClose(NETWORK_USER_NTP_SERVER);
-
     // Stop the NTP server
     ntpServerSetState(NTP_STATE_OFF);
 }
@@ -859,15 +855,11 @@ void ntpServerUpdate()
         // Determine if the NTP server is enabled
         if (EQ_RTK_MODE(ntpServerMode))
         {
-            // Start the network
-            if (networkUserOpen(NETWORK_USER_NTP_SERVER, NETWORK_TYPE_ETHERNET))
+            // The NTP server only works over Ethernet
+            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
             {
-                // The NTP server only works over Ethernet
-                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
-                {
-                    ntpServerPriority = NETWORK_OFFLINE;
-                    ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
-                }
+                ntpServerPriority = NETWORK_OFFLINE;
+                ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
             }
         }
         break;

@@ -109,7 +109,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
     // Send the data as broadcast
     if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
     {
-        IPAddress broadcastAddress = networkGetBroadcastIpAddress(networkGetType(NETWORK_USER_UDP_SERVER));
+        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
         udpServer->beginPacket( broadcastAddress, settings.udpServerPort);
         udpServer->write(data, length);
         if (udpServer->endPacket())
@@ -270,8 +270,6 @@ void udpServerStop()
     // Stop using the network
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
-        networkUserClose(NETWORK_USER_UDP_SERVER);
-
         // The UDP server is now off
         udpServerSetState(UDP_SERVER_STATE_OFF);
         udpServerTimer = millis();
@@ -317,13 +315,10 @@ void udpServerUpdate()
         // Determine if the UDP server should be running
         if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer) // Was && (!wifiIsConnected())) - TODO check this
         {
-            if (networkUserOpen(NETWORK_USER_UDP_SERVER, NETWORK_TYPE_ACTIVE))
-            {
-                if (settings.debugUdpServer && (!inMainMenu))
-                    systemPrintln("UDP server starting the network");
-                udpServerPriority = NETWORK_OFFLINE;
-                udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
-            }
+            if (settings.debugUdpServer && (!inMainMenu))
+                systemPrintln("UDP server starting the network");
+            udpServerPriority = NETWORK_OFFLINE;
+            udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
         }
         break;
 
