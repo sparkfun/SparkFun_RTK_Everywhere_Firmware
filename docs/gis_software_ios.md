@@ -2,7 +2,7 @@
 
 Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
 
-There are a variety of 3rd party apps available for GIS and surveying for [Android](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_android/), [iOS](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_ios/), and [Windows](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/gis_software_windows/). We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.
+There are a variety of 3rd party apps available for GIS and surveying for [Android](gis_software_android.md), [iOS](gis_software_ios.md), and [Windows](gis_software_windows.md). We will cover a few examples below that should give you an idea of how to get the incoming NMEA data into the software of your choice.
 
 The software options for Apple iOS are much more limited because Apple products do not support Bluetooth SPP. That's ok! The SparkFun RTK products support additional connection options including TCP and Bluetooth Low Energy (BLE).
 
