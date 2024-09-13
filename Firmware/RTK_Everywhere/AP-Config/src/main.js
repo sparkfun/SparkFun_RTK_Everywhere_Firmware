@@ -43,6 +43,8 @@ var lastMessageTypeBase = "";
 
 var savedMessageNames = [];
 var savedMessageValues = [];
+var savedCheckboxNames = [];
+var savedCheckboxValues = [];
 
 var recordsECEF = [];
 var recordsGeodetic = [];
@@ -115,6 +117,9 @@ function parseIncoming(msg) {
                 show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useLocalizedDistributionCheckbox");
+                show("useEnableUART2UBXIn");
             }
             else if (platformPrefix == "Facet v2") {
                 show("baseConfig");
@@ -130,6 +135,9 @@ function parseIncoming(msg) {
                 show("useAssistNowCheckbox");
                 show("measurementRateInput");
                 hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useLocalizedDistributionCheckbox");
+                show("useEnableUART2UBXIn");
             }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
@@ -145,6 +153,9 @@ function parseIncoming(msg) {
                 hide("useAssistNowCheckbox");
                 hide("measurementRateInput");
                 show("mosaicNMEAStreamDropdowns");
+                hide("surveyInSettings");
+                hide("useLocalizedDistributionCheckbox");
+                hide("useEnableUART2UBXIn");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
@@ -165,6 +176,7 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
 
                 ge("messageRateInfoText").setAttribute('data-bs-original-title','The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -189,6 +201,8 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
             }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
@@ -344,19 +358,25 @@ function parseIncoming(msg) {
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
         }
-        else if (id.includes("messageRate")) {
+        else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
             // messageRateRTCMRover_RTCM1001
             // messagRatesRTCMBase_RTCM1001
+            // messageIntervalRTCMRover_RTCM1230
+            // messageIntervalRTCMBase_RTCM1230
             var messageName = id;
             var messageRate = parseFloat(val);
             var messageNameLabel = "";
+            var qualifier = "";
+            if (id.includes("messageIntervalRTCM")) {
+                qualifier = " interval"
+            }
 
             var messageData = messageName.split('_');
             messageNameLabel = messageData[1];
 
             messageText += "<div class='form-group row' id='msg" + messageName + "'>";
-            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
+            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + qualifier + ":</label>";
             messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
@@ -381,7 +401,25 @@ function parseIncoming(msg) {
 
             // Save the name and value as we can't set the value yet. messageText has not yet been added to innerHTML
             savedMessageNames.push(messageName);
-            savedMessageValues.push(val);            
+            savedMessageValues.push(val);
+        }
+        else if (id.includes("messageEnabledRTCM")) {
+            // messageEnabledRTCMRover_RTCM1230
+            // messageEnabledRTCMBase_RTCM1230
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
@@ -688,6 +726,20 @@ function validateFields() {
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
             checkMessageValueUM980Base(messageName);
+        }
+    }
+
+    //Check Facet mosaicX5 RTCM intervals
+    else if (platformPrefix == "Facet mosaicX5") {
+        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsg");
+        }
+        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
         }
     }
 
@@ -1161,6 +1213,18 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).value = 0;
     }
+    //match messageIntervalRTCMRover_
+    messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).value = 1.0;
+    }
+    //match messageEnabledRTCMRover_
+    messages = document.querySelectorAll('input[id^=messageEnabledRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1175,6 +1239,18 @@ function zeroBaseMessages() {
     for (let x = 0; x < messages.length; x++) {
         var messageName = messages[x].id;
         ge(messageName).value = 0.00;
+    }
+    //match messageIntervalRTCMBase_
+    messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).value = 1.0;
+    }
+    //match messageEnabledRTCMBase_
+    messages = document.querySelectorAll('input[id^=messageEnabledRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
     }
 }
 
@@ -1195,13 +1271,15 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GPRMC").value = 0.5;
     }
     else if (platformPrefix == "Facet mosaicX5") {
+        ge("streamIntervalNMEA_0").value = 6; //msec500
+        ge("streamIntervalNMEA_1").value = 7; //sec1
         ge("messageStreamNMEA_GGA").value = 1;
         ge("messageStreamNMEA_GSA").value = 1;
         ge("messageStreamNMEA_GST").value = 1;
         ge("messageStreamNMEA_GSV").value = 2;
         ge("messageStreamNMEA_RMC").value = 1;
-        ge("streamIntervalNMEA_0").value = 6; //msec500
-        ge("streamIntervalNMEA_1").value = 7; //sec1
+
+        ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
     }
 }
 function resetToLoggingDefaults() {
@@ -1227,6 +1305,22 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1020").value = 1.0;
         ge("messageRateRTCMRover_RTCM1042").value = 1.0;
         ge("messageRateRTCMRover_RTCM1046").value = 1.0;
+    }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("streamIntervalNMEA_0").value = 6; //msec500
+        ge("streamIntervalNMEA_1").value = 7; //sec1
+        ge("messageStreamNMEA_GGA").value = 1;
+        ge("messageStreamNMEA_GSA").value = 1;
+        ge("messageStreamNMEA_GST").value = 1;
+        ge("messageStreamNMEA_GSV").value = 2;
+        ge("messageStreamNMEA_RMC").value = 1;
+
+        ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
+
+        ge("messageEnabledRTCMRover_RTCM1019").checked = true;
+        ge("messageEnabledRTCMRover_RTCM1020").checked = true;
+        ge("messageEnabledRTCMRover_RTCM1042").checked = true;
+        ge("messageEnabledRTCMRover_RTCM1046").checked = true;
     }
 }
 
@@ -1256,6 +1350,13 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM1094").value = 1.0;
         ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
+
+        ge("messageEnabledRTCMBase_RTCM1005").checked = true;
+        ge("messageEnabledRTCMBase_RTCM1033").checked = true;
+        ge("messageEnabledRTCMBase_MSM4").checked = true;
+    }
 }
 
 function resetToRTCMLowBandwidth() {
@@ -1283,6 +1384,15 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM1084").value = 2.0;
         ge("messageRateRTCMBase_RTCM1094").value = 2.0;
         ge("messageRateRTCMBase_RTCM1124").value = 2.0;
+    }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
+        ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
+        ge("messageIntervalRTCMBase_MSM4").value = 2.0;
+
+        ge("messageEnabledRTCMBase_RTCM1005").checked = true;
+        ge("messageEnabledRTCMBase_RTCM1033").checked = true;
+        ge("messageEnabledRTCMBase_MSM4").checked = true;
     }
 }
 
@@ -1488,6 +1598,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
+    ge("enableExternalHardwareEventLogging").addEventListener("change", function () {
+        if (ge("enableExternalHardwareEventLogging").checked == true) {
+            show("externalEventLoggingDetails");
+        }
+        else {
+            hide("externalEventLoggingDetails");
+        }
+    });
+
     ge("enableEspNow").addEventListener("change", function () {
         if (ge("enableEspNow").checked == true) {
             show("radioDetails");
@@ -1507,11 +1626,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableLogging").addEventListener("change", function () {
-        if (ge("enableLogging").checked) {
-            show("enableLoggingDetails");
+        showHideLoggingDetails();
+    });
+
+    ge("enableLoggingRINEX").addEventListener("change", function () {
+        if (ge("enableLoggingRINEX").checked == true) {
+            show("enableLoggingRINEXDetails");
         }
         else {
-            hide("enableLoggingDetails");
+            hide("enableLoggingRINEXDetails");
         }
     });
 
@@ -1566,6 +1689,25 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
 
 })
+
+function showHideLoggingDetails() {
+    if (platformPrefix == "Facet mosaicX5") {
+        if (ge("enableLogging").checked) {
+            show("enableLoggingDetailsMosaic");
+        }
+        else {
+            hide("enableLoggingDetailsMosaic");
+        }
+    }
+    else {
+        if (ge("enableLogging").checked) {
+            show("enableLoggingDetails");
+        }
+        else {
+            hide("enableLoggingDetails");
+        }
+    }
+}
 
 function updateCorrectionsPriorities() {
     for (let x = 0; x < numCorrectionsSources; x++) {
@@ -1882,6 +2024,10 @@ function getMessageList() {
 
         ge("messageList").innerHTML = "";
         messageText = "";
+        savedMessageNames = [];
+        savedMessageValues = [];
+        savedCheckboxNames = [];
+        savedCheckboxValues = [];
 
         xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessages", false);
@@ -1895,7 +2041,19 @@ function getMessageList() {
         for (let x = 0; x < savedMessageNames.length; x++) {
             ge(savedMessageNames[x]).value = savedMessageValues[x];
         }
-    
+
+        // Reprocess any saved checkbox names and values - i.e. the values for the RTCM enabled checkboxes
+        for (let x = 0; x < savedCheckboxNames.length; x++) {
+            if (savedCheckboxValues[x] == "true") {
+                ge(savedCheckboxNames[x]).checked = true;
+            }
+            else if (savedCheckboxValues[x] == "false") {
+                ge(savedCheckboxNames[x]).checked = false;
+            }
+            else {
+                console.log("Issue with ID: " + savedCheckboxNames[x]);
+            }
+        }
     }
 }
 
@@ -1905,6 +2063,8 @@ function getMessageListBase() {
 
         ge("messageListBase").innerHTML = "";
         messageText = "";
+        savedCheckboxNames = [];
+        savedCheckboxValues = [];
 
         xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessagesBase", false);
@@ -1913,6 +2073,19 @@ function getMessageListBase() {
         parseIncoming(xmlhttp.responseText); //Process CSV data into HTML
 
         ge("messageListBase").innerHTML += messageText;
+
+        // Reprocess any saved checkbox names and values - i.e. the values for the RTCM enabled checkboxes
+        for (let x = 0; x < savedCheckboxNames.length; x++) {
+            if (savedCheckboxValues[x] == "true") {
+                ge(savedCheckboxNames[x]).checked = true;
+            }
+            else if (savedCheckboxValues[x] == "false") {
+                ge(savedCheckboxNames[x]).checked = false;
+            }
+            else {
+                console.log("Issue with ID: " + savedCheckboxNames[x]);
+            }
+        }
     }
 }
 

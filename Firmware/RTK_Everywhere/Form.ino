@@ -1084,6 +1084,16 @@ void createMessageList(String &returnText)
             returnText += "streamIntervalNMEA_" + String(stream) + "," +
                           String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
         }
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+        {
+            returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
+                          String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+        {
+            returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                          (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber]  ? "true" : "false") + ",";
+        }
     }
 
     if (settings.debugWebConfig == true)
@@ -1114,6 +1124,20 @@ void createMessageListBase(String &returnText)
         {
             returnText += "messageRateRTCMBase_" + String(umMessagesRTCM[messageNumber].msgTextName) + "," +
                           String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
+        }
+    }
+
+    else if (present.gnss_mosaicX5)
+    {
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
+        {
+            returnText += "messageIntervalRTCMBase_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
+                          String(settings.mosaicMessageIntervalsRTCMv3Base[messageNumber]) + ",";
+        }
+        for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
+        {
+            returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
+                          (settings.mosaicMessageEnabledRTCMv3Base[messageNumber]  ? "true" : "false") + ",";
         }
     }
 

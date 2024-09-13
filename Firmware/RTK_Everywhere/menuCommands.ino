@@ -1679,8 +1679,9 @@ void createSettingsString(char *newSettings)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name,
-                             mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
+                             mosaicMessagesRTCMv3[x].name,
+                             settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -1690,8 +1691,9 @@ void createSettingsString(char *newSettings)
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
                     char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name,
-                             mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
+                             mosaicMessagesRTCMv3[x].name,
+                             settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
                     stringRecord(newSettings, tempString);
                 }
             }

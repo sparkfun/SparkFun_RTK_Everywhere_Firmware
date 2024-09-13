@@ -492,7 +492,6 @@
                                     </span>
                                     <br>
                                 </div>
-                                <br>
                                 <div id="mosaicNMEAStream2Dropdown">
                                     <label for="streamIntervalNMEA_1">NMEA Stream2 interval: </label>
                                     <select name="streamIntervalNMEA_1" id="streamIntervalNMEA_1" class="form-dropdown mb-2">
@@ -522,7 +521,6 @@
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </div>
-                                <br>
                             </div>
                             <div id="messageList">
 
@@ -554,24 +552,26 @@
                         </span>
                     </div>
 
-                    <div id="surveyInConfig" class="collapse mb-2">
-                        <div class="form-group row">
-                            <label for="observationSeconds" class="box-margin20 col-sm-12 col-form-label">Minimum
-                                observation time (s):</label>
-                            <div class="col-sm-4 col-5 ms-3 mb-2">
-                                <input type="number" class="form-control" id="observationSeconds">
-                                <p id="observationSecondsError" class="inlineError"></p>
+                    <div id="surveyInSettings">
+                        <div id="surveyInConfig" class="collapse mb-2">
+                            <div class="form-group row">
+                                <label for="observationSeconds" class="box-margin20 col-sm-12 col-form-label">Minimum
+                                    observation time (s):</label>
+                                <div class="col-sm-4 col-5 ms-3 mb-2">
+                                    <input type="number" class="form-control" id="observationSeconds">
+                                    <p id="observationSecondsError" class="inlineError"></p>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="form-group row">
-                            <label for="observationPositionAccuracy"
-                                class="box-margin20 col-sm-12 col-form-label">Required
-                                Mean 3D Standard Deviation
-                                (m):</label>
-                            <div class="col-sm-4 ms-3 col-5 mb-3">
-                                <input type="number" class="form-control" id="observationPositionAccuracy">
-                                <p id="observationPositionAccuracyError" class="inlineError"></p>
+                            <div class="form-group row">
+                                <label for="observationPositionAccuracy"
+                                    class="box-margin20 col-sm-12 col-form-label">Required
+                                    Mean 3D Standard Deviation
+                                    (m):</label>
+                                <div class="col-sm-4 ms-3 col-5 mb-3">
+                                    <input type="number" class="form-control" id="observationPositionAccuracy">
+                                    <p id="observationPositionAccuracyError" class="inlineError"></p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1145,7 +1145,7 @@
                             aria-expanded="false" aria-controls="collapseGNSSConfigMsgBase">
                             RTCM Rates <i id="baseMsgCaret" class="caret-icon bi icon-caret-down"></i>
                         </button>
-                        <span class="tt" data-bs-placement="right"
+                        <span class="tt" data-bs-placement="right" id="rtcmRateInfoText"
                             title="RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1230. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
@@ -1257,30 +1257,32 @@
                             </div>
                         </div>
 
-                        <div class="form-check mt-3">
-                            <label class="form-check-label" for="useLocalizedDistribution">Localized Distribution </label>
-                            <input class="form-check-input" type="checkbox" value="" id="useLocalizedDistribution">
-                            <span class="tt" data-bs-placement="right"
-                                title="When enabled, localized corrections for your location will be used instead of the continental corrections. Default: Disabled">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </div>
+                        <div id="useLocalizedDistributionCheckbox">
+                            <div class="form-check mt-3">
+                                <label class="form-check-label" for="useLocalizedDistribution">Localized Distribution </label>
+                                <input class="form-check-input" type="checkbox" value="" id="useLocalizedDistribution">
+                                <span class="tt" data-bs-placement="right"
+                                    title="When enabled, localized corrections for your location will be used instead of the continental corrections. Default: Disabled">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
 
-                        <div id="localizedDistributionTileLevelDropdown">
-                            <label for="localizedDistributionTileLevel">Localized Distribution Tile Level:</label>
-                            <select name="localizedDistributionTileLevel" id="localizedDistributionTileLevel" class="form-dropdown mb-2">
-                                <option value="0">1000 x 1000km Sparse</option>
-                                <option value="1">500 x 500km Sparse</option>
-                                <option value="2">250 x 250km Sparse</option>
-                                <option value="3">1000 x 1000km High Density</option>
-                                <option value="4">500 x 500km High Density</option>
-                                <option value="5">250 x 250km High Density</option>
-                            </select>
-                            <span class="tt" data-bs-placement="right"
-                                title="Select the localized distribution tile level. High Density is recommended. Sparse may be deprecated. Default: 250 x 250km High Density">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                            <br>
+                            <div id="localizedDistributionTileLevelDropdown">
+                                <label for="localizedDistributionTileLevel">Localized Distribution Tile Level:</label>
+                                <select name="localizedDistributionTileLevel" id="localizedDistributionTileLevel" class="form-dropdown mb-2">
+                                    <option value="0">1000 x 1000km Sparse</option>
+                                    <option value="1">500 x 500km Sparse</option>
+                                    <option value="2">250 x 250km Sparse</option>
+                                    <option value="3">1000 x 1000km High Density</option>
+                                    <option value="4">500 x 500km High Density</option>
+                                    <option value="5">250 x 250km High Density</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="Select the localized distribution tile level. High Density is recommended. Sparse may be deprecated. Default: 250 x 250km High Density">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                                <br>
+                            </div>
                         </div>
     
 
@@ -1414,16 +1416,35 @@
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </div>
+
+                                <div id="externalEventLoggingDetails" class="collapse mb-2">
+                                    <div id="eventEdgeDropdown" class="mb-2">
+                                        <label for="externalEventPolarity"
+                                            class="box-margin20 col-sm-3 col-4 col-form-label">Event Polarity: </label>
+                                        <select name="externalEventPolarity" id="externalEventPolarity"
+                                            class="form-dropdown">
+                                            <option value="0">Low to High</option>
+                                            <option value="1">High to Low</option>
+                                        </select>
+                                        <span class="tt" data-bs-placement="right"
+                                            title="The external event will be logged on this transition. Default: Low to High">
+                                            <span class="icon-info-circle text-primary ms-2"></span>
+                                        </span>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            <div class="form-check mt-3">
-                                <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
-                                    GNSS UART2</label>
-                                <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
-                                <span class="tt" data-bs-placement="right"
-                                    title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
-                                    <span class="icon-info-circle text-primary ms-2"></span>
-                                </span>
+                            <div id="useEnableUART2UBXIn">
+                                <div class="form-check mt-3">
+                                    <label class="form-check-label" for="enableUART2UBXIn">Enable UBX Input On
+                                        GNSS UART2</label>
+                                    <input class="form-check-input" type="checkbox" value="" id="enableUART2UBXIn">
+                                    <span class="tt" data-bs-placement="right"
+                                        title="Enable UBX input on GNSS UART2 - e.g. correction data from an external NEO-D9C. Default: False">
+                                        <span class="icon-info-circle text-primary ms-2"></span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -2000,6 +2021,51 @@
                                 </label>
                                 <input type="number" class="form-control box-small" id="ARPLoggingInterval">
                                 <p id="ARPLoggingIntervalError" class="inlineError"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="enableLoggingDetailsMosaic" class="collapse mb-2">
+
+                        <div class="form-check mt-1 box-margin20">
+                            <label class="form-check-label" for="enableLoggingRINEX">Enable RINEX Logging</label>
+                            <input class="form-check-input" type="checkbox" value="" id="enableLoggingRINEX" unchecked>
+                            <span class="tt" data-bs-placement="right"
+                                title="If enabled, RINEX data will be logged to SD with the chosen interval and file duration.">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </div>
+
+                        <div id="enableLoggingRINEXDetails" class="collapse mb-2">
+                            <div id="rinexFileDurationDropdown" class="mb-2 mt-3">
+                                <label for="RINEXFileDuration">RINEX file duration: </label>
+                                <select name="RINEXFileDuration" id="RINEXFileDuration" class="form-dropdown">
+                                    <option value="0">1 Hour</option>
+                                    <option value="1">6 Hours</option>
+                                    <option value="2">24 Hours</option>
+                                    <option value="3">15 Minutes</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="RINEX data will be logged for this many minutes / hours before a new file is opened. Default: 24 Hours.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </div>
+
+                            <div id="rinexObservationIntervalDropdown" class="mb-2 mt-3">
+                                <label for="RINEXObsInterval">RINEX observation interval: </label>
+                                <select name="RINEXObsInterval" id="RINEXObsInterval" class="form-dropdown">
+                                    <option value="0">1s</option>
+                                    <option value="1">2s</option>
+                                    <option value="2">5s</option>
+                                    <option value="3">10s</option>
+                                    <option value="4">15s</option>
+                                    <option value="5">30s</option>
+                                    <option value="6">60s</option>
+                                </select>
+                                <span class="tt" data-bs-placement="right"
+                                    title="RINEX data will be logged every this many seconds. Default: 30s.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
                             </div>
                         </div>
                     </div>
