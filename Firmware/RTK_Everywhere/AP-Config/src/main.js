@@ -164,9 +164,7 @@ function parseIncoming(msg) {
                 newOption = new Option('Unlimited', '7');
                 select.add(newOption, undefined);
 
-                ge("messageRateInfoText").hide;
-                ge("messageRateInfoText").title = "The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.";
-                ge("messageRateInfoText").show;
+                ge("messageRateInfoText").setAttribute('data-bs-original-title','The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -192,8 +190,6 @@ function parseIncoming(msg) {
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
             }
-
-
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
@@ -1047,7 +1043,6 @@ function checkElementValue(id, min, max, errorText, collapseID) {
 }
 
 function checkElementString(id, min, max, errorText, collapseID) {
-    console.log("checkElementString " + id);
     value = ge(id).value;
     if ((value.length < min) || (value.length > max)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
@@ -1142,7 +1137,7 @@ function resetToCorrectionsPriorityDefaults() {
 }
 
 function zeroMessages() {
-    //match all ids starting with ubxMessageRate_ (not ubxMessageRateBase_)
+    //match all input ids starting with ubxMessageRate_ (not ubxMessageRateBase_)
     var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
@@ -1160,8 +1155,8 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
-    //match messageStreamNMEA_
-    messages = document.querySelectorAll('input[id^=messageStreamNMEA_]');
+    //match all select ids starting with messageStreamNMEA_
+    messages = document.querySelectorAll('select[id^=messageStreamNMEA_]');
     for (let x = 0; x < messages.length; x++) {
         var messageName = messages[x].id;
         ge(messageName).value = 0;
