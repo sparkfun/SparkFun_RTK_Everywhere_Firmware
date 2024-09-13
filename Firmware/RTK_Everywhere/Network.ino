@@ -271,12 +271,18 @@ void networkMarkOffline(NetIndex_t index)
     NetPriority_t priority;
 
     // Validate the index
-    if (settings.debugNetworkLayer)
-        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
     networkValidateIndex(index);
 
+    // Check for network offline
+    bitMask = 1 << index;
+    if (!(networkOnline & bitMask))
+        // Already offline, nothing to do
+        return;
+
     // Mark this network as offline
-    networkOnline &= ~(1 << index);
+    networkOnline &= ~bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
 
     // Did the highest priority network just fail?
     if (networkPriorityTable[index] == networkPriority)
@@ -323,12 +329,18 @@ void networkMarkOnline(NetIndex_t index)
     NetPriority_t priority;
 
     // Validate the index
-    if (settings.debugNetworkLayer)
-        systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
     networkValidateIndex(index);
 
+    // Check for network online
+    bitMask = 1 << index;
+    if (networkOnline & bitMask)
+        // Already online, nothing to do
+        return;
+
     // Mark this network as online
-    networkOnline |= 1 << index;
+    networkOnline |= bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
 
     // Raise the network priority if necessary
     previousPriority = networkPriority;
