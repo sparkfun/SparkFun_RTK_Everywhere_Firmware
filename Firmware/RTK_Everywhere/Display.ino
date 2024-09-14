@@ -3092,11 +3092,11 @@ const uint8_t *getMacAddress()
         return btMACAddress;
 #endif // COMPILE_BT
 #ifdef COMPILE_WIFI
-    if (wifiState != WIFI_STATE_OFF)
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
         return wifiMACAddress;
 #endif // COMPILE_WIFI
 #ifdef COMPILE_ETHERNET
-    if ((online.ethernetStatus >= ETH_STARTED_CHECK_CABLE) && (online.ethernetStatus <= ETH_CONNECTED))
+    if (networkIsInterfaceOnline(NETWORK_ETHERNET))
         return ethernetMACAddress;
 #endif // COMPILE_ETHERNET
     return zero;

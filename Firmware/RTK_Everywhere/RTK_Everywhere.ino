@@ -674,7 +674,6 @@ volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet N
 bool ntpLogIncreasing;
 #endif // COMPILE_ETHERNET
 
-static bool eth_connected = false;
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 

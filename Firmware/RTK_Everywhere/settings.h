@@ -444,23 +444,6 @@ typedef struct WiFiNetwork
 
 typedef uint16_t RING_BUFFER_OFFSET;
 
-typedef enum
-{
-    ETH_NOT_STARTED = 0,
-    ETH_STARTED_CHECK_CABLE,
-    ETH_STARTED_START_DHCP,
-    ETH_CONNECTED,
-    ETH_CAN_NOT_BEGIN,
-    // Add new states above this line
-    ETH_MAX_STATE
-} ethernetStatus_e;
-
-const char *const ethernetStates[] = {
-    "ETH_NOT_STARTED", "ETH_STARTED_CHECK_CABLE", "ETH_STARTED_START_DHCP", "ETH_CONNECTED", "ETH_CAN_NOT_BEGIN",
-};
-
-const int ethernetStateEntries = sizeof(ethernetStates) / sizeof(ethernetStates[0]);
-
 // Radio status LED goes from off (LED off), no connection (blinking), to connected (solid)
 typedef enum
 {
@@ -2101,7 +2084,6 @@ struct struct_online
     bool tcpClient = false;
     bool tcpServer = false;
     bool udpServer = false;
-    ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;

@@ -208,8 +208,43 @@ void networkBegin()
     // Set the network index values based upon the priorities
     for (int index = 0; index < networkTableEntries; index++)
         networkIndexTable[networkPriorityTable[index]] = index;
+
+    // Handle the network events
+    Network.onEvent(networkOnEvent);
 }
 
+//----------------------------------------
+// Process network events
+void networkOnEvent(arduino_event_id_t event, arduino_event_info_t info)
+{
+    switch (event)
+    {
+    // Ethernet
+    case ARDUINO_EVENT_ETH_START:
+    case ARDUINO_EVENT_ETH_CONNECTED:
+    case ARDUINO_EVENT_ETH_GOT_IP:
+    case ARDUINO_EVENT_ETH_LOST_IP:
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+    case ARDUINO_EVENT_ETH_STOP:
+        ethernetEvent(event, info);
+        break;
+
+    // WiFi
+    case ARDUINO_EVENT_WIFI_OFF:
+    case ARDUINO_EVENT_WIFI_READY:
+    case ARDUINO_EVENT_WIFI_SCAN_DONE:
+    case ARDUINO_EVENT_WIFI_STA_START:
+    case ARDUINO_EVENT_WIFI_STA_STOP:
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+//        wifiEvent(event, info);
+        break;
+    }
+}
 //----------------------------------------
 // Get the network name by table index
 //----------------------------------------
@@ -910,11 +945,11 @@ bool networkIsMediaConnected(NETWORK_DATA *network)
         break;
 
     case NETWORK_TYPE_ETHERNET:
-        isConnected = (online.ethernetStatus == ETH_CONNECTED);
+        isConnected = networkIsInterfaceOnline(NETWORK_ETHERNET);
         break;
 
     case NETWORK_TYPE_WIFI:
-        isConnected = wifiIsConnected();
+        isConnected = networkIsInterfaceOnline(NETWORK_WIFI);
         break;
     }
 

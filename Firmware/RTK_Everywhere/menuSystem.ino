@@ -118,7 +118,7 @@ void menuSystem()
         if (present.ethernet_ws5500 == true)
         {
             systemPrint("Ethernet: ");
-            if (eth_connected)
+            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                 systemPrintln("connected");
             else
                 systemPrintln("disconnected");
