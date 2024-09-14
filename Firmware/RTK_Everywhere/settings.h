@@ -361,8 +361,6 @@ volatile byte wifiState = WIFI_STATE_OFF;
 
 #ifdef  COMPILE_NETWORK
 
-#include "RTKNetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
-
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA
 {
