@@ -245,6 +245,29 @@ void networkOnEvent(arduino_event_id_t event, arduino_event_info_t info)
         break;
     }
 }
+
+//----------------------------------------
+// Get the MAC address for display
+//----------------------------------------
+const uint8_t * networkGetMacAddress()
+{
+    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
+
+#ifdef COMPILE_BT
+    if (bluetoothGetState() != BT_OFF)
+        return btMACAddress;
+#endif // COMPILE_BT
+#ifdef COMPILE_WIFI
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
+        return wifiMACAddress;
+#endif // COMPILE_WIFI
+#ifdef COMPILE_ETHERNET
+    if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+        return ethernetMACAddress;
+#endif // COMPILE_ETHERNET
+    return zero;
+}
+
 //----------------------------------------
 // Get the network name by table index
 //----------------------------------------

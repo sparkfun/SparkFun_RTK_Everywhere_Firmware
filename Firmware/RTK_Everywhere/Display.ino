@@ -1839,7 +1839,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {
     char macAddress[5];
-    const uint8_t *rtkMacAddress = getMacAddress();
+    const uint8_t *rtkMacAddress = networkGetMacAddress();
 
     // Print four characters of MAC
     snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
@@ -1850,7 +1850,7 @@ void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 void paintMACAddress2digit(uint8_t xPos, uint8_t yPos)
 {
     char macAddress[5];
-    const uint8_t *rtkMacAddress = getMacAddress();
+    const uint8_t *rtkMacAddress = networkGetMacAddress();
 
     // Print only last two digits of MAC
     snprintf(macAddress, sizeof(macAddress), "%02X", rtkMacAddress[5]);
@@ -2403,7 +2403,7 @@ void paintSystemTest()
 
             // Get the last two digits of MAC
             char macAddress[5];
-            const uint8_t *rtkMacAddress = getMacAddress();
+            const uint8_t *rtkMacAddress = networkGetMacAddress();
             snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
 
             // Display MAC address
@@ -2850,7 +2850,7 @@ void paintKeyProvisionFail(uint16_t displayTime)
 
         // The device ID is 14 characters long so we have to split it into three lines
         char hardwareID[15];
-        const uint8_t *rtkMacAddress = getMacAddress();
+        const uint8_t *rtkMacAddress = networkGetMacAddress();
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[0], rtkMacAddress[1], rtkMacAddress[2]);
         y += fontHeight;
@@ -3081,23 +3081,4 @@ void displayConfigViaEthernet()
     uint8_t yPos = oled->getHeight() / 2 - fontHeight;
     printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
 #endif // COMPILE_ETHERNET
-}
-
-const uint8_t *getMacAddress()
-{
-    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
-
-#ifdef COMPILE_BT
-    if (bluetoothGetState() != BT_OFF)
-        return btMACAddress;
-#endif // COMPILE_BT
-#ifdef COMPILE_WIFI
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
-        return wifiMACAddress;
-#endif // COMPILE_WIFI
-#ifdef COMPILE_ETHERNET
-    if (networkIsInterfaceOnline(NETWORK_ETHERNET))
-        return ethernetMACAddress;
-#endif // COMPILE_ETHERNET
-    return zero;
 }
