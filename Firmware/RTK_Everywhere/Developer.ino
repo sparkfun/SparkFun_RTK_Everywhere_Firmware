@@ -11,9 +11,6 @@
 
 void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
 void ethernetBegin() {}
-IPAddress ethernetGetIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress ethernetGetSubnetMask() {return IPAddress((uint32_t)0);}
-void ethernetUpdate() {}
 void ethernetVerifyTables() {}
 
 void ethernetWebServerStartESP32W5500() {}
@@ -43,10 +40,7 @@ void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkUpdate() {}
 void networkVerifyTables() {}
 void networkStop(uint8_t networkType) {}
-uint8_t networkGetActiveType() {return (0);}
-uint8_t networkGetType() {return (0);};
 IPAddress networkGetIpAddress(uint8_t networkType) {return("0.0.0.0");}
-bool networkCanConnect() {return(false);}
 
 //----------------------------------------
 // NTRIP client
@@ -168,7 +162,6 @@ void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(unsigned long timeout) {return false;}
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
 IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
 IPAddress wifiGetSubnetMask() {return IPAddress((uint32_t)0);}
 int wifiGetRssi() {return -999;}
 String wifiGetSsid() {return "**WiFi Not compiled**";}

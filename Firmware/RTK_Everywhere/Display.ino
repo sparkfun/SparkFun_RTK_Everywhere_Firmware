@@ -1822,8 +1822,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
     {
         char myAddress[16];
 
-        uint8_t networkType = networkGetType();
-        IPAddress ipAddress = networkGetIpAddress(networkType);
+        IPAddress ipAddress = networkGetIpAddress();
 
         if (ipAddress != IPAddress((uint32_t)0))
         {
@@ -1895,6 +1894,11 @@ void displayGNSSFail(uint16_t displayTime)
 void displayNoWiFi(uint16_t displayTime)
 {
     displayMessage("No WiFi", displayTime);
+}
+
+void displayNoNetwork(uint16_t displayTime)
+{
+    displayMessage("No Network", displayTime);
 }
 
 void displayNoSSIDs(uint16_t displayTime)

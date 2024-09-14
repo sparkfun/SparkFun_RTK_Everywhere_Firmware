@@ -92,9 +92,12 @@ void menuFirmware()
 
         else if (incoming == 'c')
         {
-            if (networkCanConnect() == false)
+            if (networkIsOnline() == false)
             {
-                systemPrintln("Error: Please enter at least one SSID before updating firmware");
+                if (wifiNetworkCount() == 0)
+                    systemPrintln("Error: Please enter at least one SSID before updating firmware");
+                else
+                    systemPrintln("Error: Network not available!");
             }
             else
             {
@@ -474,15 +477,22 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 
     bool wasInAPmode;
 
-    uint8_t networkType = networkGetActiveType();
-    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+    if (!networkIsOnline())
     {
-        systemPrintln("Error: Please enter at least one SSID before getting keys");
+        if (wifiNetworkCount() == 0)
+            systemPrintln("Error: Please enter at least one SSID before getting keys");
+        else
+            systemPrintln("Error: Network not available!");
     }
     else
     {
-        if ((networkType != NETWORK_TYPE_WIFI) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
-                                                   true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+        // Determine if WiFi is running
+        bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
+
+        wasInAPmode = false;
+        if (networkIsOnline()
+            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
+               == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
         {
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -513,23 +523,20 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
                 systemPrintln("OTA failed");
             }
 
-            if (networkType == NETWORK_TYPE_WIFI)
+            // If we were in WIFI_AP mode, return to WIFI_AP mode
+            // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
+            if (wasInAPmode)
+                wifiSetApMode();
+
+            if (systemState != STATE_WIFI_CONFIG)
             {
-                // If we were in WIFI_AP mode, return to WIFI_AP mode
-                // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
-                if (wasInAPmode)
-                    wifiSetApMode();
+                // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+                // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+                // running.
 
-                if (systemState != STATE_WIFI_CONFIG)
-                {
-                    // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
-                    // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
-                    // running.
-
-                    // If WiFi was originally off, turn it off again
-                    if (previouslyConnected == false)
-                        WIFI_STOP();
-                }
+                // If WiFi was originally off, turn it off again
+                if (wifiRunning == false)
+                    WIFI_STOP();
             }
         }
         else
@@ -589,36 +596,39 @@ void otaUpdate()
 #ifdef COMPILE_NETWORK
     bool previouslyConnected = wifiIsConnected();
 
-    bool wasInAPmode;
+    bool wasInAPmode = false;
 
-    uint8_t networkType = networkGetActiveType();
-    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+    if (!networkIsOnline())
     {
-        systemPrintln("Error: Please enter at least one SSID before getting keys");
+        if (wifiNetworkCount() == 0)
+            systemPrintln("Error: Please enter at least one SSID before getting keys");
+        else
+            systemPrintln("Error: Network not available!");
     }
     else
     {
-        if ((networkType != NETWORK_TYPE_WIFI)
+        // Determine if WiFi is running
+        bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
+
+        if ((networkIsOnline)
             || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
                 == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
             overTheAirUpdate();
 
-        // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
-        if (networkType == NETWORK_TYPE_WIFI)
+        // Update failed.
+        // If we were in WIFI_AP mode, return to WIFI_AP mode
+        if (wasInAPmode)
+            wifiSetApMode();
+
+        if (systemState != STATE_WIFI_CONFIG)
         {
-            if (wasInAPmode)
-                wifiSetApMode();
+            // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+            // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+            // running.
 
-            if (systemState != STATE_WIFI_CONFIG)
-            {
-                // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
-                // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
-                // running.
-
-                // If WiFi was originally off, turn it off again
-                if (previouslyConnected == false)
-                    WIFI_STOP();
-            }
+            // If WiFi was originally off, turn it off again
+            if (wifiRunning == false)
+                WIFI_STOP();
         }
     }
 #endif // COMPILE_NETWORK

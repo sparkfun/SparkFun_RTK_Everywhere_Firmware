@@ -236,6 +236,76 @@ typedef enum
     ERROR_GPS_CONFIG_FAIL,
 } t_errorNumber;
 
+// Define the periodic display values
+typedef uint64_t PeriodicDisplay_t;
+
+enum PeriodDisplayValues
+{
+    PD_BLUETOOTH_DATA_RX = 0,   //  0
+    PD_BLUETOOTH_DATA_TX,       //  1
+
+    PD_IP_ADDRESS,              //  2
+    PD_ETHERNET_STATE,          //  3
+
+    PD_NETWORK_STATE,           //  4
+
+    PD_NTP_SERVER_DATA,         //  5
+    PD_NTP_SERVER_STATE,        //  6
+
+    PD_NTRIP_CLIENT_DATA,       //  7
+    PD_NTRIP_CLIENT_GGA,        //  8
+    PD_NTRIP_CLIENT_STATE,      //  9
+
+    PD_NTRIP_SERVER_DATA,       // 10
+    PD_NTRIP_SERVER_STATE,      // 11
+
+    PD_TCP_CLIENT_DATA,         // 12
+    PD_TCP_CLIENT_STATE,        // 13
+
+    PD_TCP_SERVER_DATA,         // 14
+    PD_TCP_SERVER_STATE,        // 15
+    PD_TCP_SERVER_CLIENT_DATA,  // 16
+
+    PD_UDP_SERVER_DATA,         // 17
+    PD_UDP_SERVER_STATE,        // 18
+    PD_UDP_SERVER_BROADCAST_DATA,  // 19
+
+    PD_RING_BUFFER_MILLIS,      // 20
+
+    PD_SD_LOG_WRITE,            // 21
+
+    PD_TASK_BLUETOOTH_READ,     // 22
+    PD_TASK_BUTTON_CHECK,       // 23
+    PD_TASK_GNSS_READ,          // 24
+    PD_TASK_HANDLE_GNSS_DATA,   // 25
+    PD_TASK_SD_SIZE_CHECK,      // 26
+    PD_TASK_UPDATE_PPL,         // 27
+
+    PD_Reserved_28,             // 28
+    PD_WIFI_STATE,              // 29
+
+    PD_ZED_DATA_RX,             // 30
+    PD_ZED_DATA_TX,             // 31
+
+    PD_MQTT_CLIENT_DATA,        // 32
+    PD_MQTT_CLIENT_STATE,       // 33
+
+    PD_TASK_UPDATE_WEBSERVER,   // 34
+
+    PD_HTTP_CLIENT_STATE,       // 35
+
+    PD_PROVISIONING_STATE,      // 36
+
+    PD_CORRECTION_SOURCE,       // 37
+    // Add new values before this line
+};
+
+#define PERIODIC_MASK(x) (1ull << x)
+#define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
+#define PERIODIC_CLEAR(x) periodicDisplay = periodicDisplay & ~PERIODIC_MASK(x)
+#define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
+#define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
+
 typedef uint8_t NetIndex_t;     // Index into the networkTable
 typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
@@ -256,18 +326,24 @@ typedef struct _NETWORK_POLL_SEQUENCE
 } NETWORK_POLL_SEQUENCE;
 
 // networkTable entry
-typedef struct _NETWORK_PRIORITY
+typedef struct _NETWORK_TABLE_ENTRY
 {
     NetworkInterface * netif;       // Network interface object address
     const char * name;              // Name of the network interface
+    uint8_t pdState;                // Periodic display state value
     NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
     NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
     NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
-} NETWORK_PRIORITY;
+} NETWORK_TABLE_ENTRY;
 
-#define NETWORK_ETHERNET    ((NetIndex_t)0)
-#define NETWORK_WIFI        ((NetIndex_t)1)
-#define NETWORK_CELLULAR    ((NetIndex_t)2)
+enum NetworkTypes
+{
+    NETWORK_ETHERNET = 0,
+    NETWORK_WIFI = 1,
+//    NETWORK_CELLULAR,
+    // Add new networks here
+    NETWORK_MAX
+};
 
 // List of networks
 // Multiple networks may running in parallel with highest priority being
@@ -275,37 +351,15 @@ typedef struct _NETWORK_PRIORITY
 // drops to that level.  The stop routine is called as the priority rises
 // above that level.  The priority will continue to fall or rise until a
 // network is found that is online.
-const NETWORK_PRIORITY networkTable[] =
-{ // Interface  Name            Boot Sequence           Start Sequence      Stop Sequence
-    {&ETH,      "Ethernet",     nullptr,                nullptr,            nullptr},
-    {&WiFi.STA, "WiFi",         nullptr,                nullptr,            nullptr},
-//    {&PPP,      "Cellular",     laraBootSequence,       laraOnSequence,     laraOffSequence},
+const NETWORK_TABLE_ENTRY networkTable[] =
+{ // Interface  Name            Periodic State      Boot Sequence           Start Sequence      Stop Sequence
+    {&ETH,      "Ethernet",     PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
+//    {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
 };
 const int networkTableEntries = sizeof(networkTable) / sizeof(networkTable[0]);
 
 #define NETWORK_OFFLINE     networkTableEntries
-
-// Define the states of the network device
-enum NetworkStates
-{
-    NETWORK_STATE_OFF = 0,
-    NETWORK_STATE_DELAY,
-    NETWORK_STATE_CONNECTING,
-    NETWORK_STATE_IN_USE,
-    NETWORK_STATE_WAIT_NO_USERS,
-    // Last network state
-    NETWORK_STATE_MAX
-};
-
-typedef struct _NETWORK_DATA
-{
-    uint8_t connectionAttempt; // Number of previous connection attempts
-    bool restart;              // Set if restart is allowed
-    bool shutdown;             // Network is shutting down
-    uint8_t state;             // Current state of the network
-    uint32_t timeout;          // Timer timeout value
-    uint32_t timerStart;       // Starting millis for the timer
-} NETWORK_DATA;
 
 // Even though WiFi and ESP-Now operate on the same radio, we treat
 // then as different states so that we can leave the radio on if
@@ -521,76 +575,6 @@ typedef enum
 } SettingValueResponse;
 
 #define UBX_ID_NOT_AVAILABLE 0xFF
-
-// Define the periodic display values
-typedef uint64_t PeriodicDisplay_t;
-
-enum PeriodDisplayValues
-{
-    PD_BLUETOOTH_DATA_RX = 0,   //  0
-    PD_BLUETOOTH_DATA_TX,       //  1
-
-    PD_ETHERNET_IP_ADDRESS,     //  2
-    PD_ETHERNET_STATE,          //  3
-
-    PD_NETWORK_STATE,           //  4
-
-    PD_NTP_SERVER_DATA,         //  5
-    PD_NTP_SERVER_STATE,        //  6
-
-    PD_NTRIP_CLIENT_DATA,       //  7
-    PD_NTRIP_CLIENT_GGA,        //  8
-    PD_NTRIP_CLIENT_STATE,      //  9
-
-    PD_NTRIP_SERVER_DATA,       // 10
-    PD_NTRIP_SERVER_STATE,      // 11
-
-    PD_TCP_CLIENT_DATA,         // 12
-    PD_TCP_CLIENT_STATE,        // 13
-
-    PD_TCP_SERVER_DATA,         // 14
-    PD_TCP_SERVER_STATE,        // 15
-    PD_TCP_SERVER_CLIENT_DATA,  // 16
-
-    PD_UDP_SERVER_DATA,         // 17
-    PD_UDP_SERVER_STATE,        // 18
-    PD_UDP_SERVER_BROADCAST_DATA,  // 19
-
-    PD_RING_BUFFER_MILLIS,      // 20
-
-    PD_SD_LOG_WRITE,            // 21
-
-    PD_TASK_BLUETOOTH_READ,     // 22
-    PD_TASK_BUTTON_CHECK,       // 23
-    PD_TASK_GNSS_READ,          // 24
-    PD_TASK_HANDLE_GNSS_DATA,   // 25
-    PD_TASK_SD_SIZE_CHECK,      // 26
-    PD_TASK_UPDATE_PPL,         // 27
-
-    PD_WIFI_IP_ADDRESS,         // 28
-    PD_WIFI_STATE,              // 29
-
-    PD_ZED_DATA_RX,             // 30
-    PD_ZED_DATA_TX,             // 31
-
-    PD_MQTT_CLIENT_DATA,        // 32
-    PD_MQTT_CLIENT_STATE,       // 33
-
-    PD_TASK_UPDATE_WEBSERVER,   // 34
-
-    PD_HTTP_CLIENT_STATE,       // 35
-
-    PD_PROVISIONING_STATE,      // 36
-
-    PD_CORRECTION_SOURCE,       // 37
-    // Add new values before this line
-};
-
-#define PERIODIC_MASK(x) (1ull << x)
-#define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_CLEAR(x) periodicDisplay = periodicDisplay & ~PERIODIC_MASK(x)
-#define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
 #define INCHES_IN_A_METER   39.37007874
 #define FEET_IN_A_METER     3.280839895

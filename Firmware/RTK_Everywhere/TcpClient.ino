@@ -423,7 +423,7 @@ void tcpClientUpdate()
 
         // The network is connected to the media
         // Determine if WiFi is required
-        else if ((!strlen(settings.tcpClientHost)) && (networkGetType(NETWORK_TYPE_ACTIVE) != NETWORK_TYPE_WIFI))
+        else if ((!strlen(settings.tcpClientHost)) && (!networkIsInterfaceOnline(NETWORK_WIFI)))
         {
             // Wrong network type, WiFi is required but another network is being used
             if ((millis() - timer) >= (15 * 1000))

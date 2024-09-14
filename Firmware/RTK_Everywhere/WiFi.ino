@@ -150,14 +150,8 @@ void menuWiFi()
         else
         {
             // Restart WiFi if we are not in AP config mode
-            NETWORK_DATA *network = networkGet(NETWORK_TYPE_WIFI, false);
-            if (network)
-            {
-                if (settings.debugWifiState == true)
-                    systemPrintln("Menu caused restarting of WiFi");
-                networkRestartNetwork(network);
-                networkStop(NETWORK_TYPE_WIFI);
-            }
+            WIFI_STOP();
+            wifiStart();
         }
     }
 
@@ -430,15 +424,11 @@ void wifiStop()
     // Stop the web server
     stopWebServer();
 
-    // Stop the multicast domain name server
-    networkStopMulticastDNS();
-
     // Stop the DNS server if we were using the captive portal
     if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
 
-    // Stop the other network clients and then WiFi
-    NETWORK_STOP(NETWORK_TYPE_WIFI);
+    wifiShutdown();
 }
 
 // Stop WiFi and release all resources
@@ -486,9 +476,9 @@ bool wifiIsConnected()
     {
         wifiPreviouslyConnected = connected;
         if (connected)
-            networkMarkOnline(NETWORK_WIFI);
+            networkMarkOnline((NetIndex_t)NETWORK_WIFI);
         else
-            networkMarkOffline(NETWORK_WIFI);
+            networkMarkOffline((NetIndex_t)NETWORK_WIFI);
     }
     return connected;
 }
@@ -587,18 +577,13 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
         if (connected)
         {
             systemPrintln();
-            networkMarkOnline(NETWORK_WIFI);
+            networkMarkOnline((NetIndex_t)NETWORK_WIFI);
         }
         else
-            networkMarkOffline(NETWORK_WIFI);
+            networkMarkOffline((NetIndex_t)NETWORK_WIFI);
     }
 
-    if (connected)
-    {
-        if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
-            networkStartMulticastDNS();
-    }
-    else if (wifiResponse == WL_DISCONNECTED)
+    if (wifiResponse == WL_DISCONNECTED)
         systemPrint("No friendly WiFi networks detected.\r\n");
     else
         systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiResponse);

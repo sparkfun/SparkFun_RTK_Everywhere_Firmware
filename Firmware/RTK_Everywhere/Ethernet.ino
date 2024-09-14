@@ -138,7 +138,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
     // Take the network offline if necessary
     if (networkIsInterfaceOnline(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
-        networkMarkOffline(NETWORK_ETHERNET);
+        networkMarkOffline((NetIndex_t)NETWORK_ETHERNET);
 
     // Remember this event for display
     ethernetLastEvent = event;
@@ -163,7 +163,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_CONNECTED:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Connected");
-        networkMarkOnline(NETWORK_ETHERNET);
+        networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
         break;
 
     case ARDUINO_EVENT_ETH_GOT_IP:
@@ -207,22 +207,6 @@ const char * ethernetGetEventName(arduino_event_id_t event)
 }
 
 //----------------------------------------
-// Return the IP address for the Ethernet controller
-//----------------------------------------
-IPAddress ethernetGetIpAddress()
-{
-    return ETH.localIP();
-}
-
-//----------------------------------------
-// Return the subnet mask for the Ethernet controller
-//----------------------------------------
-IPAddress ethernetGetSubnetMask()
-{
-    return ETH.subnetMask();
-}
-
-//----------------------------------------
 // Restart the Ethernet controller
 //----------------------------------------
 void ethernetRestart()
@@ -241,27 +225,6 @@ void ethernetRestart()
               pin_Ethernet_Interrupt, // IRQ pin
               -1,               // RST pin
               SPI);             // SPIClass &
-}
-
-//----------------------------------------
-// Update the Ethernet state
-//----------------------------------------
-void ethernetUpdate()
-{
-    if (present.ethernet_ws5500 == false)
-        return;
-
-    // Skip if in configure-via-ethernet mode
-    if (configureViaEthernet)
-        return;
-
-    // Display the current state
-    if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))
-    {
-        PERIODIC_CLEAR(PD_ETHERNET_STATE);
-        systemPrint(ethernetGetEventName(ethernetLastEvent));
-        systemPrintln();
-    }
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

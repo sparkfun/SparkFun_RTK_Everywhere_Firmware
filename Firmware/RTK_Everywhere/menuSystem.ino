@@ -1147,16 +1147,13 @@ void menuPeriodicPrint()
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_BLUETOOTH_DATA_TX) ? "Enabled" : "Disabled");
 
         systemPrint("3) Ethernet IP address: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ETHERNET_IP_ADDRESS) ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_IP_ADDRESS) ? "Enabled" : "Disabled");
 
         systemPrint("4) Ethernet state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ETHERNET_STATE) ? "Enabled" : "Disabled");
 
         systemPrint("5) SD log write data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_SD_LOG_WRITE) ? "Enabled" : "Disabled");
-
-        systemPrint("6) WiFi IP Address: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_IP_ADDRESS) ? "Enabled" : "Disabled");
 
         systemPrint("7) WiFi state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_STATE) ? "Enabled" : "Disabled");
@@ -1277,13 +1274,11 @@ void menuPeriodicPrint()
         else if (incoming == 2)
             PERIODIC_TOGGLE(PD_BLUETOOTH_DATA_TX);
         else if (incoming == 3)
-            PERIODIC_TOGGLE(PD_ETHERNET_IP_ADDRESS);
+            PERIODIC_TOGGLE(PD_IP_ADDRESS);
         else if (incoming == 4)
             PERIODIC_TOGGLE(PD_ETHERNET_STATE);
         else if (incoming == 5)
             PERIODIC_TOGGLE(PD_SD_LOG_WRITE);
-        else if (incoming == 6)
-            PERIODIC_TOGGLE(PD_WIFI_IP_ADDRESS);
         else if (incoming == 7)
             PERIODIC_TOGGLE(PD_WIFI_STATE);
         else if (incoming == 8)
