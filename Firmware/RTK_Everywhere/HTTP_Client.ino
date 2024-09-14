@@ -65,7 +65,7 @@ static int httpClientConnectionAttemptsTotal; // Count the number of connection 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
 static NetPriority_t httpClientPriority = NETWORK_OFFLINE;
 
-static RTKNetworkSecureClient *httpSecureClient;
+static NetworkClientSecure *httpSecureClient;
 
 static volatile uint8_t httpClientState = HTTP_CLIENT_OFF;
 
@@ -323,7 +323,7 @@ void httpClientUpdate()
         }
 
         // Allocate the httpSecureClient structure
-        httpSecureClient = new RTKNetworkSecureClient();
+        httpSecureClient = new NetworkClientSecure();
         if (!httpSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the httpSecureClient structure!");
@@ -357,7 +357,7 @@ void httpClientUpdate()
             systemPrintf("HTTP client connecting to %s\r\n", THINGSTREAM_ZTPURL);
 
         // Begin the HTTP client
-        if (!httpClient->begin(*httpSecureClient->getClient(), THINGSTREAM_ZTPURL))
+        if (!httpClient->begin(*httpSecureClient, THINGSTREAM_ZTPURL))
         {
             systemPrintln("ERROR: Failed to start httpClient!\r\n");
             httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?

@@ -73,7 +73,7 @@ static uint32_t tcpServerTimer;
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
 static volatile uint8_t tcpServerClientWriteError;
-static RTKNetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
+static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
 static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
@@ -456,7 +456,7 @@ void tcpServerUpdate()
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new RTKNetworkClientType(client, networkGetType());
+                tcpServerClient[index] = new NetworkClient;
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);

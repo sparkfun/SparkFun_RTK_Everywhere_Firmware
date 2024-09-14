@@ -146,7 +146,7 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 // Locals
 //----------------------------------------
 
-static RTKNetworkClient *tcpClient;
+static NetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
 static NetPriority_t tcpClientPriority = NETWORK_OFFLINE;
 static uint8_t tcpClientState;
@@ -271,10 +271,10 @@ void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 // Start the TCP client
 bool tcpClientStart()
 {
-    RTKNetworkClient *client;
+    NetworkClient *client;
 
     // Allocate the TCP client
-    client = new RTKNetworkClient(NETWORK_USER_TCP_CLIENT);
+    client = new NetworkClient();
     if (client)
     {
         // Get the host name
@@ -325,7 +325,7 @@ bool tcpClientStart()
 // Stop the TCP client
 void tcpClientStop()
 {
-    RTKNetworkClient *client;
+    NetworkClient *client;
     IPAddress ipAddress;
 
     client = tcpClient;

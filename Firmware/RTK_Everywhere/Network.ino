@@ -620,19 +620,6 @@ void menuTcpUdp()
 }
 
 //----------------------------------------
-// Allocate a network client
-//----------------------------------------
-RTKNetworkClient *networkClient(uint8_t user, bool useSSL)
-{
-    RTKNetworkClient *client;
-    int type;
-
-    type = networkGetType(user);
-    client = new RTKNetworkClientType(type);
-    return client;
-}
-
-//----------------------------------------
 // Display the IP address
 //----------------------------------------
 void networkDisplayIpAddress(uint8_t networkType)

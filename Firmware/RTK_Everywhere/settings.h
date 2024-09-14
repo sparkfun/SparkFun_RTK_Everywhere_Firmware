@@ -361,14 +361,13 @@ volatile byte wifiState = WIFI_STATE_OFF;
 
 #ifdef  COMPILE_NETWORK
 
-#include "RTKNetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
 #include "RTKNetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
 
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA
 {
     // Network connection used to push RTCM to NTRIP caster
-    RTKNetworkClient *networkClient;
+    NetworkClient *networkClient;
     volatile uint8_t state;
 
     // Count of bytes sent by the NTRIP server to the NTRIP caster

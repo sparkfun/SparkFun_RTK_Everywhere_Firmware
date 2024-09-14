@@ -179,7 +179,7 @@ const RtkMode_t ntripClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 //----------------------------------------
 
 // The network connection to the NTRIP caster to obtain RTCM data.
-static RTKNetworkClient *ntripClient;
+static NetworkClient *ntripClient;
 static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 
 // Throttle the time between connection attempts
@@ -583,7 +583,7 @@ void ntripClientUpdate()
         else
         {
             // Allocate the ntripClient structure
-            ntripClient = new RTKNetworkClient(NETWORK_USER_NTRIP_CLIENT);
+            ntripClient = new NetworkClient();
             if (!ntripClient)
             {
                 // Failed to allocate the ntripClient structure
