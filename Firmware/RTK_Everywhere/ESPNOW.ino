@@ -333,7 +333,7 @@ void espnowStop()
     uint8_t protocols = 0;
     response = esp_wifi_get_protocol(WIFI_IF_STA, &protocols);
     if (response != ESP_OK)
-        systemPrintf("wifiConnect: Failed to get protocols: %s\r\n", esp_err_to_name(response));
+        systemPrintf("espnowStop: Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
     // Leave WiFi with default settings (no WIFI_PROTOCOL_LR for ESP NOW)
     if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N))
