@@ -161,19 +161,12 @@ void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(unsigned long timeout) {return false;}
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
-IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress wifiGetSubnetMask() {return IPAddress((uint32_t)0);}
-int wifiGetRssi() {return -999;}
-String wifiGetSsid() {return "**WiFi Not compiled**";}
 bool wifiIsConnected() {return false;}
-bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}
-void wifiPrintNetworkInfo() {}
+bool wifiIsRunning() {return false;}
 void wifiSetApMode() {}
 void wifiStart() {}
 void wifiStop() {}
-void wifiUpdate() {}
-void wifiShutdown() {}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI

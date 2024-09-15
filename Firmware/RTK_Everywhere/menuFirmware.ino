@@ -105,7 +105,7 @@ void menuFirmware()
                     systemPrintln("Firmware update may require additional RAM. Please turn off services (ie, "
                                   "Bluetooth, WiFi, PPL, etc) if check fails.");
 
-                bool previouslyConnected = wifiIsConnected();
+                bool previouslyConnected = wifiIsRunning();
 
                 // Get firmware version from server
                 // otaCheckVersion will call wifiConnect if needed
@@ -164,7 +164,7 @@ void menuFirmware()
 
         else if ((incoming == 'u') && newOTAFirmwareAvailable)
         {
-            otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
+            otaUpdate(); // otaUpdate will call wifiConnect if needed.
 
             // We get here if WiFi failed or the server was not available
         }
@@ -473,8 +473,6 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 {
     bool gotVersion = false;
 #ifdef COMPILE_NETWORK
-    bool previouslyConnected = wifiIsConnected();
-
     bool wasInAPmode;
 
     if (!networkIsOnline())
@@ -594,8 +592,6 @@ void overTheAirUpdate()
 void otaUpdate()
 {
 #ifdef COMPILE_NETWORK
-    bool previouslyConnected = wifiIsConnected();
-
     bool wasInAPmode = false;
 
     if (!networkIsOnline())

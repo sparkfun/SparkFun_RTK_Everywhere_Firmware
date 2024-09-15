@@ -107,11 +107,7 @@ void menuSystem()
         bluetoothTest(false);
 
 #ifdef COMPILE_WIFI
-        systemPrint("WiFi MAC Address: ");
-        systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1], wifiMACAddress[2],
-                     wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-        if (wifiState == WIFI_STATE_CONNECTED)
-            wifiDisplayIpAddress();
+        wifiDisplayState();
 #endif // COMPILE_WIFI
 
 #ifdef COMPILE_ETHERNET

@@ -26,46 +26,6 @@ Network.ino
                   V                         V
               Ethernet                     WiFi
 
-  Network States:
-
-        .-------------------->NETWORK_STATE_OFF
-        |                             |
-        |                             |
-        |                             | restart
-        |                             |    or
-        |                             | networkUserOpen()
-        | networkStop()               |     networkStart()
-        |                             |
-        |                             |
-        |                             |
-        |                             V
-        +<-------------------NETWORK_STATE_DELAY--------------------------------.
-        ^                             |                                         |
-        |                             | Delay complete                          |
-        |                             |                                         |
-        |                             V                                         V
-        +<----------------NETWORK_STATE_CONNECTING----------------------------->+
-        ^                             |                          Network Failed |
-        |                             | Media connected                         |
-        | networkUserClose()          |                                   Retry |
-        |         &&                  V                                         |
-        | activeUsers == 0            +<----------------.                       |
-        |                             |                 | networkUserClose()    |
-        |                             V                 |         &&            |
-        +<------------------NETWORK_STATE_IN_USE--------' activeUsers != 0      |
-        ^                             |                                         |
-        |                             | Network failed                          |
-        |                             |       or                                |
-        |                             | networkStop()                           |
-        |                             V                                         |
-        |                             +<----------------------------------------'
-        |                             |
-        |                             V
-        |                             +<----------------.
-        |                             |                 | networkUserClose()
-        |                             V                 |         &&
-        '-------------------NETWORK_WAIT_NO_USERS-------' activeUsers != 0
-
   Network testing on an RTK Reference Station using NTRIP client:
 
     1. Network retries using Ethernet, no WiFi setup:
@@ -144,22 +104,6 @@ Network.ino
 //----------------------------------------
 // External and forward declarations
 //----------------------------------------
-
-// Network support routines
-bool networkIsInterfaceOnline(uint8_t priority);
-void networkMarkOffline(int priority);
-void networkMarkOnline(int priority);
-uint8_t networkPriorityGet(NetworkInterface *netif);
-void networkPriorityValidation(uint8_t priority);
-void networkSequenceBoot(uint8_t priority);
-void networkSequenceNextEntry(uint8_t priority);
-
-// Poll routines
-void cellularAttached(uint8_t priority, uintptr_t parameter, bool debug);
-void cellularSetup(uint8_t priority, uintptr_t parameter, bool debug);
-void cellularStart(uint8_t priority, uintptr_t parameter, bool debug);
-void networkDelay(uint8_t priority, uintptr_t parameter, bool debug);
-void networkStartDelayed(uint8_t priority, uintptr_t parameter, bool debug);
 
 // Poll sequences
 extern NETWORK_POLL_SEQUENCE laraBootSequence[];
@@ -440,6 +384,28 @@ IPAddress networkGetBroadcastIpAddress()
 
     // Return the broadcast address
     return IPAddress(255, 255, 255, 255);
+}
+
+//----------------------------------------
+// Get the gateway IP address
+//----------------------------------------
+IPAddress networkGetGatewayIpAddress()
+{
+    NetIndex_t index;
+    IPAddress ip;
+
+    // Get the networkTable index
+    index = networkPriority;
+    if (index < NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[index];
+
+        // Return the gateway IP address
+        return networkTable[index].netif->gatewayIP();
+    }
+
+    // No gateway IP address
+    return IPAddress(0, 0, 0, 0);
 }
 
 //----------------------------------------

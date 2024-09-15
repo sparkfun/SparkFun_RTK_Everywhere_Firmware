@@ -166,7 +166,7 @@ void espnowStart()
     if (response != ESP_OK)
         systemPrintf("espnowStart: Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
-    if (wifiState == WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
+    if ((!wifiIsRunning()) && espnowState == ESPNOW_OFF)
     {
         // Radio is off, turn it on
         if (protocols != (WIFI_PROTOCOL_LR))
@@ -187,7 +187,7 @@ void espnowStart()
         }
     }
     // If WiFi is on but ESP NOW is off, then enable LR protocol
-    else if (wifiState > WIFI_STATE_OFF && espnowState == ESPNOW_OFF)
+    else if (wifiIsRunning() && espnowState == ESPNOW_OFF)
     {
         // Enable WiFi + ESP-Now
         // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
@@ -362,7 +362,7 @@ void espnowStop()
 
     espnowSetState(ESPNOW_OFF);
 
-    if (wifiState == WIFI_STATE_OFF)
+    if (!wifiIsRunning())
     {
         // ESP Now was the only thing using the radio so turn WiFi radio off entirely
         WiFi.mode(WIFI_OFF);
@@ -371,7 +371,7 @@ void espnowStop()
             systemPrintln("WiFi Radio off entirely");
     }
     // If WiFi is on, then restart WiFi
-    else if (wifiState > WIFI_STATE_OFF)
+    else if (wifiIsRunning())
     {
         if (settings.debugEspNow == true)
             systemPrintln("ESP-Now starting WiFi");

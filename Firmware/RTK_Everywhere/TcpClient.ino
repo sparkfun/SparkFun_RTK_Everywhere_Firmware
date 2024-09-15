@@ -288,7 +288,7 @@ bool tcpClientStart()
             // gateway IP address.
 
             // Attempt the TCP client connection
-            tcpClientIpAddress = wifiGetGatewayIpAddress();
+            tcpClientIpAddress = networkGetGatewayIpAddress();
             sprintf(hostname, "%s", tcpClientIpAddress.toString().c_str());
         }
 

@@ -212,10 +212,6 @@ void stateUpdate()
 
             displayBaseStart(0); // Show 'Base'
 
-            // Allow WiFi to continue running if NTRIP Client is needed for assisted survey in
-            if (wifiIsNeeded() == false)
-                WIFI_STOP();
-
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
 

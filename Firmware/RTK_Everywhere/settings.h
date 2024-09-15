@@ -306,6 +306,8 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
+#ifdef  COMPILE_NETWORK
+
 typedef uint8_t NetIndex_t;     // Index into the networkTable
 typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
@@ -360,20 +362,6 @@ const NETWORK_TABLE_ENTRY networkTable[] =
 const int networkTableEntries = sizeof(networkTable) / sizeof(networkTable[0]);
 
 #define NETWORK_OFFLINE     networkTableEntries
-
-// Even though WiFi and ESP-Now operate on the same radio, we treat
-// then as different states so that we can leave the radio on if
-// either WiFi or ESP-Now are active
-enum WiFiState
-{
-    WIFI_STATE_OFF = 0,
-    WIFI_STATE_START,
-    WIFI_STATE_CONNECTING,
-    WIFI_STATE_CONNECTED,
-};
-volatile byte wifiState = WIFI_STATE_OFF;
-
-#ifdef  COMPILE_NETWORK
 
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA

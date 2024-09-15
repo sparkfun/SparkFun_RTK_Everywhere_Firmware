@@ -313,7 +313,7 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer) // Was && (!wifiIsConnected())) - TODO check this
+        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer)
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
