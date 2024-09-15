@@ -308,16 +308,16 @@ enum PeriodDisplayValues
 
 #ifdef  COMPILE_NETWORK
 
-typedef uint8_t NetIndex_t;     // Index into the networkTable
+typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
 typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
                                 // Value 0 (highest) - 255 (lowest) priority
 
 // Routine to poll a network interface
 // Inputs:
-//     index: Index into the networkTable
+//     index: Index into the networkInterfaceTable
 //     parameter: Arbitrary parameter to the poll routine
-typedef void (* NETWORK_POLL_ROUTINE)(NetPriority_t index, uintptr_t parameter, bool debug);
+typedef void (* NETWORK_POLL_ROUTINE)(NetIndex_t index, uintptr_t parameter, bool debug);
 
 // Sequence entry specifying a poll routine call for a network interface
 typedef struct _NETWORK_POLL_SEQUENCE
@@ -327,7 +327,7 @@ typedef struct _NETWORK_POLL_SEQUENCE
     const char * description;     // Description of operation
 } NETWORK_POLL_SEQUENCE;
 
-// networkTable entry
+// networkInterfaceTable entry
 typedef struct _NETWORK_TABLE_ENTRY
 {
     NetworkInterface * netif;       // Network interface object address
@@ -347,21 +347,26 @@ enum NetworkTypes
     NETWORK_MAX
 };
 
+// Sequence table declarations
+extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
+
 // List of networks
 // Multiple networks may running in parallel with highest priority being
 // set to the default network.  The start routine is called as the priority
 // drops to that level.  The stop routine is called as the priority rises
 // above that level.  The priority will continue to fall or rise until a
 // network is found that is online.
-const NETWORK_TABLE_ENTRY networkTable[] =
+const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
 { // Interface  Name            Periodic State      Boot Sequence           Start Sequence      Stop Sequence
     {&ETH,      "Ethernet",     PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
-    {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
+    {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
 //    {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
 };
-const int networkTableEntries = sizeof(networkTable) / sizeof(networkTable[0]);
+const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
 
-#define NETWORK_OFFLINE     networkTableEntries
+#define NETWORK_OFFLINE     networkInterfaceTableEntries
+
+const NetMask_t mDNSUse = 0x3; // One bit per network interface
 
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA

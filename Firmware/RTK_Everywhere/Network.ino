@@ -99,33 +99,22 @@ Network.ino
 
 #ifdef COMPILE_NETWORK
 
-#define NETWORK_DEBUG_STATE         settings.debugNetworkLayer
-
-//----------------------------------------
-// External and forward declarations
-//----------------------------------------
-
-// Poll sequences
-extern NETWORK_POLL_SEQUENCE laraBootSequence[];
-extern NETWORK_POLL_SEQUENCE laraOnSequence[];
-extern NETWORK_POLL_SEQUENCE laraOffSequence[];
-
 //----------------------------------------
 // Locals
 //----------------------------------------
 
-// Priority of each of the networks in the networkTable
-// Index by networkTable index to get network interface priority
+// Priority of each of the networks in the networkInterfaceTable
+// Index by networkInterfaceTable index to get network interface priority
 NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
 
-// Index by priority to get the networkTable index
+// Index by priority to get the networkInterfaceTable index
 NetIndex_t networkIndexTable[NETWORK_OFFLINE];
 
 // Priority of the default network interface
 NetPriority_t networkPriority = NETWORK_OFFLINE;  // Index into networkPriorityTable
 
 // The following entries have one bit per interface
-// Each bit represents an index into the networkTable
+// Each bit represents an index into the networkInterfaceTable
 NetMask_t networkOnline;  // Track the online networks
 
 NetMask_t networkSeqStarting;       // Track the starting sequences
@@ -136,6 +125,8 @@ NetMask_t networkStarted;           // Track the running networks
 
 // Active network sequence, may be nullptr
 NETWORK_POLL_SEQUENCE * networkSequence[NETWORK_OFFLINE];
+
+bool networkMdnsRunning;    // true when mDNS is running
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -293,11 +284,11 @@ void networkBegin()
 
     // Set the network priority values
     // Normally these would come from settings
-    for (int index = 0; index < networkTableEntries; index++)
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
         networkPriorityTable[index] = index;
 
     // Set the network index values based upon the priorities
-    for (int index = 0; index < networkTableEntries; index++)
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
         networkIndexTable[networkPriorityTable[index]] = index;
 
     // Handle the network events
@@ -308,7 +299,7 @@ void networkBegin()
         ethernetStart();
 
     // Start WiFi
-    wifiStart();
+    networkSequenceStart(NETWORK_WIFI, settings.debugNetworkLayer);
 }
 
 //----------------------------------------
@@ -318,7 +309,7 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
     int index;
 
-    // Get the index into the networkTable for the default interface
+    // Get the index into the networkInterfaceTable for the default interface
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
         index = networkIndexTable[index];
@@ -334,15 +325,6 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_DISCONNECTED:
     case ARDUINO_EVENT_ETH_STOP:
         ethernetEvent(event, info);
-
-        // Start or stop mDNS if necessary
-        if (index == NETWORK_ETHERNET)
-        {
-            if (event == ARDUINO_EVENT_ETH_CONNECTED)
-                networkMulticastDNSStart();
-            else
-                networkMulticastDNSStop();
-        }
         break;
 
     // WiFi
@@ -358,15 +340,6 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         wifiEvent(event, info);
-
-        // Start or stop mDNS if necessary
-        if (index == NETWORK_WIFI)
-        {
-            if (event == ARDUINO_EVENT_WIFI_STA_CONNECTED)
-                networkMulticastDNSStart();
-            else
-                networkMulticastDNSStop();
-        }
         break;
     }
 }
@@ -379,18 +352,26 @@ IPAddress networkGetBroadcastIpAddress()
     NetIndex_t index;
     IPAddress ip;
 
-    // Get the networkTable index
+    // Get the networkInterfaceTable index
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
     {
         index = networkIndexTable[index];
 
         // Return the local network broadcast IP address
-        return networkTable[index].netif->broadcastIP();
+        return networkInterfaceTable[index].netif->broadcastIP();
     }
 
     // Return the broadcast address
     return IPAddress(255, 255, 255, 255);
+}
+
+//----------------------------------------
+// Get the current interface name
+//----------------------------------------
+const char * networkGetCurrentInterfaceName()
+{
+    return networkGetNameByPriority(networkPriority);
 }
 
 //----------------------------------------
@@ -401,14 +382,14 @@ IPAddress networkGetGatewayIpAddress()
     NetIndex_t index;
     IPAddress ip;
 
-    // Get the networkTable index
+    // Get the networkInterfaceTable index
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
     {
         index = networkIndexTable[index];
 
         // Return the gateway IP address
-        return networkTable[index].netif->gatewayIP();
+        return networkInterfaceTable[index].netif->gatewayIP();
     }
 
     // No gateway IP address
@@ -423,12 +404,12 @@ IPAddress networkGetIpAddress()
     NetIndex_t index;
     IPAddress ip;
 
-    // Get the networkTable index
+    // Get the networkInterfaceTable index
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
     {
         index = networkIndexTable[index];
-        return networkTable[index].netif->localIP();
+        return networkInterfaceTable[index].netif->localIP();
     }
 
     // No IP address available
@@ -463,7 +444,7 @@ const uint8_t * networkGetMacAddress()
 const char * networkGetNameByIndex(NetIndex_t index)
 {
     if (index < NETWORK_OFFLINE)
-        return networkTable[index].name;
+        return networkInterfaceTable[index].name;
     return "None";
 }
 
@@ -540,6 +521,10 @@ void networkMarkOffline(NetIndex_t index)
     if (settings.debugNetworkLayer)
         systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
 
+    // Disable mDNS if necessary
+    if (networkMdnsRunning && ((mDNSUse & networkOnline) == 0))
+        networkMulticastDNSStop();
+
     // Did the highest priority network just fail?
     if (networkPriorityTable[index] == networkPriority)
     {
@@ -559,19 +544,19 @@ void networkMarkOffline(NetIndex_t index)
                 break;
 
             // No, does this network need starting
-//            networkStart(index, NETWORK_DEBUG_SEQUENCE);
+            networkStart(index, settings.debugNetworkLayer);
         }
 
         // Set the new network priority
         networkPriority = priority;
         if (priority < NETWORK_OFFLINE)
-            Network.setDefaultInterface(*networkTable[index].netif);
+            Network.setDefaultInterface(*networkInterfaceTable[index].netif);
 
         // Display the transition
         if (settings.debugNetworkLayer)
             systemPrintf("Default Network Interface: %s --> %s\r\n",
                          networkGetNameByPriority(previousPriority),
-                         networkGetNameByIndex(index));
+                         networkGetNameByPriority(priority));
     }
 }
 
@@ -598,6 +583,10 @@ void networkMarkOnline(NetIndex_t index)
     if (settings.debugNetworkLayer)
         systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
 
+    // Start mDNS if necessary
+    if ((networkMdnsRunning == false) && (mDNSUse & networkOnline))
+        networkMulticastDNSStart();
+
     // Raise the network priority if necessary
     previousPriority = networkPriority;
     priority = networkPriorityTable[index];
@@ -607,7 +596,7 @@ void networkMarkOnline(NetIndex_t index)
     // The network layer changes the default network interface when a
     // network comes online which can place things out of priority order.
     // Always set the highest priority network as the default
-    Network.setDefaultInterface(*networkTable[networkIndexTable[networkPriority]].netif);
+    Network.setDefaultInterface(*networkInterfaceTable[networkIndexTable[networkPriority]].netif);
 
     // Stop lower priority networks when the priority is raised
     if (previousPriority > priority)
@@ -627,12 +616,12 @@ void networkMarkOnline(NetIndex_t index)
             // Determine if the previous network should be stopped
             index = networkIndexTable[previousPriority];
             bitMask = 1 << index;
-            if (networkTable[index].stop
+            if (networkInterfaceTable[index].stop
                 && (networkStarted & bitMask))
             {
                 // Stop the previous network
                 systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
-//                networkSequenceStop(index, NETWORK_DEBUG_SEQUENCE);
+                networkSequenceStop(index, settings.debugNetworkLayer);
             }
         }
     }
@@ -648,7 +637,12 @@ void networkMulticastDNSStart()
         if (MDNS.begin(&settings.mdnsHostName[0]) == false) // This should make the device findable from 'rtk.local' in a browser
             systemPrintln("Error setting up MDNS responder!");
         else
+        {
             MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+            networkMdnsRunning = true;
+            if (settings.debugNetworkLayer)
+                systemPrintln("mDNS started");
+        }
     }
 }
 
@@ -658,7 +652,398 @@ void networkMulticastDNSStart()
 void networkMulticastDNSStop()
 {
     if (settings.mdnsEnable == true)
+    {
         MDNS.end();
+        networkMdnsRunning = false;
+        if (settings.debugNetworkLayer)
+            systemPrintln("mDNS stopped");
+    }
+}
+
+//----------------------------------------
+// Print the network interface status
+//----------------------------------------
+void networkPrintStatus(uint8_t priority)
+{
+    NetMask_t bitMask;
+    char highestPriority;
+    int index;
+    const char * name;
+    const char * status;
+
+    // Validate the priority
+    networkValidatePriority(priority);
+
+    // Get the network name
+    name = networkGetNameByPriority(priority);
+
+    // Determine the network status
+    index = networkIndexTable[priority];
+    bitMask = (1 << index);
+    highestPriority = (networkPriority == priority) ? '*' : ' ';
+    status = "Starting";
+    if (networkOnline & bitMask)
+        status = "Online";
+    else if (networkInterfaceTable[index].boot)
+    {
+        if (networkSeqStopping & bitMask)
+            status = "Stopping";
+        else if (networkStarted & bitMask)
+            status = "Started";
+        else
+            status = "Stopped";
+    }
+
+    // Print the network interface status
+    systemPrintf("%c%d: %-10s %-8s\r\n",
+                 highestPriority, priority, name, status);
+}
+
+//----------------------------------------
+// Start the boot sequence
+//----------------------------------------
+void networkSequenceBoot(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    bool debug;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * sequence;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Set the network bit
+    bitMask = 1 << index;
+    debug = settings.debugNetworkLayer;
+
+    // Display the transition
+    if (debug)
+    {
+        systemPrintf("--------------- %s Boot ---------------\r\n", networkGetNameByIndex(index));
+        systemPrintf("%s: Reset --> Booting\r\n", networkGetNameByIndex(index));
+    }
+
+    // Display the description
+    sequence = networkInterfaceTable[index].boot;
+    if (sequence)
+    {
+        description = sequence->description;
+        if (debug && description)
+            systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+        // Start the boot sequence
+        networkSequence[index] = sequence;
+        networkSeqStarting &= ~bitMask;
+        networkSeqStopping &= ~bitMask;
+    }
+}
+
+//----------------------------------------
+// Select the next entry in the  sequence
+//----------------------------------------
+void networkSequenceNextEntry(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * next;
+    bool start;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the previous sequence entry
+    next = networkSequence[index];
+
+    // Set the next sequence entry
+    next += 1;
+    if (next->routine)
+    {
+        // Display the description
+        description = next->description;
+        if (debug && description)
+            systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+        // Start the next entry in the sequence
+        networkSequence[index] = next;
+    }
+
+    // Termination entry found, stop the sequence or start next sequence
+    else
+    {
+        // Stop the polling for this sequence
+        networkSequence[index] = nullptr;
+        bitMask = 1 << index;
+
+        // Display the transition
+        if (settings.debugNetworkLayer && (networkSeqStarting & bitMask))
+            systemPrintf("%s: Starting --> Started\r\n", networkGetNameByIndex(index));
+        else if (settings.debugNetworkLayer && (networkSeqStopping & bitMask))
+            systemPrintf("%s: Stopping --> Stopped\r\n", networkGetNameByIndex(index));
+        else
+            systemPrintf("%s: Booting --> Booted\r\n", networkGetNameByIndex(index));
+
+        // Clear the status bits
+        networkSeqStarting &= ~bitMask;
+        networkSeqStopping &= ~bitMask;
+
+        // Check for another sequence request
+        if (networkSeqRequest & bitMask)
+        {
+            // Another request is pending, get the next request
+            start = networkSeqNext & bitMask;
+
+            // Clear the bits
+            networkSeqRequest &= ~bitMask;
+            networkSeqNext &= ~bitMask;
+            networkSeqRequest &= ~bitMask;
+
+            // Start the next sequence
+            if (networkSeqNext & bitMask)
+                networkSequenceStart(index, debug);
+            else
+                networkSequenceStop(index, debug);
+        }
+    }
+}
+
+//----------------------------------------
+// Attempt to start the start sequence
+//----------------------------------------
+void networkSequenceStart(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * sequence;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Set the network bit
+    bitMask = 1 << index;
+
+    // Determine if the sequence any sequence is already running
+    sequence = networkSequence[index];
+    if (sequence)
+    {
+        // A sequence is already running, set the next request
+        // Check for already starting
+        if (networkSeqStarting & bitMask)
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, dropping request since already starting\r\n",
+                             networkGetNameByIndex(index));
+
+            // Ignore this request, compressed
+            // Compress multiple requests
+            //   Start --> Start = Start
+            //   Start --> Stop --> ... --> Stop --> Start = Start
+        }
+
+        // Either boot request or stop request is running
+        else
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, delaying start sequence\r\n",
+                             networkGetNameByIndex(index));
+
+            // Compress multiple requests
+            //   Boot --> Start
+            //   Stop --> Start = Start
+            //   Stop --> Start -> ... --> Stop --> Start  = Start
+            // Note the next request to execute
+            networkSeqNext |= bitMask;
+            networkSeqRequest |= bitMask;
+        }
+    }
+    else
+    {
+        // No sequence is running
+        if (debug)
+        {
+            systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+            systemPrintf("--------------- %s Start ---------------\r\n", networkGetNameByIndex(index));
+            systemPrintf("%s: Stopped --> Starting\r\n", networkGetNameByIndex(index));
+        }
+
+        // Display the description
+        sequence = networkInterfaceTable[index].start;
+        if (sequence)
+        {
+            description = sequence->description;
+            if (debug && description)
+                systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+            // Start the sequence
+            networkSequence[index] = sequence;
+            networkSeqStarting |= bitMask;
+            networkStarted |= bitMask;
+        }
+    }
+}
+
+//----------------------------------------
+// Start the stop sequence
+//----------------------------------------
+void networkSequenceStop(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * sequence;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Set the network bit
+    bitMask = 1 << index;
+
+    // Determine if the sequence any sequence is already running
+    sequence = networkSequence[index];
+    if (sequence)
+    {
+        // A sequence is already running, set the next request
+        // Check for already stopping
+        if (networkSeqStopping & bitMask)
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, dropping request since already stopping\r\n",
+                             networkGetNameByIndex(index));
+
+            // Ignore this request, compressed
+            // Compress multiple requests
+            //   Stop --> Stop = Stop
+            //   Stop --> Start --> ... --> Start --> Stop = Stop
+        }
+
+        // Either boot request or start request is running
+        else
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, delaying stop sequence\r\n",
+                             networkGetNameByIndex(index));
+
+            // Compress multiple requests
+            //   Boot ---> Stop
+            //   Start --> Stop = Stop
+            //   Start --> Stop -> ... --> Start --> Stop  = Stop
+            // Note the next request to execute
+            networkSeqNext &= ~bitMask;
+            networkSeqRequest |= bitMask;
+        }
+    }
+    else
+    {
+        // No sequence is running
+        if (debug)
+        {
+            systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+            systemPrintf("--------------- %s Stop ---------------\r\n", networkGetNameByIndex(index));
+            systemPrintf("%s: Started --> Stopped\r\n", networkGetNameByIndex(index));
+        }
+
+        // Display the description
+        sequence = networkInterfaceTable[index].stop;
+        if (sequence)
+        {
+            description = sequence->description;
+            if (debug && description)
+                systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+            // Start the sequence
+            networkSeqStopping |= bitMask;
+            networkStarted &= ~bitMask;
+            networkSequence[index] = sequence;
+        }
+    }
+}
+
+//----------------------------------------
+// Start a network interface
+//----------------------------------------
+void networkStart(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the network bit
+    bitMask = (1 << index);
+    if (networkInterfaceTable[index].start
+        && (!(networkStarted & bitMask)))
+            systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
+        networkSequenceStart(index, debug);
+}
+
+//----------------------------------------
+// Start the network if only lower priority networks started at boot
+//----------------------------------------
+void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    const char * currentInterfaceName;
+    NetMask_t highPriorityBitMask;
+    const char * name;
+    NetPriority_t networkInterfacePriority;
+    const char * status;
+    NetIndex_t tempIndex;
+
+    // Handle the boot case where only lower priority network interfaces
+    // start.  In this case, a start is never issued to the cellular layer
+    if (millis() >= parameter)
+    {
+        // Set the next state
+        networkSequenceNextEntry(index, debug);
+
+        // Build the higher priority bitmask
+        highPriorityBitMask = 0;
+        networkInterfacePriority = networkPriorityTable[index];
+        for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
+        {
+            // Determine if this is a higher priority interface
+            if (priority < networkInterfacePriority)
+            {
+                // Determine if this interface is online
+                if (networkOnline & (1 << tempIndex))
+                {
+                    tempIndex = networkIndexTable[priority];
+                    highPriorityBitMask |= 1 << tempIndex;
+                }
+            }
+
+            // Display the network interface
+            if (debug)
+                networkPrintStatus(networkIndexTable[priority]);
+        }
+
+        // Only lower priority networks running, start this network interface
+        name = networkGetNameByIndex(index);
+        currentInterfaceName = networkGetCurrentInterfaceName();
+        if ((networkOnline & highPriorityBitMask) == 0)
+        {
+            if (debug)
+                systemPrintf("%s online, Starting %s\r\n",
+                             currentInterfaceName, name);
+
+            // Only lower priority interfaces or none running
+            // Start this network interface
+            networkStart(index, settings.debugNetworkLayer);
+        }
+        else if (debug)
+            systemPrintf("%s online, leaving %s off\r\n",
+                         currentInterfaceName, name);
+    }
+    else if (debug)
+    {
+        // Count down the delay
+        int32_t seconds = millis() / 1000;
+        static int32_t previousSeconds = -1;
+        if (previousSeconds == -1)
+            previousSeconds = parameter / 1000;
+        if (seconds != previousSeconds)
+        {
+            previousSeconds = seconds;
+            systemPrintf("Delaying Start: %d Sec\r\n", (parameter / 1000) - seconds);
+        }
+    }
 }
 
 //----------------------------------------
@@ -667,43 +1052,27 @@ void networkMulticastDNSStop()
 void networkUpdate()
 {
     bool displayIpAddress;
+    NetIndex_t index;
     IPAddress ipAddress;
     bool ipAddressDisplayed;
     uint8_t networkType;
+    NETWORK_POLL_ROUTINE pollRoutine;
+    uint8_t priority;
+    NETWORK_POLL_SEQUENCE * sequence;
 
-    // Periodically display the network interface state
-    displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
-    for (int index = 0; index < networkTableEntries; index++)
+    // Walk the list of priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
     {
-        // Display the current state
-        ipAddressDisplayed = displayIpAddress && (index == networkPriority);
-        if (PERIODIC_DISPLAY(networkTable[index].pdState)
-            || PERIODIC_DISPLAY(PD_NETWORK_STATE)
-            || ipAddressDisplayed)
+        // Execute any active polling routine
+        index = networkIndexTable[priority];
+        sequence = networkSequence[index];
+        if (sequence)
         {
-            PERIODIC_CLEAR(networkTable[index].pdState);
-            if (networkTable[index].netif->hasIP())
-            {
-                ipAddress = networkTable[index].netif->localIP();
-                systemPrintf("%s: %s%s\r\n", networkTable[index].name,
-                             ipAddress.toString().c_str(),
-                             networkTable[index].netif->isDefault() ? " (default)" : "");
-            }
-            else if (networkTable[index].netif->linkUp())
-                systemPrintf("%s: Link Up\r\n", networkTable[index].name);
-            else if (networkTable[index].netif->started())
-                systemPrintf("%s: Started\r\n", networkTable[index].name);
-            else
-                systemPrintf("%s: Stopped\r\n", networkTable[index].name);
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
         }
-    }
-    if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
-        PERIODIC_CLEAR(PD_NETWORK_STATE);
-    if (displayIpAddress)
-    {
-        if (!ipAddressDisplayed)
-            systemPrintln("Network: Offline");
-        PERIODIC_CLEAR(PD_IP_ADDRESS);
     }
 
     // Update the network services
@@ -723,6 +1092,41 @@ void networkUpdate()
     udpServerUpdate(); // Turn on the UDP server as needed
     DMW_c("httpClientUpdate");
     httpClientUpdate(); // Process any Point Perfect HTTP messages
+
+    // Periodically display the network interface state
+    displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    {
+        // Display the current state
+        ipAddressDisplayed = displayIpAddress && (index == networkPriority);
+        if (PERIODIC_DISPLAY(networkInterfaceTable[index].pdState)
+            || PERIODIC_DISPLAY(PD_NETWORK_STATE)
+            || ipAddressDisplayed)
+        {
+            PERIODIC_CLEAR(networkInterfaceTable[index].pdState);
+            if (networkInterfaceTable[index].netif->hasIP())
+            {
+                ipAddress = networkInterfaceTable[index].netif->localIP();
+                systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name,
+                             ipAddress.toString().c_str(),
+                             networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
+            }
+            else if (networkInterfaceTable[index].netif->linkUp())
+                systemPrintf("%s: Link Up\r\n", networkInterfaceTable[index].name);
+            else if (networkInterfaceTable[index].netif->started())
+                systemPrintf("%s: Started\r\n", networkInterfaceTable[index].name);
+            else
+                systemPrintf("%s: Stopped\r\n", networkInterfaceTable[index].name);
+        }
+    }
+    if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
+        PERIODIC_CLEAR(PD_NETWORK_STATE);
+    if (displayIpAddress)
+    {
+        if (!ipAddressDisplayed)
+            systemPrintln("Network: Offline");
+        PERIODIC_CLEAR(PD_IP_ADDRESS);
+    }
 }
 
 //----------------------------------------
@@ -731,10 +1135,10 @@ void networkUpdate()
 void networkValidateIndex(NetIndex_t index)
 {
     // Validate the index
-    if (index >= networkTableEntries)
+    if (index >= NETWORK_OFFLINE)
     {
         systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n",
-                     index, networkTableEntries - 1);
+                     index, NETWORK_OFFLINE - 1);
         reportFatalError("Invalid index value!");
     }
 }
@@ -745,10 +1149,10 @@ void networkValidateIndex(NetIndex_t index)
 void networkValidatePriority(NetPriority_t priority)
 {
     // Validate the priority
-    if (priority >= networkTableEntries)
+    if (priority >= NETWORK_OFFLINE)
     {
         systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n",
-                     priority, networkTableEntries - 1);
+                     priority, NETWORK_OFFLINE - 1);
         reportFatalError("Invalid priority value!");
     }
 }
@@ -759,8 +1163,8 @@ void networkValidatePriority(NetPriority_t priority)
 void networkVerifyTables()
 {
     // Verify the table lengths
-    if (networkTableEntries != NETWORK_MAX)
-        reportFatalError("Fix networkTable to match NetworkType");
+    if (NETWORK_OFFLINE != NETWORK_MAX)
+        reportFatalError("Fix networkInterfaceTable to match NetworkType");
 }
 
 #endif // COMPILE_NETWORK

@@ -421,26 +421,46 @@ void wifiRestart()
 // Sets the appropriate protocols (WiFi + ESP-Now)
 // If radio is off entirely, start WiFi
 // If ESP-Now is active, only add the LR protocol
+// Returns true if WiFi has started and false otherwise
 //----------------------------------------
-void wifiStart()
+bool wifiStart()
 {
     if (wifiNetworkCount() == 0)
     {
         systemPrintln("Error: Please enter at least one SSID before using WiFi");
         displayNoSSIDs(2000);
         WIFI_STOP();
-        return;
+        return false;
     }
 
     if (wifiIsRunning())
-        return; // We don't need to do anything
+        return true; // We don't need to do anything
 
     if (settings.debugWifiState == true)
         systemPrintln("Starting WiFi");
 
     // Start WiFi
-    wifiConnect(settings.wifiConnectTimeoutMs);
+    return wifiConnect(settings.wifiConnectTimeoutMs);
 }
+
+//----------------------------------------
+// Start WiFi
+//----------------------------------------
+void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    // Start WiFi
+    if (wifiStart())
+        networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+}
+
+//----------------------------------------
+// Wifi start sequence
+//----------------------------------------
+NETWORK_POLL_SEQUENCE wifiStartSequence[] =
+{   //  State               Parameter               Description
+    {wifiStart,             0,                      "Initialize Wifi"},
+    {nullptr,               0,                      "Termination"},
+};
 
 //----------------------------------------
 // Stop WiFi and release all resources
