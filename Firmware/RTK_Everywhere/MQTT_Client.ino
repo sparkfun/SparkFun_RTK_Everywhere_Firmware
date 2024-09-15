@@ -722,13 +722,12 @@ void mqttClientUpdate()
 
     // Wait for a network media connection
     case MQTT_CLIENT_NETWORK_STARTED: {
-        // Determine if the network has failed
-        if (!networkIsConnected(&mqttClientPriority))
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+        // Determine if MQTT was turned off
+        if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
+            mqttClientStop(true);
 
-        // The network is available for the MQTT client
-        else
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&mqttClientPriority))
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }

@@ -361,7 +361,7 @@ void tcpServerUpdate()
         if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer)
         {
             if (settings.debugTcpServer && (!inMainMenu))
-                systemPrintln("TCP server starting the network");
+                systemPrintln("TCP server start");
             tcpServerPriority = NETWORK_OFFLINE;
             tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
         }
@@ -369,13 +369,12 @@ void tcpServerUpdate()
 
     // Wait until the network is connected
     case TCP_SERVER_STATE_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&tcpServerPriority))
-            // Failed to connect to to the network, attempt to restart the network
+        // Determine if the TCP server was turned off
+        if (NEQ_RTK_MODE(tcpServerMode) || !settings.enableTcpServer)
             tcpServerStop();
 
-        // Wait for the network to connect to the media
-        else
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&tcpServerPriority))
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))

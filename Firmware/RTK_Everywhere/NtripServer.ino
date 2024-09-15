@@ -598,13 +598,18 @@ void ntripServerUpdate(int serverIndex)
 
     // Wait for a network media connection
     case NTRIP_SERVER_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+        // Determine if the NTRIP server was turned off
+        if (NEQ_RTK_MODE(ntripServerMode)
+            || (settings.enableNtripServer == false)
+            || (settings.ntripServer_CasterHost[serverIndex][0] == 0)
+            || (settings.ntripServer_CasterPort[serverIndex] == 0)
+            || (settings.ntripServer_MountPoint[serverIndex][0] == 0))
+        {
+            ntripServerStop(serverIndex, true);
+        }
 
-        // The network is connected to the media
-        else
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&ntripServerPriority))
         {
             // Allocate the networkClient structure
             ntripServer->networkClient = new NetworkClient();

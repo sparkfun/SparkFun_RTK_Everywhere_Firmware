@@ -561,13 +561,12 @@ void ntripClientUpdate()
 
     // Wait for a network media connection
     case NTRIP_CLIENT_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&ntripClientPriority))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
+        // Determine if the NTRIP client was turned off
+        if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
+            ntripClientStop(true);
 
-        // The network is connected to the media
-        else
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&ntripClientPriority))
         {
             // Allocate the ntripClient structure
             ntripClient = new NetworkClient();

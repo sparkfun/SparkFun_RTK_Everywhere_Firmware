@@ -416,28 +416,30 @@ void tcpClientUpdate()
 
     // Wait until the network is connected
     case TCP_CLIENT_STATE_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
-            // Failed to connect to to the network, attempt to restart the network
+        // Determine if the TCP client was turned off
+        if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
             tcpClientStop();
 
-        // The network is connected to the media
-        // Determine if WiFi is required
-        else if ((!strlen(settings.tcpClientHost)) && (!networkIsInterfaceOnline(NETWORK_WIFI)))
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&tcpClientPriority))
         {
-            // Wrong network type, WiFi is required but another network is being used
-            if ((millis() - timer) >= (15 * 1000))
+            // Determine if WiFi is required
+            if ((!strlen(settings.tcpClientHost)) && (!networkIsInterfaceOnline(NETWORK_WIFI)))
+            {
+                // Wrong network type, WiFi is required but another network is being used
+                if ((millis() - timer) >= (15 * 1000))
+                {
+                    timer = millis();
+                    systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                }
+            }
+
+            // The network type and host provide a valid configuration
+            else
             {
                 timer = millis();
-                systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
             }
-        }
-
-        // The network type and host provide a valid configuration
-        else
-        {
-            timer = millis();
-            tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
         }
         break;
 

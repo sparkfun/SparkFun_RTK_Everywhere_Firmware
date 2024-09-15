@@ -288,13 +288,12 @@ void httpClientUpdate()
 
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
-        // Determine if the network has failed
-        if (!networkIsConnected(&httpClientPriority))
-            // Failed to connect to the network, attempt to restart the network
-            httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
+        // Determine if the HTTP client was turned off
+        if (!httpClientModeNeeded)
+            httpClientStop(true);
 
-        // The network is available for the HTTP client
-        else
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&httpClientPriority))
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         break;
     }

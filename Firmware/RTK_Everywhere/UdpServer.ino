@@ -324,13 +324,12 @@ void udpServerUpdate()
 
     // Wait until the network is connected
     case UDP_SERVER_STATE_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (!networkIsConnected(&udpServerPriority))
-            // Failed to connect to to the network, attempt to restart the network
+        // Determine if the UDP server was turned off
+        if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
             udpServerStop();
 
-        // The network is connect to the media
-        else
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&udpServerPriority))
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))

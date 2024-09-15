@@ -940,12 +940,12 @@ void otaAutoUpdate()
 
         // Wait for connection to the access point
         case OTA_STATE_WAIT_FOR_NETWORK:
-            // Determine if the network has failed
-            if (!networkIsConnected(&otaPriority))
+            // Determine if the OTA client has been turned off
+            if (!settings.debugFirmwareUpdate)
                 otaAutoUpdateStop();
 
-            // The network is connected to the media
-            else
+            // Wait until the network is connected to the media
+            else if (networkIsConnected(&otaPriority))
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update connected to WiFi");
