@@ -302,6 +302,13 @@ void networkBegin()
 
     // Handle the network events
     Network.onEvent(networkEvent);
+
+    // Start Ethernet
+    if (present.ethernet_ws5500)
+        ethernetStart();
+
+    // Start WiFi
+    wifiStart();
 }
 
 //----------------------------------------
@@ -350,7 +357,7 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-//        wifiEvent(event, info);
+        wifiEvent(event, info);
 
         // Start or stop mDNS if necessary
         if (index == NETWORK_WIFI)

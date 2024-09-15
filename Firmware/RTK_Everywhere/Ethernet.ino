@@ -214,6 +214,15 @@ void ethernetRestart()
     // Stop the Ethernet controller
     ETH.end();
 
+    // Restart the Ethernet controller
+    ethernetStart();
+}
+
+//----------------------------------------
+// Start the Ethernet controller
+//----------------------------------------
+void ethernetStart()
+{
     // Set the static IP address if necessary
     if (!settings.ethernetDHCP)
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);

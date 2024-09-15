@@ -215,7 +215,7 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
         }
     }
 
-    systemPrint("Connecting WiFi... ");
+    systemPrintln("Connecting WiFi... ");
 
     static WiFiMulti wifiMulti;
 
@@ -228,12 +228,13 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     }
 
     int wifiStatus = wifiMulti.run(timeout);
+    if (wifiStatus == WL_CONNECTED)
+        return true;
     if (wifiStatus == WL_DISCONNECTED)
         systemPrint("No friendly WiFi networks detected.\r\n");
     else
         systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiStatus);
-
-    return (wifiStatus == WL_CONNECTED);
+    return false;
 }
 
 //----------------------------------------
@@ -407,6 +408,15 @@ int wifiNetworkCount()
 }
 
 //----------------------------------------
+// Restart WiFi
+//----------------------------------------
+void wifiRestart()
+{
+    wifiStop();
+    wifiStart();
+}
+
+//----------------------------------------
 // Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
 // Sets the appropriate protocols (WiFi + ESP-Now)
 // If radio is off entirely, start WiFi
@@ -427,6 +437,9 @@ void wifiStart()
 
     if (settings.debugWifiState == true)
         systemPrintln("Starting WiFi");
+
+    // Start WiFi
+    wifiConnect(settings.wifiConnectTimeoutMs);
 }
 
 //----------------------------------------

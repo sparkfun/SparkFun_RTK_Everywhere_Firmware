@@ -107,7 +107,6 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            WIFI_STOP();      // Stop WiFi, ntripClient will start as needed.
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
             espnowStart();     // Start internal radio if enabled, otherwise disable
 
