@@ -585,20 +585,6 @@ void mqttClientShutdown()
     MQTT_CLIENT_STOP(true);
 }
 
-// Start the MQTT client
-void mqttClientStart()
-{
-    if (settings.debugMqttClientState)
-    {
-        // Display the heap state
-        reportHeapNow(settings.debugMqttClientState);
-
-        // Start the MQTT client
-        systemPrintln("MQTT Client start");
-    }
-    MQTT_CLIENT_STOP(false);
-}
-
 // Shutdown or restart the MQTT client
 void mqttClientStop(bool shutdown)
 {
@@ -706,7 +692,12 @@ void mqttClientUpdate()
     default:
     case MQTT_CLIENT_OFF: {
         if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
-            mqttClientStart();
+        {
+            // Start the MQTT client
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT Client start");
+            mqttClientStop(false);
+        }
         break;
     }
 
