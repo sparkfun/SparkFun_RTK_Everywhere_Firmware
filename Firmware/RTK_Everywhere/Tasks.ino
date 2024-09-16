@@ -178,6 +178,8 @@ void btReadTask(void *e)
                     btAppCommandCharsReceived++;
                     if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
                     {
+                        sendGnssBuffer(); //Finish sending whatever is left in the buffer
+                        
                         systemPrintln("Device has entered config mode over Bluetooth");
                         printEndpoint = PRINT_ENDPOINT_ALL;
                         btPrintEcho = true;
