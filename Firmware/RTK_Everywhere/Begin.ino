@@ -918,14 +918,6 @@ void beginInterrupts()
         pinMode(pin_GNSS_TimePulse, INPUT);
         attachInterrupt(pin_GNSS_TimePulse, tpISR, RISING);
     }
-
-#ifdef COMPILE_ETHERNET
-    if (present.ethernet_ws5500 == true)
-    {
-        DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
-        pinMode(pin_Ethernet_Interrupt, INPUT); // Prepare the interrupt pin
-    }
-#endif // COMPILE_ETHERNET
 }
 
 // Start ticker tasks for LEDs and beeper

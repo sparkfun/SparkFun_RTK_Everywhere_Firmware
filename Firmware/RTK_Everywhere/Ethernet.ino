@@ -136,13 +136,18 @@ void menuEthernet()
 //----------------------------------------
 void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
-    // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
-        networkMarkOffline((NetIndex_t)NETWORK_ETHERNET);
-
     // Remember this event for display
     ethernetLastEvent = event;
 
+    // Ethernet State Machine
+    //
+    //   .--------+<----------+------------+----------.
+    //   v        |           |            |          |
+    // STOP --> START --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
+    //   ^                    ^            ^          |             |
+    //   |                    |            '----------'             |
+    //   '--------------------+<------------------------------------'
+    //
     // Handle the event
     switch (event)
     {
@@ -163,12 +168,12 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_CONNECTED:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Connected");
-        networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
         break;
 
     case ARDUINO_EVENT_ETH_GOT_IP:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            systemPrintf("ETH Got IP: '%s'\r\n", esp_netif_get_desc(info.got_ip.esp_netif));
+            systemPrintf("ETH Got IP: '%s'\r\n", ETH.localIP().toString().c_str());
+        networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
         break;
 
     case ARDUINO_EVENT_ETH_LOST_IP:
@@ -185,6 +190,13 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Stopped");
         break;
+    }
+
+    // Take the network offline if necessary
+    if (networkIsInterfaceOnline(NETWORK_ETHERNET)
+        && (event != ARDUINO_EVENT_ETH_GOT_IP))
+    {
+        networkMarkOffline((NetIndex_t)NETWORK_ETHERNET);
     }
 }
 

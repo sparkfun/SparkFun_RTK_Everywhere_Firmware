@@ -518,12 +518,14 @@ void networkMarkOffline(NetIndex_t index)
 
     // Mark this network as offline
     networkOnline &= ~bitMask;
-    if (settings.debugNetworkLayer)
-        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
 
     // Disable mDNS if necessary
     if (networkMdnsRunning && ((mDNSUse & networkOnline) == 0))
         networkMulticastDNSStop();
+
+    // Display offline message
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
 
     // Did the highest priority network just fail?
     if (networkPriorityTable[index] == networkPriority)
@@ -583,10 +585,6 @@ void networkMarkOnline(NetIndex_t index)
     if (settings.debugNetworkLayer)
         systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
 
-    // Start mDNS if necessary
-    if ((networkMdnsRunning == false) && (mDNSUse & networkOnline))
-        networkMulticastDNSStart();
-
     // Raise the network priority if necessary
     previousPriority = networkPriority;
     priority = networkPriorityTable[index];
@@ -625,6 +623,10 @@ void networkMarkOnline(NetIndex_t index)
             }
         }
     }
+
+    // Start mDNS if necessary
+    if ((networkMdnsRunning == false) && (mDNSUse & networkOnline))
+        networkMulticastDNSStart();
 }
 
 //----------------------------------------
@@ -719,7 +721,7 @@ void networkSequenceBoot(NetIndex_t index)
     // Display the transition
     if (debug)
     {
-        systemPrintf("--------------- %s Boot ---------------\r\n", networkGetNameByIndex(index));
+        systemPrintf("--------------- %s Boot Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
         systemPrintf("%s: Reset --> Booting\r\n", networkGetNameByIndex(index));
     }
 
@@ -775,12 +777,31 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
         bitMask = 1 << index;
 
         // Display the transition
+        const char * sequenceName;
+        const char * before;
+        const char * after;
         if (settings.debugNetworkLayer && (networkSeqStarting & bitMask))
-            systemPrintf("%s: Starting --> Started\r\n", networkGetNameByIndex(index));
+        {
+            sequenceName = "Start";
+            before = "Starting";
+            after = "Started";
+        }
         else if (settings.debugNetworkLayer && (networkSeqStopping & bitMask))
-            systemPrintf("%s: Stopping --> Stopped\r\n", networkGetNameByIndex(index));
+        {
+            sequenceName = "Stop";
+            before = "Stopping";
+            after = "Stopped";
+        }
         else
-            systemPrintf("%s: Booting --> Booted\r\n", networkGetNameByIndex(index));
+        {
+            sequenceName = "Boot";
+            before = "Booting";
+            after = "Booted";
+        }
+        systemPrintf("%s: %s --> %s\r\n", networkGetNameByIndex(index), before, after);
+        systemPrintf("--------------- %s %s Sequence Stopping ---------------\r\n",
+                     networkGetNameByIndex(index), sequenceName);
+        systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
 
         // Clear the status bits
         networkSeqStarting &= ~bitMask;
@@ -861,7 +882,7 @@ void networkSequenceStart(NetIndex_t index, bool debug)
         if (debug)
         {
             systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
-            systemPrintf("--------------- %s Start ---------------\r\n", networkGetNameByIndex(index));
+            systemPrintf("--------------- %s Start Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
             systemPrintf("%s: Stopped --> Starting\r\n", networkGetNameByIndex(index));
         }
 
@@ -936,8 +957,8 @@ void networkSequenceStop(NetIndex_t index, bool debug)
         if (debug)
         {
             systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
-            systemPrintf("--------------- %s Stop ---------------\r\n", networkGetNameByIndex(index));
-            systemPrintf("%s: Started --> Stopped\r\n", networkGetNameByIndex(index));
+            systemPrintf("--------------- %s Stop Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
+            systemPrintf("%s: Started --> Stopping\r\n", networkGetNameByIndex(index));
         }
 
         // Display the description

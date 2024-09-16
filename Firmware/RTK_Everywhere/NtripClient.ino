@@ -691,9 +691,10 @@ void ntripClientUpdate()
                         seconds -= hours * SECONDS_IN_AN_HOUR;
                         minutes = seconds / SECONDS_IN_A_MINUTE;
                         seconds -= minutes * SECONDS_IN_A_MINUTE;
-                        systemPrintf("NTRIP Client connected to %s:%d at %d:%02d:%02d\r\n",
-                                     settings.ntripClient_CasterHost, settings.ntripClient_CasterPort, hours, minutes,
-                                     seconds);
+                        systemPrintf("NTRIP Client connected to %s:%d via %s:%d at %d:%02d:%02d\r\n",
+                                     settings.ntripClient_CasterHost, settings.ntripClient_CasterPort,
+                                     ntripClient->localIP().toString().c_str(),
+                                     ntripClient->localPort(), hours, minutes, seconds);
                     }
                     else
                         systemPrintf("NTRIP Client connected to %s:%d\r\n", settings.ntripClient_CasterHost,
