@@ -178,8 +178,11 @@ void btReadTask(void *e)
                     btAppCommandCharsReceived++;
                     if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
                     {
-                        sendGnssBuffer(); //Finish sending whatever is left in the buffer
-                        
+                        sendGnssBuffer(); // Finish sending whatever is left in the buffer
+
+                        // Discard any bluetooth data in the circular buffer
+                        btRingBufferTail = dataHead;
+
                         systemPrintln("Device has entered config mode over Bluetooth");
                         printEndpoint = PRINT_ENDPOINT_ALL;
                         btPrintEcho = true;
@@ -839,7 +842,7 @@ void handleGnssDataTask(void *e)
 
         // Determine BT connection state
         bool connected = (bluetoothGetState() == BT_CONNECTED);
-        
+
         if (!connected)
             // Discard the data
             btRingBufferTail = dataHead;
