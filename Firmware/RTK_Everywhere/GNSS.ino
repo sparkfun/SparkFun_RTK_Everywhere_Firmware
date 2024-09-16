@@ -1738,7 +1738,7 @@ bool gnssStandby()
     {
         if (present.gnss_zedf9p)
         {
-            return true; // TODO - this would be a perfect plave for Save-On-Shutdown
+            return true; // TODO - this would be a perfect place for Save-On-Shutdown
         }
         else if (present.gnss_um980)
         {
