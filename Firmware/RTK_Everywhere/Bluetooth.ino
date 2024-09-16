@@ -43,9 +43,11 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 {
     if (event == ESP_SPP_SRV_OPEN_EVT)
     {
-        systemPrintln("BT client Connected");
+        systemPrintln("BT client connected");
         bluetoothState = BT_CONNECTED;
         // LED is controlled by tickerBluetoothLedUpdate()
+        
+        btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
     }
 
     if (event == ESP_SPP_CLOSE_EVT)
@@ -53,7 +55,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         systemPrintln("BT client disconnected");
 
         btPrintEcho = false;
-        btPrintEchoExit = true; // Force exit all config menus
+        btPrintEchoExit = true; // Force exit all config menus and/or command modes
         printEndpoint = PRINT_ENDPOINT_SERIAL;
 
         bluetoothState = BT_NOTCONNECTED;

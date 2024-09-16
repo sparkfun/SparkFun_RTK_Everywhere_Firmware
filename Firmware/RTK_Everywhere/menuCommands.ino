@@ -12,12 +12,18 @@ void menuCommands()
     {
         InputResponse response = getUserInputString(cmdBuffer, sizeof(cmdBuffer), false); // Turn off echo
 
+        if (btPrintEchoExit == true)
+        {
+            systemPrintln("BT Connection lost. Exiting command mode...");
+            break; // Exit while(1) loop
+        }
+
         if (response != INPUT_RESPONSE_VALID)
             continue;
 
         if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
         {
-            systemPrintln("Exiting COMMAND MODE");
+            systemPrintln("Exiting command mode");
             break; // Exit while(1) loop
         }
 
@@ -215,6 +221,7 @@ void menuCommands()
     } // while(1)
 
     btPrintEcho = false;
+    btPrintEchoExit = false; // We are out of command mode
 }
 
 // Given a command, send structured OK response
