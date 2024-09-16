@@ -15,6 +15,7 @@ void menuCommands()
         if (btPrintEchoExit == true)
         {
             systemPrintln("BT Connection lost. Exiting command mode...");
+            btPrintEchoExit = false;
             break; // Exit while(1) loop
         }
 
@@ -219,9 +220,6 @@ void menuCommands()
             commandSendErrorResponse(tokens[0], (char *)"Unknown command");
         }
     } // while(1)
-
-    btPrintEcho = false;
-    btPrintEchoExit = false; // We are out of command mode
 }
 
 // Given a command, send structured OK response
