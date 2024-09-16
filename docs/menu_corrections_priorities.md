@@ -6,21 +6,26 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 *RTK Corrections Priorities Menu*
 
-To achieve an RTK Fix, SparkFun RTK products must be provided with a correction source. An RTK device can obtain corrections from a variety of sources. Below is the list of possible sources (not all platforms support all sources) and their default priorities:
+To achieve an RTK Fix, SparkFun RTK products must be provided with a correction source. An RTK device can obtain corrections from a variety of sources. Below is the list of possible sources (not all platforms support all sources) and their default priorities. These defaults generally follow the rule that a shorter baseline between Rover and Base leads to more accurate, and therefore more valuable, correction data:
 
-* External Radio
-* ESP-Now
-* LoRa Radio
-* Bluetooth
-* TCP (NTRIP)
-* L-Band
-* IP (PointPerfect/MQTT)
+* External Radio (100m [OSR](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/correction_sources/#osr-vs-ssr) Baseline)
+* ESP-Now (100m OSR Baseline)
+* LoRa Radio (1km OSR Baseline)
+* Bluetooth (10+km OSR/SSR Baseline)
+* USB (10+km OSR/SSR Baseline)
+* TCP (NTRIP) (10+km OSR/SSR Baseline)
+* L-Band (100km SSR Baseline)
+* IP (PointPerfect/MQTT) (100+km SSR Baseline)
 
-The *Corrections Priorities* menu allows a user to specify which correction source should be given priority. For example, if corrections are provided through Bluetooth and L-Band simultaneously, the corrections from L-Band will be discarded because the Bluetooth source has a higher priority. This prevents the RTK engine from receiving potentially mixed correction signals.
+The *Corrections Priorities* menu allows a user to specify which correction source should be given priority. For example, if corrections are provided through ESP-NOW and IP PointPerfect simultaneously, the corrections from IP PointPerfect will be discarded because the ESP-NOW source has a higher priority. This prevents the RTK engine from receiving potentially mixed correction signals.
 
 ![RTK Corrections Priorities Menu](<img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png>)
 
-In the serial terminal menu, pressing a letter will increase or decrease the position of a priority. For example, in the image above, pressing **F** will raise the `L-Band` priority above `TCP (NTRIP)`.
+In the serial terminal menu, pressing a letter will increase or decrease the position of a priority. For example, in the image above, pressing **G** will raise the `L-Band` priority above `TCP (NTRIP)`.
+
+Additionally, this menu gives visibility into which corrections are currently being received and utilized (marked with the *) by the RTK engine.
+
+The *Correction source lifetime in seconds* setting dictates how many seconds an active source must be silent before it is marked as inactive.
 
 In the web config page:
 

@@ -1,6 +1,6 @@
 # Radios Menu
 
-The radio menu allows the configuration of various radios that are included with a given RTK platform.
+Pressing 'r' from the main menu will open the Configure Radios menu. This allows a user to configure various radios that are available on a given RTK platform.
 
 ## ESP-NOW
 
@@ -10,11 +10,7 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](
 
 *Radio menu showing ESP-NOW*
 
-Pressing 'r' from the main menu will open the Configure Radios menu. This allows a user to enable or disable the use of the internal ESP-NOW radio.
-
-ESP-NOW is a 2.4GHz protocol that is built into the internal ESP32 microcontroller; the same microcontroller that provides Bluetooth and WiFi. ESP-NOW does not require WiFi or an Access Point. This is most useful for connecting a Base to Rover (or multiple Rovers) without the need for an external radio. Simply turn two SparkFun RTK products on, enable their radios, and data will be passed between units.
-
-Additionally, ESP-NOW supports point-to-multipoint transmissions. This means a Base can transmit to multiple Rovers simultaneously.
+ESP-NOW is a 2.4GHz protocol that is built into the internal ESP32 microcontroller; the same microcontroller that provides Bluetooth and WiFi. ESP-NOW does not require WiFi or an Access Point. This is most useful for connecting a Base to Rover (or multiple Rovers) without the need for an external radio. Simply turn two SparkFun RTK products on, enable their radios, and data will be passed between units. Additionally, ESP-NOW supports point-to-multipoint transmissions. This means a Base can transmit to multiple Rovers simultaneously.
 
 ESP-NOW is a free radio included in every RTK product and works well, but it has a few limitations: 
 
@@ -68,7 +64,7 @@ Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Support
 
 *RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna*
 
-The RTK Torch has a built-in 1W LoRa radio that allows Base to Rover communication. This radio is based on the STM32WLE5CC which contains a microcontroller and a LoRa radio. Attached to this radio is a 1W power amplifier. The radio transmits in the ISM band from 902 to 928MHz and is legal to use in North America, South America, Australia, and New Zealand. The radio implements frequency hopping spread spectrum (FHSS) techniques as well as LoRa modulation to maximize transmission distance while switching frequencies to abide by FCC requirements. Additionally, the LoRa system supports multipoint allowing one Base to communicate with dozens of Rovers.
+The RTK Torch has a built-in 1W LoRa radio that allows Base to Rover communication. This radio is based on the STM32WLE5CC which contains a microcontroller and a LoRa radio. Attached to this radio is a 1W power amplifier. The radio transmits in the ISM band from 902 to 928MHz and is legal to use in North America and South America. The radio implements frequency hopping spread spectrum (FHSS) techniques as well as LoRa modulation to maximize transmission distance while switching frequencies to abide by FCC requirements. Additionally, the LoRa system supports multipoint allowing one Base to communicate with dozens of Rovers.
 
 **Note:** RTK Torch LoRa radio uses a different frequency hopping algorithm from other radios that SparkFun sells. Therefore, RTK Torches are currently only compatible with each other and cannot be used interoperably with other LoRa or 915MHz radios.
 
@@ -82,7 +78,7 @@ The RTK Torch has an internal planar 915MHz antenna allowing good reception in h
 
 *1.83 mile (2.95km) range between Base and Rover using LoRa radios*
 
-The 1 Watt power output of the radio allows for long range transmissions when obstacles are fewer. Above is a line-of-sight test using a Base unit with line-of-sight to a near by hill-top approximately (ok, with great accuracy) of 1.83 miles (2.95km).
+The 1 Watt power output of the radio allows for long range transmissions when obstacles are fewer. Above is a line-of-sight test using a Base unit with line-of-sight to a near by hill-top measuring approximately (ok, with great accuracy) 1.83 miles (2.95km) away.
 
 ### Configuration
 
@@ -92,7 +88,7 @@ The 1 Watt power output of the radio allows for long range transmissions when ob
 
 From the radios menu, the LoRa radio can be enabled and configured. 
 
-**Don't see a LoRa menu?** Support was added starting in version v1.4. Please upgrade the [ESP32 firmware](firmware_update_esp32.md) on your device. Additionally, you may need to update the firmware on the [LoRa radio](firmware_update_stm32.md).
+**Don't see a LoRa menu?** Support was added starting in version v1.4. Please upgrade the [ESP32 firmware](firmware_update_esp32.md) on your device. Additionally, you may need to update the firmware on the [LoRa radio firmware](firmware_update_stm32.md).
 
 The *LoRa Coordination Frequency* must be the same between all Base and Rovers. The default is usually sufficient but if other RTK Torches are operating LoRa radios in the area, switching frequencies will allow multiple networks to operate simultaneously.
 
