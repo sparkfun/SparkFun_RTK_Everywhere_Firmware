@@ -162,8 +162,8 @@ bool gnssSurveyInReset()
         }
         else if (present.gnss_mosaicX5)
         {
-            // Put mosaicX5 into rover mode to cancel base averaging mode
-            return (mosaicX5SetModeRoverSurvey());
+            // Put mosaicX5 into rover mode to cancel auto base mode
+            return (mosaicX5SurveyReset());
         }
     }
     return (false);

@@ -311,7 +311,7 @@ bool     mosaicX5SetConstellations() {return false;}
 void     mosaicX5SetMinCNO(uint8_t cnoValue) {}
 void     mosaicX5SetMinElevation(uint8_t elevationDegrees) {}
 void     mosaicX5SetModel(uint8_t modelNumber) {}
-bool     mosaicX5SetModeRoverSurvey() {return false;}
+bool     mosaicX5SurveyReset() {return false;}
 bool     mosaicX5SetRate(double secondsBetweenSolutions) {return false;}
 uint8_t  mosaicX5GetLeapSeconds() {return (0);}
 uint8_t  mosaicX5GetActiveMessageCount() {return(0);}

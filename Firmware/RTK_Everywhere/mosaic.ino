@@ -1359,7 +1359,7 @@ bool mosaicX5SaveConfiguration()
     return mosaicX5sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile");
 }
 
-bool mosaicX5SetModeRoverSurvey()
+bool mosaicX5SurveyReset()
 {
     return (mosaicX5ConfigureRover());
 }
