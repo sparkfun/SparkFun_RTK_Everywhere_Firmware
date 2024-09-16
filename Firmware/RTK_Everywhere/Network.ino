@@ -304,6 +304,27 @@ void networkBegin()
         // Start WiFi
         networkSequenceStart(NETWORK_WIFI, settings.debugNetworkLayer);
     #endif  // COMPILE_WIFI
+
+    // Start LARA (cellular modem)
+    #ifdef COMPILE_CELLULAR
+        laraStart();
+    #endif  // COMPILE_CELLULAR
+}
+
+//----------------------------------------
+// Delay for a while
+//----------------------------------------
+void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
+{
+    // Get the timer address
+    uint32_t * timer = (uint32_t *)parameter;
+    
+    // Delay until the timer expires
+    if ((int32_t)(millis() - *timer) >= 0)
+    {
+        // Timer has expired
+        networkSequenceNextEntry(priority, debug);
+    } 
 }
 
 //----------------------------------------
@@ -321,6 +342,19 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     // Process the event
     switch (event)
     {
+    #ifdef COMPILE_CELLULAR
+        // Cellular modem using Point-to-Point Protocol (PPP)
+        case ARDUINO_EVENT_PPP_START:
+        case ARDUINO_EVENT_PPP_CONNECTED:
+        case ARDUINO_EVENT_PPP_GOT_IP:
+        case ARDUINO_EVENT_PPP_GOT_IP6:
+        case ARDUINO_EVENT_PPP_LOST_IP:
+        case ARDUINO_EVENT_PPP_DISCONNECTED:
+        case ARDUINO_EVENT_PPP_STOP:
+            cellularEvent(event);
+            break;
+    #endif  // COMPILE_CELLULAR
+
     #ifdef COMPILE_ETHERNET
         // Ethernet
         case ARDUINO_EVENT_ETH_START:

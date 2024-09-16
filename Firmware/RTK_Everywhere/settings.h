@@ -281,7 +281,7 @@ enum PeriodDisplayValues
     PD_TASK_SD_SIZE_CHECK,      // 26
     PD_TASK_UPDATE_PPL,         // 27
 
-    PD_Reserved_28,             // 28
+    PD_CELLULAR_STATE,          // 28
     PD_WIFI_STATE,              // 29
 
     PD_ZED_DATA_RX,             // 30
@@ -322,7 +322,7 @@ enum NetworkTypes
         NETWORK_WIFI = 1,
     #endif  // COMPILE_WIFI
     #ifdef COMPILE_CELLULAR
-//        NETWORK_CELLULAR,
+        NETWORK_CELLULAR,
     #endif  // COMPILE_CELLULAR
     // Add new networks here
     NETWORK_MAX
@@ -357,6 +357,9 @@ typedef struct _NETWORK_TABLE_ENTRY
 
 // Sequence table declarations
 extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
+extern NETWORK_POLL_SEQUENCE laraBootSequence[];
+extern NETWORK_POLL_SEQUENCE laraOffSequence[];
+extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
 // List of networks
 // Multiple networks may running in parallel with highest priority being
@@ -373,7 +376,7 @@ const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
         {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
     #endif  // COMPILE_WIFI
     #ifdef  COMPILE_CELLULAR
-//        {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+        {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);

@@ -338,6 +338,10 @@ void beginBoard()
         pin_GnssUart_RX = 25;
         // 11, D26 : LARA_PWR_ON
         pin_Cellular_PWR_ON = 26;
+        pin_Cellular_Reset = pin_Cellular_PWR_ON;
+        cellularModemResetLow = false;
+        laraPwrLowValue = 1;
+
         // 12, D27 : Ethernet Chip Select
         pin_Ethernet_CS = 27;
         //  8, D32 : PWREN
