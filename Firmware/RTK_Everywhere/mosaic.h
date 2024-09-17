@@ -25,12 +25,23 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 #define MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS {MOSAIC_MSG_RATE_MSEC500,MOSAIC_MSG_RATE_SEC1}
 
 // Output SBF PVTGeodetic and ReceiverTime on this stream - on COM1 only
-#define MOSAIC_SBF_PVT_STREAM ((4 * MOSAIC_NUM_NMEA_STREAMS) + 1)
+// The SBFOutput streams are separate to the NMEAOutput streams. It is OK to start at Stream1.
+#define MOSAIC_SBF_PVT_STREAM 1
 
-// Output ExtEvent event timing messages - to DSK1 only
+// Output SBF ExtEvent event timing messages - to DSK1 only, OnChange only
 // EventA is available on the Data port - via the multiplexer
 // EventB is connected to ESP32 Pin 18 (on v1.1 PCB only)
 #define MOSAIC_SBF_EXTEVENT_STREAM (MOSAIC_SBF_PVT_STREAM + 1)
+
+// TODO: allow the user to define their own SBF stream for logging to DSK1 - through the menu / web config
+// But, in the interim, the user can define their own SBF stream (>= Stream3) via the X5 web page over USB-C
+// The updated configuration can be saved by entering and exiting the main menu, or by:
+// Admin \ Expert Control \ Expert Console
+// eccf,Current,Boot
+// To restore the default configuration, "Reset all settings to default" (s r y), or by:
+// Admin \ Expert Control \ Expert Console
+// eccf,RxDefault,Boot
+// eccf,RxDefault,Current
 
 enum mosaicFileDuration_e {
     MOSAIC_FILE_DURATION_HOUR1 = 0,
