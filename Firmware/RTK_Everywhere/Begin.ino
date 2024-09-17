@@ -406,76 +406,12 @@ void beginBoard()
         digitalWrite(pin_powerFastOff, HIGH); // Stay on
     }
 
-    else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.0
-    {
-        // How it works:
-        // The mosaic COM ports COM1 and COM4 are connected to the ESP32
-        // To keep things ~similar to the Torch and the original Facet:
-        //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic
-        //   The RTCM and NMEA will be encapsulated in SBF format - this makes it easier to parse
-        //   COM1 TX will also output LBandBeam1 when PointPerfect (L-Band) is enabled
-        //   LBandBeam1 is not encapsulated; it is a raw data stream containing SPARTN
-        //     The SBF-encapsulated RTCM and NMEA appears 'randomly' in the raw data stream
-        //   Careful parsing allows the encapsulated SBF to be disentangled from the raw L-Band beam
-        //   COM1 RX carries RTCM messages from PPL / NTRIP to the mosaic
-        //   COM4 is used to configure the mosaic using CMD Command Line commands
-        //   COM4 TX only carries plain text Command Replies
-        // mosaic COM2 is connected to the Radio connector
-        // mosaic COM2 will output NMEA and/or RTCM (unencapsulated) at the same rate as COM1
-        // mosaic COM2 input is "auto" - it will accept RTCMv3 corrections
-        // mosaic COM3 is connected to the Data connector - via the multiplexer
-        // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
-
-        present.psram_4mb = true;
-        present.gnss_mosaicX5 = true;
-        present.display_i2c0 = true;
-        present.display_type = DISPLAY_64x48;
-        present.i2c0BusSpeed_400 = true;
-        present.peripheralPowerControl = true;
-        present.button_powerLow = true; // Button is pressed when low
-        present.fuelgauge_max17048 = true;
-        present.portDataMux = true;
-        present.fastPowerOff = true;
-        present.gnss_to_uart = true;
-        present.gnss_to_uart2 = true;
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
-
-        pin_GnssUart2_RX = 4;
-        pin_GnssUart_RX = 13;
-        pin_GnssUart_TX = 14;
-        pin_muxA = 18;
-        pin_muxB = 19;
-        pin_I2C0_SDA = 21;
-        pin_I2C0_SCL = 22;
-        pin_GnssOnOff = 23;
-        pin_GnssUart2_TX = 25;
-        pin_muxDAC = 26;
-        pin_peripheralPowerControl = 27;
-        pin_powerSenseAndControl = 32;
-        pin_powerFastOff = 33;
-        pin_chargerLED = 34;
-        pin_GnssReady = 36;
-        pin_muxADC = 39;
-
-        pinMode(pin_muxA, OUTPUT);
-        pinMode(pin_muxB, OUTPUT);
-
-        // pinMode(pin_powerFastOff, OUTPUT);
-        // digitalWrite(pin_powerFastOff, HIGH); // Stay on
-        pinMode(pin_powerFastOff, INPUT);
-
-        // Turn on power to the mosaic and OLED
-        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
-        pinMode(pin_peripheralPowerControl, OUTPUT);
-        peripheralsOn(); // Turn on power to OLED, SD, mosaic
-    }
-/*
     else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.1
     {
         // How it works:
         // The mosaic COM ports COM1 and COM4 are connected to the ESP32
         // To keep things ~similar to the Torch and the original Facet:
-        //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic
+        //   COM1 TX will output RTCM and NMEA at programmable rates, plus SBF PVTGeodetic, ReceiverTime and GPGST
         //   The RTCM and NMEA will be encapsulated in SBF format - this makes it easier to parse
         //   COM1 TX will also output LBandBeam1 when PointPerfect (L-Band) is enabled
         //   LBandBeam1 is not encapsulated; it is a raw data stream containing SPARTN
@@ -500,6 +436,7 @@ void beginBoard()
         present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
+        present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
@@ -528,16 +465,13 @@ void beginBoard()
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
 
-        // pinMode(pin_powerFastOff, OUTPUT);
-        // digitalWrite(pin_powerFastOff, HIGH); // Stay on
-        pinMode(pin_powerFastOff, INPUT);
+        pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
 
         // Turn on power to the mosaic and OLED
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, mosaic
     }
-*/
 }
 
 void beginVersion()

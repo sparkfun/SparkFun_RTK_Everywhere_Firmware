@@ -133,7 +133,7 @@ int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose butto
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
+int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
 
 int pin_GnssEvent = PIN_UNDEFINED; // Facet mosaic
 int pin_GnssOnOff = PIN_UNDEFINED; // Facet mosaic

@@ -2026,6 +2026,7 @@ struct struct_present
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
     bool fastPowerOff = false;
+    bool invertedFastPowerOff = false; // Needed for Facet mosaic v11
 
     bool needsExternalPpl = false;
 

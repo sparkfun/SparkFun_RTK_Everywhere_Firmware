@@ -45,20 +45,24 @@ void powerDown(bool displayInfo)
         delay(2000);
     }
 
+    if (present.peripheralPowerControl == true)
+        peripheralsOff();
+
     if (pin_powerSenseAndControl != PIN_UNDEFINED)
     {
         // Change the button input to an output
+        // Note: on the original Facet, pin_powerSenseAndControl could be pulled low to
+        //       turn the power off (slowly). No RTK-Everywhere devices use that circuit.
+        //       Pulling it low on Facet mosaic does no harm.
         pinMode(pin_powerSenseAndControl, OUTPUT);
         digitalWrite(pin_powerSenseAndControl, LOW);
     }
 
     if (present.fastPowerOff == true)
     {
-        digitalWrite(pin_powerFastOff, LOW);
+        pinMode(pin_powerFastOff, OUTPUT); // Ensure pin is an output
+        digitalWrite(pin_powerFastOff, present.invertedFastPowerOff ? HIGH : LOW);
     }
-
-    if (present.peripheralPowerControl == true)
-        peripheralsOff();
 
     while (1)
     {
