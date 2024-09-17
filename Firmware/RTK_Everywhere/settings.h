@@ -306,12 +306,29 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
-#ifdef  COMPILE_NETWORK
-
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
 typedef uint32_t NetMask_t;      // One bit for each network interface
 typedef int8_t NetPriority_t;  // Index into networkPriorityTable
                                 // Value 0 (highest) - 255 (lowest) priority
+
+// Types of networks, must be in same order as networkInterfaceTable
+enum NetworkTypes
+{
+    NETWORK_NONE = -1,  // The values below must start at zero and be sequential
+    #ifdef COMPILE_ETHERNET
+        NETWORK_ETHERNET,
+    #endif  // COMPILE_ETHERNET
+    #ifdef COMPILE_WIFI
+        NETWORK_WIFI = 1,
+    #endif  // COMPILE_WIFI
+    #ifdef COMPILE_CELLULAR
+//        NETWORK_CELLULAR,
+    #endif  // COMPILE_CELLULAR
+    // Add new networks here
+    NETWORK_MAX
+};
+
+#ifdef  COMPILE_NETWORK
 
 // Routine to poll a network interface
 // Inputs:
@@ -338,15 +355,6 @@ typedef struct _NETWORK_TABLE_ENTRY
     NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
 } NETWORK_TABLE_ENTRY;
 
-enum NetworkTypes
-{
-    NETWORK_ETHERNET = 0,
-    NETWORK_WIFI = 1,
-//    NETWORK_CELLULAR,
-    // Add new networks here
-    NETWORK_MAX
-};
-
 // Sequence table declarations
 extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
 
@@ -357,10 +365,16 @@ extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
 // above that level.  The priority will continue to fall or rise until a
 // network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ // Interface  Name            Periodic State      Boot Sequence           Start Sequence      Stop Sequence
-    {&ETH,      "Ethernet",     PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
-    {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
-//    {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+{ //     Interface  Name            Periodic State      Boot Sequence           Start Sequence      Stop Sequence
+    #ifdef COMPILE_ETHERNET
+        {&ETH,      "Ethernet",     PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    #endif  // COMPILE_ETHERNET
+    #ifdef COMPILE_WIFI
+        {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
+    #endif  // COMPILE_WIFI
+    #ifdef  COMPILE_CELLULAR
+//        {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+    #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
 

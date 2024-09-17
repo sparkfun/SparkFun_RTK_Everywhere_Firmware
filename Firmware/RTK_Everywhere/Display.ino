@@ -351,9 +351,11 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+#ifdef  COMPILE_ETHERNET
                 if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
+#endif  // COMPILE_ETHERNET
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
@@ -368,9 +370,11 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
+#ifdef COMPILE_ETHERNET
                 if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
+#endif  // COMPILE_ETHERNET
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
@@ -778,6 +782,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
+#ifdef COMPILE_WIFI
             if (networkIsInterfaceOnline(NETWORK_WIFI))
             {
                 if (netIncomingRTCM == true) // Download : Columns 59 - 66
@@ -805,6 +810,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     netOutgoingRTCM = false;
                 }
             }
+#endif  // COMPILE_WIFI
 
             switch (systemState) // Dynamic Model / Base : Columns 79 - 93
             {
@@ -1007,15 +1013,12 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
+#ifdef COMPILE_WIFI
     if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b00001111;
             // Based on RSSI, select icon
@@ -1050,11 +1053,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b11111111;
             // Based on RSSI, select icon
@@ -1076,6 +1075,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = WiFiSymbol3Left64x48; // Full symbol
         iconList->push_back(prop);
     }
+#endif  // COMPILE_WIFI
 }
 
 // Bluetooth is in center position
@@ -1083,15 +1083,12 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
+#ifdef COMPILE_WIFI
     if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b00001111;
             // Based on RSSI, select icon
@@ -1126,11 +1123,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b11111111;
             // Based on RSSI, select icon
@@ -1152,6 +1145,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = WiFiSymbol3Right64x48; // Full symbol
         iconList->push_back(prop);
     }
+#endif  // COMPILE_WIFI
 }
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
@@ -1168,9 +1162,11 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.xPos = (oled->getWidth() / 2) - (icon.icon.width / 2);
         icon.icon.yPos = 0;
 
+#ifdef COMPILE_WIFI
         if (networkIsInterfaceOnline(NETWORK_WIFI))
             icon.duty = 0b11111111;
         else
+#endif  // COMPILE_WIFI
             icon.duty = 0b01010101;
 
         iconList->push_back(icon);
@@ -1444,6 +1440,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 {
     if (online.batteryFuelGauge) // Product has a battery
         paintBatteryLevel(iconList);
+#ifdef COMPILE_ETHERNET
     else // if (present.ethernet_ws5500 == true)
     {
         if (!networkIsInterfaceOnline(NETWORK_ETHERNET))
@@ -1454,6 +1451,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         prop.duty = 0b11111111;
         iconList->push_back(prop);
     }
+#endif  // COMPILE_ETHERNET
 }
 
 void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)

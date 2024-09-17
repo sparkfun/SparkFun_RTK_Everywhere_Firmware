@@ -294,12 +294,16 @@ void networkBegin()
     // Handle the network events
     Network.onEvent(networkEvent);
 
+    #ifdef  COMPILE_ETHERNET
     // Start Ethernet
-    if (present.ethernet_ws5500)
-        ethernetStart();
+        if (present.ethernet_ws5500)
+            ethernetStart();
+    #endif  // COMPILE_ETHERNET
 
-    // Start WiFi
-    networkSequenceStart(NETWORK_WIFI, settings.debugNetworkLayer);
+    #ifdef  COMPILE_WIFI
+        // Start WiFi
+        networkSequenceStart(NETWORK_WIFI, settings.debugNetworkLayer);
+    #endif  // COMPILE_WIFI
 }
 
 //----------------------------------------
@@ -317,30 +321,34 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
     // Process the event
     switch (event)
     {
-    // Ethernet
-    case ARDUINO_EVENT_ETH_START:
-    case ARDUINO_EVENT_ETH_CONNECTED:
-    case ARDUINO_EVENT_ETH_GOT_IP:
-    case ARDUINO_EVENT_ETH_LOST_IP:
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-    case ARDUINO_EVENT_ETH_STOP:
-        ethernetEvent(event, info);
-        break;
+    #ifdef COMPILE_ETHERNET
+        // Ethernet
+        case ARDUINO_EVENT_ETH_START:
+        case ARDUINO_EVENT_ETH_CONNECTED:
+        case ARDUINO_EVENT_ETH_GOT_IP:
+        case ARDUINO_EVENT_ETH_LOST_IP:
+        case ARDUINO_EVENT_ETH_DISCONNECTED:
+        case ARDUINO_EVENT_ETH_STOP:
+            ethernetEvent(event, info);
+            break;
+    #endif  // COMPILE_ETHERNET
 
-    // WiFi
-    case ARDUINO_EVENT_WIFI_OFF:
-    case ARDUINO_EVENT_WIFI_READY:
-    case ARDUINO_EVENT_WIFI_SCAN_DONE:
-    case ARDUINO_EVENT_WIFI_STA_START:
-    case ARDUINO_EVENT_WIFI_STA_STOP:
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        wifiEvent(event, info);
-        break;
+    #ifdef COMPILE_WIFI
+        // WiFi
+        case ARDUINO_EVENT_WIFI_OFF:
+        case ARDUINO_EVENT_WIFI_READY:
+        case ARDUINO_EVENT_WIFI_SCAN_DONE:
+        case ARDUINO_EVENT_WIFI_STA_START:
+        case ARDUINO_EVENT_WIFI_STA_STOP:
+        case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+        case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+            wifiEvent(event, info);
+            break;
+    #endif  // COMPILE_WIFI
     }
 }
 

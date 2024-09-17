@@ -423,6 +423,7 @@ void tcpClientUpdate()
         // Wait until the network is connected to the media
         else if (networkIsConnected(&tcpClientPriority))
         {
+#ifdef COMPILE_WIFI
             // Determine if WiFi is required
             if ((!strlen(settings.tcpClientHost)) && (!networkIsInterfaceOnline(NETWORK_WIFI)))
             {
@@ -433,7 +434,17 @@ void tcpClientUpdate()
                     systemPrintln("TCP Client must connect via WiFi when no host is specified");
                 }
             }
-
+#else   // COMPILE_WIFI
+            if (!strlen(settings.tcpClientHost))
+            {
+                // Wrong network type
+                if ((millis() - timer) >= (15 * 1000))
+                {
+                    timer = millis();
+                    systemPrintln("TCP Client requires host name to be specified!");
+                }
+            }
+#endif  // COMPILE_WIFI
             // The network type and host provide a valid configuration
             else
             {
