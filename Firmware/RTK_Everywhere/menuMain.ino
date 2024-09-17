@@ -238,7 +238,8 @@ void menuMain()
 
             systemPrintln("s) Configure System");
 
-            systemPrintln("t) Configure Instrument Setup");
+            if (present.imu_im19)
+                systemPrintln("t) Configure Instrument Setup");
 
             systemPrintln("u) Configure User Profiles");
 
@@ -259,6 +260,8 @@ void menuMain()
                 menuBase();
             else if (incoming == 4)
                 menuPorts();
+            else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
+                menuLogMosaic();
             else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
                 menuLog();
             else if (incoming == 6)
@@ -281,7 +284,7 @@ void menuMain()
                 menuRadio();
             else if (incoming == 's')
                 menuSystem();
-            else if (incoming == 't')
+            else if ((incoming == 't') && present.imu_im19)
                 menuInstrument();
             else if (incoming == 'b' && btPrintEcho == true)
             {
@@ -335,7 +338,11 @@ void menuMain()
     inMainMenu = false;
 
     // Change the USB serial output behavior if necessary
-    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+    //
+    // The mosaic-X5 has separate USB COM ports. NMEA and RTCM will be output on USB1 if
+    // settings.enableGnssToUsbSerial is true. forwardGnssDataToUsbSerial is never set true.
+    if (!present.gnss_mosaicX5)
+        forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 
     // While in LoRa mode, we need to know when the last serial interaction was
     loraLastIncomingSerial = millis();

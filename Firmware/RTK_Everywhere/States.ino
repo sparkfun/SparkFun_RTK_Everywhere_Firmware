@@ -267,7 +267,9 @@ void stateUpdate()
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
-            if (hpa > 0.0 && hpa < gnssGetSurveyInStartingAccuracy())
+            // On the mosaic-X5, the HPA is undefined while the GNSS is determining its fixed position
+            // We need to skip the HPA check...
+            if ((hpa > 0.0 && hpa < gnssGetSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
             {
                 displaySurveyStart(0); // Show 'Survey'
 

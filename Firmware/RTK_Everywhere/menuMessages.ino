@@ -601,6 +601,9 @@ void checkGNSSArrayDefaults()
 
     if (present.gnss_zedf9p)
     {
+        if (settings.dynamicModel == 254)
+            settings.dynamicModel = DYN_MODEL_PORTABLE;
+
         if (settings.ubxMessageRates[0] == 254)
         {
             defaultsApplied = true;
@@ -628,6 +631,9 @@ void checkGNSSArrayDefaults()
     }
     else if (present.gnss_um980)
     {
+        if (settings.dynamicModel == 254)
+            settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
+            
         if (settings.um980Constellations[0] == 254)
         {
             defaultsApplied = true;
@@ -664,6 +670,61 @@ void checkGNSSArrayDefaults()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
         }
     }
+    else if (present.gnss_mosaicX5)
+    {
+        if (settings.dynamicModel == 254)
+            settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
+            
+        if (settings.mosaicConstellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_MOSAIC_CONSTELLATIONS; x++)
+                settings.mosaicConstellations[x] = 1;
+        }
+
+        if (settings.mosaicMessageStreamNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
+                settings.mosaicMessageStreamNMEA[x] = mosaicMessagesNMEA[x].msgDefaultStream;
+        }
+
+        if (settings.mosaicMessageIntervalsRTCMv3Rover[0] == 0.0)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Rover[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+        }
+
+        if (settings.mosaicMessageIntervalsRTCMv3Base[0] == 0.0)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
+                settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
+        }
+
+        if (settings.mosaicMessageEnabledRTCMv3Rover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Rover[x] = 0;
+        }
+
+        if (settings.mosaicMessageEnabledRTCMv3Base[0] == 254)
+        {
+            defaultsApplied = true;
+
+            for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
+                settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
+        }
+    }
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
@@ -698,13 +759,11 @@ void setLoggingType()
     int messageCount = gnssGetActiveMessageCount();
     if (messageCount == 5 || messageCount == 7)
     {
-        if (zedGetMessageRateByName("NMEA_GGA") > 0 && zedGetMessageRateByName("NMEA_GSA") > 0 &&
-            zedGetMessageRateByName("NMEA_GST") > 0 && zedGetMessageRateByName("NMEA_GSV") > 0 &&
-            zedGetMessageRateByName("NMEA_RMC") > 0)
+        if (checkGnssNMEARates())
         {
             loggingType = LOGGING_STANDARD;
 
-            if (zedGetMessageRateByName("RXM_RAWX") > 0 && zedGetMessageRateByName("RXM_SFRBX") > 0)
+            if (checkGnssPPPRates())
                 loggingType = LOGGING_PPP;
         }
     }

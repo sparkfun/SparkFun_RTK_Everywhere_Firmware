@@ -855,7 +855,7 @@ bool zedBeginPPS()
     // If our settings haven't changed, trust ZED's settings
     if (settings.updateGNSSSettings == false)
     {
-        log_d("Skipping ZED Trigger configuration");
+        systemPrintln("Skipping ZED Trigger configuration");
         return (true);
     }
 
@@ -1439,7 +1439,7 @@ uint8_t zedGetLeapSeconds()
 }
 
 // If we have decryption keys, configure module
-// Note: don't check online.lband here. We could be using ip corrections
+// Note: don't check online.lband_neo here. We could be using ip corrections
 void zedApplyPointPerfectKeys()
 {
     if (online.gnss == false)
@@ -1893,4 +1893,66 @@ uint8_t zedGetMessageNumberByName(const char *msgName)
 
     systemPrintf("zedGetMessageNumberByName: %s not found\r\n", msgName);
     return (0);
+}
+
+uint32_t zedGetRadioBaudRate()
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE);
+    }
+
+    return (0);
+}
+
+bool zedSetRadioBaudRate(uint32_t baud)
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->setVal32(UBLOX_CFG_UART2_BAUDRATE, baud);
+    }
+
+    return false;
+}
+
+uint32_t zedGetDataBaudRate()
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->getVal32(UBLOX_CFG_UART1_BAUDRATE);
+    }
+
+    return (0);
+}
+
+bool zedSetDataBaudRate(uint32_t baud)
+{
+    if (present.gnss_zedf9p)
+    {
+        return theGNSS->setVal32(UBLOX_CFG_UART1_BAUDRATE, baud);
+    }
+
+    return false;
+}
+
+bool zedCheckGnssNMEARates()
+{
+    if (present.gnss_zedf9p)
+    {
+        return (zedGetMessageRateByName("NMEA_GGA") > 0 && zedGetMessageRateByName("NMEA_GSA") > 0 &&
+                zedGetMessageRateByName("NMEA_GST") > 0 && zedGetMessageRateByName("NMEA_GSV") > 0 &&
+                zedGetMessageRateByName("NMEA_RMC") > 0);
+    }
+
+    return false;
+}
+
+bool zedCheckGnssPPPRates()
+{
+    if (present.gnss_zedf9p)
+    {
+        return (zedGetMessageRateByName("RXM_RAWX") > 0 && zedGetMessageRateByName("RXM_SFRBX") > 0);
+    }
+
+    return false;
 }

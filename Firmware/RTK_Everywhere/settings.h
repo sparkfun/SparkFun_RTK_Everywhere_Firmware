@@ -2,6 +2,7 @@
 #define __SETTINGS_H__
 
 #include "UM980.h" //Structs of UM980 messages, needed for settings.h
+#include "mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include <vector>
 
 // System can enter a variety of states
@@ -76,7 +77,7 @@ const char * const productDisplayNames[] =
 {
     "EVK",
     "Facet v2",
-    "Facet mo",
+    "Facet X5",
     "Torch",
     // Add new values just above this line
     "Unknown"
@@ -98,7 +99,7 @@ const char * const platformPrefixTable[] =
 {
     "EVK",
     "Facet v2",
-    "Facet mosaic",
+    "Facet mosaicX5",
     "Torch",
     // Add new values just above this line
     "Unknown"
@@ -109,7 +110,7 @@ const char * const platformProvisionTable[] =
 {
     "EVK",
     "Facet v2",
-    "Facet mosaic",
+    "Facet mosaicX5",
     "Torch",
     // Add new values just above this line
     "Unknown"
@@ -191,7 +192,7 @@ ButtonState buttonPreviousState = BUTTON_ROVER;
 // Data port mux (RTK Facet) can enter one of four different connections
 typedef enum
 {
-    MUX_UBLOX_NMEA = 0,
+    MUX_GNSS_UART = 0,
     MUX_PPS_EVENTTRIGGER,
     MUX_I2C_WT,
     MUX_ADC_DAC,
@@ -1256,7 +1257,7 @@ struct Settings
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
 
     // Radio
-    muxConnectionType_e dataPortChannel = MUX_UBLOX_NMEA; // Mux default to ublox UART1
+    muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
     bool debugGnss = false;                          // Turn on to display GNSS library debug messages
     bool enablePrintPosition = false;
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
@@ -1270,7 +1271,7 @@ struct Settings
         1024 * 4; // This buffer is filled from the UART receive buffer, and is then written to SD
 
     // Rover operation
-    uint8_t dynamicModel = DYN_MODEL_PORTABLE;
+    uint8_t dynamicModel = 254; // Default will be applied by checkGNSSArrayDefaults
     bool enablePrintRoverAccuracy = true;
     int16_t minCNO = 6;                 // Minimum satellite signal level for navigation. ZED-F9P default is 6 dBHz
     uint8_t minElev = 10; // Minimum elevation (in deg) for a GNSS satellite to be used in NAV
@@ -1352,6 +1353,36 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
+
+    // mosaic
+    uint8_t mosaicConstellations[MAX_MOSAIC_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
+    // Each Stream has one connection descriptor and one interval.
+    // If a NMEA message is disabled, its entry in mosaicMessageStreamNMEA is 0.
+    // If a NMEA message is allocated to Stream1, its entry in mosaicMessageStreamNMEA is 1.
+    // Etc..
+    uint8_t mosaicMessageStreamNMEA[MAX_MOSAIC_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    // mosaicStreamIntervalsNMEA contains the interval for each of the MOSAIC_NUM_NMEA_STREAMS NMEA Streams
+    // It should be an array of mosaicMessageRates (enum). But we'll make life easy for ourselves and use uint8_t
+    // The interval will never be "off". To disable a message, set the stream to 0.
+    uint8_t mosaicStreamIntervalsNMEA[MOSAIC_NUM_NMEA_STREAMS] = MOSAIC_DEFAULT_NMEA_STREAM_INTERVALS;
+    //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Rover[MAX_MOSAIC_RTCM_V2_MSG] = {
+    //    { 65534, false } }; // Mark first record with key so defaults will be applied
+    //mosaicRTCMv2MsgRate mosaicMessageRatesRTCMv2Base[MAX_MOSAIC_RTCM_V2_MSG] = {
+    //    { 65534, false } }; // Mark first record with key so defaults will be applied
+    float mosaicMessageIntervalsRTCMv3Rover[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
+        0.0 }; // Mark first record with illegal value so defaults will be applied
+    float mosaicMessageIntervalsRTCMv3Base[MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS] = {
+        0.0 }; // Mark first record with illegal value so defaults will be applied
+    uint8_t mosaicMessageEnabledRTCMv3Rover[MAX_MOSAIC_RTCM_V3_MSG] = {
+        254 }; // Mark first record with key so defaults will be applied
+    uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
+        254 }; // Mark first record with key so defaults will be applied
+    // We use enableLogging to control the logging of NMEA streams
+    // RINEX logging needs its own enable
+    bool enableLoggingRINEX = false;
+    uint8_t RINEXFileDuration = MOSAIC_FILE_DURATION_HOUR24;
+    uint8_t RINEXObsInterval = MOSAIC_OBS_INTERVAL_SEC30;
+    bool externalEventPolarity = false; // false == Low2High; true == High2Low
 
     // Web Server
     uint16_t httpPort = 80;
@@ -1435,6 +1466,13 @@ typedef enum {
     tUmConst,
     tCorrSPri,
     tRegCorTp,
+    tMosaicConst,
+    tMosaicMSNmea,
+    tMosaicSINmea,
+    tMosaicMIRvRT,
+    tMosaicMIBaRT,
+    tMosaicMERvRT,
+    tMosaicMEBaRT,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
@@ -1500,7 +1538,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 0, 1, 1, 1, 1, _double,   9, & settings.fixedLong, "fixedLong",  },
     { 1, 1, 1, 0, 1, 1, 1, 1, _int,      0, & settings.observationSeconds, "observationSeconds",  },
     { 1, 1, 1, 0, 1, 1, 1, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy",  },
-    { 1, 1, 1, 0, 1, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
+    { 1, 1, 1, 0, 1, 1, 0, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
 
     // Battery
     { 0, 0, 0, 0, 0, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
@@ -1622,6 +1660,19 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 0, _int,      0, & settings.maxLogLength_minutes, "maxLogLength",  },
     { 0, 1, 1, 0, 1, 1, 1, 0, _int,      0, & settings.maxLogTime_minutes, "maxLogTime"},
     { 0, 0, 0, 0, 1, 1, 1, 0, _bool,     0, & settings.runLogTest, "runLogTest",  }, // Not stored in NVM
+
+    // Mosaic
+    { 1, 1, 1, 1, 0, 0, 1, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
+    { 1, 0, 1, 1, 0, 0, 1, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
+    { 1, 0, 1, 1, 0, 0, 1, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
+    { 1, 0, 1, 1, 0, 0, 1, 0, tMosaicMIRvRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Rover, "messageIntervalRTCMRover_",  },
+    { 1, 0, 1, 1, 0, 0, 1, 0, tMosaicMIBaRT, MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS, & settings.mosaicMessageIntervalsRTCMv3Base, "messageIntervalRTCMBase_",  },
+    { 1, 0, 1, 1, 0, 0, 1, 0, tMosaicMERvRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Rover, "messageEnabledRTCMRover_",  },
+    { 1, 0, 1, 1, 0, 0, 1, 0, tMosaicMEBaRT, MAX_MOSAIC_RTCM_V3_MSG, & settings.mosaicMessageEnabledRTCMv3Base, "messageEnabledRTCMBase_",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _bool,     0, & settings.enableLoggingRINEX, "enableLoggingRINEX",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
+    { 1, 1, 1, 0, 0, 0, 1, 0, _bool,     0, & settings.externalEventPolarity, "externalEventPolarity",  },
 
     // MQTT
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData",  },
@@ -1890,8 +1941,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 1, 0, 1, 1, 1, 1, _uint32_t, 0, & settings.outputTipAltitude, "outputTipAltitude",  },
 
     // Localized distribution
-    { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
-    { 0, 1, 1, 0, 1, 1, 1, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
+    { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useLocalizedDistribution, "useLocalizedDistribution",  },
+    { 0, 1, 1, 0, 1, 1, 0, 1, _uint8_t,  0, & settings.localizedDistributionTileLevel, "localizedDistributionTileLevel",  },
     { 0, 1, 1, 0, 1, 1, 0, 1, _bool,     0, & settings.useAssistNow, "useAssistNow",  },
 
     { 0, 1, 1, 0, 1, 1, 1, 1, _bool,     0, & settings.requestKeyUpdate, "requestKeyUpdate",  },
@@ -1935,10 +1986,11 @@ struct struct_present
     bool ethernet_ws5500 = false;
     bool radio_lora = false;
     bool gnss_to_uart = false;
+    bool gnss_to_uart2 = false;
 
     bool gnss_um980 = false;
     bool gnss_zedf9p = false;
-    bool gnss_mosaicX5 = false;
+    bool gnss_mosaicX5 = false; // L-Band is implicit
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second
@@ -1974,6 +2026,7 @@ struct struct_present
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
     bool fastPowerOff = false;
+    bool invertedFastPowerOff = false; // Needed for Facet mosaic v11
 
     bool needsExternalPpl = false;
 
@@ -1994,7 +2047,8 @@ struct struct_online
     bool batteryFuelGauge = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
-    bool lband = false;
+    bool lband_neo = false;
+    bool lband_gnss = false;
     bool lbandCorrections = false;
     bool i2c = false;
     bool tcpClient = false;

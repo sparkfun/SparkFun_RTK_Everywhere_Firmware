@@ -11,13 +11,20 @@ void menuGNSS()
         systemPrintln();
         systemPrintln("Menu: GNSS Receiver");
 
-        systemPrint("1) Set measurement rate in Hz: ");
-        systemPrintln(1.0 / gnssGetRateS(), 5);
+        if (!present.gnss_mosaicX5)
+        {
+            systemPrint("1) Set measurement rate in Hz: ");
+            systemPrintln(1.0 / gnssGetRateS(), 5);
 
-        systemPrint("2) Set measurement rate in seconds between measurements: ");
-        systemPrintln(gnssGetRateS(), 5);
+            systemPrint("2) Set measurement rate in seconds between measurements: ");
+            systemPrintln(gnssGetRateS(), 5);
 
-        systemPrintln("        Note: The measurement rate is overridden to 1Hz when in Base mode.");
+            systemPrintln("       Note: The measurement rate is overridden to 1Hz when in Base mode.");
+        }
+        else
+        {
+            systemPrintln("      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
+        }
 
         systemPrint("3) Set dynamic model: ");
         if (present.gnss_zedf9p)
@@ -83,6 +90,25 @@ void menuGNSS()
                 break;
             }
         }
+        else if (present.gnss_mosaicX5)
+        {
+            switch (settings.dynamicModel)
+            {
+            default:
+                systemPrint("Unknown");
+                break;
+            case MOSAIC_DYN_MODEL_STATIC:
+            case MOSAIC_DYN_MODEL_QUASISTATIC:
+            case MOSAIC_DYN_MODEL_PEDESTRIAN:
+            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+            case MOSAIC_DYN_MODEL_RACECAR:
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+            case MOSAIC_DYN_MODEL_UAV:
+            case MOSAIC_DYN_MODEL_UNLIMITED:
+                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
+                break;
+            }
+        }
         systemPrintln();
 
         systemPrintln("4) Set Constellations");
@@ -134,7 +160,7 @@ void menuGNSS()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming == 1)
+        if ((incoming == 1) && (!present.gnss_mosaicX5))
         {
             float rate = 0.0;
             if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
@@ -144,7 +170,7 @@ void menuGNSS()
                                          // settings.navigationRate, and GSV message
             }
         }
-        else if (incoming == 2)
+        else if ((incoming == 2) && (!present.gnss_mosaicX5))
         {
             float rate = 0.0;
             float minRate = 1.0;
@@ -189,6 +215,12 @@ void menuGNSS()
                 systemPrintln("2) UAV");
                 systemPrintln("3) Automotive");
             }
+            else if (present.gnss_mosaicX5)
+            {
+                systemPrintln("Enter the dynamic model to use: ");
+                for (int i = 0; i < MAX_MOSAIC_RX_DYNAMICS; i++)
+                    systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i].humanName);
+            }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
@@ -221,6 +253,18 @@ void menuGNSS()
                         gnssSetModel(settings.dynamicModel);
                     }
                 }
+                else if (present.gnss_mosaicX5)
+                {
+                    if (dynamicModel < 1 || dynamicModel > MAX_MOSAIC_RX_DYNAMICS)
+                        systemPrintln("Error: Dynamic model out of range");
+                    else
+                    {
+                        dynamicModel -= 1;                    // Align to 0 to MAX_MOSAIC_RX_DYNAMICS - 1
+                        settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
+
+                        gnssSetModel(settings.dynamicModel);
+                    }
+                }
             }
         }
         else if (incoming == 4)
@@ -239,8 +283,9 @@ void menuGNSS()
         else if (incoming == 6)
         {
             int minCNO = 0;
-            // Arbitrary 90 dBHz max
-            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 90, &minCNO) ==
+            // Arbitrary 90 dBHz max. mosaic-X5 is 60dBHz max.
+            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0,
+                present.gnss_mosaicX5 ? 60 : 90, &minCNO) ==
                 INPUT_RESPONSE_VALID)
             {
                 gnssSetMinCno(minCNO); // Set the setting and configure the GNSS receiver

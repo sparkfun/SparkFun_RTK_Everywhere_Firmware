@@ -57,11 +57,11 @@ void menuPortsNoMux()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set serial baud rate for Radio Port: ");
-        systemPrint(theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE));
+        systemPrint(gnssGetRadioBaudRate());
         systemPrintln(" bps");
 
         systemPrint("2) Set serial baud rate for Data Port: ");
-        systemPrint(theGNSS->getVal32(UBLOX_CFG_UART1_BAUDRATE));
+        systemPrint(gnssGetDataBaudRate());
         systemPrintln(" bps");
 
         systemPrint("3) GNSS UART2 UBX Protocol In: ");
@@ -87,7 +87,7 @@ void menuPortsNoMux()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud);
+                        gnssSetRadioBaudRate(newBaud);
                 }
                 else
                 {
@@ -106,7 +106,7 @@ void menuPortsNoMux()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART1_BAUDRATE, settings.dataPortBaud);
+                        gnssSetDataBaudRate(newBaud);
                 }
                 else
                 {
@@ -147,12 +147,12 @@ void menuPortsMultiplexed()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set Radio port serial baud rate: ");
-        systemPrint(theGNSS->getVal32(UBLOX_CFG_UART2_BAUDRATE));
+        systemPrint(gnssGetRadioBaudRate());
         systemPrintln(" bps");
 
         systemPrint("2) Set Data port connections: ");
-        if (settings.dataPortChannel == MUX_UBLOX_NMEA)
-            systemPrintln("NMEA TX Out/RX In");
+        if (settings.dataPortChannel == MUX_GNSS_UART)
+            systemPrintln("GNSS TX Out/RX In");
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
             systemPrintln("PPS OUT/Event Trigger In");
         else if (settings.dataPortChannel == MUX_I2C_WT)
@@ -160,10 +160,10 @@ void menuPortsMultiplexed()
         else if (settings.dataPortChannel == MUX_ADC_DAC)
             systemPrintln("ESP32 DAC Out/ADC In");
 
-        if (settings.dataPortChannel == MUX_UBLOX_NMEA)
+        if (settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("3) Set Data port serial baud rate: ");
-            systemPrint(theGNSS->getVal32(UBLOX_CFG_UART1_BAUDRATE));
+            systemPrint(gnssGetDataBaudRate());
             systemPrintln(" bps");
         }
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
@@ -171,11 +171,18 @@ void menuPortsMultiplexed()
             systemPrintln("3) Configure External Triggers");
         }
 
-        systemPrint("4) GNSS UART2 UBX Protocol In: ");
-        if (settings.enableUART2UBXIn == true)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
+        if (present.gnss_zedf9p)
+        {
+            systemPrint("4) GNSS UART2 UBX Protocol In: ");
+            if (settings.enableUART2UBXIn == true)
+                systemPrintln("Enabled");
+            else
+                systemPrintln("Disabled");
+        }
+        else if (present.gnss_mosaicX5)
+        {
+            systemPrintf("4) Output GNSS data to USB1 serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+        }
 
         systemPrintln("x) Exit");
 
@@ -192,7 +199,7 @@ void menuPortsMultiplexed()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART2_BAUDRATE, settings.radioPortBaud);
+                        gnssSetRadioBaudRate(newBaud);
                 }
                 else
                 {
@@ -203,7 +210,7 @@ void menuPortsMultiplexed()
         else if (incoming == 2)
         {
             systemPrintln("\r\nEnter the pin connection to use (1 to 4) for Data Port: ");
-            systemPrintln("1) NMEA TX Out/RX In");
+            systemPrintln("1) GNSS UART TX Out/RX In");
             systemPrintln("2) PPS OUT/Event Trigger In");
             systemPrintln("3) I2C SDA/SCL");
             systemPrintln("4) ESP32 DAC Out/ADC In");
@@ -219,7 +226,7 @@ void menuPortsMultiplexed()
                 setMuxport(settings.dataPortChannel);
             }
         }
-        else if (incoming == 3 && settings.dataPortChannel == MUX_UBLOX_NMEA)
+        else if (incoming == 3 && settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("Enter baud rate (4800 to 921600) for Data Port: ");
             int newBaud = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -230,7 +237,7 @@ void menuPortsMultiplexed()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        theGNSS->setVal32(UBLOX_CFG_UART1_BAUDRATE, settings.dataPortBaud);
+                        gnssSetDataBaudRate(newBaud);
                 }
                 else
                 {
@@ -238,14 +245,18 @@ void menuPortsMultiplexed()
                 }
             }
         }
-        else if (incoming == 3 && settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
+        else if ((incoming == 3) && (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER))
         {
             menuPortHardwareTriggers();
         }
-        else if (incoming == 4)
+        else if ((incoming == 4) && (present.gnss_zedf9p))
         {
             settings.enableUART2UBXIn ^= 1;
             systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart.");
+        }
+        else if ((incoming == 4) && (present.gnss_mosaicX5))
+        {
+            settings.enableGnssToUsbSerial ^= 1;
         }
         else if (incoming == 'x')
             break;
@@ -258,6 +269,15 @@ void menuPortsMultiplexed()
     }
 
     clearBuffer(); // Empty buffer of any newline chars
+
+    if (present.gnss_mosaicX5)
+    {
+        // Apply these changes at menu exit - to enable message output on USB1
+        if (mosaicX5InRoverMode() == true)
+            restartRover = true;
+        else
+            restartBase = true;
+    }
 }
 
 // Configure the behavior of the PPS and INT pins on the ZED-F9P
@@ -299,6 +319,16 @@ void menuPortHardwareTriggers()
         else
             systemPrintln("Disabled");
 
+        // On the mosaic-X5, we can set the event polarity
+        if ((settings.enableExternalHardwareEventLogging == true) && present.gnss_mosaicX5)
+        {
+            systemPrint("6) External Event Polarity: ");
+            if (settings.externalEventPolarity == false)
+                systemPrintln("Low2High");
+            else
+                systemPrintln("High2Low");
+        }
+
         systemPrintln("x) Exit");
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
@@ -310,23 +340,43 @@ void menuPortHardwareTriggers()
         }
         else if (incoming == 2 && settings.enableExternalPulse == true)
         {
-            systemPrint("Time between pulses in milliseconds: ");
-            long pulseTime = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-            if (pulseTime != INPUT_RESPONSE_GETNUMBER_TIMEOUT && pulseTime != INPUT_RESPONSE_GETNUMBER_EXIT)
+            if (present.gnss_mosaicX5)
             {
-                if (pulseTime < 1 || pulseTime > 60000) // 60s max
-                    systemPrintln("Error: Time between pulses out of range");
-                else
+                systemPrintln("Select PPS interval:\r\n");
+
+                for (int y = 0; y < MAX_MOSAIC_PPS_INTERVALS; y++)
+                    systemPrintf("%d) %s\r\n", y + 1, mosaicPPSIntervals[y].humanName);
+
+                systemPrintln("x) Abort");
+
+                int interval = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+                if (interval >= 1 && interval <= MAX_MOSAIC_PPS_INTERVALS)
                 {
-                    settings.externalPulseTimeBetweenPulse_us = pulseTime * 1000;
-
-                    if (pulseTime <
-                        (settings.externalPulseLength_us / 1000)) // pulseTime must be longer than pulseLength
-                        settings.externalPulseLength_us = settings.externalPulseTimeBetweenPulse_us /
-                                                          2; // Force pulse length to be 1/2 time between pulses
-
+                    settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[interval - 1].interval_us;
                     updateSettings = true;
+                }
+            }
+            else
+            {
+                systemPrint("Time between pulses in milliseconds: ");
+                long pulseTime = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+                if (pulseTime != INPUT_RESPONSE_GETNUMBER_TIMEOUT && pulseTime != INPUT_RESPONSE_GETNUMBER_EXIT)
+                {
+                    if (pulseTime < 1 || pulseTime > 60000) // 60s max
+                        systemPrintln("Error: Time between pulses out of range");
+                    else
+                    {
+                        settings.externalPulseTimeBetweenPulse_us = pulseTime * 1000;
+
+                        if (pulseTime <
+                            (settings.externalPulseLength_us / 1000)) // pulseTime must be longer than pulseLength
+                            settings.externalPulseLength_us = settings.externalPulseTimeBetweenPulse_us /
+                                                            2; // Force pulse length to be 1/2 time between pulses
+
+                        updateSettings = true;
+                    }
                 }
             }
         }
@@ -358,6 +408,11 @@ void menuPortHardwareTriggers()
         else if (incoming == 5)
         {
             settings.enableExternalHardwareEventLogging ^= 1;
+            updateSettings = true;
+        }
+        else if ((incoming == 6) && (settings.enableExternalHardwareEventLogging == true) && present.gnss_mosaicX5)
+        {
+            settings.externalEventPolarity ^= 1;
             updateSettings = true;
         }
         else if (incoming == 'x')

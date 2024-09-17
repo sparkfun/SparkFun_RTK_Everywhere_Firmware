@@ -35,6 +35,7 @@
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_MOSAICX5             // Comment out to remove mosaic-X5 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
@@ -132,7 +133,13 @@ int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose butto
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
+int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
+
+int pin_GnssEvent = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssOnOff = PIN_UNDEFINED; // Facet mosaic
+int pin_chargerLED = PIN_UNDEFINED; // Facet mosaic
+int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssReady = PIN_UNDEFINED; // Facet mosaic
 
 int pin_loraRadio_reset = PIN_UNDEFINED;
 int pin_loraRadio_boot = PIN_UNDEFINED;
@@ -160,8 +167,8 @@ int pin_I2C1_SCL = PIN_UNDEFINED;
 int pin_GnssUart_RX = PIN_UNDEFINED;
 int pin_GnssUart_TX = PIN_UNDEFINED;
 
-int pin_GnssLBandUart_RX = PIN_UNDEFINED;
-int pin_GnssLBandUart_TX = PIN_UNDEFINED;
+int pin_GnssUart2_RX = PIN_UNDEFINED;
+int pin_GnssUart2_TX = PIN_UNDEFINED;
 
 int pin_Cellular_RX = PIN_UNDEFINED;
 int pin_Cellular_TX = PIN_UNDEFINED;
@@ -423,17 +430,21 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
 #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
-#else
+#endif // COMPILE_UM980
+
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
-#endif                                          // COMPILE_UM980
+SEMP_PARSE_STATE *rtkParse = nullptr;
+SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
+SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Note: GnssPlatform gnssPlatform has been replaced by present.gnss_zedf9p etc.
-char gnssFirmwareVersion[20];
+char gnssFirmwareVersion[21]; // mosaic-X5 could be 20 digits
 int gnssFirmwareVersionInt;
-char gnssUniqueId[20]; // um980 ID is 16 digits
+char gnssUniqueId[21]; // um980 ID is 16 digits. mosaic-X5 could be 20 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Battery fuel gauge and PWM LEDs
@@ -492,6 +503,7 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
@@ -505,7 +517,8 @@ uint16_t rbOffsetEntries;
 
 uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
-const int gnssReadTaskStackSize = 4000;
+const int gnssReadTaskStackSize = 8000;
+const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
 
 const int handleGnssDataTaskStackSize = 3000;
 
@@ -690,7 +703,8 @@ const int updatePplTaskStackSize = 3000;
 #endif // COMPILE_POINTPERFECT_LIBRARY
 
 bool pplNewRtcmNmea = false;
-bool pplNewSpartn = false;
+bool pplNewSpartnMqtt = false; // MQTT
+bool pplNewSpartnLBand = false; // L-Band (mosaic-X5)
 uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
@@ -759,8 +773,8 @@ bool restartBase;          // If the user modifies any NTRIP Server settings, we
 bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
 unsigned long startTime;             // Used for checking longest-running functions
-bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
-unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message
+bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S only)
+unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
 uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
@@ -768,6 +782,9 @@ uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking a
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
 uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
+
+bool spartnCorrectionsReceived = false; // Used to display L-Band SIV icon when L-Band SPARTN corrections are received by mosaic-X5
+unsigned long lastSpartnReception = 0;  // Timestamp of last SPARTN reception
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
@@ -801,7 +818,7 @@ volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer;
 
-unsigned long um980BaseStartTimer; // Tracks how long the base averaging mode has been running
+unsigned long autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
 RtkMode_t rtkMode; // Mode of operation
 
@@ -812,6 +829,7 @@ unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl = 0;
 unsigned long lastGnssToPpl = 0;
+unsigned long lastSpartnToPpl = 0;
 
 // Command processing
 int commandCount;
@@ -1073,11 +1091,14 @@ void setup()
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).
 
-    DMW_b("gnssBegin");
-    gnssBegin(); // Requires settings. Connect to GNSS to get module type
+    DMW_b("beginGnssUart2");
+    beginGnssUart2();
 
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
+
+    DMW_b("gnssBegin");
+    gnssBegin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1189,7 +1210,11 @@ void setup()
 
     // If necessary, switch to sending GNSS data out the USB serial port
     // to the PC
-    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+    //
+    // The mosaic-X5 has separate USB COM ports. NMEA and RTCM will be output on USB1 if
+    // settings.enableGnssToUsbSerial is true. forwardGnssDataToUsbSerial is never set true.
+    if (!present.gnss_mosaicX5)
+        forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 }
 
 void loop()

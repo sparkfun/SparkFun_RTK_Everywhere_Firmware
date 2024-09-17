@@ -890,6 +890,94 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+        case tMosaicConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    settings.mosaicConstellations[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                {
+                    settings.mosaicMessageStreamNMEA[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                settings.mosaicStreamIntervalsNMEA[stream] = settingValue;
+                knownSetting = true;
+                break;
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    settings.mosaicMessageIntervalsRTCMv3Rover[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    settings.mosaicMessageIntervalsRTCMv3Base[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    settings.mosaicMessageEnabledRTCMv3Rover[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    settings.mosaicMessageEnabledRTCMv3Base[x] = settingValue;
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
         }
     }
 
@@ -1233,7 +1321,8 @@ void createSettingsString(char *newSettings)
     }
     else if (present.gnss_mosaicX5)
     {
-        // *** TODO ***
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "mosaic-X5 Firmware: %s ID: %s", gnssFirmwareVersion,
+                 gnssUniqueId);
     }
     stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
@@ -1530,6 +1619,86 @@ void createSettingsString(char *newSettings)
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%d,%s,", rtkSettingsEntries[i].name, r,
                              &settings.regionalCorrectionTopics[r][0]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicConst: {
+                // Record Mosaic Constellations
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
+                                mosaicSignalConstellations[x].configName,
+                                ((settings.mosaicConstellations[x] == 0) ? "false" : "true"));
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicMSNmea: {
+                // Record Mosaic NMEA message streams
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50]; // messageRateNMEA_GGA,1,
+                    snprintf(tempString, sizeof(tempString), "%s%s,%0d,", rtkSettingsEntries[i].name,
+                             mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicSINmea: {
+                // Record Mosaic NMEA stream intervals
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50]; // streamIntervalNMEA_1,10,
+                    snprintf(tempString, sizeof(tempString), "%s%d,%0d,", rtkSettingsEntries[i].name,
+                             x, settings.mosaicStreamIntervalsNMEA[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicMIRvRT: {
+                // Record Mosaic Rover RTCM intervals
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
+                             mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicMIBaRT: {
+                // Record Mosaic Base RTCM intervals
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%s,%0.2f,", rtkSettingsEntries[i].name,
+                             mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicMERvRT: {
+                // Record Mosaic Rover RTCM enabled
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
+                             mosaicMessagesRTCMv3[x].name,
+                             settings.mosaicMessageEnabledRTCMv3Rover[x] == 0 ? "false" : "true");
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+            case tMosaicMEBaRT: {
+                // Record Mosaic Base RTCM enabled
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%s,%s,", rtkSettingsEntries[i].name,
+                             mosaicMessagesRTCMv3[x].name,
+                             settings.mosaicMessageEnabledRTCMv3Base[x] == 0 ? "false" : "true");
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -2244,6 +2413,94 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+        case tMosaicConst: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                    (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicConstellations[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                    (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageStreamNMEA[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            int stream;
+            if (sscanf(suffix, "%d", &stream) == 1)
+            {
+                writeToString(settingValueStr, settings.mosaicStreamIntervalsNMEA[stream]);
+                knownSetting = true;
+                break;
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                    (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            for (int x = 0; x < qualifier; x++)
+            {
+                if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                    (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                {
+                    writeToString(settingValueStr, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                    knownSetting = true;
+                    break;
+                }
+            }
+        }
+        break;
         }
     }
 
@@ -2644,6 +2901,90 @@ void commandList(bool inCommands, int i)
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, settingType, settingValue);
+        }
+    }
+    break;
+    case tMosaicConst: {
+        // Record Mosaic Constellations
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     mosaicSignalConstellations[x].configName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tMosaicMSNmea: {
+        // Record Mosaic NMEA message streams
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     mosaicMessagesNMEA[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tMosaicSINmea: {
+        // Record Mosaic NMEA stream intervals
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name,
+                     x);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tMosaicMIRvRT: {
+        // Record Mosaic Rover RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "float", settingValue);
+        }
+    }
+    break;
+    case tMosaicMIBaRT: {
+        // Record Mosaic Base RTCM intervals
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     mosaicRTCMv3MsgIntervalGroups[x].name);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "float", settingValue);
+        }
+    }
+    break;
+    case tMosaicMERvRT: {
+        // Record Mosaic Rover RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     mosaicMessagesRTCMv3[x].name);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tMosaicMEBaRT: {
+        // Record Mosaic Base RTCM enabled
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     mosaicMessagesRTCMv3[x].name);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
         }
     }
     break;

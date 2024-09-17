@@ -1526,7 +1526,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
         if (online.gnss)
         {
             // Determine which icon to display
-            if (lbandCorrectionsReceived)
+            if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
             else
                 icon = &SIVIconProperties;
@@ -1607,11 +1607,8 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     iconPropertyBlinking prop;
     prop.duty = 0b11111111;
 
-#ifdef COMPILE_ETHERNET
-    if ((online.logging == true) && (logIncreasing || ntpLogIncreasing))
-#else  // COMPILE_ETHERNET
-    if ((online.logging == true) && (logIncreasing))
-#endif // COMPILE_ETHERNET
+    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
+        || (present.gnss_mosaicX5 && logIncreasing))
     {
         if (NTP)
         {
@@ -2419,7 +2416,7 @@ void paintSystemTest()
             {
                 systemPrintln("GNSS test");
 
-                setMuxport(MUX_UBLOX_NMEA); // Set mux to UART so we can debug over data port
+                setMuxport(MUX_GNSS_UART); // Set mux to UART so we can debug over data port
                 delay(20);
 
                 // Clear out buffer before starting
@@ -2469,7 +2466,7 @@ void paintSystemTest()
 
             oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
             oled->print("LBand:");
-            if (online.lband == true)
+            if (online.lband_neo == true)
                 oled->print("OK");
             else
                 oled->print("FAIL");

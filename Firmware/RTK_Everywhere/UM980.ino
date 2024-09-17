@@ -11,8 +11,6 @@
 
 #ifdef COMPILE_UM980
 
-HardwareSerial *um980Config = nullptr; // Don't instantiate until we know what gnssPlatform we're on
-
 UM980 *um980 = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 void um980Begin()
@@ -309,7 +307,7 @@ bool um980BaseAverageStart()
     response &=
         um980->setModeBaseAverage(settings.observationSeconds); // Average for a number of seconds (default is 60)
 
-    um980BaseStartTimer = millis(); // Stamp when averaging began
+    autoBaseStartTimer = millis(); // Stamp when averaging began
 
     if (response == false)
     {

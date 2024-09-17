@@ -695,6 +695,7 @@ void verifyTables()
     tasksValidateTables();
     httpClientValidateTables();
     provisioningVerifyTables();
+    mosaicVerifyTables();
     correctionVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))

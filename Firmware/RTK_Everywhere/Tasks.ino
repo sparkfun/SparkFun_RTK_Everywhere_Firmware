@@ -10,7 +10,7 @@ Tasks.ino
                            .--------+--------.
                            |                 |
                            v                 v
-                          SPI       or      I2C
+                          UART      or      I2C
                            |                 |
                            |                 |
                            '------->+<-------'
@@ -85,6 +85,25 @@ const char *const parserNames[] = {
     "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
+
+// We need a separate parsers for the mosaic-X5: to allow SBF to be separated from L-Band SPARTN;
+// and to allow encapsulated NMEA and RTCMv3 to be parsed without upsetting the SPARTN parser.
+SEMP_PARSE_ROUTINE const sbfParserTable[] = {
+    sempSbfPreamble
+};
+const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
+const char *const sbfParserNames[] = {
+    "SBF",
+};
+const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
+SEMP_PARSE_ROUTINE const spartnParserTable[] = {
+    sempSpartnPreamble
+};
+const int spartnParserCount = sizeof(spartnParserTable) / sizeof(spartnParserTable[0]);
+const char *const spartnParserNames[] = {
+    "SPARTN",
+};
+const int spartnParserNameCount = sizeof(spartnParserNames) / sizeof(spartnParserNames[0]);
 
 //----------------------------------------
 // Locals
@@ -346,24 +365,54 @@ void feedWdt()
 // time.
 void gnssReadTask(void *e)
 {
-    static SEMP_PARSE_STATE *parse;
-
     // Start notification
     task.gnssReadTaskRunning = true;
     if (settings.printTaskStartStop)
         systemPrintln("Task gnssReadTask started");
 
-    // Initialize the parser
-    parse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
+    // Initialize the main parser
+    rtkParse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
                             0,                   // Scratchpad bytes
                             3000,                // Buffer length
                             processUart1Message, // eom Call Back
-                            "Log");              // Parser Name
-    if (!parse)
+                            "rtkParse");         // Parser Name
+    if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
     if (settings.debugGnss)
-        sempEnableDebugOutput(parse);
+        sempEnableDebugOutput(rtkParse);
+
+    if (present.gnss_mosaicX5)
+    {
+        // Initialize the SBF parser for the mosaic-X5
+        sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
+                                0,                      // Scratchpad bytes
+                                sempGnssReadBufferSize, // Buffer length - 3000 isn't enough!
+                                processUart1SBF,        // eom Call Back - in mosaic.ino
+                                "sbfParse");            // Parser Name
+        if (!sbfParse)
+            reportFatalError("Failed to initialize the SBF parser");
+
+        // Any data which is not SBF will be passed to the SPARTN parser via the invalid data callback
+        sempSbfSetInvalidDataCallback(sbfParse, processNonSBFData);
+
+        // Uncomment the next line to enable SBF parser debug
+        // But be careful - you get a lot of "SEMP: Sbf SBF, 0x0002 (2) bytes, invalid preamble2"
+        //if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
+
+        // Initialize the SPARTN parser for the mosaic-X5
+        spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
+                                0,                   // Scratchpad bytes
+                                1200,                // Buffer length - SPARTN payload is 1024 bytes max
+                                processUart1SPARTN,  // eom Call Back - in mosaic.ino 
+                                "spartnParse");      // Parser Name
+        if (!spartnParse)
+            reportFatalError("Failed to initialize the SPARTN parser");
+
+        // Uncomment the next line to enable SPARTN parser debug
+        // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
+        //if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
+    }
 
     // Run task until a request is raised
     task.gnssReadTaskStopRequest = false;
@@ -383,6 +432,24 @@ void gnssReadTask(void *e)
         // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
         // If the Unicore library does not need lone access, then read from serial port
+
+        // For the mosaic-X5, things are different. The mosaic-X5 outputs a raw stream of L-Band bytes,
+        // interspersed with periodic SBF blocks. The SBF blocks can contain encapsulated NMEA and RTCMv3.
+        // We need to pass each incoming byte to a SBF parser first, so it can pick out any SBF blocks.
+        // The SBF parser needs to 'give up' (return) any bytes which are not SBF. We do that using the
+        // invalidDataCallback. Any data that is not SBF is then parsed by a separate SPARTN parser.
+        // The SPARTN parser extracts SPARTN packets from the raw LBand data so they can be passed to the PPL.
+        // Encapsulated NMEA and RTCMv3 is extracted and passed to the the main SEMP parser.
+        // At some point in the future, Septentrio will (hopefully) add the ability to encapsulate the
+        // raw L-Band data in SBF format. This will make life SO much easier as the SEMP will then be able
+        // to parse everything and the separate SBF and SPARTN parsers won't be required.
+        //
+        // We need to be clever about this though. The raw L-Band data can manifest as SBF data. When that
+        // happens, it can cause sbfParse to 'stick' - parsing a long ghost SBF block. This prevents RTCM
+        // from being parsed from valid SBF blocks and causes the NTRIP server connection to break. We need
+        // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
+        // Here we check that the SBF ID and length are expected / valid too.
+
         if (gnssIsBlocking() == false)
         {
             // Determine if serial data is available
@@ -395,7 +462,87 @@ void gnssReadTask(void *e)
                 for (int x = 0; x < bytesIncoming; x++)
                 {
                     // Update the parser state based on the incoming byte
-                    sempParseNextByte(parse, incomingData[x]);
+                    // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
+                    sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : rtkParse, incomingData[x]);
+
+                    // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and lengths
+                    // to help prevent raw L-Band data being misidentified as SBF
+                    if (present.gnss_mosaicX5)
+                    {
+                        SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
+
+                        // Check if this is Length MSB
+                        // Also check parser is running - as invalidDataCallback may have just been called
+                        if ((sbfParse->state != sempFirstByte) && (sbfParse->type == 0) && (sbfParse->length == 8))
+                        {
+                            bool expected = false;
+                            for (int b = 0; b < MAX_MOSAIC_EXPECTED_SBF; b++) // For each expected SBF block
+                            {
+                                if (mosaicExpectedIDs[b].ID == scratchPad->sbf.sbfID) // Check for ID match
+                                {
+                                    expected = true;
+                                    if (mosaicExpectedIDs[b].fixedLength)
+                                    {
+                                        // Check for length match if fixed
+                                        if (mosaicExpectedIDs[b].length != scratchPad->sbf.length)
+                                            expected = false;
+                                    }
+                                }
+                            }
+                            if (!expected) // SBF is not expected so restart the parsers
+                            {
+                                sbfParse->state = sempFirstByte;
+                                spartnParse->state = sempFirstByte;
+                                if (settings.debugGnss)
+                                    systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n", scratchPad->sbf.sbfID);
+                                // We could pass the rejected bytes to the SPARTN parser but this is ~risky
+                                // as the L-Band data could overlap the start of actual SBF. I think it's
+                                // probably safer to discard the data and let both parsers re-sync?
+                                // for (uint32_t dataOffset = 0; dataOffset < 8; dataOffset++)
+                                // {
+                                //     // Update the SPARTN parser state based on the non-SBF byte
+                                //     sempParseNextByte(spartnParse, sbfParse->buffer[dataOffset]);
+                                // }
+                            }
+                        }
+
+                        // Extra checks for EncapsulatedOutput - length is variable but we can compare the length to the payload length
+                        if ((sbfParse->type == 0) && (sbfParse->length == 18) && (scratchPad->sbf.sbfID == 4097))
+                        {
+                            bool expected = true;
+                            if ((sbfParse->buffer[14] != 2) && (sbfParse->buffer[14] != 4)) // Check Mode for RTCMv3 and NMEA
+                                expected = false;
+                            
+                            // SBF block length should be 20 more than N (payload length) - with padding
+                            if (expected)
+                            {
+                                uint16_t N = sbfParse->buffer[16];
+                                N |= ((uint16_t)sbfParse->buffer[17]) << 8;
+                                uint16_t expectedLength = N + 20; // Expected length
+                                uint16_t remainder = ((N + 20) % 4);
+                                if (remainder > 0)
+                                    expectedLength += 4 - remainder; // Include the padding
+                                if (scratchPad->sbf.length != expectedLength)
+                                    expected = false;
+                            }
+                            
+                            if (!expected) // SBF is not expected so restart the parsers
+                            {
+                                sbfParse->state = sempFirstByte;
+                                spartnParse->state = sempFirstByte;
+                                if (settings.debugGnss)
+                                    systemPrintf("Unexpected EncapsulatedOutput block - rejected\r\n");
+                                // We could pass the rejected bytes to the SPARTN parser but this is ~risky
+                                // as the L-Band data could overlap the start of actual SBF. I think it's
+                                // probably safer to discard the data and let both parsers re-sync?
+                                // for (uint32_t dataOffset = 0; dataOffset < 18; dataOffset++)
+                                // {
+                                //     // Update the SPARTN parser state based on the non-SBF byte
+                                //     sempParseNextByte(spartnParse, sbfParse->buffer[dataOffset]);
+                                // }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -405,7 +552,7 @@ void gnssReadTask(void *e)
     }
 
     // Done parsing incoming data, free the parse buffer
-    sempStopParser(&parse);
+    sempStopParser(&rtkParse);
 
     // Stop notification
     if (settings.printTaskStartStop)
@@ -486,6 +633,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         nmeaApplyCompensation((char *)parse->buffer, parse->length);
     }
 
+    // Handle GST - extract the lat and lon standard deviations - on mosaic-X5 only
+    if ((present.gnss_mosaicX5) && (type == RTK_NMEA_PARSER_INDEX))
+    {
+        nmeaExtractStdDeviations((char *)parse->buffer, parse->length);
+    }
+
     // Determine where to send RTCM data
     if (inBaseMode() && type == RTK_RTCM_PARSER_INDEX)
     {
@@ -493,39 +646,42 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         processRTCM(parse->buffer, parse->length);
     }
 
-    // Determine if we are using the PPL
-    if (present.gnss_um980)
+    // Determine if we are using the PPL - UM980 or mosaic-X5
+    bool usingPPL = false;
+    // UM980 : Determine if we want to use corrections, and are connected to the broker
+    if ((present.gnss_um980) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+        usingPPL = true;
+    // mosaic-X5 : Determine if we want to use corrections
+    if ((present.gnss_mosaicX5) && (settings.enablePointPerfectCorrections))
+        usingPPL = true;
+    if (usingPPL)
     {
-        // Determine if we want to use corrections, and are connected to the broker
-        if (settings.enablePointPerfectCorrections && mqttClientIsConnected() == true)
+        bool passToPpl = false;
+
+        // Only messages GPGGA/ZDA, and RTCM1019/1020/1042/1046 need to be passed to PPL
+        if (type == RTK_NMEA_PARSER_INDEX)
         {
-            bool passToPpl = false;
+            if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                passToPpl = true;
+            else if (strstr(sempNmeaGetSentenceName(parse), "ZDA") != nullptr)
+                passToPpl = true;
+        }
+        else if (type == RTK_RTCM_PARSER_INDEX)
+        {
+            if (sempRtcmGetMessageNumber(parse) == 1019)
+                passToPpl = true;
+            else if (sempRtcmGetMessageNumber(parse) == 1020)
+                passToPpl = true;
+            else if (sempRtcmGetMessageNumber(parse) == 1042)
+                passToPpl = true;
+            else if (sempRtcmGetMessageNumber(parse) == 1046)
+                passToPpl = true;
+        }
 
-            // Only messages GPGGA/ZDA, and RTCM1019/1020/1042/1046 need to be passed to PPL
-            if (type == RTK_NMEA_PARSER_INDEX)
-            {
-                if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
-                    passToPpl = true;
-                else if (strstr(sempNmeaGetSentenceName(parse), "ZDA") != nullptr)
-                    passToPpl = true;
-            }
-            else if (type == RTK_RTCM_PARSER_INDEX)
-            {
-                if (sempRtcmGetMessageNumber(parse) == 1019)
-                    passToPpl = true;
-                else if (sempRtcmGetMessageNumber(parse) == 1020)
-                    passToPpl = true;
-                else if (sempRtcmGetMessageNumber(parse) == 1042)
-                    passToPpl = true;
-                else if (sempRtcmGetMessageNumber(parse) == 1046)
-                    passToPpl = true;
-            }
-
-            if (passToPpl == true)
-            {
-                pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
-                sendGnssToPpl(parse->buffer, parse->length);
-            }
+        if (passToPpl == true)
+        {
+            pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
+            sendGnssToPpl(parse->buffer, parse->length);
         }
     }
 
