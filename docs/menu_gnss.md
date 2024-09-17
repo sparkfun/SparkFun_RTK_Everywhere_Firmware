@@ -68,3 +68,14 @@ Once the NTRIP Client is enabled you will need a handful of credentials:
 With these credentials set, the RTK device will attempt to connect to WiFi, then connect to your caster of choice, and then begin downloading the RTCM data over WiFi. We tried to make it as easy as possible. Every second a few hundred bytes, up to ~2k, will be downloaded from the mount point you've entered. Remember, the rover must be in WiFi range to connect in this mode.
 
 Once the device connects to WiFi, it will attempt to connect to the user's chosen NTRIP Caster. If WiFi or the NTRIP connection fails, the rover will return to normal operation.
+
+## Multipath Mitigation
+
+Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+
+![Menu for controlling Multipath Mitigation](<img/Terminal/SparkFun RTK Everywhere - GNSS Multipath Mitigation.png>)
+
+*Menu for controlling Multipath Mitigation*
+
+On devices that support it, *Multipath Mitigation* can be enabled (default) or disabled. Multipath Mitigation allows the GNSS receiver to filter signals more rigorously, which aids accuracy in urban or high multipath environments, but may increase processing times in an open environment.
+
