@@ -328,6 +328,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
 
     case ARDUINO_EVENT_WIFI_STA_START:
         Serial.println("WiFi STA Started");
+        WiFi.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_STOP:
