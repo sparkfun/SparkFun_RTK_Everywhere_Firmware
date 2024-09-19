@@ -25,6 +25,9 @@ int wifiConnectionAttempts; // Count the number of connection attempts between r
 // Constants
 //----------------------------------------
 
+#define WIFI_MAX_TIMEOUT            (15 * 60 * 1000)
+#define WIFI_MIN_TIMEOUT            (15 * 1000)
+
 //----------------------------------------
 // Locals
 //----------------------------------------
@@ -36,12 +39,17 @@ static uint32_t wifiLastConnectionAttempt;
 static uint32_t wifiConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 static uint32_t wifiConnectionAttemptTimeout;
 
+// Start timeout
+static uint32_t wifiStartTimeout;
+
 // WiFi Timer usage:
 //  * Measure interval to display IP address
 static unsigned long wifiDisplayTimer;
 
 // DNS server for Captive Portal
 static DNSServer dnsServer;
+
+static bool wifiRunning;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
@@ -433,14 +441,18 @@ bool wifiStart()
         return false;
     }
 
-    if (wifiIsRunning())
-        return true; // We don't need to do anything
+    // Determine if WiFi is already running
+    if (!wifiRunning)
+    {
+        if (settings.debugWifiState == true)
+            systemPrintln("Starting WiFi");
 
-    if (settings.debugWifiState == true)
-        systemPrintln("Starting WiFi");
-
-    // Start WiFi
-    return wifiConnect(settings.wifiConnectTimeoutMs);
+        // Start WiFi
+        wifiRunning = true;
+        if (wifiConnect(settings.wifiConnectTimeoutMs))
+            wifiStartTimeout = 0;
+    }
+    return (WiFi.status() == WL_CONNECTED);
 }
 
 //----------------------------------------
@@ -448,9 +460,35 @@ bool wifiStart()
 //----------------------------------------
 void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
 {
+    static uint32_t wifiStartLastTry;
+    int seconds;
+    int minutes;
+
+    // Restart delay
+    if ((millis() - wifiStartLastTry) < wifiStartTimeout)
+        return;
+    wifiStartLastTry = millis();
+
     // Start WiFi
     if (wifiStart())
         networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+    else
+    {
+        // Increase the timeout
+        wifiStartTimeout <<= 1;
+        if (!wifiStartTimeout)
+            wifiStartTimeout = WIFI_MIN_TIMEOUT;
+        else if (wifiStartTimeout > WIFI_MAX_TIMEOUT)
+            wifiStartTimeout = WIFI_MAX_TIMEOUT;
+
+        // Display the delay
+        seconds = wifiStartTimeout / MILLISECONDS_IN_A_SECOND;
+        minutes = seconds / SECONDS_IN_A_MINUTE;
+        seconds -= minutes * SECONDS_IN_A_MINUTE;
+        if (settings.debugWifiState)
+            systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n",
+                         minutes, seconds);
+    }
 }
 
 //----------------------------------------
@@ -502,6 +540,7 @@ void wifiStop()
 
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
+    wifiRunning = false;
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
