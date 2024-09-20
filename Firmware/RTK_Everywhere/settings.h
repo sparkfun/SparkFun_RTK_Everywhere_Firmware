@@ -1055,6 +1055,7 @@ struct Settings
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
     CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
+    bool enableExtCorrRadio = false;
 
     // Display
     bool enableResetDisplay = false;
@@ -1569,6 +1570,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
+    { 0, 0, 0, 0, 1, 1, 1, 0, _bool,     0, & settings.enableExtCorrRadio, "ExtCorrRadio",  },
 
 //                      F
 //       i              a
