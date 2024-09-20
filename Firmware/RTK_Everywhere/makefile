@@ -20,6 +20,7 @@ ifeq ($(OS),Windows_NT)
 # Windows NT utilities
 CLEAR=cls
 COPY=copy
+DELETE=del /s
 DIR_LISTING=dir
 TERMINAL_APP=
 TERMINAL_PORT=
@@ -53,6 +54,7 @@ else
 # Linux utilities
 CLEAR=clear
 COPY=cp
+DELETE=rm -Rf
 DIR_LISTING=ls
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
@@ -171,7 +173,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
+$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h makefile $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
@@ -215,3 +217,7 @@ terminal:
 # Clean the build directory
 ##########
 
+.PHONY: clean
+
+clean:
+	$(DELETE) build
