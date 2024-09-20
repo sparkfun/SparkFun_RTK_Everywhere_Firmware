@@ -159,8 +159,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_START:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Started");
-        // set eth hostname here
-        ETH.setHostname("esp32-eth0");
+        ETH.setHostname(settings.mdnsHostName);
         if (settings.ethernetDHCP)
             paintGettingEthernetIP();
         break;

@@ -115,6 +115,7 @@ void cellularEvent(arduino_event_id_t event)
         systemPrintf("Cellular (%s %s) Started\r\n", manufacturer.c_str(), module.c_str());
         if (settings.debugNetworkLayer)
             systemPrintf("    IMEI: %s\r\n", CELLULAR.IMEI().c_str());
+        PPP.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_PPP_STOP:
