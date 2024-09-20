@@ -24,6 +24,7 @@
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+#define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
@@ -101,6 +102,10 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
 
+#ifdef COMPILE_CELLULAR
+#include <PPP.h>
+#endif // COMPILE_CELLULAR
+
 #include "settings.h"
 
 #define MAX_CPU_CORES 2
@@ -174,6 +179,12 @@ int pin_Cellular_RX = PIN_UNDEFINED;
 int pin_Cellular_TX = PIN_UNDEFINED;
 int pin_Cellular_PWR_ON = PIN_UNDEFINED;
 int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
+int pin_Cellular_Reset = PIN_UNDEFINED;
+int pin_Cellular_RTS = PIN_UNDEFINED;
+int pin_Cellular_CTS = PIN_UNDEFINED;
+bool cellularModemResetLow = false;
+#define  CELLULAR_MODEM_FC  ESP_MODEM_FLOW_CONTROL_NONE
+uint8_t laraPwrLowValue;
 
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
