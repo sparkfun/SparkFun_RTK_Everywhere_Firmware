@@ -258,11 +258,11 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
             ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
         if (startWiFi)
-            if (wifiStartAP() == false) // Exits calling wifiConnect()
+            if (wifiStartAP() == false)
                 break;
 
         // Start the multicast DNS server
-        networkStartMulticastDNS();
+        networkMulticastDNSStart();
 
         // Freed by stopWebServer
         if (online.psram == true)
@@ -573,7 +573,7 @@ void stopWebServer()
     }
 
     // Stop the multicast DNS server
-    networkStopMulticastDNS();
+    networkMulticastDNSStop();
 
     if (settingsCSV != nullptr)
     {

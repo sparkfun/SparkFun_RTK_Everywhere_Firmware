@@ -11,22 +11,6 @@
     WL_NO_SHIELD: assigned when no WiFi shield is present
     WL_NO_SSID_AVAIL: assigned when no SSID are available
     WL_SCAN_COMPLETED: assigned when the scan networks is completed
-
-  WiFi Station States:
-
-                                  WIFI_STATE_OFF <-------------.
-                                    |                          |
-                       wifiStart()  |                          |
-                                    |                          | WL_CONNECT_FAILED (Bad password)
-                                    |                          | WL_NO_SSID_AVAIL (Out of range)
-                                    v                   Fail   |
-                                  WIFI_STATE_CONNECTING ------>+
-                                    |    ^                     ^
-                     wifiConnect()  |    |                     | wifiShutdown()
-                                    |    | WL_CONNECTION_LOST  |
-                                    |    | WL_DISCONNECTED     |
-                                    v    |                     |
-                                  WIFI_STATE_CONNECTED --------'
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
 
 //----------------------------------------
@@ -56,18 +40,17 @@ static uint32_t wifiConnectionAttemptTimeout;
 //  * Measure interval to display IP address
 static unsigned long wifiDisplayTimer;
 
-// Last time the WiFi state was displayed
-static uint32_t lastWifiState;
-
 // DNS server for Captive Portal
 static DNSServer dnsServer;
 
-//----------------------------------------
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
-//----------------------------------------
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+//----------------------------------------
 // Set WiFi credentials
 // Enable TCP connections
+//----------------------------------------
 void menuWiFi()
 {
     bool restartWiFi = false; // Restart WiFi if user changes anything
@@ -147,84 +130,404 @@ void menuWiFi()
         else
         {
             // Restart WiFi if we are not in AP config mode
-            NETWORK_DATA *network = networkGet(NETWORK_TYPE_WIFI, false);
-            if (network)
-            {
-                if (settings.debugWifiState == true)
-                    systemPrintln("Menu caused restarting of WiFi");
-                networkRestartNetwork(network);
-                networkStop(NETWORK_TYPE_WIFI);
-            }
+            WIFI_STOP();
+            wifiStart();
         }
     }
 
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Display the WiFi IP address
-void wifiDisplayIpAddress()
+//----------------------------------------
+// Connect to a remote WiFi access point
+//----------------------------------------
+bool wifiConnect(unsigned long timeout)
 {
-    systemPrintf("WiFi '%s' IP address: ", WiFi.SSID());
-    systemPrint(WiFi.localIP());
-    systemPrintf(" RSSI: %d\r\n", WiFi.RSSI());
-
-    wifiDisplayTimer = millis();
+    return wifiConnect(timeout, false, nullptr);
 }
 
-// Get the WiFi adapter status
-byte wifiGetStatus()
+//----------------------------------------
+// Attempts a connection to all provided SSIDs
+// Returns true if successful
+// Gives up if no SSID detected or connection times out
+// If useAPSTAMode is true, do an extra check and go from WIFI_AP mode to WIFI_AP_STA mode
+//----------------------------------------
+bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 {
-    return WiFi.status();
+    // If WiFi is already connected and AP_STA mode is not needed, then return true now
+    if (wifiIsRunning() && !useAPSTAMode)
+    {
+        return (true); // Nothing to do
+    }
+
+    displayWiFiConnect();
+
+    // If otaUpdate or otaCheckVersion wants to use WIFI_AP_STA mode
+    if (useAPSTAMode && (wasInAPmode != nullptr))
+    {
+        *wasInAPmode = (WiFi.getMode() == WIFI_AP);
+
+        if (*wasInAPmode)
+        {
+            systemPrintln("wifiConnect: changing from WIFI_AP to WIFI_AP_STA");
+            WiFi.mode(WIFI_AP_STA); // Change mode from WIFI_AP to WIFI_AP_STA
+        }
+        else
+        {
+            systemPrintln("wifiConnect: was not in WIFI_AP mode. Going to WIFI_STA");
+            WiFi.mode(WIFI_STA); // Must have been off - or already in STA mode?
+        }
+    }
+    else
+    {
+        // Before we can issue esp_wifi_() commands WiFi must be started
+        if (WiFi.getMode() != WIFI_STA)
+            WiFi.mode(WIFI_STA);
+    }
+
+    // Verify that the necessary protocols are set
+    uint8_t protocols = 0;
+    esp_err_t response = esp_wifi_get_protocol(WIFI_IF_STA, &protocols);
+    if (response != ESP_OK)
+        systemPrintf("wifiConnect: Failed to get protocols: %s\r\n", esp_err_to_name(response));
+
+    // If ESP-NOW is running, blend in ESP-NOW protocol.
+    if (espnowState > ESPNOW_OFF)
+    {
+        if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR))
+        {
+            esp_err_t response =
+                esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N |
+                                                       WIFI_PROTOCOL_LR); // Enable WiFi + ESP-Now.
+            if (response != ESP_OK)
+                systemPrintf("wifiConnect: Error setting WiFi + ESP-NOW protocols: %s\r\n", esp_err_to_name(response));
+        }
+    }
+    else
+    {
+        // Make sure default WiFi protocols are in place
+        if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N))
+        {
+            esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G |
+                                                                        WIFI_PROTOCOL_11N); // Enable WiFi.
+            if (response != ESP_OK)
+                systemPrintf("wifiConnect: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
+        }
+    }
+
+    systemPrintln("Connecting WiFi... ");
+
+    static WiFiMulti wifiMulti;
+
+    // Load SSIDs
+    wifiMulti.APlistClean();
+    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+    {
+        if (strlen(settings.wifiNetworks[x].ssid) > 0)
+            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid, (const char *)&settings.wifiNetworks[x].password);
+    }
+
+    int wifiStatus = wifiMulti.run(timeout);
+    if (wifiStatus == WL_CONNECTED)
+        return true;
+    if (wifiStatus == WL_DISCONNECTED)
+        systemPrint("No friendly WiFi networks detected.\r\n");
+    else
+        systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiStatus);
+    return false;
 }
 
+//----------------------------------------
+// Display the WiFi state
+//----------------------------------------
+void wifiDisplayState()
+{
+    systemPrintf("WiFi: %s\r\n", networkIsInterfaceOnline(NETWORK_WIFI) ? "Online" : "Offline");
+    systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1], wifiMACAddress[2],
+                 wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    {
+        // Get the DNS addresses
+        IPAddress dns1 = WiFi.STA.dnsIP(0);
+        IPAddress dns2 = WiFi.STA.dnsIP(1);
+        IPAddress dns3 = WiFi.STA.dnsIP(2);
+
+        // Get the WiFi status
+        wl_status_t wifiStatus = WiFi.status();
+        const char * wifiStatusString;
+        switch (wifiStatus)
+        {
+        case WL_NO_SHIELD: wifiStatusString = "WL_NO_SHIELD"; break;
+        case WL_STOPPED: wifiStatusString = "WL_STOPPED"; break;
+        case WL_IDLE_STATUS: wifiStatusString = "WL_IDLE_STATUS"; break;
+        case WL_NO_SSID_AVAIL: wifiStatusString = "WL_NO_SSID_AVAIL"; break;
+        case WL_SCAN_COMPLETED: wifiStatusString = "WL_SCAN_COMPLETED"; break;
+        case WL_CONNECTED: wifiStatusString = "WL_CONNECTED"; break;
+        case WL_CONNECT_FAILED: wifiStatusString = "WL_CONNECT_FAILED"; break;
+        case WL_CONNECTION_LOST: wifiStatusString = "WL_CONNECTION_LOST"; break;
+        case WL_DISCONNECTED: wifiStatusString = "WL_DISCONNECTED"; break;
+        }
+
+        // Display the WiFi state
+        systemPrintf("    SSID: %s\r\n", WiFi.STA.SSID());
+        systemPrintf("    IP Address: %s\r\n", WiFi.STA.localIP().toString().c_str());
+        systemPrintf("    Subnet Mask: %s\r\n", WiFi.STA.subnetMask().toString().c_str());
+        systemPrintf("    Gateway Address: %s\r\n", WiFi.STA.gatewayIP().toString().c_str());
+        if ((uint32_t)dns3)
+            systemPrintf("    DNS Address: %s, %s, %s\r\n",
+                         dns1.toString().c_str(),
+                         dns2.toString().c_str(),
+                         dns3.toString().c_str());
+        else if ((uint32_t)dns3)
+            systemPrintf("    DNS Address: %s, %s\r\n",
+                         dns1.toString().c_str(),
+                         dns2.toString().c_str());
+        else
+            systemPrintf("    DNS Address: %s\r\n",
+                         dns1.toString().c_str());
+        systemPrintf("    WiFi Strength: %d dBm\r\n", WiFi.RSSI());
+        systemPrintf("    WiFi Status: %d\r\n", wifiStatusString);
+    }
+}
+
+//----------------------------------------
+// Process the WiFi events
+//----------------------------------------
+void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
+{
+    char ssid[sizeof(info.wifi_sta_connected.ssid) + 1];
+    IPAddress ipAddress;
+
+    // Take the network offline if necessary
+    if (networkIsInterfaceOnline(NETWORK_WIFI)
+        && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP)
+        && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
+    {
+        networkMarkOffline(NETWORK_WIFI);
+    }
+
+    // Handle the event
+    switch (event)
+    {
+    default:
+        Serial.printf("ERROR: Unknown WiFi event: %d\r\n", event);
+        break;
+
+    case ARDUINO_EVENT_WIFI_OFF:
+        Serial.println("WiFi Off");
+        break;
+
+    case ARDUINO_EVENT_WIFI_READY:
+        Serial.println("WiFi Ready");
+        break;
+
+    case ARDUINO_EVENT_WIFI_SCAN_DONE:
+        Serial.println("WiFi Scan Done");
+        // wifi_event_sta_scan_done_t info.wifi_scan_done;
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_START:
+        Serial.println("WiFi STA Started");
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_STOP:
+        Serial.println("WiFi STA Stopped");
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
+        ssid[info.wifi_sta_connected.ssid_len] = 0;
+        Serial.printf("WiFi STA connected to %s\r\n", ssid);
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        memcpy(ssid, info.wifi_sta_disconnected.ssid, info.wifi_sta_disconnected.ssid_len);
+        ssid[info.wifi_sta_disconnected.ssid_len] = 0;
+        Serial.printf("WiFi STA disconnected from %s\r\n", ssid);
+        // wifi_event_sta_disconnected_t info.wifi_sta_disconnected;
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+        Serial.println("WiFi STA Auth Mode Changed");
+        // wifi_event_sta_authmode_change_t info.wifi_sta_authmode_change;
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        ipAddress = WiFi.localIP();
+        Serial.print("WiFi STA Got IPv4: ");
+        Serial.println(ipAddress);
+        networkMarkOnline(NETWORK_WIFI);
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+        Serial.print("WiFi STA Got IPv6: ");
+        Serial.println(ipAddress);
+        networkMarkOnline(NETWORK_WIFI);
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        Serial.println("WiFi STA Lost IP");
+        break;
+    }
+}
+
+//----------------------------------------
+// Determine if WIFI is connected
+//----------------------------------------
+bool wifiIsConnected()
+{
+    bool connected;
+
+    connected = (WiFi.status() == WL_CONNECTED);
+    return connected;
+}
+
+//----------------------------------------
+// Determine if WIFI is running
+//----------------------------------------
+bool wifiIsRunning()
+{
+    if (wifiIsConnected())
+        return true;
+    return (WiFi.status() != WL_STOPPED);
+}
+
+//----------------------------------------
+// Counts the number of entered SSIDs
+//----------------------------------------
+int wifiNetworkCount()
+{
+    // Count SSIDs
+    int networkCount = 0;
+    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+    {
+        if (strlen(settings.wifiNetworks[x].ssid) > 0)
+            networkCount++;
+    }
+    return networkCount;
+}
+
+//----------------------------------------
+// Restart WiFi
+//----------------------------------------
+void wifiRestart()
+{
+    wifiStop();
+    wifiStart();
+}
+
+//----------------------------------------
+// Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
+// Sets the appropriate protocols (WiFi + ESP-Now)
+// If radio is off entirely, start WiFi
+// If ESP-Now is active, only add the LR protocol
+// Returns true if WiFi has started and false otherwise
+//----------------------------------------
+bool wifiStart()
+{
+    if (wifiNetworkCount() == 0)
+    {
+        systemPrintln("Error: Please enter at least one SSID before using WiFi");
+        displayNoSSIDs(2000);
+        WIFI_STOP();
+        return false;
+    }
+
+    if (wifiIsRunning())
+        return true; // We don't need to do anything
+
+    if (settings.debugWifiState == true)
+        systemPrintln("Starting WiFi");
+
+    // Start WiFi
+    return wifiConnect(settings.wifiConnectTimeoutMs);
+}
+
+//----------------------------------------
+// Start WiFi
+//----------------------------------------
+void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    // Start WiFi
+    if (wifiStart())
+        networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+}
+
+//----------------------------------------
+// Wifi start sequence
+//----------------------------------------
+NETWORK_POLL_SEQUENCE wifiStartSequence[] =
+{   //  State               Parameter               Description
+    {wifiStart,             0,                      "Initialize Wifi"},
+    {nullptr,               0,                      "Termination"},
+};
+
+//----------------------------------------
+// Stop WiFi and release all resources
+//----------------------------------------
+void wifiStop()
+{
+    // Stop the web server
+    stopWebServer();
+
+    // Stop the DNS server if we were using the captive portal
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
+        dnsServer.stop();
+
+    wifiConnectionAttempts = 0; // Reset the timeout
+
+    // If ESP-Now is active, change protocol to only Long Range
+    if (espnowState > ESPNOW_OFF)
+    {
+        if (WiFi.getMode() != WIFI_STA)
+            WiFi.mode(WIFI_STA);
+
+        // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
+        // esp_wifi_set_protocol requires WiFi to be started
+        esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
+        if (response != ESP_OK)
+            systemPrintf("wifiShutdown: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
+        else
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi disabled, ESP-Now left in place");
+        }
+    }
+    else
+    {
+        WiFi.mode(WIFI_OFF);
+        if (settings.debugWifiState == true)
+            systemPrintln("WiFi Stopped");
+    }
+
+    // Display the heap state
+    reportHeapNow(settings.debugWifiState);
+}
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+// WiFi Config Support Routines - compiled out
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+//----------------------------------------
 // Set AP mode
+//----------------------------------------
 void wifiSetApMode()
 {
     WiFi.mode(WIFI_AP);
 }
 
-// Update the state of the WiFi state machine
-void wifiSetState(byte newState)
-{
-    if ((settings.debugWifiState || PERIODIC_DISPLAY(PD_WIFI_STATE)) && (wifiState == newState))
-        systemPrint("*");
-    wifiState = newState;
-
-    if (settings.debugWifiState || PERIODIC_DISPLAY(PD_WIFI_STATE))
-    {
-        PERIODIC_CLEAR(PD_WIFI_STATE);
-        switch (newState)
-        {
-        default:
-            systemPrintf("Unknown WiFi state: %d\r\n", newState);
-            break;
-        case WIFI_STATE_OFF:
-            systemPrintln("WIFI_STATE_OFF");
-            break;
-        case WIFI_STATE_START:
-            systemPrintln("WIFI_STATE_START");
-            break;
-        case WIFI_STATE_CONNECTING:
-            systemPrintln("WIFI_STATE_CONNECTING");
-            break;
-        case WIFI_STATE_CONNECTED:
-            systemPrintln("WIFI_STATE_CONNECTED");
-            break;
-        }
-    }
-}
-
 //----------------------------------------
-// WiFi Config Support Routines - compiled out
+// Start the WiFi access point
 //----------------------------------------
-
-// Start the access point for user to connect to and configure device
-// We can also start as a WiFi station and attempt to connect to local WiFi for config
 bool wifiStartAP()
 {
     return (wifiStartAP(false)); // Don't force AP mode
 }
 
+//----------------------------------------
+// Start the access point for user to connect to and configure device
+// We can also start as a WiFi station and attempt to connect to local WiFi for config
+//----------------------------------------
 bool wifiStartAP(bool forceAP)
 {
     if (settings.wifiConfigOverAP == true || forceAP)
@@ -285,7 +588,7 @@ bool wifiStartAP(bool forceAP)
         {
             if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
             {
-                wifiPrintNetworkInfo();
+                wifiDisplayState();
                 break;
             }
         }
@@ -298,425 +601,6 @@ bool wifiStartAP(bool forceAP)
     }
 
     return (true);
-}
-
-//----------------------------------------
-// WiFi Routines
-//----------------------------------------
-
-// Advance the WiFi state from off to connected
-// Throttle connection attempts as needed
-void wifiUpdate()
-{
-    // Skip if in configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        // if(settings.debugWifiState == true)
-        //     systemPrintln("configureViaEthernet: skipping wifiUpdate");
-        return;
-    }
-
-    // Periodically display the WiFi state
-    if (settings.debugWifiState && ((millis() - lastWifiState) > 15000))
-    {
-        wifiSetState(wifiState);
-        lastWifiState = millis();
-    }
-
-    DMW_st(wifiSetState, wifiState);
-    switch (wifiState)
-    {
-    default:
-        systemPrintf("Unknown wifiState: %d\r\n", wifiState);
-        break;
-
-    case WIFI_STATE_OFF:
-        // Any service that needs WiFi will call wifiStart()
-        break;
-
-    case WIFI_STATE_CONNECTING:
-        // Pause until connection timeout has passed
-        if (millis() - wifiLastConnectionAttempt > wifiConnectionAttemptTimeout)
-        {
-            wifiLastConnectionAttempt = millis();
-
-            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
-            {
-                // Restart ESPNow if it was previously on
-                if (espnowState > ESPNOW_OFF)
-                    espnowStart();
-
-                wifiSetState(WIFI_STATE_CONNECTED);
-            }
-            else
-            {
-                // We failed to connect
-                if (wifiConnectLimitReached() == false) // Increases wifiConnectionAttemptTimeout
-                {
-                    if (wifiConnectionAttemptTimeout / 1000 < 120)
-                        systemPrintf("Next WiFi attempt in %d seconds.\r\n", wifiConnectionAttemptTimeout / 1000);
-                    else
-                        systemPrintf("Next WiFi attempt in %d minutes.\r\n", wifiConnectionAttemptTimeout / 1000 / 60);
-                }
-                else
-                {
-                    systemPrintln("WiFi connection failed. Giving up.");
-                    displayNoWiFi(2000);
-                    WIFI_STOP(); // Move back to WIFI_STATE_OFF
-                }
-            }
-        }
-
-        break;
-
-    case WIFI_STATE_CONNECTED:
-        // Verify link is still up
-        if (wifiIsConnected() == false)
-        {
-            systemPrintln("WiFi link lost");
-            wifiConnectionAttempts = 0; // Reset the timeout
-            wifiSetState(WIFI_STATE_CONNECTING);
-        }
-
-        // If WiFi is connected, and no services require WiFi, shut it off
-        else if (wifiIsNeeded() == false)
-            WIFI_STOP();
-
-        break;
-    }
-
-    // Process DNS when we are in AP mode or AP+STA mode for captive portal
-    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
-    {
-        dnsServer.processNextRequest();
-    }
-}
-
-// Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
-// Sets the appropriate protocols (WiFi + ESP-Now)
-// If radio is off entirely, start WiFi
-// If ESP-Now is active, only add the LR protocol
-void wifiStart()
-{
-    if (wifiNetworkCount() == 0)
-    {
-        systemPrintln("Error: Please enter at least one SSID before using WiFi");
-        displayNoSSIDs(2000);
-        WIFI_STOP();
-        return;
-    }
-
-    if (wifiIsConnected() == true)
-        return; // We don't need to do anything
-
-    if (wifiState > WIFI_STATE_OFF)
-        return; // We're in the midst of connecting
-
-    if (settings.debugWifiState == true)
-        systemPrintln("Starting WiFi");
-
-    wifiSetState(WIFI_STATE_CONNECTING); // This starts the state machine running
-
-    // Display the heap state
-    reportHeapNow(settings.debugWifiState);
-}
-
-// Stop WiFi and release all resources
-void wifiStop()
-{
-    // Stop the web server
-    stopWebServer();
-
-    // Stop the multicast domain name server
-    networkStopMulticastDNS();
-
-    // Stop the DNS server if we were using the captive portal
-    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
-        dnsServer.stop();
-
-    // Stop the other network clients and then WiFi
-    NETWORK_STOP(NETWORK_TYPE_WIFI);
-}
-
-// Stop WiFi and release all resources
-// If ESP NOW is active, leave WiFi on enough for ESP NOW
-void wifiShutdown()
-{
-    wifiSetState(WIFI_STATE_OFF);
-
-    wifiConnectionAttempts = 0; // Reset the timeout
-
-    // If ESP-Now is active, change protocol to only Long Range
-    if (espnowState > ESPNOW_OFF)
-    {
-        if (WiFi.getMode() != WIFI_STA)
-            WiFi.mode(WIFI_STA);
-
-        // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
-        // esp_wifi_set_protocol requires WiFi to be started
-        esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
-        if (response != ESP_OK)
-            systemPrintf("wifiShutdown: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
-        else
-        {
-            if (settings.debugWifiState == true)
-                systemPrintln("WiFi disabled, ESP-Now left in place");
-        }
-    }
-    else
-    {
-        WiFi.mode(WIFI_OFF);
-        if (settings.debugWifiState == true)
-            systemPrintln("WiFi Stopped");
-    }
-
-    // Display the heap state
-    reportHeapNow(settings.debugWifiState);
-}
-
-bool wifiIsConnected()
-{
-    return (wifiGetStatus() == WL_CONNECTED);
-}
-
-// Attempts a connection to all provided SSIDs
-// Returns true if successful
-// Gives up if no SSID detected or connection times out
-// If useAPSTAMode is true, do an extra check and go from WIFI_AP mode to WIFI_AP_STA mode
-bool wifiConnect(unsigned long timeout)
-{
-    return wifiConnect(timeout, false, nullptr);
-}
-
-bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
-{
-    // If WiFi is already connected and AP_STA mode is not needed, then return true now
-    if (wifiIsConnected() && !useAPSTAMode)
-    {
-        return (true); // Nothing to do
-    }
-
-    displayWiFiConnect();
-
-    // If otaUpdate or otaCheckVersion wants to use WIFI_AP_STA mode
-    if (useAPSTAMode && (wasInAPmode != nullptr))
-    {
-        *wasInAPmode = (WiFi.getMode() == WIFI_AP);
-
-        if (*wasInAPmode)
-        {
-            systemPrintln("wifiConnect: changing from WIFI_AP to WIFI_AP_STA");
-            WiFi.mode(WIFI_AP_STA); // Change mode from WIFI_AP to WIFI_AP_STA
-        }
-        else
-        {
-            systemPrintln("wifiConnect: was not in WIFI_AP mode. Going to WIFI_STA");
-            WiFi.mode(WIFI_STA); // Must have been off - or already in STA mode?
-        }
-    }
-    else
-    {
-        // Before we can issue esp_wifi_() commands WiFi must be started
-        if (WiFi.getMode() != WIFI_STA)
-            WiFi.mode(WIFI_STA);
-    }
-
-    // Verify that the necessary protocols are set
-    uint8_t protocols = 0;
-    esp_err_t response = esp_wifi_get_protocol(WIFI_IF_STA, &protocols);
-    if (response != ESP_OK)
-        systemPrintf("wifiConnect: Failed to get protocols: %s\r\n", esp_err_to_name(response));
-
-    // If ESP-NOW is running, blend in ESP-NOW protocol.
-    if (espnowState > ESPNOW_OFF)
-    {
-        if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR))
-        {
-            esp_err_t response =
-                esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N |
-                                                       WIFI_PROTOCOL_LR); // Enable WiFi + ESP-Now.
-            if (response != ESP_OK)
-                systemPrintf("wifiConnect: Error setting WiFi + ESP-NOW protocols: %s\r\n", esp_err_to_name(response));
-        }
-    }
-    else
-    {
-        // Make sure default WiFi protocols are in place
-        if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N))
-        {
-            esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G |
-                                                                        WIFI_PROTOCOL_11N); // Enable WiFi.
-            if (response != ESP_OK)
-                systemPrintf("wifiConnect: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
-        }
-    }
-
-    int wifiResponse = WL_DISCONNECTED;
-
-    systemPrint("Connecting WiFi... ");
-
-    static WiFiMulti wifiMulti;
-
-    // Load SSIDs
-    wifiMulti.APlistClean();
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-    {
-        if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid, (const char *)&settings.wifiNetworks[x].password);
-    }
-
-    wifiResponse = wifiMulti.run(timeout);
-
-    if (wifiResponse == WL_CONNECTED)
-    {
-        if (settings.enableTcpClient == true || settings.enableTcpServer == true || settings.enableUdpServer == true)
-            networkStartMulticastDNS();
-
-        systemPrintln();
-        return true;
-    }
-    else if (wifiResponse == WL_DISCONNECTED)
-        systemPrint("No friendly WiFi networks detected.\r\n");
-    else
-        systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiResponse);
-
-    return false;
-}
-
-// Based on the current settings and system states, determine if we need WiFi on or not
-// This function does not start WiFi. Any service that needs it should call wifiStart().
-// This function is used to turn WiFi off if nothing needs it.
-//
-// TODO: Check if this is still required or needs to be updated. As a minimum, it should be networkIsNeeded ?
-bool wifiIsNeeded()
-{
-    if (settings.enablePointPerfectCorrections)
-        return true;
-    if (settings.enableTcpClient == true)
-        return true;
-    if (settings.enableTcpServer == true)
-        return true;
-    if (settings.enableUdpServer == true)
-        return true;
-    if (settings.enableAutoFirmwareUpdate)
-        return true;
-
-    // Handle WiFi within systemStates
-    if (systemState <= STATE_ROVER_RTK_FIX && settings.enableNtripClient == true)
-        return true;
-
-    if (inBaseMode() == true && settings.enableNtripServer == true)
-        return true;
-
-    // If the user has enabled NTRIP Client for an Assisted Survey-In, and Survey-In is running, keep WiFi on.
-    if (systemState >= STATE_BASE_NOT_STARTED && systemState <= STATE_BASE_TEMP_SURVEY_STARTED &&
-        settings.enableNtripClient == true && settings.fixedBase == false)
-        return true;
-
-    // If WiFi is on while we are in the following states, allow WiFi to continue to operate
-    if (systemState >= STATE_DISPLAY_SETUP && systemState <= STATE_PROFILE)
-    {
-        // Keep WiFi on if user presses setup button, enters bubble level, is in AP config mode, etc
-        return true;
-    }
-
-    return false;
-}
-
-// Counts the number of entered SSIDs
-int wifiNetworkCount()
-{
-    // Count SSIDs
-    int networkCount = 0;
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-    {
-        if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            networkCount++;
-    }
-    return networkCount;
-}
-
-// Determine if another connection is possible or if the limit has been reached
-bool wifiConnectLimitReached()
-{
-    // Retry the connection a few times
-    bool limitReached = false;
-    if (wifiConnectionAttempts++ >= wifiMaxConnectionAttempts)
-        limitReached = true;
-
-    wifiConnectionAttemptsTotal++;
-
-    if (limitReached == false)
-    {
-        wifiConnectionAttemptTimeout =
-            wifiConnectionAttempts * 15 * 1000L; // Wait 15, 30, 45, etc seconds between attempts
-
-        reportHeapNow(settings.debugWifiState);
-    }
-    else
-    {
-        // No more connection attempts
-        systemPrintln("WiFi connection attempts exceeded!");
-    }
-    return limitReached;
-}
-
-void wifiPrintNetworkInfo()
-{
-    systemPrintln("\nNetwork Configuration:");
-    systemPrintln("----------------------");
-    systemPrint("         SSID: ");
-    systemPrintln(WiFi.SSID());
-    systemPrint("  WiFi Status: ");
-    systemPrintln(WiFi.status());
-    systemPrint("WiFi Strength: ");
-    systemPrint(WiFi.RSSI());
-    systemPrintln(" dBm");
-    systemPrint("          MAC: ");
-    systemPrintln(WiFi.macAddress());
-    systemPrint("           IP: ");
-    systemPrintln(WiFi.localIP());
-    systemPrint("       Subnet: ");
-    systemPrintln(WiFi.subnetMask());
-    systemPrint("      Gateway: ");
-    systemPrintln(WiFi.gatewayIP());
-    systemPrint("        DNS 1: ");
-    systemPrintln(WiFi.dnsIP(0));
-    systemPrint("        DNS 2: ");
-    systemPrintln(WiFi.dnsIP(1));
-    systemPrint("        DNS 3: ");
-    systemPrintln(WiFi.dnsIP(2));
-    systemPrintln();
-}
-
-// Return the gateway IP address for the WiFi controller
-IPAddress wifiGetGatewayIpAddress()
-{
-    return WiFi.gatewayIP();
-}
-
-// Return the IP address for the WiFi controller
-IPAddress wifiGetIpAddress()
-{
-    return WiFi.localIP();
-}
-
-// Return the subnet mask for the WiFi controller
-IPAddress wifiGetSubnetMask()
-{
-    return WiFi.subnetMask();
-}
-
-// Return the WiFi signal signal strength
-int wifiGetRssi()
-{
-    return WiFi.RSSI();
-}
-
-// Return the Wifi station ID
-String wifiGetSsid()
-{
-    return WiFi.SSID();
 }
 
 #endif // COMPILE_WIFI

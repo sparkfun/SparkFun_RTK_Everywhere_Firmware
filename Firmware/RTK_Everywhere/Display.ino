@@ -351,9 +351,11 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                if (online.ethernetStatus == ETH_CONNECTED)
+#ifdef  COMPILE_ETHERNET
+                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
+#endif  // COMPILE_ETHERNET
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
@@ -368,9 +370,11 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-                if (online.ethernetStatus == ETH_CONNECTED)
+#ifdef COMPILE_ETHERNET
+                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
+#endif  // COMPILE_ETHERNET
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
@@ -637,7 +641,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-            if (wifiState > WIFI_STATE_OFF)
+            if (wifiIsRunning())
                 numberOfRadios++;
             if (espnowState > ESPNOW_OFF)
                 numberOfRadios++;
@@ -654,7 +658,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 setBluetoothIcon_TwoRadios(iconList);
 
                 // Do we have WiFi or ESP
-                if (wifiState > WIFI_STATE_OFF)
+                if (wifiIsRunning())
                     setWiFiIcon_TwoRadios(iconList);
                 else if (espnowState > ESPNOW_OFF)
                     setESPNowIcon_TwoRadios(iconList);
@@ -688,7 +692,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (wifiState > WIFI_STATE_OFF) // WiFi : Columns 34 - 46
+            if (wifiIsRunning()) // WiFi : Columns 34 - 46
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
@@ -778,7 +782,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
-            if (wifiState == WIFI_STATE_CONNECTED)
+#ifdef COMPILE_WIFI
+            if (networkIsInterfaceOnline(NETWORK_WIFI))
             {
                 if (netIncomingRTCM == true) // Download : Columns 59 - 66
                 {
@@ -805,6 +810,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     netOutgoingRTCM = false;
                 }
             }
+#endif  // COMPILE_WIFI
 
             switch (systemState) // Dynamic Model / Base : Columns 79 - 93
             {
@@ -1007,15 +1013,12 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (wifiState == WIFI_STATE_CONNECTED)
+#ifdef COMPILE_WIFI
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b00001111;
             // Based on RSSI, select icon
@@ -1050,11 +1053,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b11111111;
             // Based on RSSI, select icon
@@ -1076,6 +1075,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = WiFiSymbol3Left64x48; // Full symbol
         iconList->push_back(prop);
     }
+#endif  // COMPILE_WIFI
 }
 
 // Bluetooth is in center position
@@ -1083,15 +1083,12 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (wifiState == WIFI_STATE_CONNECTED)
+#ifdef COMPILE_WIFI
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b00001111;
             // Based on RSSI, select icon
@@ -1126,11 +1123,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
         }
         else
         {
-#ifdef COMPILE_WIFI
             int wifiRSSI = WiFi.RSSI();
-#else  // COMPILE_WIFI
-            int wifiRSSI = -40; // Dummy
-#endif // COMPILE_WIFI
             iconPropertyBlinking prop;
             prop.duty = 0b11111111;
             // Based on RSSI, select icon
@@ -1152,6 +1145,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = WiFiSymbol3Right64x48; // Full symbol
         iconList->push_back(prop);
     }
+#endif  // COMPILE_WIFI
 }
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
@@ -1168,9 +1162,11 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.xPos = (oled->getWidth() / 2) - (icon.icon.width / 2);
         icon.icon.yPos = 0;
 
-        if (wifiState == WIFI_STATE_CONNECTED)
+#ifdef COMPILE_WIFI
+        if (networkIsInterfaceOnline(NETWORK_WIFI))
             icon.duty = 0b11111111;
         else
+#endif  // COMPILE_WIFI
             icon.duty = 0b01010101;
 
         iconList->push_back(icon);
@@ -1444,9 +1440,10 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 {
     if (online.batteryFuelGauge) // Product has a battery
         paintBatteryLevel(iconList);
+#ifdef COMPILE_ETHERNET
     else // if (present.ethernet_ws5500 == true)
     {
-        if (online.ethernetStatus != ETH_CONNECTED)
+        if (!networkIsInterfaceOnline(NETWORK_ETHERNET))
             return; // Only display the Ethernet icon if we are successfully connected (no blinking)
 
         iconPropertyBlinking prop;
@@ -1454,6 +1451,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         prop.duty = 0b11111111;
         iconList->push_back(prop);
     }
+#endif  // COMPILE_ETHERNET
 }
 
 void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
@@ -1822,8 +1820,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
     {
         char myAddress[16];
 
-        uint8_t networkType = networkGetType();
-        IPAddress ipAddress = networkGetIpAddress(networkType);
+        IPAddress ipAddress = networkGetIpAddress();
 
         if (ipAddress != IPAddress((uint32_t)0))
         {
@@ -1839,7 +1836,7 @@ void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom
 void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 {
     char macAddress[5];
-    const uint8_t *rtkMacAddress = getMacAddress();
+    const uint8_t *rtkMacAddress = networkGetMacAddress();
 
     // Print four characters of MAC
     snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
@@ -1850,7 +1847,7 @@ void paintMACAddress4digit(uint8_t xPos, uint8_t yPos)
 void paintMACAddress2digit(uint8_t xPos, uint8_t yPos)
 {
     char macAddress[5];
-    const uint8_t *rtkMacAddress = getMacAddress();
+    const uint8_t *rtkMacAddress = networkGetMacAddress();
 
     // Print only last two digits of MAC
     snprintf(macAddress, sizeof(macAddress), "%02X", rtkMacAddress[5]);
@@ -1895,6 +1892,11 @@ void displayGNSSFail(uint16_t displayTime)
 void displayNoWiFi(uint16_t displayTime)
 {
     displayMessage("No WiFi", displayTime);
+}
+
+void displayNoNetwork(uint16_t displayTime)
+{
+    displayMessage("No Network", displayTime);
 }
 
 void displayNoSSIDs(uint16_t displayTime)
@@ -2403,7 +2405,7 @@ void paintSystemTest()
 
             // Get the last two digits of MAC
             char macAddress[5];
-            const uint8_t *rtkMacAddress = getMacAddress();
+            const uint8_t *rtkMacAddress = networkGetMacAddress();
             snprintf(macAddress, sizeof(macAddress), "%02X%02X", rtkMacAddress[4], rtkMacAddress[5]);
 
             // Display MAC address
@@ -2850,7 +2852,7 @@ void paintKeyProvisionFail(uint16_t displayTime)
 
         // The device ID is 14 characters long so we have to split it into three lines
         char hardwareID[15];
-        const uint8_t *rtkMacAddress = getMacAddress();
+        const uint8_t *rtkMacAddress = networkGetMacAddress();
 
         snprintf(hardwareID, sizeof(hardwareID), "%02X%02X%02X", rtkMacAddress[0], rtkMacAddress[1], rtkMacAddress[2]);
         y += fontHeight;
@@ -3081,23 +3083,4 @@ void displayConfigViaEthernet()
     uint8_t yPos = oled->getHeight() / 2 - fontHeight;
     printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
 #endif // COMPILE_ETHERNET
-}
-
-const uint8_t *getMacAddress()
-{
-    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
-
-#ifdef COMPILE_BT
-    if (bluetoothGetState() != BT_OFF)
-        return btMACAddress;
-#endif // COMPILE_BT
-#ifdef COMPILE_WIFI
-    if (wifiState != WIFI_STATE_OFF)
-        return wifiMACAddress;
-#endif // COMPILE_WIFI
-#ifdef COMPILE_ETHERNET
-    if ((online.ethernetStatus >= ETH_STARTED_CHECK_CABLE) && (online.ethernetStatus <= ETH_CONNECTED))
-        return ethernetMACAddress;
-#endif // COMPILE_ETHERNET
-    return zero;
 }

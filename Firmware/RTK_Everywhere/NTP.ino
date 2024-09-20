@@ -59,14 +59,13 @@ NTP.ino
 enum NTP_STATE
 {
     NTP_STATE_OFF,
-    NTP_STATE_NETWORK_STARTING,
     NTP_STATE_NETWORK_CONNECTED,
     NTP_STATE_SERVER_RUNNING,
     // Insert new states here
     NTP_STATE_MAX
 };
 
-const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_STARTING", "NTP_STATE_NETWORK_CONNECTED",
+const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_CONNECTED",
                                           "NTP_STATE_SERVER_RUNNING"};
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
@@ -76,6 +75,7 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
+static NetPriority_t ntpServerPriority = NETWORK_OFFLINE;
 static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
 static uint32_t lastLoggedNTPRequest;
@@ -824,10 +824,6 @@ void ntpServerStop()
             reportHeapNow(settings.debugNtp);
     }
 
-    // Release the network resources
-    if (networkGetUserNetwork(NETWORK_USER_NTP_SERVER))
-        networkUserClose(NETWORK_USER_NTP_SERVER);
-
     // Stop the NTP server
     ntpServerSetState(NTP_STATE_OFF);
 }
@@ -859,27 +855,18 @@ void ntpServerUpdate()
         // Determine if the NTP server is enabled
         if (EQ_RTK_MODE(ntpServerMode))
         {
-            // Start the network
-            if (networkUserOpen(NETWORK_USER_NTP_SERVER, NETWORK_TYPE_ETHERNET))
-                ntpServerSetState(NTP_STATE_NETWORK_STARTING);
+            // The NTP server only works over Ethernet
+            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+            {
+                ntpServerPriority = NETWORK_OFFLINE;
+                ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
+            }
         }
-        break;
-
-    // Wait for the network conection
-    case NTP_STATE_NETWORK_STARTING:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
-            // Stop the NTP server, restart it if possible
-            ntpServerStop();
-
-        // Determine if the network is connected
-        else if (networkUserConnected(NETWORK_USER_NTP_SERVER))
-            ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
+        if (!networkIsConnected(&ntpServerPriority))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
@@ -903,7 +890,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_SERVER_RUNNING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
+        if (!networkIsConnected(&ntpServerPriority))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 

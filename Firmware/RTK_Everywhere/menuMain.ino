@@ -664,7 +664,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 4)
         {
-            if (wifiIsConnected() == false)
+            if (wifiIsRunning() == false)
             {
                 if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                                   &settings.wifiChannel) == INPUT_RESPONSE_VALID)

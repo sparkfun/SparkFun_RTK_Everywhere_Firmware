@@ -1362,10 +1362,12 @@ void updateProvisioning()
     }
     break;
     case PROVISIONING_CHECK_NETWORK: {
-        uint8_t networkType = networkGetActiveType();
-        if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+        if (!networkIsOnline())
         {
-            displayNoSSIDs(2000);
+            if (wifiNetworkCount() == 0)
+                displayNoSSIDs(2000);
+            else
+                displayNoNetwork(2000);
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else

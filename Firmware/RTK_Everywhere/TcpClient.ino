@@ -146,8 +146,9 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 // Locals
 //----------------------------------------
 
-static RTKNetworkClient *tcpClient;
+static NetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
+static NetPriority_t tcpClientPriority = NETWORK_OFFLINE;
 static uint8_t tcpClientState;
 static volatile RING_BUFFER_OFFSET tcpClientTail;
 static volatile bool tcpClientWriteError;
@@ -270,10 +271,10 @@ void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 // Start the TCP client
 bool tcpClientStart()
 {
-    RTKNetworkClient *client;
+    NetworkClient *client;
 
     // Allocate the TCP client
-    client = new RTKNetworkClient(NETWORK_USER_TCP_CLIENT);
+    client = new NetworkClient();
     if (client)
     {
         // Get the host name
@@ -287,7 +288,7 @@ bool tcpClientStart()
             // gateway IP address.
 
             // Attempt the TCP client connection
-            tcpClientIpAddress = wifiGetGatewayIpAddress();
+            tcpClientIpAddress = networkGetGatewayIpAddress();
             sprintf(hostname, "%s", tcpClientIpAddress.toString().c_str());
         }
 
@@ -324,7 +325,7 @@ bool tcpClientStart()
 // Stop the TCP client
 void tcpClientStop()
 {
-    RTKNetworkClient *client;
+    NetworkClient *client;
     IPAddress ipAddress;
 
     client = tcpClient;
@@ -346,10 +347,6 @@ void tcpClientStop()
             systemPrintf("TCP client disconnected from %s:%d\r\n", ipAddress.toString().c_str(),
                          settings.tcpClientPort);
     }
-
-    // Done with the network
-    if (tcpClientState != TCP_CLIENT_STATE_OFF)
-        networkUserClose(NETWORK_USER_TCP_CLIENT);
 
     // Initialize the TCP client
     tcpClientWriteError = false;
@@ -411,45 +408,56 @@ void tcpClientUpdate()
         // Determine if the TCP client should be running
         if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
         {
-            if (networkUserOpen(NETWORK_USER_TCP_CLIENT, NETWORK_TYPE_ACTIVE))
-            {
-                timer = 0;
-                tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
-            }
+            timer = 0;
+            tcpClientPriority = NETWORK_OFFLINE;
+            tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
         }
         break;
 
     // Wait until the network is connected
     case TCP_CLIENT_STATE_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_CLIENT))
-            // Failed to connect to to the network, attempt to restart the network
+        // Determine if the TCP client was turned off
+        if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
             tcpClientStop();
 
-        // Determine if WiFi is required
-        else if ((!strlen(settings.tcpClientHost)) && (networkGetType(NETWORK_TYPE_ACTIVE) != NETWORK_TYPE_WIFI))
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&tcpClientPriority))
         {
-            // Wrong network type, WiFi is required but another network is being used
-            if ((millis() - timer) >= (15 * 1000))
+#ifdef COMPILE_WIFI
+            // Determine if WiFi is required
+            if ((!strlen(settings.tcpClientHost)) && (!networkIsInterfaceOnline(NETWORK_WIFI)))
+            {
+                // Wrong network type, WiFi is required but another network is being used
+                if ((millis() - timer) >= (15 * 1000))
+                {
+                    timer = millis();
+                    systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                }
+            }
+#else   // COMPILE_WIFI
+            if (!strlen(settings.tcpClientHost))
+            {
+                // Wrong network type
+                if ((millis() - timer) >= (15 * 1000))
+                {
+                    timer = millis();
+                    systemPrintln("TCP Client requires host name to be specified!");
+                }
+            }
+#endif  // COMPILE_WIFI
+            // The network type and host provide a valid configuration
+            else
             {
                 timer = millis();
-                systemPrintln("TCP Client must connect via WiFi when no host is specified");
+                tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
             }
-        }
-
-        // Wait for the network to connect to the media
-        else if (networkUserConnected(NETWORK_USER_TCP_CLIENT))
-        {
-            // The network type and host provide a valid configuration
-            timer = millis();
-            tcpClientSetState(TCP_CLIENT_STATE_CLIENT_STARTING);
         }
         break;
 
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_CLIENT))
+        if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 
@@ -494,7 +502,7 @@ void tcpClientUpdate()
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_CLIENT))
+        if (!networkIsConnected(&tcpClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 

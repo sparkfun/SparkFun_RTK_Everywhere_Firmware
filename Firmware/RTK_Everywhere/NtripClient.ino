@@ -179,7 +179,7 @@ const RtkMode_t ntripClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 //----------------------------------------
 
 // The network connection to the NTRIP caster to obtain RTCM data.
-static RTKNetworkClient *ntripClient;
+static NetworkClient *ntripClient;
 static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 
 // Throttle the time between connection attempts
@@ -187,6 +187,7 @@ static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 static int ntripClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t ntripClientConnectionAttemptTimeout;
 static int ntripClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
+static NetPriority_t ntripClientPriority = NETWORK_OFFLINE;
 
 // NTRIP client timer usage:
 //  * Reconnection delay
@@ -305,10 +306,6 @@ bool ntripClientConnectLimitReached()
 
     // Retry the connection a few times
     bool limitReached = (ntripClientConnectionAttempts >= MAX_NTRIP_CLIENT_CONNECTION_ATTEMPTS);
-
-    // Attempt to restart the network if possible
-    if (settings.enableNtripClient && (!limitReached))
-        networkRestart(NETWORK_USER_NTRIP_CLIENT);
 
     // Restart the NTRIP client
     ntripClientStop(limitReached || (!settings.enableNtripClient));
@@ -510,14 +507,8 @@ void ntripClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (ntripClientState > NTRIP_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         ntripClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_NTRIP_CLIENT))
-            networkUserClose(NETWORK_USER_NTRIP_CLIENT);
-    }
 
     // Return the Main Talker ID to "GN".
     gnssSetTalkerGNGGA();
@@ -564,22 +555,21 @@ void ntripClientUpdate()
 
     // Start the network
     case NTRIP_CLIENT_ON:
-        if (networkUserOpen(NETWORK_USER_NTRIP_CLIENT, NETWORK_TYPE_ACTIVE))
-            ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
+        ntripClientPriority = NETWORK_OFFLINE;
+        ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
         break;
 
     // Wait for a network media connection
     case NTRIP_CLIENT_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
+        // Determine if the NTRIP client was turned off
+        if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
+            ntripClientStop(true);
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_NTRIP_CLIENT))
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&ntripClientPriority))
         {
             // Allocate the ntripClient structure
-            ntripClient = new RTKNetworkClient(NETWORK_USER_NTRIP_CLIENT);
+            ntripClient = new NetworkClient();
             if (!ntripClient)
             {
                 // Failed to allocate the ntripClient structure
@@ -598,7 +588,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
@@ -631,7 +621,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_WAIT_RESPONSE:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
@@ -701,9 +691,10 @@ void ntripClientUpdate()
                         seconds -= hours * SECONDS_IN_AN_HOUR;
                         minutes = seconds / SECONDS_IN_A_MINUTE;
                         seconds -= minutes * SECONDS_IN_A_MINUTE;
-                        systemPrintf("NTRIP Client connected to %s:%d at %d:%02d:%02d\r\n",
-                                     settings.ntripClient_CasterHost, settings.ntripClient_CasterPort, hours, minutes,
-                                     seconds);
+                        systemPrintf("NTRIP Client connected to %s:%d via %s:%d at %d:%02d:%02d\r\n",
+                                     settings.ntripClient_CasterHost, settings.ntripClient_CasterPort,
+                                     ntripClient->localIP().toString().c_str(),
+                                     ntripClient->localPort(), hours, minutes, seconds);
                     }
                     else
                         systemPrintf("NTRIP Client connected to %s:%d\r\n", settings.ntripClient_CasterHost,
@@ -751,7 +742,7 @@ void ntripClientUpdate()
 
     case NTRIP_CLIENT_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_CLIENT))
+        if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 

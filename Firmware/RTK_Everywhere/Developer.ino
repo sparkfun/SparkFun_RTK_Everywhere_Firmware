@@ -10,10 +10,6 @@
 //----------------------------------------
 
 void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
-void ethernetBegin() {}
-IPAddress ethernetGetIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress ethernetGetSubnetMask() {return IPAddress((uint32_t)0);}
-void ethernetUpdate() {}
 void ethernetVerifyTables() {}
 
 void ethernetWebServerStartESP32W5500() {}
@@ -40,15 +36,14 @@ void ntpServerStop() {}
 //----------------------------------------
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
+void networkBegin() {}
+IPAddress networkGetIpAddress() {return("0.0.0.0");}
+const uint8_t * networkGetMacAddress() {static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0}; return zero;}
+bool networkIsOnline() {return false;}
+void networkMarkOffline(NetIndex_t index) {}
+void networkMarkOnline(NetIndex_t index) {}
 void networkUpdate() {}
 void networkVerifyTables() {}
-void networkStop(uint8_t networkType) {}
-NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
-void networkUserClose(uint8_t user) {}
-uint8_t networkGetActiveType() {return (0);}
-uint8_t networkGetType() {return (0);};
-IPAddress networkGetIpAddress(uint8_t networkType) {return("0.0.0.0");}
-bool networkCanConnect() {return(false);}
 
 //----------------------------------------
 // NTRIP client
@@ -82,6 +77,15 @@ void tcpClientUpdate() {}
 void tcpClientValidateTables() {}
 void tcpClientZeroTail() {}
 void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+
+//----------------------------------------
+// TCP server
+//----------------------------------------
+
+int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
+void tcpServerZeroTail() {}
+void tcpServerValidateTables() {}
+void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
 // UDP server
@@ -152,37 +156,15 @@ void sendStringToWebsocket(const char* stringToSend) {}
 #ifndef COMPILE_WIFI
 
 //----------------------------------------
-// TCP server
-//----------------------------------------
-
-int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
-void tcpServerStop() {}
-void tcpServerUpdate() {}
-void tcpServerZeroTail() {}
-void tcpServerValidateTables() {}
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-
-//----------------------------------------
 // WiFi
 //----------------------------------------
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiConnect(unsigned long timeout) {return false;}
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
-IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress wifiGetSubnetMask() {return IPAddress((uint32_t)0);}
-int wifiGetRssi() {return -999;}
-String wifiGetSsid() {return "**WiFi Not compiled**";}
-bool wifiIsConnected() {return false;}
-bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}
-void wifiPrintNetworkInfo() {}
+bool wifiIsRunning() {return false;}
+void wifiRestart() {}
 void wifiSetApMode() {}
-void wifiStart() {}
-void wifiStop() {}
-void wifiUpdate() {}
-void wifiShutdown() {}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI

@@ -236,89 +236,157 @@ typedef enum
     ERROR_GPS_CONFIG_FAIL,
 } t_errorNumber;
 
-// Define the types of network
+// Define the periodic display values
+typedef uint64_t PeriodicDisplay_t;
+
+enum PeriodDisplayValues
+{
+    PD_BLUETOOTH_DATA_RX = 0,   //  0
+    PD_BLUETOOTH_DATA_TX,       //  1
+
+    PD_IP_ADDRESS,              //  2
+    PD_ETHERNET_STATE,          //  3
+
+    PD_NETWORK_STATE,           //  4
+
+    PD_NTP_SERVER_DATA,         //  5
+    PD_NTP_SERVER_STATE,        //  6
+
+    PD_NTRIP_CLIENT_DATA,       //  7
+    PD_NTRIP_CLIENT_GGA,        //  8
+    PD_NTRIP_CLIENT_STATE,      //  9
+
+    PD_NTRIP_SERVER_DATA,       // 10
+    PD_NTRIP_SERVER_STATE,      // 11
+
+    PD_TCP_CLIENT_DATA,         // 12
+    PD_TCP_CLIENT_STATE,        // 13
+
+    PD_TCP_SERVER_DATA,         // 14
+    PD_TCP_SERVER_STATE,        // 15
+    PD_TCP_SERVER_CLIENT_DATA,  // 16
+
+    PD_UDP_SERVER_DATA,         // 17
+    PD_UDP_SERVER_STATE,        // 18
+    PD_UDP_SERVER_BROADCAST_DATA,  // 19
+
+    PD_RING_BUFFER_MILLIS,      // 20
+
+    PD_SD_LOG_WRITE,            // 21
+
+    PD_TASK_BLUETOOTH_READ,     // 22
+    PD_TASK_BUTTON_CHECK,       // 23
+    PD_TASK_GNSS_READ,          // 24
+    PD_TASK_HANDLE_GNSS_DATA,   // 25
+    PD_TASK_SD_SIZE_CHECK,      // 26
+    PD_TASK_UPDATE_PPL,         // 27
+
+    PD_Reserved_28,             // 28
+    PD_WIFI_STATE,              // 29
+
+    PD_ZED_DATA_RX,             // 30
+    PD_ZED_DATA_TX,             // 31
+
+    PD_MQTT_CLIENT_DATA,        // 32
+    PD_MQTT_CLIENT_STATE,       // 33
+
+    PD_TASK_UPDATE_WEBSERVER,   // 34
+
+    PD_HTTP_CLIENT_STATE,       // 35
+
+    PD_PROVISIONING_STATE,      // 36
+
+    PD_CORRECTION_SOURCE,       // 37
+    // Add new values before this line
+};
+
+#define PERIODIC_MASK(x) (1ull << x)
+#define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
+#define PERIODIC_CLEAR(x) periodicDisplay = periodicDisplay & ~PERIODIC_MASK(x)
+#define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
+#define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
+
+typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
+typedef uint32_t NetMask_t;      // One bit for each network interface
+typedef int8_t NetPriority_t;  // Index into networkPriorityTable
+                                // Value 0 (highest) - 255 (lowest) priority
+
+// Types of networks, must be in same order as networkInterfaceTable
 enum NetworkTypes
 {
-    NETWORK_TYPE_WIFI = 0,
-    NETWORK_TYPE_ETHERNET,
-    // Last hardware network type
-    NETWORK_TYPE_MAX,
-
-    // Special cases
-    NETWORK_TYPE_USE_DEFAULT = NETWORK_TYPE_MAX,
-    NETWORK_TYPE_ACTIVE,
-    // Last network type
-    NETWORK_TYPE_LAST,
+    NETWORK_NONE = -1,  // The values below must start at zero and be sequential
+    #ifdef COMPILE_ETHERNET
+        NETWORK_ETHERNET,
+    #endif  // COMPILE_ETHERNET
+    #ifdef COMPILE_WIFI
+        NETWORK_WIFI = 1,
+    #endif  // COMPILE_WIFI
+    #ifdef COMPILE_CELLULAR
+//        NETWORK_CELLULAR,
+    #endif  // COMPILE_CELLULAR
+    // Add new networks here
+    NETWORK_MAX
 };
-
-// Define the states of the network device
-enum NetworkStates
-{
-    NETWORK_STATE_OFF = 0,
-    NETWORK_STATE_DELAY,
-    NETWORK_STATE_CONNECTING,
-    NETWORK_STATE_IN_USE,
-    NETWORK_STATE_WAIT_NO_USERS,
-    // Last network state
-    NETWORK_STATE_MAX
-};
-
-// Define the network users
-enum NetworkUsers
-{
-    NETWORK_USER_MQTT_CLIENT = 0,       // MQTT client (Point Perfect)
-    NETWORK_USER_NTP_SERVER,            // NTP server
-    NETWORK_USER_NTRIP_CLIENT,          // NTRIP client
-    NETWORK_USER_OTA_AUTO_UPDATE,       // Over-The-Air (OTA) firmware update
-    NETWORK_USER_TCP_CLIENT,            // TCP client
-    NETWORK_USER_TCP_SERVER,            // PTCP server
-    NETWORK_USER_UDP_SERVER,            // UDP server
-    NETWORK_USER_HTTP_CLIENT,           // HTTP Client (Point Perfect ZTP)
-
-    // Add new users above this line
-    NETWORK_USER_NTRIP_SERVER,          // NTRIP server
-    // Last network user
-    NETWORK_USER_MAX = NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX
-};
-
-typedef uint16_t NETWORK_USER;
-
-typedef struct _NETWORK_DATA
-{
-    uint8_t requestedNetwork;  // Type of network requested
-    uint8_t type;              // Type of network
-    NETWORK_USER activeUsers;  // Active users of this network device
-    NETWORK_USER userOpens;    // Users requesting access to this network
-    uint8_t connectionAttempt; // Number of previous connection attempts
-    bool restart;              // Set if restart is allowed
-    bool shutdown;             // Network is shutting down
-    uint8_t state;             // Current state of the network
-    uint32_t timeout;          // Timer timeout value
-    uint32_t timerStart;       // Starting millis for the timer
-} NETWORK_DATA;
-
-// Even though WiFi and ESP-Now operate on the same radio, we treat
-// then as different states so that we can leave the radio on if
-// either WiFi or ESP-Now are active
-enum WiFiState
-{
-    WIFI_STATE_OFF = 0,
-    WIFI_STATE_START,
-    WIFI_STATE_CONNECTING,
-    WIFI_STATE_CONNECTED,
-};
-volatile byte wifiState = WIFI_STATE_OFF;
 
 #ifdef  COMPILE_NETWORK
 
-#include "RTKNetworkClient.h" // Built-in - Supports both WiFiClient and EthernetClient
-#include "RTKNetworkUDP.h"    //Built-in - Supports both WiFiUdp and EthernetUdp
+// Routine to poll a network interface
+// Inputs:
+//     index: Index into the networkInterfaceTable
+//     parameter: Arbitrary parameter to the poll routine
+typedef void (* NETWORK_POLL_ROUTINE)(NetIndex_t index, uintptr_t parameter, bool debug);
+
+// Sequence entry specifying a poll routine call for a network interface
+typedef struct _NETWORK_POLL_SEQUENCE
+{
+    NETWORK_POLL_ROUTINE routine; // Address of poll routine, nullptr at end of table
+    uintptr_t parameter;          // Parameter passed to poll routine
+    const char * description;     // Description of operation
+} NETWORK_POLL_SEQUENCE;
+
+// networkInterfaceTable entry
+typedef struct _NETWORK_TABLE_ENTRY
+{
+    NetworkInterface * netif;       // Network interface object address
+    const char * name;              // Name of the network interface
+    uint8_t pdState;                // Periodic display state value
+    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
+} NETWORK_TABLE_ENTRY;
+
+// Sequence table declarations
+extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
+
+// List of networks
+// Multiple networks may running in parallel with highest priority being
+// set to the default network.  The start routine is called as the priority
+// drops to that level.  The stop routine is called as the priority rises
+// above that level.  The priority will continue to fall or rise until a
+// network is found that is online.
+const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
+{ //     Interface  Name            Periodic State      Boot Sequence           Start Sequence      Stop Sequence
+    #ifdef COMPILE_ETHERNET
+        {&ETH,      "Ethernet",     PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    #endif  // COMPILE_ETHERNET
+    #ifdef COMPILE_WIFI
+        {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
+    #endif  // COMPILE_WIFI
+    #ifdef  COMPILE_CELLULAR
+//        {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+    #endif  // COMPILE_CELLULAR
+};
+const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
+
+#define NETWORK_OFFLINE     networkInterfaceTableEntries
+
+const NetMask_t mDNSUse = 0x3; // One bit per network interface
 
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA
 {
     // Network connection used to push RTCM to NTRIP caster
-    RTKNetworkClient *networkClient;
+    NetworkClient *networkClient;
     volatile uint8_t state;
 
     // Count of bytes sent by the NTRIP server to the NTRIP caster
@@ -396,23 +464,6 @@ typedef struct WiFiNetwork
 #define MAX_WIFI_NETWORKS 4
 
 typedef uint16_t RING_BUFFER_OFFSET;
-
-typedef enum
-{
-    ETH_NOT_STARTED = 0,
-    ETH_STARTED_CHECK_CABLE,
-    ETH_STARTED_START_DHCP,
-    ETH_CONNECTED,
-    ETH_CAN_NOT_BEGIN,
-    // Add new states above this line
-    ETH_MAX_STATE
-} ethernetStatus_e;
-
-const char *const ethernetStates[] = {
-    "ETH_NOT_STARTED", "ETH_STARTED_CHECK_CABLE", "ETH_STARTED_START_DHCP", "ETH_CONNECTED", "ETH_CAN_NOT_BEGIN",
-};
-
-const int ethernetStateEntries = sizeof(ethernetStates) / sizeof(ethernetStates[0]);
 
 // Radio status LED goes from off (LED off), no connection (blinking), to connected (solid)
 typedef enum
@@ -531,76 +582,6 @@ typedef enum
 } SettingValueResponse;
 
 #define UBX_ID_NOT_AVAILABLE 0xFF
-
-// Define the periodic display values
-typedef uint64_t PeriodicDisplay_t;
-
-enum PeriodDisplayValues
-{
-    PD_BLUETOOTH_DATA_RX = 0,   //  0
-    PD_BLUETOOTH_DATA_TX,       //  1
-
-    PD_ETHERNET_IP_ADDRESS,     //  2
-    PD_ETHERNET_STATE,          //  3
-
-    PD_NETWORK_STATE,           //  4
-
-    PD_NTP_SERVER_DATA,         //  5
-    PD_NTP_SERVER_STATE,        //  6
-
-    PD_NTRIP_CLIENT_DATA,       //  7
-    PD_NTRIP_CLIENT_GGA,        //  8
-    PD_NTRIP_CLIENT_STATE,      //  9
-
-    PD_NTRIP_SERVER_DATA,       // 10
-    PD_NTRIP_SERVER_STATE,      // 11
-
-    PD_TCP_CLIENT_DATA,         // 12
-    PD_TCP_CLIENT_STATE,        // 13
-
-    PD_TCP_SERVER_DATA,         // 14
-    PD_TCP_SERVER_STATE,        // 15
-    PD_TCP_SERVER_CLIENT_DATA,  // 16
-
-    PD_UDP_SERVER_DATA,         // 17
-    PD_UDP_SERVER_STATE,        // 18
-    PD_UDP_SERVER_BROADCAST_DATA,  // 19
-
-    PD_RING_BUFFER_MILLIS,      // 20
-
-    PD_SD_LOG_WRITE,            // 21
-
-    PD_TASK_BLUETOOTH_READ,     // 22
-    PD_TASK_BUTTON_CHECK,       // 23
-    PD_TASK_GNSS_READ,          // 24
-    PD_TASK_HANDLE_GNSS_DATA,   // 25
-    PD_TASK_SD_SIZE_CHECK,      // 26
-    PD_TASK_UPDATE_PPL,         // 27
-
-    PD_WIFI_IP_ADDRESS,         // 28
-    PD_WIFI_STATE,              // 29
-
-    PD_ZED_DATA_RX,             // 30
-    PD_ZED_DATA_TX,             // 31
-
-    PD_MQTT_CLIENT_DATA,        // 32
-    PD_MQTT_CLIENT_STATE,       // 33
-
-    PD_TASK_UPDATE_WEBSERVER,   // 34
-
-    PD_HTTP_CLIENT_STATE,       // 35
-
-    PD_PROVISIONING_STATE,      // 36
-
-    PD_CORRECTION_SOURCE,       // 37
-    // Add new values before this line
-};
-
-#define PERIODIC_MASK(x) (1ull << x)
-#define PERIODIC_DISPLAY(x) (periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_CLEAR(x) periodicDisplay = periodicDisplay & ~PERIODIC_MASK(x)
-#define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
-#define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
 #define INCHES_IN_A_METER   39.37007874
 #define FEET_IN_A_METER     3.280839895
@@ -1109,8 +1090,6 @@ struct Settings
 
     // Network layer
     bool debugNetworkLayer = false;    // Enable debugging of the network layer
-    uint8_t defaultNetworkType = NETWORK_TYPE_USE_DEFAULT;
-    bool enableNetworkFailover = true; // Enable failover between Ethernet / WiFi
     bool printNetworkStatus = true;    // Print network status (delays, failovers, IP address)
 
     // NTP
@@ -1686,8 +1665,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Network layer
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer",  },
-    { 0, 1, 1, 0, 1, 1, 1, 0, _uint8_t,  0, & settings.defaultNetworkType, "defaultNetworkType",  },
-    { 0, 1, 1, 0, 1, 1, 1, 0, _bool,     0, & settings.enableNetworkFailover, "enableNetworkFailover",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, _bool,     0, & settings.printNetworkStatus, "printNetworkStatus",  },
 
 //                      F
@@ -2056,7 +2033,6 @@ struct struct_online
     bool tcpClient = false;
     bool tcpServer = false;
     bool udpServer = false;
-    ethernetStatus_e ethernetStatus = ETH_NOT_STARTED;
     bool ethernetNTPServer = false; // EthernetUDP
     bool otaFirmwareUpdate = false;
     bool bluetooth = false;

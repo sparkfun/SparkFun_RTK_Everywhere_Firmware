@@ -278,13 +278,6 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
-#define NETWORK_STOP(type)                                                                                             \
-    {                                                                                                                  \
-        if (settings.debugNetworkLayer)                                                                                \
-            systemPrintf("networkStop called by %s %d\r\n", __FILE__, __LINE__);                                       \
-        networkStop(type);                                                                                             \
-    }
-
 #ifdef COMPILE_WIFI
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
@@ -674,7 +667,6 @@ volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet N
 bool ntpLogIncreasing;
 #endif // COMPILE_ETHERNET
 
-static bool eth_connected = false;
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -842,7 +834,7 @@ unsigned long loraLastIncomingSerial; //Last time a user sent a serial command. 
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 41
+#define MAX_BOOT_TIME_ENTRIES 42
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1116,6 +1108,9 @@ void setup()
 
     DMW_b("beginIdleTasks");
     beginIdleTasks(); // Requires settings. Enable processor load calculations
+
+    DMW_b("networkBegin");
+    networkBegin();
 
     DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor

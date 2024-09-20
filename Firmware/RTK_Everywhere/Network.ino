@@ -26,46 +26,6 @@ Network.ino
                   V                         V
               Ethernet                     WiFi
 
-  Network States:
-
-        .-------------------->NETWORK_STATE_OFF
-        |                             |
-        |                             |
-        |                             | restart
-        |                             |    or
-        |                             | networkUserOpen()
-        | networkStop()               |     networkStart()
-        |                             |
-        |                             |
-        |                             |
-        |                             V
-        +<-------------------NETWORK_STATE_DELAY--------------------------------.
-        ^                             |                                         |
-        |                             | Delay complete                          |
-        |                             |                                         |
-        |                             V                                         V
-        +<----------------NETWORK_STATE_CONNECTING----------------------------->+
-        ^                             |                          Network Failed |
-        |                             | Media connected                         |
-        | networkUserClose()          |                                   Retry |
-        |         &&                  V                                         |
-        | activeUsers == 0            +<----------------.                       |
-        |                             |                 | networkUserClose()    |
-        |                             V                 |         &&            |
-        +<------------------NETWORK_STATE_IN_USE--------' activeUsers != 0      |
-        ^                             |                                         |
-        |                             | Network failed                          |
-        |                             |       or                                |
-        |                             | networkStop()                           |
-        |                             V                                         |
-        |                             +<----------------------------------------'
-        |                             |
-        |                             V
-        |                             +<----------------.
-        |                             |                 | networkUserClose()
-        |                             V                 |         &&
-        '-------------------NETWORK_WAIT_NO_USERS-------' activeUsers != 0
-
   Network testing on an RTK Reference Station using NTRIP client:
 
     1. Network retries using Ethernet, no WiFi setup:
@@ -140,62 +100,33 @@ Network.ino
 #ifdef COMPILE_NETWORK
 
 //----------------------------------------
-// Constants
-//----------------------------------------
-
-#define NETWORK_CONNECTION_TIMEOUT                                                                                     \
-    (30 * 1000) // Timeout for network media connection - allow extra time for WiFiMulti scan
-#define NETWORK_DELAY_BEFORE_RETRY (75 * 100)  // Delay between network connection retries
-#define NETWORK_IP_ADDRESS_DISPLAY (12 * 1000) // Delay in milliseconds between display of IP address
-#define NETWORK_MAX_IDLE_TIME 500              // Maximum network idle time before shutdown
-#define NETWORK_MAX_RETRIES 7                  // 7.5, 15, 30, 60, 2m, 4m, 8m
-
-// Specify which network to use next when a network failure occurs
-const uint8_t networkFailover[] = {
-    NETWORK_TYPE_ETHERNET, // WiFi     --> Ethernet
-    NETWORK_TYPE_WIFI,     // Ethernet --> WiFi
-};
-const int networkFailoverEntries = sizeof(networkFailover) / sizeof(networkFailover[0]);
-
-// List of network names
-const char *const networkName[] = {
-    "WiFi",             // NETWORK_TYPE_WIFI
-    "Ethernet",         // NETWORK_TYPE_ETHERNET
-    "Hardware Default", // NETWORK_TYPE_DEFAULT
-    "Active",           // NETWORK_TYPE_ACTIVE
-};
-const int networkNameEntries = sizeof(networkName) / sizeof(networkName[0]);
-
-// List of state names
-const char *const networkState[] = {
-    "NETWORK_STATE_OFF",    "NETWORK_STATE_DELAY",         "NETWORK_STATE_CONNECTING",
-    "NETWORK_STATE_IN_USE", "NETWORK_STATE_WAIT_NO_USERS",
-};
-const int networkStateEntries = sizeof(networkState) / sizeof(networkState[0]);
-
-// List of network users
-const char *const networkUser[] = {
-    "MQTT Client",
-    "NTP Server",
-    "NTRIP Client",
-    "OTA Firmware Update",
-    "TCP Client",
-    "TCP Server",
-    "UDP Server",
-    "HTTP Client",
-    "NTRIP Server 0",
-    "NTRIP Server 1",
-    "NTRIP Server 2",
-    "NTRIP Server 3",
-};
-const int networkUserEntries = sizeof(networkUser) / sizeof(networkUser[0]);
-
-//----------------------------------------
 // Locals
 //----------------------------------------
 
-static NETWORK_DATA networkData = {NETWORK_TYPE_ACTIVE, NETWORK_TYPE_ACTIVE};
-static uint32_t networkLastIpAddressDisplayMillis[NETWORK_TYPE_MAX];
+// Priority of each of the networks in the networkInterfaceTable
+// Index by networkInterfaceTable index to get network interface priority
+NetPriority_t networkPriorityTable[NETWORK_OFFLINE];
+
+// Index by priority to get the networkInterfaceTable index
+NetIndex_t networkIndexTable[NETWORK_OFFLINE];
+
+// Priority of the default network interface
+NetPriority_t networkPriority = NETWORK_OFFLINE;  // Index into networkPriorityTable
+
+// The following entries have one bit per interface
+// Each bit represents an index into the networkInterfaceTable
+NetMask_t networkOnline;  // Track the online networks
+
+NetMask_t networkSeqStarting;       // Track the starting sequences
+NetMask_t networkSeqStopping;       // Track the stopping sequences
+NetMask_t networkSeqNext;           // Determine the next sequence to invoke
+NetMask_t networkSeqRequest;        // Request another sequence (bit value 0: stop, 1: start)
+NetMask_t networkStarted;           // Track the running networks
+
+// Active network sequence, may be nullptr
+NETWORK_POLL_SEQUENCE * networkSequence[NETWORK_OFFLINE];
+
+bool networkMdnsRunning;    // true when mDNS is running
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -345,951 +276,803 @@ void menuTcpUdp()
 }
 
 //----------------------------------------
-// Allocate a network client
+// Initialize the network layer
 //----------------------------------------
-RTKNetworkClient *networkClient(uint8_t user, bool useSSL)
+void networkBegin()
 {
-    RTKNetworkClient *client;
-    int type;
+    int index;
 
-    type = networkGetType(user);
-    client = new RTKNetworkClientType(type);
-    return client;
+    // Set the network priority values
+    // Normally these would come from settings
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
+        networkPriorityTable[index] = index;
+
+    // Set the network index values based upon the priorities
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
+        networkIndexTable[networkPriorityTable[index]] = index;
+
+    // Handle the network events
+    Network.onEvent(networkEvent);
+
+    #ifdef  COMPILE_ETHERNET
+    // Start Ethernet
+        if (present.ethernet_ws5500)
+            ethernetStart();
+    #endif  // COMPILE_ETHERNET
+
+    #ifdef  COMPILE_WIFI
+        // Start WiFi
+        networkSequenceStart(NETWORK_WIFI, settings.debugNetworkLayer);
+    #endif  // COMPILE_WIFI
 }
 
 //----------------------------------------
-// Display the IP address
+// Process network events
 //----------------------------------------
-void networkDisplayIpAddress(uint8_t networkType)
+void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
-    char ipAddress[32];
-    NETWORK_DATA *network;
+    int index;
 
-    network = &networkData;
-    //    network = networkGet(networkType, false);
-    if (network && (networkType == network->type) && (network->state >= NETWORK_STATE_IN_USE))
+    // Get the index into the networkInterfaceTable for the default interface
+    index = networkPriority;
+    if (index < NETWORK_OFFLINE)
+        index = networkIndexTable[index];
+
+    // Process the event
+    switch (event)
     {
-        if (settings.debugNetworkLayer || settings.printNetworkStatus)
-        {
-            strcpy(ipAddress, networkGetIpAddress(networkType).toString().c_str());
-            if (network->type == NETWORK_TYPE_WIFI)
-                systemPrintf("%s '%s' IP address: %s, RSSI: %d\r\n", networkName[network->type], wifiGetSsid(),
-                             ipAddress, wifiGetRssi());
-            else
-                systemPrintf("%s IP address: %s\r\n", networkName[network->type], ipAddress);
-
-            // The address was just displayed
-            networkLastIpAddressDisplayMillis[networkType] = millis();
-        }
-    }
-}
-
-//----------------------------------------
-// Display the network users
-//----------------------------------------
-void networkDisplayUsers(NETWORK_USER users)
-{
-    uint8_t userNumber = 0;
-    uint32_t mask;
-
-    while (users)
-    {
-        mask = 1 << userNumber;
-        if (users & mask)
-        {
-            users &= ~mask;
-            systemPrintf("    0x%08x: %s\r\n", mask, networkUserToString(userNumber));
-        }
-    }
-}
-
-//----------------------------------------
-// Get the network type
-//----------------------------------------
-NETWORK_DATA *networkGet(uint8_t networkType, bool updateRequestedNetwork)
-{
-    NETWORK_DATA *network;
-    uint8_t selectedNetworkType;
-
-    do
-    {
-        network = &networkData;
-
-        // Translate the default network type
-        selectedNetworkType = networkTranslateNetworkType(networkType, false);
-        if (settings.debugNetworkLayer && (networkType != selectedNetworkType))
-            systemPrintf("networkGet, networkType: %s --> %s\r\n", networkName[networkType],
-                         networkName[selectedNetworkType]);
-        networkType = selectedNetworkType;
-
-        // Select the network
-        if (updateRequestedNetwork &&
-            ((network->state < NETWORK_STATE_CONNECTING) || (network->state == NETWORK_STATE_WAIT_NO_USERS)))
-        {
-            selectedNetworkType = network->requestedNetwork;
-            if ((selectedNetworkType == NETWORK_TYPE_ACTIVE) && (networkType <= NETWORK_TYPE_USE_DEFAULT))
-                selectedNetworkType = networkType;
-            else if ((selectedNetworkType == NETWORK_TYPE_USE_DEFAULT) && (networkType < NETWORK_TYPE_MAX))
-                selectedNetworkType = networkType;
-            if (settings.debugNetworkLayer && (network->requestedNetwork != selectedNetworkType))
-                systemPrintf("networkUserOpen, network->requestedNetwork: %s --> %s\r\n",
-                             networkName[network->requestedNetwork], networkName[selectedNetworkType]);
-            network->requestedNetwork = selectedNetworkType;
-
-            // Update the network type before connecting to the network
-            if (network->state < NETWORK_STATE_CONNECTING)
-            {
-                if (settings.debugNetworkLayer && (network->type != selectedNetworkType))
-                    systemPrintf("networkUserOpen, network->type: %s --> %s\r\n", networkName[network->type],
-                                 networkName[selectedNetworkType]);
-                network->type = selectedNetworkType;
-            }
-        }
-
-        // Determine if the network was found
-        if ((network->state == NETWORK_STATE_OFF) || (networkType == network->type) ||
-            (networkType == NETWORK_TYPE_ACTIVE))
+    #ifdef COMPILE_ETHERNET
+        // Ethernet
+        case ARDUINO_EVENT_ETH_START:
+        case ARDUINO_EVENT_ETH_CONNECTED:
+        case ARDUINO_EVENT_ETH_GOT_IP:
+        case ARDUINO_EVENT_ETH_LOST_IP:
+        case ARDUINO_EVENT_ETH_DISCONNECTED:
+        case ARDUINO_EVENT_ETH_STOP:
+            ethernetEvent(event, info);
             break;
+    #endif  // COMPILE_ETHERNET
 
-        // Network not available if another device is using it
-        network = nullptr;
-    } while (0);
-
-    // Return the network
-    return network;
+    #ifdef COMPILE_WIFI
+        // WiFi
+        case ARDUINO_EVENT_WIFI_OFF:
+        case ARDUINO_EVENT_WIFI_READY:
+        case ARDUINO_EVENT_WIFI_SCAN_DONE:
+        case ARDUINO_EVENT_WIFI_STA_START:
+        case ARDUINO_EVENT_WIFI_STA_STOP:
+        case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+        case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+            wifiEvent(event, info);
+            break;
+    #endif  // COMPILE_WIFI
+    }
 }
 
 //----------------------------------------
 // Get the broadast IP address
 //----------------------------------------
-IPAddress networkGetBroadcastIpAddress(uint8_t networkType)
+IPAddress networkGetBroadcastIpAddress()
 {
+    NetIndex_t index;
     IPAddress ip;
-    IPAddress mask;
-    IPAddress temp;
 
-    // Get the local network address and subnet mask
-    ip = networkGetIpAddress(networkType);
-    mask = networkGetSubnetMask(networkType);
+    // Get the networkInterfaceTable index
+    index = networkPriority;
+    if (index < NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[index];
 
-    // Return the local network broadcast IP address
-    return IPAddress((uint32_t)ip | (~(uint32_t)mask));
+        // Return the local network broadcast IP address
+        return networkInterfaceTable[index].netif->broadcastIP();
+    }
+
+    // Return the broadcast address
+    return IPAddress(255, 255, 255, 255);
+}
+
+//----------------------------------------
+// Get the current interface name
+//----------------------------------------
+const char * networkGetCurrentInterfaceName()
+{
+    return networkGetNameByPriority(networkPriority);
+}
+
+//----------------------------------------
+// Get the gateway IP address
+//----------------------------------------
+IPAddress networkGetGatewayIpAddress()
+{
+    NetIndex_t index;
+    IPAddress ip;
+
+    // Get the networkInterfaceTable index
+    index = networkPriority;
+    if (index < NETWORK_OFFLINE)
+    {
+        index = networkIndexTable[index];
+
+        // Return the gateway IP address
+        return networkInterfaceTable[index].netif->gatewayIP();
+    }
+
+    // No gateway IP address
+    return IPAddress(0, 0, 0, 0);
 }
 
 //----------------------------------------
 // Get the IP address
 //----------------------------------------
-IPAddress networkGetIpAddress(uint8_t networkType)
+IPAddress networkGetIpAddress()
 {
-    if (networkType == NETWORK_TYPE_ETHERNET)
-        return ethernetGetIpAddress();
-    if (networkType == NETWORK_TYPE_WIFI)
-        return wifiGetIpAddress();
-    return IPAddress((uint32_t)0);
-}
+    NetIndex_t index;
+    IPAddress ip;
 
-//----------------------------------------
-// Get the subnet mask
-//----------------------------------------
-IPAddress networkGetSubnetMask(uint8_t networkType)
-{
-    // Determine the network address
-    if (networkType == NETWORK_TYPE_ETHERNET)
-        return ethernetGetSubnetMask();
-    else if (networkType == NETWORK_TYPE_WIFI)
-        return wifiGetSubnetMask();
-    return IPAddress((uint32_t)0);
-}
-
-//----------------------------------------
-// Get the network type
-//----------------------------------------
-uint8_t networkGetActiveType()
-{
-    // Previously we had this (which is wrong - network is not initialized):
-    //NETWORK_DATA *network;
-    //uint8_t type;
-    //type = network->type;
-
-    // Is the intent this?
-    //NETWORK_DATA *network;
-    //uint8_t type;
-    //network = &networkData;
-    //type = network->type;
-
-    // Or this?
-    uint8_t type = networkGetType();
-
-    if (settings.debugNetworkLayer)
-        systemPrintf("networkGetActiveType: network type is %s\r\n", networkTypeToString(type));
-
-    if (type == NETWORK_TYPE_USE_DEFAULT)
-        type = NETWORK_TYPE_ETHERNET;
-    return type;
-}
-
-//----------------------------------------
-// Get the network type
-//----------------------------------------
-uint8_t networkGetType()
-{
-    NETWORK_DATA *network;
-
-    // Return the current type if known
-    network = networkGet(NETWORK_TYPE_ACTIVE, false);
-    if (network && (network->type < NETWORK_TYPE_MAX))
-        return network->type;
-
-    // Network type not determined yet
-    // Determine if this type will be Ethernet
-    if (present.ethernet_ws5500)
+    // Get the networkInterfaceTable index
+    index = networkPriority;
+    if (index < NETWORK_OFFLINE)
     {
-        if ((settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
-            || (settings.defaultNetworkType == NETWORK_TYPE_ETHERNET))
-            return NETWORK_TYPE_ETHERNET;
+        index = networkIndexTable[index];
+        return networkInterfaceTable[index].netif->localIP();
     }
 
-    // Type will be WiFi
-    return NETWORK_TYPE_WIFI;
+    // No IP address available
+    return IPAddress(0, 0, 0, 0);
 }
 
 //----------------------------------------
-// Get the network type for a network user
+// Get the MAC address for display
 //----------------------------------------
-uint8_t networkGetType(uint8_t user)
+const uint8_t * networkGetMacAddress()
 {
-    NETWORK_DATA *network;
+    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
 
-    network = networkGetUserNetwork(user);
-    if (network)
-        return network->type;
-    return NETWORK_TYPE_WIFI;
+#ifdef COMPILE_BT
+    if (bluetoothGetState() != BT_OFF)
+        return btMACAddress;
+#endif // COMPILE_BT
+#ifdef COMPILE_WIFI
+    if (networkIsInterfaceOnline(NETWORK_WIFI))
+        return wifiMACAddress;
+#endif // COMPILE_WIFI
+#ifdef COMPILE_ETHERNET
+    if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+        return ethernetMACAddress;
+#endif // COMPILE_ETHERNET
+    return zero;
 }
 
 //----------------------------------------
-// Get the network with this active user
+// Get the network name by table index
 //----------------------------------------
-NETWORK_DATA *networkGetUserNetwork(NETWORK_USER user)
+const char * networkGetNameByIndex(NetIndex_t index)
 {
-    NETWORK_DATA *network;
-    int networkType;
-    NETWORK_USER userMask;
+    if (index < NETWORK_OFFLINE)
+        return networkInterfaceTable[index].name;
+    return "None";
+}
 
-    // Locate the network for this user
-    userMask = 1 << user;
-    for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
+//----------------------------------------
+// Get the network name by priority
+//----------------------------------------
+const char * networkGetNameByPriority(NetPriority_t priority)
+{
+    if (priority < NETWORK_OFFLINE)
     {
-        network = networkGet(networkType, false);
-        if (network && ((network->activeUsers & userMask) || (network->userOpens & userMask)))
-            return network;
+        // Translate the priority into an index
+        NetIndex_t index = networkPriorityTable[priority];
+        return networkGetNameByIndex(index);
     }
-
-    return nullptr; // User is not active on any network
+    return "None";
 }
 
 //----------------------------------------
-// Perform the common network initialization
+// Determine if the network is available
 //----------------------------------------
-void networkInitialize(NETWORK_DATA *network)
+bool networkIsConnected(NetPriority_t * clientPriority)
 {
-    uint8_t requestedNetwork;
-    NETWORK_USER userOpens;
-
-    // Save the values
-    requestedNetwork = network->requestedNetwork;
-    if (settings.debugNetworkLayer && (requestedNetwork != network->type))
-        systemPrintf("networkInitialize, network->type: %s --> %s\r\n", networkName[network->type],
-                     networkName[requestedNetwork]);
-    userOpens = network->userOpens;
-
-    // Initialize the network
-    memset(network, 0, sizeof(*network));
-
-    // Complete the initialization
-    network->requestedNetwork = requestedNetwork;
-    network->type = requestedNetwork;
-    network->userOpens = userOpens;
-    network->timeout = 2;
-    network->timerStart = millis();
-}
-
-//----------------------------------------
-// Determine if the network is connected to the media
-//----------------------------------------
-bool networkIsConnected(NETWORK_DATA *network)
-{
-    // Determine the network is connected
-    if (network && (network->state == NETWORK_STATE_IN_USE))
-        return networkIsMediaConnected(network);
-    return false;
-}
-
-//----------------------------------------
-// Determine if the network is connected to the media
-//----------------------------------------
-bool networkIsTypeConnected(uint8_t networkType)
-{
-    // Determine the network is connected
-    return networkIsConnected(networkGet(networkType, false));
-}
-
-//----------------------------------------
-// Determine if the network is connected to the media
-//----------------------------------------
-bool networkIsMediaConnected(NETWORK_DATA *network)
-{
-    bool isConnected;
-
-    // Determine if the network is connected to the media
-    switch (network->type)
-    {
-    default:
-        isConnected = false;
-        break;
-
-    case NETWORK_TYPE_ETHERNET:
-        isConnected = (online.ethernetStatus == ETH_CONNECTED);
-        break;
-
-    case NETWORK_TYPE_WIFI:
-        isConnected = wifiIsConnected();
-        break;
-    }
-
-    // Verify that the network has an IP address
-    if (isConnected && (networkGetIpAddress(network->type) != IPAddress((uint32_t)0)))
-    {
-        networkPeriodicallyDisplayIpAddress();
+    // If the client is using the highest priority network and that
+    // network is still available then continue as normal
+    if (networkOnline && (*clientPriority == networkPriority))
         return true;
-    }
 
-    // The network is not ready for use
+    // The network has changed, notify the client of the change
+    *clientPriority = networkPriority;
     return false;
 }
 
 //----------------------------------------
-// Determine if the network is off
+// Determine if the network interface is online
 //----------------------------------------
-bool networkIsOff(uint8_t networkType)
+bool networkIsInterfaceOnline(NetIndex_t index)
 {
-    NETWORK_DATA *network;
+    // Validate the index
+    networkValidateIndex(index);
 
-    network = networkGet(networkType, false);
-    return network && (network->state == NETWORK_STATE_OFF);
+    // Return the network interface state
+    return (networkOnline & (1 << index)) ? true : false;
 }
 
 //----------------------------------------
-// Determine if the network is shutting down
+// Determine if any network interface is online
 //----------------------------------------
-bool networkIsShuttingDown(uint8_t user)
+bool networkIsOnline()
 {
-    NETWORK_DATA *network;
-
-    network = networkGetUserNetwork(user);
-    return network && (network->state == NETWORK_STATE_WAIT_NO_USERS);
+    // Return the network state
+    return networkOnline ? true : false;
 }
 
 //----------------------------------------
-// Periodically display the IP address
+// Mark network offline
 //----------------------------------------
-void networkPeriodicallyDisplayIpAddress()
+void networkMarkOffline(NetIndex_t index)
 {
-    if (PERIODIC_DISPLAY(PD_ETHERNET_IP_ADDRESS))
-    {
-        PERIODIC_CLEAR(PD_ETHERNET_IP_ADDRESS);
-        networkDisplayIpAddress(NETWORK_TYPE_ETHERNET);
-    }
-    if (PERIODIC_DISPLAY(PD_WIFI_IP_ADDRESS))
-    {
-        PERIODIC_CLEAR(PD_WIFI_IP_ADDRESS);
-        networkDisplayIpAddress(NETWORK_TYPE_WIFI);
-    }
-}
+    NetMask_t bitMask;
+    NetPriority_t previousPriority;
+    NetPriority_t priority;
 
-//----------------------------------------
-// Print the name associated with a network type
-//----------------------------------------
-void networkPrintName(uint8_t networkType)
-{
-    if (networkType > NETWORK_TYPE_USE_DEFAULT)
-        systemPrint("Unknown");
-    else if (present.ethernet_ws5500 == true)
-        systemPrint(networkName[networkType]);
-    else
-        systemPrint(networkName[NETWORK_TYPE_WIFI]);
-}
+    // Validate the index
+    networkValidateIndex(index);
 
-//----------------------------------------
-// Attempt to restart the network
-//----------------------------------------
-void networkRestart(uint8_t user)
-{
-    // Determine if restart is possible
-    networkRestartNetwork(networkGetUserNetwork(user));
-}
-
-void networkRestartNetwork(NETWORK_DATA *network)
-{
-    // Determine if restart is possible
-    if (network && (!network->shutdown))
-
-        // The network was not stopped, allow it to be restarted
-        network->restart = true;
-}
-
-//----------------------------------------
-// Retry the network connection
-//----------------------------------------
-void networkRetry(NETWORK_DATA *network, uint8_t previousNetworkType)
-{
-    uint8_t networkType;
-    int seconds;
-    // uint8_t users;
-
-    // Determine the delay multiplier
-    network->connectionAttempt += 1;
-    if (network->connectionAttempt > NETWORK_MAX_RETRIES)
-        // Use the maximum delay and continue retrying the network connection
-        network->connectionAttempt = NETWORK_MAX_RETRIES;
-
-    // Compute the delay between retries
-    network->timeout = NETWORK_DELAY_BEFORE_RETRY << (network->connectionAttempt - 1);
-
-    // Determine if failover is possible
-    if ((present.ethernet_ws5500 == true) && (wifiNetworkCount() > 0) && settings.enableNetworkFailover &&
-        (network->requestedNetwork >= NETWORK_TYPE_MAX))
-    {
-        // Get the next failover network
-        networkType = networkFailover[previousNetworkType];
-        if (settings.debugNetworkLayer || settings.printNetworkStatus)
-        {
-            systemPrint("Network failover: ");
-            systemPrint(networkName[previousNetworkType]);
-            systemPrint("-->");
-            systemPrintln(networkName[networkType]);
-        }
-
-        // Initialize the network
-        network->requestedNetwork = networkType;
-    }
-
-    // Display the delay
-    if ((settings.debugNetworkLayer || settings.printNetworkStatus) && network->timeout)
-    {
-        seconds = network->timeout / 1000;
-        if (seconds < 120)
-            systemPrintf("Network delaying %d seconds before connection\r\n", seconds);
-        else
-            systemPrintf("Network delaying %d minutes before connection\r\n", seconds / 60);
-    }
-
-    // Start the delay between network connection retries
-    network->timerStart = millis();
-    networkSetState(network, NETWORK_STATE_DELAY);
-}
-
-//----------------------------------------
-// Set the next state for the network state machine
-//----------------------------------------
-void networkSetState(NETWORK_DATA *network, byte newState)
-{
-    // Display the state transition
-    if (settings.debugNetworkLayer)
-    {
-        // Display the network state
-        systemPrint("Network State: ");
-        if (newState != network->state)
-            systemPrintf("%s --> ", networkStateToString(network->state));
-        else
-            systemPrint("*");
-
-        // Display the new network state
-        if (newState >= networkStateEntries)
-        {
-            systemPrintf("Unknown network layer state (%d)\r\n", newState);
-            reportFatalError("Unknown network layer state");
-        }
-        else
-            systemPrintf("%s\r\n", networkStateToString(newState));
-    }
-
-    // Validate the network state
-    if (newState >= NETWORK_STATE_MAX)
-        reportFatalError("Invalid network state");
-
-    // Set the new state
-    network->state = newState;
-}
-
-//----------------------------------------
-// Shutdown access to the network hardware
-//----------------------------------------
-void networkShutdownHardware(NETWORK_DATA *network)
-{
-    // Stop WiFi if necessary
-    if (network->type == NETWORK_TYPE_WIFI)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("Network stopping WiFi");
-        wifiShutdown();
-    }
-}
-
-//----------------------------------------
-// Start the network
-//----------------------------------------
-void networkStart(uint8_t networkType)
-{
-    NETWORK_DATA *network;
-
-    // Validate the network type
-    if (networkType >= NETWORK_TYPE_LAST)
-        reportFatalError("Attempting to start an invalid network type!");
-
-    // Start the network layer
-    if (settings.debugNetworkLayer)
-        systemPrintf("Network request to start %s\r\n", networkName[networkType]);
-
-    // Get the network data
-    network = networkGet(networkType, false);
-    if (!network)
-        reportFatalError("Network failed to get the network structure");
-    else
-    {
-        // Verify that the network is stopped
-        if (network->state != NETWORK_STATE_OFF)
-            systemPrintf("Network already started!\r\n");
-        else
-        {
-            // Start the network layer
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network layer starting %s\r\n", networkName[network->type]);
-
-            // Initialize the network
-            networkInitialize(network);
-
-            // Delay before starting the network
-            networkSetState(network, NETWORK_STATE_DELAY);
-        }
-    }
-}
-
-//----------------------------------------
-// Translate the network state into a string
-//----------------------------------------
-const char *networkStateToString(uint8_t state)
-{
-    if (state >= networkStateEntries)
-        return "Unknown";
-    return networkState[state];
-}
-
-//----------------------------------------
-// Display the network status
-//----------------------------------------
-void networkStatus(uint8_t networkType)
-{
-    NETWORK_DATA *network;
-
-    // Get the network
-    network = &networkData;
-
-    // Display the network status
-    systemPrintf("requestedNetwork: %d (%s)\r\n", network->requestedNetwork,
-                 networkTypeToString(network->requestedNetwork));
-    systemPrintf("type: %d (%s)\r\n", network->type, networkTypeToString(network->type));
-    systemPrintf("activeUsers: 0x%08x\r\n", network->activeUsers);
-    networkDisplayUsers(network->activeUsers);
-    systemPrintf("userOpens: 0x%08x\r\n", network->userOpens);
-    networkDisplayUsers(network->userOpens);
-    systemPrintf("connectionAttempt: %d\r\n", network->connectionAttempt);
-    systemPrintf("restart: %s\r\n", network->restart ? "true" : "false");
-    systemPrintf("shutdown: %s\r\n", network->shutdown ? "true" : "false");
-    systemPrintf("state: %d (%s)\r\n", network->state, networkStateToString(network->state));
-    systemPrintf("timeout: %d\r\n", network->timeout);
-    systemPrintf("timerStart: %d\r\n", network->timerStart);
-}
-
-//----------------------------------------
-// Stop the network
-//----------------------------------------
-void networkStop(uint8_t networkType)
-{
-    NETWORK_DATA *network;
-    bool restart;
-    int serverIndex;
-    bool shutdown;
-    int user;
-
-    do
-    {
-        // Validate the network type
-        if (networkType >= NETWORK_TYPE_MAX)
-            reportFatalError("Attempt to shutdown invalid network type!");
-
-        // Shutdown all networks
-        if (networkType >= NETWORK_TYPE_MAX)
-        {
-            for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
-                networkStop(networkType);
-            break;
-        }
-
-        // Determine if the network is running
-        network = networkGet(networkType, false);
-        if ((!network) || (networkType != network->type))
-            // The network is already stopped
-            break;
-
-        // Save the shutdown status
-        shutdown = network->shutdown;
-
-        // Stop the clients of this network
-        for (user = 0; user < (sizeof(network->activeUsers) * 8); user++)
-        {
-            // Determine if the network client is active
-            if (network->activeUsers & (1 << user))
-            {
-                // When user calls networkUserClose don't recursively
-                // call networkStop
-                network->shutdown = false;
-
-                // Stop the network client
-                switch (user)
-                {
-                default:
-                    if ((user >= NETWORK_USER_NTRIP_SERVER) && (user < (NETWORK_USER_NTRIP_SERVER + NTRIP_SERVER_MAX)))
-                    {
-                        serverIndex = user - NETWORK_USER_NTRIP_SERVER;
-                        if (settings.debugNetworkLayer)
-                            systemPrintln("Network layer stopping NTRIP server");
-                        ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
-                    }
-                    break;
-
-                case NETWORK_USER_MQTT_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping MQTT client");
-                    MQTT_CLIENT_STOP(true); // Was mqttClientRestart(); - #StopVsRestart
-                    break;
-
-                case NETWORK_USER_NTP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping NTP server");
-                    ntpServerStop();
-                    break;
-
-                case NETWORK_USER_NTRIP_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping NTRIP client");
-                    ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
-                    break;
-
-                case NETWORK_USER_OTA_AUTO_UPDATE:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping automatic OTA firmware update");
-                    otaAutoUpdateStop();
-                    break;
-
-                case NETWORK_USER_TCP_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping TCP client");
-                    tcpClientStop();
-                    break;
-
-                case NETWORK_USER_TCP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping TCP server");
-                    tcpServerStop();
-                    break;
-
-                case NETWORK_USER_UDP_SERVER:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping UDP server");
-                    udpServerStop();
-                    break;
-
-                case NETWORK_USER_HTTP_CLIENT:
-                    if (settings.debugNetworkLayer)
-                        systemPrintln("Network layer stopping HTTP client");
-                    httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
-                    break;
-                }
-            }
-        }
-
-        // Restore the shutdown status
-        network->shutdown = shutdown;
-
-        // Determine if the network can be stopped now
-        if ((network->state < NETWORK_STATE_IN_USE) || (!network->activeUsers))
-        {
-            // Remember the current network info
-            restart = network->restart;
-
-            // Stop the network layer
-            networkShutdownHardware(network);
-            if (settings.debugNetworkLayer)
-                systemPrintln("Network layer stopping");
-
-            // Initialize the network layer
-            // requestedNetwork is set below upon entry to NETWORK_STATE_CONNECTING and
-            //    indicates the network desired upon restart
-            // userOpens may be non-zero and indicates users waiting for network restart
-            // activeUsers is already zero
-            // Don't initialize connectionAttempt
-            // networkRetry or networkStart initializes:
-            //      connectionAttempt
-            //      timeout
-            //      timerStart
-            network->restart = false;
-            network->shutdown = false;
-            networkSetState(network, NETWORK_STATE_OFF);
-
-            // Restart the network if requested
-            if (restart)
-            {
-                if (settings.debugNetworkLayer)
-                    systemPrintln("Network layer restarting");
-                networkRetry(network, network->type);
-            }
-
-            // Update the network type
-            network->type = network->requestedNetwork;
-            break;
-        }
-
-        // Start shutting down the network and wait for users to detect the shutdown
-        if (network->state != NETWORK_STATE_WAIT_NO_USERS)
-        {
-            network->shutdown = true;
-            if (settings.debugNetworkLayer)
-                systemPrintln("Network layer waiting for users to stop!");
-            networkSetState(network, NETWORK_STATE_WAIT_NO_USERS);
-        }
-    } while (0);
-}
-
-//----------------------------------------
-// Translate the network type
-//----------------------------------------
-uint8_t networkTranslateNetworkType(uint8_t networkType, bool translateActive)
-{
-    uint8_t newNetworkType;
-    // systemPrintf("networkTranslateNetworkType(%s, %s) called\r\n", networkName[networkType], translateActive ? "true"
-    // : "false");
-
-    // Get the default network type
-    newNetworkType = networkType;
-    if ((newNetworkType == NETWORK_TYPE_USE_DEFAULT) || (translateActive && (newNetworkType == NETWORK_TYPE_ACTIVE)))
-        newNetworkType = settings.defaultNetworkType;
-
-    // Translate the default network type
-    if (newNetworkType == NETWORK_TYPE_USE_DEFAULT)
-    {
-        if (present.ethernet_ws5500 == true)
-            newNetworkType = NETWORK_TYPE_ETHERNET;
-        else
-            newNetworkType = NETWORK_TYPE_WIFI;
-    }
-    return newNetworkType;
-}
-
-//----------------------------------------
-// Translate type into a string
-//----------------------------------------
-const char *networkTypeToString(uint8_t type)
-{
-    static const char unknown[] = { "Unknown" };
-    if (type >= networkNameEntries)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintf("networkTypeToString: unknown type %d", type);
-        return unknown;
-    }
-    return networkName[type];
-}
-
-//----------------------------------------
-// Update the network device state
-//----------------------------------------
-void networkTypeUpdate(uint8_t networkType)
-{
-    if (inWiFiConfigMode())
-    {
-        // Avoid the full network layer while in Browser Config Mode
-        wifiUpdate();
-        return;
-    }
-
-    char errorMsg[64];
-    NETWORK_DATA *network;
-
-    // Update the physical network connections
-    switch (networkType)
-    {
-    case NETWORK_TYPE_WIFI:
-        wifiUpdate();
-        break;
-
-    case NETWORK_TYPE_ETHERNET:
-        ethernetUpdate();
-        break;
-    }
-
-    // Locate an active network
-    network = &networkData;
-    if ((network->type != networkType) && (network->state >= NETWORK_STATE_CONNECTING))
+    // Check for network offline
+    bitMask = 1 << index;
+    if (!(networkOnline & bitMask))
+        // Already offline, nothing to do
         return;
 
-    // Process the network state
-    DMW_if networkSetState(network, network->state);
-    switch (network->state)
+    // Mark this network as offline
+    networkOnline &= ~bitMask;
+
+    // Disable mDNS if necessary
+    if (networkMdnsRunning && ((mDNSUse & networkOnline) == 0))
+        networkMulticastDNSStop();
+
+    // Display offline message
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Offline ---------------\r\n", networkGetNameByIndex(index));
+
+    // Did the highest priority network just fail?
+    if (networkPriorityTable[index] == networkPriority)
     {
-    default:
-        sprintf(errorMsg, "Invalid network state (%d) during update!", network->state);
-        reportFatalError(errorMsg);
-        break;
+        // The highest priority network just failed
+        // Leave this network on in hopes that it will regain a connection
+        previousPriority = networkPriority;
 
-    // Leave the network off
-    case NETWORK_STATE_OFF:
-        break;
-
-    // Pause before making the network connection
-    case NETWORK_STATE_DELAY:
-        // Determine if the network is shutting down
-        if (network->shutdown)
+        // Search in decending priority order for the next online network
+        priority = networkPriorityTable[index];
+        for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
         {
-            NETWORK_STOP(network->type);
+            // Is the network online?
+            index = networkIndexTable[priority];
+            bitMask = 1 << index;
+            if (networkOnline & bitMask)
+                // Successfully found an online network
+                break;
+
+            // No, does this network need starting
+            networkStart(index, settings.debugNetworkLayer);
         }
 
-        // Delay before starting the network
-        else if ((millis() - network->timerStart) >= network->timeout)
-        {
-            // Determine the network type
-            uint8_t type = networkTranslateNetworkType(network->requestedNetwork, true);
+        // Set the new network priority
+        networkPriority = priority;
+        if (priority < NETWORK_OFFLINE)
+            Network.setDefaultInterface(*networkInterfaceTable[index].netif);
 
-            // Verify that WiFi is configured properly
-            if (network->type == NETWORK_TYPE_WIFI)
+        // Display the transition
+        if (settings.debugNetworkLayer)
+            systemPrintf("Default Network Interface: %s --> %s\r\n",
+                         networkGetNameByPriority(previousPriority),
+                         networkGetNameByPriority(priority));
+    }
+}
+
+//----------------------------------------
+// Mark network online
+//----------------------------------------
+void networkMarkOnline(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    NetPriority_t previousPriority;
+    NetPriority_t priority;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Check for network online
+    bitMask = 1 << index;
+    if (networkOnline & bitMask)
+        // Already online, nothing to do
+        return;
+
+    // Mark this network as online
+    networkOnline |= bitMask;
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
+
+    // Raise the network priority if necessary
+    previousPriority = networkPriority;
+    priority = networkPriorityTable[index];
+    if (priority < networkPriority)
+        networkPriority = priority;
+
+    // The network layer changes the default network interface when a
+    // network comes online which can place things out of priority order.
+    // Always set the highest priority network as the default
+    Network.setDefaultInterface(*networkInterfaceTable[networkIndexTable[networkPriority]].netif);
+
+    // Stop lower priority networks when the priority is raised
+    if (previousPriority > priority)
+    {
+        // Display the transition
+        systemPrintf("Default Network Interface: %s --> %s\r\n",
+                     networkGetNameByPriority(previousPriority),
+                     networkGetNameByIndex(index));
+
+        // Set a valid previousPriority value
+        if (previousPriority >= NETWORK_OFFLINE)
+            previousPriority = NETWORK_OFFLINE - 1;
+
+        // Stop any lower priority network interfaces
+        for (; previousPriority > priority; previousPriority--)
+        {
+            // Determine if the previous network should be stopped
+            index = networkIndexTable[previousPriority];
+            bitMask = 1 << index;
+            if (networkInterfaceTable[index].stop
+                && (networkStarted & bitMask))
             {
-                // Verify that at least one SSID is available
-                if (!wifiNetworkCount())
-                {
-                    // Display the SSID error message
-                    systemPrintln("ERROR: Please enter at least one SSID before using WiFi");
-                    displayNoSSIDs(2000);
-
-                    // Restart the delay and try again
-                    network->timerStart = millis();
-                    network->timeout = NETWORK_CONNECTION_TIMEOUT;
-                    break;
-                }
+                // Stop the previous network
+                systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
+                networkSequenceStop(index, settings.debugNetworkLayer);
             }
+        }
+    }
 
-            // Display the network type change
-            network->type = type;
-            if (settings.debugNetworkLayer && (network->type != network->requestedNetwork))
-                systemPrintf("networkTypeUpdate, network->type: %s --> %s\r\n",
-                             networkTypeToString(network->requestedNetwork), networkName[network->type]);
+    // Start mDNS if necessary
+    if ((networkMdnsRunning == false) && (mDNSUse & networkOnline))
+        networkMulticastDNSStart();
+}
+
+//----------------------------------------
+// Start multicast DNS
+//----------------------------------------
+void networkMulticastDNSStart()
+{
+    if (settings.mdnsEnable == true)
+    {
+        if (MDNS.begin(&settings.mdnsHostName[0]) == false) // This should make the device findable from 'rtk.local' in a browser
+            systemPrintln("Error setting up MDNS responder!");
+        else
+        {
+            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+            networkMdnsRunning = true;
             if (settings.debugNetworkLayer)
-                systemPrintf("networkTypeUpdate, network->requestedNetwork: %s --> %s\r\n",
-                             networkName[network->requestedNetwork], networkTypeToString(network->type));
-            network->requestedNetwork = NETWORK_TYPE_ACTIVE;
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network starting %s\r\n", networkTypeToString(network->type));
-
-            // Start the network
-            if (network->type == NETWORK_TYPE_WIFI)
-                wifiStart();
-            network->timerStart = millis();
-            network->timeout = NETWORK_CONNECTION_TIMEOUT;
-            networkSetState(network, NETWORK_STATE_CONNECTING);
+                systemPrintln("mDNS started");
         }
-        break;
+    }
+}
 
-    // Wait for the network connection
-    case NETWORK_STATE_CONNECTING:
-        // Determine if the network is shutting down
-        if (network->shutdown)
+//----------------------------------------
+// Stop multicast DNS
+//----------------------------------------
+void networkMulticastDNSStop()
+{
+    if (settings.mdnsEnable == true)
+    {
+        MDNS.end();
+        networkMdnsRunning = false;
+        if (settings.debugNetworkLayer)
+            systemPrintln("mDNS stopped");
+    }
+}
+
+//----------------------------------------
+// Print the network interface status
+//----------------------------------------
+void networkPrintStatus(uint8_t priority)
+{
+    NetMask_t bitMask;
+    char highestPriority;
+    int index;
+    const char * name;
+    const char * status;
+
+    // Validate the priority
+    networkValidatePriority(priority);
+
+    // Get the network name
+    name = networkGetNameByPriority(priority);
+
+    // Determine the network status
+    index = networkIndexTable[priority];
+    bitMask = (1 << index);
+    highestPriority = (networkPriority == priority) ? '*' : ' ';
+    status = "Starting";
+    if (networkOnline & bitMask)
+        status = "Online";
+    else if (networkInterfaceTable[index].boot)
+    {
+        if (networkSeqStopping & bitMask)
+            status = "Stopping";
+        else if (networkStarted & bitMask)
+            status = "Started";
+        else
+            status = "Stopped";
+    }
+
+    // Print the network interface status
+    systemPrintf("%c%d: %-10s %-8s\r\n",
+                 highestPriority, priority, name, status);
+}
+
+//----------------------------------------
+// Start the boot sequence
+//----------------------------------------
+void networkSequenceBoot(NetIndex_t index)
+{
+    NetMask_t bitMask;
+    bool debug;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * sequence;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Set the network bit
+    bitMask = 1 << index;
+    debug = settings.debugNetworkLayer;
+
+    // Display the transition
+    if (debug)
+    {
+        systemPrintf("--------------- %s Boot Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
+        systemPrintf("%s: Reset --> Booting\r\n", networkGetNameByIndex(index));
+    }
+
+    // Display the description
+    sequence = networkInterfaceTable[index].boot;
+    if (sequence)
+    {
+        description = sequence->description;
+        if (debug && description)
+            systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+        // Start the boot sequence
+        networkSequence[index] = sequence;
+        networkSeqStarting &= ~bitMask;
+        networkSeqStopping &= ~bitMask;
+    }
+}
+
+//----------------------------------------
+// Select the next entry in the  sequence
+//----------------------------------------
+void networkSequenceNextEntry(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * next;
+    bool start;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the previous sequence entry
+    next = networkSequence[index];
+
+    // Set the next sequence entry
+    next += 1;
+    if (next->routine)
+    {
+        // Display the description
+        description = next->description;
+        if (debug && description)
+            systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+        // Start the next entry in the sequence
+        networkSequence[index] = next;
+    }
+
+    // Termination entry found, stop the sequence or start next sequence
+    else
+    {
+        // Stop the polling for this sequence
+        networkSequence[index] = nullptr;
+        bitMask = 1 << index;
+
+        // Display the transition
+        const char * sequenceName;
+        const char * before;
+        const char * after;
+        if (settings.debugNetworkLayer && (networkSeqStarting & bitMask))
         {
-            NETWORK_STOP(network->type);
+            sequenceName = "Start";
+            before = "Starting";
+            after = "Started";
         }
-
-        // Determine if the connection failed
-        else if ((millis() - network->timerStart) >= network->timeout)
+        else if (settings.debugNetworkLayer && (networkSeqStopping & bitMask))
         {
-            // Retry the network connection
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: %s connection timed out\r\n", networkName[network->type]);
-            networkRestartNetwork(network);
-            NETWORK_STOP(network->type);
+            sequenceName = "Stop";
+            before = "Stopping";
+            after = "Stopped";
         }
-
-        // Determine if the RTK host is connected to the network
-        else if (networkIsMediaConnected(network))
+        else
         {
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network connected to %s\r\n", networkName[network->type]);
-            network->timerStart = millis();
-            network->timeout = NETWORK_MAX_IDLE_TIME;
-            network->activeUsers = network->userOpens;
-            networkSetState(network, NETWORK_STATE_IN_USE);
-            networkDisplayIpAddress(network->type);
+            sequenceName = "Boot";
+            before = "Booting";
+            after = "Booted";
         }
-        break;
+        systemPrintf("%s: %s --> %s\r\n", networkGetNameByIndex(index), before, after);
+        systemPrintf("--------------- %s %s Sequence Stopping ---------------\r\n",
+                     networkGetNameByIndex(index), sequenceName);
+        systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
 
-    // There is at least one active user of the network connection
-    case NETWORK_STATE_IN_USE:
-        // Determine if the network is shutting down
-        if (network->shutdown)
+        // Clear the status bits
+        networkSeqStarting &= ~bitMask;
+        networkSeqStopping &= ~bitMask;
+
+        // Check for another sequence request
+        if (networkSeqRequest & bitMask)
         {
-            NETWORK_STOP(network->type);
-        }
+            // Another request is pending, get the next request
+            start = networkSeqNext & bitMask;
 
-        // Verify that the RTK device is still connected to the network
-        else if (!networkIsMediaConnected(network))
-        {
-            // The network failed
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network: %s connection failed!\r\n", networkName[network->type]);
-            networkRestartNetwork(network);
-            NETWORK_STOP(network->type);
-        }
+            // Clear the bits
+            networkSeqRequest &= ~bitMask;
+            networkSeqNext &= ~bitMask;
+            networkSeqRequest &= ~bitMask;
 
-        // Check for the idle timeout
-        else if ((millis() - network->timerStart) >= network->timeout)
-        {
-            // Determine if the network is in use
-            network->timerStart = millis();
-            if (network->activeUsers)
-            {
-                // Network in use, reduce future connection delays
-                network->connectionAttempt = 0;
-
-                // Set the next time that network idle should be checked
-                network->timeout = NETWORK_MAX_IDLE_TIME;
-            }
-
-            // Without users there is no need for the network.
+            // Start the next sequence
+            if (networkSeqNext & bitMask)
+                networkSequenceStart(index, debug);
             else
-            {
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Network shutting down %s, no users\r\n", networkName[network->type]);
-                NETWORK_STOP(network->type);
-            }
+                networkSequenceStop(index, debug);
         }
-        break;
-
-    case NETWORK_STATE_WAIT_NO_USERS:
-        // Stop the network when all the users are removed
-        if (!network->activeUsers)
-            NETWORK_STOP(network->type);
-        break;
     }
+}
 
-    // Periodically display the state
-    if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
-        networkSetState(network, network->state);
+//----------------------------------------
+// Attempt to start the start sequence
+//----------------------------------------
+void networkSequenceStart(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * sequence;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Set the network bit
+    bitMask = 1 << index;
+
+    // Determine if the sequence any sequence is already running
+    sequence = networkSequence[index];
+    if (sequence)
+    {
+        // A sequence is already running, set the next request
+        // Check for already starting
+        if (networkSeqStarting & bitMask)
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, dropping request since already starting\r\n",
+                             networkGetNameByIndex(index));
+
+            // Ignore this request, compressed
+            // Compress multiple requests
+            //   Start --> Start = Start
+            //   Start --> Stop --> ... --> Stop --> Start = Start
+        }
+
+        // Either boot request or stop request is running
+        else
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, delaying start sequence\r\n",
+                             networkGetNameByIndex(index));
+
+            // Compress multiple requests
+            //   Boot --> Start
+            //   Stop --> Start = Start
+            //   Stop --> Start -> ... --> Stop --> Start  = Start
+            // Note the next request to execute
+            networkSeqNext |= bitMask;
+            networkSeqRequest |= bitMask;
+        }
+    }
+    else
+    {
+        // No sequence is running
+        if (debug)
+        {
+            systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+            systemPrintf("--------------- %s Start Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
+            systemPrintf("%s: Stopped --> Starting\r\n", networkGetNameByIndex(index));
+        }
+
+        // Display the description
+        sequence = networkInterfaceTable[index].start;
+        if (sequence)
+        {
+            description = sequence->description;
+            if (debug && description)
+                systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+            // Start the sequence
+            networkSequence[index] = sequence;
+            networkSeqStarting |= bitMask;
+            networkStarted |= bitMask;
+        }
+    }
+}
+
+//----------------------------------------
+// Start the stop sequence
+//----------------------------------------
+void networkSequenceStop(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+    const char * description;
+    NETWORK_POLL_SEQUENCE * sequence;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Set the network bit
+    bitMask = 1 << index;
+
+    // Determine if the sequence any sequence is already running
+    sequence = networkSequence[index];
+    if (sequence)
+    {
+        // A sequence is already running, set the next request
+        // Check for already stopping
+        if (networkSeqStopping & bitMask)
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, dropping request since already stopping\r\n",
+                             networkGetNameByIndex(index));
+
+            // Ignore this request, compressed
+            // Compress multiple requests
+            //   Stop --> Stop = Stop
+            //   Stop --> Start --> ... --> Start --> Stop = Stop
+        }
+
+        // Either boot request or start request is running
+        else
+        {
+            if (debug)
+                systemPrintf("%s sequencer running, delaying stop sequence\r\n",
+                             networkGetNameByIndex(index));
+
+            // Compress multiple requests
+            //   Boot ---> Stop
+            //   Start --> Stop = Stop
+            //   Start --> Stop -> ... --> Start --> Stop  = Stop
+            // Note the next request to execute
+            networkSeqNext &= ~bitMask;
+            networkSeqRequest |= bitMask;
+        }
+    }
+    else
+    {
+        // No sequence is running
+        if (debug)
+        {
+            systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+            systemPrintf("--------------- %s Stop Sequence Starting ---------------\r\n", networkGetNameByIndex(index));
+            systemPrintf("%s: Started --> Stopping\r\n", networkGetNameByIndex(index));
+        }
+
+        // Display the description
+        sequence = networkInterfaceTable[index].stop;
+        if (sequence)
+        {
+            description = sequence->description;
+            if (debug && description)
+                systemPrintf("%s: %s\r\n", networkGetNameByIndex(index), description);
+
+            // Start the sequence
+            networkSeqStopping |= bitMask;
+            networkStarted &= ~bitMask;
+            networkSequence[index] = sequence;
+        }
+    }
+}
+
+//----------------------------------------
+// Start a network interface
+//----------------------------------------
+void networkStart(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Get the network bit
+    bitMask = (1 << index);
+    if (networkInterfaceTable[index].start
+        && (!(networkStarted & bitMask)))
+            systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
+        networkSequenceStart(index, debug);
+}
+
+//----------------------------------------
+// Start the network if only lower priority networks started at boot
+//----------------------------------------
+void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    const char * currentInterfaceName;
+    NetMask_t highPriorityBitMask;
+    const char * name;
+    NetPriority_t networkInterfacePriority;
+    const char * status;
+    NetIndex_t tempIndex;
+
+    // Handle the boot case where only lower priority network interfaces
+    // start.  In this case, a start is never issued to the cellular layer
+    if (millis() >= parameter)
+    {
+        // Set the next state
+        networkSequenceNextEntry(index, debug);
+
+        // Build the higher priority bitmask
+        highPriorityBitMask = 0;
+        networkInterfacePriority = networkPriorityTable[index];
+        for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
+        {
+            // Determine if this is a higher priority interface
+            if (priority < networkInterfacePriority)
+            {
+                // Determine if this interface is online
+                if (networkOnline & (1 << tempIndex))
+                {
+                    tempIndex = networkIndexTable[priority];
+                    highPriorityBitMask |= 1 << tempIndex;
+                }
+            }
+
+            // Display the network interface
+            if (debug)
+                networkPrintStatus(networkIndexTable[priority]);
+        }
+
+        // Only lower priority networks running, start this network interface
+        name = networkGetNameByIndex(index);
+        currentInterfaceName = networkGetCurrentInterfaceName();
+        if ((networkOnline & highPriorityBitMask) == 0)
+        {
+            if (debug)
+                systemPrintf("%s online, Starting %s\r\n",
+                             currentInterfaceName, name);
+
+            // Only lower priority interfaces or none running
+            // Start this network interface
+            networkStart(index, settings.debugNetworkLayer);
+        }
+        else if (debug)
+            systemPrintf("%s online, leaving %s off\r\n",
+                         currentInterfaceName, name);
+    }
+    else if (debug)
+    {
+        // Count down the delay
+        int32_t seconds = millis() / 1000;
+        static int32_t previousSeconds = -1;
+        if (previousSeconds == -1)
+            previousSeconds = parameter / 1000;
+        if (seconds != previousSeconds)
+        {
+            previousSeconds = seconds;
+            systemPrintf("Delaying Start: %d Sec\r\n", (parameter / 1000) - seconds);
+        }
+    }
 }
 
 //----------------------------------------
@@ -1297,14 +1080,29 @@ void networkTypeUpdate(uint8_t networkType)
 //----------------------------------------
 void networkUpdate()
 {
+    bool displayIpAddress;
+    NetIndex_t index;
+    IPAddress ipAddress;
+    bool ipAddressDisplayed;
     uint8_t networkType;
+    NETWORK_POLL_ROUTINE pollRoutine;
+    uint8_t priority;
+    NETWORK_POLL_SEQUENCE * sequence;
 
-    // Update the network layer
-    DMW_c("networkTypeUpdate");
-    for (networkType = 0; networkType < NETWORK_TYPE_MAX; networkType++)
-        networkTypeUpdate(networkType);
-    if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
-        PERIODIC_CLEAR(PD_NETWORK_STATE);
+    // Walk the list of priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Execute any active polling routine
+        index = networkIndexTable[priority];
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
 
     // Update the network services
     DMW_c("mqttClientUpdate");
@@ -1324,154 +1122,68 @@ void networkUpdate()
     DMW_c("httpClientUpdate");
     httpClientUpdate(); // Process any Point Perfect HTTP messages
 
-    // Display the IP addresses
-    DMW_c("networkPeriodicallyDisplayIpAddress");
-    networkPeriodicallyDisplayIpAddress();
-}
-
-//----------------------------------------
-// Stop a user of the network
-//----------------------------------------
-void networkUserClose(uint8_t user)
-{
-    char errorText[64];
-    NETWORK_DATA *network;
-    NETWORK_USER userMask;
-
-    // Verify the user number
-    if (user >= NETWORK_USER_MAX)
+    // Periodically display the network interface state
+    displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
     {
-        sprintf(errorText, "Invalid network user (%d)", user);
-        reportFatalError(errorText);
-    }
-    else
-    {
-        // Verify that this user is running
-        userMask = 1 << user;
-        network = networkGetUserNetwork(user);
-        if (network && (network->userOpens & userMask))
+        // Display the current state
+        ipAddressDisplayed = displayIpAddress && (index == networkPriority);
+        if (PERIODIC_DISPLAY(networkInterfaceTable[index].pdState)
+            || PERIODIC_DISPLAY(PD_NETWORK_STATE)
+            || ipAddressDisplayed)
         {
-            // Done with this network user
-            network->activeUsers &= ~userMask;
-            network->userOpens &= ~userMask;
-            if (settings.debugNetworkLayer)
+            PERIODIC_CLEAR(networkInterfaceTable[index].pdState);
+            if (networkInterfaceTable[index].netif->hasIP())
             {
-                systemPrintf("Network stopping user %s", networkUser[user]);
-                if (network->state != NETWORK_STATE_OFF)
-                    systemPrintf(" on %s", networkName[network->type]);
-                systemPrintln();
+                ipAddress = networkInterfaceTable[index].netif->localIP();
+                systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name,
+                             ipAddress.toString().c_str(),
+                             networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
             }
-
-            // Shutdown the network if requested
-            if (network->shutdown && (!network->activeUsers))
-                NETWORK_STOP(network->type);
+            else if (networkInterfaceTable[index].netif->linkUp())
+                systemPrintf("%s: Link Up\r\n", networkInterfaceTable[index].name);
+            else if (networkInterfaceTable[index].netif->started())
+                systemPrintf("%s: Started\r\n", networkInterfaceTable[index].name);
+            else
+                systemPrintf("%s: Stopped\r\n", networkInterfaceTable[index].name);
         }
-
-        // The network user is not running
-        else
-        {
-            sprintf(errorText, "Network user %s is already idle", networkUser[user]);
-            reportFatalError(errorText);
-        }
+    }
+    if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
+        PERIODIC_CLEAR(PD_NETWORK_STATE);
+    if (displayIpAddress)
+    {
+        if (!ipAddressDisplayed)
+            systemPrintln("Network: Offline");
+        PERIODIC_CLEAR(PD_IP_ADDRESS);
     }
 }
 
 //----------------------------------------
-// Determine if the network user is connected to the media
+// Validate the network index
 //----------------------------------------
-bool networkUserConnected(NETWORK_USER user)
+void networkValidateIndex(NetIndex_t index)
 {
-    NETWORK_DATA *network;
-
-    network = networkGetUserNetwork(user);
-    if (network && (network->state != NETWORK_STATE_WAIT_NO_USERS))
-        return networkIsConnected(network);
-    return false;
-}
-
-//----------------------------------------
-// Start a user of the network
-//----------------------------------------
-bool networkUserOpen(uint8_t user, uint8_t networkType)
-{
-    char errorText[64];
-    NETWORK_DATA *network;
-    NETWORK_USER userMask;
-
-    do
+    // Validate the index
+    if (index >= NETWORK_OFFLINE)
     {
-        // Verify the user number
-        if (user >= NETWORK_USER_MAX)
-        {
-            sprintf(errorText, "Invalid network user (%d)", user);
-            reportFatalError(errorText);
-            break;
-        }
-
-        // Determine if the network is available
-        network = networkGet(networkType, true);
-        if (network && (network->state != NETWORK_STATE_WAIT_NO_USERS) && (!network->shutdown))
-        {
-            userMask = 1 << user;
-            if ((network->activeUsers >> user) & 1)
-            {
-                reportFatalError("Network user already started!");
-                break;
-            }
-
-            // Start the user
-            if (settings.debugNetworkLayer)
-                systemPrintf("Network starting user %s on %s\r\n", networkUser[user], networkName[network->type]);
-            switch (network->state)
-            {
-            case NETWORK_STATE_OFF:
-                networkStart(network->type);
-                break;
-
-            case NETWORK_STATE_IN_USE:
-                network->activeUsers |= userMask;
-                break;
-            }
-            network->userOpens |= userMask;
-            return true;
-        }
-    } while (0);
-
-    // The network user was not started
-    return false;
-}
-
-//----------------------------------------
-// Translate user into a string
-//----------------------------------------
-const char *networkUserToString(uint8_t userNumber)
-{
-    if (userNumber >= networkUserEntries)
-        return "Unknown";
-    return networkUser[userNumber];
-}
-
-//----------------------------------------
-// Start multicast DNS
-//----------------------------------------
-void networkStartMulticastDNS()
-{
-    if (settings.mdnsEnable == true)
-    {
-        if (MDNS.begin(&settings.mdnsHostName[0]) == false) // This should make the device findable from 'rtk.local' in a browser
-            systemPrintln("Error setting up MDNS responder!");
-        else
-            MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
+        systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n",
+                     index, NETWORK_OFFLINE - 1);
+        reportFatalError("Invalid index value!");
     }
 }
 
 //----------------------------------------
-// Start multicast DNS
+// Validate the network priority
 //----------------------------------------
-void networkStopMulticastDNS()
+void networkValidatePriority(NetPriority_t priority)
 {
-    if (settings.mdnsEnable == true)
-        MDNS.end();
+    // Validate the priority
+    if (priority >= NETWORK_OFFLINE)
+    {
+        systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n",
+                     priority, NETWORK_OFFLINE - 1);
+        reportFatalError("Invalid priority value!");
+    }
 }
 
 //----------------------------------------
@@ -1480,29 +1192,8 @@ void networkStopMulticastDNS()
 void networkVerifyTables()
 {
     // Verify the table lengths
-    if (networkFailoverEntries != NETWORK_TYPE_MAX)
-        reportFatalError("Fix networkFailover table to match NetworkTypes");
-    if (networkNameEntries != NETWORK_TYPE_LAST)
-        reportFatalError("Fix networkName table to match NetworkTypes");
-    if (networkStateEntries != NETWORK_STATE_MAX)
-        reportFatalError("Fix networkState table to match NetworkStates");
-    if (networkUserEntries != NETWORK_USER_MAX)
-        reportFatalError("Fix networkUser table to match NetworkUsers");
-}
-
-// Returns true if this platform has the potential to connect to the internet
-// Useful for testing if platform doesn't have ethernet, and doesn't have SSIDs
-bool networkCanConnect()
-{
-    // If the platform has ethernet, return true
-    if(present.ethernet_ws5500 == true)
-        return (true);
-
-    // If the platform does not have ethernet, check if we have SSIDs
-    if (wifiNetworkCount() > 0)
-        return (true);
-
-    return (false);
+    if (NETWORK_OFFLINE != NETWORK_MAX)
+        reportFatalError("Fix networkInterfaceTable to match NetworkType");
 }
 
 #endif // COMPILE_NETWORK

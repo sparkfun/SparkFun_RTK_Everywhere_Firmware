@@ -6,7 +6,7 @@ on:
 env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
   FIRMWARE_VERSION_MAJOR: 1
-  FIRMWARE_VERSION_MINOR: 4
+  FIRMWARE_VERSION_MINOR: 5
   POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
   POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
   POINTPERFECT_LBAND_IP_TOKEN: ${{ secrets.POINTPERFECT_LBAND_IP_TOKEN }}
@@ -95,6 +95,12 @@ jobs:
           "SparkFun IM19 IMU Arduino Library"@1.0.1
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
 
+      # https://github.com/avinabmalla/ESP32_BleSerial/issues/15
+      - name: Patch ESP32_BleSerial BLECharacteristic
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp BleSerial.cpp /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
+
       - name: Patch libmbedtls
         run: |
           cd Firmware/RTK_Everywhere/Patch/
@@ -102,6 +108,11 @@ jobs:
           cp libmbedtls_2.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedtls_2.a
           cp libmbedcrypto.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedcrypto.a
           cp libmbedx509.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedx509.a
+
+      - name: Patch NetworkEvents
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/$(CORE_VERSION)/libraries/Network/src/
 
       - name: Setup Python
         uses: actions/setup-python@v4

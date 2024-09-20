@@ -683,7 +683,6 @@ void verifyTables()
         reportFatalError("Fix measurementScaleTable to match measurementUnits");
 
     // Verify the consistency of the internal tables
-    ethernetVerifyTables();
     mqttClientValidateTables();
     networkVerifyTables();
     ntpValidateTables();

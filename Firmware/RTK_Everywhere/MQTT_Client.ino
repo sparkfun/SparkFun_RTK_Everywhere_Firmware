@@ -138,8 +138,9 @@ static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
+static NetPriority_t mqttClientPriority = NETWORK_OFFLINE;
 
-static RTKNetworkSecureClient *mqttSecureClient;
+static NetworkClientSecure *mqttSecureClient;
 
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
@@ -166,10 +167,6 @@ bool mqttClientConnectLimitReached()
     bool enableMqttClient = true;
     if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
-
-    // Attempt to restart the network if possible
-    if (enableMqttClient && (!limitReached))
-        networkRestart(NETWORK_USER_MQTT_CLIENT);
 
     // Restart the MQTT client
     MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
@@ -588,20 +585,6 @@ void mqttClientShutdown()
     MQTT_CLIENT_STOP(true);
 }
 
-// Start the MQTT client
-void mqttClientStart()
-{
-    if (settings.debugMqttClientState)
-    {
-        // Display the heap state
-        reportHeapNow(settings.debugMqttClientState);
-
-        // Start the MQTT client
-        systemPrintln("MQTT Client start");
-    }
-    MQTT_CLIENT_STOP(false);
-}
-
 // Shutdown or restart the MQTT client
 void mqttClientStop(bool shutdown)
 {
@@ -651,14 +634,8 @@ void mqttClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         mqttClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_MQTT_CLIENT))
-            networkUserClose(NETWORK_USER_MQTT_CLIENT);
-    }
 
     // Determine the next MQTT client state
     online.mqttClient = false;
@@ -715,7 +692,12 @@ void mqttClientUpdate()
     default:
     case MQTT_CLIENT_OFF: {
         if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
-            mqttClientStart();
+        {
+            // Start the MQTT client
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT Client start");
+            mqttClientStop(false);
+        }
         break;
     }
 
@@ -723,22 +705,20 @@ void mqttClientUpdate()
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
-                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+            mqttClientPriority = NETWORK_OFFLINE;
+            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
         }
         break;
     }
 
     // Wait for a network media connection
     case MQTT_CLIENT_NETWORK_STARTED: {
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+        // Determine if MQTT was turned off
+        if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
+            mqttClientStop(true);
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
-            // The network is available for the MQTT client
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&mqttClientPriority))
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -746,7 +726,7 @@ void mqttClientUpdate()
     // Connect to the MQTT server
     case MQTT_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
@@ -754,7 +734,7 @@ void mqttClientUpdate()
         }
 
         // Allocate the mqttSecureClient structure
-        mqttSecureClient = new RTKNetworkSecureClient();
+        mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
@@ -889,7 +869,7 @@ void mqttClientUpdate()
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart

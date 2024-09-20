@@ -918,14 +918,6 @@ void beginInterrupts()
         pinMode(pin_GNSS_TimePulse, INPUT);
         attachInterrupt(pin_GNSS_TimePulse, tpISR, RISING);
     }
-
-#ifdef COMPILE_ETHERNET
-    if (present.ethernet_ws5500 == true)
-    {
-        DMW_if systemPrintf("pin_Ethernet_Interrupt: %d\r\n", pin_Ethernet_Interrupt);
-        pinMode(pin_Ethernet_Interrupt, INPUT); // Prepare the interrupt pin
-    }
-#endif // COMPILE_ETHERNET
 }
 
 // Start ticker tasks for LEDs and beeper
@@ -1175,11 +1167,6 @@ void beginSystemState()
 
         // Return to either NTP, Base or Rover Not Started. The last state previous to power down.
         systemState = settings.lastState;
-
-        // Explicitly set the default network type to avoid printing 'Hardware default'
-        // https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/issues/360
-        if (settings.defaultNetworkType == NETWORK_TYPE_USE_DEFAULT)
-            settings.defaultNetworkType = NETWORK_TYPE_ETHERNET;
     }
     else if (productVariant == RTK_FACET_MOSAIC)
     {
