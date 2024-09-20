@@ -74,7 +74,7 @@
 #include <DNSServer.h>    //Built-in.
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
@@ -213,7 +213,7 @@ const int COMMON_COORDINATES_MAX_STATIONS = 50; // Record up to 50 ECEF and Geod
 
 // Handy library for setting ESP32 system time to GNSS time
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <ESP32Time.h> //http://librarymanager/All#ESP32Time by FBiego v2.0.0
+#include <ESP32Time.h> //http://librarymanager/All#ESP32Time by FBiego
 ESP32Time rtc;
 unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interval can be increased once sync'd.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -224,7 +224,7 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 
 void beginSPI(bool force = false); // Header
 
-#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
+#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
@@ -274,7 +274,7 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 
 #define MQTT_CERT_SIZE 2000
 
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
 
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
@@ -333,7 +333,7 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
+#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
 char neoFirmwareVersion[20]; // Output to system status menu.
 
@@ -429,10 +429,10 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 // GNSS configuration - UM980
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
+#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
 #endif // COMPILE_UM980
 
-#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
+#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 SEMP_PARSE_STATE *rtkParse = nullptr;
 SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
 SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
@@ -449,11 +449,11 @@ char gnssUniqueId[21]; // um980 ID is 16 digits. mosaic-X5 could be 20 digits
 
 // Battery fuel gauge and PWM LEDs
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library v1.0.4
+#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library
 SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
 #ifdef COMPILE_BQ40Z50
-#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50 v1.0.0
+#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50
 BQ40Z50 *bq40z50Battery;
 #endif // COMPILE_BQ40Z50
 
@@ -540,7 +540,7 @@ bool runCommandMode; // Goes true when user or remote app enters ---------- comm
 
 // External Display
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED v1.0.10
+#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -575,7 +575,7 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 
 // Buttons - Interrupt driven and debounce
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <JC_Button.h> //http://librarymanager/All#JC_Button v2.1.2
+#include <JC_Button.h> //http://librarymanager/All#JC_Button
 Button *userBtn;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
@@ -681,7 +681,7 @@ unsigned long lastEthernetCheck; // Prevents cable checking from continually hap
 // IM19 Tilt Compensation
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_IM19_IMU
-#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU v1.0.0
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor;
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
@@ -693,7 +693,7 @@ unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 // PointPerfect Library (PPL)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_POINTPERFECT_LIBRARY
-#include "PPL_PublicInterface.h" // Private repo v1.11.4
+#include "PPL_PublicInterface.h" // Private repo
 #include "PPL_Version.h"
 
 TaskHandle_t updatePplTaskHandle;        // Store handles so that we can delete the task once the size is found
