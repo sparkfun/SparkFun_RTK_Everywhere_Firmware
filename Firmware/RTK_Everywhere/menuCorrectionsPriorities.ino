@@ -281,6 +281,9 @@ void menuCorrectionsPriorities()
         systemPrint("1) Correction source lifetime in seconds: ");
         systemPrintln(settings.correctionsSourcesLifetime_s);
 
+        systemPrintf("2) Toggle use of external corrections radio: %s\r\n",
+                     settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+
         systemPrintln();
         systemPrintln("These are the correction sources in order of decreasing priority");
         systemPrintln("Enter the uppercase letter to increase the correction priority");
@@ -297,6 +300,14 @@ void menuCorrectionsPriorities()
         if (incoming == 1)
             getNewSetting("Enter new correction source lifetime in seconds (5-120): ", 5, 120,
                           &settings.correctionsSourcesLifetime_s);
+
+        // Toggle the enable for the external corrections radio
+        else if (incoming == 2)
+        {
+            settings.enableExtCorrRadio ^= 1;
+            if (settings.enableExtCorrRadio)
+                correctionLastSeen(CORR_RADIO_EXT);
+        }
 
         // Check for priority decrease
         else if ((incoming >= 'a') && (incoming < ('a' + correctionsSource::CORR_NUM)))
@@ -456,10 +467,24 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
         return false;
     }
 
-    // Determine if corrections were received recently
-    bitMask = 1 << id;
+    // Determine if the external radio is active
     currentMsec = millis();
     timeoutMsec = settings.correctionsSourcesLifetime_s * 1000;
+    if (id == CORR_RADIO_EXT)
+    {
+        if  (settings.enableExtCorrRadio)
+        {
+            // Fake a last correction time
+            correctionLastSeenMsec[CORR_RADIO_EXT] = currentMsec - 500;
+            return true;
+        }
+
+        // Timeout the corrections
+        correctionLastSeenMsec[CORR_RADIO_EXT] = currentMsec - timeoutMsec;
+    }
+
+    // Determine if corrections were received recently
+    bitMask = 1 << id;
     if ((currentMsec - correctionLastSeenMsec[id]) >= timeoutMsec)
     {
         // Correcions source is actually inactive
