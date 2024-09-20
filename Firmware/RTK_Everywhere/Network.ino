@@ -1122,11 +1122,8 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
             if (priority < networkInterfacePriority)
             {
                 // Determine if this interface is online
-                if (networkOnline & (1 << tempIndex))
-                {
-                    tempIndex = networkIndexTable[priority];
-                    highPriorityBitMask |= 1 << tempIndex;
-                }
+                tempIndex = networkIndexTable[priority];
+                highPriorityBitMask |= 1 << tempIndex;
             }
 
             // Display the network interface
