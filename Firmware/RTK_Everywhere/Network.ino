@@ -126,7 +126,7 @@ NetMask_t networkStarted;           // Track the running networks
 // Active network sequence, may be nullptr
 NETWORK_POLL_SEQUENCE * networkSequence[NETWORK_OFFLINE];
 
-bool networkMdnsRunning;    // true when mDNS is running
+NetMask_t networkMdnsRunning;    // Non-zero when mDNS is running
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -562,8 +562,7 @@ void networkMarkOffline(NetIndex_t index)
     networkOnline &= ~bitMask;
 
     // Disable mDNS if necessary
-    if (networkMdnsRunning && ((mDNSUse & networkOnline) == 0))
-        networkMulticastDNSStop();
+    networkMulticastDNSStop(index);
 
     // Display offline message
     if (settings.debugNetworkLayer)
@@ -584,8 +583,11 @@ void networkMarkOffline(NetIndex_t index)
             index = networkIndexTable[priority];
             bitMask = 1 << index;
             if (networkOnline & bitMask)
+            {
                 // Successfully found an online network
+                networkMulticastDNSStart(index);
                 break;
+            }
 
             // No, does this network need starting
             networkStart(index, settings.debugNetworkLayer);
@@ -610,6 +612,7 @@ void networkMarkOffline(NetIndex_t index)
 void networkMarkOnline(NetIndex_t index)
 {
     NetMask_t bitMask;
+    NetIndex_t previousIndex;
     NetPriority_t previousPriority;
     NetPriority_t priority;
 
@@ -618,20 +621,26 @@ void networkMarkOnline(NetIndex_t index)
 
     // Check for network online
     bitMask = 1 << index;
+    previousIndex = index;
     if (networkOnline & bitMask)
         // Already online, nothing to do
         return;
 
     // Mark this network as online
     networkOnline |= bitMask;
-    if (settings.debugNetworkLayer)
-        systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
 
     // Raise the network priority if necessary
     previousPriority = networkPriority;
     priority = networkPriorityTable[index];
     if (priority < networkPriority)
         networkPriority = priority;
+
+    // Stop mDNS on the lower priority networks
+    networkMulticastDNSStop();
+
+    // Display the online message
+    if (settings.debugNetworkLayer)
+        systemPrintf("--------------- %s Online ---------------\r\n", networkGetNameByIndex(index));
 
     // The network layer changes the default network interface when a
     // network comes online which can place things out of priority order.
@@ -666,27 +675,67 @@ void networkMarkOnline(NetIndex_t index)
         }
     }
 
-    // Start mDNS if necessary
-    if ((networkMdnsRunning == false) && (mDNSUse & networkOnline))
-        networkMulticastDNSStart();
+    // Only start mDNS on the highest priority network
+    if (networkPriority == networkPriorityTable[previousIndex])
+        networkMulticastDNSStart(previousIndex);
+}
+
+//----------------------------------------
+// Start multicast DNS called only from Form.ino
+//----------------------------------------
+void networkMulticastDNSStart(bool startWiFi)
+{
+    NetMask_t bitMask;
+    NetIndex_t startIndex;
+
+    // Stop mDNS on other networks
+    startIndex = startWiFi ? NETWORK_WIFI : NETWORK_ETHERNET;
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
+        if (index != startIndex)
+            networkMulticastDNSStop(index);
+
+    // Start mDNS on the requested network
+    networkMulticastDNSStart(index);
 }
 
 //----------------------------------------
 // Start multicast DNS
 //----------------------------------------
-void networkMulticastDNSStart()
+void networkMulticastDNSStart(NetIndex_t index)
 {
-    if (settings.mdnsEnable == true)
+    NetMask_t bitMask;
+
+    // Start mDNS if it is enabled and not running on this network
+    bitMask = 1 << index;
+    if (settings.mdnsEnable && (!(networkMdnsRunning & bitMask)) && (mDNSUse & bitMask))
     {
         if (MDNS.begin(&settings.mdnsHostName[0]) == false) // This should make the device findable from 'rtk.local' in a browser
             systemPrintln("Error setting up MDNS responder!");
         else
         {
             MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
-            networkMdnsRunning = true;
+            networkMdnsRunning |= bitMask;
             if (settings.debugNetworkLayer)
-                systemPrintln("mDNS started");
+                systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
         }
+    }
+}
+
+//----------------------------------------
+// Stop multicast DNS
+//----------------------------------------
+void networkMulticastDNSStop(NetIndex_t index)
+{
+    NetMask_t bitMask;
+
+    // Stop mDNS if it is running on this network
+    bitMask = 1 << index;
+    if (settings.mdnsEnable && (networkMdnsRunning & bitMask))
+    {
+        MDNS.end();
+        networkMdnsRunning &= ~bitMask;
+        if (settings.debugNetworkLayer)
+            systemPrintln("mDNS stopped");
     }
 }
 
@@ -695,13 +744,22 @@ void networkMulticastDNSStart()
 //----------------------------------------
 void networkMulticastDNSStop()
 {
-    if (settings.mdnsEnable == true)
-    {
-        MDNS.end();
-        networkMdnsRunning = false;
-        if (settings.debugNetworkLayer)
-            systemPrintln("mDNS stopped");
-    }
+    NetMask_t bitMask;
+    NetIndex_t startIndex;
+
+    // Determine the highest priority network
+    startIndex = networkPriority;
+    if (startIndex < NETWORK_OFFLINE)
+        startIndex = networkIndexTable[startIndex];
+
+    // Stop mDNS on the other networks
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
+        if (index != startIndex)
+            networkMulticastDNSStop(index);
+
+    // Restart mDNS on the highest priority network
+    if (startIndex < NETWORK_OFFLINE)
+        networkMulticastDNSStart(startIndex);
 }
 
 //----------------------------------------
@@ -858,10 +916,9 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
             // Clear the bits
             networkSeqRequest &= ~bitMask;
             networkSeqNext &= ~bitMask;
-            networkSeqRequest &= ~bitMask;
 
             // Start the next sequence
-            if (networkSeqNext & bitMask)
+            if (start)
                 networkSequenceStart(index, debug);
             else
                 networkSequenceStop(index, debug);
