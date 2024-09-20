@@ -37,7 +37,6 @@ PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=Patch\
 
 # Windows NT patch destination paths
-BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)\ESP32_BleSerial\src\
 MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
 NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\libraries\Network\src\
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
@@ -71,7 +70,6 @@ PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=Patch/
 
 # Linux patch destination paths
-BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)/ESP32_BleSerial/src/
 MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
 NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/libraries/Network/src/
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
@@ -139,9 +137,6 @@ lib-update:
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
 
-$(BLE_PATCH_DST_PATH)BleSerial.cpp: 	$(PATCH_SRC_PATH)BleSerial.cpp
-	$(COPY)  $<  $@
-
 $(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
 	$(DIR_LISTING) $(ESP_IDF_PATH)
 	echo ESP_
@@ -173,7 +168,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h makefile $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
+$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h makefile $(PARTITION_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
