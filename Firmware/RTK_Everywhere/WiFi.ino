@@ -65,6 +65,8 @@ void menuWiFi()
 
     while (1)
     {
+        networkDisplayInterface(NETWORK_WIFI);
+
         systemPrintln();
         systemPrintln("Menu: WiFi Networks");
 
@@ -314,6 +316,15 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
         networkMarkOffline(NETWORK_WIFI);
     }
 
+    // WiFi State Machine
+    //
+    //   .--------+<----------+<-----------+<-------------+<----------+<----------+<------------.
+    //   v        |           |            |              |           |           |             |
+    // STOP --> READY --> STA_START --> SCAN_DONE --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
+    //                                                    ^           ^           |             |
+    //                                                    |           '-----------'             |
+    //                                                    '-------------------------------------'
+    //
     // Handle the event
     switch (event)
     {
