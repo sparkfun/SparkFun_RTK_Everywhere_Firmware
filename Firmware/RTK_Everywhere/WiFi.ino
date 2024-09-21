@@ -239,11 +239,15 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 
     int wifiStatus = wifiMulti.run(timeout);
     if (wifiStatus == WL_CONNECTED)
+    {
+        wifiRunning = true;
         return true;
+    }
     if (wifiStatus == WL_DISCONNECTED)
         systemPrint("No friendly WiFi networks detected.\r\n");
     else
         systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiStatus);
+    wifiRunning = false;
     return false;
 }
 
@@ -407,9 +411,7 @@ bool wifiIsConnected()
 //----------------------------------------
 bool wifiIsRunning()
 {
-    if (wifiIsConnected())
-        return true;
-    return (WiFi.status() != WL_STOPPED);
+    return wifiRunning;
 }
 
 //----------------------------------------
@@ -445,6 +447,8 @@ void wifiRestart()
 //----------------------------------------
 bool wifiStart()
 {
+    int wifiStatus;
+
     if (wifiNetworkCount() == 0)
     {
         systemPrintln("Error: Please enter at least one SSID before using WiFi");
@@ -460,11 +464,16 @@ bool wifiStart()
             systemPrintln("Starting WiFi");
 
         // Start WiFi
-        wifiRunning = true;
         if (wifiConnect(settings.wifiConnectTimeoutMs))
+        {
             wifiStartTimeout = 0;
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi: Start timeout reset to zero");
+        }
+        
     }
-    return (WiFi.status() == WL_CONNECTED);
+    wifiStatus = WiFi.status();
+    return (wifiStatus == WL_CONNECTED);
 }
 
 //----------------------------------------
