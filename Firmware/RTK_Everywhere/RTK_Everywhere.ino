@@ -376,12 +376,8 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// GNSS configuration - UM980
+// Extensible Message Parser
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-#endif // COMPILE_UM980
-
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 SEMP_PARSE_STATE *rtkParse = nullptr;
 SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
@@ -1007,9 +1003,9 @@ void setup()
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate();
 
-    DMW_b("checkUpdateUm980Firmware");
-    if (checkUpdateUm980Firmware() == true) // Check if updateLoraFirmware.txt exists
-        beginUm980FirmwareUpdate();
+    DMW_b("um980FirmwareCheckUpdate");
+    if (um980FirmwareCheckUpdate() == true) // Check if updateUm980Firmware.txt exists
+        um980FirmwareBeginUpdate();
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
