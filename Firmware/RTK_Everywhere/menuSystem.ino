@@ -106,34 +106,9 @@ void menuSystem()
         // Display the Bluetooth status
         bluetoothTest(false);
 
-#ifdef COMPILE_WIFI
-        wifiDisplayState();
-#endif // COMPILE_WIFI
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-        {
-            systemPrint("Ethernet: ");
-            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
-                systemPrintln("connected");
-            else
-                systemPrintln("disconnected");
-            systemPrint("Ethernet MAC Address: ");
-            systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
-                         ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
-            systemPrint("Ethernet IP Address: ");
-            systemPrintln(ETH.localIP().toString().c_str());
-            if (!settings.ethernetDHCP)
-            {
-                systemPrint("Ethernet DNS: ");
-                systemPrintf("%s\r\n", settings.ethernetDNS.toString().c_str());
-                systemPrint("Ethernet Gateway: ");
-                systemPrintf("%s\r\n", settings.ethernetGateway.toString().c_str());
-                systemPrint("Ethernet Subnet Mask: ");
-                systemPrintf("%s\r\n", settings.ethernetSubnet.toString().c_str());
-            }
-        }
-#endif // COMPILE_ETHERNET
+#ifdef COMPILE_NETWORK
+        networkDisplayStatus();
+#endif // COMPILE_NETWORK
 
         // Display the uptime
         uint64_t uptimeMilliseconds = millis();
