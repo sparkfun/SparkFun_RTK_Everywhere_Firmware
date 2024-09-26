@@ -437,6 +437,7 @@ void beginBoard()
         present.i2c0BusSpeed_400 = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
+        present.charger_mcp73833 = true;
         present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
@@ -464,12 +465,12 @@ void beginBoard()
         pin_GnssReady = 36;
         pin_muxADC = 39;
 
-        pin_batteryStatusLED = 34;
-
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
+        pinMode(pin_chargerLED, INPUT); // STAT1 and STAT2 have pull-ups to 3.3V
+        pinMode(pin_chargerLED2, INPUT);
 
         // Turn on power to the mosaic and OLED
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
@@ -1082,7 +1083,7 @@ void beginCharger()
             mp2762setPrechargeCurrentMa(880);
 
             systemPrintln("Charger configuration complete");
-            online.batteryCharger = true;
+            online.batteryCharger_mp2762a = true;
         }
         else
         {

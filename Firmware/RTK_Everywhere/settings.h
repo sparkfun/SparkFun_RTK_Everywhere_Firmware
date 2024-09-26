@@ -1996,6 +1996,7 @@ struct struct_present
     bool fuelgauge_max17048 = false;
     bool fuelgauge_bq40z50 = false;
     bool charger_mp2762a = false;
+    bool charger_mcp73833 = false;
 
     bool beeper = false;
     bool encryption_atecc608a = false;
@@ -2042,7 +2043,7 @@ struct struct_online
     bool mqttClient = false;
     bool psram = false;
     bool ppl = false;
-    bool batteryCharger = false;
+    bool batteryCharger_mp2762a = false;
     bool httpClient = false;
     bool loraRadio = false;
 } online;

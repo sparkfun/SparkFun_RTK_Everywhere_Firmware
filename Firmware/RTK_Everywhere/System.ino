@@ -64,11 +64,51 @@ void beepOff()
         digitalWrite(pin_beeper, LOW);
 }
 
+// Only useful for pin_chargerLED on Facet mosaic
+// pin_chargerLED is analog-only and is connected via a blocking diode
+bool readAnalogPinAsDigital(int pin)
+{
+    if (pin >= 34) // If the pin is analog-only
+        return (analogReadMilliVolts(pin) > (3300 / 2));
+
+    return digitalRead(pin);
+}
+
 // Update battery levels every 5 seconds
 // Update battery charger as needed
 // Output serial message if enabled
 void updateBattery()
 {
+    if (present.charger_mcp73833 && (pin_chargerLED != PIN_UNDEFINED) && (pin_chargerLED2 != PIN_UNDEFINED))
+    {
+        static unsigned long lastChargerStatusUpdate = 0;
+        if (millis() - lastChargerStatusUpdate > 5000)
+        {
+            lastChargerStatusUpdate = millis();
+
+            // Display the charge status
+            if (settings.enablePrintBatteryMessages)
+            {
+                //   State           | STAT1 | STAT2
+                // 3 Standby / Fault | HIGH  | HIGH
+                // 2 Charging        | LOW   | HIGH
+                // 1 Charge Complete | HIGH  | LOW
+                // 0 Test mode       | LOW   | LOW
+                uint8_t combinedStat = (((uint8_t)readAnalogPinAsDigital(pin_chargerLED2)) << 1)
+                                      | ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
+                systemPrint("MCP73833 Charger: ");
+                if (combinedStat == 3)
+                    systemPrintln("standby / fault");
+                else if (combinedStat == 2)
+                    systemPrintln("battery is charging");
+                else if (combinedStat == 1)
+                    systemPrintln("battery charging is complete");
+                else // if (combinedStat == 0)
+                    systemPrintln("test mode");
+            }
+        }
+    }
+
     if (online.batteryFuelGauge == true)
     {
         static unsigned long lastBatteryFuelGaugeUpdate = 0;
@@ -94,7 +134,7 @@ void updateBattery()
         }
     }
 
-    if (online.batteryCharger == true)
+    if (online.batteryCharger_mp2762a == true)
     {
         static unsigned long lastBatteryChargerUpdate = 0;
         if (millis() - lastBatteryChargerUpdate > 5000)
@@ -810,7 +850,7 @@ bool isCharging()
             return true;
         return false;
     }
-    else if (present.charger_mp2762a == true && online.batteryCharger == true)
+    else if (present.charger_mp2762a == true && online.batteryCharger_mp2762a == true)
     {
         // 0b00 - Not charging, 01 - trickle or precharge, 10 - fast charge, 11 - charge termination
         if (mp2762getChargeStatus() == 0b01 || mp2762getChargeStatus() == 0b10)
