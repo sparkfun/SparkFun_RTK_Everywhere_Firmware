@@ -273,7 +273,8 @@ void menuPortsMultiplexed()
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
-        if (mosaicX5InRoverMode() == true)
+        RTK_MOSAIC * mosaic = (RTK_MOSAIC *)gnss;
+        if (mosaic->inRoverMode() == true)
             restartRover = true;
         else
             restartBase = true;

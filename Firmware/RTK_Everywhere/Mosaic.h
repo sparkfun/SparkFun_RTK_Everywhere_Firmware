@@ -1,5 +1,13 @@
+/*------------------------------------------------------------------------------
+mosaic.h
+
+  Declarations and definitions for the Mosaic GNSS receiver
+------------------------------------------------------------------------------*/
+
 #ifndef _RTK_EVERYWHERE_MOSAIC_H
 #define _RTK_EVERYWHERE_MOSAIC_H
+
+#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 
 typedef struct {
     const uint16_t ID;
@@ -526,9 +534,471 @@ const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
 
 void mosaicX5flushRX(unsigned long timeout = 0); // Header
 bool mosaicX5waitCR(unsigned long timeout = 25); // Header
-bool mosaicX5sendWithResponse(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25, char *response = nullptr, size_t responseSize = 0); // Header
-bool mosaicX5sendWithResponse(String message, const char *reply, unsigned long timeout = 1000, unsigned long wait = 25, char *response = nullptr, size_t responseSize = 0); // Header
-bool mosaicX5sendAndWaitForIdle(const char *message, const char *reply, unsigned long timeout = 1000, unsigned long idle = 25, char *response = nullptr, size_t responseSize = 0);
-bool mosaicX5sendAndWaitForIdle(String message, const char *reply, unsigned long timeout = 1000, unsigned long idle = 25, char *response = nullptr, size_t responseSize = 0);
 
-#endif
+class RTK_MOSAIC : GNSS
+{
+  protected:
+
+    // These globals are updated regularly via the SBF parser
+    double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
+    bool   _determiningFixedPosition; // PVTGeodetic Mode Bit 6
+
+    // Setup the general configuration of the GNSS
+    // Not Rover or Base specific (ie, baud rates)
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRadio();
+
+    // Set the minimum satellite signal level for navigation.
+    bool setMinCnoRadio (uint8_t cnoValue);
+
+  public:
+
+    // Allow access from parser routines
+    float  _latStdDev;
+    float  _lonStdDev;
+    bool   _receiverSetupSeen;
+
+    // Constructor
+    RTK_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
+        _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false)
+    {
+    }
+
+    // If we have decryption keys, configure module
+    // Note: don't check online.lband_neo here. We could be using ip corrections
+    void applyPointPerfectKeys();
+
+    // Set RTCM for base mode to defaults (1005/MSM4 1Hz & 1033 0.1Hz)
+    void baseRtcmDefault();
+
+    // Reset to Low Bandwidth Link (MSM4 0.5Hz & 1005/1033 0.1Hz)
+    void baseRtcmLowDataRate();
+
+    // Connect to GNSS and identify particulars
+    void begin();
+
+    // Setup TM2 time stamp input as need
+    // Outputs:
+    //   Returns true when an external event occurs and false if no event
+    bool beginExternalEvent();
+
+    // Setup the timepulse output on the PPS pin for external triggering
+    // Outputs
+    //   Returns true if the pin was successfully setup and false upon
+    //   failure
+    bool beginPPS();
+
+    bool checkNMEARates();
+
+    bool checkPPPRates();
+
+    // Configure the Base
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureBase();
+
+    bool configureLogging();
+
+    // Configure specific aspects of the receiver for NTP mode
+    bool configureNtpMode();
+
+    // Perform the GNSS configuration
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureOnce();
+
+    // Configure the Rover
+    // Outputs:
+    //   Returns true if successfully configured and false upon failure
+    bool configureRover();
+
+    void debuggingDisable();
+
+    void debuggingEnable();
+
+    void enableGgaForNtrip();
+
+    // Turn on all the enabled NMEA messages on COM1
+    bool enableNMEA();
+
+    // Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
+    bool enableRTCMBase();
+
+    // Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
+    bool enableRTCMRover();
+
+    // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
+    // even if there is no GPS fix. We use it to test serial output.
+    // Outputs:
+    //   Returns true if successfully started and false upon failure
+    bool enableRTCMTest();
+
+    // Restore the GNSS to the factory settings
+    void factoryReset();
+
+    uint16_t fileBufferAvailable();
+
+    uint16_t fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead);
+
+    // Start the base using fixed coordinates
+    // Outputs:
+    //   Returns true if successfully started and false upon failure
+    bool fixedBaseStart();
+
+    // Return the number of active/enabled messages
+    uint8_t getActiveMessageCount();
+
+    // Get the altitude
+    // Outputs:
+    //   Returns the altitude in meters or zero if the GNSS is offline
+    double getAltitude();
+
+    // Returns the carrier solution or zero if not online
+    uint8_t getCarrierSolution();
+
+    // Get the COM port baud rate
+    // Outputs:
+    //   Returns 0 if the get fails
+    uint32_t getCOMBaudRate(uint8_t port);
+
+    // Mosaic COM3 is connected to the Data connector - via the multiplexer
+    // Outputs:
+    //   Returns 0 if the get fails
+    uint32_t getDataBaudRate();
+
+    // Returns the day number or zero if not online
+    uint8_t getDay();
+
+    // Return the number of milliseconds since GNSS data was last updated
+    uint16_t getFixAgeMilliseconds();
+
+    // Returns the fix type or zero if not online
+    uint8_t getFixType();
+
+    // Returns the hours of 24 hour clock or zero if not online
+    uint8_t getHour();
+
+    // Get the horizontal position accuracy
+    // Outputs:
+    //   Returns the horizontal position accuracy or zero if offline
+    float getHorizontalAccuracy();
+
+    const char * getId();
+
+    // Get the latitude value
+    // Outputs:
+    //   Returns the latitude value or zero if not online
+    double getLatitude();
+
+    // Query GNSS for current leap seconds
+    uint8_t getLeapSeconds();
+
+    // Get the longitude value
+    // Outputs:
+    //   Returns the longitude value or zero if not online
+    double getLongitude();
+
+    // Returns two digits of milliseconds or zero if not online
+    uint8_t getMillisecond();
+
+    // Returns minutes or zero if not online
+    uint8_t getMinute();
+
+    // Returns month number or zero if not online
+    uint8_t getMonth();
+
+    // Returns nanoseconds or zero if not online
+    uint32_t getNanosecond();
+
+    // Given the name of a message, return the array number
+    int getNMEAMessageNumberByName(const char *msgName);
+
+    // Mosaic COM2 is connected to the Radio connector
+    // Outputs:
+    //   Returns 0 if the get fails
+    uint32_t getRadioBaudRate();
+
+    // Returns the seconds between solutions
+    double getRateS();
+
+    const char * getRtcmDefaultString();
+
+    const char * getRtcmLowDataRateString();
+
+    // Given the name of a message, return the array number
+    int getRtcmMessageNumberByName(const char *msgName);
+
+    // Returns the number of satellites in view or zero if offline
+    uint8_t getSatellitesInView();
+
+    // Returns seconds or zero if not online
+    uint8_t getSecond();
+
+    // Get the survey-in mean accuracy
+    // Outputs:
+    //   Returns the mean accuracy or zero (0)
+    float getSurveyInMeanAccuracy();
+
+    // Return the number of seconds the survey-in process has been running
+    int getSurveyInObservationTime();
+
+    // Returns timing accuracy or zero if not online
+    uint32_t getTimeAccuracy();
+
+    // Returns full year, ie 2023, not 23.
+    uint16_t getYear();
+
+    // Returns true if the device is in Rover mode
+    // Currently the only two modes are Rover or Base
+    bool inRoverMode();
+
+    bool isBlocking();
+
+    // Date is confirmed once we have GNSS fix
+    bool isConfirmedDate();
+
+    // Date is confirmed once we have GNSS fix
+    bool isConfirmedTime();
+
+    // Return true if GNSS receiver has a higher quality DGPS fix than 3D
+    bool isDgpsFixed();
+
+    // Some functions (L-Band area frequency determination) merely need
+    // to know if we have a valid fix, not what type of fix
+    // This function checks to see if the given platform has reached
+    // sufficient fix type to be considered valid
+    bool isFixed();
+
+    // Used in tpISR() for time pulse synchronization
+    bool isFullyResolved();
+
+    bool isNMEAMessageEnabled(const char *msgName);
+
+    bool isPppConverged();
+
+    bool isPppConverging();
+
+    // Some functions (L-Band area frequency determination) merely need
+    // to know if we have an RTK Fix.  This function checks to see if the
+    // given platform has reached sufficient fix type to be considered valid
+    bool isRTKFix();
+
+    // Some functions (L-Band area frequency determination) merely need
+    // to know if we have an RTK Float.  This function checks to see if
+    // the given platform has reached sufficient fix type to be considered
+    // valid
+    bool isRTKFloat();
+
+    // Determine if the survey-in operation is complete
+    // Outputs:
+    //   Returns true if the survey-in operation is complete and false
+    //   if the operation is still running
+    bool isSurveyInComplete();
+
+    // Date will be valid if the RTC is reporting (regardless of GNSS fix)
+    bool isValidDate();
+
+    // Time will be valid if the RTC is reporting (regardless of GNSS fix)
+    bool isValidTime();
+
+    // Controls the constellations that are used to generate a fix and logged
+    void menuConstellations();
+
+    void menuMessageBaseRtcm();
+
+    // Control the messages that get broadcast over Bluetooth and logged (if enabled)
+    void menuMessages();
+
+    void menuMessagesNMEA();
+
+    void menuMessagesRTCM(bool rover);
+
+    // Print the module type and firmware version
+    void printModuleInfo();
+
+    // Send correction data to the GNSS
+    // Inputs:
+    //   dataToSend: Address of a buffer containing the data
+    //   dataLength: The number of valid data bytes in the buffer
+    // Outputs:
+    //   Returns the number of correction data bytes written
+    int pushRawData(uint8_t *dataToSend, int dataLength);
+
+    uint16_t rtcmBufferAvailable();
+
+    // If LBand is being used, ignore any RTCM that may come in from the GNSS
+    void rtcmOnGnssDisable();
+
+    // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
+    void rtcmOnGnssEnable();
+
+    uint16_t rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead);
+
+    // Save the current configuration
+    // Outputs:
+    //   Returns true when the configuration was saved and false upon failure
+    bool saveConfiguration();
+
+    // Send message. Wait for up to timeout millis for reply to arrive
+    // If the reply is received, keep reading bytes until the serial port has
+    // been idle for idle millis
+    // If response is defined, copy up to responseSize bytes
+    // Inputs:
+    //   message: Zero terminated string of characters containing the message
+    //            to send to the GNSS
+    //   reply: String containing the first portion of the expected response
+    //   timeout: Number of milliseconds to wat for the reply to arrive
+    //   idle: Number of milliseconds to wait after last reply character is received
+    //   response: Address of buffer to receive the response
+    //   responseSize: Maximum number of bytes to copy
+    // Outputs:
+    //   Returns true if the response was received and false upon failure
+    bool sendAndWaitForIdle(const char *message,
+                            const char *reply,
+                            unsigned long timeout = 1000,
+                            unsigned long idle = 25,
+                            char *response = nullptr,
+                            size_t responseSize = 0);
+
+    // Send message. Wait for up to timeout millis for reply to arrive
+    // If the reply is received, keep reading bytes until the serial port has
+    // been idle for idle millis
+    // If response is defined, copy up to responseSize bytes
+    // Inputs:
+    //   message: String containing the message to send to the GNSS
+    //   reply: String containing the first portion of the expected response
+    //   timeout: Number of milliseconds to wat for the reply to arrive
+    //   idle: Number of milliseconds to wait after last reply character is received
+    //   response: Address of buffer to receive the response
+    //   responseSize: Maximum number of bytes to copy
+    // Outputs:
+    //   Returns true if the response was received and false upon failure
+    bool sendAndWaitForIdle(String message,
+                            const char *reply,
+                            unsigned long timeout = 1000,
+                            unsigned long idle = 25,
+                            char *response = nullptr,
+                            size_t responseSize = 0);
+
+    // Send message. Wait for up to timeout millis for reply to arrive
+    // If the reply has started to be received when timeout is reached, wait for a further wait millis
+    // If the reply is seen, wait for a further wait millis
+    // During wait, keep reading incoming serial. If response is defined, copy up to responseSize bytes
+    // Inputs:
+    //   message: Zero terminated string of characters containing the message
+    //            to send to the GNSS
+    //   reply: String containing the first portion of the expected response
+    //   timeout: Number of milliseconds to wat for the reply to arrive
+    //   wait: Number of additional milliseconds if the reply is detected
+    //   response: Address of buffer to receive the response
+    //   responseSize: Maximum number of bytes to copy
+    // Outputs:
+    //   Returns true if the response was received and false upon failure
+    bool sendWithResponse(const char *message,
+                          const char *reply,
+                          unsigned long timeout = 1000,
+                          unsigned long wait = 25,
+                          char *response = nullptr,
+                          size_t responseSize = 0);
+
+    // Send message. Wait for up to timeout millis for reply to arrive
+    // If the reply has started to be received when timeout is reached, wait for a further wait millis
+    // If the reply is seen, wait for a further wait millis
+    // During wait, keep reading incoming serial. If response is defined, copy up to responseSize bytes
+    // Inputs:
+    //   message: String containing the message to send to the GNSS
+    //   reply: String containing the first portion of the expected response
+    //   timeout: Number of milliseconds to wat for the reply to arrive
+    //   wait: Number of additional milliseconds if the reply is detected
+    //   response: Address of buffer to receive the response
+    //   responseSize: Maximum number of bytes to copy
+    // Outputs:
+    //   Returns true if the response was received and false upon failure
+    bool sendWithResponse(String message,
+                          const char *reply,
+                          unsigned long timeout = 1000,
+                          unsigned long wait = 25,
+                          char *response = nullptr,
+                          size_t responseSize = 0);
+
+    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
+    // This just sets the GNSS side
+    // Used during Bluetooth testing
+    // Inputs:
+    //   baudRate: The desired baudrate
+    bool setBaudrate(uint32_t baudRate);
+
+    // Set the baud rate of mosaic-X5 COM1
+    // This is used during the Bluetooth test
+    // Inputs:
+    //   port: COM port number
+    //   baudRate: New baud rate for the COM port
+    // Outputs:
+    //   Returns true if the baud rate was set and false upon failure
+    bool setBaudRateCOM(uint8_t port, uint32_t baudRate);
+
+    // Enable all the valid constellations and bands for this platform
+    bool setConstellations();
+
+    bool setDataBaudRate(uint32_t baud);
+
+    // Set the elevation in degrees
+    // Inputs:
+    //   elevationDegrees: The elevation value in degrees
+    bool setElevation(uint8_t elevationDegrees);
+
+    // Enable all the valid messages for this platform
+    bool setMessages(int maxRetries);
+
+    // Enable all the valid messages for this platform over the USB port
+    bool setMessagesUsb(int maxRetries);
+
+    // Set the dynamic model to use for RTK
+    // Inputs:
+    //   modelNumber: Number of the model to use, provided by radio library
+    bool setModel(uint8_t modelNumber);
+
+    bool setRadioBaudRate(uint32_t baud);
+
+    // Specify the interval between solutions
+    // Inputs:
+    //   secondsBetweenSolutions: Number of seconds between solutions
+    // Outputs:
+    //   Returns true if the rate was successfully set and false upon
+    //   failure
+    bool setRate(double secondsBetweenSolutions);
+
+    bool setTalkerGNGGA();
+
+    // Hotstart GNSS to try to get RTK lock
+    bool softwareReset();
+
+    bool standby();
+
+    // Save the data from the SBF Block 4007
+    void storeBlock4007(SEMP_PARSE_STATE *parse);
+
+    // Save the data from the SBF Block 5914
+    void storeBlock5914(SEMP_PARSE_STATE *parse);
+
+    // Reset the survey-in operation
+    // Outputs:
+    //   Returns true if the survey-in operation was reset successfully
+    //   and false upon failure
+    bool surveyInReset();
+
+    // Start the survey-in operation
+    // Outputs:
+    //   Return true if successful and false upon failure
+    bool surveyInStart();
+
+    // Poll routine to update the GNSS state
+    void update();
+
+    bool updateSD();
+
+    void waitSBFReceiverSetup(unsigned long timeout);
+};
+
+#endif  // _RTK_EVERYWHERE_MOSAIC_H
