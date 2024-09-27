@@ -258,7 +258,7 @@ bool zedConfigure()
     startTime = millis();
     while (pvtUpdated == false)
     {
-        gnssUpdate(); // Regularly poll to get latest data
+        gnss->update(); // Regularly poll to get latest data
 
         delay(10);
         if ((millis() - startTime) > maxWait)
@@ -463,7 +463,7 @@ bool zedConfigureRover()
 
     firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
 
-    gnssUpdate(); // Regularly poll to get latest data
+    gnss->update(); // Regularly poll to get latest data
 
     bool success = false;
     int tryNo = -1;
@@ -556,7 +556,7 @@ bool zedConfigureBase()
 
     firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
 
-    gnssUpdate(); // Regularly poll to get latest data
+    gnss->update(); // Regularly poll to get latest data
 
     theGNSS->setNMEAGPGGAcallbackPtr(
         nullptr); // Disable GPGGA call back that may have been set during Rover NTRIP Client mode
@@ -1433,8 +1433,11 @@ uint16_t zedExtractFileBufferData(uint8_t *fileBuffer, int fileBytesToRead)
 // Query GNSS for current leap seconds
 uint8_t zedGetLeapSeconds()
 {
+    uint8_t leapSeconds;
+
     sfe_ublox_ls_src_e leapSecSource;
     leapSeconds = theGNSS->getCurrentLeapSeconds(leapSecSource);
+    gnss->_leapSeconds = leapSeconds;
     return (leapSeconds);
 }
 
@@ -1554,7 +1557,7 @@ void zedMenuMessages()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages");
 
-        systemPrintf("Active messages: %d\r\n", gnssGetActiveMessageCount());
+        systemPrintf("Active messages: %d\r\n", gnss->getActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set RTCM Messages");
@@ -1650,7 +1653,7 @@ void zedMenuMessages()
     clearBuffer(); // Empty buffer of any newline chars
 
     // Make sure the appropriate messages are enabled
-    bool response = gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    bool response = gnss->setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     if (response == false)
         systemPrintf("menuMessages: Failed to enable messages - after %d tries", MAX_SET_MESSAGES_RETRIES);
     else
@@ -1769,7 +1772,7 @@ void zedMenuConstellations()
     }
 
     // Apply current settings to module
-    gnssSetConstellations();
+    gnss->setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }

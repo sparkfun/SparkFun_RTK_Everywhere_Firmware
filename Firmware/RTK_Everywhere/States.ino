@@ -98,7 +98,7 @@ void stateUpdate()
 
             // Configure for rover mode
             displayRoverStart(0);
-            if (gnssConfigureRover() == false)
+            if (gnss->configureRover() == false)
             {
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -129,31 +129,31 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_NO_FIX): {
-            if (gnssIsFixed()) // 3D, 3D+DR
+            if (gnss->isFixed()) // 3D, 3D+DR
                 changeState(STATE_ROVER_FIX);
         }
         break;
 
         case (STATE_ROVER_FIX): {
-            if (gnssIsRTKFloat())
+            if (gnss->isRTKFloat())
                 changeState(STATE_ROVER_RTK_FLOAT);
-            else if (gnssIsRTKFix())
+            else if (gnss->isRTKFix())
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
 
         case (STATE_ROVER_RTK_FLOAT): {
-            if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
+            if (gnss->isRTKFix() == false && gnss->isRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (gnssIsRTKFix() == true)
+            if (gnss->isRTKFix() == true)
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
 
         case (STATE_ROVER_RTK_FIX): {
-            if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
+            if (gnss->isRTKFix() == false && gnss->isRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (gnssIsRTKFloat())
+            if (gnss->isRTKFloat())
                 changeState(STATE_ROVER_RTK_FLOAT);
         }
         break;
@@ -215,7 +215,7 @@ void stateUpdate()
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() && gnssConfigureBase())
+            if (tasksStartGnssUart() && gnss->configureBase())
             {
                 settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
@@ -245,26 +245,26 @@ void stateUpdate()
                 baseStatusLedBlink(); // Toggle the base/status LED
             }
 
-            int siv = gnssGetSatellitesInView();
-            float hpa = gnssGetHorizontalAccuracy();
+            int siv = gnss->getSatellitesInView();
+            float hpa = gnss->getHorizontalAccuracy();
 
             // Check for <1m horz accuracy before starting surveyIn
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
             // gnssGetSurveyInStartingAccuracy is 10m max
-            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+            const char *accUnits = getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
             // On the mosaic-X5, the HPA is undefined while the GNSS is determining its fixed position
             // We need to skip the HPA check...
-            if ((hpa > 0.0 && hpa < gnssGetSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
+            if ((hpa > 0.0 && hpa < gnss->getSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
             {
                 displaySurveyStart(0); // Show 'Survey'
 
-                if (gnssSurveyInStart() == true) // Begin survey
+                if (gnss->surveyInStart() == true) // Begin survey
                 {
                     displaySurveyStarted(500); // Show 'Survey Started'
 
@@ -285,11 +285,11 @@ void stateUpdate()
             }
 
             // Get the data once to avoid duplicate slow responses
-            int observationTime = gnssGetSurveyInObservationTime();
-            float meanAccuracy = gnssGetSurveyInMeanAccuracy();
-            int siv = gnssGetSatellitesInView();
+            int observationTime = gnss->getSurveyInObservationTime();
+            float meanAccuracy = gnss->getSurveyInMeanAccuracy();
+            int siv = gnss->getSatellitesInView();
 
-            if (gnssIsSurveyComplete() == true) // Survey in complete
+            if (gnss->isSurveyInComplete() == true) // Survey in complete
             {
                 systemPrintf("Observation Time: %d\r\n", observationTime);
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
@@ -315,13 +315,13 @@ void stateUpdate()
                     systemPrintf("Survey-In took more than %d minutes. Returning to rover mode.\r\n",
                                  maxSurveyInWait_s / 60);
 
-                    if (gnssSurveyInReset() == false)
+                    if (gnss->surveyInReset() == false)
                     {
                         systemPrintln("Survey reset failed - attempt 1/3");
-                        if (gnssSurveyInReset() == false)
+                        if (gnss->surveyInReset() == false)
                         {
                             systemPrintln("Survey reset failed - attempt 2/3");
-                            if (gnssSurveyInReset() == false)
+                            if (gnss->surveyInReset() == false)
                             {
                                 systemPrintln("Survey reset failed - attempt 3/3");
                             }
@@ -361,7 +361,7 @@ void stateUpdate()
         // If fixed base fails, we'll handle it here
         case (STATE_BASE_FIXED_NOT_STARTED): {
             RTK_MODE(RTK_MODE_BASE_FIXED);
-            bool response = gnssFixedBaseStart();
+            bool response = gnss->fixedBaseStart();
             if (response == true)
             {
                 baseStatusLedOn(); // Turn on the base/status LED
@@ -476,7 +476,7 @@ void stateUpdate()
                 tasksStopGnssUart(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;
 
-                gnssEnableRTCMTest();
+                gnss->enableRTCMTest();
 
                 RTK_MODE(RTK_MODE_TESTING);
                 changeState(STATE_TESTING);

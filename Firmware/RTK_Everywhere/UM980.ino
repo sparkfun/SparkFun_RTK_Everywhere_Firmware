@@ -307,7 +307,7 @@ bool um980BaseAverageStart()
     response &=
         um980->setModeBaseAverage(settings.observationSeconds); // Average for a number of seconds (default is 60)
 
-    autoBaseStartTimer = millis(); // Stamp when averaging began
+    gnss->_autoBaseStartTimer = millis(); // Stamp when averaging began
 
     if (response == false)
     {
@@ -983,7 +983,7 @@ void um980MenuMessages()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages");
 
-        systemPrintf("Active messages: %d\r\n", gnssGetActiveMessageCount());
+        systemPrintf("Active messages: %d\r\n", gnss->getActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set Rover RTCM Messages");
@@ -1261,7 +1261,7 @@ void um980MenuConstellations()
     }
 
     // Apply current settings to module
-    gnssSetConstellations();
+    gnss->setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }

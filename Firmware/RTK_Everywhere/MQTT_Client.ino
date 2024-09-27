@@ -368,8 +368,8 @@ void mqttClientReceiveMessage(int messageSize)
                     float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
                     char *preservedTile;
                     char *tile = strtok_r(nodes, ",", &preservedTile);
-                    int latitude = int(gnssGetLatitude() * 100.0);   // Centidegrees
-                    int longitude = int(gnssGetLongitude() * 100.0); // Centidegrees
+                    int latitude = int(gnss->getLatitude() * 100.0);   // Centidegrees
+                    int longitude = int(gnss->getLongitude() * 100.0); // Centidegrees
                     while (tile != nullptr)
                     {
                         char ns, ew;
@@ -454,8 +454,8 @@ void mqttClientReceiveMessage(int messageSize)
                 WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
 
                 settings.pointPerfectCurrentKeyStart -=
-                    gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
-                settings.pointPerfectNextKeyStart -= gnssGetLeapSeconds();
+                    gnss->getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+                settings.pointPerfectNextKeyStart -= gnss->getLeapSeconds();
 
                 settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
                 settings.pointPerfectNextKeyStart *= 1000;
@@ -499,7 +499,7 @@ void mqttClientReceiveMessage(int messageSize)
 
                         updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
-                        gnssPushRawData(mqttData, mqttCount);
+                        gnss->pushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;
                     }
                     else
@@ -517,7 +517,7 @@ void mqttClientReceiveMessage(int messageSize)
                     if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
                         systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
-                    gnssPushRawData(mqttData, mqttCount);
+                    gnss->pushRawData(mqttData, mqttCount);
                     bytesPushed += mqttCount;
                 }
             }
@@ -952,9 +952,9 @@ void mqttClientUpdate()
         if ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
             (settings.useLocalizedDistribution))
         {
-            uint8_t fixType = gnssGetFixType();
-            double latitude = gnssGetLatitude();   // degrees
-            double longitude = gnssGetLongitude(); // degrees
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();   // degrees
+            double longitude = gnss->getLongitude(); // degrees
             if (fixType >= 3)                      // If we have a 3D fix
             {
                 // If both the dict and tile topics are empty, prepare to subscribe to the dict topic

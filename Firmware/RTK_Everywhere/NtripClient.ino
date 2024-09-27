@@ -511,7 +511,7 @@ void ntripClientStop(bool shutdown)
         ntripClientTimer = millis();
 
     // Return the Main Talker ID to "GN".
-    gnssSetTalkerGNGGA();
+    gnss->setTalkerGNGGA();
 
     // Determine the next NTRIP client state
     online.ntripClient = false;
@@ -594,7 +594,7 @@ void ntripClientUpdate()
 
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
-        else if ((settings.ntripClient_TransmitGGA == false) || (gnssIsFixed() == true))
+        else if ((settings.ntripClient_TransmitGGA == false) || (gnss->isFixed() == true))
         {
             // Delay before opening the NTRIP client connection
             if ((millis() - ntripClientTimer) >= ntripClientConnectionAttemptTimeout)
@@ -707,7 +707,7 @@ void ntripClientUpdate()
                     {
                         // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
                         // Tell the module to output GGA every 5 seconds
-                        gnssEnableGgaForNtrip();
+                        gnss->enableGgaForNtrip();
 
                         lastGGAPush =
                             millis() - NTRIPCLIENT_MS_BETWEEN_GGA; // Force immediate transmission of GGA message
@@ -821,7 +821,7 @@ void ntripClientUpdate()
                         if (correctionLastSeen(CORR_TCP))
                         {
                             // Push RTCM to GNSS module over I2C / SPI
-                            gnssPushRawData(rtcmData, rtcmCount);
+                            gnss->pushRawData(rtcmData, rtcmCount);
 
                             if ((settings.debugCorrections || settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))

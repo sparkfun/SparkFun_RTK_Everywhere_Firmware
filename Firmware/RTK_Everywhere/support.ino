@@ -275,7 +275,7 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Keep doing these important things while waiting for the user to enter data
 
-        gnssUpdate(); // Regularly poll to get latest data
+        gnss->update(); // Regularly poll to get latest data
 
         // Keep processing NTP requests
         if (online.ethernetNTPServer)

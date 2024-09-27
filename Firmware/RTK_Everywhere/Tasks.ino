@@ -291,7 +291,7 @@ void sendGnssBuffer()
 {
     if (correctionLastSeen(CORR_BLUETOOTH))
     {
-        if (gnssPushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
+        if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
             if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
             {
@@ -450,7 +450,7 @@ void gnssReadTask(void *e)
         // to add extra checks, above and beyond the invalidDataCallback, to make sure that doesn't happen.
         // Here we check that the SBF ID and length are expected / valid too.
 
-        if (gnssIsBlocking() == false)
+        if (gnss->isBlocking() == false)
         {
             // Determine if serial data is available
             while (serialGNSS->available())
@@ -1372,7 +1372,7 @@ void tickerGnssLedUpdate()
         // Update the GNSS LED according to our state
 
         // Solid once RTK Fix is achieved, or PPP converges
-        if (gnssIsRTKFix() == true || gnssIsPppConverged())
+        if (gnss->isRTKFix() == true || gnss->isPppConverged())
         {
             ledcWrite(pin_gnssStatusLED, 255);
         }
