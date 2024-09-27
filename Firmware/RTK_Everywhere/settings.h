@@ -306,6 +306,8 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
+#ifdef  COMPILE_NETWORK
+
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA
 {
@@ -2047,6 +2049,8 @@ const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(
 #define NETWORK_OFFLINE     networkInterfaceTableEntries
 
 const NetMask_t mDNSUse = 0x3; // One bit per network interface
+
+#endif //  COMPILE_NETWORK
 
 // Monitor which tasks are running.
 struct struct_tasks
