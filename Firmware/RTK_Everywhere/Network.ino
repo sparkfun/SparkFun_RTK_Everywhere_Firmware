@@ -307,7 +307,8 @@ void networkBegin()
 
     // Start LARA (cellular modem)
     #ifdef COMPILE_CELLULAR
-        laraStart();
+        if (present.cellular_lara)
+            laraStart();
     #endif  // COMPILE_CELLULAR
 }
 
@@ -599,6 +600,19 @@ bool networkIsOnline()
 }
 
 //----------------------------------------
+// Determine if the network is present on the platform
+//----------------------------------------
+bool networkIsPresent(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Present if nullptr or bool set to true
+    return ((!networkInterfaceTable[index].present)
+        || *(networkInterfaceTable[index].present));
+}
+
+//----------------------------------------
 // Mark network offline
 //----------------------------------------
 void networkMarkOffline(NetIndex_t index)
@@ -647,8 +661,12 @@ void networkMarkOffline(NetIndex_t index)
                 break;
             }
 
-            // No, does this network need starting
-            networkStart(index, settings.debugNetworkLayer);
+            // No, is this device present (nullptr: always present)
+            if (networkIsPresent(index))
+            {
+                // No, does this network need starting
+                networkStart(index, settings.debugNetworkLayer);
+            }
         }
 
         // Set the new network priority
@@ -855,8 +873,9 @@ void networkPrintStatus(uint8_t priority)
     }
 
     // Print the network interface status
-    systemPrintf("%c%d: %-10s %-8s\r\n",
-                 highestPriority, priority, name, status);
+    if (networkIsPresent(index))
+        systemPrintf("%c%d: %-10s %-8s\r\n",
+                     highestPriority, priority, name, status);
 }
 
 //----------------------------------------
@@ -1144,12 +1163,16 @@ void networkStart(NetIndex_t index, bool debug)
     // Validate the index
     networkValidateIndex(index);
 
-    // Get the network bit
-    bitMask = (1 << index);
-    if (networkInterfaceTable[index].start
-        && (!(networkStarted & bitMask)))
-            systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
-        networkSequenceStart(index, debug);
+    // Only start networks that exist on the platform
+    if (networkIsPresent(index))
+    {
+        // Get the network bit
+        bitMask = (1 << index);
+        if (networkInterfaceTable[index].start
+            && (!(networkStarted & bitMask)))
+                systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
+            networkSequenceStart(index, debug);
+    }
 }
 
 //----------------------------------------
