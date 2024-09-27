@@ -25,6 +25,8 @@ DIR_LISTING=dir
 TERMINAL_APP=
 TERMINAL_PORT=
 TERMINAL_PARAMS=
+TERMINAL_PORT_TORCH=
+TERMINAL_PARAMS_TORCH=
 
 # Windows NT generic paths
 USER_DIRECTORY_PATH=C:\Users\$(USERNAME)
@@ -58,6 +60,8 @@ DIR_LISTING=ls
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
 TERMINAL_PARAMS=-b 115200 -8 -D $(TERMINAL_PORT) < /dev/tty
+TERMINAL_PORT_TORCH=/dev/ttyACM1
+TERMINAL_PARAMS_TORCH=-b 115200 -8 -D $(TERMINAL_PORT_TORCH) < /dev/tty
 
 # Linux generic paths
 USER_DIRECTORY_PATH=~
@@ -203,10 +207,35 @@ upload:	$(RTK_BIN_PATH)
         0x10000   $<
 	$(TERMINAL_APP) $(TERMINAL_PARAMS)
 
+.PHONY: upload_torch
+
+upload_torch:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_TORCH) \
+        --baud   460800 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP) $(TERMINAL_PARAMS_TORCH)
+
 .PHONY:	terminal
 
 terminal:
 	$(TERMINAL_APP) $(TERMINAL_PARAMS)
+
+.PHONY:	terminal_torch
+
+terminal_torch:
+	$(TERMINAL_APP) $(TERMINAL_PARAMS_TORCH)
 
 ########
 # Clean the build directory
