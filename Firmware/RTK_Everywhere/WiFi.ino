@@ -342,6 +342,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
 
     case ARDUINO_EVENT_WIFI_READY:
         Serial.println("WiFi Ready");
+        WiFi.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_WIFI_SCAN_DONE:
@@ -351,7 +352,6 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
 
     case ARDUINO_EVENT_WIFI_STA_START:
         Serial.println("WiFi STA Started");
-        WiFi.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_STOP:
@@ -362,6 +362,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
         memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
         ssid[info.wifi_sta_connected.ssid_len] = 0;
         Serial.printf("WiFi STA connected to %s\r\n", ssid);
+        WiFi.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
