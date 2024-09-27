@@ -387,6 +387,21 @@ void networkDisplayInterface(NetIndex_t index)
 }
 
 //----------------------------------------
+// Display the network status
+//----------------------------------------
+void networkDisplayStatus()
+{
+    // Display the interfaces in priority order
+    for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
+        networkPrintStatus(networkIndexTable[priority]);
+
+    // Display the interfaces details
+    for (NetIndex_t index = 0; index < NETWORK_OFFLINE; index++)
+        if (networkIsPresent(index))
+            networkDisplayInterface(index);
+}
+
+//----------------------------------------
 // Process network events
 //----------------------------------------
 void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
