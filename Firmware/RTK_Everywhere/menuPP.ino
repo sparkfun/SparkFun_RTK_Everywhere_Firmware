@@ -727,7 +727,8 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 
     if (correctionLastSeen(CORR_LBAND))
     {
-        updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
+        ZED * zed = (ZED *)gnss;
+        zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
 
         if (settings.debugCorrections == true && !inMainMenu)
             systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
@@ -854,7 +855,8 @@ void beginLBand()
 
         response &= i2cLBand.sendCfgValset();
 
-        response &= zedEnableLBandCommunication();
+        ZED * zed = (ZED *)gnss;
+        response &= zed->lBandCommunicationEnable();
 
         if (response == false)
             systemPrintln("L-Band failed to configure");

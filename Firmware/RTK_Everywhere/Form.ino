@@ -1108,7 +1108,8 @@ void createMessageListBase(String &returnText)
 
     if (present.gnss_zedf9p)
     {
-        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+        ZED * zed = (ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
         {

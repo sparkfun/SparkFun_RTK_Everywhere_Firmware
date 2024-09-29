@@ -283,6 +283,9 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
+        // Specify the GNSS radio
+        gnss = (GNSS *) new ZED();
+
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
