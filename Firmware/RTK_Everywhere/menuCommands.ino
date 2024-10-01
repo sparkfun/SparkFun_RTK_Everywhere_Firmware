@@ -713,7 +713,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
         case tUbMsgRtb: {
-            ZED * zed = (ZED *)gnss;
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < qualifier; x++)
@@ -1469,7 +1469,7 @@ void createSettingsString(char *newSettings)
             case tUbMsgRtb: {
                 // Record message settings
 
-                ZED * zed = (ZED *)gnss;
+                GNSS_ZED * zed = (GNSS_ZED *)gnss;
                 int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -2245,7 +2245,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
         case tUbMsgRtb: {
-            ZED * zed = (ZED *)gnss;
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < qualifier; x++)
@@ -2742,7 +2742,7 @@ void commandList(bool inCommands, int i)
     break;
     case tUbMsgRtb: {
         // Record message settings
-        ZED * zed = (ZED *)gnss;
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
         int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)

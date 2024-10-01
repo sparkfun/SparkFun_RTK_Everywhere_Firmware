@@ -369,7 +369,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tUbMsgRtb: {
             // Record message settings
 
-            ZED * zed = (ZED *)gnss;
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1125,7 +1125,7 @@ bool parseLine(char *str)
             }
             break;
             case tUbMsgRtb: {
-                ZED * zed = (ZED *)gnss;
+                GNSS_ZED * zed = (GNSS_ZED *)gnss;
                 int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
                 for (int x = 0; x < qualifier; x++)
