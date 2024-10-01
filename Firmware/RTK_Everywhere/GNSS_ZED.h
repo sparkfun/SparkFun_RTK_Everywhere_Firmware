@@ -1,15 +1,15 @@
 /*------------------------------------------------------------------------------
-ZED.h
+GNSS_ZED.h
 
-  Declarations and definitions for the ZED implementation
+  Declarations and definitions for the GNSS_ZED implementation
 ------------------------------------------------------------------------------*/
 
-#ifndef __ZED_H__
-#define __ZED_H__
+#ifndef __GNSS_ZED_H__
+#define __GNSS_ZED_H__
 
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
-class ZED : GNSS
+class GNSS_ZED : GNSS
 {
   private:
 
@@ -370,4 +370,4 @@ class ZED : GNSS
     void updateCorrectionsSource(uint8_t source);
 };
 
-#endif  // __ZED_H__
+#endif  // __GNSS_ZED_H__

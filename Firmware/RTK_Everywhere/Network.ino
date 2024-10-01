@@ -335,6 +335,7 @@ void networkDisplayInterface(NetIndex_t index)
 {
     const NETWORK_TABLE_ENTRY * entry;
     bool hasIP;
+    const char * hostName;
     NetworkInterface * netif;
     const char * status;
 
@@ -358,7 +359,9 @@ void networkDisplayInterface(NetIndex_t index)
     }
     systemPrintf("%s: %s%s\r\n", entry->name, status,
                  netif->isDefault() ? ", default" : "");
-    systemPrintf("    Host Name: %s\r\n", netif->getHostname());
+    hostName = netif->getHostname();
+    if (hostName)
+        systemPrintf("    Host Name: %s\r\n", hostName);
     systemPrintf("    MAC Address: %s\r\n", netif->macAddress().c_str());
     if (hasIP)
     {

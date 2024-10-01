@@ -1,14 +1,14 @@
 /*------------------------------------------------------------------------------
-ZED.ino
+GNSS_ZED.ino
 
-  Implementation of the ZED class
+  Implementation of the GNSS_ZED class
 ------------------------------------------------------------------------------*/
 
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
-void ZED::applyPointPerfectKeys()
+void GNSS_ZED::applyPointPerfectKeys()
 {
     if (online.gnss == false)
     {
@@ -82,7 +82,7 @@ void ZED::applyPointPerfectKeys()
 //----------------------------------------
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz)
 //----------------------------------------
-void ZED::baseRtcmDefault()
+void GNSS_ZED::baseRtcmDefault()
 {
     int firstRTCMRecord = getMessageNumberByName("RTCM_1005");
     settings.ubxMessageRatesBase[getMessageNumberByName("RTCM_1005") - firstRTCMRecord] = 1; // 1105
@@ -104,7 +104,7 @@ void ZED::baseRtcmDefault()
 //----------------------------------------
 // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz)
 //----------------------------------------
-void ZED::baseRtcmLowDataRate()
+void GNSS_ZED::baseRtcmLowDataRate()
 {
     int firstRTCMRecord = getMessageNumberByName("RTCM_1005");
     settings.ubxMessageRatesBase[getMessageNumberByName("RTCM_1005") - firstRTCMRecord] = 10; // 1105 0.1Hz
@@ -126,7 +126,7 @@ void ZED::baseRtcmLowDataRate()
 //----------------------------------------
 // Connect to GNSS and identify particulars
 //----------------------------------------
-void ZED::begin()
+void GNSS_ZED::begin()
 {
     // Instantiate the library
     if (_zed == nullptr)
@@ -224,7 +224,7 @@ void ZED::begin()
 // Setup the timepulse output on the PPS pin for external triggering
 // Setup TM2 time stamp input as need
 //----------------------------------------
-bool ZED::beginExternalEvent()
+bool GNSS_ZED::beginExternalEvent()
 {
     if (online.gnss == false)
         return (false);
@@ -255,7 +255,7 @@ bool ZED::beginExternalEvent()
 //----------------------------------------
 // Setup the timepulse output on the PPS pin for external triggering
 //----------------------------------------
-bool ZED::beginPPS()
+bool GNSS_ZED::beginPPS()
 {
     if (online.gnss == false)
         return (false);
@@ -300,7 +300,7 @@ bool ZED::beginPPS()
 }
 
 //----------------------------------------
-bool ZED::checkNMEARates()
+bool GNSS_ZED::checkNMEARates()
 {
     if (online.gnss)
         return (getMessageRateByName("NMEA_GGA") > 0 && getMessageRateByName("NMEA_GSA") > 0 &&
@@ -310,7 +310,7 @@ bool ZED::checkNMEARates()
 }
 
 //----------------------------------------
-bool ZED::checkPPPRates()
+bool GNSS_ZED::checkPPPRates()
 {
     if (online.gnss)
         return (getMessageRateByName("RXM_RAWX") > 0 && getMessageRateByName("RXM_SFRBX") > 0);
@@ -320,7 +320,7 @@ bool ZED::checkPPPRates()
 //----------------------------------------
 // Configure specific aspects of the receiver for base mode
 //----------------------------------------
-bool ZED::configureBase()
+bool GNSS_ZED::configureBase()
 {
     if (online.gnss == false)
         return (false);
@@ -424,7 +424,7 @@ bool ZED::configureBase()
 //----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
 //----------------------------------------
-bool ZED::configureNtpMode()
+bool GNSS_ZED::configureNtpMode()
 {
     bool success = false;
 
@@ -507,7 +507,7 @@ bool ZED::configureNtpMode()
 // In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 //----------------------------------------
-bool ZED::configureRadio()
+bool GNSS_ZED::configureRadio()
 {
     if (online.gnss == false)
         return (false);
@@ -739,7 +739,7 @@ bool ZED::configureRadio()
 //----------------------------------------
 // Configure specific aspects of the receiver for rover mode
 //----------------------------------------
-bool ZED::configureRover()
+bool GNSS_ZED::configureRover()
 {
     if (online.gnss == false)
     {
@@ -835,14 +835,14 @@ bool ZED::configureRover()
 }
 
 //----------------------------------------
-void ZED::debuggingDisable()
+void GNSS_ZED::debuggingDisable()
 {
     if (online.gnss)
         _zed->disableDebugging();
 }
 
 //----------------------------------------
-void ZED::debuggingEnable()
+void GNSS_ZED::debuggingEnable()
 {
     if (online.gnss)
         // Enable only the critical debug messages over Serial
@@ -850,7 +850,7 @@ void ZED::debuggingEnable()
 }
 
 //----------------------------------------
-void ZED::enableGgaForNtrip()
+void GNSS_ZED::enableGgaForNtrip()
 {
     if (online.gnss)
     {
@@ -872,7 +872,7 @@ void ZED::enableGgaForNtrip()
 // even if there is no GPS fix. We use it to test serial output.
 // Returns true if successfully started and false upon failure
 //----------------------------------------
-bool ZED::enableRTCMTest()
+bool GNSS_ZED::enableRTCMTest()
 {
     if (online.gnss)
     {
@@ -887,7 +887,7 @@ bool ZED::enableRTCMTest()
 //----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
-void ZED::factoryReset()
+void GNSS_ZED::factoryReset()
 {
     if (online.gnss)
     {
@@ -898,7 +898,7 @@ void ZED::factoryReset()
 }
 
 //----------------------------------------
-uint16_t ZED::fileBufferAvailable()
+uint16_t GNSS_ZED::fileBufferAvailable()
 {
     if (online.gnss)
         return (_zed->fileBufferAvailable());
@@ -906,7 +906,7 @@ uint16_t ZED::fileBufferAvailable()
 }
 
 //----------------------------------------
-uint16_t ZED::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
+uint16_t GNSS_ZED::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
 {
     if (online.gnss)
     {
@@ -920,7 +920,7 @@ uint16_t ZED::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
 //----------------------------------------
 // Start the base using fixed coordinates
 //----------------------------------------
-bool ZED::fixedBaseStart()
+bool GNSS_ZED::fixedBaseStart()
 {
     bool response = true;
 
@@ -1006,7 +1006,7 @@ bool ZED::fixedBaseStart()
 //----------------------------------------
 // Return the number of active/enabled messages
 //----------------------------------------
-uint8_t ZED::getActiveMessageCount()
+uint8_t GNSS_ZED::getActiveMessageCount()
 {
     uint8_t count = 0;
 
@@ -1019,7 +1019,7 @@ uint8_t ZED::getActiveMessageCount()
 //----------------------------------------
 //   Returns the altitude in meters or zero if the GNSS is offline
 //----------------------------------------
-double ZED::getAltitude()
+double GNSS_ZED::getAltitude()
 {
     return _altitude;
 }
@@ -1027,13 +1027,13 @@ double ZED::getAltitude()
 //----------------------------------------
 // Returns the carrier solution or zero if not online
 //----------------------------------------
-uint8_t ZED::getCarrierSolution()
+uint8_t GNSS_ZED::getCarrierSolution()
 {
     return (_carrierSolution);
 }
 
 //----------------------------------------
-uint32_t ZED::getDataBaudRate()
+uint32_t GNSS_ZED::getDataBaudRate()
 {
     if (online.gnss)
         return _zed->getVal32(UBLOX_CFG_UART1_BAUDRATE);
@@ -1043,7 +1043,7 @@ uint32_t ZED::getDataBaudRate()
 //----------------------------------------
 // Returns the day number or zero if not online
 //----------------------------------------
-uint8_t ZED::getDay()
+uint8_t GNSS_ZED::getDay()
 {
     return (_day);
 }
@@ -1051,7 +1051,7 @@ uint8_t ZED::getDay()
 //----------------------------------------
 // Return the number of milliseconds since GNSS data was last updated
 //----------------------------------------
-uint16_t ZED::getFixAgeMilliseconds()
+uint16_t GNSS_ZED::getFixAgeMilliseconds()
 {
     return (millis() - _pvtArrivalMillis);
 }
@@ -1059,7 +1059,7 @@ uint16_t ZED::getFixAgeMilliseconds()
 //----------------------------------------
 // Returns the fix type or zero if not online
 //----------------------------------------
-uint8_t ZED::getFixType()
+uint8_t GNSS_ZED::getFixType()
 {
     return (_fixType);
 }
@@ -1068,7 +1068,7 @@ uint8_t ZED::getFixType()
 // Get the horizontal position accuracy
 // Returns the horizontal position accuracy or zero if offline
 //----------------------------------------
-float ZED::getHorizontalAccuracy()
+float GNSS_ZED::getHorizontalAccuracy()
 {
     return (_horizontalAccuracy);
 }
@@ -1076,13 +1076,13 @@ float ZED::getHorizontalAccuracy()
 //----------------------------------------
 // Returns the hours of 24 hour clock or zero if not online
 //----------------------------------------
-uint8_t ZED::getHour()
+uint8_t GNSS_ZED::getHour()
 {
     return (_hour);
 }
 
 //----------------------------------------
-const char * ZED::getId()
+const char * GNSS_ZED::getId()
 {
     if (online.gnss)
         return (gnssUniqueId);
@@ -1093,7 +1093,7 @@ const char * ZED::getId()
 // Get the latitude value
 // Returns the latitude value or zero if not online
 //----------------------------------------
-double ZED::getLatitude()
+double GNSS_ZED::getLatitude()
 {
     return (_latitude);
 }
@@ -1101,7 +1101,7 @@ double ZED::getLatitude()
 //----------------------------------------
 // Query GNSS for current leap seconds
 //----------------------------------------
-uint8_t ZED::getLeapSeconds()
+uint8_t GNSS_ZED::getLeapSeconds()
 {
     if (online.gnss)
     {
@@ -1117,7 +1117,7 @@ uint8_t ZED::getLeapSeconds()
 // Outputs:
 // Returns the longitude value or zero if not online
 //----------------------------------------
-double ZED::getLongitude()
+double GNSS_ZED::getLongitude()
 {
     return (_longitude);
 }
@@ -1125,7 +1125,7 @@ double ZED::getLongitude()
 //----------------------------------------
 // Given the name of a message, return the array number
 //----------------------------------------
-uint8_t ZED::getMessageNumberByName(const char *msgName)
+uint8_t GNSS_ZED::getMessageNumberByName(const char *msgName)
 {
     if (present.gnss_zedf9p)
     {
@@ -1145,7 +1145,7 @@ uint8_t ZED::getMessageNumberByName(const char *msgName)
 //----------------------------------------
 // Given the name of a message, find it, and return the rate
 //----------------------------------------
-uint8_t ZED::getMessageRateByName(const char *msgName)
+uint8_t GNSS_ZED::getMessageRateByName(const char *msgName)
 {
     return (settings.ubxMessageRates[getMessageNumberByName(msgName)]);
 }
@@ -1153,7 +1153,7 @@ uint8_t ZED::getMessageRateByName(const char *msgName)
 //----------------------------------------
 // Returns two digits of milliseconds or zero if not online
 //----------------------------------------
-uint8_t ZED::getMillisecond()
+uint8_t GNSS_ZED::getMillisecond()
 {
     return (_millisecond);
 }
@@ -1161,7 +1161,7 @@ uint8_t ZED::getMillisecond()
 //----------------------------------------
 // Returns minutes or zero if not online
 //----------------------------------------
-uint8_t ZED::getMinute()
+uint8_t GNSS_ZED::getMinute()
 {
     return (_minute);
 }
@@ -1169,7 +1169,7 @@ uint8_t ZED::getMinute()
 //----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
-uint8_t ZED::getMonth()
+uint8_t GNSS_ZED::getMonth()
 {
     return (_month);
 }
@@ -1177,7 +1177,7 @@ uint8_t ZED::getMonth()
 //----------------------------------------
 // Returns nanoseconds or zero if not online
 //----------------------------------------
-uint32_t ZED::getNanosecond()
+uint32_t GNSS_ZED::getNanosecond()
 {
     return (_nanosecond);
 }
@@ -1186,7 +1186,7 @@ uint32_t ZED::getNanosecond()
 // Count the number of NAV2 messages with rates more than 0. Used for determining if we need the enable
 // the global NAV2 feature.
 //----------------------------------------
-uint8_t ZED::getNAV2MessageCount()
+uint8_t GNSS_ZED::getNAV2MessageCount()
 {
     int enabledMessages = 0;
     int startOfBlock = 0;
@@ -1214,7 +1214,7 @@ uint8_t ZED::getNAV2MessageCount()
 }
 
 //----------------------------------------
-uint32_t ZED::getRadioBaudRate()
+uint32_t GNSS_ZED::getRadioBaudRate()
 {
     if (online.gnss)
         return _zed->getVal32(UBLOX_CFG_UART2_BAUDRATE);
@@ -1224,7 +1224,7 @@ uint32_t ZED::getRadioBaudRate()
 //----------------------------------------
 // Returns the seconds between measurements
 //----------------------------------------
-double ZED::getRateS()
+double GNSS_ZED::getRateS()
 {
     // Because we may be in base mode, do not get freq from module, use settings instead
     float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
@@ -1234,13 +1234,13 @@ double ZED::getRateS()
 }
 
 //----------------------------------------
-const char * ZED::getRtcmDefaultString()
+const char * GNSS_ZED::getRtcmDefaultString()
 {
     return ((char *)"1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
 }
 
 //----------------------------------------
-const char * ZED::getRtcmLowDataRateString()
+const char * GNSS_ZED::getRtcmLowDataRateString()
 {
     return ((char *)"1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz");
 }
@@ -1248,7 +1248,7 @@ const char * ZED::getRtcmLowDataRateString()
 //----------------------------------------
 // Returns the number of satellites in view or zero if offline
 //----------------------------------------
-uint8_t ZED::getSatellitesInView()
+uint8_t GNSS_ZED::getSatellitesInView()
 {
     return (_satellitesInView);
 }
@@ -1256,7 +1256,7 @@ uint8_t ZED::getSatellitesInView()
 //----------------------------------------
 // Returns seconds or zero if not online
 //----------------------------------------
-uint8_t ZED::getSecond()
+uint8_t GNSS_ZED::getSecond()
 {
     return (_second);
 }
@@ -1264,7 +1264,7 @@ uint8_t ZED::getSecond()
 //----------------------------------------
 // Get the survey-in mean accuracy
 //----------------------------------------
-float ZED::getSurveyInMeanAccuracy()
+float GNSS_ZED::getSurveyInMeanAccuracy()
 {
     static float svinMeanAccuracy = 0;
     static unsigned long lastCheck = 0;
@@ -1285,7 +1285,7 @@ float ZED::getSurveyInMeanAccuracy()
 //----------------------------------------
 // Return the number of seconds the survey-in process has been running
 //----------------------------------------
-int ZED::getSurveyInObservationTime()
+int GNSS_ZED::getSurveyInObservationTime()
 {
     static uint16_t svinObservationTime = 0;
     static unsigned long lastCheck = 0;
@@ -1306,7 +1306,7 @@ int ZED::getSurveyInObservationTime()
 //----------------------------------------
 // Returns timing accuracy or zero if not online
 //----------------------------------------
-uint32_t ZED::getTimeAccuracy()
+uint32_t GNSS_ZED::getTimeAccuracy()
 {
     return (_tAcc);
 }
@@ -1314,13 +1314,13 @@ uint32_t ZED::getTimeAccuracy()
 //----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
-uint16_t ZED::getYear()
+uint16_t GNSS_ZED::getYear()
 {
     return (_year);
 }
 
 //----------------------------------------
-bool ZED::isBlocking()
+bool GNSS_ZED::isBlocking()
 {
     return (false);
 }
@@ -1328,7 +1328,7 @@ bool ZED::isBlocking()
 //----------------------------------------
 // Date is confirmed once we have GNSS fix
 //----------------------------------------
-bool ZED::isConfirmedDate()
+bool GNSS_ZED::isConfirmedDate()
 {
     return (_confirmedDate);
 }
@@ -1336,7 +1336,7 @@ bool ZED::isConfirmedDate()
 //----------------------------------------
 // Time is confirmed once we have GNSS fix
 //----------------------------------------
-bool ZED::isConfirmedTime()
+bool GNSS_ZED::isConfirmedTime()
 {
     return (_confirmedTime);
 }
@@ -1344,7 +1344,7 @@ bool ZED::isConfirmedTime()
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
-bool ZED::isDgpsFixed()
+bool GNSS_ZED::isDgpsFixed()
 {
     // Not supported
     return (false);
@@ -1354,7 +1354,7 @@ bool ZED::isDgpsFixed()
 // Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
 // This function checks to see if the given platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool ZED::isFixed()
+bool GNSS_ZED::isFixed()
 {
     // 0 = no fix
     // 1 = dead reckoning only
@@ -1368,19 +1368,19 @@ bool ZED::isFixed()
 //----------------------------------------
 // Used in tpISR() for time pulse synchronization
 //----------------------------------------
-bool ZED::isFullyResolved()
+bool GNSS_ZED::isFullyResolved()
 {
     return (_fullyResolved);
 }
 
 //----------------------------------------
-bool ZED::isPppConverged()
+bool GNSS_ZED::isPppConverged()
 {
     return (false);
 }
 
 //----------------------------------------
-bool ZED::isPppConverging()
+bool GNSS_ZED::isPppConverging()
 {
     return (false);
 }
@@ -1390,7 +1390,7 @@ bool ZED::isPppConverging()
 // know if we have an RTK Fix.  This function checks to see if the given
 // platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool ZED::isRTKFix()
+bool GNSS_ZED::isRTKFix()
 {
     // 0 = No RTK
     // 1 = RTK Float
@@ -1403,7 +1403,7 @@ bool ZED::isRTKFix()
 // know if we have an RTK Float.  This function checks to see if the
 // given platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool ZED::isRTKFloat()
+bool GNSS_ZED::isRTKFloat()
 {
     // 0 = No RTK
     // 1 = RTK Float
@@ -1414,7 +1414,7 @@ bool ZED::isRTKFloat()
 //----------------------------------------
 // Determine if the survey-in operation is complete
 //----------------------------------------
-bool ZED::isSurveyInComplete()
+bool GNSS_ZED::isSurveyInComplete()
 {
     if (online.gnss)
         return (_zed->getSurveyInValid(50));
@@ -1424,7 +1424,7 @@ bool ZED::isSurveyInComplete()
 //----------------------------------------
 // Date will be valid if the RTC is reporting (regardless of GNSS fix)
 //----------------------------------------
-bool ZED::isValidDate()
+bool GNSS_ZED::isValidDate()
 {
     return (_validDate);
 }
@@ -1432,7 +1432,7 @@ bool ZED::isValidDate()
 //----------------------------------------
 // Time will be valid if the RTC is reporting (regardless of GNSS fix)
 //----------------------------------------
-bool ZED::isValidTime()
+bool GNSS_ZED::isValidTime()
 {
     return (_validTime);
 }
@@ -1440,7 +1440,7 @@ bool ZED::isValidTime()
 //----------------------------------------
 // Disable data output from the NEO
 //----------------------------------------
-bool ZED::lBandCommunicationDisable()
+bool GNSS_ZED::lBandCommunicationDisable()
 {
     bool response = true;
 
@@ -1480,7 +1480,7 @@ bool ZED::lBandCommunicationDisable()
 //----------------------------------------
 // Enable data output from the NEO
 //----------------------------------------
-bool ZED::lBandCommunicationEnable()
+bool GNSS_ZED::lBandCommunicationEnable()
 {
     /*
         Paul's Notes on (NEO-D9S) L-Band:
@@ -1560,7 +1560,7 @@ bool ZED::lBandCommunicationEnable()
 }
 
 //----------------------------------------
-bool ZED::lock(void)
+bool GNSS_ZED::lock(void)
 {
     if (!iAmLocked)
     {
@@ -1582,20 +1582,20 @@ bool ZED::lock(void)
 }
 
 //----------------------------------------
-bool ZED::lockCreate(void)
+bool GNSS_ZED::lockCreate(void)
 {
     return true;
 }
 
 //----------------------------------------
-void ZED::lockDelete(void)
+void GNSS_ZED::lockDelete(void)
 {
 }
 
 //----------------------------------------
 // Controls the constellations that are used to generate a fix and logged
 //----------------------------------------
-void ZED::menuConstellations()
+void GNSS_ZED::menuConstellations()
 {
     while (1)
     {
@@ -1650,7 +1650,7 @@ void ZED::menuConstellations()
 }
 
 //----------------------------------------
-void ZED::menuMessageBaseRtcm()
+void GNSS_ZED::menuMessageBaseRtcm()
 {
     zedMenuMessagesSubtype(settings.ubxMessageRatesBase, "RTCM-Base");
 }
@@ -1658,7 +1658,7 @@ void ZED::menuMessageBaseRtcm()
 //----------------------------------------
 // Control the messages that get broadcast over Bluetooth and logged (if enabled)
 //----------------------------------------
-void ZED::menuMessages()
+void GNSS_ZED::menuMessages()
 {
     while (1)
     {
@@ -1773,7 +1773,7 @@ void ZED::menuMessages()
 //----------------------------------------
 // Print the module type and firmware version
 //----------------------------------------
-void ZED::printModuleInfo()
+void GNSS_ZED::printModuleInfo()
 {
     systemPrintf("ZED-F9P firmware: %s\r\n", gnssFirmwareVersion);
 }
@@ -1782,7 +1782,7 @@ void ZED::printModuleInfo()
 // Send correction data to the GNSS
 // Returns the number of correction data bytes written
 //----------------------------------------
-int ZED::pushRawData(uint8_t *dataToSend, int dataLength)
+int GNSS_ZED::pushRawData(uint8_t *dataToSend, int dataLength)
 {
     if (online.gnss)
         return (_zed->pushRawData((uint8_t *)dataToSend, dataLength));
@@ -1790,7 +1790,7 @@ int ZED::pushRawData(uint8_t *dataToSend, int dataLength)
 }
 
 //----------------------------------------
-uint16_t ZED::rtcmBufferAvailable()
+uint16_t GNSS_ZED::rtcmBufferAvailable()
 {
     if (online.gnss)
         return (_zed->rtcmBufferAvailable());
@@ -1800,7 +1800,7 @@ uint16_t ZED::rtcmBufferAvailable()
 //----------------------------------------
 // If LBand is being used, ignore any RTCM that may come in from the GNSS
 //----------------------------------------
-void ZED::rtcmOnGnssDisable()
+void GNSS_ZED::rtcmOnGnssDisable()
 {
     if (online.gnss)
         _zed->setUART2Input(COM_TYPE_UBX); // Set ZED's UART2 to input UBX (no RTCM)
@@ -1809,14 +1809,14 @@ void ZED::rtcmOnGnssDisable()
 //----------------------------------------
 // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
 //----------------------------------------
-void ZED::rtcmOnGnssEnable()
+void GNSS_ZED::rtcmOnGnssEnable()
 {
     if (online.gnss)
         _zed->setUART2Input(COM_TYPE_RTCM3); // Set the ZED's UART2 to input RTCM
 }
 
 //----------------------------------------
-uint16_t ZED::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
+uint16_t GNSS_ZED::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 {
     if (online.gnss)
         return (_zed->extractRTCMBufferData(rtcmBuffer, rtcmBytesToRead));
@@ -1827,7 +1827,7 @@ uint16_t ZED::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
 //----------------------------------------
-bool ZED::saveConfiguration()
+bool GNSS_ZED::saveConfiguration()
 {
     if (online.gnss == false)
         return false;
@@ -1841,7 +1841,7 @@ bool ZED::saveConfiguration()
 // This just sets the GNSS side
 // Used during Bluetooth testing
 //----------------------------------------
-bool ZED::setBaudrate(uint32_t baudRate)
+bool GNSS_ZED::setBaudrate(uint32_t baudRate)
 {
     if (online.gnss)
         return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE,
@@ -1854,7 +1854,7 @@ bool ZED::setBaudrate(uint32_t baudRate)
 // Band support varies between platforms and firmware versions
 // We open/close a complete set of 19 messages
 //----------------------------------------
-bool ZED::setConstellations()
+bool GNSS_ZED::setConstellations()
 {
     if (online.gnss == false)
         return (false);
@@ -1925,7 +1925,7 @@ bool ZED::setConstellations()
 }
 
 //----------------------------------------
-bool ZED::setDataBaudRate(uint32_t baud)
+bool GNSS_ZED::setDataBaudRate(uint32_t baud)
 {
     if (online.gnss)
         return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE, baud);
@@ -1935,7 +1935,7 @@ bool ZED::setDataBaudRate(uint32_t baud)
 //----------------------------------------
 // Set the elevation in degrees
 //----------------------------------------
-bool ZED::setElevation(uint8_t elevationDegrees)
+bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
 {
     if (online.gnss)
     {
@@ -1948,7 +1948,7 @@ bool ZED::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Given a unique string, find first and last records containing that string in message array
 //----------------------------------------
-void ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock)
+void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock)
 {
     char messageNamePiece[40];                                                   // UBX_RTCM
     snprintf(messageNamePiece, sizeof(messageNamePiece), "%s", messageType); // Put UBX_ infront of type
@@ -1978,7 +1978,7 @@ void ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType,
 //----------------------------------------
 // Given the name of a message, find it, and set the rate
 //----------------------------------------
-bool ZED::setMessageRateByName(const char *msgName, uint8_t msgRate)
+bool GNSS_ZED::setMessageRateByName(const char *msgName, uint8_t msgRate)
 {
     for (int x = 0; x < MAX_UBX_MSG; x++)
     {
@@ -1997,7 +1997,7 @@ bool ZED::setMessageRateByName(const char *msgName, uint8_t msgRate)
 // There are many messages so split into batches. VALSET is limited to 64 max per batch
 // Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
 //----------------------------------------
-bool ZED::setMessages(int maxRetries)
+bool GNSS_ZED::setMessages(int maxRetries)
 {
     bool success = false;
 
@@ -2051,7 +2051,7 @@ bool ZED::setMessages(int maxRetries)
 // Enable all the valid messages for this platform over the USB port
 // Add 2 to every UART1 key. This is brittle and non-perfect, but works.
 //----------------------------------------
-bool ZED::setMessagesUsb(int maxRetries)
+bool GNSS_ZED::setMessagesUsb(int maxRetries)
 {
     bool success = false;
 
@@ -2095,7 +2095,7 @@ bool ZED::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool ZED::setMinCnoRadio (uint8_t cnoValue)
+bool GNSS_ZED::setMinCnoRadio (uint8_t cnoValue)
 {
     if (online.gnss)
     {
@@ -2108,7 +2108,7 @@ bool ZED::setMinCnoRadio (uint8_t cnoValue)
 //----------------------------------------
 // Set the dynamic model to use for RTK
 //----------------------------------------
-bool ZED::setModel(uint8_t modelNumber)
+bool GNSS_ZED::setModel(uint8_t modelNumber)
 {
     if (online.gnss)
     {
@@ -2119,7 +2119,7 @@ bool ZED::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
-bool ZED::setRadioBaudRate(uint32_t baud)
+bool GNSS_ZED::setRadioBaudRate(uint32_t baud)
 {
     if (online.gnss)
         return _zed->setVal32(UBLOX_CFG_UART2_BAUDRATE, baud);
@@ -2132,7 +2132,7 @@ bool ZED::setRadioBaudRate(uint32_t baud)
 // navigationRate >= 1 && <= 127
 // We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 //----------------------------------------
-bool ZED::setRate(double secondsBetweenSolutions)
+bool GNSS_ZED::setRate(double secondsBetweenSolutions)
 {
     uint16_t measRate = 0; // Calculate these locally and then attempt to apply them to ZED at completion
     uint16_t navRate = 0;
@@ -2203,7 +2203,7 @@ bool ZED::setRate(double secondsBetweenSolutions)
 }
 
 //----------------------------------------
-bool ZED::setTalkerGNGGA()
+bool GNSS_ZED::setTalkerGNGGA()
 {
     if (online.gnss)
     {
@@ -2218,7 +2218,7 @@ bool ZED::setTalkerGNGGA()
 //----------------------------------------
 // Hotstart GNSS to try to get RTK lock
 //----------------------------------------
-bool ZED::softwareReset()
+bool GNSS_ZED::softwareReset()
 {
     if (online.gnss == false)
         return false;
@@ -2227,7 +2227,7 @@ bool ZED::softwareReset()
 }
 
 //----------------------------------------
-bool ZED::standby()
+bool GNSS_ZED::standby()
 {
     return true; // TODO - this would be a perfect place for Save-On-Shutdown
 }
@@ -2240,7 +2240,7 @@ bool ZED::standby()
 //----------------------------------------
 void storeHPdata(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
 {
-    ZED * zed = (ZED *)gnss;
+    GNSS_ZED * zed = (GNSS_ZED *)gnss;
 
     zed->storeHPdataRadio(ubxDataStruct);
 }
@@ -2248,7 +2248,7 @@ void storeHPdata(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
 //----------------------------------------
 // Callback to save the high precision data
 //----------------------------------------
-void ZED::storeHPdataRadio(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
+void GNSS_ZED::storeHPdataRadio(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
 {
     double latitude;
     double longitude;
@@ -2279,7 +2279,7 @@ void storeMONHWdata(UBX_MON_HW_data_t *ubxDataStruct)
 //----------------------------------------
 void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
-    ZED * zed = (ZED *)gnss;
+    GNSS_ZED * zed = (GNSS_ZED *)gnss;
 
     zed->storePVTdataRadio(ubxDataStruct);
 }
@@ -2287,7 +2287,7 @@ void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 //----------------------------------------
 // Callback to save the PVT data
 //----------------------------------------
-void ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
+void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
     _altitude = ubxDataStruct->height / 1000.0;
 
@@ -2369,7 +2369,7 @@ void storeTIMTPdata(UBX_TIM_TP_data_t *ubxDataStruct)
 // Slightly modified method for restarting survey-in from:
 // https://portal.u-blox.com/s/question/0D52p00009IsVoMCAV/restarting-surveyin-on-an-f9p
 //----------------------------------------
-bool ZED::surveyInReset()
+bool GNSS_ZED::surveyInReset()
 {
     bool response = true;
 
@@ -2411,7 +2411,7 @@ bool ZED::surveyInReset()
 // Start the survey-in operation
 // The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
 //----------------------------------------
-bool ZED::surveyInStart()
+bool GNSS_ZED::surveyInStart()
 {
     if (online.gnss == false)
         return (false);
@@ -2472,7 +2472,7 @@ bool ZED::surveyInStart()
 }
 
 //----------------------------------------
-int ZED::ubxConstellationIDToIndex(int id)
+int GNSS_ZED::ubxConstellationIDToIndex(int id)
 {
     for (int x = 0; x < MAX_UBX_CONSTELLATIONS; x++)
     {
@@ -2484,7 +2484,7 @@ int ZED::ubxConstellationIDToIndex(int id)
 }
 
 //----------------------------------------
-void ZED::unlock(void)
+void GNSS_ZED::unlock(void)
 {
     iAmLocked = false;
 }
@@ -2492,7 +2492,7 @@ void ZED::unlock(void)
 //----------------------------------------
 // Poll routine to update the GNSS state
 //----------------------------------------
-void ZED::update()
+void GNSS_ZED::update()
 {
     if (online.gnss)
     {
@@ -2502,7 +2502,7 @@ void ZED::update()
 }
 
 //----------------------------------------
-void ZED::updateCorrectionsSource(uint8_t source)
+void GNSS_ZED::updateCorrectionsSource(uint8_t source)
 {
     if (!online.gnss)
         return;

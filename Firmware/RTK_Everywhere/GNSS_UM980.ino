@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------------
-UM980.ino
+GNSS_UM980.ino
 
-  Implementation of the RTK_UM980 class
+  Implementation of the GNSS_UM980 class
 
   IM19 reads in binary+NMEA from the UM980 and passes out binary with tilt-corrected lat/long/alt
   to the ESP32.
@@ -19,7 +19,7 @@ UM980.ino
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
-void RTK_UM980::applyPointPerfectKeys()
+void GNSS_UM980::applyPointPerfectKeys()
 {
     // Taken care of in beginPPL()
 }
@@ -27,7 +27,7 @@ void RTK_UM980::applyPointPerfectKeys()
 //----------------------------------------
 // Set RTCM for base mode to defaults (1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz)
 //----------------------------------------
-void RTK_UM980::baseRtcmDefault()
+void GNSS_UM980::baseRtcmDefault()
 {
     // Reset RTCM rates to defaults
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
@@ -37,7 +37,7 @@ void RTK_UM980::baseRtcmDefault()
 //----------------------------------------
 // Reset to Low Bandwidth Link (1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz)
 //----------------------------------------
-void RTK_UM980::baseRtcmLowDataRate()
+void GNSS_UM980::baseRtcmLowDataRate()
 {
     // Zero out everything
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
@@ -55,7 +55,7 @@ void RTK_UM980::baseRtcmLowDataRate()
 //----------------------------------------
 // Connect to GNSS and identify particulars
 //----------------------------------------
-void RTK_UM980::begin()
+void GNSS_UM980::begin()
 {
     // During identifyBoard(), the GNSS UART and DR pins are set
 
@@ -122,7 +122,7 @@ void RTK_UM980::begin()
 // Setup the timepulse output on the PPS pin for external triggering
 // Setup TM2 time stamp input as need
 //----------------------------------------
-bool RTK_UM980::beginExternalEvent()
+bool GNSS_UM980::beginExternalEvent()
 {
     // UM980 Event signal not exposed
     return (false);
@@ -131,20 +131,20 @@ bool RTK_UM980::beginExternalEvent()
 //----------------------------------------
 // Setup the timepulse output on the PPS pin for external triggering
 //----------------------------------------
-bool RTK_UM980::beginPPS()
+bool GNSS_UM980::beginPPS()
 {
     // UM980 PPS signal not exposed
     return (false);
 }
 
 //----------------------------------------
-bool RTK_UM980::checkNMEARates()
+bool GNSS_UM980::checkNMEARates()
 {
     return false;
 }
 
 //----------------------------------------
-bool RTK_UM980::checkPPPRates()
+bool GNSS_UM980::checkPPPRates()
 {
     return false;
 }
@@ -152,7 +152,7 @@ bool RTK_UM980::checkPPPRates()
 //----------------------------------------
 // Configure specific aspects of the receiver for base mode
 //----------------------------------------
-bool RTK_UM980::configureBase()
+bool GNSS_UM980::configureBase()
 {
     /*
         Disable all messages
@@ -204,7 +204,7 @@ bool RTK_UM980::configureBase()
 }
 
 //----------------------------------------
-bool RTK_UM980::configureOnce()
+bool GNSS_UM980::configureOnce()
 {
     /*
     Disable all message traffic
@@ -284,7 +284,7 @@ bool RTK_UM980::configureOnce()
 //----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
 //----------------------------------------
-bool RTK_UM980::configureNtpMode()
+bool GNSS_UM980::configureNtpMode()
 {
     return false;
 }
@@ -294,7 +294,7 @@ bool RTK_UM980::configureNtpMode()
 // In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 //----------------------------------------
-bool RTK_UM980::configureRadio()
+bool GNSS_UM980::configureRadio()
 {
     // Skip configuring the UM980 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
@@ -324,7 +324,7 @@ bool RTK_UM980::configureRadio()
 //----------------------------------------
 // Configure specific aspects of the receiver for rover mode
 //----------------------------------------
-bool RTK_UM980::configureRover()
+bool GNSS_UM980::configureRover()
 {
     /*
         Disable all message traffic
@@ -384,14 +384,14 @@ bool RTK_UM980::configureRover()
 }
 
 //----------------------------------------
-void RTK_UM980::debuggingDisable()
+void GNSS_UM980::debuggingDisable()
 {
     if (online.gnss)
     _um980->disableDebugging();
 }
 
 //----------------------------------------
-void RTK_UM980::debuggingEnable()
+void GNSS_UM980::debuggingEnable()
 {
     if (online.gnss)
     {
@@ -402,7 +402,7 @@ void RTK_UM980::debuggingEnable()
 
 //----------------------------------------
 // Turn off all NMEA and RTCM
-void RTK_UM980::disableAllOutput()
+void GNSS_UM980::disableAllOutput()
 {
     if (settings.debugGnss)
         systemPrintln("UM980 disable output");
@@ -425,14 +425,14 @@ void RTK_UM980::disableAllOutput()
 //----------------------------------------
 // Disable all output, then re-enable
 //----------------------------------------
-void RTK_UM980::disableRTCM()
+void GNSS_UM980::disableRTCM()
 {
     disableAllOutput();
     enableNMEA();
 }
 
 //----------------------------------------
-void RTK_UM980::enableGgaForNtrip()
+void GNSS_UM980::enableGgaForNtrip()
 {
     // TODO um980EnableGgaForNtrip();
 }
@@ -440,7 +440,7 @@ void RTK_UM980::enableGgaForNtrip()
 //----------------------------------------
 // Turn on all the enabled NMEA messages on COM3
 //----------------------------------------
-bool RTK_UM980::enableNMEA()
+bool GNSS_UM980::enableNMEA()
 {
     bool response = true;
     bool gpggaEnabled = false;
@@ -489,7 +489,7 @@ bool RTK_UM980::enableNMEA()
 //----------------------------------------
 // Turn on all the enabled RTCM Base messages on COM3
 //----------------------------------------
-bool RTK_UM980::enableRTCMBase()
+bool GNSS_UM980::enableRTCMBase()
 {
     bool response = true;
 
@@ -516,7 +516,7 @@ bool RTK_UM980::enableRTCMBase()
 //----------------------------------------
 // Turn on all the enabled RTCM Rover messages on COM3
 //----------------------------------------
-bool RTK_UM980::enableRTCMRover()
+bool GNSS_UM980::enableRTCMRover()
 {
     bool response = true;
     bool rtcm1019Enabled = false;
@@ -577,7 +577,7 @@ bool RTK_UM980::enableRTCMRover()
 // even if there is no GPS fix. We use it to test serial output.
 // Returns true if successfully started and false upon failure
 //----------------------------------------
-bool RTK_UM980::enableRTCMTest()
+bool GNSS_UM980::enableRTCMTest()
 {
     // There is no data port on devices with the UM980
     return false;
@@ -586,7 +586,7 @@ bool RTK_UM980::enableRTCMTest()
 //----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
-void RTK_UM980::factoryReset()
+void GNSS_UM980::factoryReset()
 {
     if (online.gnss)
     {
@@ -604,14 +604,14 @@ void RTK_UM980::factoryReset()
 }
 
 //----------------------------------------
-uint16_t RTK_UM980::fileBufferAvailable()
+uint16_t GNSS_UM980::fileBufferAvailable()
 {
     // TODO return(um980FileBufferAvailable());
     return (0);
 }
 
 //----------------------------------------
-uint16_t RTK_UM980::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
+uint16_t GNSS_UM980::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
 {
     // TODO return(um980FileBufferAvailable());
     return (0);
@@ -620,7 +620,7 @@ uint16_t RTK_UM980::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRe
 //----------------------------------------
 // Start the base using fixed coordinates
 //----------------------------------------
-bool RTK_UM980::fixedBaseStart()
+bool GNSS_UM980::fixedBaseStart()
 {
     bool response = true;
 
@@ -648,7 +648,7 @@ bool RTK_UM980::fixedBaseStart()
 //----------------------------------------
 // Return the number of active/enabled messages
 //----------------------------------------
-uint8_t RTK_UM980::getActiveMessageCount()
+uint8_t GNSS_UM980::getActiveMessageCount()
 {
     uint8_t count = 0;
 
@@ -658,7 +658,7 @@ uint8_t RTK_UM980::getActiveMessageCount()
 }
 
 //----------------------------------------
-uint8_t RTK_UM980::getActiveNmeaMessageCount()
+uint8_t GNSS_UM980::getActiveNmeaMessageCount()
 {
     uint8_t count = 0;
 
@@ -670,7 +670,7 @@ uint8_t RTK_UM980::getActiveNmeaMessageCount()
 }
 
 //----------------------------------------
-uint8_t RTK_UM980::getActiveRtcmMessageCount()
+uint8_t GNSS_UM980::getActiveRtcmMessageCount()
 {
     uint8_t count = 0;
 
@@ -694,7 +694,7 @@ uint8_t RTK_UM980::getActiveRtcmMessageCount()
 //----------------------------------------
 //   Returns the altitude in meters or zero if the GNSS is offline
 //----------------------------------------
-double RTK_UM980::getAltitude()
+double GNSS_UM980::getAltitude()
 {
     if (online.gnss)
         return (_um980->getAltitude());
@@ -704,7 +704,7 @@ double RTK_UM980::getAltitude()
 //----------------------------------------
 // Returns the carrier solution or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getCarrierSolution()
+uint8_t GNSS_UM980::getCarrierSolution()
 {
     if (online.gnss)
         // 0 = Solution computed
@@ -716,7 +716,7 @@ uint8_t RTK_UM980::getCarrierSolution()
 }
 
 //----------------------------------------
-uint32_t RTK_UM980::getDataBaudRate()
+uint32_t GNSS_UM980::getDataBaudRate()
 {
     return (0); // UM980 has no multiplexer
 }
@@ -724,7 +724,7 @@ uint32_t RTK_UM980::getDataBaudRate()
 //----------------------------------------
 // Returns the day number or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getDay()
+uint8_t GNSS_UM980::getDay()
 {
     if (online.gnss)
         return (_um980->getDay());
@@ -734,7 +734,7 @@ uint8_t RTK_UM980::getDay()
 //----------------------------------------
 // Return the number of milliseconds since GNSS data was last updated
 //----------------------------------------
-uint16_t RTK_UM980::getFixAgeMilliseconds()
+uint16_t GNSS_UM980::getFixAgeMilliseconds()
 {
     if (online.gnss)
         return (_um980->getFixAgeMilliseconds());
@@ -744,7 +744,7 @@ uint16_t RTK_UM980::getFixAgeMilliseconds()
 //----------------------------------------
 // Returns the fix type or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getFixType()
+uint8_t GNSS_UM980::getFixType()
 {
     if (online.gnss)
         // 0 = None
@@ -768,7 +768,7 @@ uint8_t RTK_UM980::getFixType()
 // Get the horizontal position accuracy
 // Returns the horizontal position accuracy or zero if offline
 //----------------------------------------
-float RTK_UM980::getHorizontalAccuracy()
+float GNSS_UM980::getHorizontalAccuracy()
 {
     if (online.gnss)
     {
@@ -792,7 +792,7 @@ float RTK_UM980::getHorizontalAccuracy()
 //----------------------------------------
 // Returns the hours of 24 hour clock or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getHour()
+uint8_t GNSS_UM980::getHour()
 {
     if (online.gnss)
         return (_um980->getHour());
@@ -800,7 +800,7 @@ uint8_t RTK_UM980::getHour()
 }
 
 //----------------------------------------
-const char * RTK_UM980::getId()
+const char * GNSS_UM980::getId()
 {
     if (online.gnss)
         return (_um980->getID());
@@ -811,7 +811,7 @@ const char * RTK_UM980::getId()
 // Get the latitude value
 // Returns the latitude value or zero if not online
 //----------------------------------------
-double RTK_UM980::getLatitude()
+double GNSS_UM980::getLatitude()
 {
     if (online.gnss)
         return (_um980->getLatitude());
@@ -821,7 +821,7 @@ double RTK_UM980::getLatitude()
 //----------------------------------------
 // Query GNSS for current leap seconds
 //----------------------------------------
-uint8_t RTK_UM980::getLeapSeconds()
+uint8_t GNSS_UM980::getLeapSeconds()
 {
     // TODO Need to find leap seconds in UM980
     return _leapSeconds; // Returning the default value
@@ -832,7 +832,7 @@ uint8_t RTK_UM980::getLeapSeconds()
 // Outputs:
 // Returns the longitude value or zero if not online
 //----------------------------------------
-double RTK_UM980::getLongitude()
+double GNSS_UM980::getLongitude()
 {
     if (online.gnss)
         return (_um980->getLongitude());
@@ -842,7 +842,7 @@ double RTK_UM980::getLongitude()
 //----------------------------------------
 // Returns two digits of milliseconds or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getMillisecond()
+uint8_t GNSS_UM980::getMillisecond()
 {
     if (online.gnss)
         return (_um980->getMillisecond());
@@ -852,7 +852,7 @@ uint8_t RTK_UM980::getMillisecond()
 //----------------------------------------
 // Returns minutes or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getMinute()
+uint8_t GNSS_UM980::getMinute()
 {
     if (online.gnss)
         return (_um980->getMinute());
@@ -862,7 +862,7 @@ uint8_t RTK_UM980::getMinute()
 //----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getMonth()
+uint8_t GNSS_UM980::getMonth()
 {
     if (online.gnss)
         return (_um980->getMonth());
@@ -872,7 +872,7 @@ uint8_t RTK_UM980::getMonth()
 //----------------------------------------
 // Returns nanoseconds or zero if not online
 //----------------------------------------
-uint32_t RTK_UM980::getNanosecond()
+uint32_t GNSS_UM980::getNanosecond()
 {
     if (online.gnss)
         // UM980 does not have nanosecond, but it does have millisecond
@@ -883,7 +883,7 @@ uint32_t RTK_UM980::getNanosecond()
 //----------------------------------------
 // Given the name of an NMEA message, return the array number
 //----------------------------------------
-uint8_t RTK_UM980::getNmeaMessageNumberByName(const char *msgName)
+uint8_t GNSS_UM980::getNmeaMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_UM980_NMEA_MSG; x++)
     {
@@ -896,7 +896,7 @@ uint8_t RTK_UM980::getNmeaMessageNumberByName(const char *msgName)
 }
 
 //----------------------------------------
-uint32_t RTK_UM980::getRadioBaudRate()
+uint32_t GNSS_UM980::getRadioBaudRate()
 {
     return (0); // UM980 has no multiplexer
 }
@@ -904,19 +904,19 @@ uint32_t RTK_UM980::getRadioBaudRate()
 //----------------------------------------
 // Returns the seconds between measurements
 //----------------------------------------
-double RTK_UM980::getRateS()
+double GNSS_UM980::getRateS()
 {
     return (((double)settings.measurementRateMs) / 1000.0);
 }
 
 //----------------------------------------
-const char * RTK_UM980::getRtcmDefaultString()
+const char * GNSS_UM980::getRtcmDefaultString()
 {
     return "1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz";
 }
 
 //----------------------------------------
-const char * RTK_UM980::getRtcmLowDataRateString()
+const char * GNSS_UM980::getRtcmLowDataRateString()
 {
     return "1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz";
 }
@@ -924,7 +924,7 @@ const char * RTK_UM980::getRtcmLowDataRateString()
 //----------------------------------------
 // Given the name of an RTCM message, return the array number
 //----------------------------------------
-uint8_t RTK_UM980::getRtcmMessageNumberByName(const char *msgName)
+uint8_t GNSS_UM980::getRtcmMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_UM980_RTCM_MSG; x++)
     {
@@ -939,7 +939,7 @@ uint8_t RTK_UM980::getRtcmMessageNumberByName(const char *msgName)
 //----------------------------------------
 // Returns the number of satellites in view or zero if offline
 //----------------------------------------
-uint8_t RTK_UM980::getSatellitesInView()
+uint8_t GNSS_UM980::getSatellitesInView()
 {
     if (online.gnss)
         return (_um980->getSIV());
@@ -949,7 +949,7 @@ uint8_t RTK_UM980::getSatellitesInView()
 //----------------------------------------
 // Returns seconds or zero if not online
 //----------------------------------------
-uint8_t RTK_UM980::getSecond()
+uint8_t GNSS_UM980::getSecond()
 {
     if (online.gnss)
         return (_um980->getSecond());
@@ -959,7 +959,7 @@ uint8_t RTK_UM980::getSecond()
 //----------------------------------------
 // Get the survey-in mean accuracy
 //----------------------------------------
-float RTK_UM980::getSurveyInMeanAccuracy()
+float GNSS_UM980::getSurveyInMeanAccuracy()
 {
     // Not supported on the UM980
     // Return the current HPA instead
@@ -969,7 +969,7 @@ float RTK_UM980::getSurveyInMeanAccuracy()
 //----------------------------------------
 // Return the number of seconds the survey-in process has been running
 //----------------------------------------
-int RTK_UM980::getSurveyInObservationTime()
+int GNSS_UM980::getSurveyInObservationTime()
 {
     int elapsedSeconds = (millis() - _autoBaseStartTimer) / 1000;
     return (elapsedSeconds);
@@ -978,7 +978,7 @@ int RTK_UM980::getSurveyInObservationTime()
 //----------------------------------------
 // Returns timing accuracy or zero if not online
 //----------------------------------------
-uint32_t RTK_UM980::getTimeAccuracy()
+uint32_t GNSS_UM980::getTimeAccuracy()
 {
     if (online.gnss)
     {
@@ -998,7 +998,7 @@ uint32_t RTK_UM980::getTimeAccuracy()
 //----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
-uint16_t RTK_UM980::getYear()
+uint16_t GNSS_UM980::getYear()
 {
     if (online.gnss)
         return (_um980->getYear());
@@ -1009,7 +1009,7 @@ uint16_t RTK_UM980::getYear()
 // Returns true if the device is in Rover mode
 // Currently the only two modes are Rover or Base
 //----------------------------------------
-bool RTK_UM980::inRoverMode()
+bool GNSS_UM980::inRoverMode()
 {
     // Determine which state we are in
     if (settings.lastState == STATE_BASE_NOT_STARTED)
@@ -1019,7 +1019,7 @@ bool RTK_UM980::inRoverMode()
 }
 
 //----------------------------------------
-bool RTK_UM980::isBlocking()
+bool GNSS_UM980::isBlocking()
 {
     if (online.gnss)
         return _um980->isBlocking();
@@ -1029,7 +1029,7 @@ bool RTK_UM980::isBlocking()
 //----------------------------------------
 // Date is confirmed once we have GNSS fix
 //----------------------------------------
-bool RTK_UM980::isConfirmedDate()
+bool GNSS_UM980::isConfirmedDate()
 {
     // UM980 doesn't have this feature. Check for valid date.
     return isValidDate();
@@ -1038,7 +1038,7 @@ bool RTK_UM980::isConfirmedDate()
 //----------------------------------------
 // Time is confirmed once we have GNSS fix
 //----------------------------------------
-bool RTK_UM980::isConfirmedTime()
+bool GNSS_UM980::isConfirmedTime()
 {
     // UM980 doesn't have this feature. Check for valid time.
     return isValidTime();
@@ -1047,7 +1047,7 @@ bool RTK_UM980::isConfirmedTime()
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
-bool RTK_UM980::isDgpsFixed()
+bool GNSS_UM980::isDgpsFixed()
 {
     if (online.gnss)
         // 17 = Pseudorange differential solution
@@ -1059,7 +1059,7 @@ bool RTK_UM980::isDgpsFixed()
 // Some functions (L-Band area frequency determination) merely need to know if we have a valid fix, not what type of fix
 // This function checks to see if the given platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool RTK_UM980::isFixed()
+bool GNSS_UM980::isFixed()
 {
     if (online.gnss)
         // 16 = 3D Fix (Single)
@@ -1070,7 +1070,7 @@ bool RTK_UM980::isFixed()
 //----------------------------------------
 // Used in tpISR() for time pulse synchronization
 //----------------------------------------
-bool RTK_UM980::isFullyResolved()
+bool GNSS_UM980::isFullyResolved()
 {
     if (online.gnss)
         // UM980 does not have this feature directly.
@@ -1086,7 +1086,7 @@ bool RTK_UM980::isFullyResolved()
 //----------------------------------------
 // Return true if the GPGGA message is active
 //----------------------------------------
-bool RTK_UM980::isGgaActive()
+bool GNSS_UM980::isGgaActive()
 {
     if (settings.um980MessageRatesNMEA[getNmeaMessageNumberByName("GPGGA")] > 0)
         return (true);
@@ -1094,7 +1094,7 @@ bool RTK_UM980::isGgaActive()
 }
 
 //----------------------------------------
-bool RTK_UM980::isPppConverged()
+bool GNSS_UM980::isPppConverged()
 {
     if (online.gnss)
         // 69 = Precision Point Positioning
@@ -1103,7 +1103,7 @@ bool RTK_UM980::isPppConverged()
 }
 
 //----------------------------------------
-bool RTK_UM980::isPppConverging()
+bool GNSS_UM980::isPppConverging()
 {
     if (online.gnss)
         // 68 = PPP solution converging
@@ -1116,7 +1116,7 @@ bool RTK_UM980::isPppConverging()
 // know if we have an RTK Fix.  This function checks to see if the given
 // platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool RTK_UM980::isRTKFix()
+bool GNSS_UM980::isRTKFix()
 {
     if (online.gnss)
         // 50 = RTK Fixed (Narrow-lane fixed solution)
@@ -1129,7 +1129,7 @@ bool RTK_UM980::isRTKFix()
 // know if we have an RTK Float.  This function checks to see if the
 // given platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool RTK_UM980::isRTKFloat()
+bool GNSS_UM980::isRTKFloat()
 {
     if (online.gnss)
         // 34 = Narrow-land float solution
@@ -1141,7 +1141,7 @@ bool RTK_UM980::isRTKFloat()
 //----------------------------------------
 // Determine if the survey-in operation is complete
 //----------------------------------------
-bool RTK_UM980::isSurveyInComplete()
+bool GNSS_UM980::isSurveyInComplete()
 {
     return (false);
 }
@@ -1149,7 +1149,7 @@ bool RTK_UM980::isSurveyInComplete()
 //----------------------------------------
 // Date will be valid if the RTC is reporting (regardless of GNSS fix)
 //----------------------------------------
-bool RTK_UM980::isValidDate()
+bool GNSS_UM980::isValidDate()
 {
     if (online.gnss)
         // 0 = Invalid
@@ -1162,7 +1162,7 @@ bool RTK_UM980::isValidDate()
 //----------------------------------------
 // Time will be valid if the RTC is reporting (regardless of GNSS fix)
 //----------------------------------------
-bool RTK_UM980::isValidTime()
+bool GNSS_UM980::isValidTime()
 {
     if (online.gnss)
         // 0 = valid
@@ -1174,7 +1174,7 @@ bool RTK_UM980::isValidTime()
 //----------------------------------------
 // Controls the constellations that are used to generate a fix and logged
 //----------------------------------------
-void RTK_UM980::menuConstellations()
+void GNSS_UM980::menuConstellations()
 {
     while (1)
     {
@@ -1226,7 +1226,7 @@ void RTK_UM980::menuConstellations()
 }
 
 //----------------------------------------
-void RTK_UM980::menuMessageBaseRtcm()
+void GNSS_UM980::menuMessageBaseRtcm()
 {
     menuMessagesSubtype(settings.um980MessageRatesRTCMBase, "RTCMBase");
 }
@@ -1234,7 +1234,7 @@ void RTK_UM980::menuMessageBaseRtcm()
 //----------------------------------------
 // Control the messages that get broadcast over Bluetooth and logged (if enabled)
 //----------------------------------------
-void RTK_UM980::menuMessages()
+void GNSS_UM980::menuMessages()
 {
     while (1)
     {
@@ -1297,7 +1297,7 @@ void RTK_UM980::menuMessages()
 // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
 // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
 //----------------------------------------
-void RTK_UM980::menuMessagesSubtype(float *localMessageRate, const char *messageType)
+void GNSS_UM980::menuMessagesSubtype(float *localMessageRate, const char *messageType)
 {
     while (1)
     {
@@ -1407,7 +1407,7 @@ void RTK_UM980::menuMessagesSubtype(float *localMessageRate, const char *message
 //----------------------------------------
 // Print the module type and firmware version
 //----------------------------------------
-void RTK_UM980::printModuleInfo()
+void GNSS_UM980::printModuleInfo()
 {
     if (online.gnss)
     {
@@ -1426,7 +1426,7 @@ void RTK_UM980::printModuleInfo()
 // Send data directly from ESP GNSS UART1 to UM980 UART3
 // Returns the number of correction data bytes written
 //----------------------------------------
-int RTK_UM980::pushRawData(uint8_t *dataToSend, int dataLength)
+int GNSS_UM980::pushRawData(uint8_t *dataToSend, int dataLength)
 {
     if (online.gnss)
         return (serialGNSS->write(dataToSend, dataLength));
@@ -1434,7 +1434,7 @@ int RTK_UM980::pushRawData(uint8_t *dataToSend, int dataLength)
 }
 
 //----------------------------------------
-uint16_t RTK_UM980::rtcmBufferAvailable()
+uint16_t GNSS_UM980::rtcmBufferAvailable()
 {
     // TODO return(um980RtcmBufferAvailable());
     return (0);
@@ -1443,7 +1443,7 @@ uint16_t RTK_UM980::rtcmBufferAvailable()
 //----------------------------------------
 // If LBand is being used, ignore any RTCM that may come in from the GNSS
 //----------------------------------------
-void RTK_UM980::rtcmOnGnssDisable()
+void GNSS_UM980::rtcmOnGnssDisable()
 {
     // UM980 does not have a separate interface for RTCM
 }
@@ -1451,13 +1451,13 @@ void RTK_UM980::rtcmOnGnssDisable()
 //----------------------------------------
 // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
 //----------------------------------------
-void RTK_UM980::rtcmOnGnssEnable()
+void GNSS_UM980::rtcmOnGnssEnable()
 {
     // UM980 does not have a separate interface for RTCM
 }
 
 //----------------------------------------
-uint16_t RTK_UM980::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
+uint16_t GNSS_UM980::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 {
     // TODO return(um980RtcmRead(rtcmBuffer, rtcmBytesToRead));
     return (0);
@@ -1467,7 +1467,7 @@ uint16_t RTK_UM980::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 // Save the current configuration
 // Returns true when the configuration was saved and false upon failure
 //----------------------------------------
-bool RTK_UM980::saveConfiguration()
+bool GNSS_UM980::saveConfiguration()
 {
     if (online.gnss)
         return (_um980->saveConfiguration());
@@ -1479,7 +1479,7 @@ bool RTK_UM980::saveConfiguration()
 // This just sets the GNSS side
 // Used during Bluetooth testing
 //----------------------------------------
-bool RTK_UM980::setBaudrate(uint32_t baudRate)
+bool GNSS_UM980::setBaudrate(uint32_t baudRate)
 {
     if (online.gnss)
         // Set the baud rate on COM3 of the UM980
@@ -1490,7 +1490,7 @@ bool RTK_UM980::setBaudrate(uint32_t baudRate)
 //----------------------------------------
 // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
 //----------------------------------------
-bool RTK_UM980::setBaudRateCOM3(uint32_t baudRate)
+bool GNSS_UM980::setBaudRateCOM3(uint32_t baudRate)
 {
     if (online.gnss)
         return _um980->setPortBaudrate("COM3", baudRate);
@@ -1502,7 +1502,7 @@ bool RTK_UM980::setBaudRateCOM3(uint32_t baudRate)
 // Band support varies between platforms and firmware versions
 // We open/close a complete set 19 messages
 //----------------------------------------
-bool RTK_UM980::setConstellations()
+bool GNSS_UM980::setConstellations()
 {
     bool response = true;
 
@@ -1534,7 +1534,7 @@ bool RTK_UM980::setConstellations()
 }
 
 //----------------------------------------
-bool RTK_UM980::setDataBaudRate(uint32_t baud)
+bool GNSS_UM980::setDataBaudRate(uint32_t baud)
 {
     return false; // UM980 has no multiplexer
 }
@@ -1542,7 +1542,7 @@ bool RTK_UM980::setDataBaudRate(uint32_t baud)
 //----------------------------------------
 // Set the elevation in degrees
 //----------------------------------------
-bool RTK_UM980::setElevation(uint8_t elevationDegrees)
+bool GNSS_UM980::setElevation(uint8_t elevationDegrees)
 {
     if (online.gnss)
         return _um980->setElevationAngle(elevationDegrees);
@@ -1550,7 +1550,7 @@ bool RTK_UM980::setElevation(uint8_t elevationDegrees)
 }
 
 //----------------------------------------
-bool RTK_UM980::setHighAccuracyService(bool enableGalileoHas)
+bool GNSS_UM980::setHighAccuracyService(bool enableGalileoHas)
 {
     bool result = true;
 
@@ -1611,7 +1611,7 @@ bool RTK_UM980::setHighAccuracyService(bool enableGalileoHas)
 // There are many messages so split into batches. VALSET is limited to 64 max per batch
 // Uses dummy newCfg and sendCfg values to be sure we open/close a complete set
 //----------------------------------------
-bool RTK_UM980::setMessages(int maxRetries)
+bool GNSS_UM980::setMessages(int maxRetries)
 {
     // We probably don't need this for the UM980
     //  TODO return(um980SetMessages(maxRetries));
@@ -1622,7 +1622,7 @@ bool RTK_UM980::setMessages(int maxRetries)
 // Enable all the valid messages for this platform over the USB port
 // Add 2 to every UART1 key. This is brittle and non-perfect, but works.
 //----------------------------------------
-bool RTK_UM980::setMessagesUsb(int maxRetries)
+bool GNSS_UM980::setMessagesUsb(int maxRetries)
 {
     // We probably don't need this for the UM980
     //  TODO return(um980SetMessagesUsb(maxRetries));
@@ -1632,7 +1632,7 @@ bool RTK_UM980::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool RTK_UM980::setMinCnoRadio (uint8_t cnoValue)
+bool GNSS_UM980::setMinCnoRadio (uint8_t cnoValue)
 {
     if (online.gnss)
     {
@@ -1645,7 +1645,7 @@ bool RTK_UM980::setMinCnoRadio (uint8_t cnoValue)
 //----------------------------------------
 // Set the dynamic model to use for RTK
 //----------------------------------------
-bool RTK_UM980::setModel(uint8_t modelNumber)
+bool GNSS_UM980::setModel(uint8_t modelNumber)
 {
     if (online.gnss)
     {
@@ -1660,7 +1660,7 @@ bool RTK_UM980::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
-bool RTK_UM980::setMultipathMitigation(bool enableMultipathMitigation)
+bool GNSS_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 {
     bool result = true;
 
@@ -1696,7 +1696,7 @@ bool RTK_UM980::setMultipathMitigation(bool enableMultipathMitigation)
 }
 
 //----------------------------------------
-bool RTK_UM980::setRadioBaudRate(uint32_t baud)
+bool GNSS_UM980::setRadioBaudRate(uint32_t baud)
 {
     return false; // UM980 has no multiplexer
 }
@@ -1707,7 +1707,7 @@ bool RTK_UM980::setRadioBaudRate(uint32_t baud)
 // navigationRate >= 1 && <= 127
 // We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 //----------------------------------------
-bool RTK_UM980::setRate(double secondsBetweenSolutions)
+bool GNSS_UM980::setRate(double secondsBetweenSolutions)
 {
     // The UM980 does not have a rate setting. Instead the report rate of
     // the GNSS messages can be set. For example, 0.5 is 2Hz, 0.2 is 5Hz.
@@ -1759,7 +1759,7 @@ bool RTK_UM980::setRate(double secondsBetweenSolutions)
 }
 
 //----------------------------------------
-bool RTK_UM980::setTalkerGNGGA()
+bool GNSS_UM980::setTalkerGNGGA()
 {
     // TODO um980SetTalkerGNGGA();
     return false;
@@ -1768,13 +1768,13 @@ bool RTK_UM980::setTalkerGNGGA()
 //----------------------------------------
 // Hotstart GNSS to try to get RTK lock
 //----------------------------------------
-bool RTK_UM980::softwareReset()
+bool GNSS_UM980::softwareReset()
 {
     return false;
 }
 
 //----------------------------------------
-bool RTK_UM980::standby()
+bool GNSS_UM980::standby()
 {
     return true;
 }
@@ -1783,7 +1783,7 @@ bool RTK_UM980::standby()
 // Slightly modified method for restarting survey-in from:
 // https://portal.u-blox.com/s/question/0D52p00009IsVoMCAV/restarting-surveyin-on-an-f9p
 //----------------------------------------
-bool RTK_UM980::surveyInReset()
+bool GNSS_UM980::surveyInReset()
 {
     if (online.gnss)
         return (_um980->setModeRoverSurvey());
@@ -1794,7 +1794,7 @@ bool RTK_UM980::surveyInReset()
 // Start the survey-in operation
 // The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
 //----------------------------------------
-bool RTK_UM980::surveyInStart()
+bool GNSS_UM980::surveyInStart()
 {
     if (online.gnss)
     {
@@ -1826,7 +1826,7 @@ bool RTK_UM980::surveyInStart()
 //----------------------------------------
 void um980UnicoreHandler(uint8_t *buffer, int length)
 {
-    RTK_UM980 * um980 = (RTK_UM980 *)gnss;
+    GNSS_UM980 * um980 = (GNSS_UM980 *)gnss;
     um980->unicoreHandler(buffer, length);
 }
 
@@ -1834,7 +1834,7 @@ void um980UnicoreHandler(uint8_t *buffer, int length)
 // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
 // we can pass data back into the Unicore library to allow it to update its own variables
 //----------------------------------------
-void RTK_UM980::unicoreHandler(uint8_t *buffer, int length)
+void GNSS_UM980::unicoreHandler(uint8_t *buffer, int length)
 {
     _um980->unicoreHandler(buffer, length);
 }
@@ -1842,7 +1842,7 @@ void RTK_UM980::unicoreHandler(uint8_t *buffer, int length)
 //----------------------------------------
 // Poll routine to update the GNSS state
 //----------------------------------------
-void RTK_UM980::update()
+void GNSS_UM980::update()
 {
     // We don't check serial data here; the gnssReadTask takes care of serial consumption
 }

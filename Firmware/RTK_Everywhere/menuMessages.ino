@@ -203,7 +203,7 @@ void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
         int endOfBlock = 0;
         int rtcmOffset = 0; // Used to offset messageSupported lookup
 
-        ZED * zed = (ZED *)gnss;
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
         if (strcmp(messageType, "RTCM-Base") == 0) // The ubxMessageRatesBase array is 0 to MAX_UBX_MSG_RTCM - 1
         {
             startOfBlock = 0;
@@ -625,7 +625,7 @@ void checkGNSSArrayDefaults()
             defaultsApplied = true;
 
             // Reset Base rates to defaults
-            ZED * zed = (ZED *)gnss;
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
             for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
@@ -780,7 +780,7 @@ void setLogTestFrequencyMessages(int rate, int messages)
 
     // Set messages
     setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
-    ZED * zed = (ZED *)gnss;
+    GNSS_ZED * zed = (GNSS_ZED *)gnss;
     if (messages == 5)
     {
         zed->setMessageRateByName("NMEA_GGA", 1);

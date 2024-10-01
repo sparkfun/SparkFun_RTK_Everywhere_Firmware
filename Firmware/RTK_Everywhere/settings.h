@@ -2,7 +2,7 @@
 #define __SETTINGS_H__
 
 #include "GNSS.h"
-#include "UM980.h" //Structs of UM980 messages, needed for settings.h
+#include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
 #include "Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include <vector>
 

@@ -727,7 +727,7 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 
     if (correctionLastSeen(CORR_LBAND))
     {
-        ZED * zed = (ZED *)gnss;
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
         zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
 
         if (settings.debugCorrections == true && !inMainMenu)
@@ -855,7 +855,7 @@ void beginLBand()
 
         response &= i2cLBand.sendCfgValset();
 
-        ZED * zed = (ZED *)gnss;
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
         response &= zed->lBandCommunicationEnable();
 
         if (response == false)
