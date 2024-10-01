@@ -3,7 +3,7 @@
 
 #include "GNSS.h"
 #include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
-#include "Mosaic.h" //Structs of mosaic messages, needed for settings.h
+#include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include <vector>
 
 // System can enter a variety of states

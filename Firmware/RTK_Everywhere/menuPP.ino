@@ -913,7 +913,7 @@ void beginLBand()
         bool result = true;
 
         // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
-        RTK_MOSAIC * mosaic = (RTK_MOSAIC *)gnss;
+        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
         result &= mosaic->sendWithResponse("slsm,off\n\r", "LBandSelectMode"); // Turn L-Band off
 
         // US SPARTN 1.8 service is on 1556290000 Hz

@@ -437,7 +437,7 @@ void beginBoard()
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         // Specify the GNSS radio
-        gnss = (GNSS *) new RTK_MOSAIC();
+        gnss = (GNSS *) new GNSS_MOSAIC();
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;

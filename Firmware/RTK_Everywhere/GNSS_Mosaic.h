@@ -1,11 +1,11 @@
 /*------------------------------------------------------------------------------
-mosaic.h
+GNSS_Mosaic.h
 
   Declarations and definitions for the Mosaic GNSS receiver
 ------------------------------------------------------------------------------*/
 
-#ifndef _RTK_EVERYWHERE_MOSAIC_H
-#define _RTK_EVERYWHERE_MOSAIC_H
+#ifndef __GNSS_MOSAIC_H__
+#define __GNSS_MOSAIC_H__
 
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 
@@ -535,7 +535,7 @@ const mosaicReceiverDynamic mosaicReceiverDynamics[] = {
 void mosaicX5flushRX(unsigned long timeout = 0); // Header
 bool mosaicX5waitCR(unsigned long timeout = 25); // Header
 
-class RTK_MOSAIC : GNSS
+class GNSS_MOSAIC : GNSS
 {
   protected:
 
@@ -560,7 +560,7 @@ class RTK_MOSAIC : GNSS
     bool   _receiverSetupSeen;
 
     // Constructor
-    RTK_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
+    GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false)
     {
     }
@@ -1001,4 +1001,4 @@ class RTK_MOSAIC : GNSS
     void waitSBFReceiverSetup(unsigned long timeout);
 };
 
-#endif  // _RTK_EVERYWHERE_MOSAIC_H
+#endif  // __GNSS_MOSAIC_H__

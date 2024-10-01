@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-mosaic.ino
+GNSS_Mosaic.ino
 
   Class implementation and data for the Mosaic GNSS receiver
 ------------------------------------------------------------------------------*/
@@ -133,7 +133,7 @@ void menuLogMosaic()
     // Apply changes
     if (applyChanges)
     {
-        RTK_MOSAIC * mosaic = (RTK_MOSAIC *)gnss;
+        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
 
         mosaic->configureLogging(); // This will enable / disable RINEX logging
         mosaic->enableNMEA(); // Enable NMEA messages - this will enable/disable the DSK1 streams
@@ -144,14 +144,14 @@ void menuLogMosaic()
 }
 
 //==========================================================================
-// RTK_MOSAIC class implementation
+// GNSS_MOSAIC class implementation
 //==========================================================================
 
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
 //----------------------------------------
-void RTK_MOSAIC::applyPointPerfectKeys()
+void GNSS_MOSAIC::applyPointPerfectKeys()
 {
     // Taken care of in beginPPL()
 }
@@ -159,7 +159,7 @@ void RTK_MOSAIC::applyPointPerfectKeys()
 //----------------------------------------
 // Set RTCM for base mode to defaults (1005/MSM4 1Hz & 1033 0.1Hz)
 //----------------------------------------
-void RTK_MOSAIC::baseRtcmDefault()
+void GNSS_MOSAIC::baseRtcmDefault()
 {
     // Reset RTCM intervals to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
@@ -173,7 +173,7 @@ void RTK_MOSAIC::baseRtcmDefault()
 //----------------------------------------
 // Reset to Low Bandwidth Link (MSM4 0.5Hz & 1005/1033 0.1Hz)
 //----------------------------------------
-void RTK_MOSAIC::baseRtcmLowDataRate()
+void GNSS_MOSAIC::baseRtcmLowDataRate()
 {
     // Reset RTCM intervals to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
@@ -200,7 +200,7 @@ void RTK_MOSAIC::baseRtcmLowDataRate()
 //----------------------------------------
 // Connect to GNSS and identify particulars
 //----------------------------------------
-void RTK_MOSAIC::begin()
+void GNSS_MOSAIC::begin()
 {
     if (serial2GNSS == nullptr)
     {
@@ -277,7 +277,7 @@ void RTK_MOSAIC::begin()
 // Outputs:
 //   Returns true when an external event occurs and false if no event
 //----------------------------------------
-bool RTK_MOSAIC::beginExternalEvent()
+bool GNSS_MOSAIC::beginExternalEvent()
 {
     // sep (Set Event Parameters) sets polarity
     // SBF ExtEvent contains the event timing
@@ -316,7 +316,7 @@ bool RTK_MOSAIC::beginExternalEvent()
 //   Returns true if the pin was successfully setup and false upon
 //   failure
 //----------------------------------------
-bool RTK_MOSAIC::beginPPS()
+bool GNSS_MOSAIC::beginPPS()
 {
     if (online.gnss == false)
         return (false);
@@ -362,7 +362,7 @@ bool RTK_MOSAIC::beginPPS()
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::checkNMEARates()
+bool GNSS_MOSAIC::checkNMEARates()
 {
     return (isNMEAMessageEnabled("GGA") && isNMEAMessageEnabled("GSA") &&
             isNMEAMessageEnabled("GST") && isNMEAMessageEnabled("GSV") &&
@@ -370,7 +370,7 @@ bool RTK_MOSAIC::checkNMEARates()
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::checkPPPRates()
+bool GNSS_MOSAIC::checkPPPRates()
 {
     return settings.enableLoggingRINEX;
 }
@@ -380,7 +380,7 @@ bool RTK_MOSAIC::checkPPPRates()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::configureBase()
+bool GNSS_MOSAIC::configureBase()
 {
     /*
         Set mode to Static + dynamic model
@@ -426,7 +426,7 @@ bool RTK_MOSAIC::configureBase()
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::configureLogging()
+bool GNSS_MOSAIC::configureLogging()
 {
     bool response = true;
     String setting;
@@ -473,7 +473,7 @@ bool RTK_MOSAIC::configureLogging()
 //----------------------------------------
 // Configure specific aspects of the receiver for NTP mode
 //----------------------------------------
-bool RTK_MOSAIC::configureNtpMode()
+bool GNSS_MOSAIC::configureNtpMode()
 {
     return false;
 }
@@ -483,7 +483,7 @@ bool RTK_MOSAIC::configureNtpMode()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::configureOnce()
+bool GNSS_MOSAIC::configureOnce()
 {
     /*
     Configure COM1
@@ -554,7 +554,7 @@ bool RTK_MOSAIC::configureOnce()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::configureRadio()
+bool GNSS_MOSAIC::configureRadio()
 {
     // Skip configuring the MOSAICX5 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
@@ -579,7 +579,7 @@ bool RTK_MOSAIC::configureRadio()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::configureRover()
+bool GNSS_MOSAIC::configureRover()
 {
     /*
         Set mode to Rover + dynamic model
@@ -624,19 +624,19 @@ bool RTK_MOSAIC::configureRover()
 }
 
 //----------------------------------------
-void RTK_MOSAIC::debuggingDisable()
+void GNSS_MOSAIC::debuggingDisable()
 {
     // TODO
 }
 
 //----------------------------------------
-void RTK_MOSAIC::debuggingEnable()
+void GNSS_MOSAIC::debuggingEnable()
 {
     // TODO
 }
 
 //----------------------------------------
-void RTK_MOSAIC::enableGgaForNtrip()
+void GNSS_MOSAIC::enableGgaForNtrip()
 {
     // Set the talker ID to GP
     // enableNMEA() will enable GGA if needed
@@ -646,7 +646,7 @@ void RTK_MOSAIC::enableGgaForNtrip()
 //----------------------------------------
 // Turn on all the enabled NMEA messages on COM1
 //----------------------------------------
-bool RTK_MOSAIC::enableNMEA()
+bool GNSS_MOSAIC::enableNMEA()
 {
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
@@ -771,7 +771,7 @@ bool RTK_MOSAIC::enableNMEA()
 //----------------------------------------
 // Turn on all the enabled RTCM Base messages on COM1, COM2 and USB1 (if enabled)
 //----------------------------------------
-bool RTK_MOSAIC::enableRTCMBase()
+bool GNSS_MOSAIC::enableRTCMBase()
 {
     bool response = true;
 
@@ -817,7 +817,7 @@ bool RTK_MOSAIC::enableRTCMBase()
 //----------------------------------------
 // Turn on all the enabled RTCM Rover messages on COM1, COM2 and USB1 (if enabled)
 //----------------------------------------
-bool RTK_MOSAIC::enableRTCMRover()
+bool GNSS_MOSAIC::enableRTCMRover()
 {
     bool response = true;
     bool rtcm1019Enabled = false;
@@ -914,7 +914,7 @@ bool RTK_MOSAIC::enableRTCMRover()
 // Outputs:
 //   Returns true if successfully started and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::enableRTCMTest()
+bool GNSS_MOSAIC::enableRTCMTest()
 {
     // Enable RTCM1230 on COM2 (Radio connector)
     // Called by STATE_TEST. Mosaic could still be starting up, so allow many retries
@@ -944,21 +944,21 @@ bool RTK_MOSAIC::enableRTCMTest()
 //----------------------------------------
 // Restore the GNSS to the factory settings
 //----------------------------------------
-void RTK_MOSAIC::factoryReset()
+void GNSS_MOSAIC::factoryReset()
 {
     sendWithResponse("eccf,RxDefault,Boot\n\r", "CopyConfigFile");
     sendWithResponse("eccf,RxDefault,Current\n\r", "CopyConfigFile");
 }
 
 //----------------------------------------
-uint16_t RTK_MOSAIC::fileBufferAvailable()
+uint16_t GNSS_MOSAIC::fileBufferAvailable()
 {
     // TODO
     return 0;
 }
 
 //----------------------------------------
-uint16_t RTK_MOSAIC::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
+uint16_t GNSS_MOSAIC::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRead)
 {
     // TODO
     return 0;
@@ -969,7 +969,7 @@ uint16_t RTK_MOSAIC::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToR
 // Outputs:
 //   Returns true if successfully started and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::fixedBaseStart()
+bool GNSS_MOSAIC::fixedBaseStart()
 {
     bool response = true;
 
@@ -1007,7 +1007,7 @@ bool RTK_MOSAIC::fixedBaseStart()
 //----------------------------------------
 // Return the number of active/enabled messages
 //----------------------------------------
-uint8_t RTK_MOSAIC::getActiveMessageCount()
+uint8_t GNSS_MOSAIC::getActiveMessageCount()
 {
     uint8_t count = 0;
 
@@ -1037,7 +1037,7 @@ uint8_t RTK_MOSAIC::getActiveMessageCount()
 // Outputs:
 //   Returns the altitude in meters or zero if the GNSS is offline
 //----------------------------------------
-double RTK_MOSAIC::getAltitude()
+double GNSS_MOSAIC::getAltitude()
 {
     return _altitude;
 }
@@ -1045,7 +1045,7 @@ double RTK_MOSAIC::getAltitude()
 //----------------------------------------
 // Returns the carrier solution or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getCarrierSolution()
+uint8_t GNSS_MOSAIC::getCarrierSolution()
 {
     // Bits 0-3: type of PVT solution:
     //     0: No GNSS PVT available
@@ -1074,7 +1074,7 @@ uint8_t RTK_MOSAIC::getCarrierSolution()
 //   Returns 0 if the get fails
 // (mosaic COM2 is connected to the Radio connector)
 //----------------------------------------
-uint32_t RTK_MOSAIC::getCOMBaudRate(uint8_t port) // returns 0 if the get fails
+uint32_t GNSS_MOSAIC::getCOMBaudRate(uint8_t port) // returns 0 if the get fails
 {
     char response[40];
     String setting = "gcs,COM" + String(port) + "\n\r";
@@ -1094,7 +1094,7 @@ uint32_t RTK_MOSAIC::getCOMBaudRate(uint8_t port) // returns 0 if the get fails
 // Outputs:
 //   Returns 0 if the get fails
 //----------------------------------------
-uint32_t RTK_MOSAIC::getDataBaudRate()
+uint32_t GNSS_MOSAIC::getDataBaudRate()
 {
     return getCOMBaudRate(3);
 }
@@ -1102,7 +1102,7 @@ uint32_t RTK_MOSAIC::getDataBaudRate()
 //----------------------------------------
 // Returns the day number or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getDay()
+uint8_t GNSS_MOSAIC::getDay()
 {
     return _day;
 }
@@ -1110,7 +1110,7 @@ uint8_t RTK_MOSAIC::getDay()
 //----------------------------------------
 // Return the number of milliseconds since GNSS data was last updated
 //----------------------------------------
-uint16_t RTK_MOSAIC::getFixAgeMilliseconds()
+uint16_t GNSS_MOSAIC::getFixAgeMilliseconds()
 {
     return (millis() - _pvtArrivalMillis);
 }
@@ -1118,7 +1118,7 @@ uint16_t RTK_MOSAIC::getFixAgeMilliseconds()
 //----------------------------------------
 // Returns the fix type or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getFixType()
+uint8_t GNSS_MOSAIC::getFixType()
 {
     // Bits 0-3: type of PVT solution:
     //     0: No GNSS PVT available
@@ -1139,7 +1139,7 @@ uint8_t RTK_MOSAIC::getFixType()
 //----------------------------------------
 // Returns the hours of 24 hour clock or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getHour()
+uint8_t GNSS_MOSAIC::getHour()
 {
     return _hour;
 }
@@ -1149,7 +1149,7 @@ uint8_t RTK_MOSAIC::getHour()
 // Outputs:
 //   Returns the horizontal position accuracy or zero if offline
 //----------------------------------------
-float RTK_MOSAIC::getHorizontalAccuracy()
+float GNSS_MOSAIC::getHorizontalAccuracy()
 {
     // Return the lower of the two Lat/Long deviations
     if ((_latStdDev > 999.0) || (_lonStdDev > 999.0))
@@ -1160,7 +1160,7 @@ float RTK_MOSAIC::getHorizontalAccuracy()
 }
 
 //----------------------------------------
-const char * RTK_MOSAIC::getId()
+const char * GNSS_MOSAIC::getId()
 {
     return gnssUniqueId;
 }
@@ -1170,7 +1170,7 @@ const char * RTK_MOSAIC::getId()
 // Outputs:
 //   Returns the latitude value or zero if not online
 //----------------------------------------
-double RTK_MOSAIC::getLatitude()
+double GNSS_MOSAIC::getLatitude()
 {
     return _latitude;
 }
@@ -1178,7 +1178,7 @@ double RTK_MOSAIC::getLatitude()
 //----------------------------------------
 // Query GNSS for current leap seconds
 //----------------------------------------
-uint8_t RTK_MOSAIC::getLeapSeconds()
+uint8_t GNSS_MOSAIC::getLeapSeconds()
 {
     return _leapSeconds;
 }
@@ -1188,7 +1188,7 @@ uint8_t RTK_MOSAIC::getLeapSeconds()
 // Outputs:
 //   Returns the longitude value or zero if not online
 //----------------------------------------
-double RTK_MOSAIC::getLongitude()
+double GNSS_MOSAIC::getLongitude()
 {
     return _longitude;
 }
@@ -1196,7 +1196,7 @@ double RTK_MOSAIC::getLongitude()
 //----------------------------------------
 // Returns two digits of milliseconds or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getMillisecond()
+uint8_t GNSS_MOSAIC::getMillisecond()
 {
     return _millisecond;
 }
@@ -1204,7 +1204,7 @@ uint8_t RTK_MOSAIC::getMillisecond()
 //----------------------------------------
 // Returns minutes or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getMinute()
+uint8_t GNSS_MOSAIC::getMinute()
 {
     return _minute;
 }
@@ -1212,7 +1212,7 @@ uint8_t RTK_MOSAIC::getMinute()
 //----------------------------------------
 // Returns month number or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getMonth()
+uint8_t GNSS_MOSAIC::getMonth()
 {
     return _month;
 }
@@ -1220,7 +1220,7 @@ uint8_t RTK_MOSAIC::getMonth()
 //----------------------------------------
 // Returns nanoseconds or zero if not online
 //----------------------------------------
-uint32_t RTK_MOSAIC::getNanosecond()
+uint32_t GNSS_MOSAIC::getNanosecond()
 {
     // mosaicX5 does not have nanosecond, but it does have millisecond (from ToW)
     return _millisecond * 1000L; // Convert to ns
@@ -1229,7 +1229,7 @@ uint32_t RTK_MOSAIC::getNanosecond()
 //----------------------------------------
 // Given the name of a message, return the array number
 //----------------------------------------
-int RTK_MOSAIC::getNMEAMessageNumberByName(const char *msgName)
+int GNSS_MOSAIC::getNMEAMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_MOSAIC_NMEA_MSG; x++)
     {
@@ -1246,7 +1246,7 @@ int RTK_MOSAIC::getNMEAMessageNumberByName(const char *msgName)
 // Outputs:
 //   Returns 0 if the get fails
 //----------------------------------------
-uint32_t RTK_MOSAIC::getRadioBaudRate()
+uint32_t GNSS_MOSAIC::getRadioBaudRate()
 {
     return (getCOMBaudRate(2));
 }
@@ -1254,7 +1254,7 @@ uint32_t RTK_MOSAIC::getRadioBaudRate()
 //----------------------------------------
 // Returns the seconds between solutions
 //----------------------------------------
-double RTK_MOSAIC::getRateS()
+double GNSS_MOSAIC::getRateS()
 {
     // The intervals of NMEA and RTCM can be set independently
     // What value should we return?
@@ -1263,13 +1263,13 @@ double RTK_MOSAIC::getRateS()
 }
 
 //----------------------------------------
-const char * RTK_MOSAIC::getRtcmDefaultString()
+const char * GNSS_MOSAIC::getRtcmDefaultString()
 {
     return ((char *)"1005/MSM4 1Hz & 1033 0.1Hz");
 }
 
 //----------------------------------------
-const char * RTK_MOSAIC::getRtcmLowDataRateString()
+const char * GNSS_MOSAIC::getRtcmLowDataRateString()
 {
     return ((char *)"MSM4 0.5Hz & 1005/1033 0.1Hz");
 }
@@ -1277,7 +1277,7 @@ const char * RTK_MOSAIC::getRtcmLowDataRateString()
 //----------------------------------------
 // Given the name of a message, return the array number
 //----------------------------------------
-int RTK_MOSAIC::getRtcmMessageNumberByName(const char *msgName)
+int GNSS_MOSAIC::getRtcmMessageNumberByName(const char *msgName)
 {
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
     {
@@ -1292,7 +1292,7 @@ int RTK_MOSAIC::getRtcmMessageNumberByName(const char *msgName)
 //----------------------------------------
 // Returns the number of satellites in view or zero if offline
 //----------------------------------------
-uint8_t RTK_MOSAIC::getSatellitesInView()
+uint8_t GNSS_MOSAIC::getSatellitesInView()
 {
     return _satellitesInView;
 }
@@ -1300,7 +1300,7 @@ uint8_t RTK_MOSAIC::getSatellitesInView()
 //----------------------------------------
 // Returns seconds or zero if not online
 //----------------------------------------
-uint8_t RTK_MOSAIC::getSecond()
+uint8_t GNSS_MOSAIC::getSecond()
 {
     return _second;
 }
@@ -1310,7 +1310,7 @@ uint8_t RTK_MOSAIC::getSecond()
 // Outputs:
 //   Returns the mean accuracy or zero (0)
 //----------------------------------------
-float RTK_MOSAIC::getSurveyInMeanAccuracy()
+float GNSS_MOSAIC::getSurveyInMeanAccuracy()
 {
     // Not supported on the mosaicX5
     // Return the current HPA instead
@@ -1320,7 +1320,7 @@ float RTK_MOSAIC::getSurveyInMeanAccuracy()
 //----------------------------------------
 // Return the number of seconds the survey-in process has been running
 //----------------------------------------
-int RTK_MOSAIC::getSurveyInObservationTime()
+int GNSS_MOSAIC::getSurveyInObservationTime()
 {
     int elapsedSeconds = (millis() - _autoBaseStartTimer) / 1000;
     return (elapsedSeconds);
@@ -1329,7 +1329,7 @@ int RTK_MOSAIC::getSurveyInObservationTime()
 //----------------------------------------
 // Returns timing accuracy or zero if not online
 //----------------------------------------
-uint32_t RTK_MOSAIC::getTimeAccuracy()
+uint32_t GNSS_MOSAIC::getTimeAccuracy()
 {
     // Standard deviation of the receiver clock offset
     // Return ns in uint32_t form
@@ -1343,7 +1343,7 @@ uint32_t RTK_MOSAIC::getTimeAccuracy()
 //----------------------------------------
 // Returns full year, ie 2023, not 23.
 //----------------------------------------
-uint16_t RTK_MOSAIC::getYear()
+uint16_t GNSS_MOSAIC::getYear()
 {
     return _year;
 }
@@ -1352,7 +1352,7 @@ uint16_t RTK_MOSAIC::getYear()
 // Returns true if the device is in Rover mode
 // Currently the only two modes are Rover or Base
 //----------------------------------------
-bool RTK_MOSAIC::inRoverMode()
+bool GNSS_MOSAIC::inRoverMode()
 {
     // Determine which state we are in
     if (settings.lastState == STATE_BASE_NOT_STARTED)
@@ -1362,7 +1362,7 @@ bool RTK_MOSAIC::inRoverMode()
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::isBlocking()
+bool GNSS_MOSAIC::isBlocking()
 {
     return false;
 }
@@ -1370,7 +1370,7 @@ bool RTK_MOSAIC::isBlocking()
 //----------------------------------------
 // Date is confirmed once we have GNSS fix
 //----------------------------------------
-bool RTK_MOSAIC::isConfirmedDate()
+bool GNSS_MOSAIC::isConfirmedDate()
 {
     // UM980 doesn't have this feature. Check for valid date.
     return _validDate;
@@ -1379,7 +1379,7 @@ bool RTK_MOSAIC::isConfirmedDate()
 //----------------------------------------
 // Date is confirmed once we have GNSS fix
 //----------------------------------------
-bool RTK_MOSAIC::isConfirmedTime()
+bool GNSS_MOSAIC::isConfirmedTime()
 {
     // UM980 doesn't have this feature. Check for valid time.
     return _validTime;
@@ -1388,7 +1388,7 @@ bool RTK_MOSAIC::isConfirmedTime()
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
-bool RTK_MOSAIC::isDgpsFixed()
+bool GNSS_MOSAIC::isDgpsFixed()
 {
     // 2: Differential PVT
     // 6: SBAS aided PVT
@@ -1402,7 +1402,7 @@ bool RTK_MOSAIC::isDgpsFixed()
 // This function checks to see if the given platform has reached
 // sufficient fix type to be considered valid
 //----------------------------------------
-bool RTK_MOSAIC::isFixed()
+bool GNSS_MOSAIC::isFixed()
 {
     // Bits 0-3: type of PVT solution:
     // 0: No GNSS PVT available
@@ -1423,27 +1423,27 @@ bool RTK_MOSAIC::isFixed()
 //----------------------------------------
 // Used in tpISR() for time pulse synchronization
 //----------------------------------------
-bool RTK_MOSAIC::isFullyResolved()
+bool GNSS_MOSAIC::isFullyResolved()
 {
     return _fullyResolved; // PVT FINETIME
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::isNMEAMessageEnabled(const char *msgName)
+bool GNSS_MOSAIC::isNMEAMessageEnabled(const char *msgName)
 {
     int msg = getNMEAMessageNumberByName(msgName);
     return (settings.mosaicMessageStreamNMEA[msg] > 0);
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::isPppConverged()
+bool GNSS_MOSAIC::isPppConverged()
 {
     // 10: Precise Point Positioning (PPP) ? Is this what we want? TODO
     return (_fixType == 10);
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::isPppConverging()
+bool GNSS_MOSAIC::isPppConverging()
 {
     // 10: Precise Point Positioning (PPP) ? Is this what we want? TODO
     return (_fixType == 10);
@@ -1454,7 +1454,7 @@ bool RTK_MOSAIC::isPppConverging()
 // to know if we have an RTK Fix.  This function checks to see if the
 // given platform has reached sufficient fix type to be considered valid
 //----------------------------------------
-bool RTK_MOSAIC::isRTKFix()
+bool GNSS_MOSAIC::isRTKFix()
 {
     // 4: RTK with fixed ambiguities
     return (_fixType == 4);
@@ -1466,7 +1466,7 @@ bool RTK_MOSAIC::isRTKFix()
 // the given platform has reached sufficient fix type to be considered
 // valid
 //----------------------------------------
-bool RTK_MOSAIC::isRTKFloat()
+bool GNSS_MOSAIC::isRTKFloat()
 {
     // 5: RTK with float ambiguities
     return (_fixType == 5);
@@ -1478,7 +1478,7 @@ bool RTK_MOSAIC::isRTKFloat()
 //   Returns true if the survey-in operation is complete and false
 //   if the operation is still running
 //----------------------------------------
-bool RTK_MOSAIC::isSurveyInComplete()
+bool GNSS_MOSAIC::isSurveyInComplete()
 {
     // PVTGeodetic Mode Bit 6 is set if the user has entered the command
     // "setPVTMode, Static, , auto" and the receiver is still in the process of determining its fixed position.
@@ -1488,7 +1488,7 @@ bool RTK_MOSAIC::isSurveyInComplete()
 //----------------------------------------
 // Date will be valid if the RTC is reporting (regardless of GNSS fix)
 //----------------------------------------
-bool RTK_MOSAIC::isValidDate()
+bool GNSS_MOSAIC::isValidDate()
 {
     return _validDate;
 }
@@ -1496,7 +1496,7 @@ bool RTK_MOSAIC::isValidDate()
 //----------------------------------------
 // Time will be valid if the RTC is reporting (regardless of GNSS fix)
 //----------------------------------------
-bool RTK_MOSAIC::isValidTime()
+bool GNSS_MOSAIC::isValidTime()
 {
     return _validTime;
 }
@@ -1504,7 +1504,7 @@ bool RTK_MOSAIC::isValidTime()
 //----------------------------------------
 // Controls the constellations that are used to generate a fix and logged
 //----------------------------------------
-void RTK_MOSAIC::menuConstellations()
+void GNSS_MOSAIC::menuConstellations()
 {
     while (1)
     {
@@ -1546,13 +1546,13 @@ void RTK_MOSAIC::menuConstellations()
 }
 
 //----------------------------------------
-void RTK_MOSAIC::menuMessageBaseRtcm()
+void GNSS_MOSAIC::menuMessageBaseRtcm()
 {
     menuMessagesRTCM(false);
 }
 
 //----------------------------------------
-void RTK_MOSAIC::menuMessagesNMEA()
+void GNSS_MOSAIC::menuMessagesNMEA()
 {
     while (1)
     {
@@ -1622,7 +1622,7 @@ void RTK_MOSAIC::menuMessagesNMEA()
 }
 
 //----------------------------------------
-void RTK_MOSAIC::menuMessagesRTCM(bool rover)
+void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
 {
     while (1)
     {
@@ -1696,7 +1696,7 @@ void RTK_MOSAIC::menuMessagesRTCM(bool rover)
 //----------------------------------------
 // Control the messages that get broadcast over Bluetooth and logged (if enabled)
 //----------------------------------------
-void RTK_MOSAIC::menuMessages()
+void GNSS_MOSAIC::menuMessages()
 {
     while (1)
     {
@@ -1770,7 +1770,7 @@ void RTK_MOSAIC::menuMessages()
 //----------------------------------------
 // Print the module type and firmware version
 //----------------------------------------
-void RTK_MOSAIC::printModuleInfo()
+void GNSS_MOSAIC::printModuleInfo()
 {
     systemPrintf("mosaic-X5 firmware: %s\r\n", gnssFirmwareVersion);
 }
@@ -1783,14 +1783,14 @@ void RTK_MOSAIC::printModuleInfo()
 // Outputs:
 //   Returns the number of correction data bytes written
 //----------------------------------------
-int RTK_MOSAIC::pushRawData(uint8_t *dataToSend, int dataLength)
+int GNSS_MOSAIC::pushRawData(uint8_t *dataToSend, int dataLength)
 {
     // Send data directly from ESP GNSS UART1 to mosaic-X5 COM1
     return (serialGNSS->write(dataToSend, dataLength));
 }
 
 //----------------------------------------
-uint16_t RTK_MOSAIC::rtcmBufferAvailable()
+uint16_t GNSS_MOSAIC::rtcmBufferAvailable()
 {
     // TODO
     return 0;
@@ -1799,7 +1799,7 @@ uint16_t RTK_MOSAIC::rtcmBufferAvailable()
 //----------------------------------------
 // If LBand is being used, ignore any RTCM that may come in from the GNSS
 //----------------------------------------
-void RTK_MOSAIC::rtcmOnGnssDisable()
+void GNSS_MOSAIC::rtcmOnGnssDisable()
 {
     // TODO: is this needed?
 }
@@ -1807,13 +1807,13 @@ void RTK_MOSAIC::rtcmOnGnssDisable()
 //----------------------------------------
 // If L-Band is available, but encrypted, allow RTCM through other sources (radio, ESP-Now) to GNSS receiver
 //----------------------------------------
-void RTK_MOSAIC::rtcmOnGnssEnable()
+void GNSS_MOSAIC::rtcmOnGnssEnable()
 {
     // TODO: is this needed?
 }
 
 //----------------------------------------
-uint16_t RTK_MOSAIC::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
+uint16_t GNSS_MOSAIC::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 {
     // TODO
     return 0;
@@ -1824,7 +1824,7 @@ uint16_t RTK_MOSAIC::rtcmRead(uint8_t *rtcmBuffer, int rtcmBytesToRead)
 // Outputs:
 //   Returns true when the configuration was saved and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::saveConfiguration()
+bool GNSS_MOSAIC::saveConfiguration()
 {
     return sendWithResponse("eccf,Current,Boot\n\r", "CopyConfigFile");
 }
@@ -1845,7 +1845,7 @@ bool RTK_MOSAIC::saveConfiguration()
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::sendAndWaitForIdle(const char *message,
+bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
                                     const char *reply,
                                     unsigned long timeout,
                                     unsigned long idle,
@@ -1926,7 +1926,7 @@ bool RTK_MOSAIC::sendAndWaitForIdle(const char *message,
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::sendAndWaitForIdle(String message,
+bool GNSS_MOSAIC::sendAndWaitForIdle(String message,
                                     const char *reply,
                                     unsigned long timeout,
                                     unsigned long idle,
@@ -1952,7 +1952,7 @@ bool RTK_MOSAIC::sendAndWaitForIdle(String message,
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::sendWithResponse(const char *message,
+bool GNSS_MOSAIC::sendWithResponse(const char *message,
                                   const char *reply,
                                   unsigned long timeout,
                                   unsigned long wait,
@@ -2041,7 +2041,7 @@ bool RTK_MOSAIC::sendWithResponse(const char *message,
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::sendWithResponse(String message,
+bool GNSS_MOSAIC::sendWithResponse(String message,
                                   const char *reply,
                                   unsigned long timeout,
                                   unsigned long wait,
@@ -2058,7 +2058,7 @@ bool RTK_MOSAIC::sendWithResponse(String message,
 // Inputs:
 //   baudRate: The desired baudrate
 //----------------------------------------
-bool RTK_MOSAIC::setBaudrate(uint32_t baudRate)
+bool GNSS_MOSAIC::setBaudrate(uint32_t baudRate)
 {
     return setBaudRateCOM(1, baudRate);
 }
@@ -2072,7 +2072,7 @@ bool RTK_MOSAIC::setBaudrate(uint32_t baudRate)
 // Outputs:
 //   Returns true if the baud rate was set and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::setBaudRateCOM(uint8_t port, uint32_t baudRate)
+bool GNSS_MOSAIC::setBaudRateCOM(uint8_t port, uint32_t baudRate)
 {
     for (int i = 0; i < MAX_MOSAIC_COM_RATES; i++)
     {
@@ -2089,7 +2089,7 @@ bool RTK_MOSAIC::setBaudRateCOM(uint8_t port, uint32_t baudRate)
 //----------------------------------------
 // Enable all the valid constellations and bands for this platform
 //----------------------------------------
-bool RTK_MOSAIC::setConstellations()
+bool GNSS_MOSAIC::setConstellations()
 {
     String enabledConstellations = "";
 
@@ -2111,7 +2111,7 @@ bool RTK_MOSAIC::setConstellations()
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::setDataBaudRate(uint32_t baud)
+bool GNSS_MOSAIC::setDataBaudRate(uint32_t baud)
 {
     return setBaudRateCOM(3, baud);
 }
@@ -2121,7 +2121,7 @@ bool RTK_MOSAIC::setDataBaudRate(uint32_t baud)
 // Inputs:
 //   elevationDegrees: The elevation value in degrees
 //----------------------------------------
-bool RTK_MOSAIC::setElevation(uint8_t elevationDegrees)
+bool GNSS_MOSAIC::setElevation(uint8_t elevationDegrees)
 {
     if (elevationDegrees > 90)
         elevationDegrees = 90;
@@ -2133,7 +2133,7 @@ bool RTK_MOSAIC::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Enable all the valid messages for this platform
 //----------------------------------------
-bool RTK_MOSAIC::setMessages(int maxRetries)
+bool GNSS_MOSAIC::setMessages(int maxRetries)
 {
     // TODO : do we need this?
     return true;
@@ -2142,7 +2142,7 @@ bool RTK_MOSAIC::setMessages(int maxRetries)
 //----------------------------------------
 // Enable all the valid messages for this platform over the USB port
 //----------------------------------------
-bool RTK_MOSAIC::setMessagesUsb(int maxRetries)
+bool GNSS_MOSAIC::setMessagesUsb(int maxRetries)
 {
     // TODO : do we need this?
     return true;
@@ -2151,7 +2151,7 @@ bool RTK_MOSAIC::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool RTK_MOSAIC::setMinCnoRadio (uint8_t cnoValue)
+bool GNSS_MOSAIC::setMinCnoRadio (uint8_t cnoValue)
 {
     if (cnoValue > 60)
         cnoValue = 60;
@@ -2165,7 +2165,7 @@ bool RTK_MOSAIC::setMinCnoRadio (uint8_t cnoValue)
 // Inputs:
 //   modelNumber: Number of the model to use, provided by radio library
 //----------------------------------------
-bool RTK_MOSAIC::setModel(uint8_t modelNumber)
+bool GNSS_MOSAIC::setModel(uint8_t modelNumber)
 {
     if (modelNumber >= MOSAIC_NUM_DYN_MODELS)
     {
@@ -2180,7 +2180,7 @@ bool RTK_MOSAIC::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::setRadioBaudRate(uint32_t baud)
+bool GNSS_MOSAIC::setRadioBaudRate(uint32_t baud)
 {
     return setBaudRateCOM(2, baud);
 }
@@ -2193,7 +2193,7 @@ bool RTK_MOSAIC::setRadioBaudRate(uint32_t baud)
 //   Returns true if the rate was successfully set and false upon
 //   failure
 //----------------------------------------
-bool RTK_MOSAIC::setRate(double secondsBetweenSolutions)
+bool GNSS_MOSAIC::setRate(double secondsBetweenSolutions)
 {
     // The mosaic-X5 does not have a rate setting.
     // Instead the NMEA and RTCM messages are set to the desired interval
@@ -2206,7 +2206,7 @@ bool RTK_MOSAIC::setRate(double secondsBetweenSolutions)
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::setTalkerGNGGA()
+bool GNSS_MOSAIC::setTalkerGNGGA()
 {
     return sendWithResponse("snti,GN\n\r", "NMEATalkerID");
 }
@@ -2214,13 +2214,13 @@ bool RTK_MOSAIC::setTalkerGNGGA()
 //----------------------------------------
 // Hotstart GNSS to try to get RTK lock
 //----------------------------------------
-bool RTK_MOSAIC::softwareReset()
+bool GNSS_MOSAIC::softwareReset()
 {
     return false;
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::standby()
+bool GNSS_MOSAIC::standby()
 {
     return sendWithResponse("epwm,Standby\n\r", "PowerMode");
 }
@@ -2228,7 +2228,7 @@ bool RTK_MOSAIC::standby()
 //----------------------------------------
 // Save the data from the SBF Block 4007
 //----------------------------------------
-void RTK_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
+void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 {
     _latitude = sempSbfGetF8(parse, 16) * 180.0 / PI; // Convert from radians to degrees
     _longitude = sempSbfGetF8(parse, 24) * 180.0 / PI;
@@ -2245,7 +2245,7 @@ void RTK_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 //----------------------------------------
 // Save the data from the SBF Block 5914
 //----------------------------------------
-void RTK_MOSAIC::storeBlock5914(SEMP_PARSE_STATE *parse)
+void GNSS_MOSAIC::storeBlock5914(SEMP_PARSE_STATE *parse)
 {
     _day = sempSbfGetU1(parse, 16);
     _month = sempSbfGetU1(parse, 15);
@@ -2266,7 +2266,7 @@ void RTK_MOSAIC::storeBlock5914(SEMP_PARSE_STATE *parse)
 //   Returns true if the survey-in operation was reset successfully
 //   and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::surveyInReset()
+bool GNSS_MOSAIC::surveyInReset()
 {
     return configureRover();
 }
@@ -2276,7 +2276,7 @@ bool RTK_MOSAIC::surveyInReset()
 // Outputs:
 //   Return true if successful and false upon failure
 //----------------------------------------
-bool RTK_MOSAIC::surveyInStart()
+bool GNSS_MOSAIC::surveyInStart()
 {
     // Start a Self-optimizing Base Station
     bool response = sendWithResponse("spm,Static,,auto\n\r", "PVTMode");
@@ -2297,7 +2297,7 @@ bool RTK_MOSAIC::surveyInStart()
 // Poll routine to update the GNSS state
 // We don't check serial data here; the gnssReadTask takes care of serial consumption
 //----------------------------------------
-void RTK_MOSAIC::update()
+void GNSS_MOSAIC::update()
 {
     // Update the SD card size, free space and logIncreasing
     static unsigned long sdCardSizeLastCheck = 0;
@@ -2329,7 +2329,7 @@ void RTK_MOSAIC::update()
 }
 
 //----------------------------------------
-bool RTK_MOSAIC::updateSD()
+bool GNSS_MOSAIC::updateSD()
 {
     char diskInfo[200];
     bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo));
@@ -2351,7 +2351,7 @@ bool RTK_MOSAIC::updateSD()
 }
 
 //----------------------------------------
-void RTK_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
+void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
 {
     SEMP_PARSE_ROUTINE const sbfParserTable[] = {
         sempSbfPreamble
@@ -2437,7 +2437,7 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int sentenceLength)
         // Extract the latitude std. dev.
         char stdDev[strlen("-10000.000") + 1]; // 3 decimals
         strncpy(stdDev, &nmeaSentence[latitudeStart], latitudeStop - latitudeStart);
-        RTK_MOSAIC * mosaic = (RTK_MOSAIC *)gnss;
+        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_latStdDev = (float)atof(stdDev);
 
         // Extract the longitude std. dev.
@@ -2468,7 +2468,7 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
         snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", sempSbfGetString(parse, 196)); // Extract RXVersion
 
-        RTK_MOSAIC * mosaic = (RTK_MOSAIC *)gnss;
+        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;
     }
 }
@@ -2484,7 +2484,7 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
 //----------------------------------------
 void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    RTK_MOSAIC * mosaic = (RTK_MOSAIC *)gnss;
+    GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
 
     //if ((settings.debugGnss == true) && !inMainMenu)
     //    systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse), parse->length);
