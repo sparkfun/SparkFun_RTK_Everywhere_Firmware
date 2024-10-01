@@ -190,7 +190,7 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         // Specify the GNSS radio
-        gnss = (GNSS *) new RTK_UM980();
+        gnss = (GNSS *) new GNSS_UM980();
 
         present.psram_2mb = true;
         present.gnss_um980 = true;

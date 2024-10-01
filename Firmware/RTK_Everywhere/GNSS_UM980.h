@@ -1,11 +1,11 @@
 /*------------------------------------------------------------------------------
-UM980.h
+GNSS_UM980.h
 
-  Declarations and definitions for the UM980 GNSS receiver and the RTK_UM980 class
+  Declarations and definitions for the UM980 GNSS receiver and the GNSS_UM980 class
 ------------------------------------------------------------------------------*/
 
-#ifndef _RTK_EVERYWHERE_UM980_H
-#define _RTK_EVERYWHERE_UM980_H
+#ifndef __GNSS_UM980_H__
+#define __GNSS_UM980_H__
 
 #ifdef COMPILE_UM980
 
@@ -101,7 +101,7 @@ enum um980_Models
     UM980_DYN_MODEL_AUTOMOTIVE,
 };
 
-class RTK_UM980 : GNSS
+class GNSS_UM980 : GNSS
 {
   private:
 
@@ -467,4 +467,4 @@ class RTK_UM980 : GNSS
 };
 
 #endif // COMPILE_UM980
-#endif  // _RTK_EVERYWHERE_UM980_H
+#endif  // __GNSS_UM980_H__
