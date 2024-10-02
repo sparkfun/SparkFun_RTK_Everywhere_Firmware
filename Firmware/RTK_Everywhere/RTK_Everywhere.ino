@@ -338,67 +338,11 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
+#include "GNSS_ZED.h"
 
 GNSS * gnss;
 
 char neoFirmwareVersion[20]; // Output to system status menu.
-
-// Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
-// waitForResponse. Also prevents pushRawData from being called.
-class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
-{
-  public:
-    // SemaphoreHandle_t gnssSemaphore = nullptr;
-
-    // Revert to a simple bool lock. The Mutex was causing occasional panics caused by
-    // vTaskPriorityDisinheritAfterTimeout in lock() (I think possibly / probably caused by the GNSS not being pinned to
-    // one core?
-    bool iAmLocked = false;
-
-    bool createLock(void)
-    {
-        // if (gnssSemaphore == nullptr)
-        //   gnssSemaphore = xSemaphoreCreateMutex();
-        // return gnssSemaphore;
-
-        return true;
-    }
-    bool lock(void)
-    {
-        // return (xSemaphoreTake(gnssSemaphore, 2100) == pdPASS);
-
-        if (!iAmLocked)
-        {
-            iAmLocked = true;
-            return true;
-        }
-
-        unsigned long startTime = millis();
-        while (((millis() - startTime) < 2100) && (iAmLocked))
-            delay(1); // Yield
-
-        if (!iAmLocked)
-        {
-            iAmLocked = true;
-            return true;
-        }
-
-        return false;
-    }
-    void unlock(void)
-    {
-        // xSemaphoreGive(gnssSemaphore);
-
-        iAmLocked = false;
-    }
-    void deleteLock(void)
-    {
-        // vSemaphoreDelete(gnssSemaphore);
-        // gnssSemaphore = nullptr;
-    }
-};
-
-SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #ifdef COMPILE_L_BAND
 static SFE_UBLOX_GNSS_SUPER i2cLBand; // NEO-D9S

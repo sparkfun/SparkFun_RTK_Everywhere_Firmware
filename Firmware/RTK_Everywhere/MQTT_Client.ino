@@ -497,7 +497,8 @@ void mqttClientReceiveMessage(int messageSize)
                             !inMainMenu)
                             systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
-                        updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+                        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                        zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
                         gnss->pushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;
