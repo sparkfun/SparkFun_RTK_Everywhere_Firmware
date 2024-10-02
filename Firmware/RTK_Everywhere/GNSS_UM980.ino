@@ -575,6 +575,7 @@ bool GNSS_UM980::enableRTCMRover()
 //----------------------------------------
 // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
 // even if there is no GPS fix. We use it to test serial output.
+// Returns true if successfully started and false upon failure
 //----------------------------------------
 bool GNSS_UM980::enableRTCMTest()
 {
@@ -823,7 +824,7 @@ double GNSS_UM980::getLatitude()
 uint8_t GNSS_UM980::getLeapSeconds()
 {
     // TODO Need to find leap seconds in UM980
-    return (18); // Default to 18
+    return _leapSeconds; // Returning the default value
 }
 
 //----------------------------------------

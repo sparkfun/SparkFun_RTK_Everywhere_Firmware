@@ -21,6 +21,7 @@ class GNSS
     uint8_t  _hour;     // Hours for 24 hour clock
     uint8_t  _minute;
     uint8_t  _second;
+    uint8_t  _leapSeconds;
     uint16_t _millisecond; // Limited to first two digits
     uint32_t _nanosecond;
 
@@ -38,6 +39,8 @@ class GNSS
     unsigned long _pvtArrivalMillis;
     bool     _pvtUpdated;
 
+    unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
+
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -48,10 +51,6 @@ class GNSS
     virtual bool setMinCnoRadio (uint8_t cnoValue);
 
   public:
-
-    // Temporarily make these public
-    unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
-    uint8_t  _leapSeconds;
 
     // Constructor
     GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0)

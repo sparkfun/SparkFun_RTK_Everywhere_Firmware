@@ -436,6 +436,9 @@ void beginBoard()
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_MOSAIC();
+
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
         present.display_i2c0 = true;
