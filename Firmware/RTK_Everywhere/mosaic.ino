@@ -442,8 +442,8 @@ bool mosaicX5Begin()
     }
 
     // Set COM2 (Radio) and COM3 (Data) baud rates
-    gnssSetRadioBaudRate(settings.radioPortBaud);
-    gnssSetDataBaudRate(settings.dataPortBaud);
+    gnss->setRadioBaudRate(settings.radioPortBaud);
+    gnss->setDataBaudRate(settings.dataPortBaud);
 
     mosaicX5UpdateSD(); // Check card size and free space
 
@@ -743,7 +743,7 @@ bool mosaicX5AutoBaseStart()
 
     mosaicDeterminingFixedPosition = true; // Ensure flag is set initially
 
-    autoBaseStartTimer = millis(); // Stamp when averaging began
+    gnss->_autoBaseStartTimer = millis(); // Stamp when averaging began
 
     if (response == false)
     {
@@ -1403,7 +1403,7 @@ void mosaicX5MenuMessages()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages");
 
-        systemPrintf("Active messages: %d\r\n", gnssGetActiveMessageCount());
+        systemPrintf("Active messages: %d\r\n", gnss->getActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set Rover RTCM Messages");
@@ -1733,7 +1733,7 @@ void mosaicX5MenuConstellations()
     }
 
     // Apply current settings to module
-    gnssSetConstellations();
+    gnss->setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }

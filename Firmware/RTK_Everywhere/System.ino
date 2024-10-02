@@ -354,31 +354,31 @@ void printReports()
         lastPrintRoverAccuracy = millis();
         PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
 
-        if (online.gnss == true)
+        if (online.gnss)
         {
             // If we are in rover mode, display HPA and SIV
             if (inRoverMode() == true)
             {
-                float hpa = gnssGetHorizontalAccuracy();
+                float hpa = gnss->getHorizontalAccuracy();
 
                 char modifiedHpa[20];
                 const char *hpaUnits =
                     getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3, true); // Returns string of the HPA units
 
                 systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
-                             gnssGetSatellitesInView());
+                             gnss->getSatellitesInView());
 
-                if (gnssIsRTKFix() == true)
+                if (gnss->isRTKFix() == true)
                     systemPrint("RTK Fix");
-                else if (gnssIsRTKFloat() == true)
+                else if (gnss->isRTKFloat() == true)
                     systemPrint("RTK Float");
-                else if (gnssIsPppConverged() == true)
+                else if (gnss->isPppConverged() == true)
                     systemPrint("PPP Converged");
-                else if (gnssIsPppConverging() == true)
+                else if (gnss->isPppConverging() == true)
                     systemPrint("PPP Converging");
-                else if (gnssIsDgpsFixed() == true)
+                else if (gnss->isDgpsFixed() == true)
                     systemPrint("DGPS Fix");
-                else if (gnssIsFixed() == true)
+                else if (gnss->isFixed() == true)
                     systemPrint("3D Fix");
                 else
                     systemPrint("No Fix");
@@ -389,7 +389,7 @@ void printReports()
             // If we are in base mode, display SIV only
             else if (inBaseMode() == true)
             {
-                systemPrintf("Base Mode - SIV: %d\r\n", gnssGetSatellitesInView());
+                systemPrintf("Base Mode - SIV: %d\r\n", gnss->getSatellitesInView());
             }
         }
     }
@@ -759,18 +759,18 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
 {
     uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                  // Jan 1st 2020 as days from Jan 1st 1970
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnssGetYear() - 2020]; // Add on the number of days since 2020
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnssGetYear() % 4 == 0 ? 0 : 1]
-                                             [gnssGetMonth() - 1]; // Add on the number of days since Jan 1st
-    t += (uint32_t)gnssGetDay() - 1; // Add on the number of days since the 1st of the month
-    t *= 24;                         // Convert to hours
-    t += (uint32_t)gnssGetHour();    // Add on the hour
-    t *= 60;                         // Convert to minutes
-    t += (uint32_t)gnssGetMinute();  // Add on the minute
-    t *= 60;                         // Convert to seconds
-    t += (uint32_t)gnssGetSecond();  // Add on the second
+    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnss->getYear() - 2020]; // Add on the number of days since 2020
+    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnss->getYear() % 4 == 0 ? 0 : 1]
+                                             [gnss->getMonth() - 1]; // Add on the number of days since Jan 1st
+    t += (uint32_t)gnss->getDay() - 1; // Add on the number of days since the 1st of the month
+    t *= 24;                           // Convert to hours
+    t += (uint32_t)gnss->getHour();    // Add on the hour
+    t *= 60;                           // Convert to minutes
+    t += (uint32_t)gnss->getMinute();  // Add on the minute
+    t *= 60;                           // Convert to seconds
+    t += (uint32_t)gnss->getSecond();  // Add on the second
 
-    int32_t us = gnssGetNanosecond() / 1000; // Convert nanos to micros
+    int32_t us = gnss->getNanosecond() / 1000; // Convert nanos to micros
     uint32_t micro;
     // Adjust t if nano is negative
     if (us < 0)

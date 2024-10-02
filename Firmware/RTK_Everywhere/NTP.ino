@@ -705,79 +705,10 @@ bool configureUbloxModuleNTP()
         log_d("Skipping ZED NTP configuration");
         return (true);
     }
-
     firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
 
-    gnssUpdate(); // Regularly poll to get latest data
-
-    theGNSS->setNMEAGPGGAcallbackPtr(
-        nullptr); // Disable GPGGA call back that may have been set during Rover NTRIP Client mode
-
-    int tryNo = -1;
-    bool success = false;
-
-    // Try up to MAX_SET_MESSAGES_RETRIES times to configure the GNSS
-    // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-    // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-    // processed.
-    while ((++tryNo < MAX_SET_MESSAGES_RETRIES) && !success)
-    {
-        bool response = true;
-
-        // In NTP mode we force 1Hz
-        response &= theGNSS->newCfgValset();
-        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, 1000);
-        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, 1);
-
-        // Survey mode is only available on ZED-F9P modules
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
-
-        // Set dynamic model to stationary
-        response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, DYN_MODEL_STATIONARY); // Set dynamic model
-
-        // Set time pulse to 1Hz (100:900)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0); // Time pulse definition is a period (in us)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
-        response &= theGNSS->addCfgValset(
-            UBLOX_CFG_TP_USE_LOCKED_TP1,
-            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_TP1_ENA, 1); // Enable timepulse
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_POL_TP1, 1); // 1 = rising edge
-
-        // While the module is _locking_ to GNSS time, turn off pulse
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PERIOD_TP1, 1000000); // Set the period between pulses in us
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
-
-        // When the module is _locked_ to GNSS time, make it generate 1Hz (100ms high, 900ms low)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1, 1000000); // Set the period between pulses is us
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, 100000);     // Set the pulse length in us
-
-        // Ensure pulse is aligned to top-of-second. This is the default. Set it here just to make sure.
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_ALIGN_TO_TOW_TP1, 1);
-
-        // Set the time grid to UTC. This is the default. Set it here just to make sure.
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_TIMEGRID_TP1, 0); // 0=UTC; 1=GPS
-
-        // Sync to GNSS. This is the default. Set it here just to make sure.
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_SYNC_GNSS_TP1, 1);
-
-        response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
-
-        // Ensure PVT, HPPOSLLH and TP messages are being output at 1Hz on the correct port
-        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_PVT_I2C, 1);
-        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_I2C, 1);
-        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_TIM_TP_I2C, 1);
-
-        response &= theGNSS->sendCfgValset(); // Closing value
-
-        if (response)
-            success = true;
-    }
-
-    if (!success)
-        systemPrintln("NTP config fail");
-
-    return (success);
+    gnss->update(); // Regularly poll to get latest data
+    return gnss->configureNtpMode();
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

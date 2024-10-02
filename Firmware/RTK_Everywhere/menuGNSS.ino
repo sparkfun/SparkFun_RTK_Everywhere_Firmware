@@ -14,10 +14,10 @@ void menuGNSS()
         if (!present.gnss_mosaicX5)
         {
             systemPrint("1) Set measurement rate in Hz: ");
-            systemPrintln(1.0 / gnssGetRateS(), 5);
+            systemPrintln(1.0 / gnss->getRateS(), 5);
 
             systemPrint("2) Set measurement rate in seconds between measurements: ");
-            systemPrintln(gnssGetRateS(), 5);
+            systemPrintln(gnss->getRateS(), 5);
 
             systemPrintln("       Note: The measurement rate is overridden to 1Hz when in Base mode.");
         }
@@ -115,7 +115,7 @@ void menuGNSS()
 
         systemPrintf("5) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n", settings.minElev);
 
-        systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnssGetMinCno());
+        systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCno());
 
         systemPrint("7) Toggle NTRIP Client: ");
         if (settings.enableNtripClient == true)
@@ -166,8 +166,8 @@ void menuGNSS()
             if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
                 INPUT_RESPONSE_VALID) // 20Hz limit with all constellations enabled
             {
-                gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
-                                         // settings.navigationRate, and GSV message
+                gnss->setRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
+                                           // settings.navigationRate, and GSV message
             }
         }
         else if ((incoming == 2) && (!present.gnss_mosaicX5))
@@ -190,7 +190,7 @@ void menuGNSS()
             if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate) ==
                 INPUT_RESPONSE_VALID)
             {
-                gnssSetRate(rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                gnss->setRate(rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
             }
         }
         else if (incoming == 3)
@@ -238,7 +238,7 @@ void menuGNSS()
                         else
                             settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnssSetModel(settings.dynamicModel);
+                        gnss->setModel(settings.dynamicModel);
                     }
                 }
                 else if (present.gnss_um980)
@@ -250,7 +250,7 @@ void menuGNSS()
                         dynamicModel -= 1;                    // Align to 0 to 2
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnssSetModel(settings.dynamicModel);
+                        gnss->setModel(settings.dynamicModel);
                     }
                 }
                 else if (present.gnss_mosaicX5)
@@ -262,14 +262,14 @@ void menuGNSS()
                         dynamicModel -= 1;                    // Align to 0 to MAX_MOSAIC_RX_DYNAMICS - 1
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnssSetModel(settings.dynamicModel);
+                        gnss->setModel(settings.dynamicModel);
                     }
                 }
             }
         }
         else if (incoming == 4)
         {
-            gnssMenuConstellations();
+            gnss->menuConstellations();
         }
 
         else if (incoming == 5)
@@ -277,7 +277,7 @@ void menuGNSS()
             // Arbitrary 90 degree max
             if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) == INPUT_RESPONSE_VALID)
             {
-                gnssSetElevation(settings.minElev);
+                gnss->setElevation(settings.minElev);
             }
         }
         else if (incoming == 6)
@@ -288,7 +288,7 @@ void menuGNSS()
                 present.gnss_mosaicX5 ? 60 : 90, &minCNO) ==
                 INPUT_RESPONSE_VALID)
             {
-                gnssSetMinCno(minCNO); // Set the setting and configure the GNSS receiver
+                gnss->setMinCno(minCNO); // Set the setting and configure the GNSS receiver
             }
         }
 

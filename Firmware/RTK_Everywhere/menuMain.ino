@@ -39,7 +39,7 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
-                gnssPushRawData((uint8_t *)buffer, length);
+                gnss->pushRawData((uint8_t *)buffer, length);
         }
 
         // Does incoming data consist of RTCM correction messages
@@ -58,7 +58,7 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
-                gnssPushRawData((uint8_t *)buffer, length);
+                gnss->pushRawData((uint8_t *)buffer, length);
         }
         else
         {
@@ -117,7 +117,7 @@ void menuMain()
     if (settings.debugGnss == true)
     {
         // Turn off GNSS debug while in config menus
-        gnssDisableDebugging();
+        gnss->debuggingDisable();
     }
 
     // Check for remote app config entry into command mode
@@ -255,7 +255,7 @@ void menuMain()
             if (incoming == 1)
                 menuGNSS();
             else if (incoming == 2)
-                gnssMenuMessages();
+                gnss->menuMessages();
             else if (incoming == 3)
                 menuBase();
             else if (incoming == 4)
@@ -322,7 +322,7 @@ void menuMain()
             requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
         }
 
-        gnssSaveConfiguration();
+        gnss->saveConfiguration();
 
         recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
     }
@@ -330,7 +330,7 @@ void menuMain()
     if (settings.debugGnss == true)
     {
         // Re-enable GNSS debug once we exit config menus
-        gnssEnableDebugging();
+        gnss->debuggingEnable();
     }
 
     clearBuffer();           // Empty buffer of any newline chars
@@ -549,7 +549,7 @@ void factoryReset(bool alreadyHasSemaphore)
     LittleFS.format();
 
     if (online.gnss == true)
-        gnssFactoryReset();
+        gnss->factoryReset();
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);

@@ -581,7 +581,7 @@ long long thingstreamEpochToGPSEpoch(long long startEpoch)
     epoch /= 1000; // Convert PointPerfect ms Epoch to s
 
     // Convert Unix Epoch time from PointPerfect to GPS Time Of Week needed for UBX message
-    long long gpsEpoch = epoch - 315964800 + gnssGetLeapSeconds(); // Shift to GPS Epoch.
+    long long gpsEpoch = epoch - 315964800 + gnss->getLeapSeconds(); // Shift to GPS Epoch.
     return (gpsEpoch);
 }
 
@@ -652,7 +652,7 @@ void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t
     long long startUnixEpoch = expireUnixEpoch - (27 * 24 * 60 * 60); // Move back 27 days
 
     // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
-    startUnixEpoch -= gnssGetLeapSeconds(); // Modify our Epoch to match Point Perfect
+    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match Point Perfect
 
     // PointPerfect uses/reports unix epochs in milliseconds
     *settingsKeyStart = startUnixEpoch * 1000L; // Convert to ms
@@ -732,8 +732,8 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
         if (settings.debugCorrections == true && !inMainMenu)
             systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
 
-        gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-        gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+        gnss->pushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
+        gnss->pushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
     }
     else
     {
@@ -800,12 +800,12 @@ void beginLBand()
             printNEOInfo(); // Print module firmware version
         }
 
-        gnssUpdate();
+        gnss->update();
 
         uint32_t LBandFreq;
-        uint8_t fixType = gnssGetFixType();
-        double latitude = gnssGetLatitude();
-        double longitude = gnssGetLongitude();
+        uint8_t fixType = gnss->getFixType();
+        double latitude = gnss->getLatitude();
+        double longitude = gnss->getLongitude();
         // If we have a fix, check which frequency to use
         if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
         {
@@ -864,7 +864,7 @@ void beginLBand()
         if (settings.debugCorrections == true)
             systemPrintln("L-Band online");
 
-        gnssApplyPointPerfectKeys(); // Apply keys now, if we have them. This sets online.lbandCorrections
+        gnss->applyPointPerfectKeys(); // Apply keys now, if we have them. This sets online.lbandCorrections
 
         online.lband_neo = true;
     }
@@ -873,9 +873,9 @@ void beginLBand()
     if (present.gnss_mosaicX5 && settings.enablePointPerfectCorrections)
     {
         uint32_t LBandFreq;
-        uint8_t fixType = gnssGetFixType();
-        double latitude = gnssGetLatitude();
-        double longitude = gnssGetLongitude();
+        uint8_t fixType = gnss->getFixType();
+        double latitude = gnss->getLatitude();
+        double longitude = gnss->getLongitude();
         // If we have a fix, check which frequency to use
         if (fixType >= 1) // Stand-Alone PVT or better
         {
@@ -1122,7 +1122,7 @@ void menuPointPerfect()
 
     if (strlen(settings.pointPerfectClientID) > 0)
     {
-        gnssApplyPointPerfectKeys();
+        gnss->applyPointPerfectKeys();
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -1158,7 +1158,7 @@ void updateLBand()
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (gnssIsRTKFloat())
+        if (gnss->isRTKFloat())
         {
             if (lbandTimeFloatStarted == 0)
                 lbandTimeFloatStarted = millis();
@@ -1182,15 +1182,15 @@ void updateLBand()
                     lbandTimeFloatStarted =
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
 
-                    // Hotstart ZED to try to get RTK lock
-                    theGNSS->softwareResetGNSSOnly();
+                    // Hotstart GNSS to try to get RTK lock
+                    gnss->softwareReset();
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
                 }
             }
         }
-        else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        else if (gnss->isRTKFix() && rtkTimeToFixMs == 0)
         {
             lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
 
@@ -1494,9 +1494,9 @@ void updateProvisioning()
         paintLBandConfigure();
 
         // Be sure we ignore any external RTCM sources
-        gnssDisableRtcmOnGnss();
+        gnss->rtcmOnGnssDisable();
 
-        gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
+        gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
         settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
         recordSystemSettings();            // Record these settings to unit

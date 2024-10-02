@@ -339,6 +339,8 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
+GNSS * gnss;
+
 char neoFirmwareVersion[20]; // Output to system status menu.
 
 // Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
@@ -779,7 +781,6 @@ unsigned long startTime;             // Used for checking longest-running functi
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S only)
 unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
-uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
@@ -820,8 +821,6 @@ unsigned long rtkTimeToFixMs;
 volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer;
-
-unsigned long autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
 RtkMode_t rtkMode; // Mode of operation
 
@@ -1100,8 +1099,8 @@ void setup()
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
 
-    DMW_b("gnssBegin");
-    gnssBegin(); // Requires settings. Connect to GNSS to get module type
+    DMW_b("gnss->begin");
+    gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1129,17 +1128,17 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnssConfigure");
-    gnssConfigure(); // Requires settings. Configure GNSS module
+    DMW_b("gnss->configure");
+    gnss->configure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band
 
     DMW_b("beginExternalEvent");
-    gnssBeginExternalEvent(); // Configure the event input
+    gnss->beginExternalEvent(); // Configure the event input
 
     DMW_b("beginPPS");
-    gnssBeginPPS(); // Configure the time pulse output
+    gnss->beginPPS(); // Configure the time pulse output
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1228,8 +1227,8 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnssUpdate");
-    gnssUpdate();
+    DMW_c("gnss->update");
+    gnss->update();
 
     DMW_c("stateUpdate");
     stateUpdate();
@@ -1467,21 +1466,21 @@ void rtcUpdate()
             {
                 lastRTCAttempt = millis();
 
-                // gnssUpdate() is called in loop() but rtcUpdate
+                // gnss->update() is called in loop() but rtcUpdate
                 // can also be called during begin. To be safe, check for fresh PVT data here.
-                gnssUpdate();
+                gnss->update();
 
                 bool timeValid = false;
 
-                if (gnssIsValidTime() == true &&
-                    gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
+                if (gnss->isValidTime() == true &&
+                    gnss->isValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
 
-                if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
+                if (gnss->isConfirmedTime() == true && gnss->isConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
 
                 if (timeValid &&
-                    (gnssGetFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
+                    (gnss->getFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
                     timeValid = false;
 
                 if (timeValid == true)

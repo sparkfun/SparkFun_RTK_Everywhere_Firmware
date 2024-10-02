@@ -1267,7 +1267,7 @@ void paintHorizontalAccuracy(displayCoords textCoords)
     oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
-    float hpa = gnssGetHorizontalAccuracy();
+    float hpa = gnss->getHorizontalAccuracy();
 
     if (online.gnss == false)
     {
@@ -1322,7 +1322,7 @@ void paintClockAccuracy(displayCoords textCoords)
     oled->setCursor(textCoords.x, textCoords.y); // x, y
     oled->print(":");
 
-    uint32_t timeAccuracy = gnssGetTimeAccuracy();
+    uint32_t timeAccuracy = gnss->getTimeAccuracy();
 
     if (online.gnss == false)
     {
@@ -1530,7 +1530,7 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
                 icon = &SIVIconProperties;
 
             // Determine if there is a fix
-            if (gnssIsFixed() == false)
+            if (gnss->isFixed() == false)
             {
                 // override duty - blink satellite dish icon if we don't have a fix
                 duty = 0b01010101;
@@ -1561,10 +1561,10 @@ void paintSIVText(displayCoords textCoords)
 
     if (online.gnss)
     {
-        if (gnssIsFixed() == false)
+        if (gnss->isFixed() == false)
             oled->print("0");
         else
-            oled->print(gnssGetSatellitesInView());
+            oled->print(gnss->getSatellitesInView());
 
         paintResets();
     } // End gnss online
@@ -1646,8 +1646,8 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 
     oled->setCursor(xPos + 29, yPos + 2); // x, y
     oled->setFont(QW_FONT_8X16);
-    if (gnssGetSurveyInMeanAccuracy() < 10.0) // Error check
-        oled->print(gnssGetSurveyInMeanAccuracy(), 2);
+    if (gnss->getSurveyInMeanAccuracy() < 10.0) // Error check
+        oled->print(gnss->getSurveyInMeanAccuracy(), 2);
     else
         oled->print(">10");
 
@@ -1680,8 +1680,8 @@ void paintBaseTempSurveyStarted(std::vector<iconPropertyBlinking> *iconList)
 
     oled->setCursor((uint8_t)((int)xPos + SIVTextStartXPosOffset[present.display_type]) + 30, yPos + 1); // x, y
     oled->setFont(QW_FONT_8X16);
-    if (gnssGetSurveyInObservationTime() < 1000) // Error check
-        oled->print(gnssGetSurveyInObservationTime());
+    if (gnss->getSurveyInObservationTime() < 1000) // Error check
+        oled->print(gnss->getSurveyInObservationTime());
     else
         oled->print("0");
 }
@@ -2364,9 +2364,9 @@ void paintSystemTest()
             oled->print("GNSS:");
             if (online.gnss == true)
             {
-                gnssUpdate(); // Regularly poll to get latest data
+                gnss->update(); // Regularly poll to get latest data
 
-                int satsInView = gnssGetSatellitesInView();
+                int satsInView = gnss->getSatellitesInView();
                 if (satsInView > 5)
                 {
                     oled->print("OK");

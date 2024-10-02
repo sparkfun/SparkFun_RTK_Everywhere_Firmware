@@ -1474,9 +1474,9 @@ void tpISR()
                 {
                     if (millisNow < (timTpArrivalMillis + 999)) // Only sync if the GNSS time is not stale
                     {
-                        if (gnssIsFullyResolved()) // Only sync if GNSS time is fully resolved
+                        if (gnss->isFullyResolved()) // Only sync if GNSS time is fully resolved
                         {
-                            if (gnssGetTimeAccuracy() < 5000) // Only sync if the tAcc is better than 5000ns
+                            if (gnss->getTimeAccuracy() < 5000) // Only sync if the tAcc is better than 5000ns
                             {
                                 // To perform the time zone adjustment correctly, it's easiest if we convert the GNSS
                                 // time and date into Unix epoch first and then apply the timeZone offset

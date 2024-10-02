@@ -29,7 +29,7 @@ void powerDown(bool displayInfo)
     // Disable SD card use
     endSD(false, false);
 
-    gnssStandby(); // Put the GNSS into standby - if possible
+    gnss->standby(); // Put the GNSS into standby - if possible
 
     // Prevent other tasks from logging, even if access to the microSD card was denied
     online.logging = false;

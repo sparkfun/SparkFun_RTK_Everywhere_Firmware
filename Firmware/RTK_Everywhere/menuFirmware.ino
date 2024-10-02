@@ -398,7 +398,7 @@ void updateFromSD(const char *firmwareFileName)
                 firmwareFile.close();
 
                 sd->remove(firmwareFileName);
-                gnssFactoryReset();
+                gnss->factoryReset();
             }
 
             delay(1000);
