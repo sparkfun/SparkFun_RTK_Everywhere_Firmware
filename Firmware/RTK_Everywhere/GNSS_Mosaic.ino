@@ -1394,6 +1394,7 @@ bool GNSS_MOSAIC::isDgpsFixed()
     // 6: SBAS aided PVT
     if ((_fixType == 2) || (_fixType == 6))
         return (true);
+    return (false);
 }
 
 //----------------------------------------
