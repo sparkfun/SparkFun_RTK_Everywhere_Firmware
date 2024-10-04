@@ -142,6 +142,10 @@ void identifyBoard()
         // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
         else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
             productVariant = RTK_FACET_V2;
+
+        // Postcard: 3.3/10  -->  2421mV < 2481mV < 2539mV (4.75% tolerance)
+        else if (idWithAdc(idValue, 3.3, 10, 4.75))
+            productVariant = RTK_POSTCARD;
     }
 
     if (ENABLE_DEVELOPER)
@@ -485,6 +489,53 @@ void beginBoard()
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, mosaic
     }
+
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_UM980();
+
+        present.psram_2mb = true;
+        present.gnss_lg290p = true;
+        present.antennaPhaseCenter_mm = 42.0;
+        //present.galileoHasCapable = true; //Unknown at this time
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.gnss_to_uart = true;
+
+        //TODO detect shield
+        // present.fuelgauge_max17048 = true;
+        // present.charger_mp2762a = true;
+
+        pin_I2C0_SDA = 7;
+        pin_I2C0_SCL = 20;
+
+        pin_GnssUart_RX = 21;
+        pin_GnssUart_TX = 22;
+
+        pin_GNSS_Reset = 33;
+        pin_GNSS_TimePulse = 8; // PPS on LG290P
+
+        pin_bluetoothStatusLED = 0; // Green status LED
+        //pin_gnssStatusLED = 13;
+
+        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+        // DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
+        // pinMode(pin_gnssStatusLED, OUTPUT);
+
+        // Turn on Bluetooth and GNSS LEDs to indicate power on
+        bluetoothLedOn();
+        gnssStatusLedOn();
+
+        pinMode(pin_GNSS_TimePulse, INPUT);
+
+        pinMode(pin_GNSS_Reset, OUTPUT);
+        lg290pBoot(); // Tell LG290P to boot
+
+        settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
+    }
+
 }
 
 void beginVersion()

@@ -69,6 +69,7 @@ typedef enum
     RTK_FACET_V2 = 1, // 0x01
     RTK_FACET_MOSAIC = 2, // 0x02
     RTK_TORCH = 3, // 0x03
+    RTK_POSTCARD = 4, // 0x04
     // Add new values above this line
     RTK_UNKNOWN
 } ProductVariant;
@@ -80,6 +81,7 @@ const char * const productDisplayNames[] =
     "Facet v2",
     "Facet X5",
     "Torch",
+    "Postcard",
     // Add new values just above this line
     "Unknown"
 };
@@ -91,6 +93,7 @@ const char * const platformFilePrefixTable[] =
     "SFE_Facet_v2",
     "SFE_Facet_mosaic",
     "SFE_Torch",
+    "SFE_Postcard",
     // Add new values just above this line
     "SFE_Unknown"
 };
@@ -102,6 +105,7 @@ const char * const platformPrefixTable[] =
     "Facet v2",
     "Facet mosaicX5",
     "Torch",
+    "Postcard",
     // Add new values just above this line
     "Unknown"
 };
@@ -113,6 +117,7 @@ const char * const platformProvisionTable[] =
     "Facet v2",
     "Facet mosaicX5",
     "Torch",
+    "Postcard",
     // Add new values just above this line
     "Unknown"
 };
@@ -167,6 +172,7 @@ const SystemState platformPreviousStateTable[] =
     STATE_ROVER_NOT_STARTED,    // Facet v2
     STATE_ROVER_NOT_STARTED,    // Facet mosaic
     STATE_ROVER_NOT_STARTED,    // Torch
+    STATE_ROVER_NOT_STARTED,    // Postcard
     // Add new values above this line
     STATE_ROVER_NOT_STARTED     // Unknown
 };
@@ -1897,6 +1903,7 @@ struct struct_present
     bool gnss_um980 = false;
     bool gnss_zedf9p = false;
     bool gnss_mosaicX5 = false; // L-Band is implicit
+    bool gnss_lg290p = false;
 
     // A GNSS TP interrupt - for accurate clock setting
     // The GNSS UBX PVT message is sent ahead of the top-of-second

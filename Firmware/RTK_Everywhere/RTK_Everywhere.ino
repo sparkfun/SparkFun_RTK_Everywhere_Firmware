@@ -154,6 +154,7 @@ int pin_Ethernet_CS = PIN_UNDEFINED;
 int pin_Ethernet_Interrupt = PIN_UNDEFINED;
 int pin_GNSS_CS = PIN_UNDEFINED;
 int pin_GNSS_TimePulse = PIN_UNDEFINED;
+int pin_GNSS_Reset = PIN_UNDEFINED;
 
 // microSD card pins
 int pin_PICO = 23;

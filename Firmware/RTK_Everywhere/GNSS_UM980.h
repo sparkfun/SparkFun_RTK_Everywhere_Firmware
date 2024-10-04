@@ -32,11 +32,7 @@ typedef struct
 // Available constellations: GPS, BDS, GLO, GAL, QZSS
 // SBAS and IRNSS don't seem to be supported
 const um980ConstellationCommand um980ConstellationCommands[] = {
-    {"BeiDou", "BDS"},
-    {"Galileo", "GAL"},
-    {"GLONASS", "GLO"},
-    {"GPS", "GPS"},
-    {"QZSS", "QZSS"},
+    {"BeiDou", "BDS"}, {"Galileo", "GAL"}, {"GLONASS", "GLO"}, {"GPS", "GPS"}, {"QZSS", "QZSS"},
 };
 
 #define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands) / sizeof(um980ConstellationCommand))
@@ -50,6 +46,7 @@ typedef struct
 } um980Msg;
 
 // Static array containing all the compatible messages
+// Rate = Reports per second
 const um980Msg umMessagesNMEA[] = {
     // NMEA
     {"GPDTM", 0}, {"GPGBS", 0},   {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
@@ -104,11 +101,9 @@ enum um980_Models
 class GNSS_UM980 : GNSS
 {
   private:
-
-    UM980 * _um980; // Library class instance
+    UM980 *_um980; // Library class instance
 
   protected:
-
     bool configureOnce();
 
     // Setup the general configuration of the GNSS
@@ -161,12 +156,11 @@ class GNSS_UM980 : GNSS
     bool setHighAccuracyService(bool enableGalileoHas);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio (uint8_t cnoValue);
+    bool setMinCnoRadio(uint8_t cnoValue);
 
     bool setMultipathMitigation(bool enableMultipathMitigation);
 
   public:
-
     // If we have decryption keys, configure module
     // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
@@ -262,7 +256,7 @@ class GNSS_UM980 : GNSS
     //   Returns the horizontal position accuracy or zero if offline
     float getHorizontalAccuracy();
 
-    const char * getId();
+    const char *getId();
 
     // Get the latitude value
     // Outputs:
@@ -297,9 +291,9 @@ class GNSS_UM980 : GNSS
     // Returns the seconds between solutions
     double getRateS();
 
-    const char * getRtcmDefaultString();
+    const char *getRtcmDefaultString();
 
-    const char * getRtcmLowDataRateString();
+    const char *getRtcmLowDataRateString();
 
     // Returns the number of satellites in view or zero if offline
     uint8_t getSatellitesInView();
@@ -469,4 +463,4 @@ class GNSS_UM980 : GNSS
 };
 
 #endif // COMPILE_UM980
-#endif  // __GNSS_UM980_H__
+#endif // __GNSS_UM980_H__
