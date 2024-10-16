@@ -1532,6 +1532,144 @@ const uint8_t Micros_Icon[] = {0x3F, 0x04, 0x08, 0x88, 0x84, 0x8F, 0x80, 0x00,
 const uint8_t Nanos_Icon[] = {0x1F, 0x01, 0x01, 0x81, 0x9E, 0x80, 0x80, 0x00,
                               0x00, 0x00, 0x09, 0x0A, 0x0A, 0x0A, 0x04, 0x00};
 
+/*
+    Corrections Sources icons:
+    CORR_RADIO_EXT  : DynamicModel_1_Portable [15, 12]
+    CORR_ESPNOW     : ESPNOW_Symbol_3 [8, 13]
+    CORR_RADIO_LORA : 
+    CORR_BLUETOOTH  : BT_Symbol [7, 14]
+    CORR_USB        : 
+    CORR_TCP        : 
+    CORR_LBAND      : SIV_Antenna_LBand [12, 13]
+    CORR_IP         : 
+
+    New icons are [15,14] max
+*/
+
+typedef struct
+{
+    const uint8_t xOffset;
+    const uint8_t yOffset;
+    const uint8_t width;
+    const uint8_t height;
+    const uint8_t * const pointer;
+} correctionIconAttribute;
+
+correctionIconAttribute correctionIconAttributes[correctionsSource::CORR_NUM] = {
+    { 0, 1, DynamicModel_Width, DynamicModel_Height, DynamicModel_1_Portable },
+    { 3, 0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, ESPNOW_Symbol_3 },
+    { 0, 0, 15, 14, Corr_Radio_LoRa },
+    { 4, 0, BT_Symbol_Width, BT_Symbol_Height, BT_Symbol },
+    { 0, 0, 15, 14, Corr_USB_Icon },
+    { 0, 0, 15, 14, Corr_TCP_Icon },
+    { 1, 0, SIV_Antenna_LBand_Width, SIV_Antenna_LBand_Height, SIV_Antenna_LBand },
+    { 0, 0, 15, 14, Corr_IP_Icon },
+};
+
+/*
+    Corr_Radio_LoRa [15, 14]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|   **  *  **   |
+        0x02|     *   *     |
+        0x04| ****  *  **** |
+        0x08|     * * *     |
+        0x10|   ** *** **   |
+        0x20|  *   * *   *  |
+        0x40|     * * *     |
+        0x80|     *****     |
+        0x01|    * * * *    |
+        0x02|    *  *  *    |
+        0x04|   **** ****   |
+        0x08|   * *   * *   |
+        0x10|  * *  *  * *  |
+        0x20| *****   ***** |
+            '---------------'
+*/
+
+const uint8_t Corr_Radio_LoRa[] = {0x00, 0x04, 0x24, 0x15, 0x15, 0xCA, 0xB0, 0xDD, 0xB0, 0xCA, 0x15, 0x15, 0x24, 0x04, 0x00,
+                                   0x00, 0x20, 0x30, 0x2C, 0x37, 0x2C, 0x05, 0x12, 0x05, 0x2C, 0x37, 0x2C, 0x30, 0x20, 0x00,};
+
+/*
+    Corr_USB_Icon [15, 14]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|       *       |
+        0x02|      ***      |
+        0x04|     *****     |
+        0x08|       *   *** |
+        0x10|  **   *   *** |
+        0x20| ****  *   *** |
+        0x40| ****  * **    |
+        0x80|  **   **      |
+        0x01|    ** *       |
+        0x02|      ***      |
+        0x04|     *****     |
+        0x08|     *****     |
+        0x10|     *****     |
+        0x20|      ***      |
+            '---------------'
+*/
+
+const uint8_t Corr_USB_Icon[] = {0x00, 0x60, 0xF0, 0xF0, 0x60, 0x04, 0x06, 0xFF, 0x86, 0x44, 0x40, 0x38, 0x38, 0x38, 0x00,
+                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x1D, 0x3E, 0x3F, 0x3E, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00,};
+
+/*
+    Corr_TCP_Icon [15, 14]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|               |
+        0x02|               |
+        0x04|               |
+        0x08|     *   *     |
+        0x10|    *** ***    |
+        0x20|   *********   |
+        0x40|  ***** *****  |
+        0x80| *****   ***** |
+        0x01|  ***** *****  |
+        0x02|   *********   |
+        0x04|    *** ***    |
+        0x08|     *   *     |
+        0x10|               |
+        0x20|               |
+            '---------------'
+*/
+
+const uint8_t Corr_TCP_Icon[] = {0x00, 0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0x70, 0x20, 0x70, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0x00,
+                                 0x00, 0x00, 0x01, 0x03, 0x07, 0x0F, 0x07, 0x02, 0x07, 0x0F, 0x07, 0x03, 0x01, 0x00, 0x00,};
+
+/*
+    Corr_IP_Icon [15, 14]
+
+                      1
+             123456789012345
+            .---------------.
+        0x01|      ***      |
+        0x02|     *****     |
+        0x04|    *** ***    |
+        0x08|    **   **    |
+        0x10|    *** ***    |
+        0x20|    *******    |
+        0x40|     *****     |
+        0x80|   *  ***  *   |
+        0x01|  *  * * *  *  |
+        0x02|  * *  *  * *  |
+        0x04|  *  *   *  *  |
+        0x08|   *  ***  *   |
+        0x10|    *     *    |
+        0x20|     *****     |
+            '---------------'
+*/
+
+const uint8_t Corr_IP_Icon[] = {0x00, 0x00, 0x00, 0x80, 0x3C, 0x7E, 0xF7, 0xE3, 0xF7, 0x7E, 0x3C, 0x80, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x07, 0x08, 0x12, 0x25, 0x28, 0x2B, 0x28, 0x25, 0x12, 0x08, 0x07, 0x00, 0x00,};
+
 
 // Display.ino uses a vector (list) of iconPropertyBlinking to define which icons are displayed where.
 
