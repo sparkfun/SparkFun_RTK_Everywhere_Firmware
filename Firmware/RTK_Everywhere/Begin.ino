@@ -416,7 +416,7 @@ void beginBoard()
         digitalWrite(pin_powerFastOff, HIGH); // Stay on
     }
 
-    else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.1
+    else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.2
     {
         // How it works:
         // The mosaic COM ports COM1 and COM4 are connected to the ESP32
@@ -454,12 +454,14 @@ void beginBoard()
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
 
         pin_muxA = 2;
         pin_muxB = 12;
         pin_GnssUart2_RX = 4;
         pin_GnssUart_RX = 13;
         pin_GnssUart_TX = 14;
+        pin_microSD_CardDetect = 15; // Except microSD is connected to mosaic... present.microSd is false
         pin_GnssEvent = 18;
         pin_chargerLED2 = 19;
         pin_I2C0_SDA = 21;
@@ -478,13 +480,19 @@ void beginBoard()
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        pinMode(pin_chargerLED, INPUT); // STAT1 and STAT2 have pull-ups to 3.3V
+        
+        // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
+        // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
+        pinMode(pin_chargerLED, INPUT);
         pinMode(pin_chargerLED2, INPUT);
 
         // Turn on power to the mosaic and OLED
         DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
         pinMode(pin_peripheralPowerControl, OUTPUT);
         peripheralsOn(); // Turn on power to OLED, SD, mosaic
+
+        DMW_if systemPrintf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);
     }
 }
 

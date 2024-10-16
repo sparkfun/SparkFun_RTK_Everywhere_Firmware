@@ -65,7 +65,7 @@ void beepOff()
 }
 
 // Only useful for pin_chargerLED on Facet mosaic
-// pin_chargerLED is analog-only and is connected via a blocking diode
+// pin_chargerLED is analog-only and is connected via a blocking diode. LOW will not be 0V
 bool readAnalogPinAsDigital(int pin)
 {
     if (pin >= 34) // If the pin is analog-only
