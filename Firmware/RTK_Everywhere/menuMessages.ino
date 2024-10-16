@@ -153,8 +153,8 @@ void menuMessagesBaseRTCM()
 
         systemPrintln("1) Set RXM Messages for Base Mode");
 
-        systemPrintf("2) Reset to Defaults (%s)\r\n", gnssGetRtcmDefaultString());
-        systemPrintf("3) Reset to Low Bandwidth Link (%s)\r\n", gnssGetRtcmLowDataRateString());
+        systemPrintf("2) Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
+        systemPrintf("3) Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
 
         systemPrintln("x) Exit");
 
@@ -162,21 +162,21 @@ void menuMessagesBaseRTCM()
 
         if (incoming == 1)
         {
-            gnssMenuMessageBaseRtcm();
+            gnss->menuMessageBaseRtcm();
             restartBase = true;
         }
         else if (incoming == 2)
         {
-            gnssBaseRtcmDefault();
+            gnss->baseRtcmDefault();
 
-            systemPrintf("Reset to Defaults (%s)\r\n", gnssGetRtcmDefaultString());
+            systemPrintf("Reset to Defaults (%s)\r\n", gnss->getRtcmDefaultString());
             restartBase = true;
         }
         else if (incoming == 3)
         {
-            gnssBaseRtcmLowDataRate();
+            gnss->baseRtcmLowDataRate();
 
-            systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnssGetRtcmLowDataRateString());
+            systemPrintf("Reset to Low Bandwidth Link (%s)\r\n", gnss->getRtcmLowDataRateString());
             restartBase = true;
         }
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -203,15 +203,16 @@ void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
         int endOfBlock = 0;
         int rtcmOffset = 0; // Used to offset messageSupported lookup
 
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
         if (strcmp(messageType, "RTCM-Base") == 0) // The ubxMessageRatesBase array is 0 to MAX_UBX_MSG_RTCM - 1
         {
             startOfBlock = 0;
             endOfBlock = MAX_UBX_MSG_RTCM;
-            rtcmOffset = zedGetMessageNumberByName("RTCM_1005");
+            rtcmOffset = zed->getMessageNumberByName("RTCM_1005");
         }
         else
-            zedSetMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
-                                 endOfBlock); // Find start and stop of given messageType in message array
+            zed->setMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
+                                             endOfBlock); // Find start and stop of given messageType in message array
 
         for (int x = 0; x < (endOfBlock - startOfBlock); x++)
         {
@@ -624,7 +625,8 @@ void checkGNSSArrayDefaults()
             defaultsApplied = true;
 
             // Reset Base rates to defaults
-            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
             for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
@@ -756,14 +758,14 @@ void setLoggingType()
 {
     loggingType = LOGGING_CUSTOM;
 
-    int messageCount = gnssGetActiveMessageCount();
+    int messageCount = gnss->getActiveMessageCount();
     if (messageCount == 5 || messageCount == 7)
     {
-        if (checkGnssNMEARates())
+        if (gnss->checkNMEARates())
         {
             loggingType = LOGGING_STANDARD;
 
-            if (checkGnssPPPRates())
+            if (gnss->checkPPPRates())
                 loggingType = LOGGING_PPP;
         }
     }
@@ -773,30 +775,31 @@ void setLoggingType()
 void setLogTestFrequencyMessages(int rate, int messages)
 {
     // Set measurement frequency
-    gnssSetRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
+    gnss->setRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
                                      // settings.navigationRate, and GSV message
 
     // Set messages
     setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
+    GNSS_ZED * zed = (GNSS_ZED *)gnss;
     if (messages == 5)
     {
-        zedSetMessageRateByName("NMEA_GGA", 1);
-        zedSetMessageRateByName("NMEA_GSA", 1);
-        zedSetMessageRateByName("NMEA_GST", 1);
-        zedSetMessageRateByName("NMEA_GSV", rate); // One report per second
-        zedSetMessageRateByName("NMEA_RMC", 1);
+        zed->setMessageRateByName("NMEA_GGA", 1);
+        zed->setMessageRateByName("NMEA_GSA", 1);
+        zed->setMessageRateByName("NMEA_GST", 1);
+        zed->setMessageRateByName("NMEA_GSV", rate); // One report per second
+        zed->setMessageRateByName("NMEA_RMC", 1);
 
         log_d("Messages: Surveying Defaults (NMEAx5)");
     }
     else if (messages == 7)
     {
-        zedSetMessageRateByName("NMEA_GGA", 1);
-        zedSetMessageRateByName("NMEA_GSA", 1);
-        zedSetMessageRateByName("NMEA_GST", 1);
-        zedSetMessageRateByName("NMEA_GSV", rate); // One report per second
-        zedSetMessageRateByName("NMEA_RMC", 1);
-        zedSetMessageRateByName("RXM_RAWX", 1);
-        zedSetMessageRateByName("RXM_SFRBX", 1);
+        zed->setMessageRateByName("NMEA_GGA", 1);
+        zed->setMessageRateByName("NMEA_GSA", 1);
+        zed->setMessageRateByName("NMEA_GST", 1);
+        zed->setMessageRateByName("NMEA_GSV", rate); // One report per second
+        zed->setMessageRateByName("NMEA_RMC", 1);
+        zed->setMessageRateByName("RXM_RAWX", 1);
+        zed->setMessageRateByName("RXM_SFRBX", 1);
 
         log_d("Messages: PPP NMEAx5+RXMx2");
     }
@@ -804,8 +807,8 @@ void setLogTestFrequencyMessages(int rate, int messages)
         log_d("Unknown message amount");
 
     // Apply these message rates to both UART1 / SPI and USB
-    gnssSetMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
-    gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
+    gnss->setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
+    gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 }
 
 // The log test allows us to record a series of different system configurations into

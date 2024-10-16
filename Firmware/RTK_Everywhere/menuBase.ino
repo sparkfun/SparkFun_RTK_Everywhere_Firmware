@@ -100,7 +100,7 @@ void menuBase()
                 }
 
                 systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
-                            gnssGetSurveyInStartingAccuracy());
+                            gnss->getSurveyInStartingAccuracy());
             }
         }
 

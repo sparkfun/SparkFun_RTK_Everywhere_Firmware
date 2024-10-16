@@ -15,9 +15,9 @@ void menuSystem()
         {
             systemPrint("Online - ");
 
-            gnssPrintModuleInfo();
+            gnss->printModuleInfo();
 
-            systemPrintf("Module ID: %s\r\n", gnssGetId());
+            systemPrintf("Module ID: %s\r\n", gnss->getId());
 
             printCurrentConditions();
         }
@@ -106,34 +106,9 @@ void menuSystem()
         // Display the Bluetooth status
         bluetoothTest(false);
 
-#ifdef COMPILE_WIFI
-        wifiDisplayState();
-#endif // COMPILE_WIFI
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-        {
-            systemPrint("Ethernet: ");
-            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
-                systemPrintln("connected");
-            else
-                systemPrintln("disconnected");
-            systemPrint("Ethernet MAC Address: ");
-            systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
-                         ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
-            systemPrint("Ethernet IP Address: ");
-            systemPrintln(ETH.localIP().toString().c_str());
-            if (!settings.ethernetDHCP)
-            {
-                systemPrint("Ethernet DNS: ");
-                systemPrintf("%s\r\n", settings.ethernetDNS.toString().c_str());
-                systemPrint("Ethernet Gateway: ");
-                systemPrintf("%s\r\n", settings.ethernetGateway.toString().c_str());
-                systemPrint("Ethernet Subnet Mask: ");
-                systemPrintf("%s\r\n", settings.ethernetSubnet.toString().c_str());
-            }
-        }
-#endif // COMPILE_ETHERNET
+#ifdef COMPILE_NETWORK
+        networkDisplayStatus();
+#endif // COMPILE_NETWORK
 
         // Display the uptime
         uint64_t uptimeMilliseconds = millis();
@@ -518,9 +493,9 @@ void menuDebugHardware()
             settings.debugGnss ^= 1;
 
             if (settings.debugGnss)
-                gnssEnableDebugging();
+                gnss->debuggingEnable();
             else
-                gnssDisableDebugging();
+                gnss->debuggingDisable();
         }
         else if (incoming == 10)
         {
@@ -1062,7 +1037,7 @@ void menuOperation()
         }
         else if (incoming == 10 && present.gnss_zedf9p)
         {
-            bool response = gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
+            bool response = gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
             if (response == false)
                 systemPrintln(F("Failed to enable USB messages"));
@@ -1452,19 +1427,19 @@ void printCurrentConditions()
     if (online.gnss == true)
     {
         systemPrint("SIV: ");
-        systemPrint(gnssGetSatellitesInView());
+        systemPrint(gnss->getSatellitesInView());
 
-        float hpa = gnssGetHorizontalAccuracy();
+        float hpa = gnss->getHorizontalAccuracy();
         char temp[20];
         const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3, true);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");
-        systemPrint(gnssGetLatitude(), haeNumberOfDecimals);
+        systemPrint(gnss->getLatitude(), haeNumberOfDecimals);
         systemPrint(", Lon: ");
-        systemPrint(gnssGetLongitude(), haeNumberOfDecimals);
+        systemPrint(gnss->getLongitude(), haeNumberOfDecimals);
         systemPrint(", Altitude (m): ");
-        systemPrint(gnssGetAltitude(), 1);
+        systemPrint(gnss->getAltitude(), 1);
 
         systemPrintln();
     }
@@ -1476,11 +1451,11 @@ void printCurrentConditionsNMEA()
     {
         char systemStatus[100];
         snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", gnssGetHour(), gnssGetMinute(),
-                 gnssGetSecond(), gnssGetMillisecond(), gnssGetDay(), gnssGetMonth(),
-                 gnssGetYear() % 2000, // Limit to 2 digits
-                 gnssGetHorizontalAccuracy(), gnssGetSatellitesInView(), gnssGetLatitude(), gnssGetLongitude(),
-                 gnssGetAltitude(), gnssGetFixType(), gnssGetCarrierSolution(), batteryLevelPercent);
+                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", gnss->getHour(), gnss->getMinute(),
+                 gnss->getSecond(), gnss->getMillisecond(), gnss->getDay(), gnss->getMonth(),
+                 gnss->getYear() % 2000, // Limit to 2 digits
+                 gnss->getHorizontalAccuracy(), gnss->getSatellitesInView(), gnss->getLatitude(), gnss->getLongitude(),
+                 gnss->getAltitude(), gnss->getFixType(), gnss->getCarrierSolution(), batteryLevelPercent);
 
         char nmeaMessage[100]; // Max NMEA sentence length is 82
         createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),

@@ -57,11 +57,11 @@ void menuPortsNoMux()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set serial baud rate for Radio Port: ");
-        systemPrint(gnssGetRadioBaudRate());
+        systemPrint(gnss->getRadioBaudRate());
         systemPrintln(" bps");
 
         systemPrint("2) Set serial baud rate for Data Port: ");
-        systemPrint(gnssGetDataBaudRate());
+        systemPrint(gnss->getDataBaudRate());
         systemPrintln(" bps");
 
         systemPrint("3) GNSS UART2 UBX Protocol In: ");
@@ -87,7 +87,7 @@ void menuPortsNoMux()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnssSetRadioBaudRate(newBaud);
+                        gnss->setRadioBaudRate(newBaud);
                 }
                 else
                 {
@@ -106,7 +106,7 @@ void menuPortsNoMux()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnssSetDataBaudRate(newBaud);
+                        gnss->setDataBaudRate(newBaud);
                 }
                 else
                 {
@@ -147,7 +147,7 @@ void menuPortsMultiplexed()
         systemPrintln("Menu: Ports");
 
         systemPrint("1) Set Radio port serial baud rate: ");
-        systemPrint(gnssGetRadioBaudRate());
+        systemPrint(gnss->getRadioBaudRate());
         systemPrintln(" bps");
 
         systemPrint("2) Set Data port connections: ");
@@ -163,7 +163,7 @@ void menuPortsMultiplexed()
         if (settings.dataPortChannel == MUX_GNSS_UART)
         {
             systemPrint("3) Set Data port serial baud rate: ");
-            systemPrint(gnssGetDataBaudRate());
+            systemPrint(gnss->getDataBaudRate());
             systemPrintln(" bps");
         }
         else if (settings.dataPortChannel == MUX_PPS_EVENTTRIGGER)
@@ -199,7 +199,7 @@ void menuPortsMultiplexed()
                 {
                     settings.radioPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnssSetRadioBaudRate(newBaud);
+                        gnss->setRadioBaudRate(newBaud);
                 }
                 else
                 {
@@ -237,7 +237,7 @@ void menuPortsMultiplexed()
                 {
                     settings.dataPortBaud = newBaud;
                     if (online.gnss == true)
-                        gnssSetDataBaudRate(newBaud);
+                        gnss->setDataBaudRate(newBaud);
                 }
                 else
                 {
@@ -273,7 +273,8 @@ void menuPortsMultiplexed()
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
-        if (mosaicX5InRoverMode() == true)
+        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+        if (mosaic->inRoverMode() == true)
             restartRover = true;
         else
             restartBase = true;
@@ -430,8 +431,8 @@ void menuPortHardwareTriggers()
     if (updateSettings)
     {
         settings.updateGNSSSettings = true; // Force update
-        gnssBeginExternalEvent();           // Update with new settings
-        gnssBeginPPS();
+        gnss->beginExternalEvent();         // Update with new settings
+        gnss->beginPPS();
     }
 }
 

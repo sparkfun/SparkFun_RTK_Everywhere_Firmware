@@ -483,7 +483,7 @@ void bluetoothTest(bool runTest)
         {
             tasksStopGnssUart(); // Stop absorbing serial via task from GNSS receiver
 
-            gnssSetBaudrate(115200 * 2);
+            gnss->setBaudrate(115200 * 2);
 
             serialGNSS->begin(115200 * 2, SERIAL_8N1, pin_GnssUart_RX,
                               pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
@@ -498,7 +498,7 @@ void bluetoothTest(bool runTest)
             else
                 bluetoothStatusText = "Offline";
 
-            gnssSetBaudrate(settings.dataPortBaud);
+            gnss->setBaudrate(settings.dataPortBaud);
 
             serialGNSS->begin(settings.dataPortBaud, SERIAL_8N1, pin_GnssUart_RX,
                               pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be

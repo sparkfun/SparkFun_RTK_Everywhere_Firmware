@@ -713,7 +713,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         }
         break;
         case tUbMsgRtb: {
-            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < qualifier; x++)
             {
@@ -1014,7 +1015,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
     else if (strcmp(settingName, "measurementRateHz") == 0)
     {
-        gnssSetRate(1.0 / settingValue);
+        gnss->setRate(1.0 / settingValue);
 
         // This is one of the first settings to be received. If seen, remove the station files.
         removeFile(stationCoordinateECEFFileName);
@@ -1047,7 +1048,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "minCNO") == 0)
     {
         // Note: this sends the Min CNO to the GNSS, as well as saving it in settings... Is this what we want? TODO
-        gnssSetMinCno(settingValue);
+        gnss->setMinCno(settingValue);
         knownSetting = true;
     }
     else if (strcmp(settingName, "fixedHAEAPC") == 0)
@@ -1468,7 +1469,8 @@ void createSettingsString(char *newSettings)
             case tUbMsgRtb: {
                 // Record message settings
 
-                int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+                GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
@@ -1721,7 +1723,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "fixedBaseCoordinateTypeGeo", true);
     }
 
-    stringRecord(newSettings, "measurementRateHz", 1.0 / gnssGetRateS(), 2); // 2 = decimals to print
+    stringRecord(newSettings, "measurementRateHz", 1.0 / gnss->getRateS(), 2); // 2 = decimals to print
 
     // System state at power on. Convert various system states to either Rover or Base or NTP.
     int lastState; // 0 = Rover, 1 = Base, 2 = NTP
@@ -1759,7 +1761,7 @@ void createSettingsString(char *newSettings)
         stringRecord(newSettings, "wifiConfigOverAP", 0); // 1 = AP mode, 0 = WiFi
 
     // Single variables needed on Config page
-    stringRecord(newSettings, "minCNO", gnssGetMinCno());
+    stringRecord(newSettings, "minCNO", gnss->getMinCno());
     stringRecord(newSettings, "enableRCFirmware", enableRCFirmware);
 
     // Add SD Characteristics
@@ -1795,15 +1797,15 @@ void createSettingsString(char *newSettings)
     stringRecord(newSettings, "daysRemaining", apDaysRemaining);
 
     // Current coordinates come from HPPOSLLH call back
-    stringRecord(newSettings, "geodeticLat", gnssGetLatitude(), haeNumberOfDecimals);
-    stringRecord(newSettings, "geodeticLon", gnssGetLongitude(), haeNumberOfDecimals);
-    stringRecord(newSettings, "geodeticAlt", gnssGetAltitude(), 3);
+    stringRecord(newSettings, "geodeticLat", gnss->getLatitude(), haeNumberOfDecimals);
+    stringRecord(newSettings, "geodeticLon", gnss->getLongitude(), haeNumberOfDecimals);
+    stringRecord(newSettings, "geodeticAlt", gnss->getAltitude(), 3);
 
     double ecefX = 0;
     double ecefY = 0;
     double ecefZ = 0;
 
-    geodeticToEcef(gnssGetLatitude(), gnssGetLongitude(), gnssGetAltitude(), &ecefX, &ecefY, &ecefZ);
+    geodeticToEcef(gnss->getLatitude(), gnss->getLongitude(), gnss->getAltitude(), &ecefX, &ecefY, &ecefZ);
 
     stringRecord(newSettings, "ecefX", ecefX, 3);
     stringRecord(newSettings, "ecefY", ecefY, 3);
@@ -2243,7 +2245,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         }
         break;
         case tUbMsgRtb: {
-            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < qualifier; x++)
             {
@@ -2739,7 +2742,8 @@ void commandList(bool inCommands, int i)
     break;
     case tUbMsgRtb: {
         // Record message settings
-        int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {

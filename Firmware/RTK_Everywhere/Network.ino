@@ -307,7 +307,8 @@ void networkBegin()
 
     // Start LARA (cellular modem)
     #ifdef COMPILE_CELLULAR
-        laraStart();
+        if (present.cellular_lara)
+            laraStart();
     #endif  // COMPILE_CELLULAR
 }
 
@@ -325,6 +326,82 @@ void networkDelay(uint8_t priority, uintptr_t parameter, bool debug)
         // Timer has expired
         networkSequenceNextEntry(priority, debug);
     } 
+}
+
+//----------------------------------------
+// Display the Ethernet data
+//----------------------------------------
+void networkDisplayInterface(NetIndex_t index)
+{
+    const NETWORK_TABLE_ENTRY * entry;
+    bool hasIP;
+    const char * hostName;
+    NetworkInterface * netif;
+    const char * status;
+
+    // Verify the index into the networkInterfaceTable
+    networkValidateIndex(index);
+    entry = &networkInterfaceTable[index];
+    netif = entry->netif;
+
+    hasIP = false;
+    status = "Off";
+    if (netif->started())
+    {
+        status = "Disconnected";
+        if (netif->linkUp())
+        {
+            status = "Link Up - No IP address";
+            hasIP = netif->hasIP();
+            if (hasIP)
+                status = "Online";
+        }
+    }
+    systemPrintf("%s: %s%s\r\n", entry->name, status,
+                 netif->isDefault() ? ", default" : "");
+    hostName = netif->getHostname();
+    if (hostName)
+        systemPrintf("    Host Name: %s\r\n", hostName);
+    systemPrintf("    MAC Address: %s\r\n", netif->macAddress().c_str());
+    if (hasIP)
+    {
+        if (netif->hasGlobalIPv6())
+            systemPrintf("    Global IPv6 Adress: %s\r\n",
+                         netif->globalIPv6().toString().c_str());
+        if (netif->hasLinkLocalIPv6())
+            systemPrintf("    Link Local IPv6 Adress: %s\r\n",
+                         netif->linkLocalIPv6().toString().c_str());
+        systemPrintf("    IPv4 Address: %s (%s)\r\n",
+                     netif->localIP().toString().c_str(),
+                     settings.ethernetDHCP ? "DHCP" : "Static");
+        systemPrintf("    Subnet Mask: %s\r\n", netif->subnetMask().toString().c_str());
+        systemPrintf("    Gateway: %s\r\n", netif->gatewayIP().toString().c_str());
+        IPAddress previousIpAddress = IPAddress((uint32_t)0);
+        for (int dnsAddress = 0; dnsAddress < 4; dnsAddress++)
+        {
+            IPAddress ipAddress = netif->dnsIP(dnsAddress);
+            if ((!ipAddress) || (ipAddress == previousIpAddress))
+                break;
+            previousIpAddress = ipAddress;
+            systemPrintf("    DNS %d: %s\r\n", dnsAddress + 1, ipAddress.toString().c_str());
+        }
+        systemPrintf("    Broadcast: %s\r\n", netif->broadcastIP().toString().c_str());
+    }
+}
+
+//----------------------------------------
+// Display the network status
+//----------------------------------------
+void networkDisplayStatus()
+{
+    // Display the interfaces in priority order
+    for (NetPriority_t priority = 0; priority < NETWORK_OFFLINE; priority++)
+        networkPrintStatus(networkIndexTable[priority]);
+
+    // Display the interfaces details
+    for (NetIndex_t index = 0; index < NETWORK_OFFLINE; index++)
+        if (networkIsPresent(index))
+            networkDisplayInterface(index);
 }
 
 //----------------------------------------
@@ -541,6 +618,19 @@ bool networkIsOnline()
 }
 
 //----------------------------------------
+// Determine if the network is present on the platform
+//----------------------------------------
+bool networkIsPresent(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Present if nullptr or bool set to true
+    return ((!networkInterfaceTable[index].present)
+        || *(networkInterfaceTable[index].present));
+}
+
+//----------------------------------------
 // Mark network offline
 //----------------------------------------
 void networkMarkOffline(NetIndex_t index)
@@ -589,8 +679,12 @@ void networkMarkOffline(NetIndex_t index)
                 break;
             }
 
-            // No, does this network need starting
-            networkStart(index, settings.debugNetworkLayer);
+            // No, is this device present (nullptr: always present)
+            if (networkIsPresent(index))
+            {
+                // No, does this network need starting
+                networkStart(index, settings.debugNetworkLayer);
+            }
         }
 
         // Set the new network priority
@@ -797,8 +891,9 @@ void networkPrintStatus(uint8_t priority)
     }
 
     // Print the network interface status
-    systemPrintf("%c%d: %-10s %-8s\r\n",
-                 highestPriority, priority, name, status);
+    if (networkIsPresent(index))
+        systemPrintf("%c%d: %-10s %-8s\r\n",
+                     highestPriority, priority, name, status);
 }
 
 //----------------------------------------
@@ -1086,12 +1181,16 @@ void networkStart(NetIndex_t index, bool debug)
     // Validate the index
     networkValidateIndex(index);
 
-    // Get the network bit
-    bitMask = (1 << index);
-    if (networkInterfaceTable[index].start
-        && (!(networkStarted & bitMask)))
-            systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
-        networkSequenceStart(index, debug);
+    // Only start networks that exist on the platform
+    if (networkIsPresent(index))
+    {
+        // Get the network bit
+        bitMask = (1 << index);
+        if (networkInterfaceTable[index].start
+            && (!(networkStarted & bitMask)))
+                systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
+            networkSequenceStart(index, debug);
+    }
 }
 
 //----------------------------------------

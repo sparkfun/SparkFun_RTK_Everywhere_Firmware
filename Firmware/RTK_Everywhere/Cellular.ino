@@ -83,6 +83,15 @@ void cellularEvent(arduino_event_id_t event)
         networkMarkOffline(NETWORK_CELLULAR);
     }
 
+    // Cellular State Machine
+    //
+    //   .--------+<----------+<-----------+<---------.
+    //   v        |           |            |          |
+    // STOP --> START --> ATTACHED --> GOT_IP --> CONNECTED --> LOST_IP --> DISCONNECTED
+    //   ^                    ^            ^          |            |            |
+    //   |                    |            '----------+<-----------'            |
+    //   '--------------------+<------------------------------------------------'
+    //
     // Handle the event
     switch (event)
     {

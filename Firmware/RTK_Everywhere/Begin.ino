@@ -189,6 +189,9 @@ void beginBoard()
     }
     else if (productVariant == RTK_TORCH)
     {
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_UM980();
+
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.radio_lora = true;
@@ -283,6 +286,9 @@ void beginBoard()
 
     else if (productVariant == RTK_EVK)
     {
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_ZED();
+
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
@@ -429,6 +435,9 @@ void beginBoard()
         // mosaic COM2 input is "auto" - it will accept RTCMv3 corrections
         // mosaic COM3 is connected to the Data connector - via the multiplexer
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
+
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_MOSAIC();
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
@@ -1475,9 +1484,9 @@ void tpISR()
                 {
                     if (millisNow < (timTpArrivalMillis + 999)) // Only sync if the GNSS time is not stale
                     {
-                        if (gnssIsFullyResolved()) // Only sync if GNSS time is fully resolved
+                        if (gnss->isFullyResolved()) // Only sync if GNSS time is fully resolved
                         {
-                            if (gnssGetTimeAccuracy() < 5000) // Only sync if the tAcc is better than 5000ns
+                            if (gnss->getTimeAccuracy() < 5000) // Only sync if the tAcc is better than 5000ns
                             {
                                 // To perform the time zone adjustment correctly, it's easiest if we convert the GNSS
                                 // time and date into Unix epoch first and then apply the timeZone offset

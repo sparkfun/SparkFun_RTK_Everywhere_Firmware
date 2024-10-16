@@ -42,9 +42,10 @@ void updatePplTask(void *e)
                         // Note: this is almost certainly redundant. It would only be used if we
                         // believe the PPL can do a better job generating corrections than the
                         // ZED can internally using SPARTN direct.
-                        updateZEDCorrectionsSource(1);
+                        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                        zed->updateCorrectionsSource(1);
 
-                        gnssPushRawData(pplRtcmBuffer, rtcmLength);
+                        gnss->pushRawData(pplRtcmBuffer, rtcmLength);
 
                         if (settings.debugCorrections == true && !inMainMenu)
                             systemPrintf("Received %d RTCM bytes from PPL. Pushed to the GNSS.\r\n", rtcmLength);
@@ -233,7 +234,7 @@ void updatePPL()
 
     static unsigned long pplTime3dFixStarted;
 
-    if ((online.ppl == false) && (settings.enablePointPerfectCorrections) && (gnssIsFixed()))
+    if ((online.ppl == false) && (settings.enablePointPerfectCorrections) && (gnss->isFixed()))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
         // connected or L-Band SPARTN is being received. Don't restart the PPL if we've already tried
@@ -256,7 +257,7 @@ void updatePPL()
             {
                 pplReport = millis();
 
-                if (gnssIsRTKFloat() && pplTimeFloatStarted > 0)
+                if (gnss->isRTKFloat() && pplTimeFloatStarted > 0)
                 {
                     systemPrintf("GNSS restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
                                  floatLockRestarts,
@@ -278,7 +279,7 @@ void updatePPL()
             }
         }
 
-        if (gnssIsRTKFloat())
+        if (gnss->isRTKFloat())
         {
             if (pplTimeFloatStarted == 0)
                 pplTimeFloatStarted = millis();
@@ -300,7 +301,7 @@ void updatePPL()
                 }
             }
         }
-        else if (gnssIsRTKFix())
+        else if (gnss->isRTKFix())
         {
             if (pplTimeFloatStarted != 0)
                 pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted
@@ -320,7 +321,7 @@ void updatePPL()
         {
             // We are not in RTK Float or RTK Fix
 
-            if (gnssIsFixed() == false)
+            if (gnss->isFixed() == false)
                 pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted if we loose a 3D fix entirely
         }
     }

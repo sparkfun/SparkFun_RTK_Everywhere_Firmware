@@ -338,65 +338,11 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
+#include "GNSS_ZED.h"
+
+GNSS * gnss;
 
 char neoFirmwareVersion[20]; // Output to system status menu.
-
-// Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
-// waitForResponse. Also prevents pushRawData from being called.
-class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
-{
-  public:
-    // SemaphoreHandle_t gnssSemaphore = nullptr;
-
-    // Revert to a simple bool lock. The Mutex was causing occasional panics caused by
-    // vTaskPriorityDisinheritAfterTimeout in lock() (I think possibly / probably caused by the GNSS not being pinned to
-    // one core?
-    bool iAmLocked = false;
-
-    bool createLock(void)
-    {
-        // if (gnssSemaphore == nullptr)
-        //   gnssSemaphore = xSemaphoreCreateMutex();
-        // return gnssSemaphore;
-
-        return true;
-    }
-    bool lock(void)
-    {
-        // return (xSemaphoreTake(gnssSemaphore, 2100) == pdPASS);
-
-        if (!iAmLocked)
-        {
-            iAmLocked = true;
-            return true;
-        }
-
-        unsigned long startTime = millis();
-        while (((millis() - startTime) < 2100) && (iAmLocked))
-            delay(1); // Yield
-
-        if (!iAmLocked)
-        {
-            iAmLocked = true;
-            return true;
-        }
-
-        return false;
-    }
-    void unlock(void)
-    {
-        // xSemaphoreGive(gnssSemaphore);
-
-        iAmLocked = false;
-    }
-    void deleteLock(void)
-    {
-        // vSemaphoreDelete(gnssSemaphore);
-        // gnssSemaphore = nullptr;
-    }
-};
-
-SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #ifdef COMPILE_L_BAND
 static SFE_UBLOX_GNSS_SUPER i2cLBand; // NEO-D9S
@@ -430,12 +376,8 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// GNSS configuration - UM980
+// Extensible Message Parser
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-#endif // COMPILE_UM980
-
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 SEMP_PARSE_STATE *rtkParse = nullptr;
 SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
@@ -779,7 +721,6 @@ unsigned long startTime;             // Used for checking longest-running functi
 bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S only)
 unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
-uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
@@ -820,8 +761,6 @@ unsigned long rtkTimeToFixMs;
 volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer;
-
-unsigned long autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
 RtkMode_t rtkMode; // Mode of operation
 
@@ -1064,9 +1003,9 @@ void setup()
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate();
 
-    DMW_b("checkUpdateUm980Firmware");
-    if (checkUpdateUm980Firmware() == true) // Check if updateLoraFirmware.txt exists
-        beginUm980FirmwareUpdate();
+    DMW_b("um980FirmwareCheckUpdate");
+    if (um980FirmwareCheckUpdate() == true) // Check if updateUm980Firmware.txt exists
+        um980FirmwareBeginUpdate();
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
@@ -1100,8 +1039,8 @@ void setup()
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
 
-    DMW_b("gnssBegin");
-    gnssBegin(); // Requires settings. Connect to GNSS to get module type
+    DMW_b("gnss->begin");
+    gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1129,17 +1068,17 @@ void setup()
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnssConfigure");
-    gnssConfigure(); // Requires settings. Configure GNSS module
+    DMW_b("gnss->configure");
+    gnss->configure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band
 
     DMW_b("beginExternalEvent");
-    gnssBeginExternalEvent(); // Configure the event input
+    gnss->beginExternalEvent(); // Configure the event input
 
     DMW_b("beginPPS");
-    gnssBeginPPS(); // Configure the time pulse output
+    gnss->beginPPS(); // Configure the time pulse output
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1228,8 +1167,8 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnssUpdate");
-    gnssUpdate();
+    DMW_c("gnss->update");
+    gnss->update();
 
     DMW_c("stateUpdate");
     stateUpdate();
@@ -1467,21 +1406,21 @@ void rtcUpdate()
             {
                 lastRTCAttempt = millis();
 
-                // gnssUpdate() is called in loop() but rtcUpdate
+                // gnss->update() is called in loop() but rtcUpdate
                 // can also be called during begin. To be safe, check for fresh PVT data here.
-                gnssUpdate();
+                gnss->update();
 
                 bool timeValid = false;
 
-                if (gnssIsValidTime() == true &&
-                    gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
+                if (gnss->isValidTime() == true &&
+                    gnss->isValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
 
-                if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
+                if (gnss->isConfirmedTime() == true && gnss->isConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
 
                 if (timeValid &&
-                    (gnssGetFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
+                    (gnss->getFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
                     timeValid = false;
 
                 if (timeValid == true)

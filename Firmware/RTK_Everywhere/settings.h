@@ -1,8 +1,9 @@
 #ifndef __SETTINGS_H__
 #define __SETTINGS_H__
 
-#include "UM980.h" //Structs of UM980 messages, needed for settings.h
-#include "mosaic.h" //Structs of mosaic messages, needed for settings.h
+#include "GNSS.h"
+#include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
+#include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include <vector>
 
 // System can enter a variety of states
@@ -306,84 +307,7 @@ enum PeriodDisplayValues
 #define PERIODIC_SETTING(x) (settings.periodicDisplay & PERIODIC_MASK(x))
 #define PERIODIC_TOGGLE(x) settings.periodicDisplay = settings.periodicDisplay ^ PERIODIC_MASK(x)
 
-typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
-typedef uint32_t NetMask_t;      // One bit for each network interface
-typedef int8_t NetPriority_t;  // Index into networkPriorityTable
-                                // Value 0 (highest) - 255 (lowest) priority
-
-// Types of networks, must be in same order as networkInterfaceTable
-enum NetworkTypes
-{
-    NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    #ifdef COMPILE_ETHERNET
-        NETWORK_ETHERNET,
-    #endif  // COMPILE_ETHERNET
-    #ifdef COMPILE_WIFI
-        NETWORK_WIFI = 1,
-    #endif  // COMPILE_WIFI
-    #ifdef COMPILE_CELLULAR
-        NETWORK_CELLULAR,
-    #endif  // COMPILE_CELLULAR
-    // Add new networks here
-    NETWORK_MAX
-};
-
 #ifdef  COMPILE_NETWORK
-
-// Routine to poll a network interface
-// Inputs:
-//     index: Index into the networkInterfaceTable
-//     parameter: Arbitrary parameter to the poll routine
-typedef void (* NETWORK_POLL_ROUTINE)(NetIndex_t index, uintptr_t parameter, bool debug);
-
-// Sequence entry specifying a poll routine call for a network interface
-typedef struct _NETWORK_POLL_SEQUENCE
-{
-    NETWORK_POLL_ROUTINE routine; // Address of poll routine, nullptr at end of table
-    uintptr_t parameter;          // Parameter passed to poll routine
-    const char * description;     // Description of operation
-} NETWORK_POLL_SEQUENCE;
-
-// networkInterfaceTable entry
-typedef struct _NETWORK_TABLE_ENTRY
-{
-    NetworkInterface * netif;       // Network interface object address
-    const char * name;              // Name of the network interface
-    uint8_t pdState;                // Periodic display state value
-    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
-    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
-    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
-} NETWORK_TABLE_ENTRY;
-
-// Sequence table declarations
-extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
-extern NETWORK_POLL_SEQUENCE laraBootSequence[];
-extern NETWORK_POLL_SEQUENCE laraOffSequence[];
-extern NETWORK_POLL_SEQUENCE laraOnSequence[];
-
-// List of networks
-// Multiple networks may running in parallel with highest priority being
-// set to the default network.  The start routine is called as the priority
-// drops to that level.  The stop routine is called as the priority rises
-// above that level.  The priority will continue to fall or rise until a
-// network is found that is online.
-const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
-{ //     Interface  Name            Periodic State      Boot Sequence           Start Sequence      Stop Sequence
-    #ifdef COMPILE_ETHERNET
-        {&ETH,      "Ethernet",     PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
-    #endif  // COMPILE_ETHERNET
-    #ifdef COMPILE_WIFI
-        {&WiFi.STA, "WiFi",         PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
-    #endif  // COMPILE_WIFI
-    #ifdef  COMPILE_CELLULAR
-        {&PPP,      "Cellular",     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
-    #endif  // COMPILE_CELLULAR
-};
-const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
-
-#define NETWORK_OFFLINE     networkInterfaceTableEntries
-
-const NetMask_t mDNSUse = 0x3; // One bit per network interface
 
 // NTRIP Server data
 typedef struct _NTRIP_SERVER_DATA
@@ -2047,6 +1971,88 @@ struct struct_online
     bool httpClient = false;
     bool loraRadio = false;
 } online;
+
+typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
+typedef uint32_t NetMask_t;      // One bit for each network interface
+typedef int8_t NetPriority_t;  // Index into networkPriorityTable
+                                // Value 0 (highest) - 255 (lowest) priority
+
+// Types of networks, must be in same order as networkInterfaceTable
+enum NetworkTypes
+{
+    NETWORK_NONE = -1,  // The values below must start at zero and be sequential
+    #ifdef COMPILE_ETHERNET
+        NETWORK_ETHERNET,
+    #endif  // COMPILE_ETHERNET
+    #ifdef COMPILE_WIFI
+        NETWORK_WIFI = 1,
+    #endif  // COMPILE_WIFI
+    #ifdef COMPILE_CELLULAR
+        NETWORK_CELLULAR,
+    #endif  // COMPILE_CELLULAR
+    // Add new networks here
+    NETWORK_MAX
+};
+
+#ifdef  COMPILE_NETWORK
+
+// Routine to poll a network interface
+// Inputs:
+//     index: Index into the networkInterfaceTable
+//     parameter: Arbitrary parameter to the poll routine
+typedef void (* NETWORK_POLL_ROUTINE)(NetIndex_t index, uintptr_t parameter, bool debug);
+
+// Sequence entry specifying a poll routine call for a network interface
+typedef struct _NETWORK_POLL_SEQUENCE
+{
+    NETWORK_POLL_ROUTINE routine; // Address of poll routine, nullptr at end of table
+    uintptr_t parameter;          // Parameter passed to poll routine
+    const char * description;     // Description of operation
+} NETWORK_POLL_SEQUENCE;
+
+// networkInterfaceTable entry
+typedef struct _NETWORK_TABLE_ENTRY
+{
+    NetworkInterface * netif;       // Network interface object address
+    const char * name;              // Name of the network interface
+    bool * present;                 // Address of present bool or nullptr if always available
+    uint8_t pdState;                // Periodic display state value
+    NETWORK_POLL_SEQUENCE * boot;   // Boot sequence, may be nullptr
+    NETWORK_POLL_SEQUENCE * start;  // Start sequence (Off --> On), may be nullptr
+    NETWORK_POLL_SEQUENCE * stop;   // Stop routine (On --> Off), may be nullptr
+} NETWORK_TABLE_ENTRY;
+
+// Sequence table declarations
+extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
+extern NETWORK_POLL_SEQUENCE laraBootSequence[];
+extern NETWORK_POLL_SEQUENCE laraOffSequence[];
+extern NETWORK_POLL_SEQUENCE laraOnSequence[];
+
+// List of networks
+// Multiple networks may running in parallel with highest priority being
+// set to the default network.  The start routine is called as the priority
+// drops to that level.  The stop routine is called as the priority rises
+// above that level.  The priority will continue to fall or rise until a
+// network is found that is online.
+const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
+{ //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
+    #ifdef COMPILE_ETHERNET
+        {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    #endif  // COMPILE_ETHERNET
+    #ifdef COMPILE_WIFI
+        {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
+    #endif  // COMPILE_WIFI
+    #ifdef  COMPILE_CELLULAR
+        {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+    #endif  // COMPILE_CELLULAR
+};
+const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
+
+#define NETWORK_OFFLINE     networkInterfaceTableEntries
+
+const NetMask_t mDNSUse = 0x3; // One bit per network interface
+
+#endif //  COMPILE_NETWORK
 
 // Monitor which tasks are running.
 struct struct_tasks

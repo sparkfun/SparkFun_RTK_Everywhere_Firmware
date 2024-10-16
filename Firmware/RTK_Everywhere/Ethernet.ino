@@ -21,6 +21,8 @@ void menuEthernet()
 
     while (1)
     {
+        networkDisplayInterface(NETWORK_ETHERNET);
+
         systemPrintln();
         systemPrintln("Menu: Ethernet");
         systemPrintln();
@@ -141,12 +143,12 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 
     // Ethernet State Machine
     //
-    //   .--------+<----------+------------+----------.
+    //   .--------+<----------+<-----------+<---------.
     //   v        |           |            |          |
     // STOP --> START --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
-    //   ^                    ^            ^          |             |
-    //   |                    |            '----------'             |
-    //   '--------------------+<------------------------------------'
+    //                        ^            ^          |             |
+    //                        |            '----------'             |
+    //                        '-------------------------------------'
     //
     // Handle the event
     switch (event)
