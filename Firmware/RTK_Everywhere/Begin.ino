@@ -139,8 +139,12 @@ void identifyBoard()
         else if (idWithAdc(idValue, 1, 4.7, 5.5))
             productVariant = RTK_FACET_MOSAIC;
 
-        // Facet v2: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
+        // Facet v2 L-Band: 12.1/1.5  -->  318mV < 364mV < 416mV (7.5% tolerance)
         else if (idWithAdc(idValue, 12.1, 1.5, 7.5))
+            productVariant = RTK_FACET_V2_LBAND;
+
+        // Facet v2: 10.0/2.7  -->  650mV < 702mV < 756mV (4.75% tolerance)
+        else if (idWithAdc(idValue, 10.0, 2.7, 4.75))
             productVariant = RTK_FACET_V2;
     }
 
@@ -394,26 +398,146 @@ void beginBoard()
                          // changed
     }
 
-    else if (productVariant == RTK_FACET_V2)
+    else if (productVariant == RTK_FACET_V2_LBAND)
     {
+        // How it works:
+        // Facet V2 is based on the ESP32-WROVER
+        // ZED-F9P is interfaced via I2C and UART1
+        // NEO-D9S is interfaced via I2C. UART2 TX is also connected to ESP32 pin 4
+        // TODO: pass PMP over serial to save I2C traffic?
+
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_ZED();
+
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.lband_neo = true;
         present.microSd = true;
+        present.microSdCardDetectLow = true;
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
+        present.i2c0BusSpeed_400 = true;
+        present.button_mode = true;
+        present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
+        present.charger_mcp73833 = true;
         present.fuelgauge_max17048 = true;
         present.portDataMux = true;
         present.fastPowerOff = true;
+        present.invertedFastPowerOff = true;
+        present.gnss_to_uart = true;
 
         pin_muxA = 2;
-        pin_muxB = 0;
+        pin_muxB = 12;
+        //pin_LBand_PMP_RX = 4; // TODO
+        pin_GnssUart_TX = 13;
+        pin_GnssUart_RX = 14;
+        pin_microSD_CardDetect = 15;
+        // 30, D18 : SPI SCK --> microSD card
+        // 31, D19 : SPI POCI --> microSD card
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        // 37, D23 : SPI PICO --> microSD card
+        pin_microSD_CS = 25;
+        pin_muxDAC = 26;
+        pin_peripheralPowerControl = 27;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_chargerLED = 34;
+        pin_chargerLED2 = 36;
+        pin_muxADC = 39;
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
 
-        pinMode(pin_powerFastOff, OUTPUT);
-        digitalWrite(pin_powerFastOff, HIGH); // Stay on
+        pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
+        
+        // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
+        // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
+        pinMode(pin_chargerLED, INPUT);
+        pinMode(pin_chargerLED2, INPUT);
+
+        // Turn on power to the peripherals
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, Mux
+
+        DMW_if systemPrintf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);
+
+        // Disable the microSD card
+        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+        pinMode(pin_microSD_CS, OUTPUT);
+        sdDeselectCard();
+    }
+
+    else if (productVariant == RTK_FACET_V2)
+    {
+        // How it works:
+        // Facet V2 is based on the ESP32-WROVER
+        // ZED-F9P is interfaced via I2C and UART1
+
+        // Specify the GNSS radio
+        gnss = (GNSS *) new GNSS_ZED();
+
+        present.psram_4mb = true;
+        present.gnss_zedf9p = true;
+        present.microSd = true;
+        present.microSdCardDetectLow = true;
+        present.display_i2c0 = true;
+        present.display_type = DISPLAY_64x48;
+        present.i2c0BusSpeed_400 = true;
+        present.button_mode = true;
+        present.peripheralPowerControl = true;
+        present.button_powerLow = true; // Button is pressed when low
+        present.charger_mcp73833 = true;
+        present.fuelgauge_max17048 = true;
+        present.portDataMux = true;
+        present.fastPowerOff = true;
+        present.invertedFastPowerOff = true;
+        present.gnss_to_uart = true;
+
+        pin_muxA = 2;
+        pin_muxB = 12;
+        pin_GnssUart_TX = 13;
+        pin_GnssUart_RX = 14;
+        pin_microSD_CardDetect = 15;
+        // 30, D18 : SPI SCK --> microSD card
+        // 31, D19 : SPI POCI --> microSD card
+        pin_I2C0_SDA = 21;
+        pin_I2C0_SCL = 22;
+        // 37, D23 : SPI PICO --> microSD card
+        pin_microSD_CS = 25;
+        pin_muxDAC = 26;
+        pin_peripheralPowerControl = 27;
+        pin_powerSenseAndControl = 32;
+        pin_powerFastOff = 33;
+        pin_chargerLED = 34;
+        pin_chargerLED2 = 36;
+        pin_muxADC = 39;
+
+        pinMode(pin_muxA, OUTPUT);
+        pinMode(pin_muxB, OUTPUT);
+
+        pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
+        
+        // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
+        // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
+        pinMode(pin_chargerLED, INPUT);
+        pinMode(pin_chargerLED2, INPUT);
+
+        // Turn on power to the peripherals
+        DMW_if systemPrintf("pin_peripheralPowerControl: %d\r\n", pin_peripheralPowerControl);
+        pinMode(pin_peripheralPowerControl, OUTPUT);
+        peripheralsOn(); // Turn on power to OLED, SD, ZED, NEO, Mux
+
+        DMW_if systemPrintf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);
+
+        // Disable the microSD card
+        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+        pinMode(pin_microSD_CS, OUTPUT);
+        sdDeselectCard();
     }
 
     else if (productVariant == RTK_FACET_MOSAIC) // RTK_FACET_MOSAIC V1.2
@@ -1174,7 +1298,7 @@ void beginSystemState()
         settings.lastState = systemState;
     }
 
-    if (productVariant == RTK_FACET_V2)
+    if ((productVariant == RTK_FACET_V2) || (productVariant == RTK_FACET_V2_LBAND))
     {
         // Return to either Rover or Base Not Started. The last state previous to power down.
         systemState = settings.lastState;
