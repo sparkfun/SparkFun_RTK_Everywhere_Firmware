@@ -78,7 +78,7 @@ jobs:
         run: arduino-cli lib install
           ArduinoJson@7.0.4
           ESP32Time@2.0.0
-          ESP32_BleSerial@1.0.5
+          ESP32_BleSerial@1.0.6
           "ESP32-OTA-Pull"@1.0.0
           JC_Button@2.1.2
           PubSubClient@2.8.0
@@ -88,7 +88,7 @@ jobs:
           "SparkFun u-blox GNSS v3"@3.1.5
           "SparkFun Qwiic OLED Arduino Library"@1.0.13
           SSLClientESP32@2.0.0
-          "SparkFun Extensible Message Parser"@1.0.1
+          "SparkFun Extensible Message Parser"@1.0.2
           "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
           "ArduinoMqttClient"@0.1.8
           "SparkFun u-blox PointPerfect Library"@1.11.4
@@ -106,7 +106,7 @@ jobs:
       - name: Patch NetworkEvents
         run: |
           cd Firmware/RTK_Everywhere/Patch/
-          cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/$(CORE_VERSION)/libraries/Network/src/
+          cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/libraries/Network/src/
 
       - name: Setup Python
         uses: actions/setup-python@v4

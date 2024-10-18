@@ -301,16 +301,16 @@ void pointperfectGetToken(char *tokenString)
     // Convert uint8_t array into string with dashes in spots
     // We must assume u-blox will not change the position of their dashes or length of their token
 
-    if (productVariant == RTK_EVK)
+    if (productVariant == RTK_EVK) // EVK
     {
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
     }
-    else if (present.gnss_mosaicX5 == false && present.lband_neo == false)
+    else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
     {
         // If the hardware lacks L-Band capability, use IP token
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
     }
-    else if (present.gnss_mosaicX5 == true || present.lband_neo == true)
+    else if (present.gnss_mosaicX5 == true || present.lband_neo == true) // Facet mosaic, Facet v2 L-Band
     {
         // If the hardware is L-Band capable, use L-Band token
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));

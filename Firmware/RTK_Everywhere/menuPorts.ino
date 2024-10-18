@@ -2,7 +2,7 @@ void menuPorts()
 {
     if (present.portDataMux == true)
     {
-        // RTK Facet mosaic, Facet v2
+        // RTK Facet mosaic, Facet v2 L-Band, Facet v2
         menuPortsMultiplexed();
     }
     else if (productVariant == RTK_TORCH)

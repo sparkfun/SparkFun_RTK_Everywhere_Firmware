@@ -121,7 +121,7 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableUART2UBXIn");
             }
-            else if (platformPrefix == "Facet v2") {
+            else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
@@ -207,7 +207,7 @@ function parseIncoming(msg) {
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
-            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 select = ge("dynamicModel");
                 let newOption = new Option('Portable', '0');
                 select.add(newOption, undefined);
@@ -698,7 +698,7 @@ function validateFields() {
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
-    if (platformPrefix == "EVK" || platformPrefix == "Facet v2") {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
         for (let x = 0; x < ubxMessages.length; x++) {
             var messageName = ubxMessages[x].id;
@@ -1258,7 +1258,7 @@ function zeroBaseMessages() {
 
 function resetToSurveyingDefaults() {
     zeroMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1286,7 +1286,7 @@ function resetToSurveyingDefaults() {
 }
 function resetToLoggingDefaults() {
     zeroMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1328,7 +1328,7 @@ function resetToLoggingDefaults() {
 
 function resetToRTCMDefaults() {
     zeroBaseMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRateBase_RTCM_1005").value = 1;
         ge("ubxMessageRateBase_RTCM_1074").value = 1;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -1363,7 +1363,7 @@ function resetToRTCMDefaults() {
 
 function resetToRTCMLowBandwidth() {
     zeroBaseMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRateBase_RTCM_1005").value = 10;
         ge("ubxMessageRateBase_RTCM_1074").value = 2;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -1519,7 +1519,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2")) {
+            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 ge("antennaPhaseCenter_mm").value = 61.4;
             }
             else if (platformPrefix == "Torch") {

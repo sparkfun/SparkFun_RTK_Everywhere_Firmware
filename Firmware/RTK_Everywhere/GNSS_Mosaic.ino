@@ -431,6 +431,8 @@ bool GNSS_MOSAIC::configureLogging()
     bool response = true;
     String setting;
 
+    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
+
     // Configure logging
     if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
     {
@@ -454,6 +456,8 @@ bool GNSS_MOSAIC::configureLogging()
         setting = String("srxl,DSK1,none\n\r");
         response &= sendWithResponse(setting, "RINEXLogging");
     }
+
+    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     if (settings.enableExternalHardwareEventLogging)
     {
@@ -750,6 +754,8 @@ bool GNSS_MOSAIC::enableNMEA()
             setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
             response &= sendWithResponse(setting, "NMEAOutput");
         }
+
+        // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
         if (settings.enableLogging)
         {
@@ -2332,6 +2338,8 @@ void GNSS_MOSAIC::update()
 //----------------------------------------
 bool GNSS_MOSAIC::updateSD()
 {
+    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
+
     char diskInfo[200];
     bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo));
     if (response)
