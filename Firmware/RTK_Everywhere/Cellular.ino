@@ -148,7 +148,7 @@ void cellularSimCheck(NetIndex_t index, uintptr_t parameter, bool debug)
         networkSequenceNextEntry(index, debug);
     else
     {
-        simCardID = CELLULAR.cmd("AT+CCID", 50);
+        simCardID = CELLULAR.cmd("AT+CCID", 500);
         if (simCardID.length())
         {
             if (debug)
