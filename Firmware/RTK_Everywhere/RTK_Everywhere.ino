@@ -1045,8 +1045,6 @@ void setup()
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
-    Serial.println("B");
-
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
 
