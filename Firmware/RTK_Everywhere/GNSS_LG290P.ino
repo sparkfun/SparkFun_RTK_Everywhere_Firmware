@@ -96,7 +96,7 @@ void GNSS_LG290P::begin()
     }
     systemPrintln("GNSS LG290P online");
 
-    delay(3000); // TODO remove
+    online.gnss = true;
 
     // Check firmware version and print info
     printModuleInfo();
@@ -109,8 +109,6 @@ void GNSS_LG290P::begin()
         gnssFirmwareVersionInt = 99;
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
-
-    online.gnss = true;
 }
 
 //----------------------------------------
