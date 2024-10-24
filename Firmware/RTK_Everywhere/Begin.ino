@@ -1584,8 +1584,18 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
+            case 0x18: {
+                systemPrintf("  0x%02X - PCA9557 GPIO Expander with Reset\r\n", addr);
+                break;
+            }
+
             case 0x19: {
                 systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
+                break;
+            }
+
+            case 0x20: {
+                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt\r\n", addr);
                 break;
             }
 
