@@ -289,11 +289,10 @@ bool GNSS_UM980::configureNtpMode()
 }
 
 //----------------------------------------
-// Setup the u-blox module for any setup (base or rover)
-// In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
-// occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
+// Setup the GNSS module for any setup (base or rover)
+// In general we check if the setting is different than setting stored in NVM before writing it.
 //----------------------------------------
-bool GNSS_UM980::configureRadio()
+bool GNSS_UM980::configureGNSS()
 {
     // Skip configuring the UM980 if no new changes are necessary
     if (settings.updateGNSSSettings == false)

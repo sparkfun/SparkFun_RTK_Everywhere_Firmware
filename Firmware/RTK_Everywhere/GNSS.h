@@ -45,7 +45,7 @@ class GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    virtual bool configureRadio();
+    virtual bool configureGNSS();
 
     // Set the minimum satellite signal level for navigation.
     virtual bool setMinCnoRadio (uint8_t cnoValue);

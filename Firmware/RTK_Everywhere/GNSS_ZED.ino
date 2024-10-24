@@ -507,7 +507,7 @@ bool GNSS_ZED::configureNtpMode()
 // In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
 // occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
 //----------------------------------------
-bool GNSS_ZED::configureRadio()
+bool GNSS_ZED::configureGNSS()
 {
     if (online.gnss == false)
         return (false);

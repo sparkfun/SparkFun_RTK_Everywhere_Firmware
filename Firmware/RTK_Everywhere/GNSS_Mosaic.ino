@@ -558,7 +558,7 @@ bool GNSS_MOSAIC::configureOnce()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::configureRadio()
+bool GNSS_MOSAIC::configureGNSS()
 {
     // Skip configuring the MOSAICX5 if no new changes are necessary
     if (settings.updateGNSSSettings == false)

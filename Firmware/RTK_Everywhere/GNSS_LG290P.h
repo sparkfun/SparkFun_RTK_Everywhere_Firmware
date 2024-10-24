@@ -88,7 +88,7 @@ class GNSS_LG290P : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureRadio();
+    bool configureGNSS();
 
     // Turn on all the enabled NMEA messages on COM3
     bool enableNMEA();

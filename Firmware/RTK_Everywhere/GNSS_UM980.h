@@ -110,7 +110,7 @@ class GNSS_UM980 : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureRadio();
+    bool configureGNSS();
 
     // Turn off all NMEA and RTCM
     void disableAllOutput();
