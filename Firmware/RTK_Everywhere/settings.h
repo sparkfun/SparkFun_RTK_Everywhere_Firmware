@@ -1485,14 +1485,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Beeper
     { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableBeeper, "enableBeeper",  },
@@ -1514,14 +1514,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Data Port Multiplexer
     { 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, tMuxConn,  0, & settings.dataPortChannel, "dataPortChannel",  },
@@ -1541,14 +1541,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Ethernet
     { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.enablePrintEthernetDiag, "enablePrintEthernetDiag",  },
@@ -1588,14 +1588,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Log file
     { 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableLogging, "enableLogging",  },
@@ -1636,14 +1636,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // NTP (Ethernet Only)
     { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.debugNtp, "debugNtp",  },
@@ -1734,14 +1734,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Pulse Per Second
     { 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, _bool,     0, & settings.enableExternalPulse, "enableExternalPulse",  },
@@ -1768,14 +1768,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // SD Card
     { 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintBufferOverrun, "enablePrintBufferOverrun",  },
@@ -1796,14 +1796,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Setup Button
     { 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
@@ -1835,14 +1835,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // ublox GNSS Receiver
     { 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
@@ -1861,14 +1861,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // UM980 GNSS Receiver
     { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
@@ -1915,14 +1915,14 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //       i              a     e
 //    u  n  i           c     t
 //    p  W  n  u        e
-//    d  e  C  s     F  t     V
-//    a  b  o  e     a        2
-//    t  C  m  S     c  M
-//    e  o  m  u     e  o  T  L
-//    G  n  a  f     t  s  o  B
-//    N  f  n  f  E     a  r  a
-//    S  i  d  i  v  V  i  c  n
-//    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     /*
     { 0, 1, 1, 0, 1, 1, 1, 1, 1,    ,       0, & settings., ""},
