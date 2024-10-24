@@ -728,6 +728,46 @@ void checkGNSSArrayDefaults()
         }
     }
 
+    else if (present.gnss_lg290p)
+    {
+        if (settings.lg290pConstellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+                settings.lg290pConstellations[x] = 1;
+        }
+
+        if (settings.lg290pMessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+                settings.lg290pMessageRatesNMEA[x] = lgMessagesNMEA[x].msgDefaultRate;
+        }
+
+        if (settings.lg290pMessageRatesRTCMRover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                settings.lg290pMessageRatesRTCMRover[x] = 0;
+        }
+
+        if (settings.lg290pMessageRatesRTCMBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                settings.lg290pMessageRatesRTCMBase[x] = lgMessagesRTCM[x].msgDefaultRate;
+        }
+    }
+
+
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
     {
@@ -742,6 +782,12 @@ void checkGNSSArrayDefaults()
             settings.minCNO = 6;                     // Default 6 degrees
             settings.surveyInStartingAccuracy = 1.0; // Default 1m
             settings.measurementRateMs = 250;        // Default 4Hz.
+        }
+        else if (present.gnss_lg290p)
+        {
+            //settings.minCNO = 10;                     // Not yet supported
+            settings.surveyInStartingAccuracy = 2.0; // Default 2m
+            settings.measurementRateMs = 500;        // Default 2Hz.
         }
     }
 

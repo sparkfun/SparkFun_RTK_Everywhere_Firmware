@@ -21,10 +21,10 @@
 
 // To reduce compile times, various parts of the firmware can be disabled/removed if they are not
 // needed during development
-#define COMPILE_BT       // Comment out to remove Bluetooth functionality
-#define COMPILE_WIFI     // Comment out to remove WiFi functionality
-#define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
-#define COMPILE_CELLULAR // Comment out to remove cellular modem support
+// #define COMPILE_BT       // Comment out to remove Bluetooth functionality
+// #define COMPILE_WIFI     // Comment out to remove WiFi functionality
+// #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+// #define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_WIFI
 #define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
@@ -33,10 +33,12 @@
 
 #define COMPILE_L_BAND               // Comment out to remove L-Band functionality
 #define COMPILE_UM980                // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
-#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
-#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 #define COMPILE_MOSAICX5             // Comment out to remove mosaic-X5 functionality
+#define COMPILE_LG290P               // Comment out to remove LG290P functionality
+
+#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+//#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
@@ -800,7 +802,7 @@ const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
 //     a rough location of the issue.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#define DEAD_MAN_WALKING_ENABLED 0
+#define DEAD_MAN_WALKING_ENABLED 1
 
 #if DEAD_MAN_WALKING_ENABLED
 
@@ -1042,6 +1044,8 @@ void setup()
 
     DMW_b("gnss->begin");
     gnss->begin(); // Requires settings. Connect to GNSS to get module type
+
+    Serial.println("B");
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present

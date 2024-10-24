@@ -1026,6 +1026,7 @@ double GNSS_ZED::getAltitude()
 
 //----------------------------------------
 // Returns the carrier solution or zero if not online
+// 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
 //----------------------------------------
 uint8_t GNSS_ZED::getCarrierSolution()
 {

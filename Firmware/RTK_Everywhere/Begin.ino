@@ -198,7 +198,7 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_UM980();
+        gnss = (GNSS *)new GNSS_UM980();
 
         present.psram_2mb = true;
         present.gnss_um980 = true;
@@ -212,6 +212,8 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
+        present.minCN0Capable = true;
+        present.minElevationCapable = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -295,7 +297,7 @@ void beginBoard()
     else if (productVariant == RTK_EVK)
     {
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_ZED();
+        gnss = (GNSS *)new GNSS_ZED();
 
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
@@ -318,6 +320,8 @@ void beginBoard()
         present.display_i2c1 = true;
         present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
+        present.minCN0Capable = true;
+        present.minElevationCapable = true;
 
         // Pin Allocations:
         // 35, D1  : Serial TX (CH340 RX)
@@ -411,7 +415,7 @@ void beginBoard()
         // TODO: pass PMP over serial to save I2C traffic?
 
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_ZED();
+        gnss = (GNSS *)new GNSS_ZED();
 
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
@@ -430,10 +434,12 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
+        present.minCN0Capable = true;
+        present.minElevationCapable = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
-        //pin_LBand_PMP_RX = 4; // TODO
+        // pin_LBand_PMP_RX = 4; // TODO
         pin_GnssUart_TX = 13;
         pin_GnssUart_RX = 14;
         pin_microSD_CardDetect = 15;
@@ -455,7 +461,7 @@ void beginBoard()
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        
+
         // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
         // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
         pinMode(pin_chargerLED, INPUT);
@@ -482,7 +488,7 @@ void beginBoard()
         // ZED-F9P is interfaced via I2C and UART1
 
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_ZED();
+        gnss = (GNSS *)new GNSS_ZED();
 
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
@@ -500,6 +506,8 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
+        present.minCN0Capable = true;
+        present.minElevationCapable = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -524,7 +532,7 @@ void beginBoard()
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        
+
         // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
         // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
         pinMode(pin_chargerLED, INPUT);
@@ -565,7 +573,7 @@ void beginBoard()
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_MOSAIC();
+        gnss = (GNSS *)new GNSS_MOSAIC();
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
@@ -581,8 +589,10 @@ void beginBoard()
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.needsExternalPpl = true;     // Uses the PointPerfect Library
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
+        present.minCN0Capable = true;
+        present.minElevationCapable = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -608,7 +618,7 @@ void beginBoard()
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        
+
         // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
         // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
         pinMode(pin_chargerLED, INPUT);
@@ -626,18 +636,21 @@ void beginBoard()
     else if (productVariant == RTK_POSTCARD)
     {
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_UM980();
+        gnss = (GNSS *)new GNSS_LG290P();
 
         present.psram_2mb = true;
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 42.0;
-        //present.galileoHasCapable = true; //Unknown at this time
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
-        //TODO detect shield
-        // present.fuelgauge_max17048 = true;
-        // present.charger_mp2762a = true;
+        // The following are present on the optional shield. Devices will be marked offline if shield is not present.
+        present.charger_mcp73833 = true;
+        present.fuelgauge_max17048 = true;
+        present.display_i2c0 = true;
+        present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        present.display_type = DISPLAY_128x64;
+        //present.microSd = true;
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -649,7 +662,7 @@ void beginBoard()
         pin_GNSS_TimePulse = 8; // PPS on LG290P
 
         pin_bluetoothStatusLED = 0; // Green status LED
-        //pin_gnssStatusLED = 13;
+        // pin_gnssStatusLED = 13;
 
         DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
@@ -668,7 +681,6 @@ void beginBoard()
 
         settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
     }
-
 }
 
 void beginVersion()
@@ -1385,6 +1397,15 @@ void beginSystemState()
         // If the setting is not set, override with default
         if (settings.antennaPhaseCenter_mm == 0.0)
             settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // Return to either Rover or Base Not Started. The last state previous to power down.
+        systemState = settings.lastState;
+
+        firstRoverStart = true; // Allow user to enter test screen during first rover start
+        if (systemState == STATE_BASE_NOT_STARTED)
+            firstRoverStart = false;
     }
     else
     {

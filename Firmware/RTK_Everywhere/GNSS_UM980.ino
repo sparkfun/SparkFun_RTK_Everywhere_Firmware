@@ -713,7 +713,7 @@ uint8_t GNSS_UM980::getCarrierSolution()
         // 3 = No convergence,
         // 4 = Covariance trace
 
-        uint8_t solutionStatus = _um980->getSolutionStatus()
+        uint8_t solutionStatus = _um980->getSolutionStatus();
 
         if (solutionStatus == 0)
             return 2; // RTK Fix

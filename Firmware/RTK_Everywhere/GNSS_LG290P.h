@@ -9,77 +9,59 @@ GNSS_LG290P.h
 
 #ifdef COMPILE_LG290P
 
-// #include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-
-/*
-  Unicore defaults:
-  RTCM1006 10
-  RTCM1074 1
-  RTCM1084 1
-  RTCM1094 1
-  RTCM1124 1
-  RTCM1033 10
-*/
-
-// Each constellation will have its config command text, enable, and a visible name
-typedef struct
-{
-    char textName[30];
-    char textCommand[5];
-} lg290pConstellationCommand;
+#include <SparkFun_LG290P_GNSS.h> //http://librarymanager/All#SparkFun_LG290P
 
 // Constellations monitored/used for fix
-// Available constellations: GPS, BDS, GLO, GAL, QZSS
-// SBAS and IRNSS don't seem to be supported
-const lg290pConstellationCommand lg290pConstellationCommands[] = {
-    {"BeiDou", "BDS"}, {"Galileo", "GAL"}, {"GLONASS", "GLO"}, {"GPS", "GPS"}, {"QZSS", "QZSS"},
+// Available constellations: GPS, BDS, GLO, GAL, QZSS, NavIC
+const char *lg290pConstellationNames[] = {
+    "GPS", "GLONASS", "Galileo", "BeiDou", "QZSS", "NavIC",
 };
 
-#define MAX_UM980_CONSTELLATIONS (sizeof(lg290pConstellationCommands) / sizeof(lg290pConstellationCommand))
+#define MAX_LG290P_CONSTELLATIONS (6)
 
 // Struct to describe support messages on the UM980
 // Each message will have the serial command and its default value
 typedef struct
 {
-    const char msgTextName[9];
+    const char msgTextName[11];
     const float msgDefaultRate;
 } lg290pMsg;
 
 // Static array containing all the compatible messages
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
-    // NMEA
-    {"GPRMC", 1}, {"GPGGA", 1}, {"GPGSV", 0.5}, {"GPGSA", 1}, {"GPVTG", 0}, {"GPGLL", 0},
+    {"RMC", 1}, {"GGA", 1}, {"GSV", 0.5}, {"GSA", 1}, {"VTG", 0}, {"GLL", 0},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
+    {"RTCM3-1005", 1}, {"RTCM3-1006", 0},
 
-    // RTCM
-    {"RTCM1005", 1}, {"RTCM1006", 0},  
+    {"RTCM3-1019", 0},
 
-    {"RTCM1019", 0},
+    {"RTCM3-1020", 0},
 
-    {"RTCM1020", 0},
+    {"RTCM3-1041", 0}, {"RTCM3-1042", 0}, {"RTCM3-1044", 0}, {"RTCM3-1046", 0},
 
-    {"RTCM1041", 0}, {"RTCM1042", 0}, {"RTCM1044", 0}, {"RTCM1046", 0},
+    // These should be supported soon
+    /*
+        {"RTCM3-1070", 0}, {"RTCM3-1071", 0}, {"RTCM3-1072", 0}, {"RTCM3-1073", 0}, {"RTCM3-1074", 1},
+        {"RTCM3-1075", 0}, {"RTCM3-1076", 0}, {"RTCM3-1077", 0}, {"RTCM3-1078", 0}, {"RTCM3-1079", 0},
 
-    {"RTCM1070", 0}, {"RTCM1071", 0}, {"RTCM1072", 0}, {"RTCM1073", 0}, {"RTCM1074", 1}, 
-    {"RTCM1075", 0}, {"RTCM1076", 0}, {"RTCM1077", 0}, {"RTCM1078", 0}, {"RTCM1079", 0}, 
+        {"RTCM3-1080", 0}, {"RTCM3-1081", 0}, {"RTCM3-1082", 0}, {"RTCM3-1083", 0}, {"RTCM3-1084", 1},
+        {"RTCM3-1085", 0}, {"RTCM3-1086", 0}, {"RTCM3-1087", 0}, {"RTCM3-1088", 0}, {"RTCM3-1089", 0},
 
-    {"RTCM1080", 0}, {"RTCM1081", 0}, {"RTCM1082", 0}, {"RTCM1083", 0}, {"RTCM1084", 1}, 
-    {"RTCM1085", 0}, {"RTCM1086", 0}, {"RTCM1087", 0}, {"RTCM1088", 0}, {"RTCM1089", 0},
+        {"RTCM3-1090", 0}, {"RTCM3-1091", 0}, {"RTCM3-1092", 0}, {"RTCM3-1093", 0}, {"RTCM3-1094", 1},
+        {"RTCM3-1095", 0}, {"RTCM3-1096", 0}, {"RTCM3-1097", 0}, {"RTCM3-1098", 0}, {"RTCM3-1099", 0},
 
-    {"RTCM1090", 0}, {"RTCM1091", 0}, {"RTCM1092", 0}, {"RTCM1093", 0}, {"RTCM1094", 1}, 
-    {"RTCM1095", 0}, {"RTCM1096", 0}, {"RTCM1097", 0}, {"RTCM1098", 0}, {"RTCM1099", 0},
+        {"RTCM3-1110", 0}, {"RTCM3-1111", 0}, {"RTCM3-1112", 0}, {"RTCM3-1113", 0}, {"RTCM3-1114", 1},
+        {"RTCM3-1115", 0}, {"RTCM3-1116", 0}, {"RTCM3-1117", 0}, {"RTCM3-1118", 0}, {"RTCM3-1119", 0},
 
-    {"RTCM1110", 0}, {"RTCM1111", 0}, {"RTCM1112", 0}, {"RTCM1113", 0}, {"RTCM1114", 0}, 
-    {"RTCM1115", 0}, {"RTCM1116", 0}, {"RTCM1117", 0}, {"RTCM1118", 0}, {"RTCM1119", 0},
+        {"RTCM3-1120", 0}, {"RTCM3-1121", 0}, {"RTCM3-1122", 0}, {"RTCM3-1123", 0}, {"RTCM3-1124", 1},
+        {"RTCM3-1125", 0}, {"RTCM3-1126", 0}, {"RTCM3-1127", 0}, {"RTCM3-1128", 0}, {"RTCM3-1129", 0},
 
-    {"RTCM1120", 0}, {"RTCM1121", 0}, {"RTCM1122", 0}, {"RTCM1123", 0}, {"RTCM1124", 1}, 
-    {"RTCM1125", 0}, {"RTCM1126", 0}, {"RTCM1127", 0}, {"RTCM1128", 0}, {"RTCM1129", 0},
-
-    {"RTCM1130", 0}, {"RTCM1131", 0}, {"RTCM1132", 0}, {"RTCM1133", 0}, {"RTCM1134", 1}, 
-    {"RTCM1135", 0}, {"RTCM1136", 0}, {"RTCM1137", 0}, {"RTCM1138", 0}, {"RTCM1139", 0},
+        {"RTCM3-1130", 0}, {"RTCM3-1131", 0}, {"RTCM3-1132", 0}, {"RTCM3-1133", 0}, {"RTCM3-1134", 1},
+        {"RTCM3-1135", 0}, {"RTCM3-1136", 0}, {"RTCM3-1137", 0}, {"RTCM3-1138", 0}, {"RTCM3-1139", 0},
+        */
 
 };
 
@@ -88,6 +70,7 @@ const lg290pMsg lgMessagesRTCM[] = {
 
 enum lg290p_Models
 {
+    // LG290P does not have models
     LG290P_DYN_MODEL_SURVEY = 0,
     LG290P_DYN_MODEL_UAV,
     LG290P_DYN_MODEL_AUTOMOTIVE,
@@ -96,7 +79,7 @@ enum lg290p_Models
 class GNSS_LG290P : GNSS
 {
   private:
-    // LG290P * _lg290p; // Library class instance
+    LG290P *_lg290p; // Library class instance
 
   protected:
     bool configureOnce();
@@ -106,12 +89,6 @@ class GNSS_LG290P : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureRadio();
-
-    // Turn off all NMEA and RTCM
-    void disableAllOutput();
-
-    // Disable all output, then re-enable
-    void disableRTCM();
 
     // Turn on all the enabled NMEA messages on COM3
     bool enableNMEA();
@@ -141,12 +118,7 @@ class GNSS_LG290P : GNSS
 
     // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-    void menuMessagesSubtype(float *localMessageRate, const char *messageType);
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudRateCOM3(uint32_t baudRate);
+    void menuMessagesSubtype(int *localMessageRate, const char *messageType);
 
     bool setHighAccuracyService(bool enableGalileoHas);
 

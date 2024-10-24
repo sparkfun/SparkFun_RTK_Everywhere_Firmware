@@ -4,6 +4,7 @@
 #include "GNSS.h"
 #include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
 #include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
+#include "GNSS_LG290P.h" //Structs of LG90P messages, needed for settings.h
 #include <vector>
 
 // System can enter a variety of states
@@ -1336,6 +1337,16 @@ struct Settings
     int loraSerialInteractionTimeout_s = 30; //Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode
     bool enableMultipathMitigation = true; //Multipath mitigation. UM980 specific.
 
+    uint8_t lg290pConstellations[MAX_LG290P_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
+    int lg290pMessageRatesNMEA[MAX_LG290P_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
+    int lg290pMessageRatesRTCMBase[MAX_LG290P_RTCM_MSG] = {
+        254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
+              // rates for RTCM Base. Default to Quectel recommended rates.
+    int lg290pMessageRatesRTCMRover[MAX_LG290P_RTCM_MSG] = {
+        254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
+              // rates for RTCM Base. Default to Quectel recommended rates.
+
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
 } settings;
@@ -1978,7 +1989,9 @@ struct struct_present
     bool needsExternalPpl = false;
 
     float antennaPhaseCenter_mm = 0.0; //Used to setup tilt compensation
-    bool galileoHasCapable = false;
+    bool galileoHasCapable = false; //UM980 has HAS capabilities
+    bool minCN0Capable = false; //ZED, mosaic, UM980 have minCN0. LG290P does not.
+    bool minElevationCapable = false; //ZED, mosaic, UM980 have minElevation. LG290P does not.
 } present;
 
 // Monitor which devices on the device are on or offline.
