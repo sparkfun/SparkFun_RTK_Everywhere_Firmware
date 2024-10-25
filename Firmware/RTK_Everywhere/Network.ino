@@ -936,7 +936,16 @@ void networkSequenceBoot(NetIndex_t index)
 }
 
 //----------------------------------------
-// Select the next entry in the  sequence
+// Exit the sequence by force
+//----------------------------------------
+void networkSequenceExit(NetIndex_t index, bool debug)
+{
+    // Stop the polling for this sequence
+    networkSequenceStopPolling(index, debug, true);
+}
+
+//----------------------------------------
+// Select the next entry in the sequence
 //----------------------------------------
 void networkSequenceNextEntry(NetIndex_t index, bool debug)
 {
@@ -966,59 +975,7 @@ void networkSequenceNextEntry(NetIndex_t index, bool debug)
 
     // Termination entry found, stop the sequence or start next sequence
     else
-    {
-        // Stop the polling for this sequence
-        networkSequence[index] = nullptr;
-        bitMask = 1 << index;
-
-        // Display the transition
-        const char * sequenceName;
-        const char * before;
-        const char * after;
-        if (settings.debugNetworkLayer && (networkSeqStarting & bitMask))
-        {
-            sequenceName = "Start";
-            before = "Starting";
-            after = "Started";
-        }
-        else if (settings.debugNetworkLayer && (networkSeqStopping & bitMask))
-        {
-            sequenceName = "Stop";
-            before = "Stopping";
-            after = "Stopped";
-        }
-        else
-        {
-            sequenceName = "Boot";
-            before = "Booting";
-            after = "Booted";
-        }
-        systemPrintf("%s: %s --> %s\r\n", networkGetNameByIndex(index), before, after);
-        systemPrintf("--------------- %s %s Sequence Stopping ---------------\r\n",
-                     networkGetNameByIndex(index), sequenceName);
-        systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
-
-        // Clear the status bits
-        networkSeqStarting &= ~bitMask;
-        networkSeqStopping &= ~bitMask;
-
-        // Check for another sequence request
-        if (networkSeqRequest & bitMask)
-        {
-            // Another request is pending, get the next request
-            start = networkSeqNext & bitMask;
-
-            // Clear the bits
-            networkSeqRequest &= ~bitMask;
-            networkSeqNext &= ~bitMask;
-
-            // Start the next sequence
-            if (start)
-                networkSequenceStart(index, debug);
-            else
-                networkSequenceStop(index, debug);
-        }
-    }
+        networkSequenceStopPolling(index, debug, false);
 }
 
 //----------------------------------------
@@ -1168,6 +1125,82 @@ void networkSequenceStop(NetIndex_t index, bool debug)
             networkStarted &= ~bitMask;
             networkSequence[index] = sequence;
         }
+    }
+}
+
+//----------------------------------------
+// Stop the polling sequence
+//----------------------------------------
+void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
+{
+    NetMask_t bitMask;
+    bool start;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Stop the polling for this sequence
+    networkSequence[index] = nullptr;
+    bitMask = 1 << index;
+
+    // Display the transition
+    if (debug)
+    {
+        const char * sequenceName;
+        const char * before;
+        const char * after;
+        if (settings.debugNetworkLayer && (networkSeqStarting & bitMask))
+        {
+            sequenceName = "Start";
+            before = "Starting";
+            if (forcedStop)
+                after = "Stopped";
+            else
+                after = "Started";
+        }
+        else if (settings.debugNetworkLayer && (networkSeqStopping & bitMask))
+        {
+            sequenceName = "Stop";
+            before = "Stopping";
+            after = "Stopped";
+        }
+        else
+        {
+            sequenceName = "Boot";
+            before = "Booting";
+            after = "Booted";
+        }
+        systemPrintf("%s: %s --> %s\r\n", networkGetNameByIndex(index), before, after);
+        systemPrintf("--------------- %s %s Sequence Stopping ---------------\r\n",
+                     networkGetNameByIndex(index), sequenceName);
+        systemPrintf("%s sequencer idle\r\n", networkGetNameByIndex(index));
+    }
+
+    // Clear the status bits
+    networkSeqStarting &= ~bitMask;
+    networkSeqStopping &= ~bitMask;
+    if (forcedStop)
+    {
+        networkStarted &= ~bitMask;
+        networkSeqRequest &= ~bitMask;
+        networkSeqNext &= ~bitMask;
+    }
+
+    // Check for another sequence request
+    if (networkSeqRequest & bitMask)
+    {
+        // Another request is pending, get the next request
+        start = networkSeqNext & bitMask;
+
+        // Clear the bits
+        networkSeqRequest &= ~bitMask;
+        networkSeqNext &= ~bitMask;
+
+        // Start the next sequence
+        if (start)
+            networkSequenceStart(index, debug);
+        else
+            networkSequenceStop(index, debug);
     }
 }
 
