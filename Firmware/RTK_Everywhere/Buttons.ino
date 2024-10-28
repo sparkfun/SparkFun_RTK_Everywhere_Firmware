@@ -71,3 +71,30 @@ void powerDown(bool displayInfo)
         delay(250);
     }
 }
+void buttonRead()
+{
+    // Check for direct button
+    if (online.button == true)
+        userBtn->read();
+    
+}
+
+//Check if a previously pressed button has been released
+bool buttonReleased()
+{
+    // Check for direct button
+    if (online.button == true)
+        return (userBtn->wasReleased());
+
+    return (false);
+}
+
+//Check if a button has been pressed for a certain amount of time
+bool buttonPressedFor(uint16_t maxTime)
+{
+    // Check for direct button
+    if (online.button == true)
+        return (userBtn->pressedFor(2100));
+
+    return (false);
+}

@@ -1983,17 +1983,18 @@ struct struct_present
     bool button_mode = false;
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
+    bool button_directionPad = false; // Available on Portability shield
     bool fastPowerOff = false;
     bool invertedFastPowerOff = false; // Needed for Facet mosaic v11
 
     bool needsExternalPpl = false;
 
-    float antennaPhaseCenter_mm = 0.0; //Used to setup tilt compensation
-    bool galileoHasCapable = false; //UM980 has HAS capabilities
-    bool multipathMitigation = false; //UM980 has MPM, other platforms do not
-    bool minCno = false; //ZED, mosaic, UM980 have minCN0. LG290P does not.
-    bool minElevation = false; //ZED, mosaic, UM980 have minElevation. LG290P does not.
-    bool dynamicModel = false; //ZED, mosaic, UM980 have dynamic models. LG290P does not.
+    float antennaPhaseCenter_mm = 0.0; // Used to setup tilt compensation
+    bool galileoHasCapable = false; // UM980 has HAS capabilities
+    bool multipathMitigation = false; // UM980 has MPM, other platforms do not
+    bool minCno = false; // ZED, mosaic, UM980 have minCN0. LG290P does not.
+    bool minElevation = false; // ZED, mosaic, UM980 have minElevation. LG290P does not.
+    bool dynamicModel = false; // ZED, mosaic, UM980 have dynamic models. LG290P does not.
 } present;
 
 // Monitor which devices on the device are on or offline.
@@ -2025,6 +2026,8 @@ struct struct_online
     bool batteryCharger_mp2762a = false;
     bool httpClient = false;
     bool loraRadio = false;
+    bool button = false;
+    bool directionalPad = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable

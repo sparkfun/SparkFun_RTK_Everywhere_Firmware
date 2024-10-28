@@ -667,6 +667,8 @@ void beginBoard()
         present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
         present.display_type = DISPLAY_128x64;
         present.microSd = true;
+        present.button_directionPad = true;
+        present.microSdCardDetectHigh = true; // Card detect high = SD in place
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -681,6 +683,8 @@ void beginBoard()
         pin_POCI = 25;
         pin_PICO = 26;
         pin_microSD_CS = 27;
+
+        // pin_gpioExpanderInterrupt = 14; //AOI on Postcard
 
         pin_bluetoothStatusLED = 0; // Green status LED
         // pin_gnssStatusLED = 13;
@@ -1322,7 +1326,8 @@ void beginCharger()
 
 void beginButtons()
 {
-    if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false)
+    if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
+        present.button_directionPad == false)
         return;
 
     TaskHandle_t taskHandle;
@@ -1335,38 +1340,58 @@ void beginButtons()
         buttonCount++;
     if (present.button_mode == true)
         buttonCount++;
+    if (present.button_directionPad == true)
+        buttonCount++;
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
-    // Facet main/power button
-    if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
-        userBtn = new Button(pin_powerSenseAndControl);
-
-    // Torch main/power button
-    if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
-        userBtn = new Button(pin_powerButton, 25, true,
-                             false); // Turn off inversion. Needed for buttons that are high when pressed.
-
-    // EVK mode button
-    if (present.button_mode == true)
-        userBtn = new Button(pin_modeButton);
-
-    if (userBtn == nullptr)
+    // Postcard button uses an I2C expander
+    // Avoid using the button library
+    if (present.button_directionPad == true)
     {
-        systemPrintln("Failed to begin button");
-        return;
+        if (beginDirectionalPad(0x18) == false)
+        {
+            systemPrintln("Directional pad not detected");
+            return;
+        }
+    }
+    else
+    {
+        // Use the Button library
+        // Facet main/power button
+        if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
+            userBtn = new Button(pin_powerSenseAndControl);
+
+        // Torch main/power button
+        if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
+            userBtn = new Button(pin_powerButton, 25, true,
+                                 false); // Turn off inversion. Needed for buttons that are high when pressed.
+
+        // EVK mode button
+        if (present.button_mode == true)
+            userBtn = new Button(pin_modeButton);
+
+        if (userBtn == nullptr)
+        {
+            systemPrintln("Failed to begin button");
+            return;
+        }
+
+        userBtn->begin();
+        online.button = true;
     }
 
-    userBtn->begin();
-
-    // Starts task for monitoring button presses
-    if (!task.buttonCheckTaskRunning)
-        xTaskCreate(buttonCheckTask,
-                    "BtnCheck",          // Just for humans
-                    buttonTaskStackSize, // Stack Size
-                    nullptr,             // Task input parameter
-                    buttonCheckTaskPriority,
-                    &taskHandle); // Task handle
+    if (online.button == true || online.directionalPad == true)
+    {
+        // Starts task for monitoring button presses
+        if (!task.buttonCheckTaskRunning)
+            xTaskCreate(buttonCheckTask,
+                        "BtnCheck",          // Just for humans
+                        buttonTaskStackSize, // Stack Size
+                        nullptr,             // Task input parameter
+                        buttonCheckTaskPriority,
+                        &taskHandle); // Task handle
+    }
 }
 
 // Depending on platform and previous power down state, set system state
@@ -1669,7 +1694,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     // Determine if any devices are on the bus
     if (deviceFound == false)
     {
-        systemPrintln("ERROR: No devices found on the I2C bus!");
+        systemPrintln("No devices found on the I2C bus");
         return false;
     }
     return true;

@@ -1523,9 +1523,9 @@ void buttonCheckTask(void *e)
             systemPrintln("ButtonCheckTask running");
         }
 
-        userBtn->read();
+        buttonRead();
 
-        if (userBtn->wasReleased()) // If a button release is detected, record it
+        if (buttonReleased()) // If a button release is detected, record it
         {
             previousButtonRelease = thisButtonRelease;
             thisButtonRelease = millis();
@@ -1621,7 +1621,7 @@ void buttonCheckTask(void *e)
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
-            else if (userBtn->pressedFor(2100))
+            else if (buttonPressedFor(2100))
             {
                 systemPrintln("Shutting down");
 
@@ -1653,7 +1653,7 @@ void buttonCheckTask(void *e)
             {
                 // Ignore button presses while shutting down
             }
-            else if (userBtn->pressedFor(shutDownButtonTime))
+            else if (buttonPressedFor(shutDownButtonTime))
             {
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_SHUTDOWN);
@@ -1662,7 +1662,7 @@ void buttonCheckTask(void *e)
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
             }
-            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) && (userBtn->pressedFor(500)))
+            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) && (buttonPressedFor(500)))
             {
                 lastSetupMenuChange = millis(); // Prevent a timeout during state change
                 forceSystemStateUpdate = true;
