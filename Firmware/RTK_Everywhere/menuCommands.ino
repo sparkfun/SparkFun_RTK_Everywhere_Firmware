@@ -1047,7 +1047,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "minCNO") == 0)
     {
-        // Note: this sends the Min CNO to the GNSS, as well as saving it in settings... Is this what we want? TODO
+        // Note: this sends the Min CNO to the GNSS, as well as saving it in settings...
         gnss->setMinCno(settingValue);
         knownSetting = true;
     }

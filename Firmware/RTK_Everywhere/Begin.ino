@@ -212,8 +212,10 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
-        present.minCN0Capable = true;
-        present.minElevationCapable = true;
+        present.multipathMitigation = true; // UM980 has MPM, other platforms do not
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -320,8 +322,9 @@ void beginBoard()
         present.display_i2c1 = true;
         present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
-        present.minCN0Capable = true;
-        present.minElevationCapable = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         // Pin Allocations:
         // 35, D1  : Serial TX (CH340 RX)
@@ -434,8 +437,9 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
-        present.minCN0Capable = true;
-        present.minElevationCapable = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -506,8 +510,9 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
-        present.minCN0Capable = true;
-        present.minElevationCapable = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -591,8 +596,9 @@ void beginBoard()
         present.gnss_to_uart2 = true;
         present.needsExternalPpl = true;     // Uses the PointPerfect Library
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
-        present.minCN0Capable = true;
-        present.minElevationCapable = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         pin_muxA = 2;
         pin_muxB = 12;

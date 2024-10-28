@@ -23,99 +23,106 @@ void menuGNSS()
         }
         else
         {
-            systemPrintln("      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
+            systemPrintln(
+                "      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
         }
 
-        systemPrint("3) Set dynamic model: ");
-        if (present.gnss_zedf9p)
+        if (present.dynamicModel) //ZED, mosaic, UM980 have dynamic models. LG290P does not.
         {
-            switch (settings.dynamicModel)
+            systemPrint("3) Set dynamic model: ");
+            if (present.gnss_zedf9p)
             {
-            case DYN_MODEL_PORTABLE:
-                systemPrint("Portable");
-                break;
-            case DYN_MODEL_STATIONARY:
-                systemPrint("Stationary");
-                break;
-            case DYN_MODEL_PEDESTRIAN:
-                systemPrint("Pedestrian");
-                break;
-            case DYN_MODEL_AUTOMOTIVE:
-                systemPrint("Automotive");
-                break;
-            case DYN_MODEL_SEA:
-                systemPrint("Sea");
-                break;
-            case DYN_MODEL_AIRBORNE1g:
-                systemPrint("Airborne 1g");
-                break;
-            case DYN_MODEL_AIRBORNE2g:
-                systemPrint("Airborne 2g");
-                break;
-            case DYN_MODEL_AIRBORNE4g:
-                systemPrint("Airborne 4g");
-                break;
-            case DYN_MODEL_WRIST:
-                systemPrint("Wrist");
-                break;
-            case DYN_MODEL_BIKE:
-                systemPrint("Bike");
-                break;
-            case DYN_MODEL_MOWER:
-                systemPrint("Mower");
-                break;
-            case DYN_MODEL_ESCOOTER:
-                systemPrint("E-Scooter");
-                break;
-            default:
-                systemPrint("Unknown");
-                break;
+                switch (settings.dynamicModel)
+                {
+                case DYN_MODEL_PORTABLE:
+                    systemPrint("Portable");
+                    break;
+                case DYN_MODEL_STATIONARY:
+                    systemPrint("Stationary");
+                    break;
+                case DYN_MODEL_PEDESTRIAN:
+                    systemPrint("Pedestrian");
+                    break;
+                case DYN_MODEL_AUTOMOTIVE:
+                    systemPrint("Automotive");
+                    break;
+                case DYN_MODEL_SEA:
+                    systemPrint("Sea");
+                    break;
+                case DYN_MODEL_AIRBORNE1g:
+                    systemPrint("Airborne 1g");
+                    break;
+                case DYN_MODEL_AIRBORNE2g:
+                    systemPrint("Airborne 2g");
+                    break;
+                case DYN_MODEL_AIRBORNE4g:
+                    systemPrint("Airborne 4g");
+                    break;
+                case DYN_MODEL_WRIST:
+                    systemPrint("Wrist");
+                    break;
+                case DYN_MODEL_BIKE:
+                    systemPrint("Bike");
+                    break;
+                case DYN_MODEL_MOWER:
+                    systemPrint("Mower");
+                    break;
+                case DYN_MODEL_ESCOOTER:
+                    systemPrint("E-Scooter");
+                    break;
+                default:
+                    systemPrint("Unknown");
+                    break;
+                }
             }
-        }
-        else if (present.gnss_um980)
-        {
-            switch (settings.dynamicModel)
+            else if (present.gnss_um980)
             {
-            default:
-                systemPrint("Unknown");
-                break;
-            case UM980_DYN_MODEL_SURVEY:
-                systemPrint("Survey");
-                break;
-            case UM980_DYN_MODEL_UAV:
-                systemPrint("UAV");
-                break;
-            case UM980_DYN_MODEL_AUTOMOTIVE:
-                systemPrint("Automotive");
-                break;
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+                case UM980_DYN_MODEL_SURVEY:
+                    systemPrint("Survey");
+                    break;
+                case UM980_DYN_MODEL_UAV:
+                    systemPrint("UAV");
+                    break;
+                case UM980_DYN_MODEL_AUTOMOTIVE:
+                    systemPrint("Automotive");
+                    break;
+                }
             }
-        }
-        else if (present.gnss_mosaicX5)
-        {
-            switch (settings.dynamicModel)
+            else if (present.gnss_mosaicX5)
             {
-            default:
-                systemPrint("Unknown");
-                break;
-            case MOSAIC_DYN_MODEL_STATIC:
-            case MOSAIC_DYN_MODEL_QUASISTATIC:
-            case MOSAIC_DYN_MODEL_PEDESTRIAN:
-            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
-            case MOSAIC_DYN_MODEL_RACECAR:
-            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
-            case MOSAIC_DYN_MODEL_UAV:
-            case MOSAIC_DYN_MODEL_UNLIMITED:
-                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
-                break;
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+                case MOSAIC_DYN_MODEL_STATIC:
+                case MOSAIC_DYN_MODEL_QUASISTATIC:
+                case MOSAIC_DYN_MODEL_PEDESTRIAN:
+                case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+                case MOSAIC_DYN_MODEL_RACECAR:
+                case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                case MOSAIC_DYN_MODEL_UAV:
+                case MOSAIC_DYN_MODEL_UNLIMITED:
+                    systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
+                    break;
+                }
             }
+            systemPrintln();
         }
-        systemPrintln();
 
         systemPrintln("4) Set Constellations");
 
-        systemPrintf("5) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n", settings.minElev);
+        if (present.minElevation)
+            systemPrintf("5) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n",
+                         settings.minElev);
 
-        systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCno());
+        if (present.minCno)
+            systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCno());
 
         systemPrint("7) Toggle NTRIP Client: ");
         if (settings.enableNtripClient == true)
@@ -150,7 +157,7 @@ void menuGNSS()
                 systemPrintln("Disabled");
         }
 
-        if (present.gnss_um980)
+        if (present.multipathMitigation)
         {
             systemPrintf("15) Multipath Mitigation: %s\r\n",
                          settings.enableMultipathMitigation ? "Enabled" : "Disabled");
@@ -190,7 +197,8 @@ void menuGNSS()
             if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate) ==
                 INPUT_RESPONSE_VALID)
             {
-                gnss->setRate(rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                gnss->setRate(
+                    rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
             }
         }
         else if (incoming == 3)
@@ -272,7 +280,7 @@ void menuGNSS()
             gnss->menuConstellations();
         }
 
-        else if (incoming == 5)
+        else if (incoming == 5 && present.minElevation)
         {
             // Arbitrary 90 degree max
             if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) == INPUT_RESPONSE_VALID)
@@ -280,13 +288,12 @@ void menuGNSS()
                 gnss->setElevation(settings.minElev);
             }
         }
-        else if (incoming == 6)
+        else if (incoming == 6 && present.minCno)
         {
             int minCNO = 0;
             // Arbitrary 90 dBHz max. mosaic-X5 is 60dBHz max.
             if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0,
-                present.gnss_mosaicX5 ? 60 : 90, &minCNO) ==
-                INPUT_RESPONSE_VALID)
+                              present.gnss_mosaicX5 ? 60 : 90, &minCNO) == INPUT_RESPONSE_VALID)
             {
                 gnss->setMinCno(minCNO); // Set the setting and configure the GNSS receiver
             }
@@ -342,7 +349,7 @@ void menuGNSS()
             restartRover = true;
         }
 
-        else if ((incoming == 15) && present.gnss_um980)
+        else if ((incoming == 15) && present.multipathMitigation)
         {
             settings.enableMultipathMitigation ^= 1;
             restartRover = true;
