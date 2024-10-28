@@ -135,7 +135,8 @@ void menuMain()
             systemPrintln();
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), true);
-            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+            RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+            systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
             systemPrintln("\r\n** Configure Via Ethernet Mode **\r\n");
 
@@ -177,7 +178,8 @@ void menuMain()
             systemPrintln();
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), true);
-            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+            RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+            systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
 #ifdef COMPILE_BT
 

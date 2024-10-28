@@ -164,11 +164,12 @@ void beginDisplay(TwoWire *i2cBus)
 
             systemPrintln("Display started");
 
-            // Display the SparkFun LOGO
+            // Display the brand LOGO
+            RTKBrandAttribute * brandAttribute = getBrandAttributeFromBrand(present.brand);
             oled->erase();
-            x = (oled->getWidth() - logoSparkFun_Width) / 2;
-            y = (oled->getHeight() - logoSparkFun_Height) / 2;
-            displayBitmap(x, y, logoSparkFun_Width, logoSparkFun_Height, logoSparkFun);
+            x = (oled->getWidth() - brandAttribute->logoWidth) / 2;
+            y = (oled->getHeight() - brandAttribute->logoHeight) / 2;
+            displayBitmap(x, y, brandAttribute->logoWidth, brandAttribute->logoHeight, brandAttribute->logoPointer);
             oled->display();
             splashStart = millis();
             return;
@@ -468,7 +469,8 @@ void displaySplash()
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
-        printTextCenter("SparkFun", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+        RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+        printTextCenter(brandAttributes->name, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         yPos = yPos + fontHeight + 2;
         printTextCenter("RTK", yPos, QW_FONT_8X16, 1, false);
