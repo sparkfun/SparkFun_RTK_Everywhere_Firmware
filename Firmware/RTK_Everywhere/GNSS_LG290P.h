@@ -100,12 +100,8 @@ class GNSS_LG290P : GNSS
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(int *localMessageRate, const char *messageType);
 
-    bool setHighAccuracyService(bool enableGalileoHas);
-
     // Set the minimum satellite signal level for navigation.
     bool setMinCnoRadio(uint8_t cnoValue);
-
-    bool setMultipathMitigation(bool enableMultipathMitigation);
 
   public:
     // If we have decryption keys, configure module

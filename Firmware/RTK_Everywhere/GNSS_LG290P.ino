@@ -1453,16 +1453,7 @@ bool GNSS_LG290P::setConstellations()
 bool GNSS_LG290P::setElevation(uint8_t elevationDegrees)
 {
     // Not a feature on LG290p
-    Serial.println("TODO remove");
     return false;
-}
-
-//----------------------------------------
-bool GNSS_LG290P::setHighAccuracyService(bool enableGalileoHas)
-{
-    // Not a feature on LG290p
-    Serial.println("TODO remove");
-    return (false);
 }
 
 //----------------------------------------
@@ -1492,7 +1483,6 @@ bool GNSS_LG290P::setMessagesUsb(int maxRetries)
 bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
 {
     // Not a feature on LG290p
-    Serial.println("TODO remove");
     return false;
 }
 
@@ -1502,15 +1492,6 @@ bool GNSS_LG290P::setMinCnoRadio(uint8_t cnoValue)
 bool GNSS_LG290P::setModel(uint8_t modelNumber)
 {
     // Not a feature on LG290p
-    Serial.println("TODO remove");
-    return (false);
-}
-
-//----------------------------------------
-bool GNSS_LG290P::setMultipathMitigation(bool enableMultipathMitigation)
-{
-    // Not a feature on LG290p
-    Serial.println("TODO remove");
     return (false);
 }
 
