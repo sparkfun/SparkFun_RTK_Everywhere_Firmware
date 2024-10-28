@@ -802,7 +802,7 @@ const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
 //     a rough location of the issue.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#define DEAD_MAN_WALKING_ENABLED 1
+#define DEAD_MAN_WALKING_ENABLED 0
 
 #if DEAD_MAN_WALKING_ENABLED
 

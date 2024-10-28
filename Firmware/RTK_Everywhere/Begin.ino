@@ -685,7 +685,6 @@ void beginBoard()
         pin_bluetoothStatusLED = 0; // Green status LED
         // pin_gnssStatusLED = 13;
 
-        DMW_if systemPrintf("pin_bluetoothStatusLED: %d\r\n", pin_bluetoothStatusLED);
         pinMode(pin_bluetoothStatusLED, OUTPUT);
 
         // DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
@@ -703,7 +702,6 @@ void beginBoard()
         settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
         // Disable the microSD card
 
-        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
         pinMode(pin_microSD_CS, OUTPUT);
         sdDeselectCard();
     }
