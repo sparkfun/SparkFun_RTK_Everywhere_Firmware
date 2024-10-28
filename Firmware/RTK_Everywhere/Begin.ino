@@ -377,6 +377,10 @@ void beginBoard()
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
 
+        pin_PICO = 23;
+        pin_POCI = 19;
+        pin_SCK = 18;
+
         // Disable the Ethernet controller
         DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
         pinMode(pin_Ethernet_CS, OUTPUT);
@@ -460,6 +464,9 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
+        pin_PICO = 23;
+        pin_POCI = 19;
+        pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
@@ -532,6 +539,9 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
+        pin_PICO = 23;
+        pin_POCI = 19;
+        pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
@@ -656,7 +666,7 @@ void beginBoard()
         present.display_i2c0 = true;
         present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
         present.display_type = DISPLAY_128x64;
-        //present.microSd = true;
+        present.microSd = true;
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -666,6 +676,11 @@ void beginBoard()
 
         pin_GNSS_Reset = 33;
         pin_GNSS_TimePulse = 8; // PPS on LG290P
+
+        pin_SCK = 32;
+        pin_POCI = 25;
+        pin_PICO = 26;
+        pin_microSD_CS = 27;
 
         pin_bluetoothStatusLED = 0; // Green status LED
         // pin_gnssStatusLED = 13;
@@ -686,6 +701,11 @@ void beginBoard()
         lg290pBoot(); // Tell LG290P to boot
 
         settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
+        // Disable the microSD card
+
+        DMW_if systemPrintf("pin_microSD_CS: %d\r\n", pin_microSD_CS);
+        pinMode(pin_microSD_CS, OUTPUT);
+        sdDeselectCard();
     }
 }
 

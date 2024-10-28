@@ -233,13 +233,15 @@ byte sdSendCommand(byte command, unsigned long arg)
 // Select (enable) the SD card
 void sdSelectCard(void)
 {
-    digitalWrite(pin_microSD_CS, LOW);
+    if (pin_microSD_CS != PIN_UNDEFINED)
+        digitalWrite(pin_microSD_CS, LOW);
 }
 
 // Deselect (disable) the SD card
 void sdDeselectCard(void)
 {
-    digitalWrite(pin_microSD_CS, HIGH);
+    if (pin_microSD_CS != PIN_UNDEFINED)
+        digitalWrite(pin_microSD_CS, HIGH);
 }
 
 // Exchange a byte of data with the SD card via host's SPI bus

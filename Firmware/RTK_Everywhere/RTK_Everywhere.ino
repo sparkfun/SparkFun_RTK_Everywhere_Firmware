@@ -159,9 +159,9 @@ int pin_GNSS_TimePulse = PIN_UNDEFINED;
 int pin_GNSS_Reset = PIN_UNDEFINED;
 
 // microSD card pins
-int pin_PICO = 23;
-int pin_POCI = 19;
-int pin_SCK = 18;
+int pin_PICO = PIN_UNDEFINED;
+int pin_POCI = PIN_UNDEFINED;
+int pin_SCK = PIN_UNDEFINED;
 int pin_microSD_CardDetect = PIN_UNDEFINED;
 int pin_microSD_CS = PIN_UNDEFINED;
 
