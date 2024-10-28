@@ -1960,6 +1960,7 @@ struct struct_present
     bool microSd = false;
     bool microSdCardDetectLow = false; // Card detect low = SD in place
     bool microSdCardDetectHigh = false; // Card detect high = SD in place
+    bool microSdCardDetectGpioExpanderHigh = false; // Card detect on GPIO5, high = SD in place
 
     bool i2c0BusSpeed_400 = false;
     bool i2c1BusSpeed_400 = false;
@@ -1983,7 +1984,7 @@ struct struct_present
     bool button_mode = false;
     bool button_powerHigh = false; // Button is pressed when high
     bool button_powerLow = false; // Button is pressed when low
-    bool button_directionPad = false; // Available on Portability shield
+    bool gpioExpander = false; // Available on Portability shield
     bool fastPowerOff = false;
     bool invertedFastPowerOff = false; // Needed for Facet mosaic v11
 
@@ -2027,7 +2028,7 @@ struct struct_online
     bool httpClient = false;
     bool loraRadio = false;
     bool button = false;
-    bool directionalPad = false;
+    bool gpioExpander = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable

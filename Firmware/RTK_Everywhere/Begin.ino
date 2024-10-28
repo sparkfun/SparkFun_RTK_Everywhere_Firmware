@@ -667,8 +667,8 @@ void beginBoard()
         present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
         present.display_type = DISPLAY_128x64;
         present.microSd = true;
-        present.button_directionPad = true;
-        present.microSdCardDetectHigh = true; // Card detect high = SD in place
+        present.gpioExpander = true;
+        present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -1327,7 +1327,7 @@ void beginCharger()
 void beginButtons()
 {
     if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
-        present.button_directionPad == false)
+        present.gpioExpander == false)
         return;
 
     TaskHandle_t taskHandle;
@@ -1340,16 +1340,16 @@ void beginButtons()
         buttonCount++;
     if (present.button_mode == true)
         buttonCount++;
-    if (present.button_directionPad == true)
+    if (present.gpioExpander == true)
         buttonCount++;
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
     // Postcard button uses an I2C expander
     // Avoid using the button library
-    if (present.button_directionPad == true)
+    if (present.gpioExpander == true)
     {
-        if (beginDirectionalPad(0x18) == false)
+        if (beginGpioExpander(0x18) == false)
         {
             systemPrintln("Directional pad not detected");
             return;
@@ -1381,7 +1381,7 @@ void beginButtons()
         online.button = true;
     }
 
-    if (online.button == true || online.directionalPad == true)
+    if (online.button == true || online.gpioExpander == true)
     {
         // Starts task for monitoring button presses
         if (!task.buttonCheckTaskRunning)
