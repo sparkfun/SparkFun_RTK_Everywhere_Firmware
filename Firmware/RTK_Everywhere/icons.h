@@ -1673,12 +1673,12 @@ const uint8_t Corr_IP_Icon[] = {0x00, 0x00, 0x00, 0x80, 0x3C, 0x7E, 0xF7, 0xE3, 
     Corrections Sources icons:
     CORR_RADIO_EXT  : DynamicModel_1_Portable [15, 12]
     CORR_ESPNOW     : ESPNOW_Symbol_3 [8, 13]
-    CORR_RADIO_LORA : 
+    CORR_RADIO_LORA : Corr_Radio_LoRa [15, 14]
     CORR_BLUETOOTH  : BT_Symbol [7, 14]
-    CORR_USB        : 
-    CORR_TCP        : 
+    CORR_USB        : Corr_USB_Icon [15, 14]
+    CORR_TCP        : Corr_TCP_Icon [15, 14]
     CORR_LBAND      : SIV_Antenna_LBand [12, 13]
-    CORR_IP         : 
+    CORR_IP         : Corr_IP_Icon [15, 14]
 
     New icons are [15,14] max
 */
