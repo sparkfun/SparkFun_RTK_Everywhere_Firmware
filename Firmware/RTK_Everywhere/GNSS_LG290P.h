@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------------
 GNSS_LG290P.h
 
-  Declarations and definitions for the UM980 GNSS receiver and the GNSS_LG290P class
+  Declarations and definitions for the LG290P GNSS receiver and the GNSS_LG290P class
 ------------------------------------------------------------------------------*/
 
 #ifndef __GNSS_LG290P_H__
@@ -19,7 +19,7 @@ const char *lg290pConstellationNames[] = {
 
 #define MAX_LG290P_CONSTELLATIONS (6)
 
-// Struct to describe support messages on the UM980
+// Struct to describe support messages on the LG290P
 // Each message will have the serial command and its default value
 typedef struct
 {
@@ -30,7 +30,7 @@ typedef struct
 // Static array containing all the compatible messages
 // Rate = Output once every N position fix(es).
 const lg290pMsg lgMessagesNMEA[] = {
-    {"RMC", 1}, {"GGA", 1}, {"GSV", 0.5}, {"GSA", 1}, {"VTG", 0}, {"GLL", 0},
+    {"RMC", 1}, {"GGA", 1}, {"GSV", 1}, {"GSA", 1}, {"VTG", 1}, {"GLL", 1},
 };
 
 const lg290pMsg lgMessagesRTCM[] = {
@@ -42,27 +42,7 @@ const lg290pMsg lgMessagesRTCM[] = {
 
     {"RTCM3-1041", 0}, {"RTCM3-1042", 0}, {"RTCM3-1044", 0}, {"RTCM3-1046", 0},
 
-    // These should be supported soon
-    /*
-        {"RTCM3-1070", 0}, {"RTCM3-1071", 0}, {"RTCM3-1072", 0}, {"RTCM3-1073", 0}, {"RTCM3-1074", 1},
-        {"RTCM3-1075", 0}, {"RTCM3-1076", 0}, {"RTCM3-1077", 0}, {"RTCM3-1078", 0}, {"RTCM3-1079", 0},
-
-        {"RTCM3-1080", 0}, {"RTCM3-1081", 0}, {"RTCM3-1082", 0}, {"RTCM3-1083", 0}, {"RTCM3-1084", 1},
-        {"RTCM3-1085", 0}, {"RTCM3-1086", 0}, {"RTCM3-1087", 0}, {"RTCM3-1088", 0}, {"RTCM3-1089", 0},
-
-        {"RTCM3-1090", 0}, {"RTCM3-1091", 0}, {"RTCM3-1092", 0}, {"RTCM3-1093", 0}, {"RTCM3-1094", 1},
-        {"RTCM3-1095", 0}, {"RTCM3-1096", 0}, {"RTCM3-1097", 0}, {"RTCM3-1098", 0}, {"RTCM3-1099", 0},
-
-        {"RTCM3-1110", 0}, {"RTCM3-1111", 0}, {"RTCM3-1112", 0}, {"RTCM3-1113", 0}, {"RTCM3-1114", 1},
-        {"RTCM3-1115", 0}, {"RTCM3-1116", 0}, {"RTCM3-1117", 0}, {"RTCM3-1118", 0}, {"RTCM3-1119", 0},
-
-        {"RTCM3-1120", 0}, {"RTCM3-1121", 0}, {"RTCM3-1122", 0}, {"RTCM3-1123", 0}, {"RTCM3-1124", 1},
-        {"RTCM3-1125", 0}, {"RTCM3-1126", 0}, {"RTCM3-1127", 0}, {"RTCM3-1128", 0}, {"RTCM3-1129", 0},
-
-        {"RTCM3-1130", 0}, {"RTCM3-1131", 0}, {"RTCM3-1132", 0}, {"RTCM3-1133", 0}, {"RTCM3-1134", 1},
-        {"RTCM3-1135", 0}, {"RTCM3-1136", 0}, {"RTCM3-1137", 0}, {"RTCM3-1138", 0}, {"RTCM3-1139", 0},
-        */
-
+    {"RTCM3-107X", 1}, {"RTCM3-108X", 1}, {"RTCM3-109X", 1}, {"RTCM3-111X", 1}, {"RTCM3-112X", 1}, {"RTCM3-113X", 1},
 };
 
 #define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
@@ -421,9 +401,9 @@ class GNSS_LG290P : GNSS
     //   Return true if successful and false upon failure
     bool surveyInStart();
 
-    // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
-    // we can pass data back into the Unicore library to allow it to update its own variables
-    void unicoreHandler(uint8_t *buffer, int length);
+    // If we have received serial data from the LG290P outside of the library (ie, from processUart1Message task)
+    // we can pass data back into the LG290P library to allow it to update its own variables
+    void lg290pUpdate(uint8_t *incomingBuffer, int bufferLength);
 
     // Poll routine to update the GNSS state
     void update();

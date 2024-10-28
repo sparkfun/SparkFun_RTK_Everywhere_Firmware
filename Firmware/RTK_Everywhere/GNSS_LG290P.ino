@@ -38,25 +38,25 @@ void GNSS_LG290P::baseRtcmLowDataRate()
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
         10; // 1005 0.1Hz - Exclude antenna height
-    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1074")] = 2; // 1074 0.5Hz
-    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1084")] = 2; // 1084 0.5Hz
-    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1094")] = 2; // 1094 0.5Hz
-    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1114")] = 2; // 1124 0.5Hz
-    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1124")] = 2; // 1124 0.5Hz
-    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1134")] = 2; // 1134 0.5Hz
+    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
+    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
+    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
+    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-111X")] = 2; // 1124 0.5Hz
+    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-112X")] = 2; // 1124 0.5Hz
+    settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-113X")] = 2; // 1134 0.5Hz
     // settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1033")] = 10; // 1033 0.1Hz Not supported
 }
 
 //----------------------------------------
 const char *GNSS_LG290P::getRtcmDefaultString()
 {
-    return "1005/1074/1084/1094/1114/1124/1134 1Hz";
+    return "1005/107X/108X/109X/111X/112X/113X 1Hz";
 }
 
 //----------------------------------------
 const char *GNSS_LG290P::getRtcmLowDataRateString()
 {
-    return "1074/1084/1094/1114/1124/1134 0.5Hz & 1005 0.1Hz";
+    return "107X/108X/109X/111X/112X/113X 0.5Hz & 1005 0.1Hz";
 }
 
 //----------------------------------------
@@ -236,7 +236,8 @@ bool GNSS_LG290P::configureOnce()
         if (settingsWereSaved)
             settings.updateGNSSSettings = false;
     }
-    else online.gnss = false; // Take it offline
+    else
+        online.gnss = false; // Take it offline
 
     return (response);
 }
@@ -300,8 +301,6 @@ bool GNSS_LG290P::configureRover()
 
     response &= _lg290p->setModeRover();
 
-    // It's not clear if PQTMCFGMSGRATE sets rates for all three interfaces or just the current interface
-    // After config, see what is output over USB Port B
     response &= enableRTCMRover();
 
     response &= enableNMEA();
@@ -425,13 +424,31 @@ bool GNSS_LG290P::enableRTCMRover()
 
     for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
     {
-        if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                    settings.lg290pMessageRatesRTCMRover[messageNumber]) == false)
+        // Setting RTCM-1005 must have only the rate
+        // Setting RTCM-107X must have rate and offset
+        if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
         {
-            if (settings.debugGnss)
-                systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                             lgMessagesRTCM[messageNumber].msgTextName);
-            response &= false; // If any one of the commands fails, report failure overall
+            // No X found. This is RTCM-1??? message. No offset.
+            if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                        settings.lg290pMessageRatesRTCMRover[messageNumber]) == false)
+            {
+                if (settings.debugGnss)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                                 lgMessagesRTCM[messageNumber].msgTextName);
+                response &= false; // If any one of the commands fails, report failure overall
+            }
+        }
+        else
+        {
+            // X found. This is RTCM-1??X message. Assign 'offset' of 0
+            if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                        settings.lg290pMessageRatesRTCMRover[messageNumber], 0) == false)
+            {
+                if (settings.debugGnss)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                                 lgMessagesRTCM[messageNumber].msgTextName);
+                response &= false; // If any one of the commands fails, report failure overall
+            }
         }
 
         // If we are using IP based corrections, we need to send local data to the PPL
@@ -484,7 +501,7 @@ void GNSS_LG290P::factoryReset()
 {
     if (online.gnss)
     {
-        _lg290p->factoryReset(); // Restores the parameters configured by all commands to their default values.
+        _lg290p->factoryRestore(); // Restores the parameters configured by all commands to their default values.
                                  // This command takes effect after restarting.
 
         _lg290p->reset(); // Reboot the receiver.
@@ -622,7 +639,7 @@ uint8_t GNSS_LG290P::getCarrierSolution()
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
 
-        uint8_t fixType = _lg290p->getFixType();
+        uint8_t fixType = _lg290p->getFixQuality();
 
         if (fixType == 4)
             return 2; // RTK Fix
@@ -717,7 +734,7 @@ uint8_t GNSS_LG290P::getFixType()
         // 3 = GPS PPS Mode, fix valid.
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
-        return (_lg290p->getFixType());
+        return (_lg290p->getFixQuality());
     return 0;
 }
 
@@ -728,8 +745,8 @@ uint8_t GNSS_LG290P::getFixType()
 float GNSS_LG290P::getHorizontalAccuracy()
 {
     // Coming soon from EPE
-    //  if (online.gnss)
-    //      return (_lg290p->get2dPositionError());
+     if (online.gnss)
+         return (_lg290p->get2DError());
     return 0;
 }
 
@@ -875,7 +892,7 @@ uint8_t GNSS_LG290P::getSatellitesInView()
     if (online.gnss)
         // return (_lg290p->getSatellitesInView());
         // Use getSatellitesUsed until SIV works correctly
-        return (_lg290p->getSatellitesUsed());
+        return (_lg290p->getSatellitesUsedCount());
     return 0;
 }
 
@@ -984,7 +1001,7 @@ bool GNSS_LG290P::isDgpsFixed()
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
 
-        if (_lg290p->getFixType() == 2)
+        if (_lg290p->getFixQuality() == 2)
             return (true);
     }
     return false;
@@ -1005,7 +1022,7 @@ bool GNSS_LG290P::isFixed()
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
 
-        if (_lg290p->getFixType() > 0)
+        if (_lg290p->getFixQuality() > 0)
             return (true);
     }
     return (false);
@@ -1060,7 +1077,7 @@ bool GNSS_LG290P::isRTKFix()
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
 
-        if (_lg290p->getFixType() == 4)
+        if (_lg290p->getFixQuality() == 4)
             return (true);
     }
     return (false);
@@ -1082,7 +1099,7 @@ bool GNSS_LG290P::isRTKFloat()
         // 4 = Real Time Kinematic (RTK) System used in RTK mode with fixed integers.
         // 5 = Float RTK. Satellite system used in RTK mode, floating integers.
 
-        if (_lg290p->getFixType() == 5)
+        if (_lg290p->getFixQuality() == 5)
             return (true);
     }
     return (false);
@@ -1616,6 +1633,24 @@ bool GNSS_LG290P::surveyInStart()
         return (response);
     }
     return false;
+}
+
+//----------------------------------------
+// If we have received serial data from the LG290P outside of the library (ie, from processUart1Message task)
+// we can pass data back into the LG290P library to allow it to update its own variables
+//----------------------------------------
+void lg290pHandler(uint8_t *incomingBuffer, int bufferLength)
+{
+    GNSS_LG290P * lg290p = (GNSS_LG290P *)gnss;
+    lg290p->lg290pUpdate(incomingBuffer, bufferLength);
+}
+
+//----------------------------------------
+// Pass a buffer of bytes to LG290P library. Allows a stream outside of library to feed the library.
+//----------------------------------------
+void GNSS_LG290P::lg290pUpdate(uint8_t *incomingBuffer, int bufferLength)
+{
+    _lg290p->update(incomingBuffer, bufferLength);
 }
 
 //----------------------------------------
