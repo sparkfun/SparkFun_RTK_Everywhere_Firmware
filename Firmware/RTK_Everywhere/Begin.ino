@@ -194,7 +194,11 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         // Specify the GNSS radio
+#ifdef COMPILE_UM980
         gnss = (GNSS *) new GNSS_UM980();
+#else   // COMPILE_UM980
+        gnss = (GNSS *) new GNSS_None();
+#endif  // COMPILE_UM980
 
         present.psram_2mb = true;
         present.gnss_um980 = true;
@@ -561,7 +565,11 @@ void beginBoard()
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         // Specify the GNSS radio
+#ifdef  COMPILE_MOSAICX5
         gnss = (GNSS *) new GNSS_MOSAIC();
+#else   // COMPILE_MOSAICX5
+        gnss = (GNSS *) new GNSS_None();
+#endif  // COMPILE_MOSAICX5
 
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;

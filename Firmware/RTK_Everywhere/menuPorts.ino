@@ -270,6 +270,7 @@ void menuPortsMultiplexed()
 
     clearBuffer(); // Empty buffer of any newline chars
 
+#ifdef  COMPILE_MOSAICX5
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
@@ -279,6 +280,7 @@ void menuPortsMultiplexed()
         else
             restartBase = true;
     }
+#endif  // COMPILE_MOSAICX5
 }
 
 // Configure the behavior of the PPS and INT pins on the ZED-F9P

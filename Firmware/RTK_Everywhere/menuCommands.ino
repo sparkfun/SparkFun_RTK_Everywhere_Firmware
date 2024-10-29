@@ -817,6 +817,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+
+#ifdef  COMPILE_UM980
         case tUmMRNmea: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -869,6 +871,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+#endif  // COMPILE_UM980
+
         case tCorrSPri: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -891,6 +895,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+
+#ifdef  COMPILE_MOSAICX5
         case tMosaicConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -979,6 +985,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
+#endif  // COMPILE_MOSAICX5
         }
     }
 
@@ -1556,6 +1563,8 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
+
+#ifdef  COMPILE_UM980
             case tUmMRNmea: {
                 // Record UM980 NMEA rates
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1604,6 +1613,8 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
+#endif  // COMPILE_UM980
+
             case tCorrSPri: {
                 // Record corrections priorities
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1625,6 +1636,8 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
+
+#ifdef  COMPILE_MOSAICX5
             case tMosaicConst: {
                 // Record Mosaic Constellations
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1705,6 +1718,7 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
+#endif  // COMPILE_MOSAICX5
             }
         }
     }
@@ -2342,6 +2356,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+
+#ifdef  COMPILE_UM980
         case tUmMRNmea: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2394,6 +2410,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+#endif  // COMPILE_UM980
+
         case tCorrSPri: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2416,6 +2434,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+
+#ifdef  COMPILE_MOSAICX5
         case tMosaicConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2504,6 +2524,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
+#endif  // COMPILE_MOSAICX5
         }
     }
 
@@ -2838,6 +2859,8 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+
+#ifdef  COMPILE_UM980
     case tUmMRNmea: {
         // Record UM980 NMEA rates
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -2886,6 +2909,8 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+#endif  // COMPILE_UM980
+
     case tCorrSPri: {
         // Record corrections priorities
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
