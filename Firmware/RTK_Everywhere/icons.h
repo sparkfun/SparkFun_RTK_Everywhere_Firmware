@@ -118,6 +118,104 @@ const uint8_t WiFi_Symbol_0[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0x80,
                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 /*
+    Cellular_Symbol_0 [13, 10]
+
+    From the LARA_R6 AT Command Reference, RSSI can be 0-31:
+    0 RSSI of the network <= -113 dBm
+    1 -111 dBm
+    2...30 -109 dBm <= RSSI of the network <= -53 dBm
+    31 -51 dBm <= RSSI of the network
+
+    So, we need three bars:
+
+                      1
+             1234567890123
+            .-------------.
+        0x01|        *****|
+        0x02|        *   *|
+        0x04|        *   *|
+        0x08|    *****   *|
+        0x10|    *   *   *|
+        0x20|    *   *   *|
+        0x40|*****   *   *|
+        0x80|*   *   *   *|
+        0x01|*   *   *   *|
+        0x02|*************|
+            '-------------'
+*/
+
+const int Cellular_Symbol_Height = 10;
+const int Cellular_Symbol_Width = 13;
+const uint8_t Cellular_Symbol_0[] = {0xC0, 0x40, 0x40, 0x40, 0xF8, 0x08, 0x08, 0x08, 0xFF, 0x01, 0x01, 0x01, 0xFF,
+                                     0x03, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x03};
+
+/*
+    Cellular_Symbol_1 [13, 10]
+
+                      1
+             1234567890123
+            .-------------.
+        0x01|        *****|
+        0x02|        *   *|
+        0x04|        *   *|
+        0x08|    *****   *|
+        0x10|    *   *   *|
+        0x20|    *   *   *|
+        0x40|*****   *   *|
+        0x80|*****   *   *|
+        0x01|*****   *   *|
+        0x02|*************|
+            '-------------'
+*/
+
+const uint8_t Cellular_Symbol_1[] = {0xC0, 0xC0, 0xC0, 0xC0, 0xF8, 0x08, 0x08, 0x08, 0xFF, 0x01, 0x01, 0x01, 0xFF,
+                                     0x03, 0x03, 0x03, 0x03, 0x03, 0x02, 0x02, 0x02, 0x03, 0x02, 0x02, 0x02, 0x03};
+
+/*
+    Cellular_Symbol_2 [13, 10]
+
+                      1
+             1234567890123
+            .-------------.
+        0x01|        *****|
+        0x02|        *   *|
+        0x04|        *   *|
+        0x08|    *****   *|
+        0x10|    *****   *|
+        0x20|    *****   *|
+        0x40|*********   *|
+        0x80|*********   *|
+        0x01|*********   *|
+        0x02|*************|
+            '-------------'
+*/
+
+const uint8_t Cellular_Symbol_2[] = {0xC0, 0xC0, 0xC0, 0xC0, 0xF8, 0xF8, 0xF8, 0xF8, 0xFF, 0x01, 0x01, 0x01, 0xFF,
+                                     0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x02, 0x02, 0x02, 0x03};
+
+/*
+    Cellular_Symbol_3 [13, 10]
+
+                      1
+             1234567890123
+            .-------------.
+        0x01|        *****|
+        0x02|        *****|
+        0x04|        *****|
+        0x08|    *********|
+        0x10|    *********|
+        0x20|    *********|
+        0x40|*************|
+        0x80|*************|
+        0x01|*************|
+        0x02|*************|
+            '-------------'
+*/
+
+const uint8_t Cellular_Symbol_3[] = {0xC0, 0xC0, 0xC0, 0xC0, 0xF8, 0xF8, 0xF8, 0xF8, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                                     0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03};
+
+/*
     Clock [15, 15]
 
                       1
@@ -1755,18 +1853,22 @@ const iconProperty WiFiSymbol3128x64 = { &WiFi_Symbol_3, WiFi_Symbol_Width, WiFi
 const iconProperty WiFiSymbol2128x64 = { &WiFi_Symbol_2, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
 const iconProperty WiFiSymbol1128x64 = { &WiFi_Symbol_1, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
 const iconProperty WiFiSymbol0128x64 = { &WiFi_Symbol_0, WiFi_Symbol_Width, WiFi_Symbol_Height, 34, 2 };
-const iconProperty ESPNowSymbol3128x64 = { &ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
-const iconProperty ESPNowSymbol2128x64 = { &ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
-const iconProperty ESPNowSymbol1128x64 = { &ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
-const iconProperty ESPNowSymbol0128x64 = { &ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 49, 0 };
-const iconProperty DownloadArrow128x64 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 59, 2 };
-const iconProperty UploadArrow128x64 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 69, 2 };
+const iconProperty CellularSymbol3128x64 = { &Cellular_Symbol_3, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
+const iconProperty CellularSymbol2128x64 = { &Cellular_Symbol_2, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
+const iconProperty CellularSymbol1128x64 = { &Cellular_Symbol_1, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
+const iconProperty CellularSymbol0128x64 = { &Cellular_Symbol_0, Cellular_Symbol_Width, Cellular_Symbol_Height, 49, 0 };
+const iconProperty ESPNowSymbol3128x64 = { &ESPNOW_Symbol_3, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
+const iconProperty ESPNowSymbol2128x64 = { &ESPNOW_Symbol_2, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
+const iconProperty ESPNowSymbol1128x64 = { &ESPNOW_Symbol_1, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
+const iconProperty ESPNowSymbol0128x64 = { &ESPNOW_Symbol_0, ESPNOW_Symbol_Width, ESPNOW_Symbol_Height, 64, 0 };
+const iconProperty DownloadArrow128x64 = { &DownloadArrow, DownloadArrow_Width, DownloadArrow_Height, 74, 2 };
+const iconProperty UploadArrow128x64 = { &UploadArrow, UploadArrow_Width, UploadArrow_Height, 83, 2 };
 
 // Shared on 64x48 and 128x64
 
 const uint8_t DynamicModelIconXPos64x48 = 28;
 const uint8_t DynamicModelIconYPos64x48 = 0;
-const uint8_t DynamicModelIconXPos128x64 = 79;
+const uint8_t DynamicModelIconXPos128x64 = 92;
 const uint8_t DynamicModelIconYPos128x64 = 0;
 
 const iconProperties DynamicModel_1_Properties = {{{ &DynamicModel_1_Portable, DynamicModel_Width, DynamicModel_Height, DynamicModelIconXPos64x48, DynamicModelIconYPos64x48 },
@@ -1796,7 +1898,7 @@ const iconProperties DynamicModel_12_Properties = {{{ &DynamicModel_12_EScooter,
 
 const uint8_t BaseIconXPos64x48 = 28;
 const uint8_t BaseIconYPos64x48 = 0;
-const uint8_t BaseIconXPos128x64 = 79;
+const uint8_t BaseIconXPos128x64 = 92;
 const uint8_t BaseIconYPos128x64 = 0;
 
 const iconProperties BaseTemporaryProperties = {{{ &BaseTemporary, BaseTemporary_Width, BaseTemporary_Height, BaseIconXPos64x48, BaseIconYPos64x48 },

@@ -616,7 +616,9 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
                111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999AAAAAAAAAABBBBBBBBBBCCCCCCCC
      01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
     .--------------------------------------------------------------------------------------------------------------------------------
-     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--ESP-|  |-Down-|  |--Up--|  |-Dynamic/Base| |--Battery / ETH--|
+     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--Cellular-|  |--ESP-|  |-Down-| |--Up--| |-Dynamic/Base|  |--Battery / ETH--|
+
+     |------------------------------------------ IP ------------------------------------------|      |-Corr Source-|        |Logging|
 
 */
 
@@ -715,7 +717,33 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 49 - 56
+            #ifdef COMPILE_CELLULAR
+                // Cellular : Columns 49 - 61
+                // From the LARA_R6 AT Command Reference AT+CSQ, RSSI can be 0-31:
+                // 0 RSSI of the network <= -113 dBm
+                // 1 -111 dBm
+                // 2...30 -109 dBm <= RSSI of the network <= -53 dBm
+                // 31 -51 dBm <= RSSI of the network
+                if (cellularIsAttached)
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b11111111;
+                    prop.icon.bitmap = nullptr;
+                    // Based on RSSI, select icon
+                    if (cellularRSSI >= 31)
+                        prop.icon = CellularSymbol3128x64;
+                    else if (cellularRSSI >= 2)
+                        prop.icon = CellularSymbol2128x64;
+                    else if (cellularRSSI >= 1)
+                        prop.icon = CellularSymbol1128x64;
+                    else
+                        prop.icon = CellularSymbol0128x64;
+                    if (prop.icon.bitmap != nullptr)
+                        iconList->push_back(prop);
+                }
+            #endif // /COMPILE_CELLULAR
+
+            if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 64 - 71
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
@@ -736,7 +764,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             if (bluetoothGetState() == BT_CONNECTED)
             {
-                if (bluetoothIncomingRTCM == true) // Download : Columns 59 - 66
+                if (bluetoothIncomingRTCM == true) // Download : Columns 74 - 81
                 {
                     iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
@@ -744,7 +772,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     iconList->push_back(prop);
                     bluetoothIncomingRTCM = false;
                 }
-                if (bluetoothOutgoingRTCM == true) // Upload : Columns 69 - 76
+                if (bluetoothOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
                     iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
@@ -756,7 +784,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             if (espnowState == ESPNOW_PAIRED)
             {
-                if (espnowIncomingRTCM == true) // Download : Columns 59 - 66
+                if (espnowIncomingRTCM == true) // Download : Columns 74 - 81
                 {
                     iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
@@ -764,7 +792,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     iconList->push_back(prop);
                     espnowIncomingRTCM = false;
                 }
-                if (espnowOutgoingRTCM == true) // Upload : Columns 69 - 76
+                if (espnowOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
                     iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
@@ -776,7 +804,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             if (usbSerialIncomingRtcm)
             {
-                // Download : Columns 59 - 66
+                // Download : Columns 74 - 81
                 iconPropertyBlinking prop;
                 prop.icon = DownloadArrow128x64;
                 prop.duty = 0b11111111;
@@ -787,7 +815,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 #ifdef COMPILE_WIFI
             if (networkIsInterfaceOnline(NETWORK_WIFI))
             {
-                if (netIncomingRTCM == true) // Download : Columns 59 - 66
+                if (netIncomingRTCM == true) // Download : Columns 74 - 81
                 {
                     iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
@@ -795,7 +823,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     iconList->push_back(prop);
                     netIncomingRTCM = false;
                 }
-                if (mqttClientDataReceived == true) // Download : Columns 59 - 66
+                if (mqttClientDataReceived == true) // Download : Columns 74 - 81
                 {
                     iconPropertyBlinking prop;
                     prop.icon = DownloadArrow128x64;
@@ -803,7 +831,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     iconList->push_back(prop);
                     mqttClientDataReceived = false;
                 }
-                if (netOutgoingRTCM == true) // Upload : Columns 69 - 76
+                if (netOutgoingRTCM == true) // Upload : Columns 83 - 90
                 {
                     iconPropertyBlinking prop;
                     prop.icon = UploadArrow128x64;
@@ -814,7 +842,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             }
 #endif  // COMPILE_WIFI
 
-            switch (systemState) // Dynamic Model / Base : Columns 79 - 93
+            switch (systemState) // Dynamic Model / Base : Columns 92 - 106
             {
             case (STATE_ROVER_NO_FIX):
             case (STATE_ROVER_FIX):
@@ -846,6 +874,30 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             break;
             default:
                 break;
+            }
+
+            // Put the corrections source icon on the bottom, right of the IP address
+            static bool correctionsIconPosCalculated = false;
+            const uint8_t correctionsIconXPos128x64 = 96;
+            static uint8_t correctionsIconYPos128x64 = 64;
+            if (!correctionsIconPosCalculated)
+            {
+                for (int i = 0; i < CORR_NUM; i++)
+                    if ((64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) < correctionsIconYPos128x64)
+                        correctionsIconYPos128x64 = 64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                correctionsIconPosCalculated = true;
+            }
+            CORRECTION_ID_T correctionSource = correctionGetSource();
+            if (correctionSource < CORR_NUM)
+            {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+                prop.icon.width = correctionIconAttributes[correctionSource].width;
+                prop.icon.height = correctionIconAttributes[correctionSource].height;
+                prop.icon.xPos = correctionsIconXPos128x64 + correctionIconAttributes[correctionSource].xOffset;
+                prop.icon.yPos = correctionsIconYPos128x64 + correctionIconAttributes[correctionSource].yOffset;
+                iconList->push_back(prop);
             }
         }
     }
@@ -1818,6 +1870,7 @@ void paintIPAddress()
 
 void displayFullIPAddress(std::vector<iconPropertyBlinking> *iconList) // Bottom left - 128x64 only
 {
+    // Max width: 15*6 = 90 pixels (6 pixels per character, nnn.nnn.nnn.nnn)
     if (present.display_type == DISPLAY_128x64)
     {
         char myAddress[16];
