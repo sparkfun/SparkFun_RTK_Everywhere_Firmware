@@ -1913,9 +1913,50 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
+// Branding support
+typedef enum {
+    BRAND_SPARKFUN = 0,
+    BRAND_SPARKPNT,
+    // Add new brands above this line
+    BRAND_NUM
+} RTKBrands_e;
+
+const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKFUN;
+
+typedef struct
+{
+    const RTKBrands_e brand;
+    const char name[9];
+    const uint8_t logoWidth;
+    const uint8_t logoHeight;
+    const uint8_t * const logoPointer;
+} RTKBrandAttribute;
+
+extern const int logoSparkFun_Height;
+extern const int logoSparkFun_Width;
+extern const uint8_t logoSparkFun[];
+extern const int logoSparkPNT_Height;
+extern const int logoSparkPNT_Width;
+extern const uint8_t logoSparkPNT[];
+
+RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
+    { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
+    { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
+};
+
+RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
+    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
+        if (RTKBrandAttributes[i].brand == brand)
+            return &RTKBrandAttributes[i];
+    }
+    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+}
+
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
+    RTKBrands_e brand = DEFAULT_BRAND;
+
     bool psram_2mb = false;
     bool psram_4mb = false;
 

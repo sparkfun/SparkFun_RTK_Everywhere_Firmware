@@ -23,8 +23,10 @@
 
 //----------------------------------------
 
-static bool cellularSimCardRemoved;
-static bool cellularSimCardPresent;
+static bool cellularSimCardRemoved = false;
+static bool cellularSimCardPresent = false;
+static int cellularRSSI = 0;
+static bool cellularIsAttached = false;
 
 //----------------------------------------
 // Wait until the cellular modem is attached to a mobile network
@@ -39,11 +41,15 @@ void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
     if ((millis() - lastPollMsec) >= CELLULAR_ATTACH_POLL_INTERVAL)
     {
         lastPollMsec = millis();
-        if (CELLULAR.attached())
+        cellularIsAttached = CELLULAR.attached();
+        if (cellularIsAttached)
         {
             // Attached to a mobile network, continue 
             // Display the network information
             systemPrintf("Cellular attached to %s\r\n", CELLULAR.operatorName().c_str());
+
+            cellularRSSI = CELLULAR.RSSI();
+
             if (debug)
             {
                 systemPrint("    State: ");
@@ -51,7 +57,7 @@ void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
                 systemPrint("    IMSI: ");
                 systemPrintln(CELLULAR.IMSI());
                 systemPrint("    RSSI: ");
-                systemPrintln(CELLULAR.RSSI());
+                systemPrintln(cellularRSSI);
                 int ber = CELLULAR.BER();
                 if (ber > 0)
                 {
@@ -189,6 +195,8 @@ void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
     // Validate the index
     networkValidateIndex(index);
 
+    cellularIsAttached = false;
+
     // Configure the cellular modem
     CELLULAR.setApn(CELLULAR_MODEM_APN);
     CELLULAR.setPin(CELLULAR_MODEM_PIN);
@@ -202,6 +210,9 @@ void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
     // Starting the cellular modem
     CELLULAR.begin(CELLULAR_MODEM_MODEL);
 
+    // Specify the timer expiration date - for the SIM check delay
+    laraTimer = millis() + parameter;
+
     // Get the next sequence entry
     networkSequenceNextEntry(index, debug);
 }
@@ -211,6 +222,8 @@ void cellularStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     // Validate the index
     networkValidateIndex(index);
+
+    cellularIsAttached = false;
 
     // Stopping the cellular modem
     systemPrintln("Stopping the cellular modem!");

@@ -185,6 +185,7 @@ int pin_Cellular_CTS = PIN_UNDEFINED;
 bool cellularModemResetLow = false;
 #define  CELLULAR_MODEM_FC  ESP_MODEM_FLOW_CONTROL_NONE
 uint8_t laraPwrLowValue;
+uint32_t laraTimer; // Backoff timer
 
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
