@@ -3,11 +3,11 @@
 #ifdef COMPILE_CELLULAR
 
 static uint32_t laraPowerLowMsec; // Measure the power off time
-static uint32_t laraTimer; // Backoff timer
 
 #define LARA_ON_TIME        (2 * 1000)  // Milliseconds
 #define LARA_OFF_TIME       (5 * 1000)  // Milliseconds
 #define LARA_SETTLE_TIME    (2 * 1000)  // Milliseconds
+#define LARA_SIM_DELAY      (1 * 1000)  // Milliseconds. 500 is too short
 
 #define LARA_PWR_LOW_VALUE  laraPwrLowValue
 #define LARA_PWR_HIGH_VALUE (!laraPwrLowValue)
@@ -143,7 +143,8 @@ NETWORK_POLL_SEQUENCE laraOnSequence[] =
     {networkDelay,          (uintptr_t)&laraTimer,  "Tell LARA to power on"},
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power on sequence"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Delay for power up"},
-    {cellularStart,         0,                      "Initialize the cellular modem"},
+    {cellularStart,         LARA_SIM_DELAY,         "Initialize the cellular modem"},
+    {networkDelay,          (uintptr_t)&laraTimer,  "Delay before SIM check"},
     {cellularSimCheck,      0,                      "Check for SIM card present"},
     {cellularAttached,      0,                      "Waiting for mobile network"},
     {nullptr,               0,                      "Termination"},
