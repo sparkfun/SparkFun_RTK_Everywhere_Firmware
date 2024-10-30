@@ -1994,8 +1994,7 @@ void displayRoverStart(uint16_t displayTime)
         uint8_t yPos = oled->getHeight() / 2 - fontHeight;
 
         printTextCenter("Rover", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);  //text, y, font type, kerning,
-        // inverted
+        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);
 
         oled->display();
 
@@ -2216,8 +2215,7 @@ void displaySurveyStart(uint16_t displayTime)
         uint8_t yPos = oled->getHeight() / 2 - fontHeight;
 
         printTextCenter("Survey", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);  //text, y, font type, kerning,
-        // inverted
+        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);
 
         oled->display();
 
@@ -2598,7 +2596,21 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
     if (fontWidth == 8)
         fontWidth = 7; // 8x16, but widest character is only 7 pixels.
 
-    uint8_t xStart = (oled->getWidth() / 2) - ((strlen(text) * (fontWidth + kerning)) / 2) + 1;
+    uint8_t textPixelWidth = strlen(text) * (fontWidth + kerning);
+
+    // E.g.:
+    // 8 chars in the 8X16 font, with kerning 1
+    // ((strlen(text) * (fontWidth + kerning)) / 2) = 32
+    // (oled->getWidth() / 2) = 32
+    // xStart = 0
+    // But that looks rubbish if highlight is true
+    int xStart = ((int)(oled->getWidth() / 2)) - ((int)(textPixelWidth / 2));
+    if (xStart < 0)
+        xStart = 0;
+    
+    // So, add a gap of 1 pixel if highlight is true and xStart is zero
+    if (highlight && (xStart == 0))
+        xStart = 1;
 
     uint8_t xPos = xStart;
     for (int x = 0; x < strlen(text); x++)
@@ -2610,17 +2622,18 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
 
     if (highlight) // Draw a box, inverted over text
     {
-        uint8_t textPixelWidth = strlen(text) * (fontWidth + kerning);
-
         // Error check
         int xBoxStart = xStart - 5;
+        int xBoxWidth = textPixelWidth + 9;
         if (xBoxStart < 0)
+        {
+            xBoxWidth += xBoxStart * 2; // Shrink the width by twice the excess
             xBoxStart = 0;
-        int xBoxEnd = textPixelWidth + 9;
-        if (xBoxEnd > oled->getWidth() - 1)
-            xBoxEnd = oled->getWidth() - 1;
+        }
+        if ((xBoxStart + xBoxWidth) > oled->getWidth())
+            xBoxWidth = oled->getWidth() - xBoxStart;
 
-        oled->rectangleFill(xBoxStart, yPos, xBoxEnd, 12, 1); // x, y, width, height, color
+        oled->rectangleFill(xBoxStart, yPos, xBoxWidth, fontType.height, 1); // x, y, width, height, color
     }
 }
 
@@ -3085,7 +3098,7 @@ void displayConfigViaEthernet()
         oled->erase();
 
         uint8_t xPos = (oled->getWidth() / 2) - (Ethernet_Icon_Width / 2);
-        uint8_t yPos = Ethernet_Icon_Height / 2;
+        uint8_t yPos = Ethernet_Icon_Height / 2; // yPos is 6
 
         static bool blink = 0;
         blink ^= 1;
@@ -3093,21 +3106,28 @@ void displayConfigViaEthernet()
         if (ETH.linkUp() || blink)
             displayBitmap(xPos, yPos, Ethernet_Icon_Width, Ethernet_Icon_Height, Ethernet_Icon);
 
-        yPos += Ethernet_Icon_Height * 1.5;
+        yPos += Ethernet_Icon_Height * 1.5; // yPos is now 24
 
         printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos += 8;
+        yPos += 8; // yPos is now 32
         if (present.display_type == DISPLAY_128x64)
-            yPos += 4;
+            yPos += 4; // yPos is 36 on 128x64 displays, 32 on 64x48 displays
 
         char ipAddress[16];
         IPAddress localIP = ETH.localIP();
         snprintf(ipAddress, sizeof(ipAddress), "%s", localIP.toString());
 
+        // yPos is 36 on 128x64 displays, 32 on 64x48 displays. So QW_FONT_8x16 will fit - just!
+        // See if 8x16 will fit. But widest character is only 7 pixels.
+        int displayWidthBigChars = ((present.display_type == DISPLAY_128x64) ? 16 : 8);
         int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
 
         // If we can print the full IP address without shuttling
-        if (strlen(ipAddress) <= displayWidthChars)
+        if (strlen(ipAddress) <= displayWidthBigChars)
+        {
+            printTextCenter(ipAddress, yPos, QW_FONT_8X16, 1, false);
+        }
+        else if (strlen(ipAddress) <= displayWidthChars)
         {
             printTextCenter(ipAddress, yPos, QW_FONT_5X7, 1, false);
         }
