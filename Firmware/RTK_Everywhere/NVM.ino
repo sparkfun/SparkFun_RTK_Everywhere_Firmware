@@ -443,6 +443,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+
+#ifdef  COMPILE_UM980
         case tUmMRNmea: {
             // Record UM980 NMEA rates
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -487,6 +489,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+#endif  // COMPILE_UM980
+
         case tCorrSPri: {
             // Record corrections priorities
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -506,6 +510,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+
+#ifdef  COMPILE_MOSAICX5
         case tMosaicConst: {
             // Record Mosaic Constellations
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -583,6 +589,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+#endif  // COMPILE_MOSAICX5
         }
     }
 
@@ -1222,6 +1229,8 @@ bool parseLine(char *str)
                 }
             }
             break;
+
+#ifdef  COMPILE_UM980
             case tUmMRNmea: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1274,6 +1283,8 @@ bool parseLine(char *str)
                 }
             }
             break;
+#endif  // COMPILE_UM980
+
             case tCorrSPri: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1296,6 +1307,8 @@ bool parseLine(char *str)
                 }
             }
             break;
+
+#ifdef  COMPILE_MOSAICX5
             case tMosaicConst: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1384,6 +1397,7 @@ bool parseLine(char *str)
                 }
             }
             break;
+#endif  // COMPILE_MOSAICX5
             }
         }
     }

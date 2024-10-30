@@ -262,8 +262,10 @@ void menuMain()
                 menuBase();
             else if (incoming == 4)
                 menuPorts();
+#ifdef  COMPILE_MOSAICX5
             else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
                 menuLogMosaic();
+#endif  // COMPILE_MOSAICX5
             else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
                 menuLog();
             else if (incoming == 6)

@@ -1058,6 +1058,7 @@ void createMessageList(String &returnText)
         }
     }
 
+#ifdef  COMPILE_UM980
     else if (present.gnss_um980)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
@@ -1071,7 +1072,9 @@ void createMessageList(String &returnText)
                           String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
         }
     }
+#endif  // COMPILE_UM980
 
+#ifdef  COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
@@ -1095,6 +1098,7 @@ void createMessageList(String &returnText)
                           (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber]  ? "true" : "false") + ",";
         }
     }
+#endif  // COMPILE_MOSAICX5
 
     if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
@@ -1119,6 +1123,7 @@ void createMessageListBase(String &returnText)
         }
     }
 
+#ifdef  COMPILE_UM980
     else if (present.gnss_um980)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
@@ -1127,7 +1132,9 @@ void createMessageListBase(String &returnText)
                           String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }
+#endif  // COMPILE_UM980
 
+#ifdef  COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
@@ -1141,6 +1148,7 @@ void createMessageListBase(String &returnText)
                           (settings.mosaicMessageEnabledRTCMv3Base[messageNumber]  ? "true" : "false") + ",";
         }
     }
+#endif  // COMPILE_MOSAICX5
 
     if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());

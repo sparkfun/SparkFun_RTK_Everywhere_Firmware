@@ -561,7 +561,8 @@ class GNSS_MOSAIC : GNSS
 
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
-        _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false)
+        _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
+         GNSS()
     {
     }
 

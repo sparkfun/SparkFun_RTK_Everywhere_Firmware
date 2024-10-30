@@ -631,6 +631,8 @@ void checkGNSSArrayDefaults()
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
     }
+
+#ifdef  COMPILE_UM980
     else if (present.gnss_um980)
     {
         if (settings.dynamicModel == 254)
@@ -672,6 +674,9 @@ void checkGNSSArrayDefaults()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
         }
     }
+#endif  // COMPILE_UM980
+
+#ifdef  COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         if (settings.dynamicModel == 254)
@@ -727,6 +732,7 @@ void checkGNSSArrayDefaults()
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
         }
     }
+#endif  // COMPILE_MOSAICX5
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
