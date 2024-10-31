@@ -89,7 +89,7 @@ bool beginGpioExpander(uint8_t padAddress)
         io.revert(gpioExpander_center);     // Set to not inverted
         io.revert(gpioExpander_cardDetect); // Set to not inverted
 
-        systemPrintln("Directional Pad Online");
+        systemPrintln("Directional pad online");
 
         online.gpioExpander = true;
         return (true);
