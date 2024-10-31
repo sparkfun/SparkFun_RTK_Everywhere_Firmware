@@ -63,28 +63,7 @@ void sdUpdate()
   domain. This code is based on Karl Lunt's work: https://www.seanet.com/~karllunt/sdlocker2.html
 */
 
-// Define commands for the SD card
-#define SD_GO_IDLE (0x40 + 0)      // CMD0 - go to idle state
-#define SD_INIT (0x40 + 1)         // CMD1 - start initialization
-#define SD_SEND_IF_COND (0x40 + 8) // CMD8 - send interface (conditional), works for SDHC only
-#define SD_SEND_STATUS (0x40 + 13) // CMD13 - send card status
-#define SD_SET_BLK_LEN (0x40 + 16) // CMD16 - set length of block in bytes
-#define SD_LOCK_UNLOCK (0x40 + 42) // CMD42 - lock/unlock card
-#define CMD55 (0x40 + 55)          // multi-byte preface command
-#define SD_READ_OCR (0x40 + 58)    // read OCR
-#define SD_ADV_INIT (0xc0 + 41)    // ACMD41, for SDHC cards - advanced start initialization
-
-// Define options for accessing the SD card's PWD (CMD42)
-#define MASK_ERASE 0x08       // erase the entire card
-#define MASK_LOCK_UNLOCK 0x04 // lock or unlock the card with password
-#define MASK_CLR_PWD 0x02     // clear password
-#define MASK_SET_PWD 0x01     // set password
-
-// Define bit masks for fields in the lock/unlock command (CMD42) data structure
-#define SET_PWD_MASK (1 << 0)
-#define CLR_PWD_MASK (1 << 1)
-#define LOCK_UNLOCK_MASK (1 << 2)
-#define ERASE_MASK (1 << 3)
+#define SD_GO_IDLE (0x40 + 0) // CMD0 - go to idle state
 
 // Some platforms have a card detect hardware pin
 // For platforms that don't, we use software to detect the SD card
@@ -143,9 +122,9 @@ bool sdCardPresent(void)
 // responds with In Idle Mode (0x01). If the response is not 0x01
 // within a reasonable amount of time, there is no SD card on the bus.
 // This test takes approximately 13ms to complete
-
 bool sdCardPresentSoftwareTest()
 {
+    SPI.begin(pin_SCK, pin_POCI, pin_PICO);
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);
@@ -158,9 +137,9 @@ bool sdCardPresentSoftwareTest()
     byte response;
 
     // Sending CMD0 - GO IDLE...
-    for (byte i = 0; i < 0x10; i++) // Attempt to go idle
+    for (byte i = 0; i < 0x10; i++)
     {
-        response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
+        response = sdSendCommand(SD_GO_IDLE, 0);
         if (response == 1)
             return (true); // Card responded
     }
@@ -189,14 +168,6 @@ byte sdSendCommand(byte command, unsigned long arg)
 {
     byte response;
 
-    if (command & 0x80) // special case, ACMD(n) is sent as CMD55 and CMDn
-    {
-        command &= 0x7f;                    // strip high bit for later
-        response = sdSendCommand(CMD55, 0); // send first part (recursion)
-        if (response > 1)
-            return (response);
-    }
-
     sdDeselectCard();
     xchg(0xFF);
     sdSelectCard(); // enable CS
@@ -211,8 +182,6 @@ byte sdSendCommand(byte command, unsigned long arg)
     byte crc = 0x01; // good for most cases
     if (command == SD_GO_IDLE)
         crc = 0x95; // this will be good enough for most commands
-    if (command == SD_SEND_IF_COND)
-        crc = 0x87; // special case, have to use different CRC
     xchg(crc);      // send final byte
 
     for (int i = 0; i < 30; i++) // loop until timeout or response
@@ -220,19 +189,6 @@ byte sdSendCommand(byte command, unsigned long arg)
         response = xchg(0xFF);
         if ((response & 0x80) == 0)
             break; // high bit cleared means we got a response
-    }
-
-    /*
-        We have issued the command but the SD card is still selected.  We
-        only deselect the card if the command we just sent is NOT a command
-        that requires additional data exchange, such as reading or writing
-        a block.
-    */
-    if ((command != SD_READ_OCR) && (command != SD_SEND_STATUS) && (command != SD_SEND_IF_COND) &&
-        (command != SD_LOCK_UNLOCK))
-    {
-        sdDeselectCard(); // all done
-        xchg(0xFF);       // close with eight more clocks
     }
 
     return (response); // let the caller sort it out
