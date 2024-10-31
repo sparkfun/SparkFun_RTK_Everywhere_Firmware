@@ -2585,7 +2585,9 @@ void paintDisplaySetup()
     }
 }
 
-// Given text, and location, print text center of the screen
+// Given text, and location, print text center of the screen.
+// In a perfect world, this would work correctly with all fonts.
+// But, in reality, it is hardwired for 5X7 and 8X16...
 void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_t kerning,
                      bool highlight) // text, y, font type, kearning, inverted
 {
@@ -2633,7 +2635,10 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
         if ((xBoxStart + xBoxWidth) > oled->getWidth())
             xBoxWidth = oled->getWidth() - xBoxStart;
 
-        oled->rectangleFill(xBoxStart, yPos, xBoxWidth, fontType.height, 1); // x, y, width, height, color
+        // For the 8X16 font, only the 'top' 12 rows are used
+        uint8_t boxHeight = fontType.height == 16 ? 12 : 7;
+
+        oled->rectangleFill(xBoxStart, yPos, xBoxWidth, boxHeight, 1); // x, y, width, height, color
     }
 }
 
@@ -3117,17 +3122,18 @@ void displayConfigViaEthernet()
         IPAddress localIP = ETH.localIP();
         snprintf(ipAddress, sizeof(ipAddress), "%s", localIP.toString());
 
-        // yPos is 36 on 128x64 displays, 32 on 64x48 displays. So QW_FONT_8x16 will fit - just!
-        // See if 8x16 will fit. But widest character is only 7 pixels.
-        int displayWidthBigChars = ((present.display_type == DISPLAY_128x64) ? 16 : 8);
-        int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
+        // yPos is 36 on 128x64 displays, 32 on 64x48 displays. QW_FONT_8x16 will fit - as it only uses ~12 rows.
+
+        // See if 8x16 will fit. But widest character is only 7 pixels, so divide by 8 (7 plus 1 kerning) not 9.
+        int displayWidth8X16 = ((present.display_type == DISPLAY_128x64) ? 16 : 8);
+        int displayWidth5X7 = ((present.display_type == DISPLAY_128x64) ? 21 : 10); // 5 plus 1 kerning
 
         // If we can print the full IP address without shuttling
-        if (strlen(ipAddress) <= displayWidthBigChars)
+        if (strlen(ipAddress) <= displayWidth8X16)
         {
             printTextCenter(ipAddress, yPos, QW_FONT_8X16, 1, false);
         }
-        else if (strlen(ipAddress) <= displayWidthChars)
+        else if (strlen(ipAddress) <= displayWidth5X7)
         {
             printTextCenter(ipAddress, yPos, QW_FONT_5X7, 1, false);
         }
@@ -3135,8 +3141,8 @@ void displayConfigViaEthernet()
         {
             // Print as many characters as we can. Shuttle back and forth to display all.
             static int startPos = 0;
-            char printThis[displayWidthChars + 1];
-            int extras = strlen(ipAddress) - displayWidthChars;
+            char printThis[displayWidth5X7 + 1];
+            int extras = strlen(ipAddress) - displayWidth5X7;
             int shuttle[2 * extras];
             int x;
             for (x = 0; x <= extras; x++)
@@ -3154,8 +3160,7 @@ void displayConfigViaEthernet()
     }
 
 #else  // COMPILE_ETHERNET
-    uint8_t fontHeight = 15;
-    uint8_t yPos = oled->getHeight() / 2 - fontHeight;
+    uint8_t yPos = oled->getHeight() / 2 - 4;
     printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
 #endif // COMPILE_ETHERNET
 }
