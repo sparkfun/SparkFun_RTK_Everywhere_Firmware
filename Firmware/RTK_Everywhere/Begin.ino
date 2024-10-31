@@ -850,7 +850,9 @@ void beginSD()
         }
 
         resetSPI(); // Re-initialize the SPI/SD interface
-
+        
+        beginSPI(true); //Start SPI interface
+        
         if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == false)
         {
             int tries = 0;
@@ -961,6 +963,8 @@ void resetSPI()
     SPI.end();
 
     sdDeselectCard();
+
+    //Leave with SPI interface ended
 }
 
 // We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
