@@ -1212,14 +1212,14 @@ void handleGnssDataTask(void *e)
                     long startTime = millis();
                     startMillis = millis();
 
-                    bytesToSend = ubxFile->write(&ringBuffer[sdRingBufferTail], bytesToSend);
+                    bytesToSend = logFile->write(&ringBuffer[sdRingBufferTail], bytesToSend);
                     if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesToSend > 0))
                     {
                         PERIODIC_CLEAR(PD_SD_LOG_WRITE);
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
                     }
 
-                    fileSize = ubxFile->fileSize(); // Update file size
+                    fileSize = logFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD
 
@@ -1228,8 +1228,8 @@ void handleGnssDataTask(void *e)
                     {
                         baseStatusLedBlink(); // Blink LED to indicate logging activity
 
-                        ubxFile->sync();
-                        sdUpdateFileAccessTimestamp(ubxFile); // Update the file access time & date
+                        logFile->sync();
+                        sdUpdateFileAccessTimestamp(logFile); // Update the file access time & date
 
                         baseStatusLedBlink(); // Blink LED to indicate logging activity
 

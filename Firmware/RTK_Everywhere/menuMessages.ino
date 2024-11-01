@@ -340,13 +340,13 @@ void beginLogging(const char *customFileName)
                         sizeof(logFileName) - 1); // customFileName already has the preceding slash added
             }
 
-            // Allocate the ubxFile
-            if (!ubxFile)
+            // Allocate the log file
+            if (!logFile)
             {
-                ubxFile = new SdFile;
-                if (!ubxFile)
+                logFile = new SdFile;
+                if (!logFile)
                 {
-                    systemPrintln("Failed to allocate ubxFile!");
+                    systemPrintln("Failed to allocate logFile!");
                     return;
                 }
             }
@@ -359,9 +359,9 @@ void beginLogging(const char *customFileName)
                 // O_CREAT - create the file if it does not exist
                 // O_APPEND - seek to the end of the file prior to each write
                 // O_WRITE - open for write
-                if (ubxFile->open(logFileName, O_CREAT | O_APPEND | O_WRITE) == false)
+                if (logFile->open(logFileName, O_CREAT | O_APPEND | O_WRITE) == false)
                 {
-                    systemPrintf("Failed to create GNSS UBX data file: %s\r\n", logFileName);
+                    systemPrintf("Failed to create GNSS data file: %s\r\n", logFileName);
                     online.logging = false;
                     xSemaphoreGive(sdCardSemaphore);
                     return;
@@ -372,7 +372,7 @@ void beginLogging(const char *customFileName)
 
                 bufferOverruns = 0; // Reset counter
 
-                sdUpdateFileCreateTimestamp(ubxFile); // Update the file to create time & date
+                sdUpdateFileCreateTimestamp(logFile); // Update the file to create time & date
 
                 startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
 
@@ -422,7 +422,7 @@ void beginLogging(const char *customFileName)
                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                 createNMEASentence(CUSTOM_NMEA_TYPE_RESET_REASON, nmeaMessage, sizeof(nmeaMessage),
                                    rstReason); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // Record system firmware versions and info to log
 
@@ -432,24 +432,24 @@ void beginLogging(const char *customFileName)
                 getFirmwareVersion(&firmwareVersion[1], sizeof(firmwareVersion) - 1, true);
                 createNMEASentence(CUSTOM_NMEA_TYPE_SYSTEM_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    firmwareVersion); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // ZED-F9P firmware: HPG 1.30
                 createNMEASentence(CUSTOM_NMEA_TYPE_ZED_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    gnssFirmwareVersion); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // ZED-F9 unique chip ID
                 createNMEASentence(CUSTOM_NMEA_TYPE_ZED_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
                                    gnssUniqueId); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // Device BT MAC. See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/346
                 char macAddress[5];
                 snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
                 createNMEASentence(CUSTOM_NMEA_TYPE_DEVICE_BT_ID, nmeaMessage, sizeof(nmeaMessage),
                                    macAddress); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // Record today's time/date into log. This is in case a log is restarted. See issue 440:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/440
@@ -461,7 +461,7 @@ void beginLogging(const char *customFileName)
                 );
                 createNMEASentence(CUSTOM_NMEA_TYPE_CURRENT_DATE, nmeaMessage, sizeof(nmeaMessage),
                                    currentDate); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 if (reuseLastLog == true)
                 {
@@ -505,8 +505,8 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_PARSER_STATS, nmeaMessage, sizeof(nmeaMessage),
                                parserStats); // textID, buffer, sizeOfBuffer, text
-            ubxFile->println(nmeaMessage);
-            ubxFile->sync();
+            logFile->println(nmeaMessage);
+            logFile->sync();
 
             // Reset stats in case a new log is created
             failedParserMessages_NMEA = 0;
@@ -514,10 +514,10 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             failedParserMessages_UBX = 0;
 
             // Close down file system
-            ubxFile->close();
+            logFile->close();
             // Done with the log file
-            delete ubxFile;
-            ubxFile = nullptr;
+            delete logFile;
+            logFile = nullptr;
 
             systemPrintln("Log file closed");
 
@@ -986,7 +986,7 @@ void updateLogTest()
         {
             markSemaphore(FUNCTION_LOGTEST);
 
-            ubxFile->println(nmeaMessage);
+            logFile->println(nmeaMessage);
 
             xSemaphoreGive(sdCardSemaphore);
         }
