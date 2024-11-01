@@ -599,7 +599,7 @@ void correctionUpdateSource()
 
     if (millis() > (lastRadioExtCheck + radioCheckIntervalMsec))
     {
-        // LG290P will return true if settings.enableExtCorrRadio is true.
+        // LG290P will return settings.enableExtCorrRadio.
         // ZED / mosaic will return true if settings.enableExtCorrRadio is 
         // true and the port is actually active.
         if (gnss->isCorrRadioExtPortActive())
