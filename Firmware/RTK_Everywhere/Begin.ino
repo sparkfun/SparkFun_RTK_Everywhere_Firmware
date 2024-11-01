@@ -669,7 +669,11 @@ void beginBoard()
         present.microSd = true;
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
-
+        
+        present.microSdCardDetectHigh = true; //TODO remove - Just for proto of the Postcard shield
+        pin_microSD_CardDetect = 14; //TODO remove - Just for proto of the Postcard shield
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);  //TODO remove - Just for proto of the Postcard shield
+        
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
@@ -704,8 +708,8 @@ void beginBoard()
         lg290pBoot(); // Tell LG290P to boot
 
         settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
-        // Disable the microSD card
 
+        // Disable the microSD card
         pinMode(pin_microSD_CS, OUTPUT);
         sdDeselectCard();
     }
