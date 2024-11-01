@@ -3036,6 +3036,8 @@ bool settingAvailableOnPlatform(int i)
             break;
         if ((productVariant == RTK_TORCH) && rtkSettingsEntries[i].platTorch)
             break;
+        if ((productVariant == RTK_POSTCARD) && rtkSettingsEntries[i].platPostcard)
+            break;
         return false;
     } while (0);
     return true;
