@@ -849,8 +849,6 @@ void beginSD()
             settings.spiFrequency = 16;
         }
 
-        resetSPI(); // Re-initialize the SPI/SD interface
-        
         if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == false)
         {
             int tries = 0;
@@ -934,35 +932,6 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
     // Release the semaphore
     if (releaseSemaphore)
         xSemaphoreGive(sdCardSemaphore);
-}
-
-// Attempt to de-init the SD card - SPI only
-// https://github.com/greiman/SdFat/issues/351
-void resetSPI()
-{
-    sdDeselectCard();
-
-    // Flush SPI interface
-    beginSPI(true);
-    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
-    for (int x = 0; x < 10; x++)
-        SPI.transfer(0XFF);
-    SPI.endTransaction();
-    SPI.end();
-
-    sdSelectCard();
-
-    // Flush SD interface
-    beginSPI(true);
-    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
-    for (int x = 0; x < 10; x++)
-        SPI.transfer(0XFF);
-    SPI.endTransaction();
-    SPI.end();
-
-    sdDeselectCard();
-
-    beginSPI(true); //Leave with SPI interface started
 }
 
 // We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
@@ -1715,7 +1684,6 @@ void beginSDSizeCheckTask()
                     &sdSizeCheckTaskHandle); // Task handle
 
         log_d("sdSizeCheck Task started");
-        Serial.println("sdSizeCheck Task started");
     }
 }
 
