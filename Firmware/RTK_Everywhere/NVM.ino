@@ -105,6 +105,10 @@ void setSettingsFileName()
              profileNumber);
     snprintf(stationCoordinateGeodeticFileName, sizeof(stationCoordinateGeodeticFileName),
              "/StationCoordinates-Geodetic_%d.csv", profileNumber);
+
+    if(settings.debugSettings)
+        systemPrintf("Settings file name: %s\r\n", settingsFileName);
+
 }
 
 // Load only LFS settings without recording
@@ -224,6 +228,9 @@ void recordSystemSettingsToFile(File *settingsFile)
 {
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
+
+    if(settings.debugSettings)
+        systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
@@ -913,7 +920,8 @@ bool parseLine(char *str)
     bool knownSetting = false;
     bool updateGNSS = false;
 
-    // log_d("settingName: %s - value: %s - d: %0.9f", settingName, settingString, d);
+    if(settings.debugSettings)
+        systemPrintf("settingName: %s - value: %s - d: %0.9f\r\n", settingName, settingString, d);
 
     // Exceptions:
     if (strcmp(settingName, "sizeOfSettings") == 0)
