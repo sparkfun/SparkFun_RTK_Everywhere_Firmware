@@ -39,6 +39,8 @@ class GNSS
     unsigned long _pvtArrivalMillis;
     bool     _pvtUpdated;
 
+    bool     _corrRadioExtPortEnabled = false;
+
     unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
     // Setup the general configuration of the GNSS
@@ -227,6 +229,10 @@ class GNSS
     // Date is confirmed once we have GNSS fix
     virtual bool isConfirmedTime();
 
+    // Returns true if data is arriving on the Radio Ext port
+    // TODO: on LG290P this should return true
+    virtual bool isCorrRadioExtPortActive();
+
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     virtual bool isDgpsFixed();
 
@@ -309,6 +315,10 @@ class GNSS
 
     // Enable all the valid constellations and bands for this platform
     virtual bool setConstellations();
+
+    // Enable / disable corrections protocol(s) on the Radio External port
+    // Always update if force is true. Otherwise, only update if enable has changed state
+    virtual bool setCorrRadioExtPort(bool enable, bool force);
 
     virtual bool setDataBaudRate(uint32_t baud);
 

@@ -1234,7 +1234,6 @@ struct Settings
     int8_t timeZoneSeconds = 0;
 
     // UBX (SX1276)
-    bool enableUART2UBXIn = false;                                 // UBX Protocol In on UART2
     ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
         {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, true, "Galileo"},
@@ -1494,7 +1493,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
-    { 0, 0, 0, 0, 1, 1, 1, 0, 1, _bool,     0, & settings.enableExtCorrRadio, "ExtCorrRadio",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, 1, _bool,     0, & settings.enableExtCorrRadio, "ExtCorrRadio",  },
 
 //                            F
 //                            a
@@ -1835,7 +1834,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  s  x  k  2  c  h  d  Type    Qual  Variable                  Name
 
     // ublox GNSS Receiver
-    { 0, 1, 1, 0, 1, 1, 0, 0, 1, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
     { 1, 1, 1, 1, 1, 1, 0, 0, 1, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, 1, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, 1, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_",  },

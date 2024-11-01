@@ -604,11 +604,8 @@ bool GNSS_ZED::configureRadio()
     response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_NMEA, 0);
     if (commandSupported(UBLOX_CFG_UART2OUTPROT_RTCM3X))
         response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_RTCM3X, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, 1);
-    if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, 0);
+
+    // UART2INPROT is set by setCorrRadioExtPort
 
     // We don't want NMEA over I2C, but we will want to deliver RTCM, and UBX+RTCM is not an option
     response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_UBX, 1);
@@ -727,7 +724,14 @@ bool GNSS_ZED::configureRadio()
         else
         {
             systemPrintln("Failed to configure GNSS antenna detection");
+            response = false;
         }
+    }
+
+    if (!setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
+    {
+        systemPrintln("Failed to configure UART2INPROT (Corrections Radio)");
+        response = false;
     }
 
     if (response)
@@ -1341,6 +1345,13 @@ bool GNSS_ZED::isConfirmedTime()
     return (_confirmedTime);
 }
 
+// Returns true if data is arriving on the Radio Ext port
+bool GNSS_ZED::isCorrRadioExtPortActive()
+{
+    return false; // TODO: Paul - you are here
+}
+
+
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1913,6 +1924,33 @@ bool GNSS_ZED::setConstellations()
     response &= _zed->sendCfgValset();
 
     return (response);
+}
+
+// Enable / disable corrections protocol(s) on the Radio External port
+// Always update if force is true. Otherwise, only update if enable has changed state
+bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
+{
+    if (force || (enable != _corrRadioExtPortEnabled))
+    {
+        bool response = _zed->newCfgValset();
+
+        // Leave NMEA IN (poll requests) enabled so MON-COMMS skipped keeps updating
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, enable ? 0 : 1 );
+
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, enable ? 1 : 0 );
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, enable ? 1 : 0 );
+        if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
+            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0 );
+
+        response &= _zed->sendCfgValset(); // Closing
+        if (response)
+        {
+            _corrRadioExtPortEnabled = enable;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 //----------------------------------------

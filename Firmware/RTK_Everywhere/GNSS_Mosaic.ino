@@ -249,6 +249,9 @@ void GNSS_MOSAIC::begin()
     gnss->setRadioBaudRate(settings.radioPortBaud);
     gnss->setDataBaudRate(settings.dataPortBaud);
 
+    // Set COM2 (Radio) protocol(s)
+    gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true)); // Force the setting
+
     updateSD(); // Check card size and free space
 
     _receiverSetupSeen = false;
@@ -508,8 +511,7 @@ bool GNSS_MOSAIC::configureOnce()
     setting += String("\n\r");
     response &= sendWithResponse(setting, "DataInOut");
 
-    // Configure COM2 for NMEA and RTCMv3. No L-Band. Not encapsulated.
-    response &= sendWithResponse("sdio,COM2,auto,RTCMv3+NMEA\n\r", "DataInOut");
+    // COM2 is configured by setCorrRadioExtPort
 
     // Configure USB1 for NMEA and RTCMv3. No L-Band. Not encapsulated.
     response &= sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
@@ -518,6 +520,10 @@ bool GNSS_MOSAIC::configureOnce()
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
     setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    response &= sendWithResponse(setting, "SBFOutput");
+
+    // Output SBF InputLink on its own stream - at 1Hz - on COM1 only
+    setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     response &= setElevation(settings.minElev);
@@ -1391,6 +1397,25 @@ bool GNSS_MOSAIC::isConfirmedTime()
     return _validTime;
 }
 
+// Returns true if data is arriving on the Radio Ext port
+// Data could be arriving slowly, so buffer NrBytesReceivedCOM2Samples samples at 1Hz
+// Return true is there is an increase between any pair of samples
+bool GNSS_MOSAIC::isCorrRadioExtPortActive()
+{
+    if (!settings.enableExtCorrRadio)
+        return false;
+
+    bool active = false;
+    for (int i = NrBytesReceivedCOM2Samples - 1; i > 0; i--)
+    {
+        if (_NrBytesReceivedCOM2[i] > _NrBytesReceivedCOM2[i - 1])
+            active = true;
+        if (_NrBytesAcceptedCOM2[i] > _NrBytesAcceptedCOM2[i - 1])
+            active = true;
+    }
+    return (active);
+}
+
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -2117,6 +2142,32 @@ bool GNSS_MOSAIC::setConstellations()
     return (sendWithResponse(setting, "SatelliteTracking", 1000, 200));
 }
 
+// Enable / disable corrections protocol(s) on the Radio External port
+// Always update if force is true. Otherwise, only update if enable has changed state
+bool setCorrRadioExtPort(bool enable, bool force)
+{
+    if (force || (enable != _corrRadioExtPortEnabled))
+    {
+        String setting = String("sdio,COM2,");
+        if (enable)
+            setting += String("RTCMv3,");
+        else
+            // TODO: test this! Does InputLink NrBytesReceived / NrMsgReceived increase if
+            // Input is none?
+            setting += String("none,");
+        // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
+        setting += String("RTCMv3+NMEA\n\r");
+
+        if (sendWithResponse(setting, "DataInOut"))
+        {
+            _corrRadioExtPortEnabled = enable;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 //----------------------------------------
 bool GNSS_MOSAIC::setDataBaudRate(uint32_t baud)
 {
@@ -2247,6 +2298,29 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
     _clkBias_ms = sempSbfGetF8(parse, 60);
     _pvtArrivalMillis = millis();
     _pvtUpdated = true;
+}
+
+//----------------------------------------
+// Save the data from the SBF Block 4090
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint16_t SBLength = (uint16_t)sempSbfGetU1(parse, 15);
+    for (uint16_t i = 0; i < N; i++)
+    {
+        uint8_t CD = sempSbfGetU1(parse, 16 + (i * SBLength));
+        if (CD == 2) // COM2
+        {
+            for (int i = NrBytesReceivedCOM2Samples - 1; i > 0; i--)
+            {
+                _NrBytesReceivedCOM2[i - 1] = _NrBytesReceivedCOM2[i];
+                _NrBytesAcceptedCOM2[i - 1] = _NrBytesAcceptedCOM2[i];
+            }
+            _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
+            _NrBytesAcceptedCOM2[NrBytesReceivedCOM2Samples - 1] = sempSbfGetU4(parse, 16 + (i * SBLength) + 8);
+        }
+    }
 }
 
 //----------------------------------------
@@ -2501,6 +2575,10 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
         mosaic->storeBlock4007(parse);
+
+    // If this is InputLink, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4090)
+        mosaic->storeBlock4090(parse);
 
     // If this is ReceiverTime, extract some data
     if (sempSbfGetBlockNumber(parse) == 5914)

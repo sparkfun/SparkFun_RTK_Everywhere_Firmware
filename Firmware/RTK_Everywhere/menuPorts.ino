@@ -10,7 +10,7 @@ void menuPorts()
         // RTK Torch
         menuPortsUsb();
     }
-    else
+    else // TODO: Add LG290P - menuPortsNoMux();
     {
         // RTK EVK
         menuPortsNoMux();
@@ -64,13 +64,14 @@ void menuPortsNoMux()
         systemPrint(gnss->getDataBaudRate());
         systemPrintln(" bps");
 
-        systemPrint("3) GNSS UART2 UBX Protocol In: ");
-        if (settings.enableUART2UBXIn == true)
-            systemPrintln("Enabled");
-        else
-            systemPrintln("Disabled");
+        systemPrintf("3) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
-        systemPrintf("4) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+        // EVK has no mux. LG290P has no mux.
+        if (present.gnss_zedf9p) // TODO: Add LG290P. Radio is on RXD3
+        {
+            systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
+                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+        }
 
         systemPrintln("x) Exit");
 
@@ -116,14 +117,18 @@ void menuPortsNoMux()
         }
         else if (incoming == 3)
         {
-            settings.enableUART2UBXIn ^= 1;
-            systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart");
-        }
-        else if (incoming == 4)
-        {
             settings.enableGnssToUsbSerial ^= 1;
             if (settings.enableGnssToUsbSerial)
                 systemPrintln("GNSS to USB is enabled. To exit this mode, press +++ to open the configuration menu.");
+        }
+        else if ((incoming == 4) && (present.gnss_zedf9p)) // TODO: Add LG290P
+        {
+            // Toggle the enable for the external corrections radio
+            settings.enableExtCorrRadio ^= 1;
+            if (gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
+                systemPrintln("Radio port Protocol In updated");
+            else
+                systemPrintln("Radio port Protocol In update failed! Changes will be applied at next restart.");
         }
         else if (incoming == 'x')
             break;
@@ -171,15 +176,20 @@ void menuPortsMultiplexed()
             systemPrintln("3) Configure External Triggers");
         }
 
+        // Facet v2 has a mux. Radio Ext is UART2
+        // Facet mosaic has a mux. Radio Ext is COM2. Data port (COM3) is mux'd.
         if (present.gnss_zedf9p)
         {
-            systemPrint("4) GNSS UART2 UBX Protocol In: ");
-            if (settings.enableUART2UBXIn == true)
-                systemPrintln("Enabled");
-            else
-                systemPrintln("Disabled");
+            systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
+                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
         }
         else if (present.gnss_mosaicX5)
+        {
+            systemPrintf("4) Toggle use of external RTCMv3 corrections radio on COM2: %s\r\n",
+                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+        }
+
+        if (present.gnss_mosaicX5)
         {
             systemPrintf("4) Output GNSS data to USB1 serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
         }
@@ -249,12 +259,16 @@ void menuPortsMultiplexed()
         {
             menuPortHardwareTriggers();
         }
-        else if ((incoming == 4) && (present.gnss_zedf9p))
+        else if (incoming == 4)
         {
-            settings.enableUART2UBXIn ^= 1;
-            systemPrintln("UART2 Protocol In updated. Changes will be applied at next restart.");
+            // Toggle the enable for the external corrections radio
+            settings.enableExtCorrRadio ^= 1;
+            if (gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
+                systemPrintln("Radio port Protocol In updated");
+            else
+                systemPrintln("Radio port Protocol In update failed! Changes will be applied at next restart.");
         }
-        else if ((incoming == 4) && (present.gnss_mosaicX5))
+        else if ((incoming == 5) && (present.gnss_mosaicX5))
         {
             settings.enableGnssToUsbSerial ^= 1;
         }
