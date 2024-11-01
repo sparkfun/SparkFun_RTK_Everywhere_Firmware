@@ -284,12 +284,12 @@ void setGNSSMessageRates(uint8_t *localMessageRate, uint8_t msgRate)
 
 // Creates a log if logging is enabled, and SD is detected
 // Based on GPS data/time, create a log file in the format SFE_Everywhere_YYMMDD_HHMMSS.ubx
-void beginLogging()
+bool beginLogging()
 {
-    beginLogging(nullptr);
+    return(beginLogging(nullptr));
 }
 
-void beginLogging(const char *customFileName)
+bool beginLogging(const char *customFileName)
 {
     if (online.microSD == false)
         beginSD();
@@ -353,7 +353,7 @@ void beginLogging(const char *customFileName)
                 if (!logFile)
                 {
                     systemPrintln("Failed to allocate logFile!");
-                    return;
+                    return(false);
                 }
             }
 
@@ -367,10 +367,10 @@ void beginLogging(const char *customFileName)
                 // O_WRITE - open for write
                 if (logFile->open(logFileName, O_CREAT | O_APPEND | O_WRITE) == false)
                 {
-                    systemPrintf("Failed to create GNSS data file: %s\r\n", logFileName);
+                    systemPrintf("Failed to create GNSS log file: %s\r\n", logFileName);
                     online.logging = false;
                     xSemaphoreGive(sdCardSemaphore);
-                    return;
+                    return(false);
                 }
 
                 fileSize = 0;
@@ -479,15 +479,17 @@ void beginLogging(const char *customFileName)
             else
             {
                 // A retry will happen during the next loop, the log will eventually be opened
-                log_d("Failed to get file system lock to create GNSS UBX data file");
+                log_d("Failed to get file system lock to create GNSS log file");
                 online.logging = false;
-                return;
+                return(false);
             }
 
             systemPrintf("Log file name: %s\r\n", logFileName);
             online.logging = true;
         } // online.sd, enable.logging, online.rtc
     } // online.logging
+
+    return (true);
 }
 
 // Stop writing to the log file on the microSD card
