@@ -326,11 +326,17 @@ void beginLogging(const char *customFileName)
 
                 if (strlen(logFileName) == 0)
                 {
-                    snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.ubx", // SdFat library
+                    //u-blox platforms use ubx file extension for logs, all others use TXT
+                    char fileExtension[4] = "ubx";
+                    if(present.gnss_zedf9p == false)
+                        strncpy(fileExtension, "txt", sizeof(fileExtension));
+
+                    snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.%s", // SdFat library
                              platformFilePrefix, rtc.getYear() - 2000, rtc.getMonth() + 1,
                              rtc.getDay(), // ESP32Time returns month:0-11
                              rtc.getHour(true), rtc.getMinute(),
-                             rtc.getSecond() // ESP32Time getHour(true) returns hour:0-23
+                             rtc.getSecond(), // ESP32Time getHour(true) returns hour:0-23
+                             fileExtension
                     );
                 }
             }
