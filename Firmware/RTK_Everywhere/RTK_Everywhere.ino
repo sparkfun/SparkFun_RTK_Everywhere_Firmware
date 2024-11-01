@@ -27,18 +27,18 @@
 // #define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_WIFI
-#define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
-#define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
-#endif                      // COMPILE_WIFI
+#define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
+#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
+#endif                 // COMPILE_WIFI
 
-#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
-#define COMPILE_UM980                // Comment out to remove UM980 functionality
-#define COMPILE_MOSAICX5             // Comment out to remove mosaic-X5 functionality
-#define COMPILE_LG290P               // Comment out to remove LG290P functionality
+#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
+#define COMPILE_UM980    // Comment out to remove UM980 functionality
+#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+#define COMPILE_LG290P   // Comment out to remove LG290P functionality
 
-#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
-//#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
-#define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
+#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
+// #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+#define COMPILE_BQ40Z50 // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
 #define COMPILE_NETWORK
@@ -1267,6 +1267,8 @@ void loopDelay()
 // Push new data to log as needed
 void logUpdate()
 {
+    static bool blockLogging = false; //Used to prevent circular attempts to create a log file when previous attempts have failed
+
     // Convert current system time to minutes. This is used in gnssSerialReadTask()/updateLogs() to see if we are within
     // max log window.
     systemTime_minutes = millis() / 1000L / 60;
@@ -1281,9 +1283,14 @@ void logUpdate()
     if (outOfSDSpace == true)
         return; // We can't log if we are out of SD space
 
-    if (online.logging == false && settings.enableLogging == true)
+    if (online.logging == false && settings.enableLogging == true && blockLogging == false)
     {
-        beginLogging();
+        if(beginLogging() == false)
+        {
+            //Failed to create file, block future logging attempts
+            blockLogging = true;
+            return;
+        }
 
         setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
