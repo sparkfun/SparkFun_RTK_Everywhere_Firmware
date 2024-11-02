@@ -656,6 +656,14 @@ uint8_t GNSS_UM980::getActiveMessageCount()
 }
 
 //----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_UM980::getLoggingType()
+{
+    return ((uint8_t)LOGGING_UNKNOWN);
+}
+
+//----------------------------------------
 uint8_t GNSS_UM980::getActiveNmeaMessageCount()
 {
     uint8_t count = 0;

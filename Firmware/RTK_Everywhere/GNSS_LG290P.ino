@@ -502,7 +502,7 @@ void GNSS_LG290P::factoryReset()
     if (online.gnss)
     {
         _lg290p->factoryRestore(); // Restores the parameters configured by all commands to their default values.
-                                 // This command takes effect after restarting.
+                                   // This command takes effect after restarting.
 
         _lg290p->reset(); // Reboot the receiver.
 
@@ -578,6 +578,21 @@ uint8_t GNSS_LG290P::getActiveMessageCount()
     count += getActiveNmeaMessageCount();
     count += getActiveRtcmMessageCount();
     return (count);
+}
+
+//----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_LG290P::getLoggingType()
+{
+    LoggingType logType = LOGGING_CUSTOM;
+
+    if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
+        logType = LOGGING_STANDARD;
+
+    //What RTCM messages need to be logged to reach LOGGING_PPP?
+
+    return ((uint8_t)logType);
 }
 
 //----------------------------------------
@@ -745,8 +760,8 @@ uint8_t GNSS_LG290P::getFixType()
 float GNSS_LG290P::getHorizontalAccuracy()
 {
     // Coming soon from EPE
-     if (online.gnss)
-         return (_lg290p->get2DError());
+    if (online.gnss)
+        return (_lg290p->get2DError());
     return 0;
 }
 
@@ -1622,7 +1637,7 @@ bool GNSS_LG290P::surveyInStart()
 //----------------------------------------
 void lg290pHandler(uint8_t *incomingBuffer, int bufferLength)
 {
-    GNSS_LG290P * lg290p = (GNSS_LG290P *)gnss;
+    GNSS_LG290P *lg290p = (GNSS_LG290P *)gnss;
     lg290p->lg290pUpdate(incomingBuffer, bufferLength);
 }
 

@@ -1017,6 +1017,28 @@ uint8_t GNSS_ZED::getActiveMessageCount()
 }
 
 //----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_ZED::getLoggingType()
+{
+    LoggingType logType = LOGGING_CUSTOM;
+
+    int messageCount = getActiveMessageCount();
+    if (messageCount == 5 || messageCount == 7)
+    {
+        if (checkNMEARates())
+        {
+            loggingType = LOGGING_STANDARD;
+
+            if (checkPPPRates())
+                loggingType = LOGGING_PPP;
+        }
+    }
+
+    return ((uint8_t)logType);
+}
+
+//----------------------------------------
 //   Returns the altitude in meters or zero if the GNSS is offline
 //----------------------------------------
 double GNSS_ZED::getAltitude()

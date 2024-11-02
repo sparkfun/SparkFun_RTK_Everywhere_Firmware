@@ -810,19 +810,7 @@ void checkGNSSArrayDefaults()
 // This controls the type of icon displayed
 void setLoggingType()
 {
-    loggingType = LOGGING_CUSTOM;
-
-    int messageCount = gnss->getActiveMessageCount();
-    if (messageCount == 5 || messageCount == 7)
-    {
-        if (gnss->checkNMEARates())
-        {
-            loggingType = LOGGING_STANDARD;
-
-            if (gnss->checkPPPRates())
-                loggingType = LOGGING_PPP;
-        }
-    }
+    loggingType = (LoggingType)gnss->getLoggingType();
 }
 
 // During the logging test, we have to modify the messages and rate of the device

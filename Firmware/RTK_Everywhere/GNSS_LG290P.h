@@ -171,6 +171,9 @@ class GNSS_LG290P : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
+    
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    uint8_t getLoggingType();
 
     // Get the altitude
     // Outputs:
