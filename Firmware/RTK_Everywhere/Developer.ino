@@ -231,3 +231,13 @@ bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
+
+//----------------------------------------
+// LG290P
+//----------------------------------------
+
+#ifndef COMPILE_LG290P
+
+void lg290pHandler(uint8_t * buffer, int length) {}
+
+#endif // COMPILE_LG290P

@@ -666,7 +666,11 @@ void beginBoard()
     else if (productVariant == RTK_POSTCARD)
     {
         // Specify the GNSS radio
+#ifdef COMPILE_LG290P
         gnss = (GNSS *)new GNSS_LG290P();
+#else  // COMPILE_LGP290P
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_LGP290P
 
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;

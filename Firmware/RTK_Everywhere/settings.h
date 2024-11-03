@@ -1267,7 +1267,7 @@ struct Settings
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
     bool enableGalileoHas = true; // Allow E6 corrections if possible
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMBase[MAX_UM980_RTCM_MSG] = {
@@ -1276,10 +1276,10 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
     // mosaic
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     uint8_t mosaicConstellations[MAX_MOSAIC_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     // Each Stream has one connection descriptor and one interval.
     // If a NMEA message is disabled, its entry in mosaicMessageStreamNMEA is 0.
@@ -1302,7 +1302,7 @@ struct Settings
         254 }; // Mark first record with key so defaults will be applied
     uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
         254 }; // Mark first record with key so defaults will be applied
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
     // We use enableLogging to control the logging of NMEA streams
     // RINEX logging needs its own enable
@@ -1343,6 +1343,7 @@ struct Settings
     int loraSerialInteractionTimeout_s = 30; //Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode
     bool enableMultipathMitigation = true; //Multipath mitigation. UM980 specific.
 
+#ifdef COMPILE_LG290P
     uint8_t lg290pConstellations[MAX_LG290P_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     int lg290pMessageRatesNMEA[MAX_LG290P_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     int lg290pMessageRatesRTCMBase[MAX_LG290P_RTCM_MSG] = {
@@ -1351,6 +1352,7 @@ struct Settings
     int lg290pMessageRatesRTCMRover[MAX_LG290P_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Quectel recommended rates.
+#endif // COMPILE_LG290P
 
     bool debugSettings = false;
 

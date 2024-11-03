@@ -104,6 +104,11 @@ class GNSS_LG290P : GNSS
     bool setMinCnoRadio(uint8_t cnoValue);
 
   public:
+    // Constructor
+    GNSS_LG290P() : GNSS()
+    {
+    }
+
     // If we have decryption keys, configure module
     // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
@@ -171,7 +176,7 @@ class GNSS_LG290P : GNSS
 
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
-    
+
     // Get the altitude
     // Outputs:
     //   Returns the altitude in meters or zero if the GNSS is offline

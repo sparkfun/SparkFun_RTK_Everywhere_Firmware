@@ -742,6 +742,7 @@ void checkGNSSArrayDefaults()
     }
 #endif  // COMPILE_MOSAICX5
 
+#ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
     {
         if (settings.lg290pConstellations[0] == 254)
@@ -780,6 +781,7 @@ void checkGNSSArrayDefaults()
                 settings.lg290pMessageRatesRTCMBase[x] = lgMessagesRTCM[x].msgDefaultRate;
         }
     }
+#endif  // COMPILE_LG290P
 
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
