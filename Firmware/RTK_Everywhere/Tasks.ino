@@ -1525,6 +1525,8 @@ void buttonCheckTask(void *e)
 
         buttonRead();
 
+        // Begin button checking
+
         if (buttonReleased() == true) // If a button release is detected, record it
         {
             previousButtonRelease = thisButtonRelease;
@@ -1566,6 +1568,19 @@ void buttonCheckTask(void *e)
             doubleTap = false;
             singleTap = false;
         }
+
+        // If user presses the center button or right, act as double tap (select)
+        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        {
+            doubleTap = true;
+            singleTap = false;
+            previousButtonRelease = 0;
+            thisButtonRelease = 0;
+
+            gpioExpander_lastReleased = 255; // Reset for the next read
+        }
+
+        // End button checking
 
         if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
         {
@@ -1647,7 +1662,7 @@ void buttonCheckTask(void *e)
                     ;
             }
         } // End productVariant == Torch
-        else // RTK EVK, RTK Facet v2, RTK Facet mosaic
+        else // RTK EVK, RTK Facet v2, RTK Facet mosaic, RTK Postcard
         {
             if (systemState == STATE_SHUTDOWN)
             {
@@ -1662,7 +1677,8 @@ void buttonCheckTask(void *e)
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
             }
-            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) && (buttonPressedFor(500) == true))
+            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) &&
+                     (buttonPressedFor(500) == true))
             {
                 lastSetupMenuChange = millis(); // Prevent a timeout during state change
                 forceSystemStateUpdate = true;
@@ -1711,9 +1727,31 @@ void buttonCheckTask(void *e)
 
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
 
-                    setupSelectedButton++;
-                    if (setupSelectedButton == setupButtons.size()) // Limit reached?
-                        setupSelectedButton = 0;
+                    if (online.gpioExpander == true)
+                    {
+                        // React to five different buttons
+                        if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
+                        {
+                            if (setupSelectedButton == 0) // Top reached?
+                                setupSelectedButton = setupButtons.size() - 1;
+                            else
+                                setupSelectedButton--;
+                        }
+                        else if (buttonLastPressed() == gpioExpander_down)
+                        {
+                            setupSelectedButton++;
+                            if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                                setupSelectedButton = 0;
+                        }
+                    }
+                    else
+                    {
+                        // React to single mode/setup button
+                        setupSelectedButton++;
+                        if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                            setupSelectedButton = 0;
+                    }
+
                     break;
 
                 case STATE_TEST:

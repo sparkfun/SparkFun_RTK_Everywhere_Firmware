@@ -105,6 +105,8 @@ void gpioExpanderIsr()
         return;
 }
 
+// Update the status of the button library
+// Or read the GPIO expander and update the button state arrays
 void buttonRead()
 {
     // Check direct button
@@ -157,7 +159,10 @@ bool buttonReleased()
         for (int buttonNumber = 0; buttonNumber < 5; buttonNumber++)
         {
             if (buttonReleased(buttonNumber) == true)
+            {
+                gpioExpander_lastReleased = buttonNumber;
                 return (true);
+            }
         }
     }
 
@@ -210,4 +215,14 @@ bool buttonPressedFor(uint8_t buttonNumber, uint16_t maxTime)
     }
 
     return (false);
+}
+
+// Return the last button pressed found using buttonReleased()
+// Returns 255 if no button pressed yet
+uint8_t buttonLastPressed()
+{
+    // uint8_t lastButtonPressed = gpioExpander_lastReleased;
+    // gpioExpander_lastReleased = 255; //Reset for the next read
+    // return (lastButtonPressed);
+    return (gpioExpander_lastReleased);
 }
