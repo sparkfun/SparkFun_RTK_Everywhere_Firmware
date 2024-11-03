@@ -14,7 +14,7 @@ class GNSS_None : public GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureRadio() {return false;}
+    bool configureGNSS() {return false;}
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCnoRadio (uint8_t cnoValue) {return false;}
@@ -130,6 +130,9 @@ class GNSS_None : public GNSS
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds() {return _leapSeconds;}
+
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    uint8_t getLoggingType() {return 0;}
 
     // Get the longitude value
     // Outputs:
