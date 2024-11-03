@@ -1266,8 +1266,8 @@ struct Settings
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
-#ifdef  COMPILE_UM980
     bool enableGalileoHas = true; // Allow E6 corrections if possible
+#ifdef  COMPILE_UM980
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMBase[MAX_UM980_RTCM_MSG] = {
@@ -1962,11 +1962,11 @@ typedef struct
     const uint8_t * const logoPointer;
 } RTKBrandAttribute;
 
-extern const int logoSparkFun_Height;
-extern const int logoSparkFun_Width;
+extern const uint8_t logoSparkFun_Height;
+extern const uint8_t logoSparkFun_Width;
 extern const uint8_t logoSparkFun[];
-extern const int logoSparkPNT_Height;
-extern const int logoSparkPNT_Width;
+extern const uint8_t logoSparkPNT_Height;
+extern const uint8_t logoSparkPNT_Width;
 extern const uint8_t logoSparkPNT[];
 
 RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
