@@ -199,10 +199,10 @@ void beginBoard()
     {
         // Specify the GNSS radio
 #ifdef COMPILE_UM980
-        gnss = (GNSS *) new GNSS_UM980();
-#else   // COMPILE_UM980
-        gnss = (GNSS *) new GNSS_None();
-#endif  // COMPILE_UM980
+        gnss = (GNSS *)new GNSS_UM980();
+#else  // COMPILE_UM980
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_UM980
 
         present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
@@ -597,11 +597,11 @@ void beginBoard()
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         // Specify the GNSS radio
-#ifdef  COMPILE_MOSAICX5
-        gnss = (GNSS *) new GNSS_MOSAIC();
-#else   // COMPILE_MOSAICX5
-        gnss = (GNSS *) new GNSS_None();
-#endif  // COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
+        gnss = (GNSS *)new GNSS_MOSAIC();
+#else  // COMPILE_MOSAICX5
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_MOSAICX5
 
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
@@ -668,6 +668,7 @@ void beginBoard()
         // Specify the GNSS radio
         gnss = (GNSS *)new GNSS_LG290P();
 
+        present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
         present.antennaPhaseCenter_mm = 42.0;
@@ -683,11 +684,11 @@ void beginBoard()
         present.microSd = true;
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
-        
-        present.microSdCardDetectHigh = true; //TODO remove - Just for proto of the Postcard shield
-        pin_microSD_CardDetect = 14; //TODO remove - Just for proto of the Postcard shield
-        pinMode(pin_microSD_CardDetect, INPUT_PULLUP);  //TODO remove - Just for proto of the Postcard shield
-        
+
+        present.microSdCardDetectHigh = true;          // TODO remove - Just for proto of the Postcard shield
+        pin_microSD_CardDetect = 14;                   // TODO remove - Just for proto of the Postcard shield
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP); // TODO remove - Just for proto of the Postcard shield
+
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
@@ -735,7 +736,7 @@ void beginVersion()
     getFirmwareVersion(versionString, sizeof(versionString), true);
 
     char title[50];
-    RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+    RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
     snprintf(title, sizeof(title), "%s RTK %s %s", brandAttributes->name, platformPrefix, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
