@@ -2,6 +2,7 @@
 #define __SETTINGS_H__
 
 #include "GNSS.h"
+#include "GNSS_None.h"
 #include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
 #include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include "GNSS_LG290P.h" //Structs of LG90P messages, needed for settings.h
@@ -1262,10 +1263,11 @@ struct Settings
     uint16_t udpServerPort = 10110; // NMEA-0183 Navigational Data: https://tcp-udp-ports.com/port-10110.htm
 
     // UM980
-    bool enableGalileoHas = true; // Allow E6 corrections if possible
     bool enableImuCompensationDebug = false;
     bool enableImuDebug = false; // Turn on to display IMU library debug messages
     bool enableTiltCompensation = true; // Allow user to disable tilt compensation on the models that have an IMU
+#ifdef  COMPILE_UM980
+    bool enableGalileoHas = true; // Allow E6 corrections if possible
     uint8_t um980Constellations[MAX_UM980_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesNMEA[MAX_UM980_NMEA_MSG] = {254}; // Mark first record with key so defaults will be applied.
     float um980MessageRatesRTCMBase[MAX_UM980_RTCM_MSG] = {
@@ -1274,8 +1276,10 @@ struct Settings
     float um980MessageRatesRTCMRover[MAX_UM980_RTCM_MSG] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to Unicore recommended rates.
+#endif  // COMPILE_UM980
 
     // mosaic
+#ifdef  COMPILE_MOSAICX5
     uint8_t mosaicConstellations[MAX_MOSAIC_CONSTELLATIONS] = {254}; // Mark first record with key so defaults will be applied.
     // Each Stream has one connection descriptor and one interval.
     // If a NMEA message is disabled, its entry in mosaicMessageStreamNMEA is 0.
@@ -1298,6 +1302,8 @@ struct Settings
         254 }; // Mark first record with key so defaults will be applied
     uint8_t mosaicMessageEnabledRTCMv3Base[MAX_MOSAIC_RTCM_V3_MSG] = {
         254 }; // Mark first record with key so defaults will be applied
+#endif  // COMPILE_MOSAICX5
+
     // We use enableLogging to control the logging of NMEA streams
     // RINEX logging needs its own enable
     bool enableLoggingRINEX = false;
@@ -1607,6 +1613,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, _bool,     0, & settings.runLogTest, "runLogTest",  }, // Not stored in NVM
 
     // Mosaic
+
+#ifdef  COMPILE_MOSAICX5
     { 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicConst,  MAX_MOSAIC_CONSTELLATIONS, & settings.mosaicConstellations, "constellation_",  },
     { 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicMSNmea, MAX_MOSAIC_NMEA_MSG, & settings.mosaicMessageStreamNMEA, "messageStreamNMEA_",  },
     { 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, tMosaicSINmea, MOSAIC_NUM_NMEA_STREAMS, & settings.mosaicStreamIntervalsNMEA, "streamIntervalNMEA_",  },
@@ -1618,6 +1626,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXFileDuration, "RINEXFileDuration",  },
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, _uint8_t,  0, & settings.RINEXObsInterval, "RINEXObsInterval",  },
     { 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, _bool,     0, & settings.externalEventPolarity, "externalEventPolarity",  },
+#endif  // COMPILE_MOSAICX5
 
     // MQTT
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugMqttClientData, "debugMqttClientData",  },
@@ -1876,10 +1885,12 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug",  },
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
+#ifdef  COMPILE_UM980
     { 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_",  },
     { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_",  },
     { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_",  },
     { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_",  },
+#endif  // COMPILE_UM980
 
     // Web Server
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
@@ -1932,9 +1943,50 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
 const int numRtkSettingsEntries = sizeof(rtkSettingsEntries) / sizeof(rtkSettingsEntries)[0];
 
+// Branding support
+typedef enum {
+    BRAND_SPARKFUN = 0,
+    BRAND_SPARKPNT,
+    // Add new brands above this line
+    BRAND_NUM
+} RTKBrands_e;
+
+const RTKBrands_e DEFAULT_BRAND = BRAND_SPARKFUN;
+
+typedef struct
+{
+    const RTKBrands_e brand;
+    const char name[9];
+    const uint8_t logoWidth;
+    const uint8_t logoHeight;
+    const uint8_t * const logoPointer;
+} RTKBrandAttribute;
+
+extern const int logoSparkFun_Height;
+extern const int logoSparkFun_Width;
+extern const uint8_t logoSparkFun[];
+extern const int logoSparkPNT_Height;
+extern const int logoSparkPNT_Width;
+extern const uint8_t logoSparkPNT[];
+
+RTKBrandAttribute RTKBrandAttributes[RTKBrands_e::BRAND_NUM] = {
+    { BRAND_SPARKFUN, "SparkFun", logoSparkFun_Width, logoSparkFun_Height, logoSparkFun },
+    { BRAND_SPARKPNT, "SparkPNT", logoSparkPNT_Width, logoSparkPNT_Height, logoSparkPNT },
+};
+
+RTKBrandAttribute * getBrandAttributeFromBrand(RTKBrands_e brand) {
+    for (int i = 0; i < (int)RTKBrands_e::BRAND_NUM; i++) {
+        if (RTKBrandAttributes[i].brand == brand)
+            return &RTKBrandAttributes[i];
+    }
+    return getBrandAttributeFromBrand(DEFAULT_BRAND);
+}
+
 // Indicate which peripherals are present on a given platform
 struct struct_present
 {
+    RTKBrands_e brand = DEFAULT_BRAND;
+
     bool psram_2mb = false;
     bool psram_4mb = false;
 

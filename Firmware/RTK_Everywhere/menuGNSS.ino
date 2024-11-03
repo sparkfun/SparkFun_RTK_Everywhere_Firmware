@@ -75,7 +75,12 @@ void menuGNSS()
                     break;
                 }
             }
-            else if (present.gnss_um980)
+        }
+
+#ifdef  COMPILE_UM980
+        else if (present.gnss_um980)
+        {
+            switch (settings.dynamicModel)
             {
                 switch (settings.dynamicModel)
                 {
@@ -93,7 +98,12 @@ void menuGNSS()
                     break;
                 }
             }
-            else if (present.gnss_mosaicX5)
+        }
+#endif  // COMPILE_UM980
+
+        else if (present.gnss_mosaicX5)
+        {
+            switch (settings.dynamicModel)
             {
                 switch (settings.dynamicModel)
                 {

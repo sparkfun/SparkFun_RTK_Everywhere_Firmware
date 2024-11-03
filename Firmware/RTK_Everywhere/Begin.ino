@@ -198,8 +198,13 @@ void beginBoard()
     else if (productVariant == RTK_TORCH)
     {
         // Specify the GNSS radio
-        gnss = (GNSS *)new GNSS_UM980();
+#ifdef COMPILE_UM980
+        gnss = (GNSS *) new GNSS_UM980();
+#else   // COMPILE_UM980
+        gnss = (GNSS *) new GNSS_None();
+#endif  // COMPILE_UM980
 
+        present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
         present.gnss_um980 = true;
         present.radio_lora = true;
@@ -300,6 +305,8 @@ void beginBoard()
     {
         // Specify the GNSS radio
         gnss = (GNSS *)new GNSS_ZED();
+
+        present.brand = BRAND_SPARKFUN;
 
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
@@ -424,6 +431,7 @@ void beginBoard()
         // Specify the GNSS radio
         gnss = (GNSS *)new GNSS_ZED();
 
+        present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.lband_neo = true;
@@ -501,6 +509,7 @@ void beginBoard()
         // Specify the GNSS radio
         gnss = (GNSS *)new GNSS_ZED();
 
+        present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
         present.microSd = true;
@@ -588,8 +597,13 @@ void beginBoard()
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         // Specify the GNSS radio
-        gnss = (GNSS *)new GNSS_MOSAIC();
+#ifdef  COMPILE_MOSAICX5
+        gnss = (GNSS *) new GNSS_MOSAIC();
+#else   // COMPILE_MOSAICX5
+        gnss = (GNSS *) new GNSS_None();
+#endif  // COMPILE_MOSAICX5
 
+        present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
         present.display_i2c0 = true;
@@ -721,7 +735,8 @@ void beginVersion()
     getFirmwareVersion(versionString, sizeof(versionString), true);
 
     char title[50];
-    snprintf(title, sizeof(title), "SparkFun RTK %s %s", platformPrefix, versionString);
+    RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+    snprintf(title, sizeof(title), "%s RTK %s %s", brandAttributes->name, platformPrefix, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
     systemPrintln();

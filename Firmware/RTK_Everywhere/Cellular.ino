@@ -22,6 +22,13 @@
 #define CELLULAR_ATTACH_POLL_INTERVAL   100     // Milliseconds
 
 //----------------------------------------
+
+static bool cellularSimCardRemoved = false;
+static bool cellularSimCardPresent = false;
+static int cellularRSSI = 0;
+static bool cellularIsAttached = false;
+
+//----------------------------------------
 // Wait until the cellular modem is attached to a mobile network
 void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -34,11 +41,15 @@ void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
     if ((millis() - lastPollMsec) >= CELLULAR_ATTACH_POLL_INTERVAL)
     {
         lastPollMsec = millis();
-        if (CELLULAR.attached())
+        cellularIsAttached = CELLULAR.attached();
+        if (cellularIsAttached)
         {
             // Attached to a mobile network, continue 
             // Display the network information
             systemPrintf("Cellular attached to %s\r\n", CELLULAR.operatorName().c_str());
+
+            cellularRSSI = CELLULAR.RSSI();
+
             if (debug)
             {
                 systemPrint("    State: ");
@@ -46,7 +57,7 @@ void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
                 systemPrint("    IMSI: ");
                 systemPrintln(CELLULAR.IMSI());
                 systemPrint("    RSSI: ");
-                systemPrintln(CELLULAR.RSSI());
+                systemPrintln(cellularRSSI);
                 int ber = CELLULAR.BER();
                 if (ber > 0)
                 {
@@ -134,10 +145,57 @@ void cellularEvent(arduino_event_id_t event)
 }
 
 //----------------------------------------
+// Check for SIM card
+void cellularSimCheck(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    String simCardID;
+
+    if (cellularSimCardPresent)
+        networkSequenceNextEntry(index, debug);
+    else
+    {
+        simCardID = CELLULAR.cmd("AT+CCID", 500);
+        if (simCardID.length())
+        {
+            if (debug)
+                systemPrintf("SIM card %s installed\r\n", simCardID.c_str());
+            cellularSimCardPresent = true;
+            networkSequenceNextEntry(index, debug);
+        }
+        else
+        {
+            if (debug)
+                systemPrintf("SIM card not present\r\n");
+            cellularSimCardRemoved = true;
+            networkSequenceExit(index, debug);
+        }
+    }
+}
+
+//----------------------------------------
+// Stop if SIM card not installed
+void cellularSimInstalled(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    // Determine if the SIM card check has run
+    if (cellularSimCardRemoved)
+    {
+        if (debug)
+            systemPrintf("SIM card was not present, leaving cellular off\r\n");
+        networkSequenceExit(index, debug);
+    }
+
+    // Get the next sequence entry
+    else
+        networkSequenceNextEntry(index, debug);
+}
+
+//----------------------------------------
 void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     // Validate the index
     networkValidateIndex(index);
+
+    cellularIsAttached = false;
 
     // Configure the cellular modem
     CELLULAR.setApn(CELLULAR_MODEM_APN);
@@ -152,6 +210,9 @@ void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
     // Starting the cellular modem
     CELLULAR.begin(CELLULAR_MODEM_MODEL);
 
+    // Specify the timer expiration date - for the SIM check delay
+    laraTimer = millis() + parameter;
+
     // Get the next sequence entry
     networkSequenceNextEntry(index, debug);
 }
@@ -161,6 +222,8 @@ void cellularStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     // Validate the index
     networkValidateIndex(index);
+
+    cellularIsAttached = false;
 
     // Stopping the cellular modem
     systemPrintln("Stopping the cellular modem!");

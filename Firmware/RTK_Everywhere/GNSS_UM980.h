@@ -161,6 +161,12 @@ class GNSS_UM980 : GNSS
     bool setMultipathMitigation(bool enableMultipathMitigation);
 
   public:
+
+    // Constructor
+    GNSS_UM980() :  GNSS()
+    {
+    }
+
     // If we have decryption keys, configure module
     // Note: don't check online.lband_neo here. We could be using ip corrections
     void applyPointPerfectKeys();
