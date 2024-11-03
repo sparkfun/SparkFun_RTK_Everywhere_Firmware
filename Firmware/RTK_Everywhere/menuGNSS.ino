@@ -27,7 +27,7 @@ void menuGNSS()
                 "      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
         }
 
-        if (present.dynamicModel) //ZED, mosaic, UM980 have dynamic models. LG290P does not.
+        if (present.dynamicModel) // ZED, mosaic, UM980 have dynamic models. LG290P does not.
         {
             systemPrint("3) Set dynamic model: ");
             if (present.gnss_zedf9p)
@@ -77,50 +77,44 @@ void menuGNSS()
             }
         }
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
         else if (present.gnss_um980)
         {
             switch (settings.dynamicModel)
             {
-                switch (settings.dynamicModel)
-                {
-                default:
-                    systemPrint("Unknown");
-                    break;
-                case UM980_DYN_MODEL_SURVEY:
-                    systemPrint("Survey");
-                    break;
-                case UM980_DYN_MODEL_UAV:
-                    systemPrint("UAV");
-                    break;
-                case UM980_DYN_MODEL_AUTOMOTIVE:
-                    systemPrint("Automotive");
-                    break;
-                }
+            default:
+                systemPrint("Unknown");
+                break;
+            case UM980_DYN_MODEL_SURVEY:
+                systemPrint("Survey");
+                break;
+            case UM980_DYN_MODEL_UAV:
+                systemPrint("UAV");
+                break;
+            case UM980_DYN_MODEL_AUTOMOTIVE:
+                systemPrint("Automotive");
+                break;
             }
         }
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
         else if (present.gnss_mosaicX5)
         {
             switch (settings.dynamicModel)
             {
-                switch (settings.dynamicModel)
-                {
-                default:
-                    systemPrint("Unknown");
-                    break;
-                case MOSAIC_DYN_MODEL_STATIC:
-                case MOSAIC_DYN_MODEL_QUASISTATIC:
-                case MOSAIC_DYN_MODEL_PEDESTRIAN:
-                case MOSAIC_DYN_MODEL_AUTOMOTIVE:
-                case MOSAIC_DYN_MODEL_RACECAR:
-                case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
-                case MOSAIC_DYN_MODEL_UAV:
-                case MOSAIC_DYN_MODEL_UNLIMITED:
-                    systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
-                    break;
-                }
+            default:
+                systemPrint("Unknown");
+                break;
+            case MOSAIC_DYN_MODEL_STATIC:
+            case MOSAIC_DYN_MODEL_QUASISTATIC:
+            case MOSAIC_DYN_MODEL_PEDESTRIAN:
+            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+            case MOSAIC_DYN_MODEL_RACECAR:
+            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+            case MOSAIC_DYN_MODEL_UAV:
+            case MOSAIC_DYN_MODEL_UNLIMITED:
+                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
+                break;
             }
             systemPrintln();
         }
