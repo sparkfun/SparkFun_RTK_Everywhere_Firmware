@@ -190,65 +190,6 @@ void menuMessagesBaseRTCM()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
-// Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
-{
-    while (1)
-    {
-        systemPrintln();
-        systemPrintf("Menu: Message %s\r\n", messageType);
-
-        int startOfBlock = 0;
-        int endOfBlock = 0;
-        int rtcmOffset = 0; // Used to offset messageSupported lookup
-
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
-        if (strcmp(messageType, "RTCM-Base") == 0) // The ubxMessageRatesBase array is 0 to MAX_UBX_MSG_RTCM - 1
-        {
-            startOfBlock = 0;
-            endOfBlock = MAX_UBX_MSG_RTCM;
-            rtcmOffset = zed->getMessageNumberByName("RTCM_1005");
-        }
-        else
-            zed->setMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
-                                             endOfBlock); // Find start and stop of given messageType in message array
-
-        for (int x = 0; x < (endOfBlock - startOfBlock); x++)
-        {
-            // Check to see if this ZED platform supports this message
-            if (messageSupported(x + startOfBlock + rtcmOffset) == true)
-            {
-                systemPrintf("%d) Message %s: ", x + 1, ubxMessages[x + startOfBlock + rtcmOffset].msgTextName);
-                systemPrintln(localMessageRate[x + startOfBlock]);
-            }
-        }
-
-        systemPrintln("x) Exit");
-
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-        if (incoming >= 1 && incoming <= (endOfBlock - startOfBlock))
-        {
-            // Check to see if this ZED platform supports this message
-            int msgNumber = (incoming - 1) + startOfBlock;
-
-            if (messageSupported(msgNumber + rtcmOffset) == true)
-                inputMessageRate(localMessageRate[msgNumber], msgNumber + rtcmOffset);
-            else
-                printUnknown(incoming);
-        }
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
-
 // Prompt the user to enter the message rate for a given message ID
 // Assign the given value to the message
 void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
@@ -608,6 +549,7 @@ void checkGNSSArrayDefaults()
 {
     bool defaultsApplied = false;
 
+#ifdef COMPILE_ZED
     if (present.gnss_zedf9p)
     {
         if (settings.dynamicModel == 254)
@@ -639,8 +581,12 @@ void checkGNSSArrayDefaults()
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
     }
+#else
+    if(false)
+    {}
+#endif // COMPILE_ZED
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
         if (settings.dynamicModel == 254)
@@ -682,9 +628,9 @@ void checkGNSSArrayDefaults()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
         }
     }
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         if (settings.dynamicModel == 254)
@@ -740,7 +686,7 @@ void checkGNSSArrayDefaults()
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
         }
     }
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
@@ -823,6 +769,7 @@ void setLoggingType()
 // During the logging test, we have to modify the messages and rate of the device
 void setLogTestFrequencyMessages(int rate, int messages)
 {
+#ifdef COMPILE_ZED
     // Set measurement frequency
     gnss->setRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
                                      // settings.navigationRate, and GSV message
@@ -858,6 +805,7 @@ void setLogTestFrequencyMessages(int rate, int messages)
     // Apply these message rates to both UART1 / SPI and USB
     gnss->setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
+#endif // COMPILE_ZED
 }
 
 // The log test allows us to record a series of different system configurations into

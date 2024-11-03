@@ -1242,6 +1242,8 @@ struct Settings
 
     // UBX (SX1276)
     bool enableUART2UBXIn = false;                                 // UBX Protocol In on UART2
+
+#ifdef COMPILE_ZED
     ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
         {UBLOX_CFG_SIGNAL_GAL_ENA, SFE_UBLOX_GNSS_ID_GALILEO, true, "Galileo"},
@@ -1256,6 +1258,7 @@ struct Settings
     uint8_t ubxMessageRatesBase[MAX_UBX_MSG_RTCM] = {
         254}; // Mark first record with key so defaults will be applied. Int value for each supported message - Report
               // rates for RTCM Base. Default to u-blox recommended rates.
+#endif // COMPILE_ZED
 
     // UDP Server
     bool debugUdpServer = false;
@@ -1858,9 +1861,11 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // ublox GNSS Receiver
     { 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
+#ifdef COMPILE_ZED
     { 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, tUbMsgRtb, MAX_UBX_MSG_RTCM, & settings.ubxMessageRatesBase[0], "ubxMessageRateBase_",  },
+#endif // COMPILE_ZED
 
     // UDP Server
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugUdpServer, "debugUdpServer",  },

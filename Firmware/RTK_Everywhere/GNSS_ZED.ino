@@ -4,6 +4,8 @@ GNSS_ZED.ino
   Implementation of the GNSS_ZED class
 ------------------------------------------------------------------------------*/
 
+#ifdef COMPILE_ZED
+
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
@@ -1666,7 +1668,7 @@ void GNSS_ZED::menuConstellations()
 //----------------------------------------
 void GNSS_ZED::menuMessageBaseRtcm()
 {
-    zedMenuMessagesSubtype(settings.ubxMessageRatesBase, "RTCM-Base");
+    menuMessagesSubtype(settings.ubxMessageRatesBase, "RTCM-Base");
 }
 
 //----------------------------------------
@@ -1701,24 +1703,24 @@ void GNSS_ZED::menuMessages()
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
         if (incoming == 1)
-            zedMenuMessagesSubtype(settings.ubxMessageRates,
+            menuMessagesSubtype(settings.ubxMessageRates,
                                    "NMEA_"); // The following _ avoids listing NMEANAV2 messages
         else if (incoming == 2)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "RTCM");
+            menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
         else if (incoming == 3)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "RXM");
+            menuMessagesSubtype(settings.ubxMessageRates, "RXM");
         else if (incoming == 4)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
+            menuMessagesSubtype(settings.ubxMessageRates, "NAV_"); // The following _ avoids listing NAV2 messages
         else if (incoming == 5)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "NAV2");
+            menuMessagesSubtype(settings.ubxMessageRates, "NAV2");
         else if (incoming == 6)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
+            menuMessagesSubtype(settings.ubxMessageRates, "NMEANAV2");
         else if (incoming == 7)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "MON");
+            menuMessagesSubtype(settings.ubxMessageRates, "MON");
         else if (incoming == 8)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "TIM");
+            menuMessagesSubtype(settings.ubxMessageRates, "TIM");
         else if (incoming == 9)
-            zedMenuMessagesSubtype(settings.ubxMessageRates, "PUBX");
+            menuMessagesSubtype(settings.ubxMessageRates, "PUBX");
         else if (incoming == 10)
         {
             setGNSSMessageRates(settings.ubxMessageRates, 0); // Turn off all messages
@@ -1782,6 +1784,65 @@ void GNSS_ZED::menuMessages()
         systemPrintln("menuMessages: Messages successfully enabled");
 
     setLoggingType(); // Update Standard, PPP, or custom for icon selection
+}
+
+// Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
+// Controls the messages that get broadcast over Bluetooth and logged (if enabled)
+void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
+{
+    while (1)
+    {
+        systemPrintln();
+        systemPrintf("Menu: Message %s\r\n", messageType);
+
+        int startOfBlock = 0;
+        int endOfBlock = 0;
+        int rtcmOffset = 0; // Used to offset messageSupported lookup
+
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        if (strcmp(messageType, "RTCM-Base") == 0) // The ubxMessageRatesBase array is 0 to MAX_UBX_MSG_RTCM - 1
+        {
+            startOfBlock = 0;
+            endOfBlock = MAX_UBX_MSG_RTCM;
+            rtcmOffset = zed->getMessageNumberByName("RTCM_1005");
+        }
+        else
+            zed->setMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
+                                             endOfBlock); // Find start and stop of given messageType in message array
+
+        for (int x = 0; x < (endOfBlock - startOfBlock); x++)
+        {
+            // Check to see if this ZED platform supports this message
+            if (messageSupported(x + startOfBlock + rtcmOffset) == true)
+            {
+                systemPrintf("%d) Message %s: ", x + 1, ubxMessages[x + startOfBlock + rtcmOffset].msgTextName);
+                systemPrintln(localMessageRate[x + startOfBlock]);
+            }
+        }
+
+        systemPrintln("x) Exit");
+
+        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (incoming >= 1 && incoming <= (endOfBlock - startOfBlock))
+        {
+            // Check to see if this ZED platform supports this message
+            int msgNumber = (incoming - 1) + startOfBlock;
+
+            if (messageSupported(msgNumber + rtcmOffset) == true)
+                inputMessageRate(localMessageRate[msgNumber], msgNumber + rtcmOffset);
+            else
+                printUnknown(incoming);
+        }
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
 }
 
 //----------------------------------------
@@ -2537,3 +2598,6 @@ void GNSS_ZED::updateCorrectionsSource(uint8_t source)
     else
         systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
 }
+
+#endif // COMPILE_ZED
+

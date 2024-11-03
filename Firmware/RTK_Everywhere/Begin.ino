@@ -304,7 +304,11 @@ void beginBoard()
     else if (productVariant == RTK_EVK)
     {
         // Specify the GNSS radio
+#ifdef COMPILE_ZED
         gnss = (GNSS *)new GNSS_ZED();
+#else  // COMPILE_ZED
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKFUN;
 
@@ -429,7 +433,11 @@ void beginBoard()
         // TODO: pass PMP over serial to save I2C traffic?
 
         // Specify the GNSS radio
+#ifdef COMPILE_ZED
         gnss = (GNSS *)new GNSS_ZED();
+#else  // COMPILE_ZED
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
@@ -507,7 +515,11 @@ void beginBoard()
         // ZED-F9P is interfaced via I2C and UART1
 
         // Specify the GNSS radio
+#ifdef COMPILE_ZED
         gnss = (GNSS *)new GNSS_ZED();
+#else  // COMPILE_ZED
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;

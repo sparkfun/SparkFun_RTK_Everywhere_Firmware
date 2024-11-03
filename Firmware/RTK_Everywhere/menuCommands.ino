@@ -671,18 +671,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             settingIsString = true;
         }
         break;
-        case tUbxMsgRt: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                {
-                    settings.ubxMessageRates[x] = (uint8_t)settingValue;
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
+
+#ifdef COMPILE_ZED
         case tUbxConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -696,18 +686,14 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             }
         }
         break;
-        case tEspNowPr: {
-            int suffixNum;
-            if (sscanf(suffix, "%d", &suffixNum) == 1)
+        case tUbxMsgRt: {
+            for (int x = 0; x < qualifier; x++)
             {
-                int mac[6];
-                if (sscanf(settingValueStr, "%X:%X:%X:%X:%X:%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
-                           &mac[5]) == 6)
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
                 {
-                    for (int i = 0; i < 6; i++)
-                        settings.espnowPeers[suffixNum][i] = mac[i];
+                    settings.ubxMessageRates[x] = (uint8_t)settingValue;
                     knownSetting = true;
-                    settingIsString = true;
+                    break;
                 }
             }
         }
@@ -724,6 +710,24 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                     settings.ubxMessageRatesBase[x] = (uint8_t)settingValue;
                     knownSetting = true;
                     break;
+                }
+            }
+        }
+        break;
+#endif // COMPILE_ZED
+
+        case tEspNowPr: {
+            int suffixNum;
+            if (sscanf(suffix, "%d", &suffixNum) == 1)
+            {
+                int mac[6];
+                if (sscanf(settingValueStr, "%X:%X:%X:%X:%X:%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
+                           &mac[5]) == 6)
+                {
+                    for (int i = 0; i < 6; i++)
+                        settings.espnowPeers[suffixNum][i] = mac[i];
+                    knownSetting = true;
+                    settingIsString = true;
                 }
             }
         }
@@ -1437,17 +1441,8 @@ void createSettingsString(char *newSettings)
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (char *)ptr->toString().c_str());
             }
             break;
-            case tUbxMsgRt: {
-                // Record message settings
-                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-                {
-                    char tempString[50];
-                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
-                             ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-                    stringRecord(newSettings, tempString);
-                }
-            }
-            break;
+
+#ifdef COMPILE_ZED
             case tUbxConst: {
                 // Record constellation settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -1460,15 +1455,13 @@ void createSettingsString(char *newSettings)
                 }
             }
             break;
-            case tEspNowPr: {
-                // Record ESP-Now peer MAC addresses
+            case tUbxMsgRt: {
+                // Record message settings
                 for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
                 {
-                    char tempString[50]; // espnowPeers_1=B4:C1:33:42:DE:01,
-                    snprintf(tempString, sizeof(tempString), "%s%d,%02X:%02X:%02X:%02X:%02X:%02X,",
-                             rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
-                             settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
-                             settings.espnowPeers[x][5]);
+                    char tempString[50];
+                    snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
+                             ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -1484,6 +1477,21 @@ void createSettingsString(char *newSettings)
                     char tempString[50];
                     snprintf(tempString, sizeof(tempString), "%s%s,%d,", rtkSettingsEntries[i].name,
                              ubxMessages[firstRTCMRecord + x].msgTextName, settings.ubxMessageRatesBase[x]);
+                    stringRecord(newSettings, tempString);
+                }
+            }
+            break;
+#endif // COMPILE_ZED
+
+            case tEspNowPr: {
+                // Record ESP-Now peer MAC addresses
+                for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+                {
+                    char tempString[50]; // espnowPeers_1=B4:C1:33:42:DE:01,
+                    snprintf(tempString, sizeof(tempString), "%s%d,%02X:%02X:%02X:%02X:%02X:%02X,",
+                             rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
+                             settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
+                             settings.espnowPeers[x][5]);
                     stringRecord(newSettings, tempString);
                 }
             }
@@ -2218,18 +2226,8 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             settingIsString = true;
         }
         break;
-        case tUbxMsgRt: {
-            for (int x = 0; x < qualifier; x++)
-            {
-                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                {
-                    writeToString(settingValueStr, settings.ubxMessageRates[x]);
-                    knownSetting = true;
-                    break;
-                }
-            }
-        }
-        break;
+
+#ifdef COMPILE_ZED
         case tUbxConst: {
             for (int x = 0; x < qualifier; x++)
             {
@@ -2243,18 +2241,15 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             }
         }
         break;
-        case tEspNowPr: {
-            int suffixNum;
-            if (sscanf(suffix, "%d", &suffixNum) == 1)
+        case tUbxMsgRt: {
+            for (int x = 0; x < qualifier; x++)
             {
-                char peer[18];
-                snprintf(peer, sizeof(peer), "%X:%X:%X:%X:%X:%X", settings.espnowPeers[suffixNum][0],
-                         settings.espnowPeers[suffixNum][1], settings.espnowPeers[suffixNum][2],
-                         settings.espnowPeers[suffixNum][3], settings.espnowPeers[suffixNum][4],
-                         settings.espnowPeers[suffixNum][5]);
-                writeToString(settingValueStr, peer);
-                knownSetting = true;
-                settingIsString = true;
+                if ((suffix[0] == ubxMessages[x].msgTextName[0]) && (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                {
+                    writeToString(settingValueStr, settings.ubxMessageRates[x]);
+                    knownSetting = true;
+                    break;
+                }
             }
         }
         break;
@@ -2271,6 +2266,23 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
                     knownSetting = true;
                     break;
                 }
+            }
+        }
+        break;
+#endif // COMPILE_ZED
+
+        case tEspNowPr: {
+            int suffixNum;
+            if (sscanf(suffix, "%d", &suffixNum) == 1)
+            {
+                char peer[18];
+                snprintf(peer, sizeof(peer), "%X:%X:%X:%X:%X:%X", settings.espnowPeers[suffixNum][0],
+                         settings.espnowPeers[suffixNum][1], settings.espnowPeers[suffixNum][2],
+                         settings.espnowPeers[suffixNum][3], settings.espnowPeers[suffixNum][4],
+                         settings.espnowPeers[suffixNum][5]);
+                writeToString(settingValueStr, peer);
+                knownSetting = true;
+                settingIsString = true;
             }
         }
         break;
@@ -2726,17 +2738,8 @@ void commandList(bool inCommands, int i)
         commandSendExecuteListResponse(rtkSettingsEntries[i].name, "IPAddress", settingValue);
     }
     break;
-    case tUbxMsgRt: {
-        // Record message settings
-        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-        {
-            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
 
-            getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
-        }
-    }
-    break;
+#ifdef COMPILE_ZED
     case tUbxConst: {
         // Record constellation settings
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -2749,15 +2752,14 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
-    case tEspNowPr: {
-        // Record ESP-Now peer MAC addresses
+    case tUbxMsgRt: {
+        // Record message settings
         for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
         {
-            snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
-            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name, ubxMessages[x].msgTextName);
 
             getSettingValue(inCommands, settingName, settingValue);
-            commandSendExecuteListResponse(settingName, settingType, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
         }
     }
     break;
@@ -2773,6 +2775,20 @@ void commandList(bool inCommands, int i)
 
             getSettingValue(inCommands, settingName, settingValue);
             commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+#endif // COMPILE_ZED
+
+    case tEspNowPr: {
+        // Record ESP-Now peer MAC addresses
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingType, sizeof(settingType), "uint8_t[%d]", sizeof(settings.espnowPeers[0]));
+            snprintf(settingName, sizeof(settingName), "%s%d", rtkSettingsEntries[i].name, x);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, settingType, settingValue);
         }
     }
     break;

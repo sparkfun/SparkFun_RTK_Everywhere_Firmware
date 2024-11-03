@@ -7,6 +7,8 @@ GNSS_ZED.h
 #ifndef __GNSS_ZED_H__
 #define __GNSS_ZED_H__
 
+#ifdef COMPILE_ZED
+
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
 class GNSS_ZED : GNSS
@@ -23,6 +25,10 @@ class GNSS_ZED : GNSS
     bool iAmLocked = false;
 
     SFE_UBLOX_GNSS_SUPER * _zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+
+    // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
+    // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
+    void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType);
 
   public:
 
@@ -378,4 +384,5 @@ class GNSS_ZED : GNSS
     void updateCorrectionsSource(uint8_t source);
 };
 
-#endif  // __GNSS_ZED_H__
+#endif // COMPILE_ZED
+#endif // __GNSS_ZED_H__
