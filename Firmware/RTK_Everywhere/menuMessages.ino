@@ -803,11 +803,10 @@ void checkGNSSArrayDefaults()
         recordSystemSettings();
 }
 
-// Determine logging type
-// If user is logging basic 5 sentences, this is 'S'tandard logging
-// If user is logging 7 PPP sentences, this is 'P'PP logging
-// If user has other sentences turned on, it's custom logging
-// This controls the type of icon displayed
+// Determine logging type based on the GNSS receiver
+// Standard logging is usually the default NMEA 5 (or 6) messages, lines in a page icon is used
+// If user is logging messages for a PPP survey (usually NMEA + RAWX + SFRBX), then a P is shown
+// If user has other sentences turned on, it's custom logging, a C is shown
 void setLoggingType()
 {
     loggingType = (LoggingType)gnss->getLoggingType();
