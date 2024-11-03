@@ -581,21 +581,6 @@ uint8_t GNSS_LG290P::getActiveMessageCount()
 }
 
 //----------------------------------------
-// Return the type of logging that matches the enabled messages - drives the logging icon
-//----------------------------------------
-uint8_t GNSS_LG290P::getLoggingType()
-{
-    LoggingType logType = LOGGING_CUSTOM;
-
-    if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
-        logType = LOGGING_STANDARD;
-
-    //What RTCM messages need to be logged to reach LOGGING_PPP?
-
-    return ((uint8_t)logType);
-}
-
-//----------------------------------------
 uint8_t GNSS_LG290P::getActiveNmeaMessageCount()
 {
     uint8_t count = 0;
@@ -806,6 +791,21 @@ uint8_t GNSS_LG290P::getLeapSeconds()
 {
     // TODO Waiting for implementation in library
     return 0;
+}
+
+//----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_LG290P::getLoggingType()
+{
+    LoggingType logType = LOGGING_CUSTOM;
+
+    if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
+        logType = LOGGING_STANDARD;
+
+    //What RTCM messages need to be logged to reach LOGGING_PPP?
+
+    return ((uint8_t)logType);
 }
 
 //----------------------------------------

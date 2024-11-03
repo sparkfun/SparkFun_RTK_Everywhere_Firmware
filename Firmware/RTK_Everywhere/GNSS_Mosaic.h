@@ -650,9 +650,6 @@ class GNSS_MOSAIC : GNSS
     // Return the number of active/enabled messages
     uint8_t getActiveMessageCount();
 
-    // Return the type of logging that matches the enabled messages - drives the logging icon
-    uint8_t getLoggingType();
-
     // Get the altitude
     // Outputs:
     //   Returns the altitude in meters or zero if the GNSS is offline
@@ -697,6 +694,9 @@ class GNSS_MOSAIC : GNSS
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds();
+
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    uint8_t getLoggingType();
 
     // Get the longitude value
     // Outputs:

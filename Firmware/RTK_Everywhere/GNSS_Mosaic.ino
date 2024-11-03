@@ -1039,28 +1039,6 @@ uint8_t GNSS_MOSAIC::getActiveMessageCount()
 }
 
 //----------------------------------------
-// Return the type of logging that matches the enabled messages - drives the logging icon
-//----------------------------------------
-uint8_t GNSS_MOSAIC::getLoggingType()
-{
-    LoggingType logType = LOGGING_CUSTOM;
-
-    int messageCount = getActiveMessageCount();
-    if (messageCount == 5 || messageCount == 7)
-    {
-        if (checkNMEARates())
-        {
-            loggingType = LOGGING_STANDARD;
-
-            if (checkPPPRates())
-                loggingType = LOGGING_PPP;
-        }
-    }
-
-    return ((uint8_t)logType);
-}
-
-//----------------------------------------
 // Get the altitude
 // Outputs:
 //   Returns the altitude in meters or zero if the GNSS is offline
@@ -1209,6 +1187,28 @@ double GNSS_MOSAIC::getLatitude()
 uint8_t GNSS_MOSAIC::getLeapSeconds()
 {
     return _leapSeconds;
+}
+
+//----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_MOSAIC::getLoggingType()
+{
+    LoggingType logType = LOGGING_CUSTOM;
+
+    int messageCount = getActiveMessageCount();
+    if (messageCount == 5 || messageCount == 7)
+    {
+        if (checkNMEARates())
+        {
+            loggingType = LOGGING_STANDARD;
+
+            if (checkPPPRates())
+                loggingType = LOGGING_PPP;
+        }
+    }
+
+    return ((uint8_t)logType);
 }
 
 //----------------------------------------

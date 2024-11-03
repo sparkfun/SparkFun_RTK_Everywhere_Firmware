@@ -656,14 +656,6 @@ uint8_t GNSS_UM980::getActiveMessageCount()
 }
 
 //----------------------------------------
-// Return the type of logging that matches the enabled messages - drives the logging icon
-//----------------------------------------
-uint8_t GNSS_UM980::getLoggingType()
-{
-    return ((uint8_t)LOGGING_UNKNOWN);
-}
-
-//----------------------------------------
 uint8_t GNSS_UM980::getActiveNmeaMessageCount()
 {
     uint8_t count = 0;
@@ -840,6 +832,14 @@ uint8_t GNSS_UM980::getLeapSeconds()
 {
     // TODO Need to find leap seconds in UM980
     return _leapSeconds; // Returning the default value
+}
+
+//----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_UM980::getLoggingType()
+{
+    return ((uint8_t)LOGGING_UNKNOWN);
 }
 
 //----------------------------------------
