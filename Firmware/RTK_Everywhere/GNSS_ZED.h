@@ -24,11 +24,18 @@ class GNSS_ZED : GNSS
 
     SFE_UBLOX_GNSS_SUPER * _zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
+    #define rxBytesReceivedUART2Samples 5
+    uint32_t _rxBytesReceivedUART2[rxBytesReceivedUART2Samples]; // Keep track of how many bytes are received on UART2 (Radio port)
+
   public:
 
     // Constructor
     GNSS_ZED() :  GNSS()
     {
+        for (int i = 0; i < rxBytesReceivedUART2Samples; i++)
+        {
+            _rxBytesReceivedUART2[i] = 0;
+        }
     }
 
     // If we have decryption keys, configure module
@@ -360,6 +367,9 @@ class GNSS_ZED : GNSS
 
     // Callback to save the PVT data
     void storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct);
+
+    // Callback to store MON-COMMS information
+    void storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct);
 
     // Reset the survey-in operation
     // Outputs:

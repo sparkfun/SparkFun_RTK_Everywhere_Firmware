@@ -547,9 +547,8 @@ class GNSS_MOSAIC : GNSS
     // These globals are updated regularly via the SBF parser
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
     bool   _determiningFixedPosition; // PVTGeodetic Mode Bit 6
-    #define NrBytesReceivedCOM2Samples (5)
+    #define NrBytesReceivedCOM2Samples 5
     uint32_t _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples]; // Keep track of how many bytes are received on COM2 (Radio port)
-    uint32_t _NrBytesAcceptedCOM2[NrBytesReceivedCOM2Samples]; // Keep track of how many bytes are accepted on COM2 (Radio port)
 
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
@@ -575,7 +574,6 @@ class GNSS_MOSAIC : GNSS
         for (int i = 0; i < NrBytesReceivedCOM2Samples; i++)
         {
             _NrBytesReceivedCOM2[i] = 0;
-            _NrBytesAcceptedCOM2[i] = 0;
         }
     }
 

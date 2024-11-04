@@ -728,9 +728,16 @@ bool GNSS_ZED::configureRadio()
         }
     }
 
+    // Add a callback for UBX-MON-COMMS
+    if (!_zed->setAutoMONCOMMScallbackPtr(&storeMONCOMMSdata))
+    {
+        systemPrintln("Failed to configure GNSS MON COMMS callback");
+        response = false;
+    }
+
+    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
     if (!setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
     {
-        systemPrintln("Failed to configure UART2INPROT (Corrections Radio)");
         response = false;
     }
 
@@ -1346,11 +1353,16 @@ bool GNSS_ZED::isConfirmedTime()
 }
 
 // Returns true if data is arriving on the Radio Ext port
+// Data could be arriving slowly, so buffer NrBytesReceivedCOM2Samples samples at the navigation rate
+// Return true if the newest sample is > the oldest sample
 bool GNSS_ZED::isCorrRadioExtPortActive()
 {
-    return false; // TODO: Paul - you are here
-}
+    if (!settings.enableExtCorrRadio)
+        return false;
 
+    // _rxBytesReceivedUART2[0] contains the oldest sample
+    return (_rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] > _rxBytesReceivedUART2[0]);
+}
 
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
@@ -1945,8 +1957,25 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
         response &= _zed->sendCfgValset(); // Closing
         if (response)
         {
+            if ((settings.debugCorrections == true) && !inMainMenu)
+            {
+                if (force)
+                    systemPrintf("Force Radio Ext corrections: %s\r\n", enable ? "enabled" : "disabled");
+                else
+                    systemPrintf("Updating Radio Ext corrections: %s -> %s\r\n",
+                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled");
+            }
+
             _corrRadioExtPortEnabled = enable;
             return true;
+        }
+        else
+        {
+            if (force)
+                systemPrintf("Forced Radio Ext corrections (%s) failed\r\n", enable ? "enabled" : "disabled");
+            else
+                systemPrintf("Attempted update Radio Ext corrections (%s -> %s) failed\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled");
         }
     }
 
@@ -2344,6 +2373,41 @@ void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 
     _pvtArrivalMillis = millis();
     _pvtUpdated = true;
+}
+
+//----------------------------------------
+// Callback to parse UBX-MON-COMMS data - for UART2 Radio Ext monitoring
+// Inputs:
+//   ubxDataStruct: Address of an UBX_MON_COMMS_data_t structure
+//                  containing the communications port data
+//----------------------------------------
+void storeMONCOMMSdata(UBX_MON_COMMS_data_t *ubxDataStruct)
+{
+    GNSS_ZED * zed = (GNSS_ZED *)gnss;
+
+    zed->storeMONCOMMSdataRadio(ubxDataStruct);
+}
+
+//----------------------------------------
+// Callback to parse the UBX-MON-COMMS data
+//----------------------------------------
+void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
+{
+  for (uint8_t port = 0; port < ubxDataStruct->header.nPorts; port++) // For each port
+  {
+    if (ubxDataStruct->port[port].portId == COM_PORT_ID_UART2) // If this is the port we are looking for
+    {
+        // Store rxBytes
+        for (int i = 1; i < rxBytesReceivedUART2Samples; i++)
+        {
+            // Shuffle the data along by one sample
+            // _rxBytesReceivedUART2[0] contains the oldest sample
+            _rxBytesReceivedUART2[i - 1] = _rxBytesReceivedUART2[i];
+        }
+        // _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] contains the newest sample
+        _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] = ubxDataStruct->port[port].rxBytes;
+    }
+  }
 }
 
 //----------------------------------------

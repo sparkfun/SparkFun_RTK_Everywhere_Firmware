@@ -1398,22 +1398,16 @@ bool GNSS_MOSAIC::isConfirmedTime()
 }
 
 // Returns true if data is arriving on the Radio Ext port
+// I believe InputLink can only be output at 1Hz
 // Data could be arriving slowly, so buffer NrBytesReceivedCOM2Samples samples at 1Hz
-// Return true is there is an increase between any pair of samples
+// Return true if the newest sample is > the oldest sample
 bool GNSS_MOSAIC::isCorrRadioExtPortActive()
 {
     if (!settings.enableExtCorrRadio)
         return false;
 
-    bool active = false;
-    for (int i = NrBytesReceivedCOM2Samples - 1; i > 0; i--)
-    {
-        if (_NrBytesReceivedCOM2[i] > _NrBytesReceivedCOM2[i - 1])
-            active = true;
-        if (_NrBytesAcceptedCOM2[i] > _NrBytesAcceptedCOM2[i - 1])
-            active = true;
-    }
-    return (active);
+    // _NrBytesReceivedCOM2[0] contains the oldest sample
+    return (_NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] > _NrBytesReceivedCOM2[0]);
 }
 
 //----------------------------------------
@@ -2160,8 +2154,25 @@ bool setCorrRadioExtPort(bool enable, bool force)
 
         if (sendWithResponse(setting, "DataInOut"))
         {
+            if ((settings.debugCorrections == true) && !inMainMenu)
+            {
+                if (force)
+                    systemPrintf("Force Radio Ext corrections: %s\r\n", enable ? "enabled" : "disabled");
+                else
+                    systemPrintf("Updating Radio Ext corrections: %s -> %s\r\n",
+                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled")
+            }
+
             _corrRadioExtPortEnabled = enable;
             return true;
+        }
+        else
+        {
+            if (force)
+                systemPrintf("Forced Radio Ext corrections (%s) failed\r\n", enable ? "enabled" : "disabled");
+            else
+                systemPrintf("Attempted update Radio Ext corrections (%s -> %s) failed\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled")
         }
     }
 
@@ -2312,13 +2323,14 @@ void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
         uint8_t CD = sempSbfGetU1(parse, 16 + (i * SBLength));
         if (CD == 2) // COM2
         {
-            for (int i = NrBytesReceivedCOM2Samples - 1; i > 0; i--)
+            for (int i = 1; i < NrBytesReceivedCOM2Samples; i++)
             {
+                // Shuffle the data along by one sample
+                // _NrBytesReceivedCOM2[0] contains the oldest sample
                 _NrBytesReceivedCOM2[i - 1] = _NrBytesReceivedCOM2[i];
-                _NrBytesAcceptedCOM2[i - 1] = _NrBytesAcceptedCOM2[i];
             }
+            // _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] contains the newest sample
             _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
-            _NrBytesAcceptedCOM2[NrBytesReceivedCOM2Samples - 1] = sempSbfGetU4(parse, 16 + (i * SBLength) + 8);
         }
     }
 }

@@ -125,10 +125,7 @@ void menuPortsNoMux()
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
-            if (gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
-                systemPrintln("Radio port Protocol In updated");
-            else
-                systemPrintln("Radio port Protocol In update failed! Changes will be applied at next restart.");
+            gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
         }
         else if (incoming == 'x')
             break;
@@ -263,10 +260,7 @@ void menuPortsMultiplexed()
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
-            if (gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
-                systemPrintln("Radio port Protocol In updated");
-            else
-                systemPrintln("Radio port Protocol In update failed! Changes will be applied at next restart.");
+            gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
         }
         else if ((incoming == 5) && (present.gnss_mosaicX5))
         {
