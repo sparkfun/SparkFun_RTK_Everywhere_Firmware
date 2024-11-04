@@ -524,8 +524,10 @@ bool GNSS_ZED::configureRadio()
     // Redundant - also done by gnssConfigure
     // checkGNSSArrayDefaults();
 
-    _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
-    _zed->setAutoHPPOSLLHcallbackPtr(
+    // Always configure the callbacks - even if settings.updateGNSSSettings is false
+
+    response &= _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
+    response &= _zed->setAutoHPPOSLLHcallbackPtr(
         &storeHPdata); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
     _zed->setRTCM1005InputcallbackPtr(
         &storeRTCM1005data); // Configure a callback for RTCM 1005 - parsed from pushRawData
@@ -533,8 +535,31 @@ bool GNSS_ZED::configureRadio()
         &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
 
     if (present.timePulseInterrupt)
-        _zed->setAutoTIMTPcallbackPtr(
+        response &= _zed->setAutoTIMTPcallbackPtr(
             &storeTIMTPdata); // Enable automatic TIM TP messages with callback to storeTIMTPdata
+
+    if (present.antennaShortOpen)
+    {
+        response &= _zed->newCfgValset();
+
+        response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
+        response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
+
+        response &= _zed->sendCfgValset();
+        response &= _zed->setAutoMONHWcallbackPtr(&storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
+    }
+
+    // Add a callback for UBX-MON-COMMS
+    response &= _zed->setAutoMONCOMMScallbackPtr(&storeMONCOMMSdata);
+
+    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
+    response &= setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+
+    if (!response)
+    {
+        systemPrintln("GNSS initial configuration (callbacks, short detection, radio port) failed");
+    }
+    response = true; // Reset
 
     // Configuring the ZED can take more than 2000ms. We save configuration to
     // ZED so there is no need to update settings unless user has modified
@@ -708,38 +733,6 @@ bool GNSS_ZED::configureRadio()
 
     if (response == false)
         systemPrintln("Module failed config block 3");
-
-    if (present.antennaShortOpen)
-    {
-        _zed->newCfgValset();
-
-        _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
-        _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
-
-        if (_zed->sendCfgValset())
-        {
-            _zed->setAutoMONHWcallbackPtr(
-                &storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
-        }
-        else
-        {
-            systemPrintln("Failed to configure GNSS antenna detection");
-            response = false;
-        }
-    }
-
-    // Add a callback for UBX-MON-COMMS
-    if (!_zed->setAutoMONCOMMScallbackPtr(&storeMONCOMMSdata))
-    {
-        systemPrintln("Failed to configure GNSS MON COMMS callback");
-        response = false;
-    }
-
-    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
-    if (!setCorrRadioExtPort(settings.enableExtCorrRadio, true)) // Force the setting
-    {
-        response = false;
-    }
 
     if (response)
         systemPrintln("ZED-F9x configuration update");
@@ -2393,21 +2386,24 @@ void storeMONCOMMSdata(UBX_MON_COMMS_data_t *ubxDataStruct)
 //----------------------------------------
 void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
 {
-  for (uint8_t port = 0; port < ubxDataStruct->header.nPorts; port++) // For each port
-  {
-    if (ubxDataStruct->port[port].portId == COM_PORT_ID_UART2) // If this is the port we are looking for
+    for (uint8_t port = 0; port < ubxDataStruct->header.nPorts; port++) // For each port
     {
-        // Store rxBytes
-        for (int i = 1; i < rxBytesReceivedUART2Samples; i++)
+        if (ubxDataStruct->port[port].portId == COM_PORT_ID_UART2) // If this is the port we are looking for
         {
-            // Shuffle the data along by one sample
-            // _rxBytesReceivedUART2[0] contains the oldest sample
-            _rxBytesReceivedUART2[i - 1] = _rxBytesReceivedUART2[i];
+            // Store rxBytes
+            for (int i = 1; i < rxBytesReceivedUART2Samples; i++)
+            {
+                // Shuffle the data along by one sample
+                // _rxBytesReceivedUART2[0] contains the oldest sample
+                _rxBytesReceivedUART2[i - 1] = _rxBytesReceivedUART2[i];
+            }
+            // _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] contains the newest sample
+            _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] = ubxDataStruct->port[port].rxBytes;
         }
-        // _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] contains the newest sample
-        _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] = ubxDataStruct->port[port].rxBytes;
     }
-  }
+  
+    //if (settings.debugCorrections && !inMainMenu)
+    //    systemPrintf("Radio Ext (UART2) rxBytes is %d\r\n", _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1]);
 }
 
 //----------------------------------------

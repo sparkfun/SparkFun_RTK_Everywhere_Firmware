@@ -971,7 +971,7 @@ struct Settings
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
     CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
-    bool enableExtCorrRadio = false;
+    uint8_t enableExtCorrRadio = 254; // Will be initialized to true or false depending on model
 
     // Display
     bool enableResetDisplay = false;
