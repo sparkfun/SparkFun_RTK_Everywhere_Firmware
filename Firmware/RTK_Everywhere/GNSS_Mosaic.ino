@@ -1398,16 +1398,20 @@ bool GNSS_MOSAIC::isConfirmedTime()
 }
 
 // Returns true if data is arriving on the Radio Ext port
-// I believe InputLink can only be output at 1Hz
-// Data could be arriving slowly, so buffer NrBytesReceivedCOM2Samples samples at 1Hz
-// Return true if the newest sample is > the oldest sample
 bool GNSS_MOSAIC::isCorrRadioExtPortActive()
 {
     if (!settings.enableExtCorrRadio)
         return false;
 
-    // _NrBytesReceivedCOM2[0] contains the oldest sample
-    return (_NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] > _NrBytesReceivedCOM2[0]);
+    if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
+    {
+        // Return true if _radioExtBytesReceived_millis increased
+        // in the last settings.correctionsSourcesLifetime_s
+        if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
+            return true;
+    }
+
+    return false;
 }
 
 //----------------------------------------
@@ -2146,8 +2150,7 @@ bool setCorrRadioExtPort(bool enable, bool force)
         if (enable)
             setting += String("RTCMv3,");
         else
-            // TODO: test this! Does InputLink NrBytesReceived / NrMsgReceived increase if
-            // Input is none?
+            // TODO: test this! Does InputLink NrBytesReceived increase if Input is none?
             setting += String("none,");
         // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
         setting += String("RTCMv3+NMEA\n\r");
@@ -2156,11 +2159,10 @@ bool setCorrRadioExtPort(bool enable, bool force)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
             {
-                if (force)
-                    systemPrintf("Force Radio Ext corrections: %s\r\n", enable ? "enabled" : "disabled");
-                else
-                    systemPrintf("Updating Radio Ext corrections: %s -> %s\r\n",
-                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled")
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                                enable ? "enabled" : "disabled",
+                                force ? " (Forced)" : "");
             }
 
             _corrRadioExtPortEnabled = enable;
@@ -2168,11 +2170,10 @@ bool setCorrRadioExtPort(bool enable, bool force)
         }
         else
         {
-            if (force)
-                systemPrintf("Forced Radio Ext corrections (%s) failed\r\n", enable ? "enabled" : "disabled");
-            else
-                systemPrintf("Attempted update Radio Ext corrections (%s -> %s) failed\r\n",
-                                _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled")
+            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
+                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                            enable ? "enabled" : "disabled",
+                            force ? " (Forced)" : "");
         }
     }
 
@@ -2316,21 +2317,30 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
 {
+    static uint32_t previousNrBytesReceived;
+    static bool firstTime = true;
+    
     uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
     uint16_t SBLength = (uint16_t)sempSbfGetU1(parse, 15);
     for (uint16_t i = 0; i < N; i++)
     {
-        uint8_t CD = sempSbfGetU1(parse, 16 + (i * SBLength));
+        uint8_t CD = sempSbfGetU1(parse, 16 + (i * SBLength) + 0);
         if (CD == 2) // COM2
         {
-            for (int i = 1; i < NrBytesReceivedCOM2Samples; i++)
+            uint32_t NrBytesReceived = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
+
+            if (firstTime) // Avoid a false positive from historic NrBytesReceived
             {
-                // Shuffle the data along by one sample
-                // _NrBytesReceivedCOM2[0] contains the oldest sample
-                _NrBytesReceivedCOM2[i - 1] = _NrBytesReceivedCOM2[i];
+                previousNrBytesReceived = NrBytesReceived;
+                firstTime = false;
             }
-            // _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] contains the newest sample
-            _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples - 1] = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
+
+            if (NrBytesReceived > previousNrBytesReceived)
+            {
+                previousNrBytesReceived = NrBytesReceived;
+                _radioExtBytesReceived_millis = millis();
+            }
+            break;
         }
     }
 }

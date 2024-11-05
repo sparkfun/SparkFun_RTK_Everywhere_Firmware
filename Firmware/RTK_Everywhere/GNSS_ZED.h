@@ -24,18 +24,20 @@ class GNSS_ZED : GNSS
 
     SFE_UBLOX_GNSS_SUPER * _zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
-    #define rxBytesReceivedUART2Samples 5
-    uint32_t _rxBytesReceivedUART2[rxBytesReceivedUART2Samples]; // Keep track of how many bytes are received on UART2 (Radio port)
+    // Record rxBytes so we can tell if Radio Ext (COM2) is receiving correction data.
+    // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
+    // is tied to the navigation rate. To keep it simple, record the last time rxBytes
+    // was seen to increase and use that for corrections timeout. This is updated by the
+    // UBX-MON-COMMS callback. isCorrRadioExtPortActive returns true if the bytes-received has
+    // increased in the previous settings.correctionsSourcesLifetime_s
+    uint32_t _radioExtBytesReceived_millis;
 
   public:
 
     // Constructor
-    GNSS_ZED() :  GNSS()
+    GNSS_ZED() : _radioExtBytesReceived_millis(0),
+        GNSS()
     {
-        for (int i = 0; i < rxBytesReceivedUART2Samples; i++)
-        {
-            _rxBytesReceivedUART2[i] = 0;
-        }
     }
 
     // If we have decryption keys, configure module

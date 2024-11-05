@@ -1346,15 +1346,20 @@ bool GNSS_ZED::isConfirmedTime()
 }
 
 // Returns true if data is arriving on the Radio Ext port
-// Data could be arriving slowly, so buffer NrBytesReceivedCOM2Samples samples at the navigation rate
-// Return true if the newest sample is > the oldest sample
 bool GNSS_ZED::isCorrRadioExtPortActive()
 {
     if (!settings.enableExtCorrRadio)
         return false;
 
-    // _rxBytesReceivedUART2[0] contains the oldest sample
-    return (_rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] > _rxBytesReceivedUART2[0]);
+    if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
+    {
+        // Return true if _radioExtBytesReceived_millis increased
+        // in the last settings.correctionsSourcesLifetime_s
+        if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
+            return true;
+    }
+
+    return false;
 }
 
 //----------------------------------------
@@ -1952,11 +1957,10 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
             {
-                if (force)
-                    systemPrintf("Force Radio Ext corrections: %s\r\n", enable ? "enabled" : "disabled");
-                else
-                    systemPrintf("Updating Radio Ext corrections: %s -> %s\r\n",
-                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled");
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                                enable ? "enabled" : "disabled",
+                                force ? " (Forced)" : "");
             }
 
             _corrRadioExtPortEnabled = enable;
@@ -1964,11 +1968,10 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
         }
         else
         {
-            if (force)
-                systemPrintf("Forced Radio Ext corrections (%s) failed\r\n", enable ? "enabled" : "disabled");
-            else
-                systemPrintf("Attempted update Radio Ext corrections (%s -> %s) failed\r\n",
-                                _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled");
+            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
+                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                            enable ? "enabled" : "disabled",
+                            force ? " (Forced)" : "");
         }
     }
 
@@ -2386,24 +2389,32 @@ void storeMONCOMMSdata(UBX_MON_COMMS_data_t *ubxDataStruct)
 //----------------------------------------
 void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
 {
+    static uint32_t previousRxBytes;
+    static bool firstTime = true;
+    
     for (uint8_t port = 0; port < ubxDataStruct->header.nPorts; port++) // For each port
     {
         if (ubxDataStruct->port[port].portId == COM_PORT_ID_UART2) // If this is the port we are looking for
         {
-            // Store rxBytes
-            for (int i = 1; i < rxBytesReceivedUART2Samples; i++)
+            uint32_t rxBytes = ubxDataStruct->port[port].rxBytes;
+
+            //if (settings.debugCorrections && !inMainMenu)
+            //    systemPrintf("Radio Ext (UART2) rxBytes is %d\r\n", rxBytes);
+
+            if (firstTime) // Avoid a false positive from historic rxBytes
             {
-                // Shuffle the data along by one sample
-                // _rxBytesReceivedUART2[0] contains the oldest sample
-                _rxBytesReceivedUART2[i - 1] = _rxBytesReceivedUART2[i];
+                previousRxBytes = rxBytes;
+                firstTime = false;
             }
-            // _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] contains the newest sample
-            _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1] = ubxDataStruct->port[port].rxBytes;
+
+            if (rxBytes > previousRxBytes)
+            {
+                previousRxBytes = rxBytes;
+                _radioExtBytesReceived_millis = millis();
+            }
+            break;
         }
-    }
-  
-    //if (settings.debugCorrections && !inMainMenu)
-    //    systemPrintf("Radio Ext (UART2) rxBytes is %d\r\n", _rxBytesReceivedUART2[rxBytesReceivedUART2Samples - 1]);
+    }  
 }
 
 //----------------------------------------

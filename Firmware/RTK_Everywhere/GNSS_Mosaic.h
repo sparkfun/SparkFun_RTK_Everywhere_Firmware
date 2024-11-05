@@ -547,8 +547,14 @@ class GNSS_MOSAIC : GNSS
     // These globals are updated regularly via the SBF parser
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
     bool   _determiningFixedPosition; // PVTGeodetic Mode Bit 6
-    #define NrBytesReceivedCOM2Samples 5
-    uint32_t _NrBytesReceivedCOM2[NrBytesReceivedCOM2Samples]; // Keep track of how many bytes are received on COM2 (Radio port)
+
+    // Record NrBytesReceived so we can tell if Radio Ext (COM2) is receiving correction data.
+    // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
+    // is tied to the navigation rate. To keep it simple, record the last time NrBytesReceived
+    // was seen to increase and use that for corrections timeout. This is updated by the SBF 
+    // InputLink message. isCorrRadioExtPortActive returns true if the bytes-received has
+    // increased in the previous settings.correctionsSourcesLifetime_s
+    uint32_t _radioExtBytesReceived_millis;
 
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
@@ -569,12 +575,9 @@ class GNSS_MOSAIC : GNSS
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
+        _radioExtBytesReceived_millis(0),
          GNSS()
     {
-        for (int i = 0; i < NrBytesReceivedCOM2Samples; i++)
-        {
-            _NrBytesReceivedCOM2[i] = 0;
-        }
     }
 
     // If we have decryption keys, configure module
