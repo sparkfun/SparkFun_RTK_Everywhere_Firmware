@@ -606,7 +606,7 @@ void correctionUpdateSource()
             correctionLastSeen(CORR_RADIO_EXT);
 
         lastRadioExtCheck = millis();
-        setCorrRadioPort = true;
+        setCorrRadioPort = true; // Update the port protocols after updating the sources
     }
 
     // Now update the sources

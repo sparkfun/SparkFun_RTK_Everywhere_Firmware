@@ -71,6 +71,8 @@ void menuPortsNoMux()
         {
             systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+            systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
+                        settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
 
         systemPrintln("x) Exit");
@@ -127,6 +129,11 @@ void menuPortsNoMux()
             settings.enableExtCorrRadio ^= 1;
             gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
         }
+        else if ((incoming == 5) && (present.gnss_zedf9p))
+        {
+            // Toggle the SPARTN source for the external corrections radio
+            settings.extCorrRadioSPARTNSource ^= 1;
+        }
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
@@ -179,16 +186,15 @@ void menuPortsMultiplexed()
         {
             systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+            systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
+                        settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
         else if (present.gnss_mosaicX5)
         {
             systemPrintf("4) Toggle use of external RTCMv3 corrections radio on COM2: %s\r\n",
                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
-        }
-
-        if (present.gnss_mosaicX5)
-        {
-            systemPrintf("4) Output GNSS data to USB1 serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+            systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
+                        settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -261,6 +267,11 @@ void menuPortsMultiplexed()
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
             gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+        }
+        else if ((incoming == 5) && (present.gnss_zedf9p))
+        {
+            // Toggle the SPARTN source for the external corrections radio
+            settings.extCorrRadioSPARTNSource ^= 1;
         }
         else if ((incoming == 5) && (present.gnss_mosaicX5))
         {

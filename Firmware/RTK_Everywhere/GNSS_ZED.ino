@@ -1940,6 +1940,13 @@ bool GNSS_ZED::setConstellations()
 // Always update if force is true. Otherwise, only update if enable has changed state
 bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
 {
+    // The user can feed in SPARTN (IP) or PMP (L-Band) corrections on UART2
+    // The ZED needs to know which... We could work it out from the MON-COMMS
+    // msgs count for each protIds. But only when the protocol is enabled.
+    // Much easier to ask the user to define what the source is
+    if (enable)
+        updateCorrectionsSource(settings.extCorrRadioSPARTNSource);
+
     if (force || (enable != _corrRadioExtPortEnabled))
     {
         bool response = _zed->newCfgValset();
@@ -1953,6 +1960,7 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
             response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0 );
 
         response &= _zed->sendCfgValset(); // Closing
+
         if (response)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
@@ -2622,4 +2630,6 @@ void GNSS_ZED::updateCorrectionsSource(uint8_t source)
     }
     else
         systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
+
+    //_zed->softwareResetGNSSOnly(); // Restart the GNSS? Not sure if this helps...
 }

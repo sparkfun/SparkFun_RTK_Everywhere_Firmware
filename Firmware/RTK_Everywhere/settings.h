@@ -972,6 +972,7 @@ struct Settings
     CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
     uint8_t enableExtCorrRadio = 254; // Will be initialized to true or false depending on model
+    uint8_t extCorrRadioSPARTNSource = 0; // This selects IP (0) vs. L-Band (1) for _SPARTN_ corrections on Radio Ext (UART2)
 
     // Display
     bool enableResetDisplay = false;
@@ -1493,7 +1494,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
-    { 1, 1, 1, 0, 1, 1, 1, 0, 1, _bool,     0, & settings.enableExtCorrRadio, "ExtCorrRadio",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, 1, _bool,     0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  },
+    { 1, 1, 1, 0, 1, 1, 0, 0, 1, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource",  },
 
 //                            F
 //                            a
