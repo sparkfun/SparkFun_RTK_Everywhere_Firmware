@@ -143,53 +143,47 @@ bool GNSS_LG290P::checkPPPRates()
 }
 
 //----------------------------------------
-// Configure specific aspects of the receiver for base mode
+// Setup the GNSS module for any setup (base or rover)
+// In general we check if the setting is different than setting stored in NVM before writing it.
 //----------------------------------------
-bool GNSS_LG290P::configureBase()
+bool GNSS_LG290P::configureGNSS()
 {
+    // Skip configuring the GNSS receiver if no new changes are necessary
+    if (settings.updateGNSSSettings == false)
+    {
+        systemPrintln("LG290P configuration maintained");
+        return (true);
+    }
+
+    for (int x = 0; x < 3; x++)
+    {
+        // Wait up to 5 seconds for device to come online
+        for (int x = 0; x < 5; x++)
+        {
+            if (_lg290p->isConnected())
+                break;
+            else
+                systemPrintln("Device still rebooting");
+            delay(1000); // Wait for device to reboot
+        }
+
+        if (configureOnce())
+            return (true);
+
+        // If we fail, reset LG290P
+        systemPrintln("Resetting LG290P to complete configuration");
+
+        lg290pReset();
+        delay(500);
+        lg290pBoot();
+    }
+
+    systemPrintln("LG290P failed to configure");
     return (false);
-
-    /*
-        Disable all messages
-        Enable RTCM Base messages
-        Enable NMEA messages
-    */
-
-    if (online.gnss == false)
-    {
-        systemPrintln("GNSS not online");
-        return (false);
-    }
-
-    bool response = true;
-
-    // We don't start base here. Instead, we wait for States.ino to change us from
-    // base settle, to survey started, at which time the surveyInStart() is issued.
-    // That's when base is really started.
-
-    response &= enableRTCMBase(); // Set RTCM messages
-
-    response &= enableNMEA(); // Set NMEA messages
-
-    if (response == false)
-    {
-        systemPrintln("LG290P Base failed to configure");
-    }
-    else
-    {
-        // Save the current configuration into non-volatile memory (NVM)
-        // We don't need to re-configure the LG290P at next boot
-        bool settingsWereSaved = saveConfiguration();
-        if (settingsWereSaved)
-            settings.updateGNSSSettings = false;
-    }
-
-    if (settings.debugGnss)
-        systemPrintln("LG290P Base configured");
-
-    return (response);
 }
 
+//----------------------------------------
+// Configure the basic LG290P settings (rover/base agnostic)
 //----------------------------------------
 bool GNSS_LG290P::configureOnce()
 {
@@ -210,19 +204,30 @@ bool GNSS_LG290P::configureOnce()
     if (settings.debugGnss)
         debuggingEnable(); // Print all debug to Serial
 
+    serialGNSS->flush(); // Remove any incoming characters
+
     bool response = true;
+
+    response &= enterConfigMode();
+    if (settings.debugGnss && response == false)
+        systemPrintln("ConfigureOnce: Enter config mode failed");
 
     response &= setDataBaudRate(settings.dataPortBaud);   // LG290P UART1 is connected to CH342 (Port B)
     response &= _lg290p->setPortBaudrate(2, 115200 * 4);  // LG290P UART2 is connected to the ESP32 UART1
     response &= setRadioBaudRate(settings.radioPortBaud); // LG290P UART3 is connected to the locking JST connector
+    if (settings.debugGnss && response == false)
+        systemPrintln("ConfigureOnce: setBauds failed");
 
     // Enable PPS signal with a width of 200ms
     response &= _lg290p->setPPS(200, false, true); // duration time ms, alwaysOutput, polarity
+    if (settings.debugGnss && response == false)
+        systemPrintln("ConfigureOnce: setPPS failed");
 
     response &= setConstellations();
+    if (settings.debugGnss && response == false)
+        systemPrintln("ConfigureOnce: setConstellations failed");
 
-    // Set the fix rate. Default on LG290P is 10Hz so set accordingly.
-    response &= setRate(settings.measurementRateMs / 1000.0);
+    // We do not set Rover or fix rate here because fix rate only applies in rover mode.
 
     if (response)
     {
@@ -239,46 +244,9 @@ bool GNSS_LG290P::configureOnce()
     else
         online.gnss = false; // Take it offline
 
+    exitConfigMode();
+
     return (response);
-}
-
-//----------------------------------------
-// Configure specific aspects of the receiver for NTP mode
-//----------------------------------------
-bool GNSS_LG290P::configureNtpMode()
-{
-    return false;
-}
-
-//----------------------------------------
-// Setup the GNSS module for any setup (base or rover)
-// In general we check if the setting is different than setting stored in NVM before writing it.
-//----------------------------------------
-bool GNSS_LG290P::configureGNSS()
-{
-    // Skip configuring the GNSS receiver if no new changes are necessary
-    if (settings.updateGNSSSettings == false)
-    {
-        systemPrintln("LG290P configuration maintained");
-        return (true);
-    }
-
-    for (int x = 0; x < 3; x++)
-    {
-        if (configureOnce())
-            return (true);
-
-        // If we fail, reset LG290P
-        systemPrintln("Resetting LG290P to complete configuration");
-
-        lg290pReset();
-        delay(500);
-        lg290pBoot();
-        delay(500);
-    }
-
-    systemPrintln("LG290P failed to configure");
-    return (false);
 }
 
 //----------------------------------------
@@ -299,11 +267,35 @@ bool GNSS_LG290P::configureRover()
 
     bool response = true;
 
-    response &= _lg290p->setModeRover();
+    serialGNSS->flush(); // Remove any incoming characters
+
+    response &= enterConfigMode();
+    if (settings.debugGnss && response == false)
+        systemPrintln("Rover: Enter config mode failed");
+
+    // We must force receiver into Rover mode so that we can set fix rate
+    int currentMode = getMode();
+    if (currentMode != 1) // 0 - Unknown, 1 - Rover, 2 - Base
+    {
+        //response &= _lg290p->setModeRover(); // Wait for save and reset
+        //Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to fail because NMEA is not present.
+        _lg290p->setModeRover(); // Wait for save and reset
+        if (settings.debugGnss && response == false)
+            systemPrintln("Rover: Set mode rover failed");
+    }
+
+    // Set the fix rate. Default on LG290P is 10Hz so set accordingly.
+    response &= setRate(settings.measurementRateMs / 1000.0);
+    if (settings.debugGnss && response == false)
+        systemPrintln("Rover: Set rate failed");
 
     response &= enableRTCMRover();
+    if (settings.debugGnss && response == false)
+        systemPrintln("Rover: Enable RTCM failed");
 
     response &= enableNMEA();
+    if (settings.debugGnss && response == false)
+        systemPrintln("Rover: Enable NMEA failed");
 
     if (response == false)
     {
@@ -316,7 +308,150 @@ bool GNSS_LG290P::configureRover()
         bool settingsWereSaved = saveConfiguration();
         if (settingsWereSaved)
             settings.updateGNSSSettings = false;
+
+        if (settings.debugGnss)
+            systemPrintln("LG290P Rover configured");
     }
+
+    exitConfigMode();
+
+    return (response);
+}
+
+//----------------------------------------
+// Configure specific aspects of the receiver for base mode
+//----------------------------------------
+bool GNSS_LG290P::configureBase()
+{
+    /*
+        Disable all messages
+        Enable RTCM Base messages
+        Enable NMEA messages
+    */
+
+    if (online.gnss == false)
+    {
+        systemPrintln("GNSS not online");
+        return (false);
+    }
+
+    bool response = true;
+
+    serialGNSS->flush(); // Remove any incoming characters
+
+    response &= enterConfigMode();
+    if (settings.debugGnss && response == false)
+        systemPrintln("Base: Enter config mode failed");
+
+    // "When set to Base Station mode, the receiver will automatically disable NMEA message output and enable RTCM MSM4
+    // and RTCM3-1005 message output."
+    // "Note: After switching the module's working mode, save the configuration and then reset the module. Otherwise, it
+    // will continue to operate in the original mode."
+
+    // We set base mode here because we don't want to reset the module right before we (potentially) start a survey-in
+    // We wait for States.ino to change us from base settle, to survey started, at which time the surveyInStart() is
+    // issued.
+    int currentMode = getMode();
+    if (currentMode != 2) // 0 - Unknown, 1 - Rover, 2 - Base
+    {
+        //response &= _lg290p->setModeBase(); // Wait for save and reset
+        //Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to fail because NMEA is not present.
+        _lg290p->setModeBase(); // Wait for save and reset
+        if (settings.debugGnss && response == false)
+            systemPrintln("Base: Set mode base failed");
+
+        // Device should now have survey mode disabled
+    }
+
+    // If we are in survey mode, then disable it
+    uint8_t surveyInMode = getSurveyInMode(); // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+    if (surveyInMode == 1 || surveyInMode == 2)
+    {
+        //response &= disableSurveyIn(); // Wait for save and reset
+        //Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to fail because NMEA is not present.
+        disableSurveyIn(); // Wait for save and reset
+        if (settings.debugGnss && response == false)
+            systemPrintln("Base: disable survey in failed");
+    }
+
+    response &= enableRTCMBase(); // Set RTCM messages
+    if (settings.debugGnss && response == false)
+        systemPrintln("Base: Enable RTCM failed");
+
+    response &= enableNMEA(); // Set NMEA messages
+    if (settings.debugGnss && response == false)
+        systemPrintln("Base: Enable NMEA failed");
+
+    if (response == false)
+    {
+        systemPrintln("LG290P Base failed to configure");
+    }
+    else
+    {
+        // Save the current configuration into non-volatile memory (NVM)
+        // We don't need to re-configure the LG290P at next boot
+        bool settingsWereSaved = saveConfiguration();
+        if (settingsWereSaved)
+            settings.updateGNSSSettings = false;
+
+        if (settings.debugGnss)
+            systemPrintln("LG290P Base configured");
+    }
+
+    exitConfigMode();
+
+    return (response);
+}
+
+//----------------------------------------
+// Return the survey-in mode from PQTMCFGSVIN
+// 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
+//----------------------------------------
+uint8_t GNSS_LG290P::getSurveyInMode()
+{
+    return (_lg290p->getSurveyMode());
+}
+
+//----------------------------------------
+// Configure specific aspects of the receiver for NTP mode
+//----------------------------------------
+bool GNSS_LG290P::configureNtpMode()
+{
+    return false;
+}
+
+//----------------------------------------
+// Disable NMEA and RTCM on UART2 to reduce the serial traffic
+//----------------------------------------
+bool GNSS_LG290P::enterConfigMode()
+{
+    return (_lg290p->sendOkCommand("$PQTMCFGPROT",
+                                   ",W,1,2,00000000,00000000")); // Disable NMEA and RTCM on the LG290P UART2
+}
+
+//----------------------------------------
+// Enable NMEA and RTCM on UART2
+//----------------------------------------
+bool GNSS_LG290P::exitConfigMode()
+{
+    return (
+        _lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000005,00000005")); // Enable NMEA and RTCM on the LG290P UART2
+}
+
+//----------------------------------------
+// Disable Survey-In
+//----------------------------------------
+bool GNSS_LG290P::disableSurveyIn()
+{
+    bool response = _lg290p->sendOkCommand("$PQTMCFGSVIN", ",W,0,0,0,0,0,0"); // Disable survey mode
+    if(settings.debugGnss && response == false)
+        systemPrintln("disableSurveyIn: sendOkCommand failed");
+    response &= _lg290p->save();
+    if(settings.debugGnss && response == false)
+        systemPrintln("disableSurveyIn: save failed");
+    response &= _lg290p->reset();
+    if(settings.debugGnss && response == false)
+        systemPrintln("disableSurveyIn: reset failed");
 
     return (response);
 }
@@ -398,13 +533,31 @@ bool GNSS_LG290P::enableRTCMBase()
 
     for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
     {
-        if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                    settings.lg290pMessageRatesRTCMBase[messageNumber]) == false)
+        // Setting RTCM-1005 must have only the rate
+        // Setting RTCM-107X must have rate and offset
+        if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
         {
-            if (settings.debugGnss)
-                systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+            // No X found. This is RTCM-1??? message. No offset.
+            if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                        settings.lg290pMessageRatesRTCMBase[messageNumber]) == false)
+            {
+                // if (settings.debugGnss)
+                systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
                              lgMessagesRTCM[messageNumber].msgTextName);
-            response &= false; // If any one of the commands fails, report failure overall
+                response &= false; // If any one of the commands fails, report failure overall
+            }
+        }
+        else
+        {
+            // X found. This is RTCM-1??X message. Assign 'offset' of 0
+            if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                        settings.lg290pMessageRatesRTCMBase[messageNumber], 0) == false)
+            {
+                // if (settings.debugGnss)
+                systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                             lgMessagesRTCM[messageNumber].msgTextName);
+                response &= false; // If any one of the commands fails, report failure overall
+            }
         }
     }
 
@@ -433,7 +586,7 @@ bool GNSS_LG290P::enableRTCMRover()
                                         settings.lg290pMessageRatesRTCMRover[messageNumber]) == false)
             {
                 if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
                                  lgMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
@@ -445,7 +598,7 @@ bool GNSS_LG290P::enableRTCMRover()
                                         settings.lg290pMessageRatesRTCMRover[messageNumber], 0) == false)
             {
                 if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
                                  lgMessagesRTCM[messageNumber].msgTextName);
                 response &= false; // If any one of the commands fails, report failure overall
             }
@@ -689,6 +842,7 @@ uint32_t GNSS_LG290P::getRadioBaudRate()
     {
         uint32_t baud;
         uint8_t dataBits, parity, stop, flowControl;
+
         if (_lg290p->getPortInfo(3, baud, dataBits, parity, stop, flowControl) == true)
             return baud;
     }
@@ -718,7 +872,7 @@ uint8_t GNSS_LG290P::getDay()
 uint16_t GNSS_LG290P::getFixAgeMilliseconds()
 {
     if (online.gnss)
-        return (_lg290p->getGeodeticAgeMs());
+        return (_lg290p->getPVTDomainAgeMs());
     return 0;
 }
 
@@ -803,7 +957,7 @@ uint8_t GNSS_LG290P::getLoggingType()
     if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
         logType = LOGGING_STANDARD;
 
-    //What RTCM messages need to be logged to reach LOGGING_PPP?
+    // What RTCM messages need to be logged to reach LOGGING_PPP?
 
     return ((uint8_t)logType);
 }
@@ -926,8 +1080,8 @@ uint8_t GNSS_LG290P::getSecond()
 //----------------------------------------
 float GNSS_LG290P::getSurveyInMeanAccuracy()
 {
-    // This is supported but requires callbacks. See Ex11.
-    // Currently WIP
+    if (online.gnss)
+        return (_lg290p->getSurveyInMeanAccuracy());
     return 0;
 }
 
@@ -1125,10 +1279,12 @@ bool GNSS_LG290P::isRTKFloat()
 //----------------------------------------
 bool GNSS_LG290P::isSurveyInComplete()
 {
-    // TODO - Waiting on library to catch up
-    //  uint8_t surveyInStatus = _lg290p->getSurveyInStatus();
-    //  if (surveyInStatus == 2)
-    //      return (true);
+    // 0 - Invalid
+    // 1 - In-progress
+    // 2 - Complete
+    uint8_t surveyInStatus = _lg290p->getSurveyInStatus();
+    if (surveyInStatus == 2)
+        return (true);
     return (false);
 }
 
@@ -1511,10 +1667,31 @@ bool GNSS_LG290P::setModel(uint8_t modelNumber)
 }
 
 //----------------------------------------
+// Returns the current mode
+// 0 - Unknown, 1 - Rover, 2 - Base
+//----------------------------------------
+uint8_t GNSS_LG290P::getMode()
+{
+    // The fix rate can only be set in rover mode. Return false if we are in base mode.
+    int currentMode = 0;
+    _lg290p->getMode(currentMode);
+    return (currentMode);
+}
+
+//----------------------------------------
 // Given the number of seconds between desired solution reports
 //----------------------------------------
 bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
 {
+    // The fix rate can only be set in rover mode. Return false if we are in base mode.
+    int currentMode = getMode();
+    if (currentMode == 2) // Base
+    {
+        if (settings.debugGnss)
+            systemPrintln("Error: setRate can only be used in Rover mode");
+        return (false);
+    }
+
     // The LG290P has a fix interval and a message output rate
     // Fix interval is in milliseconds
     // The message output rate is the number of fix calculations before a message is issued
@@ -1616,7 +1793,8 @@ bool GNSS_LG290P::surveyInStart()
         bool response = true;
 
         response &=
-            _lg290p->setSurveyInMode(settings.observationSeconds); // Average for a number of seconds (default is 60)
+            _lg290p->setSurveyInMode(settings.observationSeconds, 0,
+                                     false); // Average for a number of seconds (default is 60), no 3D limit, no reset
 
         _autoBaseStartTimer = millis(); // Stamp when averaging began
 

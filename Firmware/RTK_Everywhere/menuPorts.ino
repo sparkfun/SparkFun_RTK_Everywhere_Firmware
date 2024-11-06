@@ -12,7 +12,7 @@ void menuPorts()
     }
     else
     {
-        // RTK EVK
+        // RTK EVK, Postcard
         menuPortsNoMux();
     }
 }

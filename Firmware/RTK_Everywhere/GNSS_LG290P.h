@@ -154,6 +154,8 @@ class GNSS_LG290P : GNSS
 
     void debuggingEnable();
 
+    bool disableSurveyIn();
+
     void enableGgaForNtrip();
 
     // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
@@ -161,6 +163,10 @@ class GNSS_LG290P : GNSS
     // Outputs:
     //   Returns true if successfully started and false upon failure
     bool enableRTCMTest();
+
+    bool enterConfigMode();
+
+    bool exitConfigMode();
 
     // Restore the GNSS to the factory settings
     void factoryReset();
@@ -231,6 +237,9 @@ class GNSS_LG290P : GNSS
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
+    // Returns 0 - Unknown, 1 - Rover, 2 - Base
+    uint8_t getMode();
+
     // Returns month number or zero if not online
     uint8_t getMonth();
 
@@ -256,6 +265,8 @@ class GNSS_LG290P : GNSS
     // Outputs:
     //   Returns the mean accuracy or zero (0)
     float getSurveyInMeanAccuracy();
+
+    uint8_t getSurveyInMode();
 
     // Return the number of seconds the survey-in process has been running
     int getSurveyInObservationTime();
