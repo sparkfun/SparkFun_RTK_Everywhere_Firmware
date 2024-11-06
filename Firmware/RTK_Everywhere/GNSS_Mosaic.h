@@ -877,7 +877,8 @@ class GNSS_MOSAIC : GNSS
                             unsigned long timeout = 1000,
                             unsigned long idle = 25,
                             char *response = nullptr,
-                            size_t responseSize = 0);
+                            size_t responseSize = 0,
+                            bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply is received, keep reading bytes until the serial port has
@@ -897,7 +898,8 @@ class GNSS_MOSAIC : GNSS
                             unsigned long timeout = 1000,
                             unsigned long idle = 25,
                             char *response = nullptr,
-                            size_t responseSize = 0);
+                            size_t responseSize = 0,
+                            bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply has started to be received when timeout is reached, wait for a further wait millis

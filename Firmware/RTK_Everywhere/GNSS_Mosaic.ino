@@ -1880,12 +1880,13 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
                                     unsigned long timeout,
                                     unsigned long idle,
                                     char *response,
-                                    size_t responseSize)
+                                    size_t responseSize,
+                                    bool debug)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
-    if ((settings.debugGnss == true) && (!inMainMenu))
+    if (debug && (settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("sendAndWaitForIdle: sending %s\r\n", message);
 
     if (strlen(message) > 0)
@@ -1899,7 +1900,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
         if (serial2GNSS->available()) // If a char is available
         {
             uint8_t c = serial2GNSS->read(); // Read it
-            if ((settings.debugGnss == true) && (!inMainMenu))
+            if (debug && (settings.debugGnss == true) && (!inMainMenu))
                 systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
@@ -1923,7 +1924,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
             if (serial2GNSS->available())
             {
                 uint8_t c = serial2GNSS->read();
-                if ((settings.debugGnss == true) && (!inMainMenu))
+                if (debug && (settings.debugGnss == true) && (!inMainMenu))
                     systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
@@ -1961,9 +1962,10 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(String message,
                                     unsigned long timeout,
                                     unsigned long idle,
                                     char *response,
-                                    size_t responseSize)
+                                    size_t responseSize,
+                                    bool debug)
 {
-    return sendAndWaitForIdle(message.c_str(), reply, timeout, idle, response, responseSize);
+    return sendAndWaitForIdle(message.c_str(), reply, timeout, idle, response, responseSize, debug);
 }
 
 //----------------------------------------
@@ -2329,6 +2331,9 @@ void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
         {
             uint32_t NrBytesReceived = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
 
+            if (settings.debugCorrections && !inMainMenu)
+                systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
+
             if (firstTime) // Avoid a false positive from historic NrBytesReceived
             {
                 previousNrBytesReceived = NrBytesReceived;
@@ -2437,7 +2442,7 @@ bool GNSS_MOSAIC::updateSD()
     // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     char diskInfo[200];
-    bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo));
+    bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
     if (response)
     {
         char *ptr = strstr(diskInfo, " total=\"");
