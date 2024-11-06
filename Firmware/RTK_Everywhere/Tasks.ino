@@ -88,17 +88,13 @@ const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
 // We need a separate parsers for the mosaic-X5: to allow SBF to be separated from L-Band SPARTN;
 // and to allow encapsulated NMEA and RTCMv3 to be parsed without upsetting the SPARTN parser.
-SEMP_PARSE_ROUTINE const sbfParserTable[] = {
-    sempSbfPreamble
-};
+SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
 const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
 const char *const sbfParserNames[] = {
     "SBF",
 };
 const int sbfParserNameCount = sizeof(sbfParserNames) / sizeof(sbfParserNames[0]);
-SEMP_PARSE_ROUTINE const spartnParserTable[] = {
-    sempSpartnPreamble
-};
+SEMP_PARSE_ROUTINE const spartnParserTable[] = {sempSpartnPreamble};
 const int spartnParserCount = sizeof(spartnParserTable) / sizeof(spartnParserTable[0]);
 const char *const spartnParserNames[] = {
     "SPARTN",
@@ -372,10 +368,10 @@ void gnssReadTask(void *e)
 
     // Initialize the main parser
     rtkParse = sempBeginParser(parserTable, parserCount, parserNames, parserNameCount,
-                            0,                   // Scratchpad bytes
-                            3000,                // Buffer length
-                            processUart1Message, // eom Call Back
-                            "rtkParse");         // Parser Name
+                               0,                   // Scratchpad bytes
+                               3000,                // Buffer length
+                               processUart1Message, // eom Call Back
+                               "rtkParse");         // Parser Name
     if (!rtkParse)
         reportFatalError("Failed to initialize the parser");
 
@@ -386,10 +382,10 @@ void gnssReadTask(void *e)
     {
         // Initialize the SBF parser for the mosaic-X5
         sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                                0,                      // Scratchpad bytes
-                                sempGnssReadBufferSize, // Buffer length - 3000 isn't enough!
-                                processUart1SBF,        // eom Call Back - in mosaic.ino
-                                "sbfParse");            // Parser Name
+                                   0,                      // Scratchpad bytes
+                                   sempGnssReadBufferSize, // Buffer length - 3000 isn't enough!
+                                   processUart1SBF,        // eom Call Back - in mosaic.ino
+                                   "sbfParse");            // Parser Name
         if (!sbfParse)
             reportFatalError("Failed to initialize the SBF parser");
 
@@ -398,20 +394,20 @@ void gnssReadTask(void *e)
 
         // Uncomment the next line to enable SBF parser debug
         // But be careful - you get a lot of "SEMP: Sbf SBF, 0x0002 (2) bytes, invalid preamble2"
-        //if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
+        // if (settings.debugGnss) sempEnableDebugOutput(sbfParse);
 
         // Initialize the SPARTN parser for the mosaic-X5
         spartnParse = sempBeginParser(spartnParserTable, spartnParserCount, spartnParserNames, spartnParserNameCount,
-                                0,                   // Scratchpad bytes
-                                1200,                // Buffer length - SPARTN payload is 1024 bytes max
-                                processUart1SPARTN,  // eom Call Back - in mosaic.ino 
-                                "spartnParse");      // Parser Name
+                                      0,                  // Scratchpad bytes
+                                      1200,               // Buffer length - SPARTN payload is 1024 bytes max
+                                      processUart1SPARTN, // eom Call Back - in mosaic.ino
+                                      "spartnParse");     // Parser Name
         if (!spartnParse)
             reportFatalError("Failed to initialize the SPARTN parser");
 
         // Uncomment the next line to enable SPARTN parser debug
         // But be careful - you get a lot of "SEMP: Spartn SPARTN 0 0, 0x00f4 (244) bytes, bad CRC"
-        //if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
+        // if (settings.debugGnss) sempEnableDebugOutput(spartnParse);
     }
 
     // Run task until a request is raised
@@ -465,8 +461,8 @@ void gnssReadTask(void *e)
                     // On mosaic-X5, pass the byte to sbfParse. On all other platforms, pass it straight to rtkParse
                     sempParseNextByte(present.gnss_mosaicX5 ? sbfParse : rtkParse, incomingData[x]);
 
-                    // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and lengths
-                    // to help prevent raw L-Band data being misidentified as SBF
+                    // See notes above. On the mosaic-X5, check that the incoming SBF blocks have expected IDs and
+                    // lengths to help prevent raw L-Band data being misidentified as SBF
                     if (present.gnss_mosaicX5)
                     {
                         SEMP_SCRATCH_PAD *scratchPad = (SEMP_SCRATCH_PAD *)sbfParse->scratchPad;
@@ -494,7 +490,8 @@ void gnssReadTask(void *e)
                                 sbfParse->state = sempFirstByte;
                                 spartnParse->state = sempFirstByte;
                                 if (settings.debugGnss)
-                                    systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n", scratchPad->sbf.sbfID);
+                                    systemPrintf("Unexpected SBF block %d - rejected on ID or length\r\n",
+                                                 scratchPad->sbf.sbfID);
                                 // We could pass the rejected bytes to the SPARTN parser but this is ~risky
                                 // as the L-Band data could overlap the start of actual SBF. I think it's
                                 // probably safer to discard the data and let both parsers re-sync?
@@ -506,13 +503,15 @@ void gnssReadTask(void *e)
                             }
                         }
 
-                        // Extra checks for EncapsulatedOutput - length is variable but we can compare the length to the payload length
+                        // Extra checks for EncapsulatedOutput - length is variable but we can compare the length to the
+                        // payload length
                         if ((sbfParse->type == 0) && (sbfParse->length == 18) && (scratchPad->sbf.sbfID == 4097))
                         {
                             bool expected = true;
-                            if ((sbfParse->buffer[14] != 2) && (sbfParse->buffer[14] != 4)) // Check Mode for RTCMv3 and NMEA
+                            if ((sbfParse->buffer[14] != 2) &&
+                                (sbfParse->buffer[14] != 4)) // Check Mode for RTCMv3 and NMEA
                                 expected = false;
-                            
+
                             // SBF block length should be 20 more than N (payload length) - with padding
                             if (expected)
                             {
@@ -525,7 +524,7 @@ void gnssReadTask(void *e)
                                 if (scratchPad->sbf.length != expectedLength)
                                     expected = false;
                             }
-                            
+
                             if (!expected) // SBF is not expected so restart the parsers
                             {
                                 sbfParse->state = sempFirstByte;
@@ -625,6 +624,14 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
             // Give this data to the library to update its internal variables
             um980UnicoreHandler(parse->buffer, parse->length);
         }
+    }
+
+    // Determine if this message should be processed by the LG290P library
+    // Pass NMEA to LG290P before applying compensation
+    if (present.gnss_lg290p)
+    {
+        // Give this data to the library to update its internal variables
+        lg290pHandler(parse->buffer, parse->length);
     }
 
     // Handle LLA compensation due to tilt or outputTipAltitude setting
@@ -1205,14 +1212,14 @@ void handleGnssDataTask(void *e)
                     long startTime = millis();
                     startMillis = millis();
 
-                    bytesToSend = ubxFile->write(&ringBuffer[sdRingBufferTail], bytesToSend);
+                    bytesToSend = logFile->write(&ringBuffer[sdRingBufferTail], bytesToSend);
                     if (PERIODIC_DISPLAY(PD_SD_LOG_WRITE) && (bytesToSend > 0))
                     {
                         PERIODIC_CLEAR(PD_SD_LOG_WRITE);
                         systemPrintf("SD %d bytes written to log file\r\n", bytesToSend);
                     }
 
-                    fileSize = ubxFile->fileSize(); // Update file size
+                    fileSize = logFile->fileSize(); // Update file size
 
                     sdFreeSpace -= bytesToSend; // Update remaining space on SD
 
@@ -1221,8 +1228,8 @@ void handleGnssDataTask(void *e)
                     {
                         baseStatusLedBlink(); // Blink LED to indicate logging activity
 
-                        ubxFile->sync();
-                        sdUpdateFileAccessTimestamp(ubxFile); // Update the file access time & date
+                        logFile->sync();
+                        sdUpdateFileAccessTimestamp(logFile); // Update the file access time & date
 
                         baseStatusLedBlink(); // Blink LED to indicate logging activity
 
@@ -1516,9 +1523,11 @@ void buttonCheckTask(void *e)
             systemPrintln("ButtonCheckTask running");
         }
 
-        userBtn->read();
+        buttonRead();
 
-        if (userBtn->wasReleased()) // If a button release is detected, record it
+        // Begin button checking
+
+        if (buttonReleased() == true) // If a button release is detected, record it
         {
             previousButtonRelease = thisButtonRelease;
             thisButtonRelease = millis();
@@ -1559,6 +1568,19 @@ void buttonCheckTask(void *e)
             doubleTap = false;
             singleTap = false;
         }
+
+        // If user presses the center button or right, act as double tap (select)
+        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        {
+            doubleTap = true;
+            singleTap = false;
+            previousButtonRelease = 0;
+            thisButtonRelease = 0;
+
+            gpioExpander_lastReleased = 255; // Reset for the next read
+        }
+
+        // End button checking
 
         if (present.imu_im19 && (present.display_type == DISPLAY_MAX_NONE))
         {
@@ -1614,7 +1636,7 @@ void buttonCheckTask(void *e)
 
             // The RTK Torch uses a shutdown IC configured to turn off ~3s
             // Beep shortly before the shutdown IC takes over
-            else if (userBtn->pressedFor(2100))
+            else if (buttonPressedFor(2100) == true)
             {
                 systemPrintln("Shutting down");
 
@@ -1640,13 +1662,13 @@ void buttonCheckTask(void *e)
                     ;
             }
         } // End productVariant == Torch
-        else // RTK EVK, RTK Facet v2, RTK Facet mosaic
+        else // RTK EVK, RTK Facet v2, RTK Facet mosaic, RTK Postcard
         {
             if (systemState == STATE_SHUTDOWN)
             {
                 // Ignore button presses while shutting down
             }
-            else if (userBtn->pressedFor(shutDownButtonTime))
+            else if (buttonPressedFor(shutDownButtonTime))
             {
                 forceSystemStateUpdate = true;
                 requestChangeState(STATE_SHUTDOWN);
@@ -1655,7 +1677,8 @@ void buttonCheckTask(void *e)
                     powerDown(true); // State machine is not updated while in menu system so go straight to power down
                                      // as needed
             }
-            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) && (userBtn->pressedFor(500)))
+            else if ((systemState == STATE_BASE_NOT_STARTED) && (firstRoverStart == true) &&
+                     (buttonPressedFor(500) == true))
             {
                 lastSetupMenuChange = millis(); // Prevent a timeout during state change
                 forceSystemStateUpdate = true;
@@ -1704,9 +1727,31 @@ void buttonCheckTask(void *e)
 
                     forceDisplayUpdate = true; // User is interacting so repaint display quickly
 
-                    setupSelectedButton++;
-                    if (setupSelectedButton == setupButtons.size()) // Limit reached?
-                        setupSelectedButton = 0;
+                    if (online.gpioExpander == true)
+                    {
+                        // React to five different buttons
+                        if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
+                        {
+                            if (setupSelectedButton == 0) // Top reached?
+                                setupSelectedButton = setupButtons.size() - 1;
+                            else
+                                setupSelectedButton--;
+                        }
+                        else if (buttonLastPressed() == gpioExpander_down)
+                        {
+                            setupSelectedButton++;
+                            if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                                setupSelectedButton = 0;
+                        }
+                    }
+                    else
+                    {
+                        // React to single mode/setup button
+                        setupSelectedButton++;
+                        if (setupSelectedButton == setupButtons.size()) // Limit reached?
+                            setupSelectedButton = 0;
+                    }
+
                     break;
 
                 case STATE_TEST:

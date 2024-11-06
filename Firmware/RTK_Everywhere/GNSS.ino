@@ -18,7 +18,7 @@ bool GNSS::configure()
     checkGNSSArrayDefaults();
 
     // Configure the radio
-    return configureRadio();
+    return configureGNSS();
 }
 
 //----------------------------------------

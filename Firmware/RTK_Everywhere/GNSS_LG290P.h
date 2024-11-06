@@ -1,107 +1,65 @@
 /*------------------------------------------------------------------------------
-GNSS_UM980.h
+GNSS_LG290P.h
 
-  Declarations and definitions for the UM980 GNSS receiver and the GNSS_UM980 class
+  Declarations and definitions for the LG290P GNSS receiver and the GNSS_LG290P class
 ------------------------------------------------------------------------------*/
 
-#ifndef __GNSS_UM980_H__
-#define __GNSS_UM980_H__
+#ifndef __GNSS_LG290P_H__
+#define __GNSS_LG290P_H__
 
-#ifdef COMPILE_UM980
+#ifdef COMPILE_LG290P
 
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS
-
-/*
-  Unicore defaults:
-  RTCM1006 10
-  RTCM1074 1
-  RTCM1084 1
-  RTCM1094 1
-  RTCM1124 1
-  RTCM1033 10
-*/
-
-// Each constellation will have its config command text, enable, and a visible name
-typedef struct
-{
-    char textName[30];
-    char textCommand[5];
-} um980ConstellationCommand;
+#include <SparkFun_LG290P_GNSS.h> //http://librarymanager/All#SparkFun_LG290P
 
 // Constellations monitored/used for fix
-// Available constellations: GPS, BDS, GLO, GAL, QZSS
-// SBAS and IRNSS don't seem to be supported
-const um980ConstellationCommand um980ConstellationCommands[] = {
-    {"BeiDou", "BDS"}, {"Galileo", "GAL"}, {"GLONASS", "GLO"}, {"GPS", "GPS"}, {"QZSS", "QZSS"},
+// Available constellations: GPS, BDS, GLO, GAL, QZSS, NavIC
+const char *lg290pConstellationNames[] = {
+    "GPS", "GLONASS", "Galileo", "BeiDou", "QZSS", "NavIC",
 };
 
-#define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands) / sizeof(um980ConstellationCommand))
+#define MAX_LG290P_CONSTELLATIONS (6)
 
-// Struct to describe support messages on the UM980
+// Struct to describe support messages on the LG290P
 // Each message will have the serial command and its default value
 typedef struct
 {
-    const char msgTextName[9];
+    const char msgTextName[11];
     const float msgDefaultRate;
-} um980Msg;
+} lg290pMsg;
 
 // Static array containing all the compatible messages
-// Rate = Reports per second
-const um980Msg umMessagesNMEA[] = {
-    // NMEA
-    {"GPDTM", 0}, {"GPGBS", 0},   {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
-
-    {"GPGRS", 0}, {"GPGSA", 0.5}, {"GPGST", 0.5}, {"GPGSV", 1}, {"GPRMC", 0.5},
-
-    {"GPROT", 0}, {"GPTHS", 0},   {"GPVTG", 0},   {"GPZDA", 0},
+// Rate = Output once every N position fix(es).
+const lg290pMsg lgMessagesNMEA[] = {
+    {"RMC", 1}, {"GGA", 1}, {"GSV", 1}, {"GSA", 1}, {"VTG", 1}, {"GLL", 1},
 };
 
-const um980Msg umMessagesRTCM[] = {
+const lg290pMsg lgMessagesRTCM[] = {
+    {"RTCM3-1005", 1}, {"RTCM3-1006", 0},
 
-    // RTCM
-    {"RTCM1001", 0},  {"RTCM1002", 0}, {"RTCM1003", 0}, {"RTCM1004", 0}, {"RTCM1005", 1},
-    {"RTCM1006", 0},  {"RTCM1007", 0}, {"RTCM1009", 0}, {"RTCM1010", 0},
+    {"RTCM3-1019", 0},
 
-    {"RTCM1011", 0},  {"RTCM1012", 0}, {"RTCM1013", 0}, {"RTCM1019", 0},
+    {"RTCM3-1020", 0},
 
-    {"RTCM1020", 0},
+    {"RTCM3-1041", 0}, {"RTCM3-1042", 0}, {"RTCM3-1044", 0}, {"RTCM3-1046", 0},
 
-    {"RTCM1033", 10},
-
-    {"RTCM1042", 0},  {"RTCM1044", 0}, {"RTCM1045", 0}, {"RTCM1046", 0},
-
-    {"RTCM1071", 0},  {"RTCM1072", 0}, {"RTCM1073", 0}, {"RTCM1074", 1}, {"RTCM1075", 0},
-    {"RTCM1076", 0},  {"RTCM1077", 0},
-
-    {"RTCM1081", 0},  {"RTCM1082", 0}, {"RTCM1083", 0}, {"RTCM1084", 1}, {"RTCM1085", 0},
-    {"RTCM1086", 0},  {"RTCM1087", 0},
-
-    {"RTCM1091", 0},  {"RTCM1092", 0}, {"RTCM1093", 0}, {"RTCM1094", 1}, {"RTCM1095", 0},
-    {"RTCM1096", 0},  {"RTCM1097", 0},
-
-    {"RTCM1104", 0},
-
-    {"RTCM1111", 0},  {"RTCM1112", 0}, {"RTCM1113", 0}, {"RTCM1114", 0}, {"RTCM1115", 0},
-    {"RTCM1116", 0},  {"RTCM1117", 0},
-
-    {"RTCM1121", 0},  {"RTCM1122", 0}, {"RTCM1123", 0}, {"RTCM1124", 1}, {"RTCM1125", 0},
-    {"RTCM1126", 0},  {"RTCM1127", 0},
+    {"RTCM3-107X", 1}, {"RTCM3-108X", 1}, {"RTCM3-109X", 1}, {"RTCM3-111X", 1}, {"RTCM3-112X", 1}, {"RTCM3-113X", 1},
 };
 
-#define MAX_UM980_NMEA_MSG (sizeof(umMessagesNMEA) / sizeof(um980Msg))
-#define MAX_UM980_RTCM_MSG (sizeof(umMessagesRTCM) / sizeof(um980Msg))
+#define MAX_LG290P_NMEA_MSG (sizeof(lgMessagesNMEA) / sizeof(lg290pMsg))
+#define MAX_LG290P_RTCM_MSG (sizeof(lgMessagesRTCM) / sizeof(lg290pMsg))
 
-enum um980_Models
+enum lg290p_Models
 {
-    UM980_DYN_MODEL_SURVEY = 0,
-    UM980_DYN_MODEL_UAV,
-    UM980_DYN_MODEL_AUTOMOTIVE,
+    // LG290P does not have models
+    LG290P_DYN_MODEL_SURVEY = 0,
+    LG290P_DYN_MODEL_UAV,
+    LG290P_DYN_MODEL_AUTOMOTIVE,
 };
 
-class GNSS_UM980 : GNSS
+class GNSS_LG290P : GNSS
 {
   private:
-    UM980 *_um980; // Library class instance
+    LG290P *_lg290p; // Library class instance
 
   protected:
     bool configureOnce();
@@ -111,12 +69,6 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns true if successfully configured and false upon failure
     bool configureGNSS();
-
-    // Turn off all NMEA and RTCM
-    void disableAllOutput();
-
-    // Disable all output, then re-enable
-    void disableRTCM();
 
     // Turn on all the enabled NMEA messages on COM3
     bool enableNMEA();
@@ -146,24 +98,14 @@ class GNSS_UM980 : GNSS
 
     // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-    void menuMessagesSubtype(float *localMessageRate, const char *messageType);
-
-    // Set the baud rate on the GNSS port that interfaces between the ESP32 and the GNSS
-    // Inputs:
-    //   baudRate: The desired baudrate
-    bool setBaudRateCOM3(uint32_t baudRate);
-
-    bool setHighAccuracyService(bool enableGalileoHas);
+    void menuMessagesSubtype(int *localMessageRate, const char *messageType);
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCnoRadio(uint8_t cnoValue);
 
-    bool setMultipathMitigation(bool enableMultipathMitigation);
-
   public:
-
     // Constructor
-    GNSS_UM980() :  GNSS()
+    GNSS_LG290P() : GNSS()
     {
     }
 
@@ -212,6 +154,8 @@ class GNSS_UM980 : GNSS
 
     void debuggingEnable();
 
+    bool disableSurveyIn();
+
     void enableGgaForNtrip();
 
     // Enable RTCM 1230. This is the GLONASS bias sentence and is transmitted
@@ -219,6 +163,10 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns true if successfully started and false upon failure
     bool enableRTCMTest();
+
+    bool enterConfigMode();
+
+    bool exitConfigMode();
 
     // Restore the GNSS to the factory settings
     void factoryReset();
@@ -289,6 +237,9 @@ class GNSS_UM980 : GNSS
     // Returns minutes or zero if not online
     uint8_t getMinute();
 
+    // Returns 0 - Unknown, 1 - Rover, 2 - Base
+    uint8_t getMode();
+
     // Returns month number or zero if not online
     uint8_t getMonth();
 
@@ -314,6 +265,8 @@ class GNSS_UM980 : GNSS
     // Outputs:
     //   Returns the mean accuracy or zero (0)
     float getSurveyInMeanAccuracy();
+
+    uint8_t getSurveyInMode();
 
     // Return the number of seconds the survey-in process has been running
     int getSurveyInObservationTime();
@@ -463,13 +416,13 @@ class GNSS_UM980 : GNSS
     //   Return true if successful and false upon failure
     bool surveyInStart();
 
-    // If we have received serial data from the UM980 outside of the Unicore library (ie, from processUart1Message task)
-    // we can pass data back into the Unicore library to allow it to update its own variables
-    void unicoreHandler(uint8_t *buffer, int length);
+    // If we have received serial data from the LG290P outside of the library (ie, from processUart1Message task)
+    // we can pass data back into the LG290P library to allow it to update its own variables
+    void lg290pUpdate(uint8_t *incomingBuffer, int bufferLength);
 
     // Poll routine to update the GNSS state
     void update();
 };
 
-#endif // COMPILE_UM980
-#endif // __GNSS_UM980_H__
+#endif // COMPILE_LG290P
+#endif // __GNSS_LG290P_H__

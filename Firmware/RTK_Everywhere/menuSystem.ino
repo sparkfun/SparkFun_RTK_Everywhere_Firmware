@@ -1439,7 +1439,7 @@ void printCurrentConditions()
         systemPrint(", Lon: ");
         systemPrint(gnss->getLongitude(), haeNumberOfDecimals);
         systemPrint(", Altitude (m): ");
-        systemPrint(gnss->getAltitude(), 1);
+        systemPrint(gnss->getAltitude(), 3);
 
         systemPrintln();
     }
@@ -1451,7 +1451,7 @@ void printCurrentConditionsNMEA()
     {
         char systemStatus[100];
         snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", gnss->getHour(), gnss->getMinute(),
+                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.3f,%d,%d,%d", gnss->getHour(), gnss->getMinute(),
                  gnss->getSecond(), gnss->getMillisecond(), gnss->getDay(), gnss->getMonth(),
                  gnss->getYear() % 2000, // Limit to 2 digits
                  gnss->getHorizontalAccuracy(), gnss->getSatellitesInView(), gnss->getLatitude(), gnss->getLongitude(),

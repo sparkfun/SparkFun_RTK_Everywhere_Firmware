@@ -38,7 +38,15 @@ void ntpServerStop() {}
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
-const uint8_t * networkGetMacAddress() {static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0}; return zero;}
+const uint8_t * networkGetMacAddress() 
+{
+    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
+#ifdef COMPILE_BT
+    if (bluetoothGetState() != BT_OFF)
+        return btMACAddress;
+#endif
+    return zero;
+  }
 bool networkIsOnline() {return false;}
 void networkMarkOffline(NetIndex_t index) {}
 void networkMarkOnline(NetIndex_t index) {}
@@ -223,3 +231,13 @@ bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
+
+//----------------------------------------
+// LG290P
+//----------------------------------------
+
+#ifndef COMPILE_LG290P
+
+void lg290pHandler(uint8_t * buffer, int length) {}
+
+#endif // COMPILE_LG290P

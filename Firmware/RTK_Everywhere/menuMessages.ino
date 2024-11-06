@@ -190,65 +190,6 @@ void menuMessagesBaseRTCM()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
-// Controls the messages that get broadcast over Bluetooth and logged (if enabled)
-void zedMenuMessagesSubtype(uint8_t *localMessageRate, const char *messageType)
-{
-    while (1)
-    {
-        systemPrintln();
-        systemPrintf("Menu: Message %s\r\n", messageType);
-
-        int startOfBlock = 0;
-        int endOfBlock = 0;
-        int rtcmOffset = 0; // Used to offset messageSupported lookup
-
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
-        if (strcmp(messageType, "RTCM-Base") == 0) // The ubxMessageRatesBase array is 0 to MAX_UBX_MSG_RTCM - 1
-        {
-            startOfBlock = 0;
-            endOfBlock = MAX_UBX_MSG_RTCM;
-            rtcmOffset = zed->getMessageNumberByName("RTCM_1005");
-        }
-        else
-            zed->setMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
-                                             endOfBlock); // Find start and stop of given messageType in message array
-
-        for (int x = 0; x < (endOfBlock - startOfBlock); x++)
-        {
-            // Check to see if this ZED platform supports this message
-            if (messageSupported(x + startOfBlock + rtcmOffset) == true)
-            {
-                systemPrintf("%d) Message %s: ", x + 1, ubxMessages[x + startOfBlock + rtcmOffset].msgTextName);
-                systemPrintln(localMessageRate[x + startOfBlock]);
-            }
-        }
-
-        systemPrintln("x) Exit");
-
-        int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-        if (incoming >= 1 && incoming <= (endOfBlock - startOfBlock))
-        {
-            // Check to see if this ZED platform supports this message
-            int msgNumber = (incoming - 1) + startOfBlock;
-
-            if (messageSupported(msgNumber + rtcmOffset) == true)
-                inputMessageRate(localMessageRate[msgNumber], msgNumber + rtcmOffset);
-            else
-                printUnknown(incoming);
-        }
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_EXIT)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
-
 // Prompt the user to enter the message rate for a given message ID
 // Assign the given value to the message
 void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
@@ -284,12 +225,12 @@ void setGNSSMessageRates(uint8_t *localMessageRate, uint8_t msgRate)
 
 // Creates a log if logging is enabled, and SD is detected
 // Based on GPS data/time, create a log file in the format SFE_Everywhere_YYMMDD_HHMMSS.ubx
-void beginLogging()
+bool beginLogging()
 {
-    beginLogging(nullptr);
+    return(beginLogging(nullptr));
 }
 
-void beginLogging(const char *customFileName)
+bool beginLogging(const char *customFileName)
 {
     if (online.microSD == false)
         beginSD();
@@ -326,11 +267,17 @@ void beginLogging(const char *customFileName)
 
                 if (strlen(logFileName) == 0)
                 {
-                    snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.ubx", // SdFat library
+                    //u-blox platforms use ubx file extension for logs, all others use TXT
+                    char fileExtension[4] = "ubx";
+                    if(present.gnss_zedf9p == false)
+                        strncpy(fileExtension, "txt", sizeof(fileExtension));
+
+                    snprintf(logFileName, sizeof(logFileName), "/%s_%02d%02d%02d_%02d%02d%02d.%s", // SdFat library
                              platformFilePrefix, rtc.getYear() - 2000, rtc.getMonth() + 1,
                              rtc.getDay(), // ESP32Time returns month:0-11
                              rtc.getHour(true), rtc.getMinute(),
-                             rtc.getSecond() // ESP32Time getHour(true) returns hour:0-23
+                             rtc.getSecond(), // ESP32Time getHour(true) returns hour:0-23
+                             fileExtension
                     );
                 }
             }
@@ -340,14 +287,14 @@ void beginLogging(const char *customFileName)
                         sizeof(logFileName) - 1); // customFileName already has the preceding slash added
             }
 
-            // Allocate the ubxFile
-            if (!ubxFile)
+            // Allocate the log file
+            if (!logFile)
             {
-                ubxFile = new SdFile;
-                if (!ubxFile)
+                logFile = new SdFile;
+                if (!logFile)
                 {
-                    systemPrintln("Failed to allocate ubxFile!");
-                    return;
+                    systemPrintln("Failed to allocate logFile!");
+                    return(false);
                 }
             }
 
@@ -359,12 +306,12 @@ void beginLogging(const char *customFileName)
                 // O_CREAT - create the file if it does not exist
                 // O_APPEND - seek to the end of the file prior to each write
                 // O_WRITE - open for write
-                if (ubxFile->open(logFileName, O_CREAT | O_APPEND | O_WRITE) == false)
+                if (logFile->open(logFileName, O_CREAT | O_APPEND | O_WRITE) == false)
                 {
-                    systemPrintf("Failed to create GNSS UBX data file: %s\r\n", logFileName);
+                    systemPrintf("Failed to create GNSS log file: %s\r\n", logFileName);
                     online.logging = false;
                     xSemaphoreGive(sdCardSemaphore);
-                    return;
+                    return(false);
                 }
 
                 fileSize = 0;
@@ -372,7 +319,7 @@ void beginLogging(const char *customFileName)
 
                 bufferOverruns = 0; // Reset counter
 
-                sdUpdateFileCreateTimestamp(ubxFile); // Update the file to create time & date
+                sdUpdateFileCreateTimestamp(logFile); // Update the file to create time & date
 
                 startCurrentLogTime_minutes = millis() / 1000L / 60; // Mark now as start of logging
 
@@ -422,7 +369,7 @@ void beginLogging(const char *customFileName)
                 char nmeaMessage[82]; // Max NMEA sentence length is 82
                 createNMEASentence(CUSTOM_NMEA_TYPE_RESET_REASON, nmeaMessage, sizeof(nmeaMessage),
                                    rstReason); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // Record system firmware versions and info to log
 
@@ -432,24 +379,24 @@ void beginLogging(const char *customFileName)
                 getFirmwareVersion(&firmwareVersion[1], sizeof(firmwareVersion) - 1, true);
                 createNMEASentence(CUSTOM_NMEA_TYPE_SYSTEM_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    firmwareVersion); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // ZED-F9P firmware: HPG 1.30
                 createNMEASentence(CUSTOM_NMEA_TYPE_ZED_VERSION, nmeaMessage, sizeof(nmeaMessage),
                                    gnssFirmwareVersion); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // ZED-F9 unique chip ID
                 createNMEASentence(CUSTOM_NMEA_TYPE_ZED_UNIQUE_ID, nmeaMessage, sizeof(nmeaMessage),
                                    gnssUniqueId); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // Device BT MAC. See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/346
                 char macAddress[5];
                 snprintf(macAddress, sizeof(macAddress), "%02X%02X", btMACAddress[4], btMACAddress[5]);
                 createNMEASentence(CUSTOM_NMEA_TYPE_DEVICE_BT_ID, nmeaMessage, sizeof(nmeaMessage),
                                    macAddress); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 // Record today's time/date into log. This is in case a log is restarted. See issue 440:
                 // https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/440
@@ -461,7 +408,7 @@ void beginLogging(const char *customFileName)
                 );
                 createNMEASentence(CUSTOM_NMEA_TYPE_CURRENT_DATE, nmeaMessage, sizeof(nmeaMessage),
                                    currentDate); // textID, buffer, sizeOfBuffer, text
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 if (reuseLastLog == true)
                 {
@@ -473,15 +420,17 @@ void beginLogging(const char *customFileName)
             else
             {
                 // A retry will happen during the next loop, the log will eventually be opened
-                log_d("Failed to get file system lock to create GNSS UBX data file");
+                log_d("Failed to get file system lock to create GNSS log file");
                 online.logging = false;
-                return;
+                return(false);
             }
 
             systemPrintf("Log file name: %s\r\n", logFileName);
             online.logging = true;
         } // online.sd, enable.logging, online.rtc
     } // online.logging
+
+    return (true);
 }
 
 // Stop writing to the log file on the microSD card
@@ -505,8 +454,8 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             char nmeaMessage[82]; // Max NMEA sentence length is 82
             createNMEASentence(CUSTOM_NMEA_TYPE_PARSER_STATS, nmeaMessage, sizeof(nmeaMessage),
                                parserStats); // textID, buffer, sizeOfBuffer, text
-            ubxFile->println(nmeaMessage);
-            ubxFile->sync();
+            logFile->println(nmeaMessage);
+            logFile->sync();
 
             // Reset stats in case a new log is created
             failedParserMessages_NMEA = 0;
@@ -514,10 +463,10 @@ void endLogging(bool gotSemaphore, bool releaseSemaphore)
             failedParserMessages_UBX = 0;
 
             // Close down file system
-            ubxFile->close();
+            logFile->close();
             // Done with the log file
-            delete ubxFile;
-            ubxFile = nullptr;
+            delete logFile;
+            logFile = nullptr;
 
             systemPrintln("Log file closed");
 
@@ -600,6 +549,7 @@ void checkGNSSArrayDefaults()
 {
     bool defaultsApplied = false;
 
+#ifdef COMPILE_ZED
     if (present.gnss_zedf9p)
     {
         if (settings.dynamicModel == 254)
@@ -631,8 +581,12 @@ void checkGNSSArrayDefaults()
                 settings.ubxMessageRatesBase[x] = ubxMessages[firstRTCMRecord + x].msgDefaultRate;
         }
     }
+#else
+    if(false)
+    {}
+#endif // COMPILE_ZED
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
         if (settings.dynamicModel == 254)
@@ -674,9 +628,9 @@ void checkGNSSArrayDefaults()
                 settings.um980MessageRatesRTCMBase[x] = umMessagesRTCM[x].msgDefaultRate;
         }
     }
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         if (settings.dynamicModel == 254)
@@ -732,7 +686,49 @@ void checkGNSSArrayDefaults()
                 settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
         }
     }
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
+
+#ifdef COMPILE_LG290P
+    else if (present.gnss_lg290p)
+    {
+        if (settings.lg290pConstellations[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset constellations to defaults
+            for (int x = 0; x < MAX_LG290P_CONSTELLATIONS; x++)
+                settings.lg290pConstellations[x] = 1;
+        }
+
+        if (settings.lg290pMessageRatesNMEA[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset rates to defaults
+            for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
+                settings.lg290pMessageRatesNMEA[x] = lgMessagesNMEA[x].msgDefaultRate;
+        }
+
+        if (settings.lg290pMessageRatesRTCMRover[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // For rovers, RTCM should be zero by default.
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                settings.lg290pMessageRatesRTCMRover[x] = 0;
+        }
+
+        if (settings.lg290pMessageRatesRTCMBase[0] == 254)
+        {
+            defaultsApplied = true;
+
+            // Reset RTCM rates to defaults
+            for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
+                settings.lg290pMessageRatesRTCMBase[x] = lgMessagesRTCM[x].msgDefaultRate;
+        }
+    }
+#endif  // COMPILE_LG290P
+
 
     // If defaults were applied, also default the non-array settings for this particular GNSS receiver
     if (defaultsApplied == true)
@@ -749,37 +745,31 @@ void checkGNSSArrayDefaults()
             settings.surveyInStartingAccuracy = 1.0; // Default 1m
             settings.measurementRateMs = 250;        // Default 4Hz.
         }
+        else if (present.gnss_lg290p)
+        {
+            //settings.minCNO = 10;                     // Not yet supported
+            settings.surveyInStartingAccuracy = 2.0; // Default 2m
+            settings.measurementRateMs = 500;        // Default 2Hz.
+        }
     }
 
     if (defaultsApplied == true)
         recordSystemSettings();
 }
 
-// Determine logging type
-// If user is logging basic 5 sentences, this is 'S'tandard logging
-// If user is logging 7 PPP sentences, this is 'P'PP logging
-// If user has other sentences turned on, it's custom logging
-// This controls the type of icon displayed
+// Determine logging type based on the GNSS receiver
+// Standard logging is usually the default NMEA 5 (or 6) messages, lines in a page icon is used
+// If user is logging messages for a PPP survey (usually NMEA + RAWX + SFRBX), then a P is shown
+// If user has other sentences turned on, it's custom logging, a C is shown
 void setLoggingType()
 {
-    loggingType = LOGGING_CUSTOM;
-
-    int messageCount = gnss->getActiveMessageCount();
-    if (messageCount == 5 || messageCount == 7)
-    {
-        if (gnss->checkNMEARates())
-        {
-            loggingType = LOGGING_STANDARD;
-
-            if (gnss->checkPPPRates())
-                loggingType = LOGGING_PPP;
-        }
-    }
+    loggingType = (LoggingType)gnss->getLoggingType();
 }
 
 // During the logging test, we have to modify the messages and rate of the device
 void setLogTestFrequencyMessages(int rate, int messages)
 {
+#ifdef COMPILE_ZED
     // Set measurement frequency
     gnss->setRate(1.0 / (double)rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
                                      // settings.navigationRate, and GSV message
@@ -815,6 +805,7 @@ void setLogTestFrequencyMessages(int rate, int messages)
     // Apply these message rates to both UART1 / SPI and USB
     gnss->setMessages(MAX_SET_MESSAGES_RETRIES); // Does a complete open/closed val set
     gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
+#endif // COMPILE_ZED
 }
 
 // The log test allows us to record a series of different system configurations into
@@ -946,7 +937,7 @@ void updateLogTest()
         {
             markSemaphore(FUNCTION_LOGTEST);
 
-            ubxFile->println(nmeaMessage);
+            logFile->println(nmeaMessage);
 
             xSemaphoreGive(sdCardSemaphore);
         }

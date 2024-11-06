@@ -558,7 +558,7 @@ bool GNSS_MOSAIC::configureOnce()
 // Outputs:
 //   Returns true if successfully configured and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::configureRadio()
+bool GNSS_MOSAIC::configureGNSS()
 {
     // Skip configuring the MOSAICX5 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
@@ -1187,6 +1187,28 @@ double GNSS_MOSAIC::getLatitude()
 uint8_t GNSS_MOSAIC::getLeapSeconds()
 {
     return _leapSeconds;
+}
+
+//----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_MOSAIC::getLoggingType()
+{
+    LoggingType logType = LOGGING_CUSTOM;
+
+    int messageCount = getActiveMessageCount();
+    if (messageCount == 5 || messageCount == 7)
+    {
+        if (checkNMEARates())
+        {
+            loggingType = LOGGING_STANDARD;
+
+            if (checkPPPRates())
+                loggingType = LOGGING_PPP;
+        }
+    }
+
+    return ((uint8_t)logType);
 }
 
 //----------------------------------------

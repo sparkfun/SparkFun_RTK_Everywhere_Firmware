@@ -688,7 +688,8 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
         {
             paintMACAddress4digit(0, 3); // Columns 0 to 22
 
-            // Bluetooth always indicated : Columns 25 to 31 . TODO don't count if BT radio type is OFF.
+            // Bluetooth indicated when connected: Columns 25 to 31 . TODO don't count if BT radio type is OFF.
+            if(bluetoothGetState() == BT_CONNECTED)
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
