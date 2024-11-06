@@ -250,7 +250,7 @@ void GNSS_MOSAIC::begin()
     gnss->setDataBaudRate(settings.dataPortBaud);
 
     // Set COM2 (Radio) protocol(s)
-    gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true)); // Force the setting
+    gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
 
     updateSD(); // Check card size and free space
 
@@ -2142,7 +2142,7 @@ bool GNSS_MOSAIC::setConstellations()
 
 // Enable / disable corrections protocol(s) on the Radio External port
 // Always update if force is true. Otherwise, only update if enable has changed state
-bool setCorrRadioExtPort(bool enable, bool force)
+bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
 {
     if (force || (enable != _corrRadioExtPortEnabled))
     {
