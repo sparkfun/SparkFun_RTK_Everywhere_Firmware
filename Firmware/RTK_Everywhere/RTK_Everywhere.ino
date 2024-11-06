@@ -38,7 +38,7 @@
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
 
 #define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
-// #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
+#define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50 // Comment out to remove BQ40Z50 functionality
 
 #if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
