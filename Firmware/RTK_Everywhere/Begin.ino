@@ -198,6 +198,7 @@ void beginBoard()
         gnss = (GNSS *) new GNSS_UM980();
 #else   // COMPILE_UM980
         gnss = (GNSS *) new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! UM980 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif  // COMPILE_UM980
 
         present.brand = BRAND_SPARKFUN;
@@ -574,6 +575,7 @@ void beginBoard()
         gnss = (GNSS *) new GNSS_MOSAIC();
 #else   // COMPILE_MOSAICX5
         gnss = (GNSS *) new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif  // COMPILE_MOSAICX5
 
         present.brand = BRAND_SPARKPNT;
