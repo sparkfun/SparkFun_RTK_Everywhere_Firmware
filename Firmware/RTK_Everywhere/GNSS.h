@@ -233,7 +233,6 @@ class GNSS
     virtual bool isConfirmedTime();
 
     // Returns true if data is arriving on the Radio Ext port
-    // TODO: on LG290P this should return settings.enableExtCorrRadio
     virtual bool isCorrRadioExtPortActive();
 
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D

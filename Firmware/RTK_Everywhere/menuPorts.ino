@@ -10,7 +10,7 @@ void menuPorts()
         // RTK Torch
         menuPortsUsb();
     }
-    else // TODO: Add LG290P - menuPortsNoMux();
+    else
     {
         // RTK EVK, Postcard
         menuPortsNoMux();
@@ -67,12 +67,17 @@ void menuPortsNoMux()
         systemPrintf("3) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
         // EVK has no mux. LG290P has no mux.
-        if (present.gnss_zedf9p) // TODO: Add LG290P. Radio is on RXD3
+        if (present.gnss_zedf9p)
         {
             systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
                         settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
+        }
+        else if (present.gnss_lg290p)
+        {
+            systemPrintf("4) Toggle use of external corrections radio on UART3: %s\r\n",
+                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -123,7 +128,7 @@ void menuPortsNoMux()
             if (settings.enableGnssToUsbSerial)
                 systemPrintln("GNSS to USB is enabled. To exit this mode, press +++ to open the configuration menu.");
         }
-        else if ((incoming == 4) && (present.gnss_zedf9p)) // TODO: Add LG290P
+        else if ((incoming == 4) && ((present.gnss_zedf9p) || (present.gnss_lg290p)))
         {
             // Toggle the enable for the external corrections radio
             settings.enableExtCorrRadio ^= 1;
