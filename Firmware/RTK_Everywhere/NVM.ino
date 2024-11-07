@@ -105,6 +105,10 @@ void setSettingsFileName()
              profileNumber);
     snprintf(stationCoordinateGeodeticFileName, sizeof(stationCoordinateGeodeticFileName),
              "/StationCoordinates-Geodetic_%d.csv", profileNumber);
+
+    if(settings.debugSettings)
+        systemPrintf("Settings file name: %s\r\n", settingsFileName);
+
 }
 
 // Load only LFS settings without recording
@@ -225,6 +229,9 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
 
+    if(settings.debugSettings)
+        systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
+
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
         // Do not record this setting if it is not supported by the current platform
@@ -331,17 +338,22 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Note: toString separates the four bytes with dots / periods "192.168.1.1"
         }
         break;
-        case tUbxMsgRt: {
-            // Record message settings
+
+        case tEspNowPr: {
+            // Record ESP-Now peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+                char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
+                snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X,",
+                         rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
+                         settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
+                         settings.espnowPeers[x][5]);
                 settingsFile->println(tempString);
             }
         }
         break;
+
+#ifdef COMPILE_ZED
         case tUbxConst: {
             // Record constellation settings
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -353,15 +365,13 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
-        case tEspNowPr: {
-            // Record ESP-Now peer MAC addresses
+        case tUbxMsgRt: {
+            // Record message settings
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
-                char tempString[50]; // espnowPeer_1=B4:C1:33:42:DE:01,
-                snprintf(tempString, sizeof(tempString), "%s%d=%02X:%02X:%02X:%02X:%02X:%02X,",
-                         rtkSettingsEntries[i].name, x, settings.espnowPeers[x][0], settings.espnowPeers[x][1],
-                         settings.espnowPeers[x][2], settings.espnowPeers[x][3], settings.espnowPeers[x][4],
-                         settings.espnowPeers[x][5]);
+                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -381,6 +391,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+#endif // COMPILE_ZED
+
         case tWiFiNet: {
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -444,7 +456,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
         case tUmMRNmea: {
             // Record UM980 NMEA rates
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -511,7 +523,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
         case tMosaicConst: {
             // Record Mosaic Constellations
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -920,7 +932,8 @@ bool parseLine(char *str)
     bool knownSetting = false;
     bool updateGNSS = false;
 
-    // log_d("settingName: %s - value: %s - d: %0.9f", settingName, settingString, d);
+    if(settings.debugSettings)
+        systemPrintf("settingName: %s - value: %s - d: %0.9f\r\n", settingName, settingString, d);
 
     // Exceptions:
     if (strcmp(settingName, "sizeOfSettings") == 0)
@@ -1090,19 +1103,8 @@ bool parseLine(char *str)
                 knownSetting = true;
             }
             break;
-            case tUbxMsgRt: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
-                        (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                    {
-                        settings.ubxMessageRates[x] = (uint8_t)d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
-            }
-            break;
+
+#ifdef COMPILE_ZED
             case tUbxConst: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1116,17 +1118,15 @@ bool parseLine(char *str)
                 }
             }
             break;
-            case tEspNowPr: {
-                int suffixNum;
-                if (sscanf(suffix, "%d", &suffixNum) == 1)
+            case tUbxMsgRt: {
+                for (int x = 0; x < qualifier; x++)
                 {
-                    int mac[6];
-                    if (sscanf(settingString, "%X:%X:%X:%X:%X:%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
-                               &mac[5]) == 6)
+                    if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
+                        (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
                     {
-                        for (int i = 0; i < 6; i++)
-                            settings.espnowPeers[suffixNum][i] = mac[i];
+                        settings.ubxMessageRates[x] = (uint8_t)d;
                         knownSetting = true;
+                        break;
                     }
                 }
             }
@@ -1143,6 +1143,24 @@ bool parseLine(char *str)
                         settings.ubxMessageRatesBase[x] = (uint8_t)d;
                         knownSetting = true;
                         break;
+                    }
+                }
+            }
+            break;
+
+#endif // COMPILE_ZED
+
+            case tEspNowPr: {
+                int suffixNum;
+                if (sscanf(suffix, "%d", &suffixNum) == 1)
+                {
+                    int mac[6];
+                    if (sscanf(settingString, "%X:%X:%X:%X:%X:%X", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
+                               &mac[5]) == 6)
+                    {
+                        for (int i = 0; i < 6; i++)
+                            settings.espnowPeers[suffixNum][i] = mac[i];
+                        knownSetting = true;
                     }
                 }
             }
@@ -1230,7 +1248,7 @@ bool parseLine(char *str)
             }
             break;
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
             case tUmMRNmea: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1308,7 +1326,7 @@ bool parseLine(char *str)
             }
             break;
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
             case tMosaicConst: {
                 for (int x = 0; x < qualifier; x++)
                 {

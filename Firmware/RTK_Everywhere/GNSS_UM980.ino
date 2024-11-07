@@ -109,7 +109,6 @@ void GNSS_UM980::begin()
     // Shortly after reset, the UM980 responds to the VERSIONB command with OK but doesn't report version information
     snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", _um980->getVersion());
 
-    // getVersion returns the "Build" "7923". I think we probably need the "R4.10" which preceeds Build? TODO
     if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
         gnssFirmwareVersionInt = 99;
 
@@ -290,11 +289,10 @@ bool GNSS_UM980::configureNtpMode()
 }
 
 //----------------------------------------
-// Setup the u-blox module for any setup (base or rover)
-// In general we check if the setting is incorrect before writing it. Otherwise, the set commands have, on rare
-// occasion, become corrupt. The worst is when the I2C port gets turned off or the I2C address gets borked.
+// Setup the GNSS module for any setup (base or rover)
+// In general we check if the setting is different than setting stored in NVM before writing it.
 //----------------------------------------
-bool GNSS_UM980::configureRadio()
+bool GNSS_UM980::configureGNSS()
 {
     // Skip configuring the UM980 if no new changes are necessary
     if (settings.updateGNSSSettings == false)
@@ -423,7 +421,7 @@ void GNSS_UM980::disableAllOutput()
 }
 
 //----------------------------------------
-// Disable all output, then re-enable
+// Disable all output, then re-enable NMEA
 //----------------------------------------
 void GNSS_UM980::disableRTCM()
 {
@@ -465,7 +463,7 @@ bool GNSS_UM980::enableNMEA()
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
             if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
             {
-                // Mark PPL requied messages as enabled if rate > 0
+                // Mark PPL required messages as enabled if rate > 0
                 if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
                     gpggaEnabled = true;
                 if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
@@ -703,15 +701,24 @@ double GNSS_UM980::getAltitude()
 
 //----------------------------------------
 // Returns the carrier solution or zero if not online
+// 0 = No RTK, 1 = RTK Float, 2 = RTK Fix
 //----------------------------------------
 uint8_t GNSS_UM980::getCarrierSolution()
 {
     if (online.gnss)
+    {
         // 0 = Solution computed
         // 1 = Insufficient observation
         // 3 = No convergence,
         // 4 = Covariance trace
-        return (_um980->getSolutionStatus());
+
+        uint8_t solutionStatus = _um980->getSolutionStatus();
+
+        if (solutionStatus == 0)
+            return 2; // RTK Fix
+        if (solutionStatus == 4)
+            return 1; // RTK Float
+    }
     return 0;
 }
 
@@ -825,6 +832,14 @@ uint8_t GNSS_UM980::getLeapSeconds()
 {
     // TODO Need to find leap seconds in UM980
     return _leapSeconds; // Returning the default value
+}
+
+//----------------------------------------
+// Return the type of logging that matches the enabled messages - drives the logging icon
+//----------------------------------------
+uint8_t GNSS_UM980::getLoggingType()
+{
+    return ((uint8_t)LOGGING_UNKNOWN);
 }
 
 //----------------------------------------
@@ -1703,9 +1718,6 @@ bool GNSS_UM980::setRadioBaudRate(uint32_t baud)
 
 //----------------------------------------
 // Given the number of seconds between desired solution reports, determine measurementRateMs and navigationRate
-// measurementRateS > 25 & <= 65535
-// navigationRate >= 1 && <= 127
-// We give preference to limiting a measurementRate to 30 or below due to reported problems with measRates above 30.
 //----------------------------------------
 bool GNSS_UM980::setRate(double secondsBetweenSolutions)
 {
@@ -1766,7 +1778,9 @@ bool GNSS_UM980::setTalkerGNGGA()
 }
 
 //----------------------------------------
-// Hotstart GNSS to try to get RTK lock
+// Hotstart GNSS
+// Needed on ZED based products where RTK Float lock is seen using L-Band
+// Not used on UM980 based devices
 //----------------------------------------
 bool GNSS_UM980::softwareReset()
 {
@@ -1780,8 +1794,8 @@ bool GNSS_UM980::standby()
 }
 
 //----------------------------------------
-// Slightly modified method for restarting survey-in from:
-// https://portal.u-blox.com/s/question/0D52p00009IsVoMCAV/restarting-surveyin-on-an-f9p
+// Restart/reset the Survey-In
+// Used if the survey-in fails to complete
 //----------------------------------------
 bool GNSS_UM980::surveyInReset()
 {
@@ -1792,7 +1806,6 @@ bool GNSS_UM980::surveyInReset()
 
 //----------------------------------------
 // Start the survey-in operation
-// The ZED-F9P is slightly different than the NEO-M8P. See the Integration manual 3.5.8 for more info.
 //----------------------------------------
 bool GNSS_UM980::surveyInStart()
 {

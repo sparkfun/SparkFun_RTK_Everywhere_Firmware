@@ -32,11 +32,7 @@ typedef struct
 // Available constellations: GPS, BDS, GLO, GAL, QZSS
 // SBAS and IRNSS don't seem to be supported
 const um980ConstellationCommand um980ConstellationCommands[] = {
-    {"BeiDou", "BDS"},
-    {"Galileo", "GAL"},
-    {"GLONASS", "GLO"},
-    {"GPS", "GPS"},
-    {"QZSS", "QZSS"},
+    {"BeiDou", "BDS"}, {"Galileo", "GAL"}, {"GLONASS", "GLO"}, {"GPS", "GPS"}, {"QZSS", "QZSS"},
 };
 
 #define MAX_UM980_CONSTELLATIONS (sizeof(um980ConstellationCommands) / sizeof(um980ConstellationCommand))
@@ -50,6 +46,7 @@ typedef struct
 } um980Msg;
 
 // Static array containing all the compatible messages
+// Rate = Reports per second
 const um980Msg umMessagesNMEA[] = {
     // NMEA
     {"GPDTM", 0}, {"GPGBS", 0},   {"GPGGA", 0.5}, {"GPGLL", 0}, {"GPGNS", 0},
@@ -104,18 +101,16 @@ enum um980_Models
 class GNSS_UM980 : GNSS
 {
   private:
-
-    UM980 * _um980; // Library class instance
+    UM980 *_um980; // Library class instance
 
   protected:
-
     bool configureOnce();
 
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureRadio();
+    bool configureGNSS();
 
     // Turn off all NMEA and RTCM
     void disableAllOutput();
@@ -161,7 +156,7 @@ class GNSS_UM980 : GNSS
     bool setHighAccuracyService(bool enableGalileoHas);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio (uint8_t cnoValue);
+    bool setMinCnoRadio(uint8_t cnoValue);
 
     bool setMultipathMitigation(bool enableMultipathMitigation);
 
@@ -267,7 +262,7 @@ class GNSS_UM980 : GNSS
     //   Returns the horizontal position accuracy or zero if offline
     float getHorizontalAccuracy();
 
-    const char * getId();
+    const char *getId();
 
     // Get the latitude value
     // Outputs:
@@ -276,6 +271,9 @@ class GNSS_UM980 : GNSS
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds();
+
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    uint8_t getLoggingType();
 
     // Get the longitude value
     // Outputs:
@@ -302,9 +300,9 @@ class GNSS_UM980 : GNSS
     // Returns the seconds between solutions
     double getRateS();
 
-    const char * getRtcmDefaultString();
+    const char *getRtcmDefaultString();
 
-    const char * getRtcmLowDataRateString();
+    const char *getRtcmLowDataRateString();
 
     // Returns the number of satellites in view or zero if offline
     uint8_t getSatellitesInView();
@@ -480,4 +478,4 @@ class GNSS_UM980 : GNSS
 };
 
 #endif // COMPILE_UM980
-#endif  // __GNSS_UM980_H__
+#endif // __GNSS_UM980_H__

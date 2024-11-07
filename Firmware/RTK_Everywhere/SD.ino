@@ -74,35 +74,33 @@ void sdUpdate()
 #define SD_READ_OCR (0x40 + 58)    // read OCR
 #define SD_ADV_INIT (0xc0 + 41)    // ACMD41, for SDHC cards - advanced start initialization
 
-// Define options for accessing the SD card's PWD (CMD42)
-#define MASK_ERASE 0x08       // erase the entire card
-#define MASK_LOCK_UNLOCK 0x04 // lock or unlock the card with password
-#define MASK_CLR_PWD 0x02     // clear password
-#define MASK_SET_PWD 0x01     // set password
-
-// Define bit masks for fields in the lock/unlock command (CMD42) data structure
-#define SET_PWD_MASK (1 << 0)
-#define CLR_PWD_MASK (1 << 1)
-#define LOCK_UNLOCK_MASK (1 << 2)
-#define ERASE_MASK (1 << 3)
-
-// Some platforms have a card detect hardware pin
-// For platforms that don't, we use software to detect the SD card
-// Returns true if a card is detected
+// Begin initialization by sending CMD0 and waiting until SD card
+// responds with In Idle Mode (0x01). If the response is not 0x01
+// within a reasonable amount of time, there is no SD card on the bus.
+// Returns false if not card is detected
+// Returns true if a card responds
+// This test takes approximately 13ms to complete
 bool sdCardPresent(void)
 {
     if (present.microSdCardDetectLow == true)
     {
         if (digitalRead(pin_microSD_CardDetect) == LOW)
-            return (true); // Card detect low - SD in place
-        return (false);    // Card detect high - No SD
+            return (true); // Card detect low = SD in place
+        return (false);    // Card detect high = No SD
     }
     else if (present.microSdCardDetectHigh == true)
     {
         if (digitalRead(pin_microSD_CardDetect) == HIGH)
-            return (true); // Card detect high - SD in place
-        return (false);    // Card detect low - No SD
+            return (true); // Card detect high = SD in place
+        return (false);    // Card detect low = No SD
     }
+    else if (present.microSdCardDetectGpioExpanderHigh == true && online.gpioExpander == true)
+    {
+        if (io.digitalRead(gpioExpander_cardDetect) == GPIO_EXPANDER_CARD_INSERTED)
+            return (true); // Card detect high = SD in place
+        return (false);    // Card detect low = No SD
+    }
+
     // else - no card detect pin. Use software detect
 
     // Use software to detect a card
@@ -110,54 +108,30 @@ bool sdCardPresent(void)
     if (pin_microSD_CS == -1)
         reportFatalError("Illegal SD CS pin assignment.");
 
-    resetSPI(); // Re-initialize the SPI/SD interface
+    byte response = 0;
 
-    // Do a quick test to see if a card is present
-    int tries = 0;
-    int maxTries = 5;
-    while (tries < maxTries)
-    {
-        if (sdCardPresentSoftwareTest() == true)
-            return (true);
-
-        // log_d("SD present failed. Trying again %d out of %d", tries + 1, maxTries);
-
-        // Max power up time is 250ms: https://www.kingston.com/datasheets/SDCIT-specsheet-64gb_en.pdf
-        // Max current is 200mA average across 1s, peak 300mA
-        delay(10);
-        tries++;
-    }
-
-    return (false); // No card detected
-}
-
-// Begin initialization by sending CMD0 and waiting until SD card
-// responds with In Idle Mode (0x01). If the response is not 0x01
-// within a reasonable amount of time, there is no SD card on the bus.
-// This test takes approximately 13ms to complete
-
-bool sdCardPresentSoftwareTest()
-{
+    beginSPI(false);
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPI.setDataMode(SPI_MODE0);
     SPI.setBitOrder(MSBFIRST);
+    pinMode(pin_microSD_CS, OUTPUT);
 
     // Sending clocks while card power stabilizes...
     sdDeselectCard();             // always make sure
     for (byte i = 0; i < 30; i++) // send several clocks while card power stabilizes
         xchg(0xff);
 
-    byte response;
-
     // Sending CMD0 - GO IDLE...
     for (byte i = 0; i < 0x10; i++) // Attempt to go idle
     {
         response = sdSendCommand(SD_GO_IDLE, 0); // send CMD0 - go to idle state
         if (response == 1)
-            return (true); // Card responded
+            break;
     }
+    if (response != 1)
+        return (false); // Card failed to respond to idle
 
-    return (false); // Card failed to respond to idle
+    return (true); // Card detected
 }
 
 /*
@@ -216,7 +190,7 @@ byte sdSendCommand(byte command, unsigned long arg)
 
     /*
         We have issued the command but the SD card is still selected.  We
-        only deselect the card if the command we just sent is NOT a command
+        only deselectCard the card if the command we just sent is NOT a command
         that requires additional data exchange, such as reading or writing
         a block.
     */
@@ -224,22 +198,25 @@ byte sdSendCommand(byte command, unsigned long arg)
         (command != SD_LOCK_UNLOCK))
     {
         sdDeselectCard(); // all done
-        xchg(0xFF);       // close with eight more clocks
+        xchg(0xFF);     // close with eight more clocks
     }
 
     return (response); // let the caller sort it out
+
 }
 
 // Select (enable) the SD card
 void sdSelectCard(void)
 {
-    digitalWrite(pin_microSD_CS, LOW);
+    if (pin_microSD_CS != PIN_UNDEFINED)
+        digitalWrite(pin_microSD_CS, LOW);
 }
 
 // Deselect (disable) the SD card
 void sdDeselectCard(void)
 {
-    digitalWrite(pin_microSD_CS, HIGH);
+    if (pin_microSD_CS != PIN_UNDEFINED)
+        digitalWrite(pin_microSD_CS, HIGH);
 }
 
 // Exchange a byte of data with the SD card via host's SPI bus

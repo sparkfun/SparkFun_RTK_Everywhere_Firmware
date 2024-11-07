@@ -27,13 +27,17 @@
 #define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_WIFI
-#define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
-#define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
-#endif                      // COMPILE_WIFI
+#define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
+#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
+#endif                 // COMPILE_WIFI
 
-#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
-#define COMPILE_UM980                // Comment out to remove UM980 functionality
-#define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
+#define COMPILE_ZED        // Comment out to remove ZED-F9x functionality
+#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
+#define COMPILE_UM980    // Comment out to remove UM980 functionality
+#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+#define COMPILE_LG290P   // Comment out to remove LG290P functionality
+
+#define COMPILE_IM19_IMU // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 #define COMPILE_MOSAICX5             // Comment out to remove mosaic-X5 functionality
@@ -140,11 +144,11 @@ int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
 int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
 
-int pin_GnssEvent = PIN_UNDEFINED; // Facet mosaic
-int pin_GnssOnOff = PIN_UNDEFINED; // Facet mosaic
-int pin_chargerLED = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssEvent = PIN_UNDEFINED;   // Facet mosaic
+int pin_GnssOnOff = PIN_UNDEFINED;   // Facet mosaic
+int pin_chargerLED = PIN_UNDEFINED;  // Facet mosaic
 int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
-int pin_GnssReady = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssReady = PIN_UNDEFINED;   // Facet mosaic
 
 int pin_loraRadio_reset = PIN_UNDEFINED;
 int pin_loraRadio_boot = PIN_UNDEFINED;
@@ -154,11 +158,12 @@ int pin_Ethernet_CS = PIN_UNDEFINED;
 int pin_Ethernet_Interrupt = PIN_UNDEFINED;
 int pin_GNSS_CS = PIN_UNDEFINED;
 int pin_GNSS_TimePulse = PIN_UNDEFINED;
+int pin_GNSS_Reset = PIN_UNDEFINED;
 
 // microSD card pins
-int pin_PICO = 23;
-int pin_POCI = 19;
-int pin_SCK = 18;
+int pin_PICO = PIN_UNDEFINED;
+int pin_POCI = PIN_UNDEFINED;
+int pin_SCK = PIN_UNDEFINED;
 int pin_microSD_CardDetect = PIN_UNDEFINED;
 int pin_microSD_CS = PIN_UNDEFINED;
 
@@ -183,7 +188,7 @@ int pin_Cellular_Reset = PIN_UNDEFINED;
 int pin_Cellular_RTS = PIN_UNDEFINED;
 int pin_Cellular_CTS = PIN_UNDEFINED;
 bool cellularModemResetLow = false;
-#define  CELLULAR_MODEM_FC  ESP_MODEM_FLOW_CONTROL_NONE
+#define CELLULAR_MODEM_FC ESP_MODEM_FLOW_CONTROL_NONE
 uint8_t laraPwrLowValue;
 uint32_t laraTimer; // Backoff timer
 
@@ -194,6 +199,14 @@ int pin_GNSS_DR_Reset = PIN_UNDEFINED;
 int pin_powerAdapterDetect = PIN_UNDEFINED;
 int pin_usbSelect = PIN_UNDEFINED;
 int pin_beeper = PIN_UNDEFINED;
+
+int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
+int gpioExpander_up = 0;
+int gpioExpander_down = 1;
+int gpioExpander_right = 2;
+int gpioExpander_left = 3;
+int gpioExpander_center = 4;
+int gpioExpander_cardDetect = 5;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display
@@ -241,7 +254,7 @@ SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
 
-SdFile *ubxFile;                  // File that all GNSS ubx messages sentences are written to
+SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
 int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
 int startCurrentLogTime_minutes;
@@ -338,10 +351,10 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 #include "GNSS_ZED.h"
+#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
-GNSS * gnss;
+GNSS *gnss;
 
 char neoFirmwareVersion[20]; // Output to system status menu.
 
@@ -381,7 +394,7 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
 SEMP_PARSE_STATE *rtkParse = nullptr;
-SEMP_PARSE_STATE *sbfParse = nullptr; // mosaic-X5
+SEMP_PARSE_STATE *sbfParse = nullptr;    // mosaic-X5
 SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -448,8 +461,8 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
-#include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
-HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform we're on
+#include <driver/uart.h>     //Required for uart_set_rx_full_threshold() on cores <v2.0.5
+HardwareSerial *serialGNSS;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
@@ -480,7 +493,7 @@ bool zedUartPassed; // Goes true during testing if ESP can communicate with ZED 
 const uint8_t btEscapeCharacter = '+';
 const uint8_t btMaxEscapeCharacters = 3; // Number of characters needed to enter remote command mode over Bluetooth
 const uint8_t btAppCommandCharacter = '-';
-const uint8_t btMaxAppCommandCharacters = 10;                  // Number of characters needed to enter app command mode over Bluetooth
+const uint8_t btMaxAppCommandCharacters = 10; // Number of characters needed to enter app command mode over Bluetooth
 bool runCommandMode; // Goes true when user or remote app enters ---------- command mode sequence
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -649,7 +662,7 @@ const int updatePplTaskStackSize = 3000;
 #endif // COMPILE_POINTPERFECT_LIBRARY
 
 bool pplNewRtcmNmea = false;
-bool pplNewSpartnMqtt = false; // MQTT
+bool pplNewSpartnMqtt = false;  // MQTT
 bool pplNewSpartnLBand = false; // L-Band (mosaic-X5)
 uint8_t *pplRtcmBuffer = nullptr;
 
@@ -659,6 +672,24 @@ bool pplMqttCorrections = false;
 bool pplLBandCorrections = false;     // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
 
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// I2C GPIO Expander for Directional Pad
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
+
+// SFE_PCA95XX io; // Defaults to the PCA9554 at I2C address 0x20
+SFE_PCA95XX io(PCA95XX_PCA9557); // Create a PCA9557
+
+uint8_t gpioExpander_previousState = 0b00011111; //Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
+unsigned long gpioExpander_holdStart[8] = {0};
+bool gpioExpander_wasReleased[8] = {false};
+uint8_t gpioExpander_lastReleased = 255;
+
+#define GPIO_EXPANDER_BUTTON_PRESSED 0
+#define GPIO_EXPANDER_BUTTON_RELEASED 1
+#define GPIO_EXPANDER_CARD_INSERTED 1
+#define GPIO_EXPANDER_CARD_REMOVED 0
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Global variables
@@ -718,8 +749,9 @@ unsigned long splashStart; // Controls how long the splash is displayed for. Cur
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
 bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
-unsigned long startTime;             // Used for checking longest-running functions
-bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S only)
+unsigned long startTime;       // Used for checking longest-running functions
+bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
+                               // only)
 unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
@@ -728,8 +760,9 @@ unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to upda
 
 uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
 
-bool spartnCorrectionsReceived = false; // Used to display L-Band SIV icon when L-Band SPARTN corrections are received by mosaic-X5
-unsigned long lastSpartnReception = 0;  // Timestamp of last SPARTN reception
+bool spartnCorrectionsReceived =
+    false; // Used to display L-Band SIV icon when L-Band SPARTN corrections are received by mosaic-X5
+unsigned long lastSpartnReception = 0; // Timestamp of last SPARTN reception
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
@@ -778,8 +811,8 @@ unsigned long lastSpartnToPpl = 0;
 int commandCount;
 int16_t *commandIndex;
 
-bool usbSerialIsSelected = true; //Goes false when switch U18 is moved from CH34x to LoRa
-unsigned long loraLastIncomingSerial; //Last time a user sent a serial command. Used in LoRa timeouts.
+bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1239,6 +1272,8 @@ void loopDelay()
 // Push new data to log as needed
 void logUpdate()
 {
+    static bool blockLogging = false; //Used to prevent circular attempts to create a log file when previous attempts have failed
+
     // Convert current system time to minutes. This is used in gnssSerialReadTask()/updateLogs() to see if we are within
     // max log window.
     systemTime_minutes = millis() / 1000L / 60;
@@ -1253,9 +1288,14 @@ void logUpdate()
     if (outOfSDSpace == true)
         return; // We can't log if we are out of SD space
 
-    if (online.logging == false && settings.enableLogging == true)
+    if (online.logging == false && settings.enableLogging == true && blockLogging == false)
     {
-        beginLogging();
+        if(beginLogging() == false)
+        {
+            //Failed to create file, block future logging attempts
+            blockLogging = true;
+            return;
+        }
 
         setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
@@ -1294,7 +1334,7 @@ void logUpdate()
             {
                 markSemaphore(FUNCTION_EVENT);
 
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 xSemaphoreGive(sdCardSemaphore);
                 newEventToRecord = false;
@@ -1340,7 +1380,7 @@ void logUpdate()
             {
                 markSemaphore(FUNCTION_EVENT);
 
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 xSemaphoreGive(sdCardSemaphore);
                 newEventToRecord = false;

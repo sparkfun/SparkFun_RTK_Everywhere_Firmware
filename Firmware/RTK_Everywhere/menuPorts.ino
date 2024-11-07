@@ -12,7 +12,7 @@ void menuPorts()
     }
     else // TODO: Add LG290P - menuPortsNoMux();
     {
-        // RTK EVK
+        // RTK EVK, Postcard
         menuPortsNoMux();
     }
 }

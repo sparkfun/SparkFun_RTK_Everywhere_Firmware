@@ -564,7 +564,7 @@ class GNSS_MOSAIC : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureRadio();
+    bool configureGNSS();
 
     // Set the minimum satellite signal level for navigation.
     bool setMinCnoRadio (uint8_t cnoValue);
@@ -712,6 +712,9 @@ class GNSS_MOSAIC : GNSS
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds();
+
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    uint8_t getLoggingType();
 
     // Get the longitude value
     // Outputs:

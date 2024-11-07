@@ -146,6 +146,10 @@ void identifyBoard()
         // Facet v2: 10.0/2.7  -->  650mV < 702mV < 756mV (4.75% tolerance)
         else if (idWithAdc(idValue, 10.0, 2.7, 4.75))
             productVariant = RTK_FACET_V2;
+
+        // Postcard: 3.3/10  -->  2421mV < 2481mV < 2539mV (4.75% tolerance)
+        else if (idWithAdc(idValue, 3.3, 10, 4.75))
+            productVariant = RTK_POSTCARD;
     }
 
     if (ENABLE_DEVELOPER)
@@ -214,6 +218,10 @@ void beginBoard()
         present.antennaPhaseCenter_mm = 115.7;
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
+        present.multipathMitigation = true; // UM980 has MPM, other platforms do not
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
 #ifdef COMPILE_IM19_IMU
         present.imu_im19 = true; // Allow tiltUpdate() to run
@@ -297,7 +305,11 @@ void beginBoard()
     else if (productVariant == RTK_EVK)
     {
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_ZED();
+#ifdef COMPILE_ZED
+        gnss = (GNSS *)new GNSS_ZED();
+#else  // COMPILE_ZED
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKFUN;
 
@@ -322,6 +334,9 @@ void beginBoard()
         present.display_i2c1 = true;
         present.display_type = DISPLAY_128x64;
         present.i2c1BusSpeed_400 = true; // Run display bus at higher speed
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         // Pin Allocations:
         // 35, D1  : Serial TX (CH340 RX)
@@ -374,6 +389,10 @@ void beginBoard()
         //  5, A39 : Ethernet Interrupt
         pin_Ethernet_Interrupt = 39;
 
+        pin_PICO = 23;
+        pin_POCI = 19;
+        pin_SCK = 18;
+
         // Disable the Ethernet controller
         DMW_if systemPrintf("pin_Ethernet_CS: %d\r\n", pin_Ethernet_CS);
         pinMode(pin_Ethernet_CS, OUTPUT);
@@ -415,7 +434,11 @@ void beginBoard()
         // TODO: pass PMP over serial to save I2C traffic?
 
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_ZED();
+#ifdef COMPILE_ZED
+        gnss = (GNSS *)new GNSS_ZED();
+#else  // COMPILE_ZED
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
@@ -435,10 +458,13 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
-        //pin_LBand_PMP_RX = 4; // TODO
+        // pin_LBand_PMP_RX = 4; // TODO
         pin_GnssUart_TX = 13;
         pin_GnssUart_RX = 14;
         pin_microSD_CardDetect = 15;
@@ -455,12 +481,15 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
+        pin_PICO = 23;
+        pin_POCI = 19;
+        pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        
+
         // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
         // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
         pinMode(pin_chargerLED, INPUT);
@@ -487,7 +516,11 @@ void beginBoard()
         // ZED-F9P is interfaced via I2C and UART1
 
         // Specify the GNSS radio
-        gnss = (GNSS *) new GNSS_ZED();
+#ifdef COMPILE_ZED
+        gnss = (GNSS *)new GNSS_ZED();
+#else  // COMPILE_ZED
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_ZED
 
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
@@ -506,6 +539,9 @@ void beginBoard()
         present.fastPowerOff = true;
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -525,12 +561,15 @@ void beginBoard()
         pin_chargerLED = 34;
         pin_chargerLED2 = 36;
         pin_muxADC = 39;
+        pin_PICO = 23;
+        pin_POCI = 19;
+        pin_SCK = 18;
 
         pinMode(pin_muxA, OUTPUT);
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        
+
         // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
         // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
         pinMode(pin_chargerLED, INPUT);
@@ -593,8 +632,11 @@ void beginBoard()
         present.invertedFastPowerOff = true;
         present.gnss_to_uart = true;
         present.gnss_to_uart2 = true;
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.needsExternalPpl = true;     // Uses the PointPerfect Library
         present.microSdCardDetectLow = true; // Except microSD is connected to mosaic... present.microSd is false
+        present.minCno = true;
+        present.minElevation = true;
+        present.dynamicModel = true;
 
         pin_muxA = 2;
         pin_muxB = 12;
@@ -620,7 +662,7 @@ void beginBoard()
         pinMode(pin_muxB, OUTPUT);
 
         pinMode(pin_powerFastOff, INPUT); // Soft power switch has 10k pull-down
-        
+
         // Charger Status STAT1 (pin_chargerLED) and STAT2 (pin_chargerLED2) have pull-ups to 3.3V
         // Charger Status STAT1 is interfaced via a diode and requires ADC. LOW will not be 0V.
         pinMode(pin_chargerLED, INPUT);
@@ -634,6 +676,76 @@ void beginBoard()
         DMW_if systemPrintf("pin_microSD_CardDetect: %d\r\n", pin_microSD_CardDetect);
         pinMode(pin_microSD_CardDetect, INPUT_PULLUP);
     }
+
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // Specify the GNSS radio
+#ifdef COMPILE_LG290P
+        gnss = (GNSS *)new GNSS_LG290P();
+#else  // COMPILE_LGP290P
+        gnss = (GNSS *)new GNSS_None();
+#endif // COMPILE_LGP290P
+
+        present.brand = BRAND_SPARKPNT;
+        present.psram_2mb = true;
+        present.gnss_lg290p = true;
+        present.antennaPhaseCenter_mm = 42.0;
+        present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.gnss_to_uart = true;
+
+        // The following are present on the optional shield. Devices will be marked offline if shield is not present.
+        present.charger_mcp73833 = true;
+        present.fuelgauge_max17048 = true;
+        present.display_i2c0 = true;
+        present.i2c0BusSpeed_400 = true; // Run display bus at higher speed
+        present.display_type = DISPLAY_128x64;
+        present.microSd = true;
+        present.gpioExpander = true;
+        present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
+
+        present.microSdCardDetectHigh = true;          // TODO remove - Just for proto of the Postcard shield
+        pin_microSD_CardDetect = 14;                   // TODO remove - Just for proto of the Postcard shield
+        pinMode(pin_microSD_CardDetect, INPUT_PULLUP); // TODO remove - Just for proto of the Postcard shield
+
+        pin_I2C0_SDA = 7;
+        pin_I2C0_SCL = 20;
+
+        pin_GnssUart_RX = 21;
+        pin_GnssUart_TX = 22;
+
+        pin_GNSS_Reset = 33;
+        pin_GNSS_TimePulse = 8; // PPS on LG290P
+
+        pin_SCK = 32;
+        pin_POCI = 25;
+        pin_PICO = 26;
+        pin_microSD_CS = 27;
+
+        // pin_gpioExpanderInterrupt = 14; //AOI on Postcard
+
+        pin_bluetoothStatusLED = 0; // Green status LED
+        // pin_gnssStatusLED = 13;
+
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
+
+        // DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
+        // pinMode(pin_gnssStatusLED, OUTPUT);
+
+        // Turn on Bluetooth and GNSS LEDs to indicate power on
+        bluetoothLedOn();
+        gnssStatusLedOn();
+
+        pinMode(pin_GNSS_TimePulse, INPUT);
+
+        pinMode(pin_GNSS_Reset, OUTPUT);
+        lg290pBoot(); // Tell LG290P to boot
+
+        settings.dataPortBaud = (115200 * 4); // Override settings. LG290P communicates at 460800bps.
+
+        // Disable the microSD card
+        pinMode(pin_microSD_CS, OUTPUT);
+        sdDeselectCard();
+    }
 }
 
 void beginVersion()
@@ -642,7 +754,7 @@ void beginVersion()
     getFirmwareVersion(versionString, sizeof(versionString), true);
 
     char title[50];
-    RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+    RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
     snprintf(title, sizeof(title), "%s RTK %s %s", brandAttributes->name, platformPrefix, versionString);
     for (int i = 0; i < strlen(title); i++)
         systemPrint("=");
@@ -775,8 +887,6 @@ void beginSD()
             settings.spiFrequency = 16;
         }
 
-        resetSPI(); // Re-initialize the SPI/SD interface
-
         if (sd->begin(SdSpiConfig(pin_microSD_CS, SHARED_SPI, SD_SCK_MHZ(settings.spiFrequency))) == false)
         {
             int tries = 0;
@@ -860,33 +970,6 @@ void endSD(bool alreadyHaveSemaphore, bool releaseSemaphore)
     // Release the semaphore
     if (releaseSemaphore)
         xSemaphoreGive(sdCardSemaphore);
-}
-
-// Attempt to de-init the SD card - SPI only
-// https://github.com/greiman/SdFat/issues/351
-void resetSPI()
-{
-    sdDeselectCard();
-
-    // Flush SPI interface
-    beginSPI(true);
-    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
-    for (int x = 0; x < 10; x++)
-        SPI.transfer(0XFF);
-    SPI.endTransaction();
-    SPI.end();
-
-    sdSelectCard();
-
-    // Flush SD interface
-    beginSPI(true);
-    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
-    for (int x = 0; x < 10; x++)
-        SPI.transfer(0XFF);
-    SPI.endTransaction();
-    SPI.end();
-
-    sdDeselectCard();
 }
 
 // We want the GNSS UART interrupts to be pinned to core 0 to avoid competing with I2C interrupts
@@ -1252,7 +1335,8 @@ void beginCharger()
 
 void beginButtons()
 {
-    if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false)
+    if (present.button_powerHigh == false && present.button_powerLow == false && present.button_mode == false &&
+        present.gpioExpander == false)
         return;
 
     TaskHandle_t taskHandle;
@@ -1265,38 +1349,58 @@ void beginButtons()
         buttonCount++;
     if (present.button_mode == true)
         buttonCount++;
+    if (present.gpioExpander == true)
+        buttonCount++;
     if (buttonCount > 1)
         reportFatalError("Illegal button assignment.");
 
-    // Facet main/power button
-    if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
-        userBtn = new Button(pin_powerSenseAndControl);
-
-    // Torch main/power button
-    if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
-        userBtn = new Button(pin_powerButton, 25, true,
-                             false); // Turn off inversion. Needed for buttons that are high when pressed.
-
-    // EVK mode button
-    if (present.button_mode == true)
-        userBtn = new Button(pin_modeButton);
-
-    if (userBtn == nullptr)
+    // Postcard button uses an I2C expander
+    // Avoid using the button library
+    if (present.gpioExpander == true)
     {
-        systemPrintln("Failed to begin button");
-        return;
+        if (beginGpioExpander(0x18) == false)
+        {
+            systemPrintln("Directional pad not detected");
+            return;
+        }
+    }
+    else
+    {
+        // Use the Button library
+        // Facet main/power button
+        if (present.button_powerLow == true && pin_powerSenseAndControl != PIN_UNDEFINED)
+            userBtn = new Button(pin_powerSenseAndControl);
+
+        // Torch main/power button
+        if (present.button_powerHigh == true && pin_powerButton != PIN_UNDEFINED)
+            userBtn = new Button(pin_powerButton, 25, true,
+                                 false); // Turn off inversion. Needed for buttons that are high when pressed.
+
+        // EVK mode button
+        if (present.button_mode == true)
+            userBtn = new Button(pin_modeButton);
+
+        if (userBtn == nullptr)
+        {
+            systemPrintln("Failed to begin button");
+            return;
+        }
+
+        userBtn->begin();
+        online.button = true;
     }
 
-    userBtn->begin();
-
-    // Starts task for monitoring button presses
-    if (!task.buttonCheckTaskRunning)
-        xTaskCreate(buttonCheckTask,
-                    "BtnCheck",          // Just for humans
-                    buttonTaskStackSize, // Stack Size
-                    nullptr,             // Task input parameter
-                    buttonCheckTaskPriority,
-                    &taskHandle); // Task handle
+    if (online.button == true || online.gpioExpander == true)
+    {
+        // Starts task for monitoring button presses
+        if (!task.buttonCheckTaskRunning)
+            xTaskCreate(buttonCheckTask,
+                        "BtnCheck",          // Just for humans
+                        buttonTaskStackSize, // Stack Size
+                        nullptr,             // Task input parameter
+                        buttonCheckTaskPriority,
+                        &taskHandle); // Task handle
+    }
 }
 
 // Depending on platform and previous power down state, set system state
@@ -1351,6 +1455,15 @@ void beginSystemState()
         // If the setting is not set, override with default
         if (settings.antennaPhaseCenter_mm == 0.0)
             settings.antennaPhaseCenter_mm = present.antennaPhaseCenter_mm;
+    }
+    else if (productVariant == RTK_POSTCARD)
+    {
+        // Return to either Rover or Base Not Started. The last state previous to power down.
+        systemState = settings.lastState;
+
+        firstRoverStart = true; // Allow user to enter test screen during first rover start
+        if (systemState == STATE_BASE_NOT_STARTED)
+            firstRoverStart = false;
     }
     else
     {
@@ -1529,8 +1642,18 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
                 break;
             }
 
+            case 0x18: {
+                systemPrintf("  0x%02X - PCA9557 GPIO Expander with Reset\r\n", addr);
+                break;
+            }
+
             case 0x19: {
                 systemPrintf("  0x%02X - LIS2DH12 Accelerometer\r\n", addr);
+                break;
+            }
+
+            case 0x20: {
+                systemPrintf("  0x%02X - PCA9554 GPIO Expander with Interrupt\r\n", addr);
                 break;
             }
 
@@ -1580,7 +1703,7 @@ bool i2cBusInitialization(TwoWire *i2cBus, int sda, int scl, int clockKHz)
     // Determine if any devices are on the bus
     if (deviceFound == false)
     {
-        systemPrintln("ERROR: No devices found on the I2C bus!");
+        systemPrintln("No devices found on the I2C bus");
         return false;
     }
     return true;

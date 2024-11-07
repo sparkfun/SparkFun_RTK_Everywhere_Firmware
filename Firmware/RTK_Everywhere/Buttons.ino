@@ -71,3 +71,158 @@ void powerDown(bool displayInfo)
         delay(250);
     }
 }
+
+// Start the I2C expander if possible
+bool beginGpioExpander(uint8_t padAddress)
+{
+    // Initialize the PCA95xx with its default I2C address
+    if (io.begin(padAddress, *i2c_0) == true)
+    {
+        io.pinMode(gpioExpander_up, INPUT);
+        io.pinMode(gpioExpander_down, INPUT);
+        io.pinMode(gpioExpander_left, INPUT);
+        io.pinMode(gpioExpander_right, INPUT);
+        io.pinMode(gpioExpander_center, INPUT);
+        io.pinMode(gpioExpander_cardDetect, INPUT);
+
+        // By default, on the PA9557, IO pins 4567 are inverted
+        io.revert(gpioExpander_center);     // Set to not inverted
+        io.revert(gpioExpander_cardDetect); // Set to not inverted
+
+        systemPrintln("Directional pad online");
+
+        online.gpioExpander = true;
+        return (true);
+    }
+    return (false);
+}
+
+// Read the GPIO expander
+// Called from change interrupt on pin ESP14
+void gpioExpanderIsr()
+{
+    if (online.gpioExpander == false)
+        return;
+}
+
+// Update the status of the button library
+// Or read the GPIO expander and update the button state arrays
+void buttonRead()
+{
+    // Check direct button
+    if (online.button == true)
+        userBtn->read();
+
+    // Check directional pad
+    if (online.gpioExpander == true)
+    {
+        // Get all the pins in one read
+        uint8_t currentState = io.getInputRegister() & 0b00111111; // Ignore unconnected GPIO6/7
+
+        if (currentState != gpioExpander_previousState)
+        {
+            for (int x = 0; x < 8; x++)
+            {
+                uint8_t previousStateBit = (gpioExpander_previousState >> x) & 0b1;
+                uint8_t currentStateBit = (currentState >> x) & 0b1;
+
+                // Check for a new press
+                if (previousStateBit == GPIO_EXPANDER_BUTTON_RELEASED &&
+                    currentStateBit == GPIO_EXPANDER_BUTTON_PRESSED)
+                    gpioExpander_holdStart[x] = millis();
+
+                // Or a new release?
+                if (previousStateBit == GPIO_EXPANDER_BUTTON_PRESSED &&
+                    currentStateBit == GPIO_EXPANDER_BUTTON_RELEASED)
+                {
+                    gpioExpander_wasReleased[x] = true;
+                    gpioExpander_holdStart[x] = 0; // Mark button as not held
+                }
+            }
+        }
+
+        gpioExpander_previousState = currentState; // Update previous state
+    }
+}
+
+// Check if a previously pressed button has been released
+bool buttonReleased()
+{
+    // Check direct button
+    if (online.button == true)
+        return (userBtn->wasReleased());
+
+    // Check directional pad
+    if (online.gpioExpander == true)
+    {
+        //Check for any button press on the directional pad
+        for (int buttonNumber = 0; buttonNumber < 5; buttonNumber++)
+        {
+            if (buttonReleased(buttonNumber) == true)
+            {
+                gpioExpander_lastReleased = buttonNumber;
+                return (true);
+            }
+        }
+    }
+
+    return (false);
+}
+
+// Given a button number, check if a previously pressed button has been released
+bool buttonReleased(uint8_t buttonNumber)
+{
+    // Check direct button
+    if (online.button == true)
+        return (false);
+
+    // Check directional pad
+    if (online.gpioExpander == true)
+    {
+        if (gpioExpander_wasReleased[buttonNumber] == true)
+        {
+            // Clear release mark
+            gpioExpander_wasReleased[buttonNumber] = false;
+            return (true);
+        }
+    }
+
+    return (false);
+}
+
+// Check if a button has been pressed for a certain amount of time
+bool buttonPressedFor(uint16_t maxTime)
+{
+    // Check for direct button
+    if (online.button == true)
+        return (userBtn->pressedFor(maxTime));
+
+    return (false);
+}
+
+// Check if a button has been pressed for a certain amount of time
+bool buttonPressedFor(uint8_t buttonNumber, uint16_t maxTime)
+{
+    // Check directional pad
+    if (online.gpioExpander == true)
+    {
+        // Check if the time has started for this button
+        if (gpioExpander_holdStart[buttonNumber] > 0)
+        {
+            if (millis() - gpioExpander_holdStart[buttonNumber] > maxTime)
+                return (true);
+        }
+    }
+
+    return (false);
+}
+
+// Return the last button pressed found using buttonReleased()
+// Returns 255 if no button pressed yet
+uint8_t buttonLastPressed()
+{
+    // uint8_t lastButtonPressed = gpioExpander_lastReleased;
+    // gpioExpander_lastReleased = 255; //Reset for the next read
+    // return (lastButtonPressed);
+    return (gpioExpander_lastReleased);
+}

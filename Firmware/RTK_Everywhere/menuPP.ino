@@ -727,8 +727,10 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
 
     if (correctionLastSeen(CORR_LBAND))
     {
+#ifdef COMPILE_ZED
         GNSS_ZED * zed = (GNSS_ZED *)gnss;
         zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
+#endif // COMPILE_ZED
 
         if (settings.debugCorrections == true && !inMainMenu)
             systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);

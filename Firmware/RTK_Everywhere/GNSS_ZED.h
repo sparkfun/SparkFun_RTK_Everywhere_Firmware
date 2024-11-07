@@ -7,6 +7,8 @@ GNSS_ZED.h
 #ifndef __GNSS_ZED_H__
 #define __GNSS_ZED_H__
 
+#ifdef COMPILE_ZED
+
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
 class GNSS_ZED : GNSS
@@ -31,6 +33,10 @@ class GNSS_ZED : GNSS
     // UBX-MON-COMMS callback. isCorrRadioExtPortActive returns true if the bytes-received has
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
+    
+    // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
+    // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
+    void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType);
 
   public:
 
@@ -80,7 +86,7 @@ class GNSS_ZED : GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
     //   Returns true if successfully configured and false upon failure
-    bool configureRadio();
+    bool configureGNSS();
 
     // Configure the Rover
     // Outputs:
@@ -150,6 +156,9 @@ class GNSS_ZED : GNSS
 
     // Query GNSS for current leap seconds
     uint8_t getLeapSeconds();
+
+    // Return the type of logging that matches the enabled messages - drives the logging icon
+    uint8_t getLoggingType();
 
     // Get the longitude value
     // Outputs:
@@ -394,4 +403,5 @@ class GNSS_ZED : GNSS
     void updateCorrectionsSource(uint8_t source);
 };
 
-#endif  // __GNSS_ZED_H__
+#endif // COMPILE_ZED
+#endif // __GNSS_ZED_H__
