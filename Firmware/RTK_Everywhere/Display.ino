@@ -2037,8 +2037,7 @@ void displayRoverStart(uint16_t displayTime)
         uint8_t yPos = oled->getHeight() / 2 - fontHeight;
 
         printTextCenter("Rover", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);  //text, y, font type, kerning,
-        // inverted
+        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);
 
         oled->display();
 
@@ -2259,8 +2258,7 @@ void displaySurveyStart(uint16_t displayTime)
         uint8_t yPos = oled->getHeight() / 2 - fontHeight;
 
         printTextCenter("Survey", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);  //text, y, font type, kerning,
-        // inverted
+        // printTextCenter("Started", yPos + fontHeight, QW_FONT_8X16, 1, false);
 
         oled->display();
 
@@ -2630,7 +2628,9 @@ void paintDisplaySetup()
     }
 }
 
-// Given text, and location, print text center of the screen
+// Given text, and location, print text center of the screen.
+// In a perfect world, this would work correctly with all fonts.
+// But, in reality, it is hardwired for 5X7 and 8X16...
 void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_t kerning,
                      bool highlight) // text, y, font type, kearning, inverted
 {
@@ -2641,7 +2641,21 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
     if (fontWidth == 8)
         fontWidth = 7; // 8x16, but widest character is only 7 pixels.
 
-    uint8_t xStart = (oled->getWidth() / 2) - ((strlen(text) * (fontWidth + kerning)) / 2) + 1;
+    uint8_t textPixelWidth = strlen(text) * (fontWidth + kerning);
+
+    // E.g.:
+    // 8 chars in the 8X16 font, with kerning 1
+    // ((strlen(text) * (fontWidth + kerning)) / 2) = 32
+    // (oled->getWidth() / 2) = 32
+    // xStart = 0
+    // But that looks rubbish if highlight is true
+    int xStart = ((int)(oled->getWidth() / 2)) - ((int)(textPixelWidth / 2));
+    if (xStart < 0)
+        xStart = 0;
+    
+    // So, add a gap of 1 pixel if highlight is true and xStart is zero
+    if (highlight && (xStart == 0))
+        xStart = 1;
 
     uint8_t xPos = xStart;
     for (int x = 0; x < strlen(text); x++)
@@ -2653,17 +2667,21 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
 
     if (highlight) // Draw a box, inverted over text
     {
-        uint8_t textPixelWidth = strlen(text) * (fontWidth + kerning);
-
         // Error check
         int xBoxStart = xStart - 5;
+        int xBoxWidth = textPixelWidth + 9;
         if (xBoxStart < 0)
+        {
+            xBoxWidth += xBoxStart * 2; // Shrink the width by twice the excess
             xBoxStart = 0;
-        int xBoxEnd = textPixelWidth + 9;
-        if (xBoxEnd > oled->getWidth() - 1)
-            xBoxEnd = oled->getWidth() - 1;
+        }
+        if ((xBoxStart + xBoxWidth) > oled->getWidth())
+            xBoxWidth = oled->getWidth() - xBoxStart;
 
-        oled->rectangleFill(xBoxStart, yPos, xBoxEnd, 12, 1); // x, y, width, height, color
+        // For the 8X16 font, only the 'top' 12 rows are used
+        uint8_t boxHeight = fontType.height == 16 ? 12 : 7;
+
+        oled->rectangleFill(xBoxStart, yPos, xBoxWidth, boxHeight, 1); // x, y, width, height, color
     }
 }
 
@@ -3128,7 +3146,7 @@ void displayConfigViaEthernet()
         oled->erase();
 
         uint8_t xPos = (oled->getWidth() / 2) - (Ethernet_Icon_Width / 2);
-        uint8_t yPos = Ethernet_Icon_Height / 2;
+        uint8_t yPos = Ethernet_Icon_Height / 2; // yPos is 6
 
         static bool blink = 0;
         blink ^= 1;
@@ -3136,21 +3154,29 @@ void displayConfigViaEthernet()
         if (ETH.linkUp() || blink)
             displayBitmap(xPos, yPos, Ethernet_Icon_Width, Ethernet_Icon_Height, Ethernet_Icon);
 
-        yPos += Ethernet_Icon_Height * 1.5;
+        yPos += Ethernet_Icon_Height * 1.5; // yPos is now 24
 
         printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos += 8;
+        yPos += 8; // yPos is now 32
         if (present.display_type == DISPLAY_128x64)
-            yPos += 4;
+            yPos += 4; // yPos is 36 on 128x64 displays, 32 on 64x48 displays
 
         char ipAddress[16];
         IPAddress localIP = ETH.localIP();
         snprintf(ipAddress, sizeof(ipAddress), "%s", localIP.toString());
 
-        int displayWidthChars = ((present.display_type == DISPLAY_128x64) ? 21 : 10);
+        // yPos is 36 on 128x64 displays, 32 on 64x48 displays. QW_FONT_8x16 will fit - as it only uses ~12 rows.
+
+        // See if 8x16 will fit. But widest character is only 7 pixels, so divide by 8 (7 plus 1 kerning) not 9.
+        int displayWidth8X16 = ((present.display_type == DISPLAY_128x64) ? 16 : 8);
+        int displayWidth5X7 = ((present.display_type == DISPLAY_128x64) ? 21 : 10); // 5 plus 1 kerning
 
         // If we can print the full IP address without shuttling
-        if (strlen(ipAddress) <= displayWidthChars)
+        if (strlen(ipAddress) <= displayWidth8X16)
+        {
+            printTextCenter(ipAddress, yPos, QW_FONT_8X16, 1, false);
+        }
+        else if (strlen(ipAddress) <= displayWidth5X7)
         {
             printTextCenter(ipAddress, yPos, QW_FONT_5X7, 1, false);
         }
@@ -3158,8 +3184,8 @@ void displayConfigViaEthernet()
         {
             // Print as many characters as we can. Shuttle back and forth to display all.
             static int startPos = 0;
-            char printThis[displayWidthChars + 1];
-            int extras = strlen(ipAddress) - displayWidthChars;
+            char printThis[displayWidth5X7 + 1];
+            int extras = strlen(ipAddress) - displayWidth5X7;
             int shuttle[2 * extras];
             int x;
             for (x = 0; x <= extras; x++)
@@ -3177,8 +3203,7 @@ void displayConfigViaEthernet()
     }
 
 #else  // COMPILE_ETHERNET
-    uint8_t fontHeight = 15;
-    uint8_t yPos = oled->getHeight() / 2 - fontHeight;
+    uint8_t yPos = oled->getHeight() / 2 - 4;
     printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
 #endif // COMPILE_ETHERNET
 }
