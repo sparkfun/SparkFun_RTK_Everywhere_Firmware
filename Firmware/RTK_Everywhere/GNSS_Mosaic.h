@@ -556,6 +556,10 @@ class GNSS_MOSAIC : GNSS
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
 
+    // See notes at GNSS_MOSAIC::setCorrRadioExtPort
+    uint32_t previousNrBytesReceived = 0;
+    bool firstTimeNrBytesReceived = true;
+    
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:

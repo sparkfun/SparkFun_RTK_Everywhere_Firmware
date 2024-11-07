@@ -2144,6 +2144,10 @@ bool GNSS_MOSAIC::setConstellations()
 
 // Enable / disable corrections protocol(s) on the Radio External port
 // Always update if force is true. Otherwise, only update if enable has changed state
+// Notes:
+//   NrBytesReceived is reset when sdio,COM2 is sent. This causes  NrBytesReceived to
+//   be less than previousNrBytesReceived, which in turn causes a corrections timeout.
+//   So, we need to reset previousNrBytesReceived and firstTimeNrBytesReceived here.
 bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
 {
     if (force || (enable != _corrRadioExtPortEnabled))
@@ -2152,7 +2156,6 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
         if (enable)
             setting += String("RTCMv3,");
         else
-            // TODO: test this! Does InputLink NrBytesReceived increase if Input is none?
             setting += String("none,");
         // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
         setting += String("RTCMv3+NMEA\n\r");
@@ -2168,6 +2171,8 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
             }
 
             _corrRadioExtPortEnabled = enable;
+            previousNrBytesReceived = 0;
+            firstTimeNrBytesReceived = true;
             return true;
         }
         else
@@ -2319,9 +2324,6 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
 {
-    static uint32_t previousNrBytesReceived;
-    static bool firstTime = true;
-    
     uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
     uint16_t SBLength = (uint16_t)sempSbfGetU1(parse, 15);
     for (uint16_t i = 0; i < N; i++)
@@ -2334,10 +2336,10 @@ void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
             if (settings.debugCorrections && !inMainMenu)
                 systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
 
-            if (firstTime) // Avoid a false positive from historic NrBytesReceived
+            if (firstTimeNrBytesReceived) // Avoid a false positive from historic NrBytesReceived
             {
                 previousNrBytesReceived = NrBytesReceived;
-                firstTime = false;
+                firstTimeNrBytesReceived = false;
             }
 
             if (NrBytesReceived > previousNrBytesReceived)
