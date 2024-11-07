@@ -684,6 +684,7 @@ void beginBoard()
         gnss = (GNSS *)new GNSS_LG290P();
 #else  // COMPILE_LGP290P
         gnss = (GNSS *)new GNSS_None();
+        systemPrintln("<<<<<<<<<< !!!!!!!!!! LG290P NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
 #endif // COMPILE_LGP290P
 
         present.brand = BRAND_SPARKPNT;
