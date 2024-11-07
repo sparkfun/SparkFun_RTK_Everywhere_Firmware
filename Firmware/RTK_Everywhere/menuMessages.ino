@@ -700,6 +700,9 @@ void checkGNSSArrayDefaults()
 #ifdef COMPILE_LG290P
     else if (present.gnss_lg290p)
     {
+        if (settings.enableExtCorrRadio == 254)
+            settings.enableExtCorrRadio = false;
+
         if (settings.lg290pConstellations[0] == 254)
         {
             defaultsApplied = true;
