@@ -526,8 +526,10 @@ bool GNSS_ZED::configureGNSS()
     // Redundant - also done by gnssConfigure
     // checkGNSSArrayDefaults();
 
-    _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
-    _zed->setAutoHPPOSLLHcallbackPtr(
+    // Always configure the callbacks - even if settings.updateGNSSSettings is false
+
+    response &= _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
+    response &= _zed->setAutoHPPOSLLHcallbackPtr(
         &storeHPdata); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
     _zed->setRTCM1005InputcallbackPtr(
         &storeRTCM1005data); // Configure a callback for RTCM 1005 - parsed from pushRawData
@@ -535,8 +537,31 @@ bool GNSS_ZED::configureGNSS()
         &storeRTCM1006data); // Configure a callback for RTCM 1006 - parsed from pushRawData
 
     if (present.timePulseInterrupt)
-        _zed->setAutoTIMTPcallbackPtr(
+        response &= _zed->setAutoTIMTPcallbackPtr(
             &storeTIMTPdata); // Enable automatic TIM TP messages with callback to storeTIMTPdata
+
+    if (present.antennaShortOpen)
+    {
+        response &= _zed->newCfgValset();
+
+        response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
+        response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
+
+        response &= _zed->sendCfgValset();
+        response &= _zed->setAutoMONHWcallbackPtr(&storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
+    }
+
+    // Add a callback for UBX-MON-COMMS
+    response &= _zed->setAutoMONCOMMScallbackPtr(&storeMONCOMMSdata);
+
+    // Enable RTCM3 if needed - if not enable NMEA IN to keep skipped updated
+    response &= setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+
+    if (!response)
+    {
+        systemPrintln("GNSS initial configuration (callbacks, short detection, radio port) failed");
+    }
+    response = true; // Reset
 
     // Configuring the ZED can take more than 2000ms. We save configuration to
     // ZED so there is no need to update settings unless user has modified
@@ -606,11 +631,8 @@ bool GNSS_ZED::configureGNSS()
     response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_NMEA, 0);
     if (commandSupported(UBLOX_CFG_UART2OUTPROT_RTCM3X))
         response &= _zed->addCfgValset(UBLOX_CFG_UART2OUTPROT_RTCM3X, 1);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, settings.enableUART2UBXIn);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, 0);
-    response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, 1);
-    if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, 0);
+
+    // UART2INPROT is set by setCorrRadioExtPort
 
     // We don't want NMEA over I2C, but we will want to deliver RTCM, and UBX+RTCM is not an option
     response &= _zed->addCfgValset(UBLOX_CFG_I2COUTPROT_UBX, 1);
@@ -713,24 +735,6 @@ bool GNSS_ZED::configureGNSS()
 
     if (response == false)
         systemPrintln("Module failed config block 3");
-
-    if (present.antennaShortOpen)
-    {
-        _zed->newCfgValset();
-
-        _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_SHORTDET, 1); // Enable antenna short detection
-        _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
-
-        if (_zed->sendCfgValset())
-        {
-            _zed->setAutoMONHWcallbackPtr(
-                &storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
-        }
-        else
-        {
-            systemPrintln("Failed to configure GNSS antenna detection");
-        }
-    }
 
     if (response)
         systemPrintln("ZED-F9x configuration update");
@@ -1366,6 +1370,23 @@ bool GNSS_ZED::isConfirmedTime()
     return (_confirmedTime);
 }
 
+// Returns true if data is arriving on the Radio Ext port
+bool GNSS_ZED::isCorrRadioExtPortActive()
+{
+    if (!settings.enableExtCorrRadio)
+        return false;
+
+    if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
+    {
+        // Return true if _radioExtBytesReceived_millis increased
+        // in the last settings.correctionsSourcesLifetime_s
+        if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
+            return true;
+    }
+
+    return false;
+}
+
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1999,6 +2020,56 @@ bool GNSS_ZED::setConstellations()
     return (response);
 }
 
+// Enable / disable corrections protocol(s) on the Radio External port
+// Always update if force is true. Otherwise, only update if enable has changed state
+bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
+{
+    // The user can feed in SPARTN (IP) or PMP (L-Band) corrections on UART2
+    // The ZED needs to know which... We could work it out from the MON-COMMS
+    // msgs count for each protIds. But only when the protocol is enabled.
+    // Much easier to ask the user to define what the source is
+    if (enable)
+        updateCorrectionsSource(settings.extCorrRadioSPARTNSource);
+
+    if (force || (enable != _corrRadioExtPortEnabled))
+    {
+        bool response = _zed->newCfgValset();
+
+        // Leave NMEA IN (poll requests) enabled so MON-COMMS skipped keeps updating
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, enable ? 0 : 1 );
+
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, enable ? 1 : 0 );
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, enable ? 1 : 0 );
+        if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
+            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0 );
+
+        response &= _zed->sendCfgValset(); // Closing
+
+        if (response)
+        {
+            if ((settings.debugCorrections == true) && !inMainMenu)
+            {
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                                enable ? "enabled" : "disabled",
+                                force ? " (Forced)" : "");
+            }
+
+            _corrRadioExtPortEnabled = enable;
+            return true;
+        }
+        else
+        {
+            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
+                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                            enable ? "enabled" : "disabled",
+                            force ? " (Forced)" : "");
+        }
+    }
+
+    return false;
+}
+
 //----------------------------------------
 bool GNSS_ZED::setDataBaudRate(uint32_t baud)
 {
@@ -2393,6 +2464,52 @@ void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 }
 
 //----------------------------------------
+// Callback to parse UBX-MON-COMMS data - for UART2 Radio Ext monitoring
+// Inputs:
+//   ubxDataStruct: Address of an UBX_MON_COMMS_data_t structure
+//                  containing the communications port data
+//----------------------------------------
+void storeMONCOMMSdata(UBX_MON_COMMS_data_t *ubxDataStruct)
+{
+    GNSS_ZED * zed = (GNSS_ZED *)gnss;
+
+    zed->storeMONCOMMSdataRadio(ubxDataStruct);
+}
+
+//----------------------------------------
+// Callback to parse the UBX-MON-COMMS data
+//----------------------------------------
+void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
+{
+    static uint32_t previousRxBytes;
+    static bool firstTime = true;
+    
+    for (uint8_t port = 0; port < ubxDataStruct->header.nPorts; port++) // For each port
+    {
+        if (ubxDataStruct->port[port].portId == COM_PORT_ID_UART2) // If this is the port we are looking for
+        {
+            uint32_t rxBytes = ubxDataStruct->port[port].rxBytes;
+
+            //if (settings.debugCorrections && !inMainMenu)
+            //    systemPrintf("Radio Ext (UART2) rxBytes is %d\r\n", rxBytes);
+
+            if (firstTime) // Avoid a false positive from historic rxBytes
+            {
+                previousRxBytes = rxBytes;
+                firstTime = false;
+            }
+
+            if (rxBytes > previousRxBytes)
+            {
+                previousRxBytes = rxBytes;
+                _radioExtBytesReceived_millis = millis();
+            }
+            break;
+        }
+    }  
+}
+
+//----------------------------------------
 // Callback to save ARPECEF*
 //----------------------------------------
 void storeRTCM1005data(RTCM_1005_data_t *rtcmData1005)
@@ -2597,6 +2714,8 @@ void GNSS_ZED::updateCorrectionsSource(uint8_t source)
     }
     else
         systemPrintf("updateZEDCorrectionsSource(%d) failed!\r\n", source);
+
+    //_zed->softwareResetGNSSOnly(); // Restart the GNSS? Not sure if this helps...
 }
 
 #endif // COMPILE_ZED

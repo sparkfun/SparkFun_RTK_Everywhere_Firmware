@@ -284,8 +284,9 @@ void displayUpdate()
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
-                                          0b01010101); // Dual crosshair, blink
+                //displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
+                //                          0b01010101); // Dual crosshair, blink
+                displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -293,8 +294,9 @@ void displayUpdate()
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
-                displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
-                                          0b11111111); // Dual crosshair, no blink
+                //displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
+                //                          0b11111111); // Dual crosshair, no blink
+                displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, true); // Dual crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList);
@@ -1543,6 +1545,40 @@ void displayHorizontalAccuracy(std::vector<iconPropertyBlinking> *iconList, cons
     prop.icon = icon->iconDisplay[present.display_type];
     prop.duty = duty;
     iconList->push_back(prop);
+
+    displayCoords textCoords;
+    textCoords.x = prop.icon.xPos + 16;
+    textCoords.y = prop.icon.yPos + 2;
+
+    paintHorizontalAccuracy(textCoords);
+}
+
+void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconProperties *icon, bool fixed)
+{
+    CORRECTION_ID_T correctionSource = correctionGetSource();
+
+    iconPropertyBlinking prop;
+
+    if ((present.display_type == DISPLAY_128x64) || (correctionSource == CORR_NUM))
+    {
+        prop.icon = icon->iconDisplay[present.display_type];
+        prop.duty = fixed ? 0b11111111 : 0b01010101;
+        iconList->push_back(prop);
+    }
+    else
+    {
+        prop.icon = icon->iconDisplay[present.display_type];
+        prop.duty = fixed ? 0b00111111 : 0b00010101;
+        iconList->push_back(prop);
+
+        prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+        prop.icon.width = correctionIconAttributes[correctionSource].width;
+        prop.icon.height = correctionIconAttributes[correctionSource].height;
+        prop.icon.xPos += correctionIconAttributes[correctionSource].xOffset;
+        prop.icon.yPos += correctionIconAttributes[correctionSource].yOffset;
+        prop.duty = fixed ? 0b11000000 : 0b01000000;
+        iconList->push_back(prop);
+    }
 
     displayCoords textCoords;
     textCoords.x = prop.icon.xPos + 16;

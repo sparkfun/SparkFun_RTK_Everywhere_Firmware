@@ -555,6 +555,9 @@ void checkGNSSArrayDefaults()
         if (settings.dynamicModel == 254)
             settings.dynamicModel = DYN_MODEL_PORTABLE;
 
+        if (settings.enableExtCorrRadio == 254)
+            settings.enableExtCorrRadio = true;
+
         if (settings.ubxMessageRates[0] == 254)
         {
             defaultsApplied = true;
@@ -592,6 +595,9 @@ void checkGNSSArrayDefaults()
         if (settings.dynamicModel == 254)
             settings.dynamicModel = UM980_DYN_MODEL_SURVEY;
             
+        if (settings.enableExtCorrRadio == 254)
+            settings.enableExtCorrRadio = false;
+
         if (settings.um980Constellations[0] == 254)
         {
             defaultsApplied = true;
@@ -636,6 +642,9 @@ void checkGNSSArrayDefaults()
         if (settings.dynamicModel == 254)
             settings.dynamicModel = MOSAIC_DYN_MODEL_QUASISTATIC;
             
+        if (settings.enableExtCorrRadio == 254)
+            settings.enableExtCorrRadio = true;
+
         if (settings.mosaicConstellations[0] == 254)
         {
             defaultsApplied = true;

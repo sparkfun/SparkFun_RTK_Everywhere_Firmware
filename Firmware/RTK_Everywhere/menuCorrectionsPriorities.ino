@@ -281,9 +281,6 @@ void menuCorrectionsPriorities()
         systemPrint("1) Correction source lifetime in seconds: ");
         systemPrintln(settings.correctionsSourcesLifetime_s);
 
-        systemPrintf("2) Toggle use of external corrections radio: %s\r\n",
-                     settings.enableExtCorrRadio ? "Enabled" : "Disabled");
-
         systemPrintln();
         systemPrintln("These are the correction sources in order of decreasing priority");
         systemPrintln("Enter the uppercase letter to increase the correction priority");
@@ -300,14 +297,6 @@ void menuCorrectionsPriorities()
         if (incoming == 1)
             getNewSetting("Enter new correction source lifetime in seconds (5-120): ", 5, 120,
                           &settings.correctionsSourcesLifetime_s);
-
-        // Toggle the enable for the external corrections radio
-        else if (incoming == 2)
-        {
-            settings.enableExtCorrRadio ^= 1;
-            if (settings.enableExtCorrRadio)
-                correctionLastSeen(CORR_RADIO_EXT);
-        }
 
         // Check for priority decrease
         else if ((incoming >= 'a') && (incoming < ('a' + correctionsSource::CORR_NUM)))
@@ -467,21 +456,8 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
         return false;
     }
 
-    // Determine if the external radio is active
     currentMsec = millis();
     timeoutMsec = settings.correctionsSourcesLifetime_s * 1000;
-    if (id == CORR_RADIO_EXT)
-    {
-        if  (settings.enableExtCorrRadio)
-        {
-            // Fake a last correction time
-            correctionLastSeenMsec[CORR_RADIO_EXT] = currentMsec - 500;
-            return true;
-        }
-
-        // Timeout the corrections
-        correctionLastSeenMsec[CORR_RADIO_EXT] = currentMsec - timeoutMsec;
-    }
 
     // Determine if corrections were received recently
     bitMask = 1 << id;
@@ -612,6 +588,28 @@ bool correctionPriorityValidation()
 //----------------------------------------
 void correctionUpdateSource()
 {
+    // Periodically check if data is arriving on the Radio Ext port
+    // If needed, fake the arrival of data on the Radio Ext port
+    // The code is the same:
+    //   On ZED / mosaic, we can detect if the port is active.
+    //   On LG290P, we fake the arrival of data if needed.
+    static uint32_t lastRadioExtCheck = millis();
+    uint32_t radioCheckIntervalMsec = settings.correctionsSourcesLifetime_s * 500; // Check twice per lifetime
+    bool setCorrRadioPort = false;
+
+    if (millis() > (lastRadioExtCheck + radioCheckIntervalMsec))
+    {
+        // LG290P will return settings.enableExtCorrRadio.
+        // ZED / mosaic will return true if settings.enableExtCorrRadio is 
+        // true and the port is actually active.
+        if (gnss->isCorrRadioExtPortActive())
+            correctionLastSeen(CORR_RADIO_EXT);
+
+        lastRadioExtCheck = millis();
+        setCorrRadioPort = true; // Update the port protocols after updating the sources
+    }
+
+    // Now update the sources
     CORRECTION_ID_T id;
 
     for (id = 0; id < CORR_NUM; id++)
@@ -624,6 +622,14 @@ void correctionUpdateSource()
         systemPrintf("Correction Source: %s\r\n", correctionGetSourceName());
 
         // systemPrintf("%s\r\n", PERIODIC_SETTING(PD_RING_BUFFER_MILLIS) ? "Active" : "Inactive");
+    }
+
+    // Now that the sources have been updated
+    // If radioCheckIntervalMsec expired
+    if (setCorrRadioPort)
+    {
+        // Update the input protocols, based on CORR_RADIO_EXT being the active correction source
+        gnss->setCorrRadioExtPort(correctionGetSource() == CORR_RADIO_EXT, false); // Don't force
     }
 }
 

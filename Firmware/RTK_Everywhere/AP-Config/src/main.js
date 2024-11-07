@@ -119,7 +119,8 @@ function parseIncoming(msg) {
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
                 show("useLocalizedDistributionCheckbox");
-                show("useEnableUART2UBXIn");
+                show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
@@ -137,7 +138,8 @@ function parseIncoming(msg) {
                 hide("mosaicNMEAStreamDropdowns");
                 show("surveyInSettings");
                 show("useLocalizedDistributionCheckbox");
-                show("useEnableUART2UBXIn");
+                show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
             }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
@@ -155,7 +157,8 @@ function parseIncoming(msg) {
                 show("mosaicNMEAStreamDropdowns");
                 hide("surveyInSettings");
                 hide("useLocalizedDistributionCheckbox");
-                hide("useEnableUART2UBXIn");
+                show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
@@ -177,6 +180,7 @@ function parseIncoming(msg) {
 
                 ge("messageRateInfoText").setAttribute('data-bs-original-title','The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
+                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title','Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");

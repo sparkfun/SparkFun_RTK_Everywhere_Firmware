@@ -287,6 +287,9 @@ class GNSS_LG290P : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
+    // Returns true if data is arriving on the Radio Ext port
+    bool isCorrRadioExtPortActive();
+
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
@@ -369,6 +372,10 @@ class GNSS_LG290P : GNSS
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
+
+    // Enable / disable corrections protocol(s) on the Radio External port
+    // Always update if force is true. Otherwise, only update if enable has changed state
+    bool setCorrRadioExtPort(bool enable, bool force);
 
     bool setDataBaudRate(uint32_t baud);
 

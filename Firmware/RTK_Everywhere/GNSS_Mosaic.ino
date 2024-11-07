@@ -249,6 +249,9 @@ void GNSS_MOSAIC::begin()
     gnss->setRadioBaudRate(settings.radioPortBaud);
     gnss->setDataBaudRate(settings.dataPortBaud);
 
+    // Set COM2 (Radio) protocol(s)
+    gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+
     updateSD(); // Check card size and free space
 
     _receiverSetupSeen = false;
@@ -508,8 +511,7 @@ bool GNSS_MOSAIC::configureOnce()
     setting += String("\n\r");
     response &= sendWithResponse(setting, "DataInOut");
 
-    // Configure COM2 for NMEA and RTCMv3. No L-Band. Not encapsulated.
-    response &= sendWithResponse("sdio,COM2,auto,RTCMv3+NMEA\n\r", "DataInOut");
+    // COM2 is configured by setCorrRadioExtPort
 
     // Configure USB1 for NMEA and RTCMv3. No L-Band. Not encapsulated.
     response &= sendWithResponse("sdio,USB1,auto,RTCMv3+NMEA\n\r", "DataInOut");
@@ -518,6 +520,10 @@ bool GNSS_MOSAIC::configureOnce()
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
     setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    response &= sendWithResponse(setting, "SBFOutput");
+
+    // Output SBF InputLink on its own stream - at 1Hz - on COM1 only
+    setting = String("sso,Stream" + String(MOSAIC_SBF_INPUTLINK_STREAM) + ",COM1,InputLink,sec1\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     response &= setElevation(settings.minElev);
@@ -1413,6 +1419,23 @@ bool GNSS_MOSAIC::isConfirmedTime()
     return _validTime;
 }
 
+// Returns true if data is arriving on the Radio Ext port
+bool GNSS_MOSAIC::isCorrRadioExtPortActive()
+{
+    if (!settings.enableExtCorrRadio)
+        return false;
+
+    if (_radioExtBytesReceived_millis > 0) // Avoid a false positive
+    {
+        // Return true if _radioExtBytesReceived_millis increased
+        // in the last settings.correctionsSourcesLifetime_s
+        if ((millis() - _radioExtBytesReceived_millis) < (settings.correctionsSourcesLifetime_s * 1000))
+            return true;
+    }
+
+    return false;
+}
+
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1879,12 +1902,13 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
                                     unsigned long timeout,
                                     unsigned long idle,
                                     char *response,
-                                    size_t responseSize)
+                                    size_t responseSize,
+                                    bool debug)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
 
-    if ((settings.debugGnss == true) && (!inMainMenu))
+    if (debug && (settings.debugGnss == true) && (!inMainMenu))
         systemPrintf("sendAndWaitForIdle: sending %s\r\n", message);
 
     if (strlen(message) > 0)
@@ -1898,7 +1922,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
         if (serial2GNSS->available()) // If a char is available
         {
             uint8_t c = serial2GNSS->read(); // Read it
-            if ((settings.debugGnss == true) && (!inMainMenu))
+            if (debug && (settings.debugGnss == true) && (!inMainMenu))
                 systemPrintf("%c", (char)c);
             if (c == *(reply + replySeen)) // Is it a char from reply?
             {
@@ -1922,7 +1946,7 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
             if (serial2GNSS->available())
             {
                 uint8_t c = serial2GNSS->read();
-                if ((settings.debugGnss == true) && (!inMainMenu))
+                if (debug && (settings.debugGnss == true) && (!inMainMenu))
                     systemPrintf("%c", (char)c);
                 if (response && (replySeen < (responseSize - 1)))
                 {
@@ -1960,9 +1984,10 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(String message,
                                     unsigned long timeout,
                                     unsigned long idle,
                                     char *response,
-                                    size_t responseSize)
+                                    size_t responseSize,
+                                    bool debug)
 {
-    return sendAndWaitForIdle(message.c_str(), reply, timeout, idle, response, responseSize);
+    return sendAndWaitForIdle(message.c_str(), reply, timeout, idle, response, responseSize, debug);
 }
 
 //----------------------------------------
@@ -2139,6 +2164,51 @@ bool GNSS_MOSAIC::setConstellations()
     return (sendWithResponse(setting, "SatelliteTracking", 1000, 200));
 }
 
+// Enable / disable corrections protocol(s) on the Radio External port
+// Always update if force is true. Otherwise, only update if enable has changed state
+// Notes:
+//   NrBytesReceived is reset when sdio,COM2 is sent. This causes  NrBytesReceived to
+//   be less than previousNrBytesReceived, which in turn causes a corrections timeout.
+//   So, we need to reset previousNrBytesReceived and firstTimeNrBytesReceived here.
+bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
+{
+    if (force || (enable != _corrRadioExtPortEnabled))
+    {
+        String setting = String("sdio,COM2,");
+        if (enable)
+            setting += String("RTCMv3,");
+        else
+            setting += String("none,");
+        // Configure COM2 for NMEA and RTCMv3 output. No L-Band. Not encapsulated.
+        setting += String("RTCMv3+NMEA\n\r");
+
+        if (sendWithResponse(setting, "DataInOut"))
+        {
+            if ((settings.debugCorrections == true) && !inMainMenu)
+            {
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                                enable ? "enabled" : "disabled",
+                                force ? " (Forced)" : "");
+            }
+
+            _corrRadioExtPortEnabled = enable;
+            previousNrBytesReceived = 0;
+            firstTimeNrBytesReceived = true;
+            return true;
+        }
+        else
+        {
+            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
+                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                            enable ? "enabled" : "disabled",
+                            force ? " (Forced)" : "");
+        }
+    }
+
+    return false;
+}
+
 //----------------------------------------
 bool GNSS_MOSAIC::setDataBaudRate(uint32_t baud)
 {
@@ -2272,6 +2342,39 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
 }
 
 //----------------------------------------
+// Save the data from the SBF Block 4090
+//----------------------------------------
+void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
+{
+    uint16_t N = (uint16_t)sempSbfGetU1(parse, 14);
+    uint16_t SBLength = (uint16_t)sempSbfGetU1(parse, 15);
+    for (uint16_t i = 0; i < N; i++)
+    {
+        uint8_t CD = sempSbfGetU1(parse, 16 + (i * SBLength) + 0);
+        if (CD == 2) // COM2
+        {
+            uint32_t NrBytesReceived = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
+
+            //if (settings.debugCorrections && !inMainMenu)
+            //    systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
+
+            if (firstTimeNrBytesReceived) // Avoid a false positive from historic NrBytesReceived
+            {
+                previousNrBytesReceived = NrBytesReceived;
+                firstTimeNrBytesReceived = false;
+            }
+
+            if (NrBytesReceived > previousNrBytesReceived)
+            {
+                previousNrBytesReceived = NrBytesReceived;
+                _radioExtBytesReceived_millis = millis();
+            }
+            break;
+        }
+    }
+}
+
+//----------------------------------------
 // Save the data from the SBF Block 5914
 //----------------------------------------
 void GNSS_MOSAIC::storeBlock5914(SEMP_PARSE_STATE *parse)
@@ -2363,7 +2466,7 @@ bool GNSS_MOSAIC::updateSD()
     // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     char diskInfo[200];
-    bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo));
+    bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
     if (response)
     {
         char *ptr = strstr(diskInfo, " total=\"");
@@ -2523,6 +2626,10 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
         mosaic->storeBlock4007(parse);
+
+    // If this is InputLink, extract some data
+    if (sempSbfGetBlockNumber(parse) == 4090)
+        mosaic->storeBlock4090(parse);
 
     // If this is ReceiverTime, extract some data
     if (sempSbfGetBlockNumber(parse) == 5914)

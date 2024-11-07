@@ -18,6 +18,7 @@ typedef struct {
 
 const mosaicExpectedID mosaicExpectedIDs[] = {
     { 4007, true, 96, "PVTGeodetic" },
+    { 4090, false, 0, "InputLink" },
     { 4097, false, 0, "EncapsulatedOutput" },
     { 5914, true, 24, "ReceiverTime" },
 };
@@ -40,6 +41,10 @@ const mosaicExpectedID mosaicExpectedIDs[] = {
 // EventA is available on the Data port - via the multiplexer
 // EventB is connected to ESP32 Pin 18 (on v1.1 PCB only)
 #define MOSAIC_SBF_EXTEVENT_STREAM (MOSAIC_SBF_PVT_STREAM + 1)
+
+// Output SBF InputLink messages on this stream - on COM1 only
+// This indicates if RTCM corrections are being received - on COM2
+#define MOSAIC_SBF_INPUTLINK_STREAM (MOSAIC_SBF_EXTEVENT_STREAM + 1)
 
 // TODO: allow the user to define their own SBF stream for logging to DSK1 - through the menu / web config
 // But, in the interim, the user can define their own SBF stream (>= Stream3) via the X5 web page over USB-C
@@ -543,6 +548,18 @@ class GNSS_MOSAIC : GNSS
     double _clkBias_ms; // PVTGeodetic RxClkBias (will be sawtooth unless clock steering is enabled)
     bool   _determiningFixedPosition; // PVTGeodetic Mode Bit 6
 
+    // Record NrBytesReceived so we can tell if Radio Ext (COM2) is receiving correction data.
+    // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
+    // is tied to the navigation rate. To keep it simple, record the last time NrBytesReceived
+    // was seen to increase and use that for corrections timeout. This is updated by the SBF 
+    // InputLink message. isCorrRadioExtPortActive returns true if the bytes-received has
+    // increased in the previous settings.correctionsSourcesLifetime_s
+    uint32_t _radioExtBytesReceived_millis;
+
+    // See notes at GNSS_MOSAIC::setCorrRadioExtPort
+    uint32_t previousNrBytesReceived = 0;
+    bool firstTimeNrBytesReceived = true;
+    
     // Setup the general configuration of the GNSS
     // Not Rover or Base specific (ie, baud rates)
     // Outputs:
@@ -562,6 +579,7 @@ class GNSS_MOSAIC : GNSS
     // Constructor
     GNSS_MOSAIC() : _determiningFixedPosition(true), _clkBias_ms(0),
         _latStdDev(999.9), _lonStdDev(999.9), _receiverSetupSeen(false),
+        _radioExtBytesReceived_millis(0),
          GNSS()
     {
     }
@@ -765,6 +783,9 @@ class GNSS_MOSAIC : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
+    // Returns true if data is arriving on the Radio Ext port
+    bool isCorrRadioExtPortActive();
+
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
@@ -863,7 +884,8 @@ class GNSS_MOSAIC : GNSS
                             unsigned long timeout = 1000,
                             unsigned long idle = 25,
                             char *response = nullptr,
-                            size_t responseSize = 0);
+                            size_t responseSize = 0,
+                            bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply is received, keep reading bytes until the serial port has
@@ -883,7 +905,8 @@ class GNSS_MOSAIC : GNSS
                             unsigned long timeout = 1000,
                             unsigned long idle = 25,
                             char *response = nullptr,
-                            size_t responseSize = 0);
+                            size_t responseSize = 0,
+                            bool debug = true);
 
     // Send message. Wait for up to timeout millis for reply to arrive
     // If the reply has started to be received when timeout is reached, wait for a further wait millis
@@ -945,6 +968,10 @@ class GNSS_MOSAIC : GNSS
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
+    // Enable / disable corrections protocol(s) on the Radio External port
+    // Always update if force is true. Otherwise, only update if enable has changed state
+    bool setCorrRadioExtPort(bool enable, bool force);
+
     bool setDataBaudRate(uint32_t baud);
 
     // Set the elevation in degrees
@@ -982,6 +1009,9 @@ class GNSS_MOSAIC : GNSS
 
     // Save the data from the SBF Block 4007
     void storeBlock4007(SEMP_PARSE_STATE *parse);
+
+    // Save the data from the SBF Block 4090
+    void storeBlock4090(SEMP_PARSE_STATE *parse);
 
     // Save the data from the SBF Block 5914
     void storeBlock5914(SEMP_PARSE_STATE *parse);

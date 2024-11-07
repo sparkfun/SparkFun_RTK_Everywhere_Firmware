@@ -190,6 +190,9 @@ class GNSS_None : public GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime() {return false;}
 
+    // Returns true if data is arriving on the Radio Ext port
+    bool isCorrRadioExtPortActive() {return false;}
+
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed() {return false;}
 
@@ -272,6 +275,9 @@ class GNSS_None : public GNSS
 
     // Enable all the valid constellations and bands for this platform
     bool setConstellations() {return true;}
+
+    // Enable / disable corrections protocol(s) on the Radio External port
+    bool setCorrRadioExtPort(bool enable, bool force) { return true; }
 
     bool setDataBaudRate(uint32_t baud) {return true;}
 

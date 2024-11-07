@@ -978,7 +978,8 @@ struct Settings
     int correctionsSourcesLifetime_s = 30; // Expire a corrections source if no data is seen for this many seconds
     CORRECTION_ID_T correctionsSourcesPriority[correctionsSource::CORR_NUM] = { (CORRECTION_ID_T)-1 }; // -1 indicates array is uninitialized, indexed by correction source ID
     bool debugCorrections = false;
-    bool enableExtCorrRadio = false;
+    uint8_t enableExtCorrRadio = 254; // Will be initialized to true or false depending on model
+    uint8_t extCorrRadioSPARTNSource = 0; // This selects IP (0) vs. L-Band (1) for _SPARTN_ corrections on Radio Ext (UART2)
 
     // Display
     bool enableResetDisplay = false;
@@ -1241,8 +1242,6 @@ struct Settings
     int8_t timeZoneSeconds = 0;
 
     // UBX (SX1276)
-    bool enableUART2UBXIn = false;                                 // UBX Protocol In on UART2
-
 #ifdef COMPILE_ZED
     ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
@@ -1518,7 +1517,8 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.correctionsSourcesLifetime_s, "correctionsSourcesLifetime",  },
     { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, tCorrSPri, correctionsSource::CORR_NUM, & settings.correctionsSourcesPriority, "correctionsPriority_",  },
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugCorrections, "debugCorrections",  },
-    { 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableExtCorrRadio, "ExtCorrRadio",  },
+    { 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enableExtCorrRadio, "enableExtCorrRadio",  },
+    { 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, _uint8_t,  0, & settings.extCorrRadioSPARTNSource, "extCorrRadioSPARTNSource",  },
 
 //                            F
 //                            a
@@ -1860,7 +1860,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // ublox GNSS Receiver
-    { 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, _bool,     0, & settings.enableUART2UBXIn, "enableUART2UBXIn",  },
 #ifdef COMPILE_ZED
     { 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, tUbxConst, MAX_UBX_CONSTELLATIONS, & settings.ubxConstellations[0], "constellation_",  },
     { 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, tUbxMsgRt, MAX_UBX_MSG, & settings.ubxMessageRates[0], "ubxMessageRate_",  },

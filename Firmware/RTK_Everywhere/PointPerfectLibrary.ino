@@ -38,12 +38,15 @@ void updatePplTask(void *e)
                 {
                     if (correctionLastSeen(pplCorrectionsSource))
                     {
-                        // Set ZED SOURCE to 1 (L-Band) if needed
-                        // Note: this is almost certainly redundant. It would only be used if we
-                        // believe the PPL can do a better job generating corrections than the
-                        // ZED can internally using SPARTN direct.
-                        GNSS_ZED * zed = (GNSS_ZED *)gnss;
-                        zed->updateCorrectionsSource(1);
+                        if (present.gnss_zedf9p)
+                        {
+                            // Set ZED SOURCE to 1 (L-Band) if needed
+                            // Note: this is almost certainly redundant. It would only be used if we
+                            // believe the PPL can do a better job generating corrections than the
+                            // ZED can internally using SPARTN direct.
+                            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                            zed->updateCorrectionsSource(1);
+                        }
 
                         gnss->pushRawData(pplRtcmBuffer, rtcmLength);
 

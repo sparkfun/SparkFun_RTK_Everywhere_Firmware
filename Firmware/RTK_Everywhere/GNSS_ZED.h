@@ -26,6 +26,14 @@ class GNSS_ZED : GNSS
 
     SFE_UBLOX_GNSS_SUPER * _zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
+    // Record rxBytes so we can tell if Radio Ext (COM2) is receiving correction data.
+    // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
+    // is tied to the navigation rate. To keep it simple, record the last time rxBytes
+    // was seen to increase and use that for corrections timeout. This is updated by the
+    // UBX-MON-COMMS callback. isCorrRadioExtPortActive returns true if the bytes-received has
+    // increased in the previous settings.correctionsSourcesLifetime_s
+    uint32_t _radioExtBytesReceived_millis;
+    
     // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType);
@@ -33,7 +41,8 @@ class GNSS_ZED : GNSS
   public:
 
     // Constructor
-    GNSS_ZED() :  GNSS()
+    GNSS_ZED() : _radioExtBytesReceived_millis(0),
+        GNSS()
     {
     }
 
@@ -215,6 +224,9 @@ class GNSS_ZED : GNSS
     // Date is confirmed once we have GNSS fix
     bool isConfirmedTime();
 
+    // Returns true if data is arriving on the Radio Ext port
+    bool isCorrRadioExtPortActive();
+
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
 
@@ -310,6 +322,10 @@ class GNSS_ZED : GNSS
     // Enable all the valid constellations and bands for this platform
     bool setConstellations();
 
+    // Enable / disable corrections protocol(s) on the Radio External port
+    // Always update if force is true. Otherwise, only update if enable has changed state
+    bool setCorrRadioExtPort(bool enable, bool force);
+
     bool setDataBaudRate(uint32_t baud);
 
     // Set the elevation in degrees
@@ -362,6 +378,9 @@ class GNSS_ZED : GNSS
 
     // Callback to save the PVT data
     void storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct);
+
+    // Callback to store MON-COMMS information
+    void storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct);
 
     // Reset the survey-in operation
     // Outputs:

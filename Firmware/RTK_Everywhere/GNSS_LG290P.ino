@@ -1156,6 +1156,12 @@ bool GNSS_LG290P::isConfirmedTime()
     return isValidTime();
 }
 
+// Returns true if data is arriving on the Radio Ext port
+bool GNSS_LG290P::isCorrRadioExtPortActive()
+{
+    return settings.enableExtCorrRadio;
+}
+
 //----------------------------------------
 // Return true if GNSS receiver has a higher quality DGPS fix than 3D
 //----------------------------------------
@@ -1616,6 +1622,38 @@ bool GNSS_LG290P::setConstellations()
                                           settings.lg290pConstellations[5]); // NavIC
 
     return (response);
+}
+
+// Enable / disable corrections protocol(s) on the Radio External port
+// Always update if force is true. Otherwise, only update if enable has changed state
+bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
+{
+    if (force || (enable != _corrRadioExtPortEnabled))
+    {
+        // Set UART3 InputProt: RTCM3 (4) vs NMEA (1)
+        if (_lg290p->setPortInputProtocols(3, enable ? 4 : 1))
+        {
+            if ((settings.debugCorrections == true) && !inMainMenu)
+            {
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
+                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                                enable ? "enabled" : "disabled",
+                                force ? " (Forced)" : "");
+            }
+
+            _corrRadioExtPortEnabled = enable;
+            return true;
+        }
+        else
+        {
+            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
+                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                            enable ? "enabled" : "disabled",
+                            force ? " (Forced)" : "");
+        }
+    }
+
+    return false;
 }
 
 //----------------------------------------
