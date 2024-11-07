@@ -2333,8 +2333,8 @@ void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
         {
             uint32_t NrBytesReceived = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
 
-            if (settings.debugCorrections && !inMainMenu)
-                systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
+            //if (settings.debugCorrections && !inMainMenu)
+            //    systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
 
             if (firstTimeNrBytesReceived) // Avoid a false positive from historic NrBytesReceived
             {
