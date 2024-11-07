@@ -362,7 +362,10 @@ void displayUpdate()
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
-                paintIPAddress(); // Top left
+                if (present.display_type == DISPLAY_64x48)
+                    paintIPAddress(); // Top left
+                else
+                    displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
             }
             break;
 
@@ -381,7 +384,10 @@ void displayUpdate()
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
-                paintIPAddress(); // Top left
+                if (present.display_type == DISPLAY_64x48)
+                    paintIPAddress(); // Top left
+                else
+                    displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
             }
             break;
 
