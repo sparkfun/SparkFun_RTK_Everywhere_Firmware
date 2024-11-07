@@ -120,6 +120,7 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
@@ -138,6 +139,7 @@ function parseIncoming(msg) {
                 show("surveyInSettings");
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
             }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
@@ -156,6 +158,7 @@ function parseIncoming(msg) {
                 hide("surveyInSettings");
                 hide("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Static', '0');
