@@ -351,7 +351,6 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include "GNSS_ZED.h"
-#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
 GNSS *gnss;
 
@@ -371,8 +370,6 @@ unsigned long timTpArrivalMillis;
 bool timTpUpdated;
 uint32_t timTpEpoch;
 uint32_t timTpMicros;
-
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
 
 unsigned long lastARPLog; // Time of the last ARP log event
 bool newARPAvailable;

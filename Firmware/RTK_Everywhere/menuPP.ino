@@ -25,12 +25,6 @@ MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
-// Forward declarations - compiled out
-//----------------------------------------
-
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct);
-
-//----------------------------------------
 // L-Band Routines - compiled out
 //----------------------------------------
 
@@ -718,57 +712,6 @@ long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
     long GpsDays = ((GpsCycle * 1024) + GpsWeek) * 7 + (GpsSeconds / 86400);
     // GpsDays -= 1; //Correction
     return dateToMjd(1980, 1, 6) + GpsDays;
-}
-
-// When new PMP message arrives from NEO-D9S push it back to ZED-F9P
-void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
-{
-    uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
-
-    if (correctionLastSeen(CORR_LBAND))
-    {
-#ifdef COMPILE_ZED
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
-        zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
-#endif // COMPILE_ZED
-
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
-
-        gnss->pushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-        gnss->pushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
-    }
-    else
-    {
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintf("NOT pushing %d bytes of RXM-PMP data to GNSS due to priority\r\n", payloadLen);
-    }
-}
-
-// Check if the PMP data is being decrypted successfully
-// TODO: this needs more work:
-//   If the user is feeding in RTCM3 on UART2, that gets reported
-//   If the user is feeding in unencrypted SPARTN on UART2, that gets reported too
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
-{
-    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
-        systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
-
-    lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
-
-    if (ubxDataStruct->statusInfo.bits.msgEncrypted == 2) // If the message was encrypted
-    {
-        if (ubxDataStruct->statusInfo.bits.msgDecrypted == 2) // Successfully decrypted
-        {
-            lbandCorrectionsReceived = true;
-            lastLBandDecryption = millis();
-        }
-        else
-        {
-            if (settings.debugCorrections == true && !inMainMenu)
-                systemPrintln("PMP decryption failed");
-        }
-    }
 }
 
 //----------------------------------------

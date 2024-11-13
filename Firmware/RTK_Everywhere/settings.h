@@ -481,6 +481,8 @@ typedef enum
     FUNCTION_NTPEVENT,
 } SemaphoreFunction;
 
+#ifdef COMPILE_ZED
+
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
 // Each constellation will have its config key, enable, and a visible name
@@ -496,63 +498,7 @@ typedef struct
 // Tested with u-center v21.02
 #define MAX_UBX_CONSTELLATIONS 6 // Should be (sizeof(settings.ubxConstellations)/sizeof(ubxConstellation)). Tricky...
 
-// Print the base coordinates in different formats, depending on the type the user has entered
-// These are the different supported types
-typedef enum
-{
-    COORDINATE_INPUT_TYPE_DD = 0,                   // Default DD.ddddddddd
-    COORDINATE_INPUT_TYPE_DDMM,                     // DDMM.mmmmm
-    COORDINATE_INPUT_TYPE_DD_MM,                    // DD MM.mmmmm
-    COORDINATE_INPUT_TYPE_DD_MM_DASH,               // DD-MM.mmmmm
-    COORDINATE_INPUT_TYPE_DD_MM_SYMBOL,             // DD°MM.mmmmmmm'
-    COORDINATE_INPUT_TYPE_DDMMSS,                   // DD MM SS.ssssss
-    COORDINATE_INPUT_TYPE_DD_MM_SS,                 // DD MM SS.ssssss
-    COORDINATE_INPUT_TYPE_DD_MM_SS_DASH,            // DD-MM-SS.ssssss
-    COORDINATE_INPUT_TYPE_DD_MM_SS_SYMBOL,          // DD°MM'SS.ssssss"
-    COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL,        // DDMMSS - No decimal
-    COORDINATE_INPUT_TYPE_DD_MM_SS_NO_DECIMAL,      // DD MM SS - No decimal
-    COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL, // DD-MM-SS - No decimal
-    COORDINATE_INPUT_TYPE_INVALID_UNKNOWN,
-} CoordinateInputType;
-
-// Responses for updateSettingWithValue() and getSettingValue() used in the CLI
-typedef enum
-{
-    SETTING_UNKNOWN = 0,
-    SETTING_KNOWN,
-    SETTING_KNOWN_STRING,
-} SettingValueResponse;
-
 #define UBX_ID_NOT_AVAILABLE 0xFF
-
-#define INCHES_IN_A_METER   39.37007874
-#define FEET_IN_A_METER     3.280839895
-
-typedef enum
-{
-    MEASUREMENT_UNITS_METERS = 0,
-    MEASUREMENT_UNITS_FEET_INCHES,
-    // Add new measurement units above this line
-    MEASUREMENT_UNITS_MAX
-} measurementUnits;
-
-typedef struct
-{
-    const measurementUnits measurementUnit;
-    const char *measurementScaleName;
-    const char *measurementScale1NameShort;
-    const char *measurementScale2NameShort;
-    const double multiplierMetersToScale1;
-    const double changeFromScale1To2At;
-    const double multiplierScale1To2;
-    const double reportingLimitScale1;
-} measurementScaleEntry;
-
-const measurementScaleEntry measurementScaleTable[] = {
-    { MEASUREMENT_UNITS_METERS, "meters", "m", "m", 1.0, 1.0, 1.0, 30.0 },
-    { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
-};
-const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
 
 // These are the allowable messages to broadcast and log (if enabled)
 
@@ -879,6 +825,65 @@ const ubxCmd ubxCommands[] = {
 };
 
 #define MAX_UBX_CMD (sizeof(ubxCommands) / sizeof(ubxCmd))
+
+#endif //COMPILE_ZED
+
+// Print the base coordinates in different formats, depending on the type the user has entered
+// These are the different supported types
+typedef enum
+{
+    COORDINATE_INPUT_TYPE_DD = 0,                   // Default DD.ddddddddd
+    COORDINATE_INPUT_TYPE_DDMM,                     // DDMM.mmmmm
+    COORDINATE_INPUT_TYPE_DD_MM,                    // DD MM.mmmmm
+    COORDINATE_INPUT_TYPE_DD_MM_DASH,               // DD-MM.mmmmm
+    COORDINATE_INPUT_TYPE_DD_MM_SYMBOL,             // DD°MM.mmmmmmm'
+    COORDINATE_INPUT_TYPE_DDMMSS,                   // DD MM SS.ssssss
+    COORDINATE_INPUT_TYPE_DD_MM_SS,                 // DD MM SS.ssssss
+    COORDINATE_INPUT_TYPE_DD_MM_SS_DASH,            // DD-MM-SS.ssssss
+    COORDINATE_INPUT_TYPE_DD_MM_SS_SYMBOL,          // DD°MM'SS.ssssss"
+    COORDINATE_INPUT_TYPE_DDMMSS_NO_DECIMAL,        // DDMMSS - No decimal
+    COORDINATE_INPUT_TYPE_DD_MM_SS_NO_DECIMAL,      // DD MM SS - No decimal
+    COORDINATE_INPUT_TYPE_DD_MM_SS_DASH_NO_DECIMAL, // DD-MM-SS - No decimal
+    COORDINATE_INPUT_TYPE_INVALID_UNKNOWN,
+} CoordinateInputType;
+
+// Responses for updateSettingWithValue() and getSettingValue() used in the CLI
+typedef enum
+{
+    SETTING_UNKNOWN = 0,
+    SETTING_KNOWN,
+    SETTING_KNOWN_STRING,
+} SettingValueResponse;
+
+
+#define INCHES_IN_A_METER   39.37007874
+#define FEET_IN_A_METER     3.280839895
+
+typedef enum
+{
+    MEASUREMENT_UNITS_METERS = 0,
+    MEASUREMENT_UNITS_FEET_INCHES,
+    // Add new measurement units above this line
+    MEASUREMENT_UNITS_MAX
+} measurementUnits;
+
+typedef struct
+{
+    const measurementUnits measurementUnit;
+    const char *measurementScaleName;
+    const char *measurementScale1NameShort;
+    const char *measurementScale2NameShort;
+    const double multiplierMetersToScale1;
+    const double changeFromScale1To2At;
+    const double multiplierScale1To2;
+    const double reportingLimitScale1;
+} measurementScaleEntry;
+
+const measurementScaleEntry measurementScaleTable[] = {
+    { MEASUREMENT_UNITS_METERS, "meters", "m", "m", 1.0, 1.0, 1.0, 30.0 },
+    { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
+};
+const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
 
 #ifdef COMPILE_OTA_AUTO
 
@@ -1241,7 +1246,7 @@ struct Settings
     int8_t timeZoneMinutes = 0;
     int8_t timeZoneSeconds = 0;
 
-    // UBX (SX1276)
+    // UBX
 #ifdef COMPILE_ZED
     ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},

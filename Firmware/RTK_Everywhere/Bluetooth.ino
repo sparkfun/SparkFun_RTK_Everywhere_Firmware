@@ -472,6 +472,7 @@ void bluetoothStop()
 }
 
 // Test the bidirectional communication through UART connected to GNSS
+// TODO Make this not ZED centric
 void bluetoothTest(bool runTest)
 {
     // Verify the ESP UART can communicate TX/RX to ZED UART1
@@ -489,6 +490,7 @@ void bluetoothTest(bool runTest)
                               pin_GnssUart_TX); // Start UART on platform depedent pins for SPP. The GNSS will be
                                                 // configured to output NMEA over its UART at the same rate.
 
+#ifdef COMPILE_ZED
             SFE_UBLOX_GNSS_SERIAL myGNSS;
             if (myGNSS.begin(*serialGNSS) == true) // begin() attempts 3 connections
             {
@@ -497,6 +499,7 @@ void bluetoothTest(bool runTest)
             }
             else
                 bluetoothStatusText = "Offline";
+#endif //COMPILE_ZED
 
             gnss->setBaudrate(settings.dataPortBaud);
 

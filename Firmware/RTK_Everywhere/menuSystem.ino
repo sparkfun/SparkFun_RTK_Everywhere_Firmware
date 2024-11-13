@@ -1037,12 +1037,14 @@ void menuOperation()
         }
         else if (incoming == 10 && present.gnss_zedf9p)
         {
+#ifdef COMPILE_ZED
             bool response = gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
             if (response == false)
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
+#endif // COMPILE_ZED
         }
         else if (incoming == 11)
         {

@@ -34,6 +34,10 @@ void menuGNSS()
             {
                 switch (settings.dynamicModel)
                 {
+                default:
+                    systemPrint("Unknown");
+                    break;
+#ifdef COMPILE_ZED
                 case DYN_MODEL_PORTABLE:
                     systemPrint("Portable");
                     break;
@@ -70,9 +74,7 @@ void menuGNSS()
                 case DYN_MODEL_ESCOOTER:
                     systemPrint("E-Scooter");
                     break;
-                default:
-                    systemPrint("Unknown");
-                    break;
+#endif // COMPILE_ZED
                 }
             }
         }
@@ -239,6 +241,7 @@ void menuGNSS()
             {
                 if (present.gnss_zedf9p)
                 {
+#ifdef COMPILE_ZED
                     uint8_t maxModel = DYN_MODEL_WRIST;
 
                     if (dynamicModel < 1 || dynamicModel > maxModel)
@@ -252,6 +255,7 @@ void menuGNSS()
 
                         gnss->setModel(settings.dynamicModel);
                     }
+#endif // COMPILE_ZED
                 }
                 else if (present.gnss_um980)
                 {

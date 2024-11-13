@@ -11,6 +11,8 @@ GNSS_ZED.h
 
 #include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
+uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
+
 class GNSS_ZED : GNSS
 {
   private:

@@ -343,41 +343,6 @@ void settingsToDefaults()
     settings = defaultSettings;
 }
 
-// Given a spot in the ubxMsg array, return true if this message is supported on this platform and firmware version
-bool messageSupported(int messageNumber)
-{
-    bool messageSupported = false;
-
-    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
-        messageSupported = true;
-
-    return (messageSupported);
-}
-// Given a command key, return true if that key is supported on this platform and fimrware version
-bool commandSupported(const uint32_t key)
-{
-    bool commandSupported = false;
-
-    // Locate this key in the known key array
-    int commandNumber = 0;
-    for (; commandNumber < MAX_UBX_CMD; commandNumber++)
-    {
-        if (ubxCommands[commandNumber].cmdKey == key)
-            break;
-    }
-    if (commandNumber == MAX_UBX_CMD)
-    {
-        systemPrintf("commandSupported: Unknown command key 0x%02X\r\n", key);
-        commandSupported = false;
-    }
-    else
-    {
-        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
-            commandSupported = true;
-    }
-    return (commandSupported);
-}
-
 // Periodically print information if enabled
 void printReports()
 {
@@ -793,38 +758,6 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool
 
     strncpy(buffer, unknown, length);
     return unknown;
-}
-
-// Helper method to convert GNSS time and date into Unix Epoch
-void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
-{
-    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                  // Jan 1st 2020 as days from Jan 1st 1970
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnss->getYear() - 2020]; // Add on the number of days since 2020
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnss->getYear() % 4 == 0 ? 0 : 1]
-                                             [gnss->getMonth() - 1]; // Add on the number of days since Jan 1st
-    t += (uint32_t)gnss->getDay() - 1; // Add on the number of days since the 1st of the month
-    t *= 24;                           // Convert to hours
-    t += (uint32_t)gnss->getHour();    // Add on the hour
-    t *= 60;                           // Convert to minutes
-    t += (uint32_t)gnss->getMinute();  // Add on the minute
-    t *= 60;                           // Convert to seconds
-    t += (uint32_t)gnss->getSecond();  // Add on the second
-
-    int32_t us = gnss->getNanosecond() / 1000; // Convert nanos to micros
-    uint32_t micro;
-    // Adjust t if nano is negative
-    if (us < 0)
-    {
-        micro = (uint32_t)(us + 1000000); // Make nano +ve
-        t--;                              // Decrement t by 1 second
-    }
-    else
-    {
-        micro = us;
-    }
-
-    *epochSecs = t;
-    *epochMicros = micro;
 }
 
 // Return true if a USB cable is detected

@@ -863,25 +863,4 @@ void ntripClientValidateTables()
         reportFatalError("Fix ntripClientStateNameEntries to match NTRIPClientState");
 }
 
-void pushGPGGA(NMEA_GGA_data_t *nmeaData)
-{
-    // Provide the caster with our current position as needed
-    if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
-    {
-        if (millis() - lastGGAPush > NTRIPCLIENT_MS_BETWEEN_GGA)
-        {
-            lastGGAPush = millis();
-
-            if (settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA))
-            {
-                PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
-                systemPrintf("NTRIP Client pushing GGA to server: %s", (const char *)nmeaData->nmea);
-            }
-
-            // Push our current GGA sentence to caster
-            ntripClient->print((const char *)nmeaData->nmea);
-        }
-    }
-}
-
 #endif // COMPILE_NETWORK
