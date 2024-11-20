@@ -704,10 +704,6 @@ void beginBoard()
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
 
-        present.microSdCardDetectHigh = true;          // TODO remove - Just for proto of the Postcard shield
-        pin_microSD_CardDetect = 14;                   // TODO remove - Just for proto of the Postcard shield
-        pinMode(pin_microSD_CardDetect, INPUT_PULLUP); // TODO remove - Just for proto of the Postcard shield
-
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
 
@@ -722,7 +718,7 @@ void beginBoard()
         pin_PICO = 26;
         pin_microSD_CS = 27;
 
-        // pin_gpioExpanderInterrupt = 14; //AOI on Postcard
+        pin_gpioExpanderInterrupt = 14; //Pin 'AOI' on Portability Shield
 
         pin_bluetoothStatusLED = 0; // Green status LED
         // pin_gnssStatusLED = 13;
@@ -1359,7 +1355,7 @@ void beginButtons()
     // Avoid using the button library
     if (present.gpioExpander == true)
     {
-        if (beginGpioExpander(0x18) == false)
+        if (beginGpioExpander(0x20) == false)
         {
             systemPrintln("Directional pad not detected");
             return;
