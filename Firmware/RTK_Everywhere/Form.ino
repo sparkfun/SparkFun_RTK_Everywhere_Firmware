@@ -1050,12 +1050,14 @@ void createMessageList(String &returnText)
 
     if (present.gnss_zedf9p)
     {
+#ifdef COMPILE_ZED
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG; messageNumber++)
         {
             if (messageSupported(messageNumber) == true)
                 returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
                               String(settings.ubxMessageRates[messageNumber]) + ",";
         }
+#endif //COMPILE_ZED
     }
 
 #ifdef  COMPILE_UM980
@@ -1112,6 +1114,7 @@ void createMessageListBase(String &returnText)
 
     if (present.gnss_zedf9p)
     {
+#ifdef COMPILE_ZED
         GNSS_ZED * zed = (GNSS_ZED *)gnss;
         int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
@@ -1121,6 +1124,7 @@ void createMessageListBase(String &returnText)
                 returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
                               "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
         }
+#endif //COMPILE_ZED
     }
 
 #ifdef  COMPILE_UM980
