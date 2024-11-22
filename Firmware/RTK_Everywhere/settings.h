@@ -1865,6 +1865,7 @@ struct struct_tasks
 {
     volatile bool gnssUartPinnedTaskRunning = false;
     volatile bool i2cPinnedTaskRunning = false;
+    volatile bool bluetoothCommandTaskRunning = false;
     volatile bool btReadTaskRunning = false;
     volatile bool buttonCheckTaskRunning = false;
     volatile bool gnssReadTaskRunning = false;
@@ -1875,6 +1876,7 @@ struct struct_tasks
     volatile bool updatePplTaskRunning = false;
     volatile bool updateWebServerTaskRunning = false;
 
+    bool bluetoothCommandTaskStopRequest = false;
     bool btReadTaskStopRequest = false;
     bool buttonCheckTaskStopRequest = false;
     bool gnssReadTaskStopRequest = false;
