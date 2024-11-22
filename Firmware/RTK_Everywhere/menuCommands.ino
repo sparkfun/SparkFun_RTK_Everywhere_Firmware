@@ -266,7 +266,7 @@ t_cliResult processCommand(char *cmdBuffer)
     else
     {
         commandSendErrorResponse(tokens[0], (char *)"Unknown command");
-        return (CLI_UNKOWN_COMMAND);
+        return (CLI_UNKNOWN_COMMAND);
     }
 
     return (CLI_UNKNOWN); // We should not get here

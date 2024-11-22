@@ -1116,7 +1116,7 @@ typedef enum
     CLI_OK,    // 2
     CLI_BAD_FORMAT,
     CLI_UNKNOWN_SETTING,
-    CLI_UNKOWN_COMMAND,
+    CLI_UNKNOWN_COMMAND,
     CLI_EXIT,
     CLI_LIST,
 } t_cliResult;
