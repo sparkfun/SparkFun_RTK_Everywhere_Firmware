@@ -215,7 +215,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaPhaseCenter_mm = 115.7;
+        present.antennaPhaseCenter_mm = 115.7; //Default to Torch helical APC
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
@@ -690,7 +690,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 42.0;
+        present.antennaPhaseCenter_mm = 42.0; //Default to SPK6618H APC
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
@@ -1243,7 +1243,7 @@ void beginFuelGauge()
         // Check to see if we are dangerously low
         if (batteryLevelPercent < 5 && batteryChargingPercentPerHour < 0.5) // 5% and not charging
         {
-            systemPrintln("Battery too low. Please charge. Shutting down...");
+            systemPrintf("Battery too low: %d%%. Charging rate: %0.1f%%/hr. Please charge. Shutting down...\r\n", batteryLevelPercent, batteryChargingPercentPerHour);
 
             if (online.display == true)
                 displayMessage("Charge Battery", 0);
