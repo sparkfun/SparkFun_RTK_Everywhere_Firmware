@@ -32,6 +32,17 @@ static volatile BTState bluetoothState = BT_OFF;
 #ifdef COMPILE_BT
 BTSerialInterface *bluetoothSerialSpp;
 BTSerialInterface *bluetoothSerialBle;
+BTSerialInterface *bluetoothSerialBleCommands; // Second BLE serial for CLI interface to mobile app
+
+#define BLE_SERVICE_UUID "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define BLE_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+#define BLE_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+
+#define BLE_COMMAND_SERVICE_UUID "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define BLE_COMMAND_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+#define BLE_COMMAND_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+
+TaskHandle_t bluetoothCommandTaskHandle; // Task to monitor incoming CLI from BLE
 
 //----------------------------------------
 // Bluetooth Routines - compiled out
@@ -46,7 +57,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         systemPrintln("BT client connected");
         bluetoothState = BT_CONNECTED;
         // LED is controlled by tickerBluetoothLedUpdate()
-        
+
         btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
     }
 
@@ -293,11 +304,15 @@ void bluetoothStart()
         {
             bluetoothSerialSpp = new BTClassicSerial();
             bluetoothSerialBle = new BTLESerial();
+            bluetoothSerialBleCommands = new BTLESerial();
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
             bluetoothSerialSpp = new BTClassicSerial();
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
             bluetoothSerialBle = new BTLESerial();
+            bluetoothSerialBleCommands = new BTLESerial();
+        }
 
         // Not yet implemented
         //  if (pinBluetoothTaskHandle == nullptr)
@@ -316,26 +331,39 @@ void bluetoothStart()
         bool beginSuccess = true;
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            beginSuccess &= bluetoothSerialBle->begin(
-                deviceName, false, false, settings.sppRxQueueSize,
-                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
             beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, false, false, settings.sppRxQueueSize,
-                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+
+            beginSuccess &= bluetoothSerialBle->begin(
+                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID,
+                BLE_RX_UUID,
+                BLE_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+
+            beginSuccess &= bluetoothSerialBleCommands->begin(
+                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
+                BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
+                                                           // txBufferSize, serviceID, rxID, txID
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
             // Disable BLE
             beginSuccess &= bluetoothSerialSpp->begin(
-                deviceName, false, true, settings.sppRxQueueSize,
-                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+                deviceName, false, true, settings.sppRxQueueSize, settings.sppTxQueueSize, 0, 0,
+                0); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             // Don't disable BLE
             beginSuccess &= bluetoothSerialBle->begin(
-                deviceName, false, false, settings.sppRxQueueSize,
-                settings.sppTxQueueSize); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize
+                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_SERVICE_UUID,
+                BLE_RX_UUID,
+                BLE_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize, txBufferSize, serviceID, rxID, txID
+
+            beginSuccess &= bluetoothSerialBleCommands->begin(
+                deviceName, false, false, settings.sppRxQueueSize, settings.sppTxQueueSize, BLE_COMMAND_SERVICE_UUID,
+                BLE_COMMAND_RX_UUID, BLE_COMMAND_TX_UUID); // localName, isMaster, disableBLE, rxBufferSize,
+                                                           // txBufferSize, serviceID, rxID, txID
         }
 
         if (beginSuccess == false)
@@ -370,11 +398,13 @@ void bluetoothStart()
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            bluetoothSerialBle->register_callback(bluetoothCallback); // Controls BT state and LED
-            bluetoothSerialBle->setTimeout(250);
-
             bluetoothSerialSpp->register_callback(bluetoothCallback); // Controls BT state and LED
             bluetoothSerialSpp->setTimeout(250);
+
+            bluetoothSerialBle->register_callback(bluetoothCallback); // Controls BT state and LED
+            bluetoothSerialBle->setTimeout(10);                       // Using 10 from BleSerial example
+
+            // We don't need a call back for bluetoothSerialBleCommand
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
@@ -384,7 +414,9 @@ void bluetoothStart()
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             bluetoothSerialBle->register_callback(bluetoothCallback); // Controls BT state and LED
-            bluetoothSerialBle->setTimeout(250);
+            bluetoothSerialBle->setTimeout(10);
+
+            // We don't need a call back for bluetoothSerialBleCommands
         }
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
@@ -400,6 +432,21 @@ void bluetoothStart()
         {
             bluetoothLedTask.detach(); // Reset BT LED blinker task rate to 2Hz
             bluetoothLedTask.attach(bluetoothLedTaskPace2Hz, tickerBluetoothLedUpdate); // Rate in seconds, callback
+        }
+
+        // Start BLE Command Task if BLE is enabled
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
+            settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
+            if (bluetoothCommandTaskHandle == nullptr)
+                xTaskCreatePinnedToCore(
+                    bluetoothCommandTask,   // Function to run
+                    "BluetoothCommandTask", // Just for humans
+                    4000,                   // Stack Size
+                    nullptr,                // Task input parameter
+                    0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
+                    &bluetoothCommandTaskHandle,       // Task handle
+                    settings.bluetoothInterruptsCore); // Core where task should run, 0 = core, 1 = Arduino
         }
 
         bluetoothState = BT_NOTCONNECTED;
@@ -436,28 +483,28 @@ void bluetoothStop()
     {
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            bluetoothSerialBle->flush(); // Complete any transfers
+            bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            bluetoothSerialBle->end(); // Release resources
+            bluetoothSerialBle->end();        // Release resources
             bluetoothSerialBle->register_callback(nullptr);
 
-            bluetoothSerialSpp->flush(); // Complete any transfers
+            bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->end(); // Release resources
+            bluetoothSerialSpp->end();        // Release resources
             bluetoothSerialSpp->register_callback(nullptr);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
-            bluetoothSerialSpp->flush(); // Complete any transfers
+            bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
-            bluetoothSerialSpp->end(); // Release resources
+            bluetoothSerialSpp->end();        // Release resources
             bluetoothSerialSpp->register_callback(nullptr);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
-            bluetoothSerialBle->flush(); // Complete any transfers
+            bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
-            bluetoothSerialBle->end(); // Release resources
+            bluetoothSerialBle->end();        // Release resources
             bluetoothSerialBle->register_callback(nullptr);
         }
 
@@ -499,7 +546,7 @@ void bluetoothTest(bool runTest)
             }
             else
                 bluetoothStatusText = "Offline";
-#endif //COMPILE_ZED
+#endif // COMPILE_ZED
 
             gnss->setBaudrate(settings.dataPortBaud);
 

@@ -10,7 +10,9 @@
 class BTSerialInterface
 {
   public:
-    virtual bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize) = 0;
+    virtual bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
+                       const char *serviceID, const char *rxID, const char *txID) = 0;
+
     virtual void disconnect() = 0;
     virtual void end() = 0;
     virtual esp_err_t register_callback(esp_spp_cb_t callback) = 0;
@@ -31,7 +33,7 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
     // Everything is already implemented in BluetoothSerial since the code was
     // originally written using that class
   public:
-    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize)
+    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize, const char *serviceID, const char *rxID, const char *txID)
     {
         return BluetoothSerial::begin(deviceName, isMaster, disableBLE, rxQueueSize, txQueueSize);
     }
@@ -91,15 +93,16 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
 {
   public:
     // Missing from BleSerial
-    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize)
+    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize, const char *serviceID, const char *rxID, const char *txID)
     {
-        BleSerial::begin(deviceName.c_str());
+        BleSerial::begin(deviceName.c_str(), serviceID, rxID, rxID);
         return true;
     }
 
     void disconnect()
     {
-        Server->disconnect(Server->getConnId());
+        // Server->disconnect(Server->getConnId());
+        // No longer used in v2 of BleSerial
     }
 
     void end()
@@ -151,13 +154,13 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
     // override BLEServerCallbacks
     void onConnect(BLEServer *pServer)
     {
-        connectionCallback(ESP_SPP_SRV_OPEN_EVT, nullptr); //Trigger callback to bluetoothCallback()
+        connectionCallback(ESP_SPP_SRV_OPEN_EVT, nullptr); // Trigger callback to bluetoothCallback()
     }
 
     void onDisconnect(BLEServer *pServer)
     {
-        connectionCallback(ESP_SPP_CLOSE_EVT, nullptr); //Trigger callback to bluetoothCallback()
-        Server->startAdvertising();
+        connectionCallback(ESP_SPP_CLOSE_EVT, nullptr); // Trigger callback to bluetoothCallback()
+        // Server->startAdvertising(); //No longer used in v2 of BleSerial
     }
 
   private:
