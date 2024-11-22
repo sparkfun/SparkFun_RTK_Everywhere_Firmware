@@ -185,8 +185,8 @@ void menuGNSS()
         }
         else if ((incoming == 2) && (!present.gnss_mosaicX5))
         {
-            float rate = 0.0;
-            float minRate = 1.0;
+            float rate_ms = 0.0; //
+            float minRate = 1.0; //Seconds between fixes
             float maxRate = 1.0;
 
             if (present.gnss_zedf9p)
@@ -199,15 +199,20 @@ void menuGNSS()
                 minRate = 0.05; // 20Hz
                 maxRate = 65.0; // Found experimentally
             }
+            else if (present.gnss_lg290p)
+            {
+                minRate = 0.05; // 20Hz
+                maxRate = 1.0; // The LG290P doesn't support slower speeds than 1Hz
+            }
 
-            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate) ==
+            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate_ms) ==
                 INPUT_RESPONSE_VALID)
             {
-                gnss->setRate(
-                    rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                gnss->setRate(rate_ms); 
             }
         }
-        else if (incoming == 3)
+        else if (present.dynamicModel == true && incoming == 3)
         {
             if (present.gnss_zedf9p)
             {
