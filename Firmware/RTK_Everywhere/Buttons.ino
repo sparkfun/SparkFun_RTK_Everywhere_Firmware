@@ -68,7 +68,7 @@ void powerDown(bool displayInfo)
     {
         // We should never get here but good to know if we do
         systemPrintln("Device powered down");
-        delay(250);
+        delay(5000);
     }
 }
 
