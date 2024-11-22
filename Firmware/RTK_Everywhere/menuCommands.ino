@@ -3380,6 +3380,61 @@ void commandList(bool inCommands, int i)
         }
     }
     break;
+
+#ifdef COMPILE_LG290P
+    case tLgMRNmea:
+    {
+        // Record LG290P NMEA rates
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     lgMessagesNMEA[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tLgMRRvRT:
+    {
+        // Record LG290P Rover RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     lgMessagesRTCM[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tLgMRBaRT:
+    {
+        // Record LG290P Base RTCM rates
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     lgMessagesRTCM[x].msgTextName);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "uint8_t", settingValue);
+        }
+    }
+    break;
+    case tLgConst:
+    {
+        // Record LG290P Constellations
+        for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+        {
+            snprintf(settingName, sizeof(settingName), "%s%s", rtkSettingsEntries[i].name,
+                     lg290pConstellationNames[x]);
+
+            getSettingValue(inCommands, settingName, settingValue);
+            commandSendExecuteListResponse(settingName, "bool", settingValue);
+        }
+    }
+    break;
+#endif // COMPILE_LG290P
     }
 }
 
