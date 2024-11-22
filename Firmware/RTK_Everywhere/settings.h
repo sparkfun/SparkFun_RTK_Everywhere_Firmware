@@ -662,6 +662,15 @@ struct Settings
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
 
+    // GNSS
+    muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
+    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
+    bool enablePrintPosition = false;
+    uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
+    uint16_t navigationRate =
+        1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
+    bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
+
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
     int uartReceiveBufferSize = 1024 * 2; // This buffer is filled automatically as the UART receives characters.
@@ -837,15 +846,6 @@ struct Settings
     uint64_t externalPulseLength_us = 100000;                  // us length of pulse, max of 60s = 60 * 1000 * 1000
     pulseEdgeType_e externalPulsePolarity = PULSE_RISING_EDGE; // Pulse rises for pulse length, then falls
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
-
-    // Radio
-    muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
-    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
-    bool enablePrintPosition = false;
-    uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
-    uint16_t navigationRate =
-        1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
 
     // Ring Buffer
     bool enablePrintRingBufferOffsets = false;
@@ -1061,10 +1061,12 @@ typedef enum {
     tNSCUsrPw,
     tNSMtPt,
     tNSMtPtPw,
+
     tUmMRNmea,
     tUmMRRvRT,
     tUmMRBaRT,
     tUmConst,
+
     tCorrSPri,
     tRegCorTp,
     tMosaicConst,
@@ -1074,6 +1076,10 @@ typedef enum {
     tMosaicMIBaRT,
     tMosaicMERvRT,
     tMosaicMEBaRT,
+    tLgMRNmea,
+    tLgMRRvRT,
+    tLgMRBaRT,
+    tLgConst,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
@@ -1104,7 +1110,7 @@ typedef struct
 
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
-// updateGNSS =
+// updateGNSS = A setting, if changed, that forces a GNSS receiver reconfig at next boot
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
 // inCommands = Should this setting be exposed over the CLI
 // useSuffix = Setting has an additional array to search
@@ -1583,6 +1589,29 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, _bool,     3, & settings.debugLora, "debugLora",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _int,      3, & settings.loraSerialInteractionTimeout_s, "loraSerialInteractionTimeout_s",  },
     { 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation",  },
+
+//                            F
+//                            a
+//                      F     c
+//       i              a     e
+//    u  n  i           c     t
+//    p  W  n  u        e
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
+
+#ifdef  COMPILE_LG290P
+    { 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_",  },
+#endif  // COMPILE_UM980
+
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
