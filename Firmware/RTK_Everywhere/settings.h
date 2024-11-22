@@ -1108,6 +1108,19 @@ typedef struct
 #define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1)
 #define COMMAND_COUNT               (-(COMMAND_UNKNOWN))
 
+// Exit types for processCommand
+typedef enum
+{
+    CLI_UNKNOWN = 0,
+    CLI_ERROR, // 1
+    CLI_OK,    // 2
+    CLI_BAD_FORMAT,
+    CLI_UNKNOWN_SETTING,
+    CLI_UNKOWN_COMMAND,
+    CLI_EXIT,
+    CLI_LIST,
+} t_cliResult;
+
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
 // updateGNSS = A setting, if changed, that forces a GNSS receiver reconfig at next boot

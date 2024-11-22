@@ -22,204 +22,254 @@ void menuCommands()
         if (response != INPUT_RESPONSE_VALID)
             continue;
 
-        if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
+        // Process this input and exit mode if command dictates
+        if (processCommand(cmdBuffer) == CLI_EXIT)
         {
             systemPrintln("Exiting command mode");
             break; // Exit while(1) loop
         }
-
-        else if (strcmp(cmdBuffer, "list") == 0)
-        {
-            printAvailableSettings();
-            continue;
-        }
-
-        // Allow serial input to skip the validation step. Used for testing.
-        else if (cmdBuffer[0] != '$')
-        {
-        }
-
-        // Verify command structure
         else
         {
-            if (commandValid(cmdBuffer) == false)
-            {
-                commandSendErrorResponse((char *)"SP", (char *)"Bad command structure or checksum");
-                continue;
-            }
-
-            // Remove $
-            memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
-
-            // Change * to , and null terminate on the first CRC character
-            cmdBuffer[strlen(cmdBuffer) - 3] = ',';
-            cmdBuffer[strlen(cmdBuffer) - 2] = '\0';
-        }
-
-        const int MAX_TOKENS = 10;
-        char valueBuffer[100];
-
-        char *tokens[MAX_TOKENS];
-        int tokenCount = 0;
-        int originalLength = strlen(cmdBuffer);
-
-        // We can't use strtok because there may be ',' inside of settings (ie, wifi password: "hello,world")
-
-        tokens[tokenCount++] = &cmdBuffer[0]; // Point at first token
-
-        bool inQuote = false;
-        bool inEscape = false;
-        for (int spot = 0; spot < originalLength; spot++)
-        {
-            if (cmdBuffer[spot] == ',' && inQuote == false)
-            {
-                if (spot < (originalLength - 1))
-                {
-                    cmdBuffer[spot++] = '\0';
-                    tokens[tokenCount++] = &cmdBuffer[spot];
-                }
-                else
-                {
-                    // We are at the end of the string, just terminate the last token
-                    cmdBuffer[spot] = '\0';
-                }
-
-                if (inEscape == true)
-                    inEscape = false;
-            }
-
-            // Handle escaped quotes
-            if (cmdBuffer[spot] == '\\' && inEscape == false)
-            {
-                // Ignore next character from quote checks
-                inEscape = true;
-            }
-            else if (cmdBuffer[spot] == '\"' && inEscape == true)
-                inEscape = false;
-            else if (cmdBuffer[spot] == '\"' && inQuote == false && inEscape == false)
-                inQuote = true;
-            else if (cmdBuffer[spot] == '\"' && inQuote == true)
-                inQuote = false;
-        }
-
-        if (inQuote == true)
-        {
-            commandSendErrorResponse((char *)"SP", (char *)"Unclosed quote");
-            return;
-        }
-
-        // Trim surrounding quotes from any token
-        for (int x = 0; x < tokenCount; x++)
-        {
-            // Remove leading "
-            if (tokens[x][0] == '"')
-                tokens[x] = &tokens[x][1];
-
-            // Remove trailing "
-            if (tokens[x][strlen(tokens[x]) - 1] == '"')
-                tokens[x][strlen(tokens[x]) - 1] = '\0';
-        }
-
-        // Remove escape characters from within tokens
-        // https://stackoverflow.com/questions/53134028/remove-all-from-a-string-in-c
-        for (int x = 0; x < tokenCount; x++)
-        {
-            int k = 0;
-            for (int i = 0; tokens[x][i] != '\0'; ++i)
-                if (tokens[x][i] != '\\')
-                    tokens[x][k++] = tokens[x][i];
-            tokens[x][k] = '\0';
-        }
-
-        // Valid commands: CMD, GET, SET, EXE,
-        if (strcmp(tokens[0], "SPCMD") == 0)
-        {
-            commandSendOkResponse(tokens[0]);
-        }
-        else if (strcmp(tokens[0], "SPGET") == 0)
-        {
-            if (tokenCount != 2)
-                commandSendErrorResponse(tokens[0], (char *)"Incorrect number of arguments");
-            else
-            {
-                auto field = tokens[1];
-
-                SettingValueResponse response = getSettingValue(false, field, valueBuffer);
-
-                if (response == SETTING_KNOWN)
-                    commandSendValueResponse(tokens[0], field, valueBuffer); // Send structured response
-                else if (response == SETTING_KNOWN_STRING)
-                    commandSendStringResponse(tokens[0], field,
-                                              valueBuffer); // Wrap the string setting in quotes in the response, no OK
-                else
-                    commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
-            }
-        }
-        else if (strcmp(tokens[0], "SPSET") == 0)
-        {
-            if (tokenCount != 3)
-                commandSendErrorResponse(tokens[0],
-                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
-            else
-            {
-                auto field = tokens[1];
-                auto value = tokens[2];
-
-                SettingValueResponse response = updateSettingWithValue(true, field, value);
-                if (response == SETTING_KNOWN)
-                    commandSendValueOkResponse(tokens[0], field,
-                                               value); // Just respond with the setting (not quotes needed)
-                else if (response == SETTING_KNOWN_STRING)
-                    commandSendStringOkResponse(tokens[0], field,
-                                                value); // Wrap the string setting in quotes in the response, add OK
-                else
-                    commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
-            }
-        }
-        else if (strcmp(tokens[0], "SPEXE") == 0)
-        {
-            if (tokenCount != 2)
-                commandSendErrorResponse(tokens[0],
-                                         (char *)"Incorrect number of arguments"); // Incorrect number of arguments
-            else
-            {
-                if (strcmp(tokens[1], "EXIT") == 0)
-                {
-                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                    break; // Exit while(1) loop
-                }
-                else if (strcmp(tokens[1], "APPLY") == 0)
-                {
-                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                    // Do an apply...
-                }
-                else if (strcmp(tokens[1], "SAVE") == 0)
-                {
-                    recordSystemSettings();
-                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                }
-                else if (strcmp(tokens[1], "REBOOT") == 0)
-                {
-                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                    delay(50); // Allow for final print
-                    ESP.restart();
-                }
-                else if (strcmp(tokens[1], "LIST") == 0)
-                {
-                    // Respond with a list of variables, types, and current value
-                    printAvailableSettings();
-
-                    commandSendExecuteOkResponse(tokens[0], tokens[1]);
-                }
-                else
-                    commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
-            }
-        }
-        else
-        {
-            commandSendErrorResponse(tokens[0], (char *)"Unknown command");
+            // processCommand prints the results
         }
     } // while(1)
+}
+
+// Checks the string for validity and parses as necessary
+// Returns the various types of command responses
+t_cliResult processCommand(char *cmdBuffer)
+{
+    // These commands are not part of the CLI and allow quick testing without validity check
+    if ((strcmp(cmdBuffer, "x") == 0) || (strcmp(cmdBuffer, "exit") == 0))
+    {
+        return (CLI_EXIT); // Exit command mode
+    }
+    else if (strcmp(cmdBuffer, "list") == 0)
+    {
+        printAvailableSettings();
+        return (CLI_LIST); // Stay in command mode
+    }
+    // Allow serial input to skip the validation step. Used for testing.
+    else if (cmdBuffer[0] != '$')
+    {
+    }
+
+    // Verify command structure
+    else
+    {
+        if (commandValid(cmdBuffer) == false)
+        {
+            commandSendErrorResponse((char *)"SP", (char *)"Bad command structure or checksum");
+            return (CLI_BAD_FORMAT);
+        }
+
+        // Remove $
+        memmove(cmdBuffer, &cmdBuffer[1], sizeof(cmdBuffer) - 1);
+
+        // Change * to , and null terminate on the first CRC character
+        cmdBuffer[strlen(cmdBuffer) - 3] = ',';
+        cmdBuffer[strlen(cmdBuffer) - 2] = '\0';
+    }
+
+    const int MAX_TOKENS = 10;
+    char valueBuffer[100];
+
+    char *tokens[MAX_TOKENS];
+    int tokenCount = 0;
+    int originalLength = strlen(cmdBuffer);
+
+    // We can't use strtok because there may be ',' inside of settings (ie, wifi password: "hello,world")
+
+    tokens[tokenCount++] = &cmdBuffer[0]; // Point at first token
+
+    bool inQuote = false;
+    bool inEscape = false;
+    for (int spot = 0; spot < originalLength; spot++)
+    {
+        if (cmdBuffer[spot] == ',' && inQuote == false)
+        {
+            if (spot < (originalLength - 1))
+            {
+                cmdBuffer[spot++] = '\0';
+                tokens[tokenCount++] = &cmdBuffer[spot];
+            }
+            else
+            {
+                // We are at the end of the string, just terminate the last token
+                cmdBuffer[spot] = '\0';
+            }
+
+            if (inEscape == true)
+                inEscape = false;
+        }
+
+        // Handle escaped quotes
+        if (cmdBuffer[spot] == '\\' && inEscape == false)
+        {
+            // Ignore next character from quote checks
+            inEscape = true;
+        }
+        else if (cmdBuffer[spot] == '\"' && inEscape == true)
+            inEscape = false;
+        else if (cmdBuffer[spot] == '\"' && inQuote == false && inEscape == false)
+            inQuote = true;
+        else if (cmdBuffer[spot] == '\"' && inQuote == true)
+            inQuote = false;
+    }
+
+    if (inQuote == true)
+    {
+        commandSendErrorResponse((char *)"SP", (char *)"Unclosed quote");
+        return (CLI_BAD_FORMAT);
+    }
+
+    // Trim surrounding quotes from any token
+    for (int x = 0; x < tokenCount; x++)
+    {
+        // Remove leading "
+        if (tokens[x][0] == '"')
+            tokens[x] = &tokens[x][1];
+
+        // Remove trailing "
+        if (tokens[x][strlen(tokens[x]) - 1] == '"')
+            tokens[x][strlen(tokens[x]) - 1] = '\0';
+    }
+
+    // Remove escape characters from within tokens
+    // https://stackoverflow.com/questions/53134028/remove-all-from-a-string-in-c
+    for (int x = 0; x < tokenCount; x++)
+    {
+        int k = 0;
+        for (int i = 0; tokens[x][i] != '\0'; ++i)
+            if (tokens[x][i] != '\\')
+                tokens[x][k++] = tokens[x][i];
+        tokens[x][k] = '\0';
+    }
+
+    // Valid commands: CMD, GET, SET, EXE,
+    if (strcmp(tokens[0], "SPCMD") == 0)
+    {
+        commandSendOkResponse(tokens[0]);
+        return (CLI_OK);
+    }
+    else if (strcmp(tokens[0], "SPGET") == 0)
+    {
+        if (tokenCount != 2)
+        {
+            commandSendErrorResponse(tokens[0], (char *)"Incorrect number of arguments");
+            return (CLI_BAD_FORMAT);
+        }
+        else
+        {
+            auto field = tokens[1];
+
+            SettingValueResponse response = getSettingValue(false, field, valueBuffer);
+
+            if (response == SETTING_KNOWN)
+            {
+                commandSendValueResponse(tokens[0], field, valueBuffer); // Send structured response
+                return (CLI_OK);
+            }
+            else if (response == SETTING_KNOWN_STRING)
+            {
+                commandSendStringResponse(tokens[0], field,
+                                          valueBuffer); // Wrap the string setting in quotes in the response, no OK
+                return (CLI_OK);
+            }
+            else
+            {
+                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                return (CLI_UNKNOWN_SETTING);
+            }
+        }
+    }
+    else if (strcmp(tokens[0], "SPSET") == 0)
+    {
+        if (tokenCount != 3)
+        {
+            commandSendErrorResponse(tokens[0],
+                                     (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            return (CLI_BAD_FORMAT);
+        }
+        else
+        {
+            auto field = tokens[1];
+            auto value = tokens[2];
+
+            SettingValueResponse response = updateSettingWithValue(true, field, value);
+            if (response == SETTING_KNOWN)
+            {
+                commandSendValueOkResponse(tokens[0], field,
+                                           value); // Just respond with the setting (not quotes needed)
+                return (CLI_OK);
+            }
+            else if (response == SETTING_KNOWN_STRING)
+            {
+                commandSendStringOkResponse(tokens[0], field,
+                                            value); // Wrap the string setting in quotes in the response, add OK
+                return (CLI_OK);
+            }
+            else
+            {
+                commandSendErrorResponse(tokens[0], (char *)"Unknown setting");
+                return (CLI_UNKNOWN_SETTING);
+            }
+        }
+    }
+    else if (strcmp(tokens[0], "SPEXE") == 0)
+    {
+        if (tokenCount != 2)
+        {
+            commandSendErrorResponse(tokens[0],
+                                     (char *)"Incorrect number of arguments"); // Incorrect number of arguments
+            return (CLI_BAD_FORMAT);
+        }
+        else
+        {
+            if (strcmp(tokens[1], "EXIT") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                return (CLI_EXIT);
+            }
+            else if (strcmp(tokens[1], "APPLY") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                // TODO - Do an apply...
+                return (CLI_OK);
+            }
+            else if (strcmp(tokens[1], "SAVE") == 0)
+            {
+                recordSystemSettings();
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                return (CLI_OK);
+            }
+            else if (strcmp(tokens[1], "REBOOT") == 0)
+            {
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                delay(50); // Allow for final print
+                ESP.restart();
+            }
+            else if (strcmp(tokens[1], "LIST") == 0)
+            {
+                // Respond with a list of variables, types, and current value
+                printAvailableSettings();
+                commandSendExecuteOkResponse(tokens[0], tokens[1]);
+                return (CLI_OK);
+            }
+            else
+            {
+                commandSendErrorResponse(tokens[0], tokens[1], (char *)"Unknown command");
+                return (CLI_UNKNOWN_COMMAND);
+            }
+        }
+    }
+    else
+    {
+        commandSendErrorResponse(tokens[0], (char *)"Unknown command");
+        return (CLI_UNKOWN_COMMAND);
+    }
+
+    return (CLI_UNKNOWN); // We should not get here
 }
 
 // Given a command, send structured OK response
