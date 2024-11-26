@@ -120,7 +120,6 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
     esp_err_t register_callback(esp_spp_cb_t callback)
     {
-        Serial.println("Registering call back");
         connectionCallback = callback;
         return ESP_OK;
     }
@@ -165,6 +164,7 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
         return (BleSerial::connected());
     }
 
+    // Callbacks removed in v2 of BleSerial. Using polled connected() in bluetoothUpdate()
     // override BLEServerCallbacks
     // void Server->onConnect(BLEServer *pServer)
     // {

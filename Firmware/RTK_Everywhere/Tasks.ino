@@ -38,11 +38,11 @@ Tasks.ino
 // Macros
 //----------------------------------------
 
-#define WRAP_OFFSET(offset, increment, arraySize)                                                                      \
-    {                                                                                                                  \
-        offset += increment;                                                                                           \
-        if (offset >= arraySize)                                                                                       \
-            offset -= arraySize;                                                                                       \
+#define WRAP_OFFSET(offset, increment, arraySize) \
+    {                                             \
+        offset += increment;                      \
+        if (offset >= arraySize)                  \
+            offset -= arraySize;                  \
     }
 
 //----------------------------------------
@@ -62,7 +62,12 @@ enum RingBufferConsumers
 };
 
 const char *const ringBufferConsumer[] = {
-    "Bluetooth", "TCP Client", "TCP Server", "SD Card", "UDP Server", "USB Serial",
+    "Bluetooth",
+    "TCP Client",
+    "TCP Server",
+    "SD Card",
+    "UDP Server",
+    "USB Serial",
 };
 
 const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBufferConsumer[0]);
@@ -76,13 +81,21 @@ const int ringBufferConsumerEntries = sizeof(ringBufferConsumer) / sizeof(ringBu
 
 // List the parsers to be included
 SEMP_PARSE_ROUTINE const parserTable[] = {
-    sempNmeaPreamble, sempUnicoreHashPreamble, sempRtcmPreamble, sempUbloxPreamble, sempUnicoreBinaryPreamble,
+    sempNmeaPreamble,
+    sempUnicoreHashPreamble,
+    sempRtcmPreamble,
+    sempUbloxPreamble,
+    sempUnicoreBinaryPreamble,
 };
 const int parserCount = sizeof(parserTable) / sizeof(parserTable[0]);
 
 // List the names of the parsers
 const char *const parserNames[] = {
-    "NMEA", "Unicore Hash_(#)", "RTCM", "u-Blox", "Unicore Binary",
+    "NMEA",
+    "Unicore Hash_(#)",
+    "RTCM",
+    "u-Blox",
+    "Unicore Binary",
 };
 const int parserNameCount = sizeof(parserNames) / sizeof(parserNames[0]);
 
@@ -134,7 +147,7 @@ void btReadTask(void *e)
 
     unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
     const long btMinEscapeTime =
-        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
+        2000;                          // Bluetooth serial traffic must stop this amount before an escape char is recognized
     uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
 
     uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
@@ -1022,10 +1035,12 @@ void handleGnssDataTask(void *e)
                 if ((btRingBufferTail + bytesToSend) > settings.gnssHandlerBufferSize)
                     bytesToSend = settings.gnssHandlerBufferSize - btRingBufferTail;
 
-                // If we are in the config menu, suppress data flowing from ZED to cell phone
+                // If we are in the config menu, suppress data flowing from GNSS to cell phone
                 if (btPrintEcho == false)
-                    // Push new data to BT SPP
+                {
+                    // Push new data over Bluetooth
                     bytesToSend = bluetoothWrite(&ringBuffer[btRingBufferTail], bytesToSend);
+                }
 
                 // Account for the data that was sent
                 if (bytesToSend > 0)
@@ -1570,7 +1585,9 @@ void buttonCheckTask(void *e)
         }
 
         // If user presses the center button or right, act as double tap (select)
-        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        // if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
+        if (buttonLastPressed() == gpioExpander_center ||
+            buttonLastPressed() == gpioExpander_up) // TODO remove, v02 hardware patch
         {
             doubleTap = true;
             singleTap = false;
@@ -1730,14 +1747,17 @@ void buttonCheckTask(void *e)
                     if (online.gpioExpander == true)
                     {
                         // React to five different buttons
-                        if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
+                        // if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
+                        if (buttonLastPressed() == gpioExpander_left ||
+                            buttonLastPressed() == gpioExpander_down) // TODO remove v02 hardware patch
                         {
                             if (setupSelectedButton == 0) // Top reached?
                                 setupSelectedButton = setupButtons.size() - 1;
                             else
                                 setupSelectedButton--;
                         }
-                        else if (buttonLastPressed() == gpioExpander_down)
+                        // else if (buttonLastPressed() == gpioExpander_down)
+                        else if (buttonLastPressed() == gpioExpander_right) // TODO remove v02 hardware patch
                         {
                             setupSelectedButton++;
                             if (setupSelectedButton == setupButtons.size()) // Limit reached?
@@ -1787,7 +1807,8 @@ void buttonCheckTask(void *e)
             {
                 switch (systemState)
                 {
-                case STATE_DISPLAY_SETUP: {
+                case STATE_DISPLAY_SETUP:
+                {
                     // If we are displaying the setup menu, a single tap will cycle through possible system states - see
                     // above Exit into new system state on double tap Exit display setup into previous state after ~10s
                     // - see updateSystemState()
@@ -2042,17 +2063,11 @@ void tasksValidateTables()
 }
 
 // Monitor the 2nd BleSerial port (bluetoothSerialBleCommands) for incoming serial
-// Pass to CLI as needed
+// Read incoming serial until \r\n is received, then pass to command processor
 void bluetoothCommandTask(void *pvParameters)
 {
-    int rxBytes;
-
-    unsigned long btLastByteReceived = 0; // Track when the last BT transmission was received.
-    const long btMinEscapeTime =
-        2000; // Bluetooth serial traffic must stop this amount before an escape char is recognized
-    uint8_t btEscapeCharsReceived = 0; // Used to enter remote command mode
-
-    uint8_t btAppCommandCharsReceived = 0; // Used to enter app command mode
+    int rxSpot = 0;
+    char rxData[256]; // Input limit of 256 chars
 
     // Start notification
     task.bluetoothCommandTaskRunning = true;
@@ -2070,109 +2085,31 @@ void bluetoothCommandTask(void *pvParameters)
             systemPrintln("bluetoothCommandTask running");
         }
 
-        // Receive RTCM corrections or UBX config messages over bluetooth and pass them along to GNSS
-        rxBytes = 0;
-        if (bluetoothGetState() == BT_CONNECTED)
+        // Check stream for incoming characters
+        if (bluetoothCommandAvailable())
         {
-            while (btPrintEcho == false && bluetoothSerialBleCommands->available())
+            byte incoming = bluetoothCommandRead();
+
+            rxData[rxSpot++] = incoming;
+            rxSpot %= sizeof(rxData); // Wrap
+
+            // Verify presence of trailing \r\n
+            if (rxSpot > 2 && rxData[rxSpot - 1] == '\n' && rxData[rxSpot - 2] == '\r')
             {
-                // Check stream for command characters
-                byte incoming = bluetoothSerialBleCommands->read();
-                
-                rxBytes += 1;
-
-                if (incoming == btEscapeCharacter)
-                {
-                    // Ignore escape characters received within 2 seconds of serial traffic
-                    // Allow escape characters received within the first 2 seconds of power on
-                    if (millis() - btLastByteReceived > btMinEscapeTime || millis() < btMinEscapeTime)
-                    {
-                        btEscapeCharsReceived++;
-                        if (btEscapeCharsReceived == btMaxEscapeCharacters)
-                        {
-                            printEndpoint = PRINT_ENDPOINT_ALL;
-                            systemPrintln("Echoing all serial to BT device");
-                            btPrintEcho = true;
-
-                            btEscapeCharsReceived = 0;
-                            btLastByteReceived = millis();
-                        }
-                    }
-                    else
-                    {
-                        // Ignore this escape character, pass it along to the output
-                        addToGnssBuffer(btEscapeCharacter);
-                    }
-                }
-                else if (incoming == btAppCommandCharacter)
-                {
-                    btAppCommandCharsReceived++;
-                    if (btAppCommandCharsReceived == btMaxAppCommandCharacters)
-                    {
-                        sendGnssBuffer(); // Finish sending whatever is left in the buffer
-
-                        // Discard any bluetooth data in the circular buffer
-                        btRingBufferTail = dataHead;
-
-                        systemPrintln("Device has entered config mode over Bluetooth");
-                        printEndpoint = PRINT_ENDPOINT_ALL;
-                        btPrintEcho = true;
-                        runCommandMode = true;
-
-                        btAppCommandCharsReceived = 0;
-                        btLastByteReceived = millis();
-                    }
-                }
-
-                else // This character is not a command character, pass along to GNSS
-                {
-                    // Pass any escape characters that turned out to not be a complete escape sequence
-                    while (btEscapeCharsReceived-- > 0)
-                    {
-                        addToGnssBuffer(btEscapeCharacter);
-                    }
-                    while (btAppCommandCharsReceived-- > 0)
-                    {
-                        addToGnssBuffer(btAppCommandCharacter);
-                    }
-
-                    // Pass byte to GNSS receiver or to system
-                    // TODO - control if this RTCM source should be listened to or not
-
-                    // UART RX can be corrupted by UART TX
-                    // See issue: https://github.com/sparkfun/SparkFun_RTK_Firmware/issues/469
-                    // serialGNSS->write(incoming);
-                    addToGnssBuffer(incoming);
-
-                    btLastByteReceived = millis();
-                    btEscapeCharsReceived = 0; // Update timeout check for escape char and partial frame
-
-                    btAppCommandCharsReceived = 0;
-
-                    bluetoothIncomingRTCM = true;
-
-                    // Record the arrival of RTCM from the Bluetooth connection (a phone or tablet is providing the RTCM
-                    // via NTRIP). This resets the RTCM timeout used on the L-Band.
-                    rtcmLastPacketReceived = millis();
-
-                } // End just a character in the stream
-
-            } // End btPrintEcho == false && bluetoothRxDataAvailable()
-
-            if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX))
-            {
-                PERIODIC_CLEAR(PD_BLUETOOTH_DATA_RX);
-                systemPrintf("Bluetooth received %d bytes\r\n", rxBytes);
+                rxData[rxSpot - 2] = '\0'; // Remove \r\n
+                bluetoothProcessCommand(rxData);
+                rxSpot = 0; //Reset
             }
-        } // End bluetoothGetState() == BT_CONNECTED
+        }
 
-        if (bluetoothOutgoingToGnssHead > 0 && ((millis() - lastGnssSend) > 100))
+        if (PERIODIC_DISPLAY(PD_BLUETOOTH_DATA_RX))
         {
-            sendGnssBuffer(); // Send any outstanding RTCM
+            PERIODIC_CLEAR(PD_BLUETOOTH_DATA_RX);
+            systemPrintf("Bluetooth received %d bytes\r\n", rxSpot);
         }
 
         if ((settings.enableTaskReports == true) && (!inMainMenu))
-            systemPrintf("SerialWriteTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
+            systemPrintf("bluetoothCommandTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
         feedWdt();
         taskYIELD();
