@@ -15,7 +15,7 @@ class BTSerialInterface
 
     virtual void disconnect() = 0;
     virtual void end() = 0;
-    virtual esp_err_t register_callback(esp_spp_cb_t callback) = 0;
+    //virtual esp_err_t register_callback(esp_spp_cb_t callback) = 0;
     virtual void setTimeout(unsigned long timeout) = 0;
 
     virtual int available() = 0;
@@ -50,10 +50,10 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
         BluetoothSerial::end();
     }
 
-    esp_err_t register_callback(esp_spp_cb_t callback)
-    {
-        return BluetoothSerial::register_callback(callback);
-    }
+    // esp_err_t register_callback(esp_spp_cb_t callback)
+    // {
+    //     return BluetoothSerial::register_callback(callback);
+    // }
 
     void setTimeout(unsigned long timeout)
     {
@@ -118,11 +118,11 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
         BleSerial::end();
     }
 
-    esp_err_t register_callback(esp_spp_cb_t callback)
-    {
-        connectionCallback = callback;
-        return ESP_OK;
-    }
+    // esp_err_t register_callback(esp_spp_cb_t callback)
+    // {
+    //     connectionCallback = callback;
+    //     return ESP_OK;
+    // }
 
     void setTimeout(unsigned long timeout)
     {

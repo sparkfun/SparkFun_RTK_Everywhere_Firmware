@@ -44,15 +44,17 @@ BTSerialInterface *bluetoothSerialBleCommands; // Second BLE serial for CLI inte
 
 TaskHandle_t bluetoothCommandTaskHandle; // Task to monitor incoming CLI from BLE
 
+#endif // COMPILE_BT
+
 //----------------------------------------
-// Bluetooth Routines - compiled out
+// Global Bluetooth Routines
 //----------------------------------------
 
-// Call back for when BT connection event happens (connected/disconnect)
-// Used for updating the bluetoothState state machine
-void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
+// Check if Bluetooth is connected
+void bluetoothUpdate()
 {
-    if (event == ESP_SPP_SRV_OPEN_EVT)
+#ifdef COMPILE_BT
+    if (bluetoothIsConnected() == true && bluetoothState == BT_NOTCONNECTED)
     {
         systemPrintln("BT client connected");
         bluetoothState = BT_CONNECTED;
@@ -61,7 +63,7 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
     }
 
-    if (event == ESP_SPP_CLOSE_EVT)
+    if (bluetoothIsConnected() == false && bluetoothState == BT_CONNECTED)
     {
         systemPrintln("BT client disconnected");
 
@@ -71,46 +73,33 @@ void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 
         bluetoothState = BT_NOTCONNECTED;
     }
+#endif // COMPILE_BT
 }
 
-#endif // COMPILE_BT
-
-//----------------------------------------
-// Global Bluetooth Routines
-//----------------------------------------
-
-// Check if BLE is connected
-void bluetoothUpdate()
+// Test each interface to see if there is a connection
+// Return true if one is
+bool bluetoothIsConnected()
 {
 #ifdef COMPILE_BT
-    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
-        settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
-        if (bluetoothSerialBle->connected() == true && bluetoothState == BT_NOTCONNECTED)
-        {
-            systemPrintln("BT client connected");
-            bluetoothState = BT_CONNECTED;
-            // LED is controlled by tickerBluetoothLedUpdate()
-
-            btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
-        }
-
-        if (bluetoothSerialBle->connected() == false && bluetoothState == BT_CONNECTED)
-        {
-            systemPrintln("BT client disconnected");
-
-            btPrintEcho = false;
-            btPrintEchoExit = true; // Force exit all config menus and/or command modes
-            printEndpoint = PRINT_ENDPOINT_SERIAL;
-
-            bluetoothState = BT_NOTCONNECTED;
-        }
+        if (bluetoothSerialSpp->connected() == true || bluetoothSerialBle->connected() == true ||
+            bluetoothSerialBleCommands->connected() == true)
+            return (true);
     }
     else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
     {
-        // Handled by bluetoothCallback()
+        if (bluetoothSerialSpp->connected() == true)
+            return (true);
+    }
+    else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+    {
+        if (bluetoothSerialBle->connected() == true || bluetoothSerialBleCommands->connected() == true)
+            return (true);
     }
 #endif // COMPILE_BT
+
+    return (false);
 }
 
 // Return the Bluetooth state
@@ -518,27 +507,21 @@ void bluetoothStart()
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
         {
-            bluetoothSerialSpp->register_callback(bluetoothCallback); // Controls BT state and LED
+            // Bluetooth callbacks are handled by bluetoothUpdate()
             bluetoothSerialSpp->setTimeout(250);
-
-            // BLE callbacks are handled by bluetoothUpdate()
-            //bluetoothSerialBle->register_callback(bluetoothCallback); // Controls BT state and LED
-
-            bluetoothSerialBle->setTimeout(10);                       // Using 10 from BleSerial example
-            bluetoothSerialBleCommands->setTimeout(10);                       // Using 10 from BleSerial example
+            bluetoothSerialBle->setTimeout(10);         // Using 10 from BleSerial example
+            bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
-            bluetoothSerialSpp->register_callback(bluetoothCallback); // Controls BT state and LED
+            // Bluetooth callbacks are handled by bluetoothUpdate()
             bluetoothSerialSpp->setTimeout(250);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
-            // BLE callbacks are handled by bluetoothUpdate()
-            //bluetoothSerialBle->register_callback(bluetoothCallback); // Controls BT state and LED
-
+            // Bluetooth callbacks are handled by bluetoothUpdate()
             bluetoothSerialBle->setTimeout(10);
-            bluetoothSerialBleCommands->setTimeout(10);                       // Using 10 from BleSerial example
+            bluetoothSerialBleCommands->setTimeout(10); // Using 10 from BleSerial example
         }
 
         if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
