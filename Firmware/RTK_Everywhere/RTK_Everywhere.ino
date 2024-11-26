@@ -1213,6 +1213,9 @@ void loop()
     DMW_c("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
 
+    DMW_c("bluetoothUpdate");
+    bluetoothUpdate(); // Check for BLE connections
+
     DMW_c("sdUpdate");
     sdUpdate(); // Check if SD needs to be started or is at max capacity
 

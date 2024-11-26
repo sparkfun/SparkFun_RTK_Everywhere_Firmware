@@ -26,6 +26,7 @@ class BTSerialInterface
     virtual size_t write(const uint8_t *buffer, size_t size) = 0;
     virtual size_t write(uint8_t value) = 0;
     virtual void flush() = 0;
+    virtual bool connected() = 0;
 };
 
 class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
@@ -33,7 +34,8 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
     // Everything is already implemented in BluetoothSerial since the code was
     // originally written using that class
   public:
-    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize, const char *serviceID, const char *rxID, const char *txID)
+    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
+               const char *serviceID, const char *rxID, const char *txID)
     {
         return BluetoothSerial::begin(deviceName, isMaster, disableBLE, rxQueueSize, txQueueSize);
     }
@@ -87,15 +89,21 @@ class BTClassicSerial : public virtual BTSerialInterface, public BluetoothSerial
     {
         BluetoothSerial::flush();
     }
+
+    bool connected()
+    {
+        return (BluetoothSerial::connected());
+    }
 };
 
 class BTLESerial : public virtual BTSerialInterface, public BleSerial
 {
   public:
     // Missing from BleSerial
-    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize, const char *serviceID, const char *rxID, const char *txID)
+    bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
+               const char *serviceID, const char *rxID, const char *txID)
     {
-        BleSerial::begin(deviceName.c_str(), serviceID, rxID, rxID);
+        BleSerial::begin(deviceName.c_str(), serviceID, rxID, txID);
         return true;
     }
 
@@ -112,6 +120,7 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
 
     esp_err_t register_callback(esp_spp_cb_t callback)
     {
+        Serial.println("Registering call back");
         connectionCallback = callback;
         return ESP_OK;
     }
@@ -151,17 +160,22 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
         BleSerial::flush();
     }
 
-    // override BLEServerCallbacks
-    void onConnect(BLEServer *pServer)
+    bool connected()
     {
-        connectionCallback(ESP_SPP_SRV_OPEN_EVT, nullptr); // Trigger callback to bluetoothCallback()
+        return (BleSerial::connected());
     }
 
-    void onDisconnect(BLEServer *pServer)
-    {
-        connectionCallback(ESP_SPP_CLOSE_EVT, nullptr); // Trigger callback to bluetoothCallback()
-        // Server->startAdvertising(); //No longer used in v2 of BleSerial
-    }
+    // override BLEServerCallbacks
+    // void Server->onConnect(BLEServer *pServer)
+    // {
+    //     connectionCallback(ESP_SPP_SRV_OPEN_EVT, nullptr); // Trigger callback to bluetoothCallback()
+    // }
+
+    // void onDisconnect(BLEServer *pServer)
+    // {
+    //     connectionCallback(ESP_SPP_CLOSE_EVT, nullptr); // Trigger callback to bluetoothCallback()
+    //     // Server->startAdvertising(); //No longer used in v2 of BleSerial
+    // }
 
   private:
     esp_spp_cb_t connectionCallback;
