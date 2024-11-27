@@ -6,6 +6,10 @@ GNSS_ZED.ino
 
 #ifdef COMPILE_ZED
 
+extern int NTRIPCLIENT_MS_BETWEEN_GGA;
+extern NetworkClient *ntripClient;
+extern unsigned long lastGGAPush;
+
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections

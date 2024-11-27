@@ -143,7 +143,7 @@ static const int RTCM_DATA_SIZE = 512 * 4;
 // NTRIP client server request buffer size
 static const int SERVER_BUFFER_SIZE = CREDENTIALS_BUFFER_SIZE + 3;
 
-static const int NTRIPCLIENT_MS_BETWEEN_GGA = 5000; // 5s between transmission of GGA messages, if enabled
+int NTRIPCLIENT_MS_BETWEEN_GGA = 5000; // 5s between transmission of GGA messages, if enabled
 
 // NTRIP client connection delay before resetting the connect accempt counter
 static const int NTRIP_CLIENT_CONNECTION_TIME = 5 * 60 * 1000;
@@ -179,7 +179,7 @@ const RtkMode_t ntripClientMode = RTK_MODE_ROVER | RTK_MODE_BASE_SURVEY_IN;
 //----------------------------------------
 
 // The network connection to the NTRIP caster to obtain RTCM data.
-static NetworkClient *ntripClient;
+NetworkClient *ntripClient;
 static volatile uint8_t ntripClientState = NTRIP_CLIENT_OFF;
 
 // Throttle the time between connection attempts
