@@ -81,6 +81,9 @@ void bluetoothUpdate()
 bool bluetoothIsConnected()
 {
 #ifdef COMPILE_BT
+    if(bluetoothGetState() == BT_OFF)
+        return(false);
+
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {
         if (bluetoothSerialSpp->connected() == true || bluetoothSerialBle->connected() == true ||
@@ -591,36 +594,30 @@ void bluetoothStop()
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end();        // Release resources
-            bluetoothSerialBle->register_callback(nullptr);
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
             bluetoothSerialBleCommands->end();        // Release resources
-            bluetoothSerialBleCommands->register_callback(nullptr);
 
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end();        // Release resources
-            bluetoothSerialSpp->register_callback(nullptr);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
         {
             bluetoothSerialSpp->flush();      // Complete any transfers
             bluetoothSerialSpp->disconnect(); // Drop any clients
             bluetoothSerialSpp->end();        // Release resources
-            bluetoothSerialSpp->register_callback(nullptr);
         }
         else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         {
             bluetoothSerialBle->flush();      // Complete any transfers
             bluetoothSerialBle->disconnect(); // Drop any clients
             bluetoothSerialBle->end();        // Release resources
-            bluetoothSerialBle->register_callback(nullptr);
 
             bluetoothSerialBleCommands->flush();      // Complete any transfers
             bluetoothSerialBleCommands->disconnect(); // Drop any clients
             bluetoothSerialBleCommands->end();        // Release resources
-            bluetoothSerialBleCommands->register_callback(nullptr);
         }
 
         log_d("Bluetooth turned off");
