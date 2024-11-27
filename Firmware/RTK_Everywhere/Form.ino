@@ -218,7 +218,7 @@ class CaptiveRequestHandler : public RequestHandler
     {
     }
 
-    bool canHandle(HTTPMethod requestMethod, String uri) override {
+    bool canHandle(HTTPMethod requestMethod, String uri) {
         for (int i = 0; i < sizeof(urls); i++)
         {
             if (uri == urls[i])
@@ -227,7 +227,7 @@ class CaptiveRequestHandler : public RequestHandler
         return false;
     }
 
-    bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri) override
+    bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri)
     {
         String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
         if (settings.debugWebConfig == true)
