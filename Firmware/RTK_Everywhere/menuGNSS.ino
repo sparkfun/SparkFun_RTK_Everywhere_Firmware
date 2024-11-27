@@ -212,7 +212,7 @@ void menuGNSS()
                 gnss->setRate(rate_ms); 
             }
         }
-        else if (present.dynamicModel == true && incoming == 3)
+        else if (incoming == 3 && present.dynamicModel)
         {
             if (present.gnss_zedf9p)
             {

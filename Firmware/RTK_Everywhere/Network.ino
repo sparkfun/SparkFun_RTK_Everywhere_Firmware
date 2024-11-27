@@ -1309,7 +1309,7 @@ void networkUpdate()
     uint8_t priority;
     NETWORK_POLL_SEQUENCE * sequence;
 
-    // Walk the list of priorities in descending order
+    // Walk the list of network priorities in descending order
     for (priority = 0; priority < NETWORK_OFFLINE; priority++)
     {
         // Execute any active polling routine
