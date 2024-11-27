@@ -17,7 +17,7 @@ bool GNSS::configure()
     // Check various setting arrays (message rates, etc) to see if they need to be reset to defaults
     checkGNSSArrayDefaults();
 
-    // Configure the radio
+    // Configure the GNSS receiver
     return configureGNSS();
 }
 
