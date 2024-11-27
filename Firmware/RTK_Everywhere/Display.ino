@@ -1573,10 +1573,12 @@ void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconP
     }
     else
     {
+        // Display the icon (dual crosshair) for 6/8 intervals
         prop.icon = icon->iconDisplay[present.display_type];
         prop.duty = fixed ? 0b00111111 : 0b00010101;
         iconList->push_back(prop);
 
+        // Display the correction source icon for 2/8 intervals
         prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
         prop.icon.width = correctionIconAttributes[correctionSource].width;
         prop.icon.height = correctionIconAttributes[correctionSource].height;
@@ -1584,6 +1586,10 @@ void displayRTKAccuracy(std::vector<iconPropertyBlinking> *iconList, const iconP
         prop.icon.yPos += correctionIconAttributes[correctionSource].yOffset;
         prop.duty = fixed ? 0b11000000 : 0b01000000;
         iconList->push_back(prop);
+
+        // Restore the position for textCoords
+        prop.icon.xPos -= correctionIconAttributes[correctionSource].xOffset;
+        prop.icon.yPos -= correctionIconAttributes[correctionSource].yOffset;
     }
 
     displayCoords textCoords;
