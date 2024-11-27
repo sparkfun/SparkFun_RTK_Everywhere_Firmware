@@ -2718,5 +2718,199 @@ void GNSS_ZED::updateCorrectionsSource(uint8_t source)
     //_zed->softwareResetGNSSOnly(); // Restart the GNSS? Not sure if this helps...
 }
 
+// When new PMP message arrives from NEO-D9S push it back to ZED-F9P
+void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
+{
+    uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
+
+    if (correctionLastSeen(CORR_LBAND))
+    {
+#ifdef COMPILE_ZED
+        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
+#endif // COMPILE_ZED
+
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
+
+        gnss->pushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
+        gnss->pushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+    }
+    else
+    {
+        if (settings.debugCorrections == true && !inMainMenu)
+            systemPrintf("NOT pushing %d bytes of RXM-PMP data to GNSS due to priority\r\n", payloadLen);
+    }
+}
+
+// Check if the PMP data is being decrypted successfully
+// TODO: this needs more work:
+//   If the user is feeding in RTCM3 on UART2, that gets reported
+//   If the user is feeding in unencrypted SPARTN on UART2, that gets reported too
+void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
+{
+    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
+        systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
+
+    lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
+
+    if (ubxDataStruct->statusInfo.bits.msgEncrypted == 2) // If the message was encrypted
+    {
+        if (ubxDataStruct->statusInfo.bits.msgDecrypted == 2) // Successfully decrypted
+        {
+            lbandCorrectionsReceived = true;
+            lastLBandDecryption = millis();
+        }
+        else
+        {
+            if (settings.debugCorrections == true && !inMainMenu)
+                systemPrintln("PMP decryption failed");
+        }
+    }
+}
+
+//Call back for incoming GGA data to be pushed to NTRIP Caster
+void pushGPGGA(NMEA_GGA_data_t *nmeaData)
+{
+#ifdef COMPILE_NETWORK
+    // Provide the caster with our current position as needed
+    if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
+    {
+        if (millis() - lastGGAPush > NTRIPCLIENT_MS_BETWEEN_GGA)
+        {
+            lastGGAPush = millis();
+
+            if (settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA))
+            {
+                PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
+                systemPrintf("NTRIP Client pushing GGA to server: %s", (const char *)nmeaData->nmea);
+            }
+
+            // Push our current GGA sentence to caster
+            ntripClient->print((const char *)nmeaData->nmea);
+        }
+    }
+#endif //COMPILE_NETWORK
+}
+
+//ZED-F9x call back
+void eventTriggerReceived(UBX_TIM_TM2_data_t *ubxDataStruct)
+{
+    // It is the rising edge of the sound event (TRIG) which is important
+    // The falling edge is less useful, as it will be "debounced" by the loop code
+    if (ubxDataStruct->flags.bits.newRisingEdge) // 1 if a new rising edge was detected
+    {
+        systemPrintln("Rising Edge Event");
+
+        triggerCount = ubxDataStruct->count;
+        triggerTowMsR = ubxDataStruct->towMsR; // Time Of Week of rising edge (ms)
+        triggerTowSubMsR =
+            ubxDataStruct->towSubMsR;          // Millisecond fraction of Time Of Week of rising edge in nanoseconds
+        triggerAccEst = ubxDataStruct->accEst; // Nanosecond accuracy estimate
+
+        newEventToRecord = true;
+    }
+}
+
+// Given a spot in the ubxMsg array, return true if this message is supported on this platform and firmware version
+bool messageSupported(int messageNumber)
+{
+    bool messageSupported = false;
+
+    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
+        messageSupported = true;
+
+    return (messageSupported);
+}
+// Given a command key, return true if that key is supported on this platform and fimrware version
+bool commandSupported(const uint32_t key)
+{
+    bool commandSupported = false;
+
+    // Locate this key in the known key array
+    int commandNumber = 0;
+    for (; commandNumber < MAX_UBX_CMD; commandNumber++)
+    {
+        if (ubxCommands[commandNumber].cmdKey == key)
+            break;
+    }
+    if (commandNumber == MAX_UBX_CMD)
+    {
+        systemPrintf("commandSupported: Unknown command key 0x%02X\r\n", key);
+        commandSupported = false;
+    }
+    else
+    {
+        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
+            commandSupported = true;
+    }
+    return (commandSupported);
+}
+
+// Helper method to convert GNSS time and date into Unix Epoch
+void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
+{
+    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                  // Jan 1st 2020 as days from Jan 1st 1970
+    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnss->getYear() - 2020]; // Add on the number of days since 2020
+    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnss->getYear() % 4 == 0 ? 0 : 1]
+                                             [gnss->getMonth() - 1]; // Add on the number of days since Jan 1st
+    t += (uint32_t)gnss->getDay() - 1; // Add on the number of days since the 1st of the month
+    t *= 24;                           // Convert to hours
+    t += (uint32_t)gnss->getHour();    // Add on the hour
+    t *= 60;                           // Convert to minutes
+    t += (uint32_t)gnss->getMinute();  // Add on the minute
+    t *= 60;                           // Convert to seconds
+    t += (uint32_t)gnss->getSecond();  // Add on the second
+
+    int32_t us = gnss->getNanosecond() / 1000; // Convert nanos to micros
+    uint32_t micro;
+    // Adjust t if nano is negative
+    if (us < 0)
+    {
+        micro = (uint32_t)(us + 1000000); // Make nano +ve
+        t--;                              // Decrement t by 1 second
+    }
+    else
+    {
+        micro = us;
+    }
+
+    *epochSecs = t;
+    *epochMicros = micro;
+}
+
+// Set all GNSS message report rates to one value
+// Useful for turning on or off all messages for resetting and testing
+// We pass in the message array by reference so that we can modify a temp struct
+// like a dummy struct for USB message changes (all on/off) for testing
+void setGNSSMessageRates(uint8_t *localMessageRate, uint8_t msgRate)
+{
+    for (int x = 0; x < MAX_UBX_MSG; x++)
+        localMessageRate[x] = msgRate;
+}
+
+// Prompt the user to enter the message rate for a given message ID
+// Assign the given value to the message
+void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
+{
+    systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);
+    int rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+    if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
+        return;
+
+    while (rate < 0 || rate > 255) // 8 bit limit
+    {
+        systemPrintln("Error: Message rate out of range");
+        systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);
+        rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+
+        if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
+            return; // Give up
+    }
+
+    localMessageRate = rate;
+}
+
 #endif // COMPILE_ZED
 

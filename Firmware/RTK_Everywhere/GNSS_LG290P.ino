@@ -1131,11 +1131,13 @@ bool GNSS_LG290P::inRoverMode()
     return (true); // Default to Rover
 }
 
-// LG290P library doesn't block
+// If we issue a library command that must wait for a response, we don't want
+// the gnssReadTask() gobbling up the data before the library can use it
+// Check to see if the library is expecting a response
 //----------------------------------------
 bool GNSS_LG290P::isBlocking()
 {
-    return false;
+    return (_lg290p->isBlocking());
 }
 
 //----------------------------------------

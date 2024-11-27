@@ -351,7 +351,6 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include "GNSS_ZED.h"
-#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
 
 GNSS *gnss;
 
@@ -371,8 +370,6 @@ unsigned long timTpArrivalMillis;
 bool timTpUpdated;
 uint32_t timTpEpoch;
 uint32_t timTpMicros;
-
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
 
 unsigned long lastARPLog; // Time of the last ARP log event
 bool newARPAvailable;
@@ -677,9 +674,9 @@ unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
 
-// SFE_PCA95XX io; // Defaults to the PCA9554 at I2C address 0x20
-SFE_PCA95XX io(PCA95XX_PCA9557); // Create a PCA9557
+SFE_PCA95XX io(PCA95XX_PCA9554); // Create a PCA9554, default address 0x20
 
+bool gpioChanged = false; //Set by gpioExpanderISR
 uint8_t gpioExpander_previousState = 0b00011111; //Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
 unsigned long gpioExpander_holdStart[8] = {0};
 bool gpioExpander_wasReleased[8] = {false};
@@ -689,6 +686,7 @@ uint8_t gpioExpander_lastReleased = 255;
 #define GPIO_EXPANDER_BUTTON_RELEASED 1
 #define GPIO_EXPANDER_CARD_INSERTED 1
 #define GPIO_EXPANDER_CARD_REMOVED 0
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Global variables
@@ -1214,6 +1212,9 @@ void loop()
 
     DMW_c("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
+
+    DMW_c("bluetoothUpdate");
+    bluetoothUpdate(); // Check for BLE connections
 
     DMW_c("sdUpdate");
     sdUpdate(); // Check if SD needs to be started or is at max capacity

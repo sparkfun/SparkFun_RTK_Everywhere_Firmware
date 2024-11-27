@@ -190,39 +190,6 @@ void menuMessagesBaseRTCM()
     clearBuffer(); // Empty buffer of any newline chars
 }
 
-// Prompt the user to enter the message rate for a given message ID
-// Assign the given value to the message
-void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
-{
-    systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);
-    int rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-    if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
-        return;
-
-    while (rate < 0 || rate > 255) // 8 bit limit
-    {
-        systemPrintln("Error: Message rate out of range");
-        systemPrintf("Enter %s message rate (0 to disable): ", ubxMessages[messageNumber].msgTextName);
-        rate = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-
-        if (rate == INPUT_RESPONSE_GETNUMBER_TIMEOUT || rate == INPUT_RESPONSE_GETNUMBER_EXIT)
-            return; // Give up
-    }
-
-    localMessageRate = rate;
-}
-
-// Set all GNSS message report rates to one value
-// Useful for turning on or off all messages for resetting and testing
-// We pass in the message array by reference so that we can modify a temp struct
-// like a dummy struct for USB message changes (all on/off) for testing
-void setGNSSMessageRates(uint8_t *localMessageRate, uint8_t msgRate)
-{
-    for (int x = 0; x < MAX_UBX_MSG; x++)
-        localMessageRate[x] = msgRate;
-}
-
 // Creates a log if logging is enabled, and SD is detected
 // Based on GPS data/time, create a log file in the format SFE_Everywhere_YYMMDD_HHMMSS.ubx
 bool beginLogging()

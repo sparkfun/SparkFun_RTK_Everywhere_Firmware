@@ -68,8 +68,14 @@ void powerDown(bool displayInfo)
     {
         // We should never get here but good to know if we do
         systemPrintln("Device powered down");
-        delay(250);
+        delay(5000);
     }
+}
+
+// Interrupt that is called when INT pin goes low
+void IRAM_ATTR gpioExpanderISR()
+{
+    gpioChanged = true;
 }
 
 // Start the I2C expander if possible
@@ -85,9 +91,8 @@ bool beginGpioExpander(uint8_t padAddress)
         io.pinMode(gpioExpander_center, INPUT);
         io.pinMode(gpioExpander_cardDetect, INPUT);
 
-        // By default, on the PA9557, IO pins 4567 are inverted
-        io.revert(gpioExpander_center);     // Set to not inverted
-        io.revert(gpioExpander_cardDetect); // Set to not inverted
+        pinMode(pin_gpioExpanderInterrupt, INPUT_PULLUP);
+        attachInterrupt(pin_gpioExpanderInterrupt, gpioExpanderISR, CHANGE);
 
         systemPrintln("Directional pad online");
 
@@ -95,14 +100,6 @@ bool beginGpioExpander(uint8_t padAddress)
         return (true);
     }
     return (false);
-}
-
-// Read the GPIO expander
-// Called from change interrupt on pin ESP14
-void gpioExpanderIsr()
-{
-    if (online.gpioExpander == false)
-        return;
 }
 
 // Update the status of the button library
@@ -113,9 +110,11 @@ void buttonRead()
     if (online.button == true)
         userBtn->read();
 
-    // Check directional pad
-    if (online.gpioExpander == true)
+    // Check directional pad once interrupt has occurred
+    if (online.gpioExpander == true && gpioChanged == true)
     {
+        gpioChanged = false;
+
         // Get all the pins in one read
         uint8_t currentState = io.getInputRegister() & 0b00111111; // Ignore unconnected GPIO6/7
 
@@ -155,7 +154,7 @@ bool buttonReleased()
     // Check directional pad
     if (online.gpioExpander == true)
     {
-        //Check for any button press on the directional pad
+        // Check for any button press on the directional pad
         for (int buttonNumber = 0; buttonNumber < 5; buttonNumber++)
         {
             if (buttonReleased(buttonNumber) == true)
@@ -221,8 +220,5 @@ bool buttonPressedFor(uint8_t buttonNumber, uint16_t maxTime)
 // Returns 255 if no button pressed yet
 uint8_t buttonLastPressed()
 {
-    // uint8_t lastButtonPressed = gpioExpander_lastReleased;
-    // gpioExpander_lastReleased = 255; //Reset for the next read
-    // return (lastButtonPressed);
     return (gpioExpander_lastReleased);
 }

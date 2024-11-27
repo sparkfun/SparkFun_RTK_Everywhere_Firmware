@@ -3,6 +3,7 @@
 
 #include "GNSS.h"
 #include "GNSS_None.h"
+#include "GNSS_ZED.h" //Structs of ZED messages, needed for settings.h
 #include "GNSS_UM980.h" //Structs of UM980 messages, needed for settings.h
 #include "GNSS_Mosaic.h" //Structs of mosaic messages, needed for settings.h
 #include "GNSS_LG290P.h" //Structs of LG90P messages, needed for settings.h
@@ -434,6 +435,7 @@ typedef enum
 {
     PRINT_ENDPOINT_SERIAL = 0,
     PRINT_ENDPOINT_BLUETOOTH,
+    PRINT_ENDPOINT_BLUETOOTH_COMMAND,
     PRINT_ENDPOINT_ALL,
 } PrintEndpoint;
 PrintEndpoint printEndpoint = PRINT_ENDPOINT_SERIAL; // Controls where the configuration menu gets piped to
@@ -481,21 +483,6 @@ typedef enum
     FUNCTION_NTPEVENT,
 } SemaphoreFunction;
 
-#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3
-
-// Each constellation will have its config key, enable, and a visible name
-typedef struct
-{
-    uint32_t configKey;
-    uint8_t gnssID;
-    bool enabled;
-    char textName[30];
-} ubxConstellation;
-
-// These are the allowable constellations to receive from and log (if enabled)
-// Tested with u-center v21.02
-#define MAX_UBX_CONSTELLATIONS 6 // Should be (sizeof(settings.ubxConstellations)/sizeof(ubxConstellation)). Tricky...
-
 // Print the base coordinates in different formats, depending on the type the user has entered
 // These are the different supported types
 typedef enum
@@ -523,7 +510,6 @@ typedef enum
     SETTING_KNOWN_STRING,
 } SettingValueResponse;
 
-#define UBX_ID_NOT_AVAILABLE 0xFF
 
 #define INCHES_IN_A_METER   39.37007874
 #define FEET_IN_A_METER     3.280839895
@@ -553,332 +539,6 @@ const measurementScaleEntry measurementScaleTable[] = {
     { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
 };
 const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
-
-// These are the allowable messages to broadcast and log (if enabled)
-
-// Struct to describe the necessary info for each type of UBX message
-// Each message will have a key, ID, class, visible name, and various info about which platforms the message is
-// supported on Message rates are store within NVM
-typedef struct
-{
-    const uint32_t msgConfigKey;
-    const uint8_t msgID;
-    const uint8_t msgClass;
-    const uint8_t msgDefaultRate;
-    const char msgTextName[20];
-    const uint32_t filterMask;
-    const uint16_t f9pFirmwareVersionSupported; // The minimum version this message is supported. 0 = all versions. 9999
-                                                // = Not supported
-    const uint16_t f9rFirmwareVersionSupported;
-} ubxMsg;
-
-// Static array containing all the compatible messages
-const ubxMsg ubxMessages[] = {
-    // AID
-
-    // ESF
-    {UBLOX_CFG_MSGOUT_UBX_ESF_ALG_UART1, UBX_ESF_ALG, UBX_CLASS_ESF, 0, "ESF_ALG", 0, 9999,
-     120}, // Not supported on F9P
-    {UBLOX_CFG_MSGOUT_UBX_ESF_INS_UART1, UBX_ESF_INS, UBX_CLASS_ESF, 0, "ESF_INS", 0, 9999, 120},
-    {UBLOX_CFG_MSGOUT_UBX_ESF_MEAS_UART1, UBX_ESF_MEAS, UBX_CLASS_ESF, 0, "ESF_MEAS", 0, 9999, 120},
-    {UBLOX_CFG_MSGOUT_UBX_ESF_RAW_UART1, UBX_ESF_RAW, UBX_CLASS_ESF, 0, "ESF_RAW", 0, 9999, 120},
-    {UBLOX_CFG_MSGOUT_UBX_ESF_STATUS_UART1, UBX_ESF_STATUS, UBX_CLASS_ESF, 0, "ESF_STATUS", 0, 9999, 120},
-
-    // HNR
-
-    // LOG
-    // F9P supports LOG_INFO at 112
-
-    // MON
-    {UBLOX_CFG_MSGOUT_UBX_MON_COMMS_UART1, UBX_MON_COMMS, UBX_CLASS_MON, 0, "MON_COMMS", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_HW_UART1, UBX_MON_HW, UBX_CLASS_MON, 0, "MON_HW", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_HW2_UART1, UBX_MON_HW2, UBX_CLASS_MON, 0, "MON_HW2", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_HW3_UART1, UBX_MON_HW3, UBX_CLASS_MON, 0, "MON_HW3", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_IO_UART1, UBX_MON_IO, UBX_CLASS_MON, 0, "MON_IO", 0, 112, 120},
-
-    {UBLOX_CFG_MSGOUT_UBX_MON_MSGPP_UART1, UBX_MON_MSGPP, UBX_CLASS_MON, 0, "MON_MSGPP", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_RF_UART1, UBX_MON_RF, UBX_CLASS_MON, 0, "MON_RF", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_RXBUF_UART1, UBX_MON_RXBUF, UBX_CLASS_MON, 0, "MON_RXBUF", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_RXR_UART1, UBX_MON_RXR, UBX_CLASS_MON, 0, "MON_RXR", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_MON_SPAN_UART1, UBX_MON_SPAN, UBX_CLASS_MON, 0, "MON_SPAN", 0, 113,
-     120}, // Not supported F9P 112
-
-    {UBLOX_CFG_MSGOUT_UBX_MON_SYS_UART1, UBX_MON_SYS, UBX_CLASS_MON, 0, "MON_SYS", 0, 9999,
-     130}, // Not supported F9R 121, F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_MON_TXBUF_UART1, UBX_MON_TXBUF, UBX_CLASS_MON, 0, "MON_TXBUF", 0, 112, 120},
-
-    // NAV2
-    // F9P not supported 112, 113, 120. Supported starting 130. F9P 130, 132 supports all but not EELL, PVAT, TIMENAVIC
-    // F9R not supported 120. Supported starting 130. F9R 130 supports EELL, PVAT but not SVIN, TIMENAVIC.
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_CLOCK_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_CLOCK", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_COV_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_COV", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_DOP_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_DOP", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_EELL_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_EELL", 0, 9999,
-     130}, // Not supported F9P
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_EOE_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_EOE", 0, 130, 130},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_ODO_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_ODO", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_POSECEF_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_POSECEF", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_POSLLH_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_POSLLH", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_PVAT_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_PVAT", 0, 9999,
-     130}, // Not supported F9P
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_PVT_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_PVT", 0, 130, 130},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_SAT_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_SAT", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_SBAS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_SBAS", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_SIG_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_SIG", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_SLAS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_SLAS", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_STATUS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_STATUS", 0, 130, 130},
-
-    //{UBLOX_CFG_MSGOUT_UBX_NAV2_SVIN_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_SVIN", 0, 9999, 9999},
-    ////No support yet
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEBDS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEBDS", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEGAL_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEGAL", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEGLO_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEGLO", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEGPS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEGPS", 0, 130, 130},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMELS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMELS", 0, 130, 130},
-    //{UBLOX_CFG_MSGOUT_UBX_NAV2_TIMENAVIC_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMENAVIC", 0, 9999,
-    // 9999}, //No support yet
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEQZSS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEQZSS", 0, 130,
-     130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEUTC_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEUTC", 0, 130, 130},
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_VELECEF_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_VELECEF", 0, 130, 130},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_VELNED_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_VELNED", 0, 130, 130},
-
-    // NAV
-    //{UBLOX_CFG_MSGOUT_UBX_NAV_AOPSTATUS_UART1, UBX_NAV_AOPSTATUS, UBX_CLASS_NAV, 0, "NAV_AOPSTATUS", 0, 9999,
-    // 9999}, //Not supported on F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_ATT_UART1, UBX_NAV_ATT, UBX_CLASS_NAV, 0, "NAV_ATT", 0, 9999,
-     120}, // Not supported on F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_CLOCK_UART1, UBX_NAV_CLOCK, UBX_CLASS_NAV, 0, "NAV_CLOCK", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_COV_UART1, UBX_NAV_COV, UBX_CLASS_NAV, 0, "NAV_COV", 0, 112, 120},
-    //{UBLOX_CFG_MSGOUT_UBX_NAV_DGPS_UART1, UBX_NAV_DGPS, UBX_CLASS_NAV, 0, "NAV_DGPS", 0, 9999, 9999}, //Not
-    // supported on F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_DOP_UART1, UBX_NAV_DOP, UBX_CLASS_NAV, 0, "NAV_DOP", 0, 112, 120},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV_EELL_UART1, UBX_NAV_EELL, UBX_CLASS_NAV, 0, "NAV_EELL", 0, 9999,
-     120}, // Not supported on F9P
-    {UBLOX_CFG_MSGOUT_UBX_NAV_EOE_UART1, UBX_NAV_EOE, UBX_CLASS_NAV, 0, "NAV_EOE", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_GEOFENCE_UART1, UBX_NAV_GEOFENCE, UBX_CLASS_NAV, 0, "NAV_GEOFENCE", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSECEF_UART1, UBX_NAV_HPPOSECEF, UBX_CLASS_NAV, 0, "NAV_HPPOSECEF", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_UART1, UBX_NAV_HPPOSLLH, UBX_CLASS_NAV, 0, "NAV_HPPOSLLH", 0, 112, 120},
-
-    //{UBLOX_CFG_MSGOUT_UBX_NAV_NMI_UART1, UBX_NAV_NMI, UBX_CLASS_NAV, 0, "NAV_NMI", 0, 9999, 9999}, //Not supported
-    // on F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_ODO_UART1, UBX_NAV_ODO, UBX_CLASS_NAV, 0, "NAV_ODO", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_ORB_UART1, UBX_NAV_ORB, UBX_CLASS_NAV, 0, "NAV_ORB", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_PL_UART1, UBX_NAV_PL, UBX_CLASS_NAV, 0, "NAV_PL", 0, 9999,
-     130}, // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_POSECEF_UART1, UBX_NAV_POSECEF, UBX_CLASS_NAV, 0, "NAV_POSECEF", 0, 112, 120},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV_POSLLH_UART1, UBX_NAV_POSLLH, UBX_CLASS_NAV, 0, "NAV_POSLLH", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_PVAT_UART1, UBX_NAV_PVAT, UBX_CLASS_NAV, 0, "NAV_PVAT", 0, 9999,
-     121}, // Not supported on F9P 112, 113, 120, 130, F9R 120
-    {UBLOX_CFG_MSGOUT_UBX_NAV_PVT_UART1, UBX_NAV_PVT, UBX_CLASS_NAV, 0, "NAV_PVT", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMEQZSS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV_QZSS", 0, 113,
-     130}, // Not supported F9R 121 or F9P 112
-    {UBLOX_CFG_MSGOUT_UBX_NAV_RELPOSNED_UART1, UBX_NAV_RELPOSNED, UBX_CLASS_NAV, 0, "NAV_RELPOSNED", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_SAT_UART1, UBX_NAV_SAT, UBX_CLASS_NAV, 0, "NAV_SAT", 0, 112, 120},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV_SBAS_UART1, UBX_NAV_SBAS, UBX_CLASS_NAV, 0, "NAV_SBAS", 0, 113,
-     120}, // Not supported F9P 112
-    {UBLOX_CFG_MSGOUT_UBX_NAV_SIG_UART1, UBX_NAV_SIG, UBX_CLASS_NAV, 0, "NAV_SIG", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_SLAS_UART1, UBX_NAV_SLAS, UBX_CLASS_NAV, 0, "NAV_SLAS", 0, 113,
-     130}, // Not supported F9R 121 or F9P 112
-           //{UBLOX_CFG_MSGOUT_UBX_NAV_SOL_UART1, UBX_NAV_SOL, UBX_CLASS_NAV, 0, "NAV_SOL", 0, 9999, 9999}, //Not
-           // supported F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_STATUS_UART1, UBX_NAV_STATUS, UBX_CLASS_NAV, 0, "NAV_STATUS", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_SVIN_UART1, UBX_NAV_SVIN, UBX_CLASS_NAV, 0, "NAV_SVIN", 0, 112,
-     9999}, // Not supported on F9R 120, 121, 130
-    //{UBLOX_CFG_MSGOUT_UBX_NAV_SVINFO_UART1, UBX_NAV_SVINFO, UBX_CLASS_NAV, 0, "NAV_SVINFO", 0, 9999, 9999}, //Not
-    // supported F9R 120 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMEBDS_UART1, UBX_NAV_TIMEBDS, UBX_CLASS_NAV, 0, "NAV_TIMEBDS", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMEGAL_UART1, UBX_NAV_TIMEGAL, UBX_CLASS_NAV, 0, "NAV_TIMEGAL", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMEGLO_UART1, UBX_NAV_TIMEGLO, UBX_CLASS_NAV, 0, "NAV_TIMEGLO", 0, 112, 120},
-
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMEGPS_UART1, UBX_NAV_TIMEGPS, UBX_CLASS_NAV, 0, "NAV_TIMEGPS", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMELS_UART1, UBX_NAV_TIMELS, UBX_CLASS_NAV, 0, "NAV_TIMELS", 0, 112, 120},
-    //{UBLOX_CFG_MSGOUT_UBX_NAV_TIMENAVIC_UART1, UBX_NAV_TIMENAVIC, UBX_CLASS_NAV, 0, "NAV_TIMENAVIC", 0, 9999,
-    // 9999}, //Not supported F9R 121 or F9P 132
-    {UBLOX_CFG_MSGOUT_UBX_NAV_TIMEUTC_UART1, UBX_NAV_TIMEUTC, UBX_CLASS_NAV, 0, "NAV_TIMEUTC", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_VELECEF_UART1, UBX_NAV_VELECEF, UBX_CLASS_NAV, 0, "NAV_VELECEF", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_NAV_VELNED_UART1, UBX_NAV_VELNED, UBX_CLASS_NAV, 0, "NAV_VELNED", 0, 112, 120},
-
-    // NMEA NAV2
-    // F9P not supported 112, 113, 120. Supported starting 130.
-    // F9R not supported 120. Supported starting 130.
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_GGA_UART1, UBX_NMEA_GGA, UBX_CLASS_NMEA, 0, "NMEANAV2_GGA",
-     SFE_UBLOX_FILTER_NMEA_GGA, 130, 130},
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_GLL_UART1, UBX_NMEA_GLL, UBX_CLASS_NMEA, 0, "NMEANAV2_GLL",
-     SFE_UBLOX_FILTER_NMEA_GLL, 130, 130},
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_GNS_UART1, UBX_NMEA_GNS, UBX_CLASS_NMEA, 0, "NMEANAV2_GNS",
-     SFE_UBLOX_FILTER_NMEA_GNS, 130, 130},
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_GSA_UART1, UBX_NMEA_GSA, UBX_CLASS_NMEA, 0, "NMEANAV2_GSA",
-     SFE_UBLOX_FILTER_NMEA_GSA, 130, 130},
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_RMC_UART1, UBX_NMEA_RMC, UBX_CLASS_NMEA, 0, "NMEANAV2_RMC",
-     SFE_UBLOX_FILTER_NMEA_RMC, 130, 130},
-
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_VTG_UART1, UBX_NMEA_VTG, UBX_CLASS_NMEA, 0, "NMEANAV2_VTG",
-     SFE_UBLOX_FILTER_NMEA_VTG, 130, 130},
-    {UBLOX_CFG_MSGOUT_NMEA_NAV2_ID_ZDA_UART1, UBX_NMEA_ZDA, UBX_CLASS_NMEA, 0, "NMEANAV2_ZDA",
-     SFE_UBLOX_FILTER_NMEA_ZDA, 130, 130},
-
-    // NMEA
-    {UBLOX_CFG_MSGOUT_NMEA_ID_DTM_UART1, UBX_NMEA_DTM, UBX_CLASS_NMEA, 0, "NMEA_DTM", SFE_UBLOX_FILTER_NMEA_DTM,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GBS_UART1, UBX_NMEA_GBS, UBX_CLASS_NMEA, 0, "NMEA_GBS", SFE_UBLOX_FILTER_NMEA_GBS,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, UBX_NMEA_GGA, UBX_CLASS_NMEA, 1, "NMEA_GGA", SFE_UBLOX_FILTER_NMEA_GGA,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1, UBX_NMEA_GLL, UBX_CLASS_NMEA, 0, "NMEA_GLL", SFE_UBLOX_FILTER_NMEA_GLL,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GNS_UART1, UBX_NMEA_GNS, UBX_CLASS_NMEA, 0, "NMEA_GNS", SFE_UBLOX_FILTER_NMEA_GNS,
-     112, 120},
-
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GRS_UART1, UBX_NMEA_GRS, UBX_CLASS_NMEA, 0, "NMEA_GRS", SFE_UBLOX_FILTER_NMEA_GRS,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1, UBX_NMEA_GSA, UBX_CLASS_NMEA, 1, "NMEA_GSA", SFE_UBLOX_FILTER_NMEA_GSA,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, UBX_NMEA_GST, UBX_CLASS_NMEA, 1, "NMEA_GST", SFE_UBLOX_FILTER_NMEA_GST,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GSV_UART1, UBX_NMEA_GSV, UBX_CLASS_NMEA, 4, "NMEA_GSV", SFE_UBLOX_FILTER_NMEA_GSV,
-     112, 120}, // Default to 1 update every 4 fixes
-    {UBLOX_CFG_MSGOUT_NMEA_ID_RLM_UART1, UBX_NMEA_RLM, UBX_CLASS_NMEA, 0, "NMEA_RLM", SFE_UBLOX_FILTER_NMEA_RLM,
-     113, 120}, // No F9P 112 support
-
-    {UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, UBX_NMEA_RMC, UBX_CLASS_NMEA, 1, "NMEA_RMC", SFE_UBLOX_FILTER_NMEA_RMC,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_THS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NMEA, 0, "NMEA_THS",
-     SFE_UBLOX_FILTER_NMEA_THS, 9999, 120}, // Not supported F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_NMEA_ID_VLW_UART1, UBX_NMEA_VLW, UBX_CLASS_NMEA, 0, "NMEA_VLW", SFE_UBLOX_FILTER_NMEA_VLW,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, UBX_NMEA_VTG, UBX_CLASS_NMEA, 0, "NMEA_VTG", SFE_UBLOX_FILTER_NMEA_VTG,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_ZDA_UART1, UBX_NMEA_ZDA, UBX_CLASS_NMEA, 0, "NMEA_ZDA", SFE_UBLOX_FILTER_NMEA_ZDA,
-     112, 120},
-
-    // PUBX
-    // F9P support 130
-    {UBLOX_CFG_MSGOUT_PUBX_ID_POLYP_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_PUBX, 0, "PUBX_POLYP", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_PUBX_ID_POLYS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_PUBX, 0, "PUBX_POLYS", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_PUBX_ID_POLYT_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_PUBX, 0, "PUBX_POLYT", 0, 112, 120},
-
-    // RTCM
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1005_UART1, UBX_RTCM_1005, UBX_RTCM_MSB, 1, "RTCM_1005",
-     SFE_UBLOX_FILTER_RTCM_TYPE1005, 112, 9999}, // Not supported on F9R
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1074_UART1, UBX_RTCM_1074, UBX_RTCM_MSB, 1, "RTCM_1074",
-     SFE_UBLOX_FILTER_RTCM_TYPE1074, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1077_UART1, UBX_RTCM_1077, UBX_RTCM_MSB, 0, "RTCM_1077",
-     SFE_UBLOX_FILTER_RTCM_TYPE1077, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1084_UART1, UBX_RTCM_1084, UBX_RTCM_MSB, 1, "RTCM_1084",
-     SFE_UBLOX_FILTER_RTCM_TYPE1084, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1087_UART1, UBX_RTCM_1087, UBX_RTCM_MSB, 0, "RTCM_1087",
-     SFE_UBLOX_FILTER_RTCM_TYPE1087, 112, 9999},
-
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1094_UART1, UBX_RTCM_1094, UBX_RTCM_MSB, 1, "RTCM_1094",
-     SFE_UBLOX_FILTER_RTCM_TYPE1094, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1097_UART1, UBX_RTCM_1097, UBX_RTCM_MSB, 0, "RTCM_1097",
-     SFE_UBLOX_FILTER_RTCM_TYPE1097, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1124_UART1, UBX_RTCM_1124, UBX_RTCM_MSB, 1, "RTCM_1124",
-     SFE_UBLOX_FILTER_RTCM_TYPE1124, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1127_UART1, UBX_RTCM_1127, UBX_RTCM_MSB, 0, "RTCM_1127",
-     SFE_UBLOX_FILTER_RTCM_TYPE1127, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE1230_UART1, UBX_RTCM_1230, UBX_RTCM_MSB, 10, "RTCM_1230",
-     SFE_UBLOX_FILTER_RTCM_TYPE1230, 112, 9999},
-
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE4072_0_UART1, UBX_RTCM_4072_0, UBX_RTCM_MSB, 0, "RTCM_4072_0",
-     SFE_UBLOX_FILTER_RTCM_TYPE4072_0, 112, 9999},
-    {UBLOX_CFG_MSGOUT_RTCM_3X_TYPE4072_1_UART1, UBX_RTCM_4072_1, UBX_RTCM_MSB, 0, "RTCM_4072_1",
-     SFE_UBLOX_FILTER_RTCM_TYPE4072_1, 112, 9999},
-
-    // RXM
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_ALM_UART1, UBX_RXM_ALM, UBX_CLASS_RXM, 0, "RXM_ALM", 0, 9999, 9999}, //Not supported
-        // F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_RXM_COR_UART1, UBX_RXM_COR, UBX_CLASS_RXM, 0, "RXM_COR", 0, 9999,
-     130}, // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_EPH_UART1, UBX_RXM_EPH, UBX_CLASS_RXM, 0, "RXM_EPH", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_IMES_UART1, UBX_RXM_IMES, UBX_CLASS_RXM, 0, "RXM_IMES", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEAS20_UART1, UBX_RXM_MEAS20, UBX_CLASS_RXM, 0, "RXM_MEAS20", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEAS50_UART1, UBX_RXM_MEAS50, UBX_CLASS_RXM, 0, "RXM_MEAS50", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEASC12_UART1, UBX_RXM_MEASC12, UBX_CLASS_RXM, 0, "RXM_MEASC12", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEASD12_UART1, UBX_RXM_MEASD12, UBX_CLASS_RXM, 0, "RXM_MEASD12", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_UBX_RXM_MEASX_UART1, UBX_RXM_MEASX, UBX_CLASS_RXM, 0, "RXM_MEASX", 0, 112, 120},
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, UBX_RXM_PMP, UBX_CLASS_RXM, 0, "RXM_PMP", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_QZSSL6_UART1, UBX_RXM_QZSSL6, UBX_CLASS_RXM, 0, "RXM_QZSSL6", 0, 9999, 9999},
-        // Not supported F9R 121, F9P 112, 113, 120, 130
-    {UBLOX_CFG_MSGOUT_UBX_RXM_RAWX_UART1, UBX_RXM_RAWX, UBX_CLASS_RXM, 0, "RXM_RAWX", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_RXM_RLM_UART1, UBX_RXM_RLM, UBX_CLASS_RXM, 0, "RXM_RLM", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_RXM_RTCM_UART1, UBX_RXM_RTCM, UBX_CLASS_RXM, 0, "RXM_RTCM", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_RXM_SFRBX_UART1, UBX_RXM_SFRBX, UBX_CLASS_RXM, 0, "RXM_SFRBX", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_RXM_SPARTN_UART1, UBX_RXM_SPARTN, UBX_CLASS_RXM, 0, "RXM_SPARTN", 0, 9999,
-     121}, // Not supported F9R 120 or F9P 112, 113, 120, 130
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_SVSI_UART1, UBX_RXM_SVSI, UBX_CLASS_RXM, 0, "RXM_SVSI", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_TM_UART1, UBX_RXM_TM, UBX_CLASS_RXM, 0, "RXM_TM", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-
-    // SEC
-    // No support F9P 112.
-
-    // TIM
-    //{UBLOX_CFG_MSGOUT_UBX_TIM_SVIN_UART1, UBX_TIM_SVIN, UBX_CLASS_TIM, 0, "TIM_SVIN", 0, 9999, 9999}, //Appears on
-    // F9P 132 but not supported
-    {UBLOX_CFG_MSGOUT_UBX_TIM_TM2_UART1, UBX_TIM_TM2, UBX_CLASS_TIM, 0, "TIM_TM2", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_TIM_TP_UART1, UBX_TIM_TP, UBX_CLASS_TIM, 0, "TIM_TP", 0, 112, 120},
-    {UBLOX_CFG_MSGOUT_UBX_TIM_VRFY_UART1, UBX_TIM_VRFY, UBX_CLASS_TIM, 0, "TIM_VRFY", 0, 112, 120},
-};
-
-#define MAX_UBX_MSG (sizeof(ubxMessages) / sizeof(ubxMsg))
-#define MAX_UBX_MSG_RTCM (12)
-
-#define MAX_SET_MESSAGES_RETRIES 5 // Try up to five times to set all the messages. Occasionally fails if set to 2
-
-// Struct to describe the necessary info for each UBX command
-// Each command will have a key, and minimum F9P/F9R versions that support that command
-typedef struct
-{
-    const uint32_t cmdKey;
-    const char cmdTextName[30];
-    const uint16_t f9pFirmwareVersionSupported; // The minimum version this message is supported. 0 = all versions. 9999
-                                                // = Not supported
-    const uint16_t f9rFirmwareVersionSupported;
-} ubxCmd;
-
-// Static array containing all the compatible commands
-const ubxCmd ubxCommands[] = {
-    {UBLOX_CFG_TMODE_MODE, "CFG_TMODE_MODE", 0, 9999}, // Survey mode is only available on ZED-F9P modules
-
-    {UBLOX_CFG_UART1OUTPROT_RTCM3X, "CFG_UART1OUTPROT_RTCM3X", 0, 9999}, // RTCM not supported on F9R
-    {UBLOX_CFG_UART1INPROT_SPARTN, "CFG_UART1INPROT_SPARTN", 120,
-     9999}, // Supported on F9P 120 and up. Not supported on F9R 120.
-
-    {UBLOX_CFG_UART2OUTPROT_RTCM3X, "CFG_UART2OUTPROT_RTCM3X", 0, 9999}, // RTCM not supported on F9R
-    {UBLOX_CFG_UART2INPROT_SPARTN, "CFG_UART2INPROT_SPARTN", 120, 9999}, //
-
-    {UBLOX_CFG_SPIOUTPROT_RTCM3X, "CFG_SPIOUTPROT_RTCM3X", 0, 9999}, // RTCM not supported on F9R
-    {UBLOX_CFG_SPIINPROT_SPARTN, "CFG_SPIINPROT_SPARTN", 120, 9999}, //
-
-    {UBLOX_CFG_I2COUTPROT_RTCM3X, "CFG_I2COUTPROT_RTCM3X", 0, 9999}, // RTCM not supported on F9R
-    {UBLOX_CFG_I2CINPROT_SPARTN, "CFG_I2CINPROT_SPARTN", 120, 9999}, //
-
-    {UBLOX_CFG_USBOUTPROT_RTCM3X, "CFG_USBOUTPROT_RTCM3X", 0, 9999}, // RTCM not supported on F9R
-    {UBLOX_CFG_USBINPROT_SPARTN, "CFG_USBINPROT_SPARTN", 120, 9999}, //
-
-    {UBLOX_CFG_NAV2_OUT_ENABLED, "CFG_NAV2_OUT_ENABLED", 130,
-     130}, // Supported on F9P 130 and up. Supported on F9R 130 and up.
-    {UBLOX_CFG_NAVSPG_INFIL_MINCNO, "CFG_NAVSPG_INFIL_MINCNO", 0, 0}, //
-};
-
-#define MAX_UBX_CMD (sizeof(ubxCommands) / sizeof(ubxCmd))
 
 #ifdef COMPILE_OTA_AUTO
 
@@ -1002,6 +662,15 @@ struct Settings
     uint32_t autoFirmwareCheckMinutes = 24 * 60;
     bool debugFirmwareUpdate = false;
     bool enableAutoFirmwareUpdate = false;
+
+    // GNSS
+    muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
+    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
+    bool enablePrintPosition = false;
+    uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
+    uint16_t navigationRate =
+        1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
+    bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -1179,15 +848,6 @@ struct Settings
     pulseEdgeType_e externalPulsePolarity = PULSE_RISING_EDGE; // Pulse rises for pulse length, then falls
     uint64_t externalPulseTimeBetweenPulse_us = 1000000;       // us between pulses, max of 60s = 60 * 1000 * 1000
 
-    // Radio
-    muxConnectionType_e dataPortChannel = MUX_GNSS_UART; // Mux default to GNSS UART
-    bool debugGnss = false;                          // Turn on to display GNSS library debug messages
-    bool enablePrintPosition = false;
-    uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
-    uint16_t navigationRate =
-        1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
-
     // Ring Buffer
     bool enablePrintRingBufferOffsets = false;
     int gnssHandlerBufferSize =
@@ -1241,7 +901,7 @@ struct Settings
     int8_t timeZoneMinutes = 0;
     int8_t timeZoneSeconds = 0;
 
-    // UBX (SX1276)
+    // UBX
 #ifdef COMPILE_ZED
     ubxConstellation ubxConstellations[MAX_UBX_CONSTELLATIONS] = { // Constellations monitored/used for fix
         {UBLOX_CFG_SIGNAL_BDS_ENA, SFE_UBLOX_GNSS_ID_BEIDOU, true, "BeiDou"},
@@ -1402,10 +1062,12 @@ typedef enum {
     tNSCUsrPw,
     tNSMtPt,
     tNSMtPtPw,
+
     tUmMRNmea,
     tUmMRRvRT,
     tUmMRBaRT,
     tUmConst,
+
     tCorrSPri,
     tRegCorTp,
     tMosaicConst,
@@ -1415,6 +1077,10 @@ typedef enum {
     tMosaicMIBaRT,
     tMosaicMERvRT,
     tMosaicMEBaRT,
+    tLgMRNmea,
+    tLgMRRvRT,
+    tLgMRBaRT,
+    tLgConst,
     // Add new settings types above <---------------->
     // (Maintain the enum of existing settings types!)
 } RTK_Settings_Types;
@@ -1443,9 +1109,22 @@ typedef struct
 #define COMMAND_UNKNOWN             (COMMAND_DEVICE_ID - 1)
 #define COMMAND_COUNT               (-(COMMAND_UNKNOWN))
 
+// Exit types for processCommand
+typedef enum
+{
+    CLI_UNKNOWN = 0,
+    CLI_ERROR, // 1
+    CLI_OK,    // 2
+    CLI_BAD_FORMAT,
+    CLI_UNKNOWN_SETTING,
+    CLI_UNKNOWN_COMMAND,
+    CLI_EXIT,
+    CLI_LIST,
+} t_cliResult;
+
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
-// updateGNSS =
+// updateGNSS = A setting, if changed, that forces a GNSS receiver reconfig at next boot
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
 // inCommands = Should this setting be exposed over the CLI
 // useSuffix = Setting has an additional array to search
@@ -1925,6 +1604,29 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _int,      3, & settings.loraSerialInteractionTimeout_s, "loraSerialInteractionTimeout_s",  },
     { 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     3, & settings.enableMultipathMitigation, "enableMultipathMitigation",  },
 
+//                            F
+//                            a
+//                      F     c
+//       i              a     e
+//    u  n  i           c     t
+//    p  W  n  u        e
+//    d  e  C  s     F  t     V  P
+//    a  b  o  e     a        2  o
+//    t  C  m  S     c  M        s
+//    e  o  m  u     e  o  T  L  t
+//    G  n  a  f     t  s  o  B  c
+//    N  f  n  f  E     a  r  a  a
+//    S  i  d  i  v  V  i  c  n  r
+//    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
+
+#ifdef  COMPILE_LG290P
+    { 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_",  },
+    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_",  },
+#endif  // COMPILE_UM980
+
+
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
 //                            F
@@ -2177,6 +1879,7 @@ struct struct_tasks
 {
     volatile bool gnssUartPinnedTaskRunning = false;
     volatile bool i2cPinnedTaskRunning = false;
+    volatile bool bluetoothCommandTaskRunning = false;
     volatile bool btReadTaskRunning = false;
     volatile bool buttonCheckTaskRunning = false;
     volatile bool gnssReadTaskRunning = false;
@@ -2187,6 +1890,7 @@ struct struct_tasks
     volatile bool updatePplTaskRunning = false;
     volatile bool updateWebServerTaskRunning = false;
 
+    bool bluetoothCommandTaskStopRequest = false;
     bool btReadTaskStopRequest = false;
     bool buttonCheckTaskStopRequest = false;
     bool gnssReadTaskStopRequest = false;

@@ -61,7 +61,6 @@ void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
-void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // NTRIP server
@@ -241,3 +240,27 @@ void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 void lg290pHandler(uint8_t * buffer, int length) {}
 
 #endif // COMPILE_LG290P
+
+//----------------------------------------
+// ZED-F9x
+//----------------------------------------
+
+#ifndef COMPILE_ZED
+
+// MON HW Antenna Status
+enum sfe_ublox_antenna_status_e
+{
+  SFE_UBLOX_ANTENNA_STATUS_INIT,
+  SFE_UBLOX_ANTENNA_STATUS_DONTKNOW,
+  SFE_UBLOX_ANTENNA_STATUS_OK,
+  SFE_UBLOX_ANTENNA_STATUS_SHORT,
+  SFE_UBLOX_ANTENNA_STATUS_OPEN
+};
+
+uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
+
+// void checkRXMCOR() {}
+// void pushRXMPMP() {}
+void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {}
+
+#endif // COMPILE_ZED

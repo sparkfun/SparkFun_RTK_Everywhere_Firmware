@@ -602,6 +602,54 @@ void recordSystemSettingsToFile(File *settingsFile)
         }
         break;
 #endif  // COMPILE_MOSAICX5
+
+#ifdef COMPILE_LG290P
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMBase_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pConstellations_GLONASS=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lg290pConstellationNames[x], settings.lg290pConstellations[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+#endif  // COMPILE_LG290P
+
         }
     }
 
@@ -1416,6 +1464,62 @@ bool parseLine(char *str)
             }
             break;
 #endif  // COMPILE_MOSAICX5
+
+#ifdef COMPILE_LG290P
+            case tLgMRNmea: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesNMEA[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgMRRvRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesRTCMRover[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgMRBaRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesRTCMBase[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgConst: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lg290pConstellationNames[x][0]) &&
+                        (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                    {
+                        settings.lg290pConstellations[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+#endif  // COMPILE_LG290P
+
             }
         }
     }

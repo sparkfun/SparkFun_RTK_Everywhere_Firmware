@@ -481,6 +481,7 @@ void mqttClientReceiveMessage(int messageSize)
             // Correction data from PP can go direct to GNSS
             if (present.gnss_zedf9p)
             {
+#ifdef COMPILE_ZED
                 // Only push SPARTN if the priority says we can
                 if (
                     // We can get correction data from the continental topic
@@ -521,6 +522,8 @@ void mqttClientReceiveMessage(int messageSize)
                     gnss->pushRawData(mqttData, mqttCount);
                     bytesPushed += mqttCount;
                 }
+#endif // COMPILE_ZED
+
             }
 
             // For the UM980, we have to pass the data through the PPL first

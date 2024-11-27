@@ -1457,6 +1457,10 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
         // Display icon associated with current Dynamic Model
         switch (settings.dynamicModel)
         {
+             default:
+                 break;
+
+#ifdef COMPILE_ZED
         case (DYN_MODEL_PORTABLE):
             prop.icon = DynamicModel_1_Properties.iconDisplay[present.display_type];
             break;
@@ -1493,6 +1497,8 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
         case (DYN_MODEL_ESCOOTER):
             prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
             break;
+#endif // COMPILE_ZED
+
         }
 
         iconList->push_back(prop);
@@ -2416,7 +2422,7 @@ void paintProfile(uint8_t profileUnit)
 // Display unit self-tests until user presses a button to exit
 // Allows operator to check:
 //  Display alignment
-//  Internal connections to: SD, Fuel guage, GNSS
+//  Internal connections to: SD, Fuel gauge, GNSS
 //  External connections: Loop back test on DATA
 void paintSystemTest()
 {
@@ -2528,6 +2534,7 @@ void paintSystemTest()
                     serialGNSS->read();
                 serialGNSS->flush();
 
+#ifdef COMPILE_ZED
                 SFE_UBLOX_GNSS_SERIAL myGNSS;
 
                 // begin() attempts 3 connections
@@ -2539,6 +2546,8 @@ void paintSystemTest()
                 }
                 else
                     oled->print("FAIL");
+#endif // COMPILE_ZED
+
             }
             else
                 oled->print("OK");

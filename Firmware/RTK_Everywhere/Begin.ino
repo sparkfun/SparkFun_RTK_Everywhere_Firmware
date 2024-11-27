@@ -215,7 +215,7 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaPhaseCenter_mm = 115.7;
+        present.antennaPhaseCenter_mm = 115.7; //Default to Torch helical APC
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
@@ -690,7 +690,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 42.0;
+        present.antennaPhaseCenter_mm = 42.0; //Default to SPK6618H APC
         present.needsExternalPpl = true; // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
@@ -703,10 +703,6 @@ void beginBoard()
         present.microSd = true;
         present.gpioExpander = true;
         present.microSdCardDetectGpioExpanderHigh = true; // CD is on GPIO 5 of expander. High = SD in place.
-
-        present.microSdCardDetectHigh = true;          // TODO remove - Just for proto of the Postcard shield
-        pin_microSD_CardDetect = 14;                   // TODO remove - Just for proto of the Postcard shield
-        pinMode(pin_microSD_CardDetect, INPUT_PULLUP); // TODO remove - Just for proto of the Postcard shield
 
         pin_I2C0_SDA = 7;
         pin_I2C0_SCL = 20;
@@ -722,7 +718,7 @@ void beginBoard()
         pin_PICO = 26;
         pin_microSD_CS = 27;
 
-        // pin_gpioExpanderInterrupt = 14; //AOI on Postcard
+        pin_gpioExpanderInterrupt = 14; //Pin 'AOI' on Portability Shield
 
         pin_bluetoothStatusLED = 0; // Green status LED
         // pin_gnssStatusLED = 13;
@@ -1247,7 +1243,7 @@ void beginFuelGauge()
         // Check to see if we are dangerously low
         if (batteryLevelPercent < 5 && batteryChargingPercentPerHour < 0.5) // 5% and not charging
         {
-            systemPrintln("Battery too low. Please charge. Shutting down...");
+            systemPrintf("Battery too low: %d%%. Charging rate: %0.1f%%/hr. Please charge. Shutting down...\r\n", batteryLevelPercent, batteryChargingPercentPerHour);
 
             if (online.display == true)
                 displayMessage("Charge Battery", 0);
@@ -1359,7 +1355,7 @@ void beginButtons()
     // Avoid using the button library
     if (present.gpioExpander == true)
     {
-        if (beginGpioExpander(0x18) == false)
+        if (beginGpioExpander(0x20) == false)
         {
             systemPrintln("Directional pad not detected");
             return;
