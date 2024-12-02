@@ -1161,6 +1161,8 @@ bool GNSS_UM980::isRTKFloat()
 //----------------------------------------
 bool GNSS_UM980::isSurveyInComplete()
 {
+    if(getSurveyInObservationTime() > settings.observationSeconds)
+        return (true);
     return (false);
 }
 
@@ -1823,13 +1825,13 @@ bool GNSS_UM980::surveyInStart()
         response &=
             _um980->setModeBaseAverage(settings.observationSeconds); // Average for a number of seconds (default is 60)
 
-        _autoBaseStartTimer = millis(); // Stamp when averaging began
-
         if (response == false)
         {
             systemPrintln("Survey start failed");
             return (false);
         }
+
+        _autoBaseStartTimer = millis(); // Stamp when averaging began
 
         return (response);
     }
