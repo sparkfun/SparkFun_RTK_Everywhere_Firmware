@@ -76,49 +76,51 @@ void menuGNSS()
                     break;
 #endif // COMPILE_ZED
                 }
+                systemPrintln();
             }
-        }
 
 #ifdef COMPILE_UM980
-        else if (present.gnss_um980)
-        {
-            switch (settings.dynamicModel)
+            else if (present.gnss_um980)
             {
-            default:
-                systemPrint("Unknown");
-                break;
-            case UM980_DYN_MODEL_SURVEY:
-                systemPrint("Survey");
-                break;
-            case UM980_DYN_MODEL_UAV:
-                systemPrint("UAV");
-                break;
-            case UM980_DYN_MODEL_AUTOMOTIVE:
-                systemPrint("Automotive");
-                break;
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+                case UM980_DYN_MODEL_SURVEY:
+                    systemPrint("Survey");
+                    break;
+                case UM980_DYN_MODEL_UAV:
+                    systemPrint("UAV");
+                    break;
+                case UM980_DYN_MODEL_AUTOMOTIVE:
+                    systemPrint("Automotive");
+                    break;
+                }
+                systemPrintln();
             }
-        }
 #endif // COMPILE_UM980
 
-        else if (present.gnss_mosaicX5)
-        {
-            switch (settings.dynamicModel)
+            else if (present.gnss_mosaicX5)
             {
-            default:
-                systemPrint("Unknown");
-                break;
-            case MOSAIC_DYN_MODEL_STATIC:
-            case MOSAIC_DYN_MODEL_QUASISTATIC:
-            case MOSAIC_DYN_MODEL_PEDESTRIAN:
-            case MOSAIC_DYN_MODEL_AUTOMOTIVE:
-            case MOSAIC_DYN_MODEL_RACECAR:
-            case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
-            case MOSAIC_DYN_MODEL_UAV:
-            case MOSAIC_DYN_MODEL_UNLIMITED:
-                systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
-                break;
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+                case MOSAIC_DYN_MODEL_STATIC:
+                case MOSAIC_DYN_MODEL_QUASISTATIC:
+                case MOSAIC_DYN_MODEL_PEDESTRIAN:
+                case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+                case MOSAIC_DYN_MODEL_RACECAR:
+                case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                case MOSAIC_DYN_MODEL_UAV:
+                case MOSAIC_DYN_MODEL_UNLIMITED:
+                    systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
+                    break;
+                }
+                systemPrintln();
             }
-            systemPrintln();
         }
 
         systemPrintln("4) Set Constellations");
@@ -186,7 +188,7 @@ void menuGNSS()
         else if ((incoming == 2) && (!present.gnss_mosaicX5))
         {
             float rate_ms = 0.0; //
-            float minRate = 1.0; //Seconds between fixes
+            float minRate = 1.0; // Seconds between fixes
             float maxRate = 1.0;
 
             if (present.gnss_zedf9p)
@@ -202,14 +204,14 @@ void menuGNSS()
             else if (present.gnss_lg290p)
             {
                 minRate = 0.05; // 20Hz
-                maxRate = 1.0; // The LG290P doesn't support slower speeds than 1Hz
+                maxRate = 1.0;  // The LG290P doesn't support slower speeds than 1Hz
             }
 
-            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate_ms) ==
-                INPUT_RESPONSE_VALID)
+            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate,
+                              &rate_ms) == INPUT_RESPONSE_VALID)
             {
                 // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
-                gnss->setRate(rate_ms); 
+                gnss->setRate(rate_ms);
             }
         }
         else if (incoming == 3 && present.dynamicModel)
