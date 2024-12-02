@@ -261,6 +261,8 @@ uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
 
 // void checkRXMCOR() {}
 // void pushRXMPMP() {}
-void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {}
+void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
+    systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
+}
 
 #endif // COMPILE_ZED
