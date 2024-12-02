@@ -464,7 +464,7 @@ void networkEvent(arduino_event_id_t event, arduino_event_info_t info)
 }
 
 //----------------------------------------
-// Get the broadast IP address
+// Get the broadcast IP address
 //----------------------------------------
 IPAddress networkGetBroadcastIpAddress()
 {
@@ -1309,6 +1309,12 @@ void networkUpdate()
     uint8_t priority;
     NETWORK_POLL_SEQUENCE * sequence;
 
+    if(networkConsumers() == 0)
+    {
+        // If there are no consumers, do not start the network
+        return;
+    }
+
     // Walk the list of network priorities in descending order
     for (priority = 0; priority < NETWORK_OFFLINE; priority++)
     {
@@ -1417,3 +1423,44 @@ void networkVerifyTables()
 }
 
 #endif // COMPILE_NETWORK
+
+// Return the count of consumers (TCP, NTRIP Client, etc) that are enabled
+// From this number we can decide if the network (WiFi, ethernet, cellular, etc) needs to be started
+// ESP-NOW is an exception and is not considered a network consumer
+uint8_t networkConsumers()
+{
+    uint8_t consumerCount = 0;
+
+    //Rover + NTRIP Client
+    if(inRoverMode() == true && settings.enableNtripClient == true)
+        consumerCount++;
+
+    //Base + NTRIP Server
+    if(inBaseMode() == true && settings.enableNtripServer == true)
+        consumerCount++;
+
+    //TCP Client
+    if(settings.enableTcpClient == true)
+        consumerCount++;
+
+    //TCP Server
+    if(settings.enableTcpServer == true)
+        consumerCount++;
+
+    //UDP Server
+    if(settings.enableUdpServer == true)
+        consumerCount++;
+
+    if(settings.debugNetworkLayer)
+    {
+        static unsigned long lastPrint = millis();
+
+        if(millis() - lastPrint > 2000)
+        {
+            lastPrint = millis();
+            systemPrintf("Network consumer count: %d\r\n", consumerCount);
+        }
+    }
+
+    return (consumerCount);
+}
