@@ -1836,13 +1836,13 @@ bool GNSS_LG290P::surveyInStart()
             _lg290p->setSurveyInMode(settings.observationSeconds, 0,
                                      false); // Average for a number of seconds (default is 60), no 3D limit, no reset
 
-        _autoBaseStartTimer = millis(); // Stamp when averaging began
-
         if (response == false)
         {
             systemPrintln("Survey start failed");
             return (false);
         }
+
+        _autoBaseStartTimer = millis(); // Stamp when averaging began
 
         return (response);
     }
