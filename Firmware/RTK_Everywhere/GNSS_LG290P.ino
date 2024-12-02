@@ -277,8 +277,9 @@ bool GNSS_LG290P::configureRover()
     int currentMode = getMode();
     if (currentMode != 1) // 0 - Unknown, 1 - Rover, 2 - Base
     {
-        //response &= _lg290p->setModeRover(); // Wait for save and reset
-        //Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to fail because NMEA is not present.
+        // response &= _lg290p->setModeRover(); // Wait for save and reset
+        // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
+        // fail because NMEA is not present.
         _lg290p->setModeRover(); // Wait for save and reset
         if (settings.debugGnss && response == false)
             systemPrintln("Rover: Set mode rover failed");
@@ -354,8 +355,9 @@ bool GNSS_LG290P::configureBase()
     int currentMode = getMode();
     if (currentMode != 2) // 0 - Unknown, 1 - Rover, 2 - Base
     {
-        //response &= _lg290p->setModeBase(); // Wait for save and reset
-        //Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to fail because NMEA is not present.
+        // response &= _lg290p->setModeBase(); // Wait for save and reset
+        // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
+        // fail because NMEA is not present.
         _lg290p->setModeBase(); // Wait for save and reset
         if (settings.debugGnss && response == false)
             systemPrintln("Base: Set mode base failed");
@@ -367,8 +369,9 @@ bool GNSS_LG290P::configureBase()
     uint8_t surveyInMode = getSurveyInMode(); // 0 - Disabled, 1 - Survey-in mode, 2 - Fixed mode
     if (surveyInMode == 1 || surveyInMode == 2)
     {
-        //response &= disableSurveyIn(); // Wait for save and reset
-        //Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to fail because NMEA is not present.
+        // response &= disableSurveyIn(); // Wait for save and reset
+        // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
+        // fail because NMEA is not present.
         disableSurveyIn(); // Wait for save and reset
         if (settings.debugGnss && response == false)
             systemPrintln("Base: disable survey in failed");
@@ -444,13 +447,13 @@ bool GNSS_LG290P::exitConfigMode()
 bool GNSS_LG290P::disableSurveyIn()
 {
     bool response = _lg290p->sendOkCommand("$PQTMCFGSVIN", ",W,0,0,0,0,0,0"); // Disable survey mode
-    if(settings.debugGnss && response == false)
+    if (settings.debugGnss && response == false)
         systemPrintln("disableSurveyIn: sendOkCommand failed");
     response &= _lg290p->save();
-    if(settings.debugGnss && response == false)
+    if (settings.debugGnss && response == false)
         systemPrintln("disableSurveyIn: save failed");
     response &= _lg290p->reset();
-    if(settings.debugGnss && response == false)
+    if (settings.debugGnss && response == false)
         systemPrintln("disableSurveyIn: reset failed");
 
     return (response);
@@ -1637,10 +1640,8 @@ bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
-                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                                enable ? "enabled" : "disabled",
-                                force ? " (Forced)" : "");
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
             }
 
             _corrRadioExtPortEnabled = enable;
@@ -1649,9 +1650,8 @@ bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
         else
         {
             systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                            enable ? "enabled" : "disabled",
-                            force ? " (Forced)" : "");
+                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
+                         force ? " (Forced)" : "");
         }
     }
 

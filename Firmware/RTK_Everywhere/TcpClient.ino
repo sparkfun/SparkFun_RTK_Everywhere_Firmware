@@ -434,7 +434,7 @@ void tcpClientUpdate()
                     systemPrintln("TCP Client must connect via WiFi when no host is specified");
                 }
             }
-#else   // COMPILE_WIFI
+#else  // COMPILE_WIFI
             if (!strlen(settings.tcpClientHost))
             {
                 // Wrong network type
@@ -444,8 +444,8 @@ void tcpClientUpdate()
                     systemPrintln("TCP Client requires host name to be specified!");
                 }
             }
-#endif  // COMPILE_WIFI
-            // The network type and host provide a valid configuration
+#endif // COMPILE_WIFI
+       // The network type and host provide a valid configuration
             else
             {
                 timer = millis();

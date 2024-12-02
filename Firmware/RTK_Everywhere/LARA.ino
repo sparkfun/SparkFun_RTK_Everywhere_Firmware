@@ -4,12 +4,12 @@
 
 static uint32_t laraPowerLowMsec; // Measure the power off time
 
-#define LARA_ON_TIME        (2 * 1000)  // Milliseconds
-#define LARA_OFF_TIME       (5 * 1000)  // Milliseconds
-#define LARA_SETTLE_TIME    (2 * 1000)  // Milliseconds
-#define LARA_SIM_DELAY      (1 * 1000)  // Milliseconds. 500 is too short
+#define LARA_ON_TIME (2 * 1000)     // Milliseconds
+#define LARA_OFF_TIME (5 * 1000)    // Milliseconds
+#define LARA_SETTLE_TIME (2 * 1000) // Milliseconds
+#define LARA_SIM_DELAY (1 * 1000)   // Milliseconds. 500 is too short
 
-#define LARA_PWR_LOW_VALUE  laraPwrLowValue
+#define LARA_PWR_LOW_VALUE laraPwrLowValue
 #define LARA_PWR_HIGH_VALUE (!laraPwrLowValue)
 
 //----------------------------------------
@@ -167,7 +167,7 @@ NETWORK_POLL_SEQUENCE laraOffSequence[] =
 bool laraPowerPinRead(bool debug)
 {
     bool pwrPinHigh;
-    const char * pwrPinState;
+    const char *pwrPinState;
 
     // Get the LARA power pin state
     // LARA_PWR is inverted by the RTK EVK level-shifter
@@ -188,4 +188,4 @@ void laraStart()
     networkSequenceBoot(NETWORK_CELLULAR);
 }
 
-#endif  // COMPILE_CELLULAR
+#endif // COMPILE_CELLULAR

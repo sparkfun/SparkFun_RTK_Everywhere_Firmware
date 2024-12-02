@@ -198,11 +198,10 @@ byte sdSendCommand(byte command, unsigned long arg)
         (command != SD_LOCK_UNLOCK))
     {
         sdDeselectCard(); // all done
-        xchg(0xFF);     // close with eight more clocks
+        xchg(0xFF);       // close with eight more clocks
     }
 
     return (response); // let the caller sort it out
-
 }
 
 // Select (enable) the SD card

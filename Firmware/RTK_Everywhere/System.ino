@@ -94,8 +94,8 @@ void updateBattery()
                 // 2 Charging        | LOW   | HIGH
                 // 1 Charge Complete | HIGH  | LOW
                 // 0 Test mode       | LOW   | LOW
-                uint8_t combinedStat = (((uint8_t)readAnalogPinAsDigital(pin_chargerLED2)) << 1)
-                                      | ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
+                uint8_t combinedStat = (((uint8_t)readAnalogPinAsDigital(pin_chargerLED2)) << 1) |
+                                       ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
                 systemPrint("MCP73833 Charger: ");
                 if (combinedStat == 3)
                     systemPrintln("standby / fault");

@@ -10,36 +10,36 @@ GNSS.h
 class GNSS
 {
   protected:
-    float  _altitude;   // Altitude in meters
-    float  _horizontalAccuracy; // Horizontal position accuracy in meters
-    double _latitude;   // Latitude in degrees
-    double _longitude;  // Longitude in degrees
+    float _altitude;           // Altitude in meters
+    float _horizontalAccuracy; // Horizontal position accuracy in meters
+    double _latitude;          // Latitude in degrees
+    double _longitude;         // Longitude in degrees
 
-    uint8_t  _day;      // Day number
-    uint8_t  _month;    // Month number
+    uint8_t _day;   // Day number
+    uint8_t _month; // Month number
     uint16_t _year;
-    uint8_t  _hour;     // Hours for 24 hour clock
-    uint8_t  _minute;
-    uint8_t  _second;
-    uint8_t  _leapSeconds;
+    uint8_t _hour; // Hours for 24 hour clock
+    uint8_t _minute;
+    uint8_t _second;
+    uint8_t _leapSeconds;
     uint16_t _millisecond; // Limited to first two digits
     uint32_t _nanosecond;
 
-    uint8_t  _satellitesInView;
-    uint8_t  _fixType;
-    uint8_t  _carrierSolution;
+    uint8_t _satellitesInView;
+    uint8_t _fixType;
+    uint8_t _carrierSolution;
 
-    bool     _validDate;    // True when date is valid
-    bool     _validTime;    // True when time is valid
-    bool     _confirmedDate;
-    bool     _confirmedTime;
-    bool     _fullyResolved;
+    bool _validDate; // True when date is valid
+    bool _validTime; // True when time is valid
+    bool _confirmedDate;
+    bool _confirmedTime;
+    bool _fullyResolved;
     uint32_t _tAcc;
 
     unsigned long _pvtArrivalMillis;
-    bool     _pvtUpdated;
+    bool _pvtUpdated;
 
-    bool     _corrRadioExtPortEnabled = false;
+    bool _corrRadioExtPortEnabled = false;
 
     unsigned long _autoBaseStartTimer; // Tracks how long the base auto / averaging mode has been running
 
@@ -50,10 +50,9 @@ class GNSS
     virtual bool configureGNSS();
 
     // Set the minimum satellite signal level for navigation.
-    virtual bool setMinCnoRadio (uint8_t cnoValue);
+    virtual bool setMinCnoRadio(uint8_t cnoValue);
 
   public:
-
     // Constructor
     GNSS() : _leapSeconds(18), _pvtArrivalMillis(0), _pvtUpdated(0)
     {
@@ -160,7 +159,7 @@ class GNSS
     //   Returns the horizontal position accuracy or zero if offline
     virtual float getHorizontalAccuracy();
 
-    virtual const char * getId();
+    virtual const char *getId();
 
     // Get the latitude value
     // Outputs:
@@ -198,9 +197,9 @@ class GNSS
     // Returns the seconds between solutions
     virtual double getRateS();
 
-    virtual const char * getRtcmDefaultString();
+    virtual const char *getRtcmDefaultString();
 
-    virtual const char * getRtcmLowDataRateString();
+    virtual const char *getRtcmLowDataRateString();
 
     // Returns the number of satellites in view or zero if offline
     virtual uint8_t getSatellitesInView();
@@ -375,4 +374,4 @@ class GNSS
     virtual void update();
 };
 
-#endif  // __GNSS_H__
+#endif // __GNSS_H__

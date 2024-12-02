@@ -64,20 +64,21 @@ void menuPortsNoMux()
         systemPrint(gnss->getDataBaudRate());
         systemPrintln(" bps");
 
-        systemPrintf("3) Output GNSS data to USB serial: %s\r\n", settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+        systemPrintf("3) Output GNSS data to USB serial: %s\r\n",
+                     settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
 
         // EVK has no mux. LG290P has no mux.
         if (present.gnss_zedf9p)
         {
             systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
-                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
-                        settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
+                         settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
         else if (present.gnss_lg290p)
         {
             systemPrintf("4) Toggle use of external corrections radio on UART3: %s\r\n",
-                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -190,16 +191,16 @@ void menuPortsMultiplexed()
         if (present.gnss_zedf9p)
         {
             systemPrintf("4) Toggle use of external corrections radio on UART2: %s\r\n",
-                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Source of SPARTN corrections radio on UART2: %s\r\n",
-                        settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
+                         settings.extCorrRadioSPARTNSource == 0 ? "IP" : "L-Band");
         }
         else if (present.gnss_mosaicX5)
         {
             systemPrintf("4) Toggle use of external RTCMv3 corrections radio on COM2: %s\r\n",
-                        settings.enableExtCorrRadio ? "Enabled" : "Disabled");
+                         settings.enableExtCorrRadio ? "Enabled" : "Disabled");
             systemPrintf("5) Output GNSS data to USB1 serial: %s\r\n",
-                        settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
+                         settings.enableGnssToUsbSerial ? "Enabled" : "Disabled");
         }
 
         systemPrintln("x) Exit");
@@ -294,17 +295,17 @@ void menuPortsMultiplexed()
 
     clearBuffer(); // Empty buffer of any newline chars
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     if (present.gnss_mosaicX5)
     {
         // Apply these changes at menu exit - to enable message output on USB1
-        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         if (mosaic->inRoverMode() == true)
             restartRover = true;
         else
             restartBase = true;
     }
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 }
 
 // Configure the behavior of the PPS and INT pins on the ZED-F9P
@@ -400,7 +401,7 @@ void menuPortHardwareTriggers()
                         if (pulseTime <
                             (settings.externalPulseLength_us / 1000)) // pulseTime must be longer than pulseLength
                             settings.externalPulseLength_us = settings.externalPulseTimeBetweenPulse_us /
-                                                            2; // Force pulse length to be 1/2 time between pulses
+                                                              2; // Force pulse length to be 1/2 time between pulses
 
                         updateSettings = true;
                     }
@@ -461,4 +462,3 @@ void menuPortHardwareTriggers()
         gnss->beginPPS();
     }
 }
-

@@ -1,3 +1,4 @@
+
 /*------------------------------------------------------------------------------
 NTP.ino
 
@@ -65,8 +66,7 @@ enum NTP_STATE
     NTP_STATE_MAX
 };
 
-const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_CONNECTED",
-                                          "NTP_STATE_SERVER_RUNNING"};
+const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_CONNECTED", "NTP_STATE_SERVER_RUNNING"};
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
 const RtkMode_t ntpServerMode = RTK_MODE_NTP;
@@ -502,15 +502,16 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 
     if (packetDataSize > 0)
     {
-        gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP request. This was in ethernetISR()
+        gettimeofday((timeval *)&ethernetNtpTv,
+                     nullptr); // Record the time of the NTP request. This was in ethernetISR()
 
         IPAddress remoteIP = ntpServer->remoteIP();
         uint16_t remotePort = ntpServer->remotePort();
 
         if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
         {
-            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n",
-                    remoteIP.toString(), remotePort);
+            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n", remoteIP.toString(),
+                     remotePort);
         }
 
         if (packetDataSize >= NTPpacket::NTPpacketSize)
@@ -542,7 +543,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf),
-                        "NTP request ignored. Time has not been synchronized - or not in NTP mode.\r\n");
+                         "NTP request ignored. Time has not been synchronized - or not in NTP mode.\r\n");
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
                 return false;
             }
@@ -578,7 +579,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Originate Timestamp (Client Transmit): %u.%06u\r\n",
-                        packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
+                         packet.transmitTimestampSeconds,
+                         packet.convertFractionToMicros(packet.transmitTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -599,7 +601,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Received Timestamp:                    %u.%06u\r\n",
-                        packet.receiveTimestampSeconds, packet.convertFractionToMicros(packet.receiveTimestampFraction));
+                         packet.receiveTimestampSeconds,
+                         packet.convertFractionToMicros(packet.receiveTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -616,8 +619,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Reference Timestamp (Last Sync):       %u.%06u\r\n",
-                        packet.referenceTimestampSeconds,
-                        packet.convertFractionToMicros(packet.referenceTimestampFraction));
+                         packet.referenceTimestampSeconds,
+                         packet.convertFractionToMicros(packet.referenceTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -644,7 +647,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Transmit Timestamp:                    %u.%06u\r\n",
-                        packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
+                         packet.transmitTimestampSeconds,
+                         packet.convertFractionToMicros(packet.transmitTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 

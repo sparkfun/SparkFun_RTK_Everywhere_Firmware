@@ -110,14 +110,14 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
     if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
     {
         IPAddress broadcastAddress = networkGetBroadcastIpAddress();
-        udpServer->beginPacket( broadcastAddress, settings.udpServerPort);
+        udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
         udpServer->write(data, length);
         if (udpServer->endPacket())
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
             {
-                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length, 
-                    broadcastAddress.toString().c_str(), settings.udpServerPort);
+                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length,
+                             broadcastAddress.toString().c_str(), settings.udpServerPort);
                 PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             }
         }
@@ -126,7 +126,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         {
             PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
-                broadcastAddress.toString().c_str(), settings.udpServerPort);
+                         broadcastAddress.toString().c_str(), settings.udpServerPort);
             length = 0;
         }
     }

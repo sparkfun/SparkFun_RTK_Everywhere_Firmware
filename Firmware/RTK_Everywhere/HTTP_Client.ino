@@ -10,7 +10,7 @@ HTTP_Client.ino
 
 ------------------------------------------------------------------------------*/
 
-ZtpResponse ztpResponse = ZTP_NOT_STARTED; //Used in menuPP
+ZtpResponse ztpResponse = ZTP_NOT_STARTED; // Used in menuPP
 
 #ifdef COMPILE_HTTP_CLIENT
 
@@ -31,19 +31,15 @@ enum HTTPClientState
     HTTP_CLIENT_ON,                  // WIFI_STATE_START state
     HTTP_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
     HTTP_CLIENT_CONNECTING_2_SERVER, // Connecting to the HTTP server
-    HTTP_CLIENT_CONNECTED,  // Connected to the HTTP services
-    HTTP_CLIENT_COMPLETE,   // Complete. Can not or do not need to continue
+    HTTP_CLIENT_CONNECTED,           // Connected to the HTTP services
+    HTTP_CLIENT_COMPLETE,            // Complete. Can not or do not need to continue
     // Insert new states here
     HTTP_CLIENT_STATE_MAX // Last entry in the state list
 };
 
 const char *const httpClientStateName[] = {
-    "HTTP_CLIENT_OFF",
-    "HTTP_CLIENT_ON",
-    "HTTP_CLIENT_NETWORK_STARTED",
-    "HTTP_CLIENT_CONNECTING_2_SERVER",
-    "HTTP_CLIENT_CONNECTED",
-    "HTTP_CLIENT_COMPLETE",
+    "HTTP_CLIENT_OFF",       "HTTP_CLIENT_ON",       "HTTP_CLIENT_NETWORK_STARTED", "HTTP_CLIENT_CONNECTING_2_SERVER",
+    "HTTP_CLIENT_CONNECTED", "HTTP_CLIENT_COMPLETE",
 };
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
@@ -60,7 +56,7 @@ char *tempHolderPtr = nullptr;
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
-static int httpClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
+static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
 static NetPriority_t httpClientPriority = NETWORK_OFFLINE;
@@ -224,7 +220,7 @@ void httpClientStop(bool shutdown)
     {
         if (settings.debugHttpClientState)
             systemPrintln("Freeing httpSecureClient");
-        //delete httpSecureClient; // Don't. This causes issue #335
+        // delete httpSecureClient; // Don't. This causes issue #335
         httpSecureClient = nullptr;
         reportHeapNow(settings.debugHttpClientState);
     }
@@ -239,9 +235,9 @@ void httpClientStop(bool shutdown)
     if (shutdown)
     {
         httpClientSetState(HTTP_CLIENT_OFF);
-        //settings.enablePointPerfectCorrections = false;
+        // settings.enablePointPerfectCorrections = false;
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        //cannot be restarted without opening the menu or web configuration page...
+        // cannot be restarted without opening the menu or web configuration page...
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;
     }
@@ -253,7 +249,7 @@ void httpClientUpdate()
 {
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
-    
+
     if (!httpClientModeNeeded)
     {
         if (httpClientState > HTTP_CLIENT_OFF)
@@ -370,7 +366,7 @@ void httpClientUpdate()
         if (settings.debugCorrections || settings.debugHttpClientData)
         {
             systemPrintf("Sending JSON, %d bytes\r\n", ztpRequest.length());
-            //systemPrintln(ztpRequest.c_str());
+            // systemPrintln(ztpRequest.c_str());
         }
 
         httpClient->addHeader(F("Content-Type"), F("application/json"));
@@ -426,7 +422,7 @@ void httpClientUpdate()
                     systemPrintln("Device not whitelisted.");
 
                 ztpResponse = ZTP_NOT_WHITELISTED;
-                //paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
+                // paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
@@ -517,7 +513,7 @@ void httpClientUpdate()
                     {
                         char findMe[40];
                         snprintf(findMe, sizeof(findMe), "correction topic for %s",
-                                    Regional_Information_Table[r].name); // Search for "US" etc.
+                                 Regional_Information_Table[r].name); // Search for "US" etc.
                         subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
                         if (subscription >= 0)
                             strncpy(settings.regionalCorrectionTopics[r],
@@ -547,7 +543,7 @@ void httpClientUpdate()
                     if (settings.debugCorrections || settings.debugHttpClientData)
                         pointperfectPrintKeyInformation();
 
-                    //displayKeysUpdated();
+                    // displayKeysUpdated();
 
                     ztpResponse = ZTP_SUCCESS;
                     httpClientSetState(HTTP_CLIENT_COMPLETE);
@@ -566,7 +562,6 @@ void httpClientUpdate()
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
         break;
     }
-
     }
 
     // Periodically display the HTTP client state

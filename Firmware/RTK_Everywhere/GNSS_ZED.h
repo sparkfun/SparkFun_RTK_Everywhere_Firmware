@@ -114,8 +114,7 @@ const ubxMsg ubxMessages[] = {
     {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMELS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMELS", 0, 130, 130},
     //{UBLOX_CFG_MSGOUT_UBX_NAV2_TIMENAVIC_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMENAVIC", 0, 9999,
     // 9999}, //No support yet
-    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEQZSS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEQZSS", 0, 130,
-     130},
+    {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEQZSS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEQZSS", 0, 130, 130},
     {UBLOX_CFG_MSGOUT_UBX_NAV2_TIMEUTC_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_TIMEUTC", 0, 130, 130},
     {UBLOX_CFG_MSGOUT_UBX_NAV2_VELECEF_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NAV, 0, "NAV2_VELECEF", 0, 130, 130},
 
@@ -200,38 +199,38 @@ const ubxMsg ubxMessages[] = {
      SFE_UBLOX_FILTER_NMEA_ZDA, 130, 130},
 
     // NMEA
-    {UBLOX_CFG_MSGOUT_NMEA_ID_DTM_UART1, UBX_NMEA_DTM, UBX_CLASS_NMEA, 0, "NMEA_DTM", SFE_UBLOX_FILTER_NMEA_DTM,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GBS_UART1, UBX_NMEA_GBS, UBX_CLASS_NMEA, 0, "NMEA_GBS", SFE_UBLOX_FILTER_NMEA_GBS,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, UBX_NMEA_GGA, UBX_CLASS_NMEA, 1, "NMEA_GGA", SFE_UBLOX_FILTER_NMEA_GGA,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1, UBX_NMEA_GLL, UBX_CLASS_NMEA, 0, "NMEA_GLL", SFE_UBLOX_FILTER_NMEA_GLL,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GNS_UART1, UBX_NMEA_GNS, UBX_CLASS_NMEA, 0, "NMEA_GNS", SFE_UBLOX_FILTER_NMEA_GNS,
-     112, 120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_DTM_UART1, UBX_NMEA_DTM, UBX_CLASS_NMEA, 0, "NMEA_DTM", SFE_UBLOX_FILTER_NMEA_DTM, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GBS_UART1, UBX_NMEA_GBS, UBX_CLASS_NMEA, 0, "NMEA_GBS", SFE_UBLOX_FILTER_NMEA_GBS, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, UBX_NMEA_GGA, UBX_CLASS_NMEA, 1, "NMEA_GGA", SFE_UBLOX_FILTER_NMEA_GGA, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1, UBX_NMEA_GLL, UBX_CLASS_NMEA, 0, "NMEA_GLL", SFE_UBLOX_FILTER_NMEA_GLL, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GNS_UART1, UBX_NMEA_GNS, UBX_CLASS_NMEA, 0, "NMEA_GNS", SFE_UBLOX_FILTER_NMEA_GNS, 112,
+     120},
 
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GRS_UART1, UBX_NMEA_GRS, UBX_CLASS_NMEA, 0, "NMEA_GRS", SFE_UBLOX_FILTER_NMEA_GRS,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1, UBX_NMEA_GSA, UBX_CLASS_NMEA, 1, "NMEA_GSA", SFE_UBLOX_FILTER_NMEA_GSA,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, UBX_NMEA_GST, UBX_CLASS_NMEA, 1, "NMEA_GST", SFE_UBLOX_FILTER_NMEA_GST,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_GSV_UART1, UBX_NMEA_GSV, UBX_CLASS_NMEA, 4, "NMEA_GSV", SFE_UBLOX_FILTER_NMEA_GSV,
-     112, 120}, // Default to 1 update every 4 fixes
-    {UBLOX_CFG_MSGOUT_NMEA_ID_RLM_UART1, UBX_NMEA_RLM, UBX_CLASS_NMEA, 0, "NMEA_RLM", SFE_UBLOX_FILTER_NMEA_RLM,
-     113, 120}, // No F9P 112 support
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GRS_UART1, UBX_NMEA_GRS, UBX_CLASS_NMEA, 0, "NMEA_GRS", SFE_UBLOX_FILTER_NMEA_GRS, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1, UBX_NMEA_GSA, UBX_CLASS_NMEA, 1, "NMEA_GSA", SFE_UBLOX_FILTER_NMEA_GSA, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GST_UART1, UBX_NMEA_GST, UBX_CLASS_NMEA, 1, "NMEA_GST", SFE_UBLOX_FILTER_NMEA_GST, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_GSV_UART1, UBX_NMEA_GSV, UBX_CLASS_NMEA, 4, "NMEA_GSV", SFE_UBLOX_FILTER_NMEA_GSV, 112,
+     120}, // Default to 1 update every 4 fixes
+    {UBLOX_CFG_MSGOUT_NMEA_ID_RLM_UART1, UBX_NMEA_RLM, UBX_CLASS_NMEA, 0, "NMEA_RLM", SFE_UBLOX_FILTER_NMEA_RLM, 113,
+     120}, // No F9P 112 support
 
-    {UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, UBX_NMEA_RMC, UBX_CLASS_NMEA, 1, "NMEA_RMC", SFE_UBLOX_FILTER_NMEA_RMC,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_THS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NMEA, 0, "NMEA_THS",
-     SFE_UBLOX_FILTER_NMEA_THS, 9999, 120}, // Not supported F9P 112, 113, 120, 130, 132
-    {UBLOX_CFG_MSGOUT_NMEA_ID_VLW_UART1, UBX_NMEA_VLW, UBX_CLASS_NMEA, 0, "NMEA_VLW", SFE_UBLOX_FILTER_NMEA_VLW,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, UBX_NMEA_VTG, UBX_CLASS_NMEA, 0, "NMEA_VTG", SFE_UBLOX_FILTER_NMEA_VTG,
-     112, 120},
-    {UBLOX_CFG_MSGOUT_NMEA_ID_ZDA_UART1, UBX_NMEA_ZDA, UBX_CLASS_NMEA, 0, "NMEA_ZDA", SFE_UBLOX_FILTER_NMEA_ZDA,
-     112, 120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, UBX_NMEA_RMC, UBX_CLASS_NMEA, 1, "NMEA_RMC", SFE_UBLOX_FILTER_NMEA_RMC, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_THS_UART1, UBX_ID_NOT_AVAILABLE, UBX_CLASS_NMEA, 0, "NMEA_THS", SFE_UBLOX_FILTER_NMEA_THS,
+     9999, 120}, // Not supported F9P 112, 113, 120, 130, 132
+    {UBLOX_CFG_MSGOUT_NMEA_ID_VLW_UART1, UBX_NMEA_VLW, UBX_CLASS_NMEA, 0, "NMEA_VLW", SFE_UBLOX_FILTER_NMEA_VLW, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, UBX_NMEA_VTG, UBX_CLASS_NMEA, 0, "NMEA_VTG", SFE_UBLOX_FILTER_NMEA_VTG, 112,
+     120},
+    {UBLOX_CFG_MSGOUT_NMEA_ID_ZDA_UART1, UBX_NMEA_ZDA, UBX_CLASS_NMEA, 0, "NMEA_ZDA", SFE_UBLOX_FILTER_NMEA_ZDA, 112,
+     120},
 
     // PUBX
     // F9P support 130
@@ -268,37 +267,37 @@ const ubxMsg ubxMessages[] = {
      SFE_UBLOX_FILTER_RTCM_TYPE4072_1, 112, 9999},
 
     // RXM
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_ALM_UART1, UBX_RXM_ALM, UBX_CLASS_RXM, 0, "RXM_ALM", 0, 9999, 9999}, //Not supported
-        // F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_ALM_UART1, UBX_RXM_ALM, UBX_CLASS_RXM, 0, "RXM_ALM", 0, 9999, 9999}, //Not supported
+    // F9R 121 or F9P 112, 113, 120, 130, 132
     {UBLOX_CFG_MSGOUT_UBX_RXM_COR_UART1, UBX_RXM_COR, UBX_CLASS_RXM, 0, "RXM_COR", 0, 9999,
      130}, // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_EPH_UART1, UBX_RXM_EPH, UBX_CLASS_RXM, 0, "RXM_EPH", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_IMES_UART1, UBX_RXM_IMES, UBX_CLASS_RXM, 0, "RXM_IMES", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEAS20_UART1, UBX_RXM_MEAS20, UBX_CLASS_RXM, 0, "RXM_MEAS20", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEAS50_UART1, UBX_RXM_MEAS50, UBX_CLASS_RXM, 0, "RXM_MEAS50", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEASC12_UART1, UBX_RXM_MEASC12, UBX_CLASS_RXM, 0, "RXM_MEASC12", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_MEASD12_UART1, UBX_RXM_MEASD12, UBX_CLASS_RXM, 0, "RXM_MEASD12", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_EPH_UART1, UBX_RXM_EPH, UBX_CLASS_RXM, 0, "RXM_EPH", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_IMES_UART1, UBX_RXM_IMES, UBX_CLASS_RXM, 0, "RXM_IMES", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_MEAS20_UART1, UBX_RXM_MEAS20, UBX_CLASS_RXM, 0, "RXM_MEAS20", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_MEAS50_UART1, UBX_RXM_MEAS50, UBX_CLASS_RXM, 0, "RXM_MEAS50", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_MEASC12_UART1, UBX_RXM_MEASC12, UBX_CLASS_RXM, 0, "RXM_MEASC12", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_MEASD12_UART1, UBX_RXM_MEASD12, UBX_CLASS_RXM, 0, "RXM_MEASD12", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
     {UBLOX_CFG_MSGOUT_UBX_RXM_MEASX_UART1, UBX_RXM_MEASX, UBX_CLASS_RXM, 0, "RXM_MEASX", 0, 112, 120},
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, UBX_RXM_PMP, UBX_CLASS_RXM, 0, "RXM_PMP", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_QZSSL6_UART1, UBX_RXM_QZSSL6, UBX_CLASS_RXM, 0, "RXM_QZSSL6", 0, 9999, 9999},
-        // Not supported F9R 121, F9P 112, 113, 120, 130
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, UBX_RXM_PMP, UBX_CLASS_RXM, 0, "RXM_PMP", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_QZSSL6_UART1, UBX_RXM_QZSSL6, UBX_CLASS_RXM, 0, "RXM_QZSSL6", 0, 9999, 9999},
+    // Not supported F9R 121, F9P 112, 113, 120, 130
     {UBLOX_CFG_MSGOUT_UBX_RXM_RAWX_UART1, UBX_RXM_RAWX, UBX_CLASS_RXM, 0, "RXM_RAWX", 0, 112, 120},
     {UBLOX_CFG_MSGOUT_UBX_RXM_RLM_UART1, UBX_RXM_RLM, UBX_CLASS_RXM, 0, "RXM_RLM", 0, 112, 120},
     {UBLOX_CFG_MSGOUT_UBX_RXM_RTCM_UART1, UBX_RXM_RTCM, UBX_CLASS_RXM, 0, "RXM_RTCM", 0, 112, 120},
     {UBLOX_CFG_MSGOUT_UBX_RXM_SFRBX_UART1, UBX_RXM_SFRBX, UBX_CLASS_RXM, 0, "RXM_SFRBX", 0, 112, 120},
     {UBLOX_CFG_MSGOUT_UBX_RXM_SPARTN_UART1, UBX_RXM_SPARTN, UBX_CLASS_RXM, 0, "RXM_SPARTN", 0, 9999,
      121}, // Not supported F9R 120 or F9P 112, 113, 120, 130
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_SVSI_UART1, UBX_RXM_SVSI, UBX_CLASS_RXM, 0, "RXM_SVSI", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
-        //{UBLOX_CFG_MSGOUT_UBX_RXM_TM_UART1, UBX_RXM_TM, UBX_CLASS_RXM, 0, "RXM_TM", 0, 9999, 9999},
-        // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_SVSI_UART1, UBX_RXM_SVSI, UBX_CLASS_RXM, 0, "RXM_SVSI", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
+    //{UBLOX_CFG_MSGOUT_UBX_RXM_TM_UART1, UBX_RXM_TM, UBX_CLASS_RXM, 0, "RXM_TM", 0, 9999, 9999},
+    // Not supported F9R 121 or F9P 112, 113, 120, 130, 132
 
     // SEC
     // No support F9P 112.
@@ -357,7 +356,6 @@ const ubxCmd ubxCommands[] = {
 class GNSS_ZED : GNSS
 {
   private:
-
     // Use Michael's lock/unlock methods to prevent the GNSS UART task from
     // calling checkUblox during a sendCommand and waitForResponse.
     // Also prevents pushRawData from being called.
@@ -367,7 +365,7 @@ class GNSS_ZED : GNSS
     // one core?
     bool iAmLocked = false;
 
-    SFE_UBLOX_GNSS_SUPER * _zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
+    SFE_UBLOX_GNSS_SUPER *_zed = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
     // Record rxBytes so we can tell if Radio Ext (COM2) is receiving correction data.
     // On the mosaic, we know that InputLink will arrive at 1Hz. But on the ZED, UBX-MON-COMMS
@@ -376,16 +374,14 @@ class GNSS_ZED : GNSS
     // UBX-MON-COMMS callback. isCorrRadioExtPortActive returns true if the bytes-received has
     // increased in the previous settings.correctionsSourcesLifetime_s
     uint32_t _radioExtBytesReceived_millis;
-    
+
     // Given a sub type (ie "RTCM", "NMEA") present menu showing messages with this subtype
     // Controls the messages that get broadcast over Bluetooth and logged (if enabled)
     void menuMessagesSubtype(uint8_t *localMessageRate, const char *messageType);
 
   public:
-
     // Constructor
-    GNSS_ZED() : _radioExtBytesReceived_millis(0),
-        GNSS()
+    GNSS_ZED() : _radioExtBytesReceived_millis(0), GNSS()
     {
     }
 
@@ -490,7 +486,7 @@ class GNSS_ZED : GNSS
     //   Returns the horizontal position accuracy or zero if offline
     float getHorizontalAccuracy();
 
-    const char * getId();
+    const char *getId();
 
     // Get the latitude value
     // Outputs:
@@ -535,9 +531,9 @@ class GNSS_ZED : GNSS
     // Returns the seconds between solutions
     double getRateS();
 
-    const char * getRtcmDefaultString();
+    const char *getRtcmDefaultString();
 
-    const char * getRtcmLowDataRateString();
+    const char *getRtcmLowDataRateString();
 
     // Returns the number of satellites in view or zero if offline
     uint8_t getSatellitesInView();
@@ -689,7 +685,7 @@ class GNSS_ZED : GNSS
     bool setMessagesUsb(int maxRetries);
 
     // Set the minimum satellite signal level for navigation.
-    bool setMinCnoRadio (uint8_t cnoValue);
+    bool setMinCnoRadio(uint8_t cnoValue);
 
     // Set the dynamic model to use for RTK
     // Inputs:

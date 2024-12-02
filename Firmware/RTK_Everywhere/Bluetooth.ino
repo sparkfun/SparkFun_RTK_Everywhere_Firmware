@@ -81,8 +81,8 @@ void bluetoothUpdate()
 bool bluetoothIsConnected()
 {
 #ifdef COMPILE_BT
-    if(bluetoothGetState() == BT_OFF)
-        return(false);
+    if (bluetoothGetState() == BT_OFF)
+        return (false);
 
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
     {

@@ -108,7 +108,7 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            espnowStart();     // Start internal radio if enabled, otherwise disable
+            espnowStart();    // Start internal radio if enabled, otherwise disable
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
@@ -253,7 +253,8 @@ void stateUpdate()
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
             // gnssGetSurveyInStartingAccuracy is 10m max
-            const char *accUnits = getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+            const char *accUnits =
+                getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
@@ -497,7 +498,7 @@ void stateUpdate()
 
         case (STATE_KEYS_REQUESTED): {
             settings.requestKeyUpdate = true; // Force a key update
-            changeState(lastSystemState); // Return to the last system state
+            changeState(lastSystemState);     // Return to the last system state
         }
         break;
 

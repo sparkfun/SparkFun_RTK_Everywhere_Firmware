@@ -32,8 +32,8 @@
 #endif                 // COMPILE_WIFI
 
 #define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
-#define COMPILE_L_BAND   // Comment out to remove L-Band functionality
-#define COMPILE_UM980    // Comment out to remove UM980 functionality
+ #define COMPILE_L_BAND   // Comment out to remove L-Band functionality
+#define COMPILE_UM980 // Comment out to remove UM980 functionality
 #define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
 #define COMPILE_LG290P   // Comment out to remove LG290P functionality
 
@@ -676,8 +676,9 @@ unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key 
 
 SFE_PCA95XX io(PCA95XX_PCA9554); // Create a PCA9554, default address 0x20
 
-bool gpioChanged = false; //Set by gpioExpanderISR
-uint8_t gpioExpander_previousState = 0b00011111; //Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
+bool gpioChanged = false; // Set by gpioExpanderISR
+uint8_t gpioExpander_previousState =
+    0b00011111; // Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
 unsigned long gpioExpander_holdStart[8] = {0};
 bool gpioExpander_wasReleased[8] = {false};
 uint8_t gpioExpander_lastReleased = 255;
@@ -1272,7 +1273,8 @@ void loopDelay()
 // Push new data to log as needed
 void logUpdate()
 {
-    static bool blockLogging = false; //Used to prevent circular attempts to create a log file when previous attempts have failed
+    static bool blockLogging =
+        false; // Used to prevent circular attempts to create a log file when previous attempts have failed
 
     // Convert current system time to minutes. This is used in gnssSerialReadTask()/updateLogs() to see if we are within
     // max log window.
@@ -1290,9 +1292,9 @@ void logUpdate()
 
     if (online.logging == false && settings.enableLogging == true && blockLogging == false)
     {
-        if(beginLogging() == false)
+        if (beginLogging() == false)
         {
-            //Failed to create file, block future logging attempts
+            // Failed to create file, block future logging attempts
             blockLogging = true;
             return;
         }

@@ -471,8 +471,8 @@ void mqttClientReceiveMessage(int messageSize)
 
                 if (online.rtc)
                     settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
-                    
-                recordSystemSettings();                       // Record these settings to unit
+
+                recordSystemSettings(); // Record these settings to unit
 
                 if (settings.debugCorrections == true)
                     pointperfectPrintKeyInformation();
@@ -498,7 +498,7 @@ void mqttClientReceiveMessage(int messageSize)
                             !inMainMenu)
                             systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
-                        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                        GNSS_ZED *zed = (GNSS_ZED *)gnss;
                         zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
                         gnss->pushRawData(mqttData, mqttCount);
@@ -523,7 +523,6 @@ void mqttClientReceiveMessage(int messageSize)
                     bytesPushed += mqttCount;
                 }
 #endif // COMPILE_ZED
-
             }
 
             // For the UM980, we have to pass the data through the PPL first
@@ -959,7 +958,7 @@ void mqttClientUpdate()
             uint8_t fixType = gnss->getFixType();
             double latitude = gnss->getLatitude();   // degrees
             double longitude = gnss->getLongitude(); // degrees
-            if (fixType >= 3)                      // If we have a 3D fix
+            if (fixType >= 3)                        // If we have a 3D fix
             {
                 // If both the dict and tile topics are empty, prepare to subscribe to the dict topic
                 if ((localizedDistributionDictTopic.length() == 0) && (localizedDistributionTileTopic.length() == 0))

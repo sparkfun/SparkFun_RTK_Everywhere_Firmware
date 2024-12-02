@@ -67,11 +67,11 @@ void GNSS_ZED::applyPointPerfectKeys()
         _zed->setVal8(UBLOX_CFG_MSGOUT_UBX_RXM_COR_I2C, 1); // Enable UBX-RXM-COR messages on I2C
 
         _zed->setVal8(UBLOX_CFG_NAVHPG_DGNSSMODE,
-                         3); // Set the differential mode - ambiguities are fixed whenever possible
+                      3); // Set the differential mode - ambiguities are fixed whenever possible
 
         bool response = _zed->setDynamicSPARTNKeys(currentKeyLengthBytes, currentKeyGPSWeek, currentKeyGPSToW,
-                                                   settings.pointPerfectCurrentKey, nextKeyLengthBytes,
-                                                   nextKeyGPSWeek, nextKeyGPSToW, settings.pointPerfectNextKey);
+                                                   settings.pointPerfectCurrentKey, nextKeyLengthBytes, nextKeyGPSWeek,
+                                                   nextKeyGPSToW, settings.pointPerfectNextKey);
 
         if (response == false)
             systemPrintln("setDynamicSPARTNKeys failed");
@@ -287,7 +287,7 @@ bool GNSS_ZED::beginPPS()
     response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
     response &=
         _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
-                              1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+                           1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
     response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, settings.enableExternalPulse); // Enable/disable timepulse
     response &=
         _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, settings.externalPulsePolarity); // 0 = falling, 1 = rising edge
@@ -370,9 +370,8 @@ bool GNSS_ZED::configureBase()
         response &= _zed->addCfgValset(ubxMessages[8].msgConfigKey,
                                        settings.ubxMessageRates[8]); // Update rate on module
 
-        response &=
-            _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
-                               0); // Disable NMEA message that may have been set during Rover NTRIP Client mode
+        response &= _zed->addCfgValset(UBLOX_CFG_MSGOUT_NMEA_ID_GGA_I2C,
+                                       0); // Disable NMEA message that may have been set during Rover NTRIP Client mode
 
         // Survey mode is only available on ZED-F9P modules
         if (commandSupported(UBLOX_CFG_TMODE_MODE))
@@ -468,11 +467,11 @@ bool GNSS_ZED::configureNtpMode()
         response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, DYN_MODEL_STATIONARY); // Set dynamic model
 
         // Set time pulse to 1Hz (100:900)
-        response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0); // Time pulse definition is a period (in us)
+        response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0);        // Time pulse definition is a period (in us)
         response &= _zed->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
-        response &= _zed->addCfgValset(
-            UBLOX_CFG_TP_USE_LOCKED_TP1,
-            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
+        response &=
+            _zed->addCfgValset(UBLOX_CFG_TP_USE_LOCKED_TP1,
+                               1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
         response &= _zed->addCfgValset(UBLOX_CFG_TP_TP1_ENA, 1); // Enable timepulse
         response &= _zed->addCfgValset(UBLOX_CFG_TP_POL_TP1, 1); // 1 = rising edge
 
@@ -536,7 +535,8 @@ bool GNSS_ZED::configureGNSS()
 
     // Always configure the callbacks - even if settings.updateGNSSSettings is false
 
-    response &= _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
+    response &=
+        _zed->setAutoPVTcallbackPtr(&storePVTdata); // Enable automatic NAV PVT messages with callback to storePVTdata
     response &= _zed->setAutoHPPOSLLHcallbackPtr(
         &storeHPdata); // Enable automatic NAV HPPOSLLH messages with callback to storeHPdata
     _zed->setRTCM1005InputcallbackPtr(
@@ -556,7 +556,8 @@ bool GNSS_ZED::configureGNSS()
         response &= _zed->addCfgValset(UBLOX_CFG_HW_ANT_CFG_OPENDET, 1);  // Enable antenna open detection
 
         response &= _zed->sendCfgValset();
-        response &= _zed->setAutoMONHWcallbackPtr(&storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
+        response &= _zed->setAutoMONHWcallbackPtr(
+            &storeMONHWdata); // Enable automatic MON HW messages with callback to storeMONHWdata
     }
 
     // Add a callback for UBX-MON-COMMS
@@ -617,10 +618,10 @@ bool GNSS_ZED::configureGNSS()
         response &= _zed->addCfgValset(UBLOX_CFG_UART1INPROT_SPARTN, 0);
 
     response &= _zed->addCfgValset(UBLOX_CFG_UART1_BAUDRATE,
-                                      settings.dataPortBaud); // Defaults to 230400 to maximize message output support
-    response &= _zed->addCfgValset(
-        UBLOX_CFG_UART2_BAUDRATE,
-        settings.radioPortBaud); // Defaults to 57600 to match SiK telemetry radio firmware default
+                                   settings.dataPortBaud); // Defaults to 230400 to maximize message output support
+    response &=
+        _zed->addCfgValset(UBLOX_CFG_UART2_BAUDRATE,
+                           settings.radioPortBaud); // Defaults to 57600 to match SiK telemetry radio firmware default
 
     // Disable SPI port - This is just to remove some overhead by ZED
     response &= _zed->addCfgValset(UBLOX_CFG_SPIOUTPROT_UBX, 0);
@@ -793,8 +794,7 @@ bool GNSS_ZED::configureRover()
         if (commandSupported(UBLOX_CFG_TMODE_MODE))
             response &= _zed->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
 
-        response &=
-            _zed->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); // Set dynamic model
+        response &= _zed->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, (dynModel)settings.dynamicModel); // Set dynamic model
 
         // RTCM is only available on ZED-F9P modules
         //
@@ -810,9 +810,8 @@ bool GNSS_ZED::configureRover()
 
         // Set RTCM messages to user's settings
         for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
-            response &=
-                _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
-                                   settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 - 1 = I2C
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey - 1,
+                                           settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 - 1 = I2C
 
         // Set RTCM messages to user's settings
         for (int x = 0; x < MAX_UBX_MSG_RTCM; x++)
@@ -820,9 +819,8 @@ bool GNSS_ZED::configureRover()
             response &=
                 _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 1,
                                    settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 1 = UART2
-            response &=
-                _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
-                                   settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 2 = USB
+            response &= _zed->addCfgValset(ubxMessages[firstRTCMRecord + x].msgConfigKey + 2,
+                                           settings.ubxMessageRates[firstRTCMRecord + x]); // UBLOX_CFG UART1 + 2 = USB
         }
 
         response &= _zed->addCfgValset(UBLOX_CFG_NMEA_MAINTALKERID,
@@ -925,7 +923,7 @@ uint16_t GNSS_ZED::fileBufferExtractData(uint8_t *fileBuffer, int fileBytesToRea
     if (online.gnss)
     {
         _zed->extractFileBufferData(fileBuffer,
-                                       fileBytesToRead); // TODO Does extractFileBufferData not return the bytes read?
+                                    fileBytesToRead); // TODO Does extractFileBufferData not return the bytes read?
         return (1);
     }
     return (0);
@@ -1097,7 +1095,7 @@ uint8_t GNSS_ZED::getHour()
 }
 
 //----------------------------------------
-const char * GNSS_ZED::getId()
+const char *GNSS_ZED::getId()
 {
     if (online.gnss)
         return (gnssUniqueId);
@@ -1271,13 +1269,13 @@ double GNSS_ZED::getRateS()
 }
 
 //----------------------------------------
-const char * GNSS_ZED::getRtcmDefaultString()
+const char *GNSS_ZED::getRtcmDefaultString()
 {
     return ((char *)"1005/1074/1084/1094/1124 1Hz & 1230 0.1Hz");
 }
 
 //----------------------------------------
-const char * GNSS_ZED::getRtcmLowDataRateString()
+const char *GNSS_ZED::getRtcmLowDataRateString()
 {
     return ((char *)"1074/1084/1094/1124 0.5Hz & 1005/1230 0.1Hz");
 }
@@ -1733,7 +1731,7 @@ void GNSS_ZED::menuMessages()
 
         if (incoming == 1)
             menuMessagesSubtype(settings.ubxMessageRates,
-                                   "NMEA_"); // The following _ avoids listing NMEANAV2 messages
+                                "NMEA_"); // The following _ avoids listing NMEANAV2 messages
         else if (incoming == 2)
             menuMessagesSubtype(settings.ubxMessageRates, "RTCM");
         else if (incoming == 3)
@@ -1828,7 +1826,7 @@ void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messag
         int endOfBlock = 0;
         int rtcmOffset = 0; // Used to offset messageSupported lookup
 
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
         if (strcmp(messageType, "RTCM-Base") == 0) // The ubxMessageRatesBase array is 0 to MAX_UBX_MSG_RTCM - 1
         {
             startOfBlock = 0;
@@ -1837,7 +1835,7 @@ void GNSS_ZED::menuMessagesSubtype(uint8_t *localMessageRate, const char *messag
         }
         else
             zed->setMessageOffsets(&ubxMessages[0], messageType, startOfBlock,
-                                             endOfBlock); // Find start and stop of given messageType in message array
+                                   endOfBlock); // Find start and stop of given messageType in message array
 
         for (int x = 0; x < (endOfBlock - startOfBlock); x++)
         {
@@ -1949,7 +1947,7 @@ bool GNSS_ZED::setBaudrate(uint32_t baudRate)
 {
     if (online.gnss)
         return _zed->setVal32(UBLOX_CFG_UART1_BAUDRATE,
-                       (115200 * 2)); // Defaults to 230400 to maximize message output support
+                              (115200 * 2)); // Defaults to 230400 to maximize message output support
     return false;
 }
 
@@ -1962,7 +1960,7 @@ bool GNSS_ZED::setConstellations()
 {
     if (online.gnss == false)
         return (false);
- 
+
     bool response = true;
 
     response &= _zed->newCfgValset();
@@ -1992,24 +1990,21 @@ bool GNSS_ZED::setConstellations()
     // GAL
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GALILEO);
     enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &=
-        _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E1_ENA, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GAL_E5B_ENA, enableMe);
 
     // BDS
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_BEIDOU);
     enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &=
-        _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B1_ENA, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_BDS_B2_ENA, enableMe);
 
     // QZSS
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_QZSS);
     enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &=
-        _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1CA_ENA, enableMe);
     // UBLOX_CFG_SIGNAL_QZSS_L1S_ENA not supported on F9R in v1.21 and below
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_QZSS_L1S_ENA, enableMe);
@@ -2018,8 +2013,7 @@ bool GNSS_ZED::setConstellations()
     // GLO
     gnssIndex = ubxConstellationIDToIndex(SFE_UBLOX_GNSS_ID_GLONASS);
     enableMe = settings.ubxConstellations[gnssIndex].enabled;
-    response &=
-        _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
+    response &= _zed->addCfgValset(settings.ubxConstellations[gnssIndex].configKey, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L1_ENA, enableMe);
     response &= _zed->addCfgValset(UBLOX_CFG_SIGNAL_GLO_L2_ENA, enableMe);
 
@@ -2044,12 +2038,12 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
         bool response = _zed->newCfgValset();
 
         // Leave NMEA IN (poll requests) enabled so MON-COMMS skipped keeps updating
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, enable ? 0 : 1 );
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_NMEA, enable ? 0 : 1);
 
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, enable ? 1 : 0 );
-        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, enable ? 1 : 0 );
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_UBX, enable ? 1 : 0);
+        response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_RTCM3X, enable ? 1 : 0);
         if (commandSupported(UBLOX_CFG_UART2INPROT_SPARTN))
-            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0 );
+            response &= _zed->addCfgValset(UBLOX_CFG_UART2INPROT_SPARTN, enable ? 1 : 0);
 
         response &= _zed->sendCfgValset(); // Closing
 
@@ -2057,10 +2051,8 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
-                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                                enable ? "enabled" : "disabled",
-                                force ? " (Forced)" : "");
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
             }
 
             _corrRadioExtPortEnabled = enable;
@@ -2069,9 +2061,8 @@ bool GNSS_ZED::setCorrRadioExtPort(bool enable, bool force)
         else
         {
             systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                            enable ? "enabled" : "disabled",
-                            force ? " (Forced)" : "");
+                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
+                         force ? " (Forced)" : "");
         }
     }
 
@@ -2102,9 +2093,10 @@ bool GNSS_ZED::setElevation(uint8_t elevationDegrees)
 //----------------------------------------
 // Given a unique string, find first and last records containing that string in message array
 //----------------------------------------
-void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock, int &endOfBlock)
+void GNSS_ZED::setMessageOffsets(const ubxMsg *localMessage, const char *messageType, int &startOfBlock,
+                                 int &endOfBlock)
 {
-    char messageNamePiece[40];                                                   // UBX_RTCM
+    char messageNamePiece[40];                                               // UBX_RTCM
     snprintf(messageNamePiece, sizeof(messageNamePiece), "%s", messageType); // Put UBX_ infront of type
 
     // Find the first occurrence
@@ -2182,14 +2174,14 @@ bool GNSS_ZED::setMessages(int maxRetries)
                     }
                     messageNumber++;
                 } while (((messageNumber % 43) < 42) &&
-                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43 in
-                                                         // size. It's a HHGTTG thing.
+                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
+                                                         // in size. It's a HHGTTG thing.
 
                 if (_zed->sendCfgValset() == false)
                 {
                     log_d("sendCfg failed at messageNumber %d %s. Try %d of %d.", messageNumber - 1,
-                          (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "", tryNo + 1,
-                          maxRetries);
+                          (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "",
+                          tryNo + 1, maxRetries);
                     response &= false; // If any one of the Valset fails, report failure overall
                 }
             }
@@ -2233,8 +2225,8 @@ bool GNSS_ZED::setMessagesUsb(int maxRetries)
                                                        settings.ubxMessageRates[messageNumber]);
                     messageNumber++;
                 } while (((messageNumber % 43) < 42) &&
-                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43 in
-                                                         // size. It's a HHGTTG thing.
+                         (messageNumber < MAX_UBX_MSG)); // Limit 1st batch to 42. Batches after that will be (up to) 43
+                                                         // in size. It's a HHGTTG thing.
 
                 response &= _zed->sendCfgValset();
             }
@@ -2249,7 +2241,7 @@ bool GNSS_ZED::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_ZED::setMinCnoRadio (uint8_t cnoValue)
+bool GNSS_ZED::setMinCnoRadio(uint8_t cnoValue)
 {
     if (online.gnss)
     {
@@ -2362,8 +2354,9 @@ bool GNSS_ZED::setTalkerGNGGA()
     if (online.gnss)
     {
         bool success = true;
-        success &= _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
-        success &= _zed->setNMEAGPGGAcallbackPtr(nullptr);        // Remove callback
+        success &=
+            _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 3); // Return talker ID to GNGGA after NTRIP Client set to GPGGA
+        success &= _zed->setNMEAGPGGAcallbackPtr(nullptr); // Remove callback
         return success;
     }
     return false;
@@ -2394,7 +2387,7 @@ bool GNSS_ZED::standby()
 //----------------------------------------
 void storeHPdata(UBX_NAV_HPPOSLLH_data_t *ubxDataStruct)
 {
-    GNSS_ZED * zed = (GNSS_ZED *)gnss;
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
 
     zed->storeHPdataRadio(ubxDataStruct);
 }
@@ -2433,7 +2426,7 @@ void storeMONHWdata(UBX_MON_HW_data_t *ubxDataStruct)
 //----------------------------------------
 void storePVTdata(UBX_NAV_PVT_data_t *ubxDataStruct)
 {
-    GNSS_ZED * zed = (GNSS_ZED *)gnss;
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
 
     zed->storePVTdataRadio(ubxDataStruct);
 }
@@ -2457,7 +2450,7 @@ void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 
     _satellitesInView = ubxDataStruct->numSV;
     _fixType = ubxDataStruct->fixType; // 0 = no fix, 1 = dead reckoning only, 2 = 2D-fix, 3 = 3D-fix, 4 = GNSS + dead
-                                         // reckoning combined, 5 = time only fix
+                                       // reckoning combined, 5 = time only fix
     _carrierSolution = ubxDataStruct->flags.bits.carrSoln;
 
     _validDate = ubxDataStruct->valid.bits.validDate;
@@ -2479,7 +2472,7 @@ void GNSS_ZED::storePVTdataRadio(UBX_NAV_PVT_data_t *ubxDataStruct)
 //----------------------------------------
 void storeMONCOMMSdata(UBX_MON_COMMS_data_t *ubxDataStruct)
 {
-    GNSS_ZED * zed = (GNSS_ZED *)gnss;
+    GNSS_ZED *zed = (GNSS_ZED *)gnss;
 
     zed->storeMONCOMMSdataRadio(ubxDataStruct);
 }
@@ -2491,15 +2484,15 @@ void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
 {
     static uint32_t previousRxBytes;
     static bool firstTime = true;
-    
+
     for (uint8_t port = 0; port < ubxDataStruct->header.nPorts; port++) // For each port
     {
         if (ubxDataStruct->port[port].portId == COM_PORT_ID_UART2) // If this is the port we are looking for
         {
             uint32_t rxBytes = ubxDataStruct->port[port].rxBytes;
 
-            //if (settings.debugCorrections && !inMainMenu)
-            //    systemPrintf("Radio Ext (UART2) rxBytes is %d\r\n", rxBytes);
+            // if (settings.debugCorrections && !inMainMenu)
+            //     systemPrintf("Radio Ext (UART2) rxBytes is %d\r\n", rxBytes);
 
             if (firstTime) // Avoid a false positive from historic rxBytes
             {
@@ -2514,7 +2507,7 @@ void GNSS_ZED::storeMONCOMMSdataRadio(UBX_MON_COMMS_data_t *ubxDataStruct)
             }
             break;
         }
-    }  
+    }
 }
 
 //----------------------------------------
@@ -2734,15 +2727,16 @@ void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
     if (correctionLastSeen(CORR_LBAND))
     {
 #ifdef COMPILE_ZED
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
         zed->updateCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
-#endif // COMPILE_ZED
+#endif                                   // COMPILE_ZED
 
         if (settings.debugCorrections == true && !inMainMenu)
             systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
 
-        gnss->pushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-        gnss->pushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
+        gnss->pushRawData(&pmpData->sync1,
+                          (size_t)payloadLen + 6);         // Push the sync chars, class, ID, length and payload
+        gnss->pushRawData(&pmpData->checksumA, (size_t)2); // Push the checksum bytes
     }
     else
     {
@@ -2777,7 +2771,7 @@ void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
     }
 }
 
-//Call back for incoming GGA data to be pushed to NTRIP Caster
+// Call back for incoming GGA data to be pushed to NTRIP Caster
 void pushGPGGA(NMEA_GGA_data_t *nmeaData)
 {
 #ifdef COMPILE_NETWORK
@@ -2798,10 +2792,10 @@ void pushGPGGA(NMEA_GGA_data_t *nmeaData)
             ntripClient->print((const char *)nmeaData->nmea);
         }
     }
-#endif //COMPILE_NETWORK
+#endif // COMPILE_NETWORK
 }
 
-//ZED-F9x call back
+// ZED-F9x call back
 void eventTriggerReceived(UBX_TIM_TM2_data_t *ubxDataStruct)
 {
     // It is the rising edge of the sound event (TRIG) which is important
@@ -2858,7 +2852,7 @@ bool commandSupported(const uint32_t key)
 // Helper method to convert GNSS time and date into Unix Epoch
 void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
 {
-    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                  // Jan 1st 2020 as days from Jan 1st 1970
+    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                    // Jan 1st 2020 as days from Jan 1st 1970
     t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnss->getYear() - 2020]; // Add on the number of days since 2020
     t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnss->getYear() % 4 == 0 ? 0 : 1]
                                              [gnss->getMonth() - 1]; // Add on the number of days since Jan 1st
@@ -2921,4 +2915,3 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
 }
 
 #endif // COMPILE_ZED
-

@@ -1,25 +1,25 @@
 //----------------------------------------
 
-#ifdef  COMPILE_CELLULAR
+#ifdef COMPILE_CELLULAR
 
 // The following define is used to avoid confusion between the cellular
 // code and the GNSS code where PPP has a completely different meaning.
 // The remaining references to PPP in this code are present due to values
 // from the PPP (Point-to-Point Protocol) driver and ARDUINO_EVENT_PPP_*
 // events.
-#define CELLULAR            PPP
+#define CELLULAR PPP
 
 //----------------------------------------
 // Cellular interface definitions
 
-#define CELLULAR_MODEM_MODEL    PPP_MODEM_GENERIC
+#define CELLULAR_MODEM_MODEL PPP_MODEM_GENERIC
 
-#define CELLULAR_MODEM_APN      "internet"
-#define CELLULAR_MODEM_PIN      NULL // Personal Identification Number: String in double quotes
+#define CELLULAR_MODEM_APN "internet"
+#define CELLULAR_MODEM_PIN NULL // Personal Identification Number: String in double quotes
 
-#define CELLULAR_BOOT_DELAY     DELAY_SEC(15) // Delay after boot before starting cellular
+#define CELLULAR_BOOT_DELAY DELAY_SEC(15) // Delay after boot before starting cellular
 
-#define CELLULAR_ATTACH_POLL_INTERVAL   100     // Milliseconds
+#define CELLULAR_ATTACH_POLL_INTERVAL 100 // Milliseconds
 
 //----------------------------------------
 
@@ -44,7 +44,7 @@ void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
         cellularIsAttached = CELLULAR.attached();
         if (cellularIsAttached)
         {
-            // Attached to a mobile network, continue 
+            // Attached to a mobile network, continue
             // Display the network information
             systemPrintf("Cellular attached to %s\r\n", CELLULAR.operatorName().c_str());
 
@@ -69,7 +69,7 @@ void cellularAttached(NetIndex_t index, uintptr_t parameter, bool debug)
             // Switch into a state where data may be sent and received
             if (debug)
                 systemPrintln("Switching to data mode...");
-            CELLULAR.mode(ESP_MODEM_MODE_CMUX);  // Data and Command mixed mode
+            CELLULAR.mode(ESP_MODEM_MODE_CMUX); // Data and Command mixed mode
 
             // Get the next sequence entry
             networkSequenceNextEntry(index, debug);
@@ -86,10 +86,8 @@ void cellularEvent(arduino_event_id_t event)
     String module;
 
     // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_CELLULAR)
-        && (event != ARDUINO_EVENT_ETH_GOT_IP)
-        && (event != ARDUINO_EVENT_ETH_GOT_IP6)
-        && (event != ARDUINO_EVENT_PPP_CONNECTED))
+    if (networkIsInterfaceOnline(NETWORK_CELLULAR) && (event != ARDUINO_EVENT_ETH_GOT_IP) &&
+        (event != ARDUINO_EVENT_ETH_GOT_IP6) && (event != ARDUINO_EVENT_PPP_CONNECTED))
     {
         networkMarkOffline(NETWORK_CELLULAR);
     }
@@ -200,7 +198,8 @@ void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
     // Configure the cellular modem
     CELLULAR.setApn(CELLULAR_MODEM_APN);
     CELLULAR.setPin(CELLULAR_MODEM_PIN);
-    CELLULAR.setResetPin(pin_Cellular_Reset, cellularModemResetLow); // v3.0.2 allows you to set the reset delay, but we don't need it
+    CELLULAR.setResetPin(pin_Cellular_Reset,
+                         cellularModemResetLow); // v3.0.2 allows you to set the reset delay, but we don't need it
     CELLULAR.setPins(pin_Cellular_TX, pin_Cellular_RX, pin_Cellular_RTS, pin_Cellular_CTS, CELLULAR_MODEM_FC);
 
     // Now let the PPP turn the modem back on again if needed - with a 200ms reset
@@ -234,4 +233,4 @@ void cellularStop(NetIndex_t index, uintptr_t parameter, bool debug)
     networkSequenceNextEntry(index, debug);
 }
 
-#endif  // COMPILE_CELLULAR
+#endif // COMPILE_CELLULAR

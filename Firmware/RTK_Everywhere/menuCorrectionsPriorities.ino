@@ -47,8 +47,8 @@
 // Locals
 //----------------------------------------
 static CORRECTION_ID_T correctionSourceId = CORR_NUM; // ID of correction source (default: None)
-static CORRECTION_MASK_T correctionActive;        // Bitmap of active correction sources
-static uint32_t correctionLastSeenMsec[CORR_NUM]; // Time when correction was last received
+static CORRECTION_MASK_T correctionActive;            // Bitmap of active correction sources
+static uint32_t correctionLastSeenMsec[CORR_NUM];     // Time when correction was last received
 
 //----------------------------------------
 // Support routines
@@ -600,7 +600,7 @@ void correctionUpdateSource()
     if (millis() > (lastRadioExtCheck + radioCheckIntervalMsec))
     {
         // LG290P will return settings.enableExtCorrRadio.
-        // ZED / mosaic will return true if settings.enableExtCorrRadio is 
+        // ZED / mosaic will return true if settings.enableExtCorrRadio is
         // true and the port is actually active.
         if (gnss->isCorrRadioExtPortActive())
             correctionLastSeen(CORR_RADIO_EXT);

@@ -165,7 +165,7 @@ void beginDisplay(TwoWire *i2cBus)
             systemPrintln("Display started");
 
             // Display the brand LOGO
-            RTKBrandAttribute * brandAttribute = getBrandAttributeFromBrand(present.brand);
+            RTKBrandAttribute *brandAttribute = getBrandAttributeFromBrand(present.brand);
             oled->erase();
             x = (oled->getWidth() - brandAttribute->logoWidth) / 2;
             y = (oled->getHeight() - brandAttribute->logoHeight) / 2;
@@ -284,8 +284,8 @@ void displayUpdate()
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FLOAT):
-                //displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
-                //                          0b01010101); // Dual crosshair, blink
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
+                //                           0b01010101); // Dual crosshair, blink
                 displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, false); // Dual crosshair, blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
@@ -294,8 +294,8 @@ void displayUpdate()
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_ROVER_RTK_FIX):
-                //displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
-                //                          0b11111111); // Dual crosshair, no blink
+                // displayHorizontalAccuracy(&iconPropertyList, &CrossHairDualProperties,
+                //                           0b11111111); // Dual crosshair, no blink
                 displayRTKAccuracy(&iconPropertyList, &CrossHairDualProperties, true); // Dual crosshair, no blink
                 paintLogging(&iconPropertyList);
                 displaySivVsOpenShort(&iconPropertyList);
@@ -323,26 +323,26 @@ void displayUpdate()
             case (STATE_BASE_TEMP_SURVEY_STARTED):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 break;
             case (STATE_BASE_FIXED_TRANSMITTING):
                 paintLogging(&iconPropertyList);
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
-                displayFullIPAddress(&iconPropertyList); // Bottom left - 128x64 only
+                displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
                 break;
@@ -354,11 +354,11 @@ void displayUpdate()
 
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
-#ifdef  COMPILE_ETHERNET
+#ifdef COMPILE_ETHERNET
                 if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
@@ -380,7 +380,7 @@ void displayUpdate()
                 if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
                     prop.duty = 0b01010101;
                 iconPropertyList.push_back(prop);
 
@@ -477,7 +477,7 @@ void displaySplash()
         int yPos = (oled->getHeight() - ((fontHeight * 4) + 2 + 5 + 7)) / 2;
 
         // Display the product name
-        RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
         printTextCenter(brandAttributes->name, yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
 
         yPos = yPos + fontHeight + 2;
@@ -624,9 +624,11 @@ void paintBatteryLevel(std::vector<iconPropertyBlinking> *iconList)
                111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999AAAAAAAAAABBBBBBBBBBCCCCCCCC
      01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567
     .--------------------------------------------------------------------------------------------------------------------------------
-     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--Cellular-|  |--ESP-|  |-Down-| |--Up--| |-Dynamic/Base|  |--Battery / ETH--|
+     |-----4 digit MAC-----|  |--BT-|  |---WiFi----|  |--Cellular-|  |--ESP-|  |-Down-| |--Up--| |-Dynamic/Base|
+  |--Battery / ETH--|
 
-     |------------------------------------------ IP ------------------------------------------|      |-Corr Source-|        |Logging|
+     |------------------------------------------ IP ------------------------------------------|      |-Corr Source-|
+  |Logging|
 
 */
 
@@ -697,7 +699,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             paintMACAddress4digit(0, 3); // Columns 0 to 22
 
             // Bluetooth indicated when connected: Columns 25 to 31 . TODO don't count if BT radio type is OFF.
-            if(bluetoothGetState() == BT_CONNECTED)
+            if (bluetoothGetState() == BT_CONNECTED)
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
@@ -726,31 +728,31 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            #ifdef COMPILE_CELLULAR
-                // Cellular : Columns 49 - 61
-                // From the LARA_R6 AT Command Reference AT+CSQ, RSSI can be 0-31:
-                // 0 RSSI of the network <= -113 dBm
-                // 1 -111 dBm
-                // 2...30 -109 dBm <= RSSI of the network <= -53 dBm
-                // 31 -51 dBm <= RSSI of the network
-                if (cellularIsAttached)
-                {
-                    iconPropertyBlinking prop;
-                    prop.duty = 0b11111111;
-                    prop.icon.bitmap = nullptr;
-                    // Based on RSSI, select icon
-                    if (cellularRSSI >= 31)
-                        prop.icon = CellularSymbol3128x64;
-                    else if (cellularRSSI >= 2)
-                        prop.icon = CellularSymbol2128x64;
-                    else if (cellularRSSI >= 1)
-                        prop.icon = CellularSymbol1128x64;
-                    else
-                        prop.icon = CellularSymbol0128x64;
-                    if (prop.icon.bitmap != nullptr)
-                        iconList->push_back(prop);
-                }
-            #endif // /COMPILE_CELLULAR
+#ifdef COMPILE_CELLULAR
+            // Cellular : Columns 49 - 61
+            // From the LARA_R6 AT Command Reference AT+CSQ, RSSI can be 0-31:
+            // 0 RSSI of the network <= -113 dBm
+            // 1 -111 dBm
+            // 2...30 -109 dBm <= RSSI of the network <= -53 dBm
+            // 31 -51 dBm <= RSSI of the network
+            if (cellularIsAttached)
+            {
+                iconPropertyBlinking prop;
+                prop.duty = 0b11111111;
+                prop.icon.bitmap = nullptr;
+                // Based on RSSI, select icon
+                if (cellularRSSI >= 31)
+                    prop.icon = CellularSymbol3128x64;
+                else if (cellularRSSI >= 2)
+                    prop.icon = CellularSymbol2128x64;
+                else if (cellularRSSI >= 1)
+                    prop.icon = CellularSymbol1128x64;
+                else
+                    prop.icon = CellularSymbol0128x64;
+                if (prop.icon.bitmap != nullptr)
+                    iconList->push_back(prop);
+            }
+#endif // /COMPILE_CELLULAR
 
             if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 64 - 71
             {
@@ -849,7 +851,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     netOutgoingRTCM = false;
                 }
             }
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 
             switch (systemState) // Dynamic Model / Base : Columns 92 - 106
             {
@@ -892,8 +894,10 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             if (!correctionsIconPosCalculated)
             {
                 for (int i = 0; i < CORR_NUM; i++)
-                    if ((64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) < correctionsIconYPos128x64)
-                        correctionsIconYPos128x64 = 64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
+                    if ((64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height)) <
+                        correctionsIconYPos128x64)
+                        correctionsIconYPos128x64 =
+                            64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
                 correctionsIconPosCalculated = true;
             }
             CORRECTION_ID_T correctionSource = correctionGetSource();
@@ -1138,7 +1142,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = WiFiSymbol3Left64x48; // Full symbol
         iconList->push_back(prop);
     }
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 }
 
 // Bluetooth is in center position
@@ -1208,7 +1212,7 @@ void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
         prop.icon = WiFiSymbol3Right64x48; // Full symbol
         iconList->push_back(prop);
     }
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
 }
 
 // Bluetooth and ESP Now icons off. WiFi in middle.
@@ -1229,7 +1233,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         if (networkIsInterfaceOnline(NETWORK_WIFI))
             icon.duty = 0b11111111;
         else
-#endif  // COMPILE_WIFI
+#endif // COMPILE_WIFI
             icon.duty = 0b01010101;
 
         iconList->push_back(icon);
@@ -1457,8 +1461,8 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
         // Display icon associated with current Dynamic Model
         switch (settings.dynamicModel)
         {
-             default:
-                 break;
+        default:
+            break;
 
 #ifdef COMPILE_ZED
         case (DYN_MODEL_PORTABLE):
@@ -1498,7 +1502,6 @@ void paintDynamicModel(std::vector<iconPropertyBlinking> *iconList)
             prop.icon = DynamicModel_12_Properties.iconDisplay[present.display_type];
             break;
 #endif // COMPILE_ZED
-
         }
 
         iconList->push_back(prop);
@@ -1520,7 +1523,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
         prop.duty = 0b11111111;
         iconList->push_back(prop);
     }
-#endif  // COMPILE_ETHERNET
+#endif // COMPILE_ETHERNET
 }
 
 void displaySivVsOpenShort(std::vector<iconPropertyBlinking> *iconList)
@@ -1714,8 +1717,7 @@ void paintLogging(std::vector<iconPropertyBlinking> *iconList, bool pulse, bool 
     iconPropertyBlinking prop;
     prop.duty = 0b11111111;
 
-    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing))
-        || (present.gnss_mosaicX5 && logIncreasing))
+    if (((online.logging == true) && (logIncreasing || ntpLogIncreasing)) || (present.gnss_mosaicX5 && logIncreasing))
     {
         if (NTP)
         {
@@ -2547,7 +2549,6 @@ void paintSystemTest()
                 else
                     oled->print("FAIL");
 #endif // COMPILE_ZED
-
             }
             else
                 oled->print("OK");
@@ -2667,7 +2668,7 @@ void printTextCenter(const char *text, uint8_t yPos, QwiicFont &fontType, uint8_
     int xStart = ((int)(oled->getWidth() / 2)) - ((int)(textPixelWidth / 2));
     if (xStart < 0)
         xStart = 0;
-    
+
     // So, add a gap of 1 pixel if highlight is true and xStart is zero
     if (highlight && (xStart == 0))
         xStart = 1;
@@ -3172,7 +3173,7 @@ void displayConfigViaEthernet()
         yPos += Ethernet_Icon_Height * 1.5; // yPos is now 24
 
         printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-        yPos += 8; // yPos is now 32
+        yPos += 8;                                           // yPos is now 32
         if (present.display_type == DISPLAY_128x64)
             yPos += 4; // yPos is 36 on 128x64 displays, 32 on 64x48 displays
 

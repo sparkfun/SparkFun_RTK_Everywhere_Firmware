@@ -545,11 +545,11 @@ void ntripServerStop(int serverIndex, bool shutdown)
                 enabled = true;
                 break;
             }
-        //settings.enableNtripServer = enabled;
-        // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? Setting settings.enableNtripServer to false means
-        // the server connections cannot be (re)started without setting settings.enableNtripServer back
-        // to true via the menu / web config... Was the intent to close the network connection when all
-        // servers have disconnected?
+        // settings.enableNtripServer = enabled;
+        //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? Setting settings.enableNtripServer to false means
+        //  the server connections cannot be (re)started without setting settings.enableNtripServer back
+        //  to true via the menu / web config... Was the intent to close the network connection when all
+        //  servers have disconnected?
     }
     else
     {
@@ -599,11 +599,10 @@ void ntripServerUpdate(int serverIndex)
     // Wait for a network media connection
     case NTRIP_SERVER_NETWORK_STARTED:
         // Determine if the NTRIP server was turned off
-        if (NEQ_RTK_MODE(ntripServerMode)
-            || (settings.enableNtripServer == false)
-            || (settings.ntripServer_CasterHost[serverIndex][0] == 0)
-            || (settings.ntripServer_CasterPort[serverIndex] == 0)
-            || (settings.ntripServer_MountPoint[serverIndex][0] == 0))
+        if (NEQ_RTK_MODE(ntripServerMode) || (settings.enableNtripServer == false) ||
+            (settings.ntripServer_CasterHost[serverIndex][0] == 0) ||
+            (settings.ntripServer_CasterPort[serverIndex] == 0) ||
+            (settings.ntripServer_MountPoint[serverIndex][0] == 0))
         {
             ntripServerStop(serverIndex, true);
         }

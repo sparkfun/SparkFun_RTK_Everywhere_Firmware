@@ -385,7 +385,7 @@ bool GNSS_UM980::configureRover()
 void GNSS_UM980::debuggingDisable()
 {
     if (online.gnss)
-    _um980->disableDebugging();
+        _um980->disableDebugging();
 }
 
 //----------------------------------------
@@ -451,7 +451,7 @@ bool GNSS_UM980::enableNMEA()
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
         {
             if (_um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
-                                          settings.um980MessageRatesNMEA[messageNumber]) == false)
+                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
             {
                 if (settings.debugGnss)
                     systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
@@ -498,7 +498,7 @@ bool GNSS_UM980::enableRTCMBase()
         if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
         {
             if (_um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                          settings.um980MessageRatesRTCMBase[messageNumber]) == false)
+                                           settings.um980MessageRatesRTCMBase[messageNumber]) == false)
             {
                 if (settings.debugGnss)
                     systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
@@ -529,7 +529,7 @@ bool GNSS_UM980::enableRTCMRover()
         if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
         {
             if (_um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                          settings.um980MessageRatesRTCMRover[messageNumber]) == false)
+                                           settings.um980MessageRatesRTCMRover[messageNumber]) == false)
             {
                 if (settings.debugGnss)
                     systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
@@ -807,7 +807,7 @@ uint8_t GNSS_UM980::getHour()
 }
 
 //----------------------------------------
-const char * GNSS_UM980::getId()
+const char *GNSS_UM980::getId()
 {
     if (online.gnss)
         return (_um980->getID());
@@ -925,13 +925,13 @@ double GNSS_UM980::getRateS()
 }
 
 //----------------------------------------
-const char * GNSS_UM980::getRtcmDefaultString()
+const char *GNSS_UM980::getRtcmDefaultString()
 {
     return "1005/1074/1084/1094/1124 1Hz & 1033 0.1Hz";
 }
 
 //----------------------------------------
-const char * GNSS_UM980::getRtcmLowDataRateString()
+const char *GNSS_UM980::getRtcmLowDataRateString()
 {
     return "1074/1084/1094/1124 0.5Hz & 1005/1033 0.1Hz";
 }
@@ -1161,7 +1161,7 @@ bool GNSS_UM980::isRTKFloat()
 //----------------------------------------
 bool GNSS_UM980::isSurveyInComplete()
 {
-    if(getSurveyInObservationTime() > settings.observationSeconds)
+    if (getSurveyInObservationTime() > settings.observationSeconds)
         return (true);
     return (false);
 }
@@ -1652,7 +1652,7 @@ bool GNSS_UM980::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_UM980::setMinCnoRadio (uint8_t cnoValue)
+bool GNSS_UM980::setMinCnoRadio(uint8_t cnoValue)
 {
     if (online.gnss)
     {
@@ -1844,7 +1844,7 @@ bool GNSS_UM980::surveyInStart()
 //----------------------------------------
 void um980UnicoreHandler(uint8_t *buffer, int length)
 {
-    GNSS_UM980 * um980 = (GNSS_UM980 *)gnss;
+    GNSS_UM980 *um980 = (GNSS_UM980 *)gnss;
     um980->unicoreHandler(buffer, length);
 }
 

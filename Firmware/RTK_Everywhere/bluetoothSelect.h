@@ -15,7 +15,7 @@ class BTSerialInterface
 
     virtual void disconnect() = 0;
     virtual void end() = 0;
-    //virtual esp_err_t register_callback(esp_spp_cb_t callback) = 0;
+    // virtual esp_err_t register_callback(esp_spp_cb_t callback) = 0;
     virtual void setTimeout(unsigned long timeout) = 0;
 
     virtual int available() = 0;

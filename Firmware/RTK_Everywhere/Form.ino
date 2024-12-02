@@ -36,19 +36,20 @@ void sendStringToWebsocket(const char *stringToSend)
 
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t*)stringToSend;
+    ws_pkt.payload = (uint8_t *)stringToSend;
     ws_pkt.len = strlen(stringToSend);
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
     // If we use httpd_ws_send_frame, it requires a req.
-    //esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
-    //if (ret != ESP_OK) {
+    // esp_err_t ret = httpd_ws_send_frame(last_ws_req, &ws_pkt);
+    // if (ret != ESP_OK) {
     //    ESP_LOGE(TAG, "httpd_ws_send_frame failed with %d", ret);
     //}
 
     // If we use httpd_ws_send_frame_async, it requires a fd.
     esp_err_t ret = httpd_ws_send_frame_async(*wsserver, last_ws_fd, &ws_pkt);
-    if (ret != ESP_OK) {
+    if (ret != ESP_OK)
+    {
         systemPrintf("httpd_ws_send_frame failed with %d\r\n", ret);
     }
     else
@@ -56,16 +57,16 @@ void sendStringToWebsocket(const char *stringToSend)
         if (settings.debugWebConfig == true)
             systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
     }
-
 }
 
 static esp_err_t ws_handler(httpd_req_t *req)
 {
     // Log the req, so we can reuse it for httpd_ws_send_frame
     // TODO: do we need to be cleverer about this?
-    //last_ws_req = req;
+    // last_ws_req = req;
 
-    if (req->method == HTTP_GET) {
+    if (req->method == HTTP_GET)
+    {
         // Log the fd, so we can reuse it for httpd_ws_send_frame_async
         // TODO: do we need to be cleverer about this?
         last_ws_fd = httpd_req_to_sockfd(req);
@@ -86,27 +87,31 @@ static esp_err_t ws_handler(httpd_req_t *req)
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
     /* Set max_len = 0 to get the frame len */
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
-    if (ret != ESP_OK) {
+    if (ret != ESP_OK)
+    {
         systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
         return ret;
     }
     if (settings.debugWebConfig == true)
         systemPrintf("frame len is %d\r\n", ws_pkt.len);
-    if (ws_pkt.len) {
+    if (ws_pkt.len)
+    {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
         if (online.psram == true)
             buf = (uint8_t *)ps_malloc(ws_pkt.len + 1);
         else
             buf = (uint8_t *)malloc(ws_pkt.len + 1);
-        
-        if (buf == NULL) {
+
+        if (buf == NULL)
+        {
             systemPrintln("Failed to malloc memory for buf");
             return ESP_ERR_NO_MEM;
         }
         ws_pkt.payload = buf;
         /* Set max_len = ws_pkt.len to get the frame payload */
         ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
-        if (ret != ESP_OK) {
+        if (ret != ESP_OK)
+        {
             systemPrintf("httpd_ws_recv_frame failed with %d\r\n", ret);
             free(buf);
             return ret;
@@ -120,7 +125,6 @@ static esp_err_t ws_handler(httpd_req_t *req)
     // HTTPD_WS_TYPE_CLOSE      = 0x8,
     // HTTPD_WS_TYPE_PING       = 0x9,
     // HTTPD_WS_TYPE_PONG       = 0xA
-
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
@@ -150,15 +154,13 @@ static esp_err_t ws_handler(httpd_req_t *req)
     return ret;
 }
 
-static const httpd_uri_t ws = {
-        .uri        = "/ws",
-        .method     = HTTP_GET,
-        .handler    = ws_handler,
-        .user_ctx   = NULL,
-        .is_websocket = true,
-        .handle_ws_control_frames = true,
-        .supported_subprotocol = NULL
-};
+static const httpd_uri_t ws = {.uri = "/ws",
+                               .method = HTTP_GET,
+                               .handler = ws_handler,
+                               .user_ctx = NULL,
+                               .is_websocket = true,
+                               .handle_ws_control_frames = true,
+                               .supported_subprotocol = NULL};
 
 static void start_wsserver(void)
 {
@@ -177,7 +179,8 @@ static void start_wsserver(void)
     if (wsserver == nullptr)
         wsserver = new httpd_handle_t;
 
-    if (httpd_start(wsserver, &config) == ESP_OK) {
+    if (httpd_start(wsserver, &config) == ESP_OK)
+    {
         // Registering the ws handler
         if (settings.debugWebConfig == true)
             systemPrintln("Registering URI handlers");
@@ -218,7 +221,8 @@ class CaptiveRequestHandler : public RequestHandler
     {
     }
 
-    bool canHandle(HTTPMethod requestMethod, String uri) {
+    bool canHandle(HTTPMethod requestMethod, String uri)
+    {
         for (int i = 0; i < sizeof(urls); i++)
         {
             if (uri == urls[i])
@@ -246,7 +250,6 @@ class CaptiveRequestHandler : public RequestHandler
         return true;
     }
 };
-
 
 // Start webserver in AP mode
 bool startWebServer(bool startWiFi = true, int httpPort = 80)
@@ -350,7 +353,8 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         webserver->on("/src/bootstrap.bundle.min.js", HTTP_GET, []() {
             webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js, sizeof(bootstrap_bundle_min_js));
+            webserver->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
+                              sizeof(bootstrap_bundle_min_js));
         });
 
         webserver->on("/src/bootstrap.min.css", HTTP_GET, []() {
@@ -447,19 +451,12 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         // Handler for the /uploadFile form POST
         webserver->on(
-            "/uploadFile", HTTP_POST,
-            []() {
-                webserver->send(200, "text/plain", "");
-            },
+            "/uploadFile", HTTP_POST, []() { webserver->send(200, "text/plain", ""); },
             handleUpload); // Run handleUpload function when file manager file is uploaded
 
         // Handler for the /uploadFirmware form POST
         webserver->on(
-            "/uploadFirmware", HTTP_POST, 
-            []() {
-                webserver->send(200, "text/plain", "");
-            },
-            handleFirmwareFileUpload);
+            "/uploadFirmware", HTTP_POST, []() { webserver->send(200, "text/plain", ""); }, handleFirmwareFileUpload);
 
         // Handler for file manager
         webserver->on("/listfiles", HTTP_GET, []() {
@@ -502,12 +499,13 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
 
         // Starts task for updating webserver with handleClient
         if (task.updateWebServerTaskRunning == false)
-            xTaskCreate(updateWebServerTask,
-                        "UpdateWebServer",            // Just for humans
-                        updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
-                        nullptr,                // Task input parameter
-                        updateWebServerTaskPriority,
-                        &updateWebServerTaskHandle); // Task handle
+            xTaskCreate(
+                updateWebServerTask,
+                "UpdateWebServer",            // Just for humans
+                updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
+                nullptr,                      // Task input parameter
+                updateWebServerTaskPriority,
+                &updateWebServerTaskHandle); // Task handle
 
         if (settings.debugWebConfig == true)
             systemPrintln("Web Server Started");
@@ -603,7 +601,8 @@ void notFound()
 static void handleFileManager()
 {
     // This section does not tolerate semaphore transactions
-    String logmessage = "handleFileManager: Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
+    String logmessage =
+        "handleFileManager: Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
 
     if (webserver->hasArg("name") && webserver->hasArg("action"))
     {
@@ -701,7 +700,7 @@ static void handleFileManager()
 
                         sendStringToWebsocket("fmNext,1,"); // Tell browser to send next file if needed
                     }
-                
+
                     dataAvailable -= sending;
                 }
 
@@ -1057,10 +1056,10 @@ void createMessageList(String &returnText)
                 returnText += "ubxMessageRate_" + String(ubxMessages[messageNumber].msgTextName) + "," +
                               String(settings.ubxMessageRates[messageNumber]) + ",";
         }
-#endif //COMPILE_ZED
+#endif // COMPILE_ZED
     }
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_NMEA_MSG; messageNumber++)
@@ -1074,9 +1073,9 @@ void createMessageList(String &returnText)
                           String(settings.um980MessageRatesRTCMRover[messageNumber]) + ",";
         }
     }
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++)
@@ -1086,21 +1085,21 @@ void createMessageList(String &returnText)
         }
         for (int stream = 0; stream < MOSAIC_NUM_NMEA_STREAMS; stream++)
         {
-            returnText += "streamIntervalNMEA_" + String(stream) + "," +
-                          String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
+            returnText +=
+                "streamIntervalNMEA_" + String(stream) + "," + String(settings.mosaicStreamIntervalsNMEA[stream]) + ",";
         }
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
         {
-            returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) + "," +
-                          String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
+            returnText += "messageIntervalRTCMRover_" + String(mosaicRTCMv3MsgIntervalGroups[messageNumber].name) +
+                          "," + String(settings.mosaicMessageIntervalsRTCMv3Rover[messageNumber]) + ",";
         }
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
         {
             returnText += "messageEnabledRTCMRover_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
-                          (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber]  ? "true" : "false") + ",";
+                          (settings.mosaicMessageEnabledRTCMv3Rover[messageNumber] ? "true" : "false") + ",";
         }
     }
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
     if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
@@ -1115,7 +1114,7 @@ void createMessageListBase(String &returnText)
     if (present.gnss_zedf9p)
     {
 #ifdef COMPILE_ZED
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
         int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
         for (int messageNumber = 0; messageNumber < MAX_UBX_MSG_RTCM; messageNumber++)
@@ -1124,10 +1123,10 @@ void createMessageListBase(String &returnText)
                 returnText += "ubxMessageRateBase_" + String(ubxMessages[messageNumber + firstRTCMRecord].msgTextName) +
                               "," + String(settings.ubxMessageRatesBase[messageNumber]) + ","; // UBX_RTCM_1074Base,4,
         }
-#endif //COMPILE_ZED
+#endif // COMPILE_ZED
     }
 
-#ifdef  COMPILE_UM980
+#ifdef COMPILE_UM980
     else if (present.gnss_um980)
     {
         for (int messageNumber = 0; messageNumber < MAX_UM980_RTCM_MSG; messageNumber++)
@@ -1136,9 +1135,9 @@ void createMessageListBase(String &returnText)
                           String(settings.um980MessageRatesRTCMBase[messageNumber]) + ",";
         }
     }
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
     else if (present.gnss_mosaicX5)
     {
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; messageNumber++)
@@ -1149,10 +1148,10 @@ void createMessageListBase(String &returnText)
         for (int messageNumber = 0; messageNumber < MAX_MOSAIC_RTCM_V3_MSG; messageNumber++)
         {
             returnText += "messageEnabledRTCMBase_" + String(mosaicMessagesRTCMv3[messageNumber].name) + "," +
-                          (settings.mosaicMessageEnabledRTCMv3Base[messageNumber]  ? "true" : "false") + ",";
+                          (settings.mosaicMessageEnabledRTCMv3Base[messageNumber] ? "true" : "false") + ",";
         }
     }
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
     if (settings.debugWebConfig == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
@@ -1206,7 +1205,6 @@ void handleUpload()
             // File is already in use. Wait your turn.
             webserver->send(202, "text/plain", "ERROR: File already uploading");
         }
-
 
         systemPrintln(logmessage);
     }

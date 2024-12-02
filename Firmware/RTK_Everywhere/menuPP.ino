@@ -747,7 +747,7 @@ void beginLBand()
         {
             // Reconstruct the firmware version
             snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
-                    i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+                     i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
 
             printNEOInfo(); // Print module firmware version
         }
@@ -764,14 +764,15 @@ void beginLBand()
             int r = 0; // Step through each geographic region
             for (; r < numRegionalAreas; r++)
             {
-                if ((longitude >= Regional_Information_Table[r].area.lonWest)
-                    && (longitude <= Regional_Information_Table[r].area.lonEast)
-                    && (latitude >= Regional_Information_Table[r].area.latSouth)
-                    && (latitude <= Regional_Information_Table[r].area.latNorth))
+                if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                    (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                    (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                    (latitude <= Regional_Information_Table[r].area.latNorth))
                 {
                     LBandFreq = Regional_Information_Table[r].frequency;
                     if (settings.debugCorrections == true)
-                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name, LBandFreq);
+                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
+                                     LBandFreq);
                     break;
                 }
             }
@@ -779,15 +780,16 @@ void beginLBand()
             {
                 LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
-                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
             }
-
         }
         else
         {
             LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
             if (settings.debugCorrections == true)
-                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                             Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
         }
 
         bool response = true;
@@ -806,7 +808,7 @@ void beginLBand()
 
         response &= i2cLBand.sendCfgValset();
 
-        GNSS_ZED * zed = (GNSS_ZED *)gnss;
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
         response &= zed->lBandCommunicationEnable();
 
         if (response == false)
@@ -835,14 +837,15 @@ void beginLBand()
             int r = 0; // Step through each geographic region
             for (; r < numRegionalAreas; r++)
             {
-                if ((longitude >= Regional_Information_Table[r].area.lonWest)
-                    && (longitude <= Regional_Information_Table[r].area.lonEast)
-                    && (latitude >= Regional_Information_Table[r].area.latSouth)
-                    && (latitude <= Regional_Information_Table[r].area.latNorth))
+                if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                    (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                    (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                    (latitude <= Regional_Information_Table[r].area.latNorth))
                 {
                     LBandFreq = Regional_Information_Table[r].frequency;
                     if (settings.debugCorrections == true)
-                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name, LBandFreq);
+                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
+                                     LBandFreq);
                     break;
                 }
             }
@@ -850,28 +853,33 @@ void beginLBand()
             {
                 LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
-                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
             }
-
         }
         else
         {
             LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
             if (settings.debugCorrections == true)
-                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n", Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                             Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
         }
 
         bool result = true;
 
         // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
-        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         result &= mosaic->sendWithResponse("slsm,off\n\r", "LBandSelectMode"); // Turn L-Band off
 
         // US SPARTN 1.8 service is on 1556290000 Hz
         // EU SPARTN 1.8 service is on 1545260000 Hz
-        result &= mosaic->sendWithResponse(String("slbb,User1," + String(LBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"), "LBandBeams"); // Set Freq, baud rate
-        result &= mosaic->sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID");                                          // 21845 = 0x5555; 26969 = 0x6959
-        result &= mosaic->sendWithResponse("slsm,manual,Inmarsat,User1,\n\r", "LBandSelectMode");                                  // Set L-Band demodulator to manual
+        result &=
+            mosaic->sendWithResponse(String("slbb,User1," + String(LBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
+                                     "LBandBeams"); // Set Freq, baud rate
+        result &=
+            mosaic->sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
+        result &= mosaic->sendWithResponse("slsm,manual,Inmarsat,User1,\n\r",
+                                           "LBandSelectMode"); // Set L-Band demodulator to manual
 
         if (result == false)
             systemPrintln("mosaic-X5 L-Band failed to configure");

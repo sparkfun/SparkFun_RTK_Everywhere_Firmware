@@ -44,7 +44,7 @@ void updatePplTask(void *e)
                             // Note: this is almost certainly redundant. It would only be used if we
                             // believe the PPL can do a better job generating corrections than the
                             // ZED can internally using SPARTN direct.
-                            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                            GNSS_ZED *zed = (GNSS_ZED *)gnss;
                             zed->updateCorrectionsSource(1);
                         }
 
@@ -53,7 +53,7 @@ void updatePplTask(void *e)
                         if (settings.debugCorrections == true && !inMainMenu)
                             systemPrintf("Received %d RTCM bytes from PPL. Pushed to the GNSS.\r\n", rtcmLength);
                         // Do we need to see this? I vote no...
-                        //else if (!inMainMenu)
+                        // else if (!inMainMenu)
                         //    systemPrintln("PointPerfect corrections sent to GNSS.");
                     }
                     else

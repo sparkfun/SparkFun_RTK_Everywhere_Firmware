@@ -94,7 +94,8 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server wrote %d bytes to %s\r\n", length, tcpServerClientIpAddress[index].toString().c_str());
+            systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
+                         tcpServerClientIpAddress[index].toString().c_str());
         }
     }
 
@@ -110,7 +111,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         }
 
         tcpServerClient[index]->stop();
-        tcpServerClientConnected = tcpServerClientConnected  & (~(1 << index));
+        tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
         tcpServerClientWriteError = tcpServerClientWriteError | (1 << index);
         length = 0;
     }

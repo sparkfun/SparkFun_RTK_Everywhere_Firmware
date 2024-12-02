@@ -27,8 +27,8 @@ bool restartWiFi = false; // Restart WiFi if user changes anything
 // Constants
 //----------------------------------------
 
-#define WIFI_MAX_TIMEOUT            (15 * 60 * 1000)
-#define WIFI_MIN_TIMEOUT            (15 * 1000)
+#define WIFI_MAX_TIMEOUT (15 * 60 * 1000)
+#define WIFI_MIN_TIMEOUT (15 * 1000)
 
 //----------------------------------------
 // Locals
@@ -220,7 +220,8 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
         if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid, (const char *)&settings.wifiNetworks[x].password);
+            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid,
+                            (const char *)&settings.wifiNetworks[x].password);
     }
 
     int wifiStatus = wifiMulti.run(timeout);
@@ -243,8 +244,8 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 void wifiDisplayState()
 {
     systemPrintf("WiFi: %s\r\n", networkIsInterfaceOnline(NETWORK_WIFI) ? "Online" : "Offline");
-    systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1], wifiMACAddress[2],
-                 wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
+    systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1],
+                 wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
     if (networkIsInterfaceOnline(NETWORK_WIFI))
     {
         // Get the DNS addresses
@@ -254,18 +255,36 @@ void wifiDisplayState()
 
         // Get the WiFi status
         wl_status_t wifiStatus = WiFi.status();
-        const char * wifiStatusString;
+        const char *wifiStatusString;
         switch (wifiStatus)
         {
-        case WL_NO_SHIELD: wifiStatusString = "WL_NO_SHIELD"; break;
-        case WL_STOPPED: wifiStatusString = "WL_STOPPED"; break;
-        case WL_IDLE_STATUS: wifiStatusString = "WL_IDLE_STATUS"; break;
-        case WL_NO_SSID_AVAIL: wifiStatusString = "WL_NO_SSID_AVAIL"; break;
-        case WL_SCAN_COMPLETED: wifiStatusString = "WL_SCAN_COMPLETED"; break;
-        case WL_CONNECTED: wifiStatusString = "WL_CONNECTED"; break;
-        case WL_CONNECT_FAILED: wifiStatusString = "WL_CONNECT_FAILED"; break;
-        case WL_CONNECTION_LOST: wifiStatusString = "WL_CONNECTION_LOST"; break;
-        case WL_DISCONNECTED: wifiStatusString = "WL_DISCONNECTED"; break;
+        case WL_NO_SHIELD:
+            wifiStatusString = "WL_NO_SHIELD";
+            break;
+        case WL_STOPPED:
+            wifiStatusString = "WL_STOPPED";
+            break;
+        case WL_IDLE_STATUS:
+            wifiStatusString = "WL_IDLE_STATUS";
+            break;
+        case WL_NO_SSID_AVAIL:
+            wifiStatusString = "WL_NO_SSID_AVAIL";
+            break;
+        case WL_SCAN_COMPLETED:
+            wifiStatusString = "WL_SCAN_COMPLETED";
+            break;
+        case WL_CONNECTED:
+            wifiStatusString = "WL_CONNECTED";
+            break;
+        case WL_CONNECT_FAILED:
+            wifiStatusString = "WL_CONNECT_FAILED";
+            break;
+        case WL_CONNECTION_LOST:
+            wifiStatusString = "WL_CONNECTION_LOST";
+            break;
+        case WL_DISCONNECTED:
+            wifiStatusString = "WL_DISCONNECTED";
+            break;
         }
 
         // Display the WiFi state
@@ -274,17 +293,12 @@ void wifiDisplayState()
         systemPrintf("    Subnet Mask: %s\r\n", WiFi.STA.subnetMask().toString().c_str());
         systemPrintf("    Gateway Address: %s\r\n", WiFi.STA.gatewayIP().toString().c_str());
         if ((uint32_t)dns3)
-            systemPrintf("    DNS Address: %s, %s, %s\r\n",
-                         dns1.toString().c_str(),
-                         dns2.toString().c_str(),
+            systemPrintf("    DNS Address: %s, %s, %s\r\n", dns1.toString().c_str(), dns2.toString().c_str(),
                          dns3.toString().c_str());
         else if ((uint32_t)dns3)
-            systemPrintf("    DNS Address: %s, %s\r\n",
-                         dns1.toString().c_str(),
-                         dns2.toString().c_str());
+            systemPrintf("    DNS Address: %s, %s\r\n", dns1.toString().c_str(), dns2.toString().c_str());
         else
-            systemPrintf("    DNS Address: %s\r\n",
-                         dns1.toString().c_str());
+            systemPrintf("    DNS Address: %s\r\n", dns1.toString().c_str());
         systemPrintf("    WiFi Strength: %d dBm\r\n", WiFi.RSSI());
         systemPrintf("    WiFi Status: %d\r\n", wifiStatusString);
     }
@@ -299,9 +313,8 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
     IPAddress ipAddress;
 
     // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_WIFI)
-        && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP)
-        && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
+    if (networkIsInterfaceOnline(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+        (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
     {
         networkMarkOffline(NETWORK_WIFI);
     }
@@ -464,7 +477,6 @@ bool wifiStart()
             if (settings.debugWifiState == true)
                 systemPrintln("WiFi: Start timeout reset to zero");
         }
-        
     }
     wifiStatus = WiFi.status();
     return (wifiStatus == WL_CONNECTED);
@@ -501,8 +513,7 @@ void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
         minutes = seconds / SECONDS_IN_A_MINUTE;
         seconds -= minutes * SECONDS_IN_A_MINUTE;
         if (settings.debugWifiState)
-            systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n",
-                         minutes, seconds);
+            systemPrintf("WiFi: Delaying %2d:%02d before restarting WiFi\r\n", minutes, seconds);
     }
 }
 

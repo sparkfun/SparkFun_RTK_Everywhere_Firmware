@@ -106,9 +106,8 @@ void setSettingsFileName()
     snprintf(stationCoordinateGeodeticFileName, sizeof(stationCoordinateGeodeticFileName),
              "/StationCoordinates-Geodetic_%d.csv", profileNumber);
 
-    if(settings.debugSettings)
+    if (settings.debugSettings)
         systemPrintf("Settings file name: %s\r\n", settingsFileName);
-
 }
 
 // Load only LFS settings without recording
@@ -229,7 +228,7 @@ void recordSystemSettingsToFile(File *settingsFile)
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
 
-    if(settings.debugSettings)
+    if (settings.debugSettings)
         systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
@@ -379,7 +378,7 @@ void recordSystemSettingsToFile(File *settingsFile)
         case tUbMsgRtb: {
             // Record message settings
 
-            GNSS_ZED * zed = (GNSS_ZED *)gnss;
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
             int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -501,15 +500,15 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
         case tCorrSPri: {
             // Record corrections priorities
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[80]; // correctionsPriority_Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         correctionGetName(x), settings.correctionsSourcesPriority[x]);
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, correctionGetName(x),
+                         settings.correctionsSourcesPriority[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -530,7 +529,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             {
                 char tempString[50]; // constellation_GLONASS=1
                 snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                        mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
+                         mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -551,8 +550,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[50]; // streamIntervalNMEA_1=1
-                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[i].name,
-                         x, settings.mosaicStreamIntervalsNMEA[x]);
+                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[i].name, x,
+                         settings.mosaicStreamIntervalsNMEA[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -601,7 +600,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_LG290P
         case tLgMRNmea: {
@@ -648,8 +647,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
-#endif  // COMPILE_LG290P
-
+#endif // COMPILE_LG290P
         }
     }
 
@@ -980,7 +978,7 @@ bool parseLine(char *str)
     bool knownSetting = false;
     bool updateGNSS = false;
 
-    if(settings.debugSettings)
+    if (settings.debugSettings)
         systemPrintf("settingName: %s - value: %s - d: %0.9f\r\n", settingName, settingString, d);
 
     // Exceptions:
@@ -1180,7 +1178,7 @@ bool parseLine(char *str)
             }
             break;
             case tUbMsgRtb: {
-                GNSS_ZED * zed = (GNSS_ZED *)gnss;
+                GNSS_ZED *zed = (GNSS_ZED *)gnss;
                 int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
                 for (int x = 0; x < qualifier; x++)
@@ -1349,7 +1347,7 @@ bool parseLine(char *str)
                 }
             }
             break;
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
             case tCorrSPri: {
                 for (int x = 0; x < qualifier; x++)
@@ -1463,7 +1461,7 @@ bool parseLine(char *str)
                 }
             }
             break;
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
 #ifdef COMPILE_LG290P
             case tLgMRNmea: {
@@ -1518,8 +1516,7 @@ bool parseLine(char *str)
                 }
             }
             break;
-#endif  // COMPILE_LG290P
-
+#endif // COMPILE_LG290P
             }
         }
     }
@@ -1791,7 +1788,7 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
     {
         if (debug)
             systemPrintf("File %s does not exist on LittleFS\r\n", fileName);
-        return false;        
+        return false;
     }
 
     File fileToRead = LittleFS.open(fileName, FILE_READ);

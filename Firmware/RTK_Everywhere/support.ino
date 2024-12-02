@@ -48,7 +48,7 @@ void systemWrite(const uint8_t *buffer, uint16_t length)
                 Serial.write(buffer, length);
         }
     }
-    
+
     // Output to only Bluetooth
     else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH)
     {

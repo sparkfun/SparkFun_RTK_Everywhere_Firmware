@@ -100,7 +100,7 @@ void menuBase()
                 }
 
                 systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
-                            gnss->getSurveyInStartingAccuracy());
+                             gnss->getSurveyInStartingAccuracy());
             }
         }
 
@@ -238,7 +238,8 @@ void menuBase()
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            getNewSetting("Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. Common antennas "
+            getNewSetting("Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
+                          "Common antennas "
                           "Torch=116mm",
                           -200.0, 200.0, &settings.antennaPhaseCenter_mm);
         }
@@ -287,8 +288,8 @@ void menuBase()
             if (incoming == 0)
             {
                 systemPrintf("Enter Caster Address for Server %d: ", serverNumber + 1);
-                if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 1)
@@ -311,8 +312,8 @@ void menuBase()
                 else
                     systemPrintf("Enter Caster User for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 3)
@@ -322,8 +323,8 @@ void menuBase()
                 else
                     systemPrintf("Enter password for Caster User for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 4)
@@ -333,8 +334,8 @@ void menuBase()
                 else
                     systemPrintf("Enter Mount Point for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 5)
@@ -344,8 +345,8 @@ void menuBase()
                 else
                     systemPrintf("Enter password for Mount Point for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
         }

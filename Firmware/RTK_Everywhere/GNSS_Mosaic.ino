@@ -133,11 +133,11 @@ void menuLogMosaic()
     // Apply changes
     if (applyChanges)
     {
-        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
         mosaic->configureLogging(); // This will enable / disable RINEX logging
-        mosaic->enableNMEA(); // Enable NMEA messages - this will enable/disable the DSK1 streams
-        setLoggingType(); // Update Standard, PPP, or custom for icon selection
+        mosaic->enableNMEA();       // Enable NMEA messages - this will enable/disable the DSK1 streams
+        setLoggingType();           // Update Standard, PPP, or custom for icon selection
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -164,7 +164,7 @@ void GNSS_MOSAIC::baseRtcmDefault()
     // Reset RTCM intervals to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
         settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
-    
+
     // Reset RTCM enabled to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
         settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
@@ -178,15 +178,16 @@ void GNSS_MOSAIC::baseRtcmLowDataRate()
     // Reset RTCM intervals to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
         settings.mosaicMessageIntervalsRTCMv3Base[x] = mosaicRTCMv3MsgIntervalGroups[x].defaultInterval;
-    
+
     // Reset RTCM enabled to defaults
     for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
         settings.mosaicMessageEnabledRTCMv3Base[x] = mosaicMessagesRTCMv3[x].defaultEnabled;
-    
+
     // Now update intervals and enabled for the selected messages
     int msg = getRtcmMessageNumberByName("RTCM1005");
     settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
-    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] =
+        10.0; // Interval = 10.0s = 0.1Hz
 
     msg = getRtcmMessageNumberByName("MSM4");
     settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
@@ -194,7 +195,8 @@ void GNSS_MOSAIC::baseRtcmLowDataRate()
 
     msg = getRtcmMessageNumberByName("RTCM1033");
     settings.mosaicMessageEnabledRTCMv3Base[msg] = 1;
-    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] = 10.0; // Interval = 10.0s = 0.1Hz
+    settings.mosaicMessageIntervalsRTCMv3Base[mosaicMessagesRTCMv3[msg].intervalGroup] =
+        10.0; // Interval = 10.0s = 0.1Hz
 }
 
 //----------------------------------------
@@ -349,7 +351,8 @@ bool GNSS_MOSAIC::beginPPS()
 
         if (i == MAX_MOSAIC_PPS_INTERVALS) // pulse interval not found!
         {
-            settings.externalPulseTimeBetweenPulse_us = mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC1].interval_us; // Default to sec1
+            settings.externalPulseTimeBetweenPulse_us =
+                mosaicPPSIntervals[MOSAIC_PPS_INTERVAL_SEC1].interval_us; // Default to sec1
             i = MOSAIC_PPS_INTERVAL_SEC1;
         }
 
@@ -367,9 +370,8 @@ bool GNSS_MOSAIC::beginPPS()
 //----------------------------------------
 bool GNSS_MOSAIC::checkNMEARates()
 {
-    return (isNMEAMessageEnabled("GGA") && isNMEAMessageEnabled("GSA") &&
-            isNMEAMessageEnabled("GST") && isNMEAMessageEnabled("GSV") &&
-            isNMEAMessageEnabled("RMC"));
+    return (isNMEAMessageEnabled("GGA") && isNMEAMessageEnabled("GSA") && isNMEAMessageEnabled("GST") &&
+            isNMEAMessageEnabled("GSV") && isNMEAMessageEnabled("RMC"));
 }
 
 //----------------------------------------
@@ -464,7 +466,8 @@ bool GNSS_MOSAIC::configureLogging()
 
     if (settings.enableExternalHardwareEventLogging)
     {
-        setting = String("sso,Stream" + String(MOSAIC_SBF_EXTEVENT_STREAM) + ",DSK1,ExtEvent+ExtEventPVTCartesian,OnChange\n\r");
+        setting = String("sso,Stream" + String(MOSAIC_SBF_EXTEVENT_STREAM) +
+                         ",DSK1,ExtEvent+ExtEventPVTCartesian,OnChange\n\r");
         response &= sendWithResponse(setting, "SBFOutput");
     }
     else
@@ -662,7 +665,7 @@ bool GNSS_MOSAIC::enableNMEA()
     bool gpzdaEnabled = false;
     bool gpgstEnabled = false;
 
-    String streams[MOSAIC_NUM_NMEA_STREAMS]; // Build a string for each stream
+    String streams[MOSAIC_NUM_NMEA_STREAMS];                                          // Build a string for each stream
     for (int messageNumber = 0; messageNumber < MAX_MOSAIC_NMEA_MSG; messageNumber++) // For each NMEA message
     {
         int stream = settings.mosaicMessageStreamNMEA[messageNumber];
@@ -744,14 +747,15 @@ bool GNSS_MOSAIC::enableNMEA()
                                 String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
         response &= sendWithResponse(setting, "NMEAOutput");
 
-        setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] + "," +
-                         String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+        setting = String("sno,Stream" + String(stream + MOSAIC_NUM_NMEA_STREAMS + 1) + ",COM2," + streams[stream] +
+                         "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
         response &= sendWithResponse(setting, "NMEAOutput");
 
         if (settings.enableGnssToUsbSerial)
         {
-            setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] + "," +
-                                    String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            setting =
+                String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1," + streams[stream] +
+                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
             response &= sendWithResponse(setting, "NMEAOutput");
         }
         else
@@ -761,12 +765,14 @@ bool GNSS_MOSAIC::enableNMEA()
             response &= sendWithResponse(setting, "NMEAOutput");
         }
 
-        // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
+        // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is
+        // present...
 
         if (settings.enableLogging)
         {
-            setting = String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] + "," +
-                                    String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
+            setting =
+                String("sno,Stream" + String(stream + (3 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",DSK1," + streams[stream] +
+                       "," + String(mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[stream]].name) + "\n\r");
             response &= sendWithResponse(setting, "NMEAOutput");
         }
         else
@@ -792,8 +798,8 @@ bool GNSS_MOSAIC::enableRTCMBase()
     {
         char flt[10];
         snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Base[group]);
-        String setting = String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," +
-                                String(flt) + "\n\r");
+        String setting =
+            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
         response &= sendWithResponse(setting, "RTCMv3Interval");
     }
 
@@ -842,8 +848,8 @@ bool GNSS_MOSAIC::enableRTCMRover()
     {
         char flt[10];
         snprintf(flt, sizeof(flt), "%.1f", settings.mosaicMessageIntervalsRTCMv3Rover[group]);
-        String setting = String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," +
-                                String(flt) + "\n\r");
+        String setting =
+            String("sr3i," + String(mosaicRTCMv3MsgIntervalGroups[group].name) + "," + String(flt) + "\n\r");
         response &= sendWithResponse(setting, "RTCMv3Interval");
     }
 
@@ -989,8 +995,8 @@ bool GNSS_MOSAIC::fixedBaseStart()
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
         char pos[100];
-        snprintf(pos, sizeof(pos), "sspc,Cartesian1,%.4f,%.4f,%.4f,WGS84\n\r",
-                 settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
+        snprintf(pos, sizeof(pos), "sspc,Cartesian1,%.4f,%.4f,%.4f,WGS84\n\r", settings.fixedEcefX, settings.fixedEcefY,
+                 settings.fixedEcefZ);
         response &= sendWithResponse(pos, "StaticPosCartesian");
         response &= sendWithResponse("spm,Static,,Cartesian1\n\r", "PVTMode");
     }
@@ -1002,8 +1008,8 @@ bool GNSS_MOSAIC::fixedBaseStart()
         float totalFixedAltitude =
             settings.fixedAltitude + ((settings.antennaHeight_mm + settings.antennaPhaseCenter_mm) / 1000.0);
         char pos[100];
-        snprintf(pos, sizeof(pos), "sspg,Geodetic1,%.8f,%.8f,%.4f,WGS84\n\r",
-                 settings.fixedLat, settings.fixedLong, totalFixedAltitude);
+        snprintf(pos, sizeof(pos), "sspg,Geodetic1,%.8f,%.8f,%.4f,WGS84\n\r", settings.fixedLat, settings.fixedLong,
+                 totalFixedAltitude);
         response &= sendWithResponse(pos, "StaticPosGeodetic");
         response &= sendWithResponse("spm,Static,,Geodetic1\n\r", "PVTMode");
     }
@@ -1172,7 +1178,7 @@ float GNSS_MOSAIC::getHorizontalAccuracy()
 }
 
 //----------------------------------------
-const char * GNSS_MOSAIC::getId()
+const char *GNSS_MOSAIC::getId()
 {
     return gnssUniqueId;
 }
@@ -1297,13 +1303,13 @@ double GNSS_MOSAIC::getRateS()
 }
 
 //----------------------------------------
-const char * GNSS_MOSAIC::getRtcmDefaultString()
+const char *GNSS_MOSAIC::getRtcmDefaultString()
 {
     return ((char *)"1005/MSM4 1Hz & 1033 0.1Hz");
 }
 
 //----------------------------------------
-const char * GNSS_MOSAIC::getRtcmLowDataRateString()
+const char *GNSS_MOSAIC::getRtcmLowDataRateString()
 {
     return ((char *)"MSM4 0.5Hz & 1005/1033 0.1Hz");
 }
@@ -1615,7 +1621,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
         {
             if (settings.mosaicMessageStreamNMEA[x] > 0)
                 systemPrintf("%d) Message %s : Stream%d\r\n", x + 1, mosaicMessagesNMEA[x].msgTextName,
-                                settings.mosaicMessageStreamNMEA[x]);
+                             settings.mosaicMessageStreamNMEA[x]);
             else
                 systemPrintf("%d) Message %s : Off\r\n", x + 1, mosaicMessagesNMEA[x].msgTextName);
         }
@@ -1624,7 +1630,7 @@ void GNSS_MOSAIC::menuMessagesNMEA()
 
         for (int x = 0; x < MOSAIC_NUM_NMEA_STREAMS; x++)
             systemPrintf("%d) Stream%d : Interval %s\r\n", x + MAX_MOSAIC_NMEA_MSG + 1, x + 1,
-                            mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[x]].humanName);
+                         mosaicMsgRates[settings.mosaicStreamIntervalsNMEA[x]].humanName);
 
         systemPrintln();
 
@@ -1640,9 +1646,9 @@ void GNSS_MOSAIC::menuMessagesNMEA()
             settings.mosaicMessageStreamNMEA[incoming] += 1;
             if (settings.mosaicMessageStreamNMEA[incoming] > MOSAIC_NUM_NMEA_STREAMS)
                 settings.mosaicMessageStreamNMEA[incoming] = 0; // Wrap around
-
         }
-        else if (incoming > MAX_MOSAIC_NMEA_MSG && incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
+        else if (incoming > MAX_MOSAIC_NMEA_MSG &&
+                 incoming <= (MAX_MOSAIC_NMEA_MSG + MOSAIC_NUM_NMEA_STREAMS)) // Stream intervals
         {
             incoming--;
             incoming -= MAX_MOSAIC_NMEA_MSG;
@@ -1695,14 +1701,13 @@ void GNSS_MOSAIC::menuMessagesRTCM(bool rover)
 
         for (int x = 0; x < MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS; x++)
             systemPrintf("%d) Message Group %s: Interval %.1f\r\n", x + 1, mosaicRTCMv3MsgIntervalGroups[x].name,
-                            intervalPtr[x]);
+                         intervalPtr[x]);
 
         systemPrintln();
 
         for (int x = 0; x < MAX_MOSAIC_RTCM_V3_MSG; x++)
             systemPrintf("%d) Message %s: %s\r\n", x + MAX_MOSAIC_RTCM_V3_INTERVAL_GROUPS + 1,
-                            mosaicMessagesRTCMv3[x].name,
-                            enabledPtr[x] ? "Enabled" : "Disabled");
+                         mosaicMessagesRTCMv3[x].name, enabledPtr[x] ? "Enabled" : "Disabled");
 
         systemPrintln();
 
@@ -1897,13 +1902,8 @@ bool GNSS_MOSAIC::saveConfiguration()
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
-                                    const char *reply,
-                                    unsigned long timeout,
-                                    unsigned long idle,
-                                    char *response,
-                                    size_t responseSize,
-                                    bool debug)
+bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message, const char *reply, unsigned long timeout, unsigned long idle,
+                                     char *response, size_t responseSize, bool debug)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -1979,13 +1979,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(const char *message,
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::sendAndWaitForIdle(String message,
-                                    const char *reply,
-                                    unsigned long timeout,
-                                    unsigned long idle,
-                                    char *response,
-                                    size_t responseSize,
-                                    bool debug)
+bool GNSS_MOSAIC::sendAndWaitForIdle(String message, const char *reply, unsigned long timeout, unsigned long idle,
+                                     char *response, size_t responseSize, bool debug)
 {
     return sendAndWaitForIdle(message.c_str(), reply, timeout, idle, response, responseSize, debug);
 }
@@ -2006,12 +2001,8 @@ bool GNSS_MOSAIC::sendAndWaitForIdle(String message,
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::sendWithResponse(const char *message,
-                                  const char *reply,
-                                  unsigned long timeout,
-                                  unsigned long wait,
-                                  char *response,
-                                  size_t responseSize)
+bool GNSS_MOSAIC::sendWithResponse(const char *message, const char *reply, unsigned long timeout, unsigned long wait,
+                                   char *response, size_t responseSize)
 {
     if (strlen(reply) == 0) // Reply can't be zero-length
         return false;
@@ -2095,12 +2086,8 @@ bool GNSS_MOSAIC::sendWithResponse(const char *message,
 // Outputs:
 //   Returns true if the response was received and false upon failure
 //----------------------------------------
-bool GNSS_MOSAIC::sendWithResponse(String message,
-                                  const char *reply,
-                                  unsigned long timeout,
-                                  unsigned long wait,
-                                  char *response,
-                                  size_t responseSize)
+bool GNSS_MOSAIC::sendWithResponse(String message, const char *reply, unsigned long timeout, unsigned long wait,
+                                   char *response, size_t responseSize)
 {
     return sendWithResponse(message.c_str(), reply, timeout, wait, response, responseSize);
 }
@@ -2132,7 +2119,8 @@ bool GNSS_MOSAIC::setBaudRateCOM(uint8_t port, uint32_t baudRate)
     {
         if (baudRate == mosaicComRates[i].rate)
         {
-            String setting = String("scs,COM" + String(port) + "," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
+            String setting =
+                String("scs,COM" + String(port) + "," + String(mosaicComRates[i].name) + ",bits8,No,bit1,none\n\r");
             return (sendWithResponse(setting, "COMSettings"));
         }
     }
@@ -2186,10 +2174,8 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
         {
             if ((settings.debugCorrections == true) && !inMainMenu)
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
-                                _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                                enable ? "enabled" : "disabled",
-                                force ? " (Forced)" : "");
+                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
+                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
             }
 
             _corrRadioExtPortEnabled = enable;
@@ -2200,9 +2186,8 @@ bool GNSS_MOSAIC::setCorrRadioExtPort(bool enable, bool force)
         else
         {
             systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                            _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                            enable ? "enabled" : "disabled",
-                            force ? " (Forced)" : "");
+                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
+                         force ? " (Forced)" : "");
         }
     }
 
@@ -2250,7 +2235,7 @@ bool GNSS_MOSAIC::setMessagesUsb(int maxRetries)
 //----------------------------------------
 // Set the minimum satellite signal level for navigation.
 //----------------------------------------
-bool GNSS_MOSAIC::setMinCnoRadio (uint8_t cnoValue)
+bool GNSS_MOSAIC::setMinCnoRadio(uint8_t cnoValue)
 {
     if (cnoValue > 60)
         cnoValue = 60;
@@ -2355,8 +2340,8 @@ void GNSS_MOSAIC::storeBlock4090(SEMP_PARSE_STATE *parse)
         {
             uint32_t NrBytesReceived = sempSbfGetU4(parse, 16 + (i * SBLength) + 4);
 
-            //if (settings.debugCorrections && !inMainMenu)
-            //    systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
+            // if (settings.debugCorrections && !inMainMenu)
+            //     systemPrintf("Radio Ext (COM2) NrBytesReceived is %d\r\n", NrBytesReceived);
 
             if (firstTimeNrBytesReceived) // Avoid a false positive from historic NrBytesReceived
             {
@@ -2433,7 +2418,7 @@ void GNSS_MOSAIC::update()
 {
     // Update the SD card size, free space and logIncreasing
     static unsigned long sdCardSizeLastCheck = 0;
-    const unsigned long sdCardSizeCheckInterval = 5000; // Matches the interval in logUpdate
+    const unsigned long sdCardSizeCheckInterval = 5000;   // Matches the interval in logUpdate
     static unsigned long sdCardLastFreeChange = millis(); // X5 is slow to update free. Seems to be about every ~20s?
     static uint64_t previousFreeSpace = 0;
     if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
@@ -2466,7 +2451,8 @@ bool GNSS_MOSAIC::updateSD()
     // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     char diskInfo[200];
-    bool response = sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
+    bool response =
+        sendAndWaitForIdle("ldi,DSK1\n\r", "DiskInfo", 1000, 25, &diskInfo[0], sizeof(diskInfo), false); // No debug
     if (response)
     {
         char *ptr = strstr(diskInfo, " total=\"");
@@ -2487,9 +2473,7 @@ bool GNSS_MOSAIC::updateSD()
 //----------------------------------------
 void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
 {
-    SEMP_PARSE_ROUTINE const sbfParserTable[] = {
-        sempSbfPreamble
-    };
+    SEMP_PARSE_ROUTINE const sbfParserTable[] = {sempSbfPreamble};
     const int sbfParserCount = sizeof(sbfParserTable) / sizeof(sbfParserTable[0]);
     const char *const sbfParserNames[] = {
         "SBF",
@@ -2500,10 +2484,10 @@ void GNSS_MOSAIC::waitSBFReceiverSetup(unsigned long timeout)
 
     // Initialize the SBF parser for the mosaic-X5
     sbfParse = sempBeginParser(sbfParserTable, sbfParserCount, sbfParserNames, sbfParserNameCount,
-                            0,                       // Scratchpad bytes
-                            500,                     // Buffer length
-                            processSBFReceiverSetup, // eom Call Back
-                            "Sbf");                  // Parser Name
+                               0,                       // Scratchpad bytes
+                               500,                     // Buffer length
+                               processSBFReceiverSetup, // eom Call Back
+                               "Sbf");                  // Parser Name
     if (!sbfParse)
         reportFatalError("Failed to initialize the SBF parser");
 
@@ -2571,7 +2555,7 @@ void nmeaExtractStdDeviations(char *nmeaSentence, int sentenceLength)
         // Extract the latitude std. dev.
         char stdDev[strlen("-10000.000") + 1]; // 3 decimals
         strncpy(stdDev, &nmeaSentence[latitudeStart], latitudeStop - latitudeStart);
-        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_latStdDev = (float)atof(stdDev);
 
         // Extract the longitude std. dev.
@@ -2600,9 +2584,10 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
     if (sempSbfGetBlockNumber(parse) == 5902)
     {
         snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
-        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", sempSbfGetString(parse, 196)); // Extract RXVersion
+        snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s",
+                 sempSbfGetString(parse, 196)); // Extract RXVersion
 
-        GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;
     }
 }
@@ -2618,10 +2603,11 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
 //----------------------------------------
 void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    GNSS_MOSAIC * mosaic = (GNSS_MOSAIC *)gnss;
+    GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-    //if ((settings.debugGnss == true) && !inMainMenu)
-    //    systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse), parse->length);
+    // if ((settings.debugGnss == true) && !inMainMenu)
+    //     systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
+    //     parse->length);
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
@@ -2653,7 +2639,7 @@ void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
     if ((settings.debugCorrections == true) && !inMainMenu)
         systemPrintf("Pushing %d SPARTN (L-Band) bytes to PPL for mosaic-X5\r\n", parse->length);
 
-    if (online.ppl == false && settings.debugCorrections == true  && (!inMainMenu))
+    if (online.ppl == false && settings.debugCorrections == true && (!inMainMenu))
         systemPrintln("Warning: PPL is offline");
 
     // Pass the SPARTN to the PPL

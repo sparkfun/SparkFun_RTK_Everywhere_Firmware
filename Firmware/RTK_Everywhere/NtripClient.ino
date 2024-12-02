@@ -693,8 +693,8 @@ void ntripClientUpdate()
                         seconds -= minutes * SECONDS_IN_A_MINUTE;
                         systemPrintf("NTRIP Client connected to %s:%d via %s:%d at %d:%02d:%02d\r\n",
                                      settings.ntripClient_CasterHost, settings.ntripClient_CasterPort,
-                                     ntripClient->localIP().toString().c_str(),
-                                     ntripClient->localPort(), hours, minutes, seconds);
+                                     ntripClient->localIP().toString().c_str(), ntripClient->localPort(), hours,
+                                     minutes, seconds);
                     }
                     else
                         systemPrintf("NTRIP Client connected to %s:%d\r\n", settings.ntripClient_CasterHost,
@@ -823,7 +823,8 @@ void ntripClientUpdate()
                             // Push RTCM to GNSS module over I2C / SPI
                             gnss->pushRawData(rtcmData, rtcmCount);
 
-                            if ((settings.debugCorrections || settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                            if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
+                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);
@@ -832,7 +833,8 @@ void ntripClientUpdate()
                         }
                         else
                         {
-                            if ((settings.debugCorrections || settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
+                            if ((settings.debugCorrections || settings.debugNtripClientRtcm ||
+                                 PERIODIC_DISPLAY(PD_NTRIP_CLIENT_DATA)) &&
                                 (!inMainMenu))
                             {
                                 PERIODIC_CLEAR(PD_NTRIP_CLIENT_DATA);

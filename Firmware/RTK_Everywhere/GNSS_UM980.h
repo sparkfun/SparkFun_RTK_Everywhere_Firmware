@@ -1,3 +1,4 @@
+
 /*------------------------------------------------------------------------------
 GNSS_UM980.h
 
@@ -161,9 +162,8 @@ class GNSS_UM980 : GNSS
     bool setMultipathMitigation(bool enableMultipathMitigation);
 
   public:
-
     // Constructor
-    GNSS_UM980() :  GNSS()
+    GNSS_UM980() : GNSS()
     {
     }
 
@@ -335,7 +335,10 @@ class GNSS_UM980 : GNSS
     bool isConfirmedTime();
 
     // Returns true if data is arriving on the Radio Ext port
-    bool isCorrRadioExtPortActive() {return false;}
+    bool isCorrRadioExtPortActive()
+    {
+        return false;
+    }
 
     // Return true if GNSS receiver has a higher quality DGPS fix than 3D
     bool isDgpsFixed();
@@ -421,7 +424,10 @@ class GNSS_UM980 : GNSS
     bool setConstellations();
 
     // Enable / disable corrections protocol(s) on the Radio External port
-    bool setCorrRadioExtPort(bool enable, bool force) { return true; }
+    bool setCorrRadioExtPort(bool enable, bool force)
+    {
+        return true;
+    }
 
     bool setDataBaudRate(uint32_t baud);
 

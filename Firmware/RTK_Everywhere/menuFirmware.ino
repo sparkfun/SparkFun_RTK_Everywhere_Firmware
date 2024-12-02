@@ -488,9 +488,8 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
         bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
 
         wasInAPmode = false;
-        if (networkIsOnline()
-            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
-               == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+        if (networkIsOnline() || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
+                                  true)) // Use WIFI_AP_STA if already in WIFI_AP mode
         {
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
@@ -606,9 +605,8 @@ void otaUpdate()
         // Determine if WiFi is running
         bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
 
-        if ((networkIsOnline)
-            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
-                == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+        if ((networkIsOnline) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
+                                  true)) // Use WIFI_AP_STA if already in WIFI_AP mode
             overTheAirUpdate();
 
         // Update failed.

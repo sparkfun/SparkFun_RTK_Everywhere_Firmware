@@ -194,8 +194,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     }
 
     // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_ETHERNET)
-        && (event != ARDUINO_EVENT_ETH_GOT_IP))
+    if (networkIsInterfaceOnline(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
     {
         networkMarkOffline((NetIndex_t)NETWORK_ETHERNET);
     }
@@ -204,18 +203,25 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 //----------------------------------------
 // Convert the Ethernet event ID into an ASCII string
 //----------------------------------------
-const char * ethernetGetEventName(arduino_event_id_t event)
+const char *ethernetGetEventName(arduino_event_id_t event)
 {
     // Get the event name
     switch (event)
     {
-    default: return "Unknown";
-    case ARDUINO_EVENT_ETH_START: return "ARDUINO_EVENT_ETH_START";
-    case ARDUINO_EVENT_ETH_CONNECTED: return "ARDUINO_EVENT_ETH_CONNECTED";
-    case ARDUINO_EVENT_ETH_GOT_IP: return "ARDUINO_EVENT_ETH_GOT_IP";
-    case ARDUINO_EVENT_ETH_LOST_IP: return "ARDUINO_EVENT_ETH_LOST_IP";
-    case ARDUINO_EVENT_ETH_DISCONNECTED: return "ARDUINO_EVENT_ETH_DISCONNECTED";
-    case ARDUINO_EVENT_ETH_STOP: return "ARDUINO_EVENT_ETH_STOP";
+    default:
+        return "Unknown";
+    case ARDUINO_EVENT_ETH_START:
+        return "ARDUINO_EVENT_ETH_START";
+    case ARDUINO_EVENT_ETH_CONNECTED:
+        return "ARDUINO_EVENT_ETH_CONNECTED";
+    case ARDUINO_EVENT_ETH_GOT_IP:
+        return "ARDUINO_EVENT_ETH_GOT_IP";
+    case ARDUINO_EVENT_ETH_LOST_IP:
+        return "ARDUINO_EVENT_ETH_LOST_IP";
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+        return "ARDUINO_EVENT_ETH_DISCONNECTED";
+    case ARDUINO_EVENT_ETH_STOP:
+        return "ARDUINO_EVENT_ETH_STOP";
     }
 }
 
@@ -241,12 +247,12 @@ void ethernetStart()
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
 
     // Restart the Ethernet controller
-    ETH.begin(ETH_PHY_W5500,    // ETH_PHY_TYPE
-              0,                // ETH_PHY_ADDR
-              pin_Ethernet_CS,  // CS pin
+    ETH.begin(ETH_PHY_W5500,          // ETH_PHY_TYPE
+              0,                      // ETH_PHY_ADDR
+              pin_Ethernet_CS,        // CS pin
               pin_Ethernet_Interrupt, // IRQ pin
-              -1,               // RST pin
-              SPI);             // SPIClass &
+              -1,                     // RST pin
+              SPI);                   // SPIClass &
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

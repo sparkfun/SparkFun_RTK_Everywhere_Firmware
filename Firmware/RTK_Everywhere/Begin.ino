@@ -199,11 +199,11 @@ void beginBoard()
     {
         // Specify the GNSS radio
 #ifdef COMPILE_UM980
-        gnss = (GNSS *) new GNSS_UM980();
-#else   // COMPILE_UM980
-        gnss = (GNSS *) new GNSS_None();
+        gnss = (GNSS *)new GNSS_UM980();
+#else  // COMPILE_UM980
+        gnss = (GNSS *)new GNSS_None();
         systemPrintln("<<<<<<<<<< !!!!!!!!!! UM980 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif  // COMPILE_UM980
+#endif // COMPILE_UM980
 
         present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
@@ -215,8 +215,8 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaPhaseCenter_mm = 115.7; //Default to Torch helical APC
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.antennaPhaseCenter_mm = 115.7; // Default to Torch helical APC
+        present.needsExternalPpl = true;       // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
         present.minCno = true;
@@ -610,12 +610,12 @@ void beginBoard()
         // mosaic COM3 is available as a generic COM port. The firmware configures the baud. Nothing else.
 
         // Specify the GNSS radio
-#ifdef  COMPILE_MOSAICX5
-        gnss = (GNSS *) new GNSS_MOSAIC();
-#else   // COMPILE_MOSAICX5
-        gnss = (GNSS *) new GNSS_None();
+#ifdef COMPILE_MOSAICX5
+        gnss = (GNSS *)new GNSS_MOSAIC();
+#else  // COMPILE_MOSAICX5
+        gnss = (GNSS *)new GNSS_None();
         systemPrintln("<<<<<<<<<< !!!!!!!!!! MOSAICX5 NOT COMPILED !!!!!!!!!! >>>>>>>>>>");
-#endif  // COMPILE_MOSAICX5
+#endif // COMPILE_MOSAICX5
 
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
@@ -690,8 +690,8 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 42.0; //Default to SPK6618H APC
-        present.needsExternalPpl = true; // Uses the PointPerfect Library
+        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC
+        present.needsExternalPpl = true;      // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
         // The following are present on the optional shield. Devices will be marked offline if shield is not present.
@@ -718,7 +718,7 @@ void beginBoard()
         pin_PICO = 26;
         pin_microSD_CS = 27;
 
-        pin_gpioExpanderInterrupt = 14; //Pin 'AOI' on Portability Shield
+        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' on Portability Shield
 
         pin_bluetoothStatusLED = 0; // Green status LED
         // pin_gnssStatusLED = 13;
@@ -1243,7 +1243,8 @@ void beginFuelGauge()
         // Check to see if we are dangerously low
         if (batteryLevelPercent < 5 && batteryChargingPercentPerHour < 0.5) // 5% and not charging
         {
-            systemPrintf("Battery too low: %d%%. Charging rate: %0.1f%%/hr. Please charge. Shutting down...\r\n", batteryLevelPercent, batteryChargingPercentPerHour);
+            systemPrintf("Battery too low: %d%%. Charging rate: %0.1f%%/hr. Please charge. Shutting down...\r\n",
+                         batteryLevelPercent, batteryChargingPercentPerHour);
 
             if (online.display == true)
                 displayMessage("Charge Battery", 0);

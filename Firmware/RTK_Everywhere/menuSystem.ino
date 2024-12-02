@@ -1453,8 +1453,8 @@ void printCurrentConditionsNMEA()
     {
         char systemStatus[100];
         snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.3f,%d,%d,%d", gnss->getHour(), gnss->getMinute(),
-                 gnss->getSecond(), gnss->getMillisecond(), gnss->getDay(), gnss->getMonth(),
+                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.3f,%d,%d,%d", gnss->getHour(),
+                 gnss->getMinute(), gnss->getSecond(), gnss->getMillisecond(), gnss->getDay(), gnss->getMonth(),
                  gnss->getYear() % 2000, // Limit to 2 digits
                  gnss->getHorizontalAccuracy(), gnss->getSatellitesInView(), gnss->getLatitude(), gnss->getLongitude(),
                  gnss->getAltitude(), gnss->getFixType(), gnss->getCarrierSolution(), batteryLevelPercent);

@@ -135,7 +135,7 @@ void menuMain()
             systemPrintln();
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), true);
-            RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+            RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
             systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
             systemPrintln("\r\n** Configure Via Ethernet Mode **\r\n");
@@ -178,7 +178,7 @@ void menuMain()
             systemPrintln();
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), true);
-            RTKBrandAttribute * brandAttributes = getBrandAttributeFromBrand(present.brand);
+            RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
             systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
 #ifdef COMPILE_BT
@@ -262,10 +262,10 @@ void menuMain()
                 menuBase();
             else if (incoming == 4)
                 menuPorts();
-#ifdef  COMPILE_MOSAICX5
+#ifdef COMPILE_MOSAICX5
             else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
                 menuLogMosaic();
-#endif  // COMPILE_MOSAICX5
+#endif                                                             // COMPILE_MOSAICX5
             else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
                 menuLog();
             else if (incoming == 6)
@@ -341,7 +341,7 @@ void menuMain()
     if (restartWiFi == true)
     {
         restartWiFi = false;
-        
+
         wifiRestart();
     }
 
