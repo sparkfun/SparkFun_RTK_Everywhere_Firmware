@@ -184,12 +184,24 @@ void menuMain()
 #ifdef COMPILE_BT
 
             if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            {
                 systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+                systemPrint(deviceName);
+            }
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+            {
                 systemPrint("** Bluetooth SPP broadcasting as: ");
+                systemPrint(deviceName);
+            }
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+            {
                 systemPrint("** Bluetooth Low-Energy broadcasting as: ");
-            systemPrint(deviceName);
+                systemPrint(deviceName);
+            }
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+            {
+                systemPrint("** Bluetooth Turned Off");
+            }
             systemPrintln(" **");
 #else  // COMPILE_BT
             systemPrintln("** Bluetooth Not Compiled **");
