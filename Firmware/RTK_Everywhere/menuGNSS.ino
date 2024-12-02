@@ -177,11 +177,30 @@ void menuGNSS()
 
         if ((incoming == 1) && (!present.gnss_mosaicX5))
         {
-            float rate = 0.0;
-            if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
+            float rateHz = 0.0;
+            float minRateHz = 1.0; // Measurement rate per second
+            float maxRateHz = 1.0;
+
+            if (present.gnss_zedf9p)
+            {
+                maxRateHz = 20;   // 20Hz
+                minRateHz = 0.00012; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
+            }
+            else if (present.gnss_um980)
+            {
+                minRateHz = 0.02; // 1 / 65 = 0.015384 Hz = Found experimentally
+                maxRateHz = 20; // 20Hz
+            }
+            else if (present.gnss_lg290p)
+            {
+                minRateHz = 1.0;  // The LG290P doesn't support slower speeds than 1Hz
+                maxRateHz = 20; // 20Hz
+            }
+
+            if (getNewSetting("Enter GNSS measurement rate in Hz", minRateHz, maxRateHz, &rateHz) ==
                 INPUT_RESPONSE_VALID) // 20Hz limit with all constellations enabled
             {
-                gnss->setRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
+                gnss->setRate(1.0 / rateHz); // Convert Hz to seconds. This will set settings.measurementRateMs,
                                            // settings.navigationRate, and GSV message
             }
         }
