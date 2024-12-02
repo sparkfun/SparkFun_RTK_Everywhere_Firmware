@@ -51,6 +51,8 @@ static DNSServer dnsServer;
 
 static bool wifiRunning;
 
+bool restartWiFi = false; // Restart WiFi if user changes anything
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -61,8 +63,6 @@ static bool wifiRunning;
 //----------------------------------------
 void menuWiFi()
 {
-    bool restartWiFi = false; // Restart WiFi if user changes anything
-
     while (1)
     {
         networkDisplayInterface(NETWORK_WIFI);
@@ -129,20 +129,6 @@ void menuWiFi()
     {
         if (strlen(settings.wifiNetworks[x].ssid) == 0)
             strcpy(settings.wifiNetworks[x].password, "");
-    }
-
-    // Restart WiFi if anything changes
-    if (restartWiFi == true)
-    {
-        // Restart the AP webserver if we are in that state
-        if (systemState == STATE_WIFI_CONFIG)
-            requestChangeState(STATE_WIFI_CONFIG_NOT_STARTED);
-        else
-        {
-            // Restart WiFi if we are not in AP config mode
-            WIFI_STOP();
-            wifiStart();
-        }
     }
 
     clearBuffer(); // Empty buffer of any newline chars

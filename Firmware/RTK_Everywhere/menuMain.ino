@@ -337,6 +337,22 @@ void menuMain()
         gnss->debuggingEnable();
     }
 
+    // Restart WiFi if anything changes
+    if (restartWiFi == true)
+    {
+        restartWiFi = false;
+        
+        // Restart the AP webserver if we are in that state
+        if (systemState == STATE_WIFI_CONFIG)
+            requestChangeState(STATE_WIFI_CONFIG_NOT_STARTED);
+        else
+        {
+            // Restart WiFi if we are not in AP config mode
+            WIFI_STOP();
+            wifiStart();
+        }
+    }
+
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system
     inMainMenu = false;
