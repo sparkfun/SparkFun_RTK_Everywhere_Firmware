@@ -7,7 +7,11 @@ GNSS_ZED.ino
 #ifdef COMPILE_ZED
 
 extern int NTRIPCLIENT_MS_BETWEEN_GGA;
+
+#ifdef COMPILE_NETWORK
 extern NetworkClient *ntripClient;
+#endif // COMPILE_NETWORK
+
 extern unsigned long lastGGAPush;
 
 //----------------------------------------

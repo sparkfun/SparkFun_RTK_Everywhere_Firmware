@@ -342,15 +342,7 @@ void menuMain()
     {
         restartWiFi = false;
         
-        // Restart the AP webserver if we are in that state
-        if (systemState == STATE_WIFI_CONFIG)
-            requestChangeState(STATE_WIFI_CONFIG_NOT_STARTED);
-        else
-        {
-            // Restart WiFi if we are not in AP config mode
-            WIFI_STOP();
-            wifiStart();
-        }
+        wifiRestart();
     }
 
     clearBuffer();           // Empty buffer of any newline chars

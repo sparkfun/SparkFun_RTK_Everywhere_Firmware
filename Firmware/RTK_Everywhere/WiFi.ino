@@ -19,6 +19,8 @@
 
 int wifiConnectionAttempts; // Count the number of connection attempts between restarts
 
+bool restartWiFi = false; // Restart WiFi if user changes anything
+
 #ifdef COMPILE_WIFI
 
 //----------------------------------------
@@ -50,8 +52,6 @@ static unsigned long wifiDisplayTimer;
 static DNSServer dnsServer;
 
 static bool wifiRunning;
-
-bool restartWiFi = false; // Restart WiFi if user changes anything
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
@@ -421,8 +421,15 @@ int wifiNetworkCount()
 //----------------------------------------
 void wifiRestart()
 {
-    wifiStop();
-    wifiStart();
+    // Restart the AP webserver if we are in that state
+    if (systemState == STATE_WIFI_CONFIG)
+        requestChangeState(STATE_WIFI_CONFIG_NOT_STARTED);
+    else
+    {
+        // Restart WiFi if we are not in AP config mode
+        WIFI_STOP();
+        wifiStart();
+    }
 }
 
 //----------------------------------------
