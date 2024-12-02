@@ -1566,15 +1566,15 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // UM980 GNSS Receiver
-    { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
+    { 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableGalileoHas, "enableGalileoHas",  },
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableImuCompensationDebug, "enableImuCompensationDebug",  },
     { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableImuDebug, "enableImuDebug",  },
     { 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, _bool,     0, & settings.enableTiltCompensation, "enableTiltCompensation",  },
 #ifdef  COMPILE_UM980
-    { 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_",  },
+    { 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, tUmConst,  MAX_UM980_CONSTELLATIONS, & settings.um980Constellations, "constellation_",  },
+    { 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRNmea, MAX_UM980_NMEA_MSG, & settings.um980MessageRatesNMEA, "messageRateNMEA_",  },
+    { 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRBaRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMBase, "messageRateRTCMBase_",  },
+    { 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, tUmMRRvRT, MAX_UM980_RTCM_MSG, & settings.um980MessageRatesRTCMRover, "messageRateRTCMRover_",  },
 #endif  // COMPILE_UM980
 
     // Web Server
@@ -1620,12 +1620,13 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    S  g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
 #ifdef  COMPILE_LG290P
-    { 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_",  },
-    { 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_",  },
-#endif  // COMPILE_UM980
+    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, tLgConst,  MAX_LG290P_CONSTELLATIONS, & settings.lg290pConstellations, "constellation_",  },
+    { 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRNmea, MAX_LG290P_NMEA_MSG, & settings.lg290pMessageRatesNMEA, "messageRateNMEA_",  },
+    { 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRBaRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMBase, "messageRateRTCMBase_",  },
+    { 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, tLgMRRvRT, MAX_LG290P_RTCM_MSG, & settings.lg290pMessageRatesRTCMRover, "messageRateRTCMRover_",  },
+#endif  // COMPILE_LG290P
 
+    { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
