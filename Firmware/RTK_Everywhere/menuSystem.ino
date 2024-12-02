@@ -457,6 +457,8 @@ void menuDebugHardware()
         if (present.radio_lora)
             systemPrintln("17) STM32 direct connect");
 
+        systemPrintln("18) Display littleFS stats");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -543,6 +545,11 @@ void menuDebugHardware()
 
                 ESP.restart();
             }
+        }
+        else if (incoming == 18)
+        {
+            systemPrintf("LittleFS total bytes: %d\r\n", LittleFS.totalBytes());
+            systemPrintf("LittleFS used bytes: %d\r\n", LittleFS.usedBytes());
         }
 
         else if (incoming == 'e')
@@ -722,7 +729,7 @@ void menuDebugSoftware()
 
         systemPrintf("3) WiFi Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
 
-        // Ring buffer - ZED Tx
+        // Ring buffer
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
 
@@ -766,6 +773,10 @@ void menuDebugSoftware()
         systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
 
         systemPrintf("34) Print partition table: %s\r\n", settings.printPartitionTable ? "Enabled" : "Disabled");
+
+        // Debug
+
+        systemPrintf("40) Print LittleFS and settings management: %s\r\n", settings.debugSettings ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
@@ -849,6 +860,9 @@ void menuDebugSoftware()
             settings.printBootTimes ^= 1;
         else if (incoming == 34)
             settings.printPartitionTable ^= 1;
+
+        else if (incoming == 40)
+            settings.debugSettings ^= 1;
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;

@@ -1106,6 +1106,12 @@ void beginFS()
         {
             systemPrintln("LittleFS Started");
             online.fs = true;
+
+            if (settings.debugSettings)
+            {
+                systemPrintf("LittleFS total bytes: %d\r\n", LittleFS.totalBytes());
+                systemPrintf("LittleFS used bytes: %d\r\n", LittleFS.usedBytes());
+            }
         }
     }
 }

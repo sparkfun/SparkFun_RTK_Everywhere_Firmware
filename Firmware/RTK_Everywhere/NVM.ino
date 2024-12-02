@@ -216,7 +216,8 @@ void recordSystemSettingsToFileLFS(char *fileName)
         {
             recordSystemSettingsToFile(&settingsFile); // Record all the settings via strings to file
             settingsFile.close();
-            log_d("Settings recorded to LittleFS: %s", fileName);
+            if (settings.debugSettings)
+                systemPrintf("Settings recorded to LittleFS: %s\r\n", fileName);
         }
     }
 }
