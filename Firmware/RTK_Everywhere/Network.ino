@@ -1434,6 +1434,10 @@ uint8_t networkConsumers()
     if (settings.enableUdpServer == true)
         consumerCount++;
 
+    // PointPerfect ZTP or get keys
+    if (settings.requestKeyUpdate == true)
+        consumerCount++;
+
     if (settings.debugNetworkLayer)
     {
         static unsigned long lastPrint = millis();
