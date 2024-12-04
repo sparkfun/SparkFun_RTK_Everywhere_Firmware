@@ -1572,9 +1572,7 @@ void buttonCheckTask(void *e)
         }
 
         // If user presses the center button or right, act as double tap (select)
-        // if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
-        if (buttonLastPressed() == gpioExpander_center ||
-            buttonLastPressed() == gpioExpander_up) // TODO remove, v02 hardware patch
+        if (buttonLastPressed() == gpioExpander_center || buttonLastPressed() == gpioExpander_right)
         {
             doubleTap = true;
             singleTap = false;
@@ -1734,17 +1732,14 @@ void buttonCheckTask(void *e)
                     if (online.gpioExpander == true)
                     {
                         // React to five different buttons
-                        // if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
-                        if (buttonLastPressed() == gpioExpander_left ||
-                            buttonLastPressed() == gpioExpander_down) // TODO remove v02 hardware patch
+                        if (buttonLastPressed() == gpioExpander_up || buttonLastPressed() == gpioExpander_left)
                         {
                             if (setupSelectedButton == 0) // Top reached?
                                 setupSelectedButton = setupButtons.size() - 1;
                             else
                                 setupSelectedButton--;
                         }
-                        // else if (buttonLastPressed() == gpioExpander_down)
-                        else if (buttonLastPressed() == gpioExpander_right) // TODO remove v02 hardware patch
+                        else if (buttonLastPressed() == gpioExpander_down)
                         {
                             setupSelectedButton++;
                             if (setupSelectedButton == setupButtons.size()) // Limit reached?
