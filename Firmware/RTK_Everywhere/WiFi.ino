@@ -441,6 +441,13 @@ void wifiRestart()
     {
         // Restart WiFi if we are not in AP config mode
         WIFI_STOP();
+
+        if (networkConsumers() == 0)
+        {
+            // Don't restart WiFi if there is no need for it
+            return;
+        }
+
         wifiStart();
     }
 }
