@@ -1438,6 +1438,17 @@ uint8_t networkConsumers()
     if (settings.requestKeyUpdate == true)
         consumerCount++;
 
+    // PointPerfect Corrections enabled with a non-zero length key
+    if (settings.enablePointPerfectCorrections == true && strlen(settings.pointPerfectCurrentKey) > 0)
+    {
+        // Check if keys are expired
+        int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+        if (daysRemaining > 0)
+            consumerCount++;
+    }
+
+    //OTA
+
     if (settings.debugNetworkLayer)
     {
         static unsigned long lastPrint = millis();
