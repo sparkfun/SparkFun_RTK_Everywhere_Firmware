@@ -44,8 +44,10 @@ void updatePplTask(void *e)
                             // Note: this is almost certainly redundant. It would only be used if we
                             // believe the PPL can do a better job generating corrections than the
                             // ZED can internally using SPARTN direct.
+#ifdef COMPILE_ZED
                             GNSS_ZED *zed = (GNSS_ZED *)gnss;
                             zed->updateCorrectionsSource(1);
+#endif // COMPILE_ZED
                         }
 
                         gnss->pushRawData(pplRtcmBuffer, rtcmLength);
@@ -415,6 +417,8 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
+        if(settings.debugCorrections & !inMainMenu)
+            systemPrintln("sendGnssToPpl available");
         pplGnssOutput = true; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
     }
 
@@ -440,6 +444,8 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
+        if(settings.debugCorrections & !inMainMenu)
+            systemPrintln("pplMqttCorrections available");
         pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
     }
 

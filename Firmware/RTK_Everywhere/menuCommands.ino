@@ -1439,6 +1439,11 @@ void createSettingsString(char *newSettings)
         snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "mosaic-X5 Firmware: %s ID: %s",
                  gnssFirmwareVersion, gnssUniqueId);
     }
+    else if (present.gnss_lg290p)
+    {
+        snprintf(apGNSSFirmwareVersion, sizeof(apGNSSFirmwareVersion), "LG290P Firmware: %s ID: %s",
+                 gnssFirmwareVersion, gnssUniqueId);
+    }
     stringRecord(newSettings, "gnssFirmwareVersion", apGNSSFirmwareVersion);
     stringRecord(newSettings, "gnssFirmwareVersionInt", gnssFirmwareVersionInt);
 

@@ -1370,8 +1370,11 @@ void updateProvisioning()
             else if (productVariant == RTK_EVK)
                 snprintf(landingPageUrl, sizeof(landingPageUrl),
                          "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else if (productVariant == RTK_POSTCARD)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
             else
-                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
 
             systemPrintf("This device has been deactivated. Please contact "
                          "support@sparkfun.com %sto renew the PointPerfect "
@@ -1396,8 +1399,11 @@ void updateProvisioning()
             else if (productVariant == RTK_EVK)
                 snprintf(landingPageUrl, sizeof(landingPageUrl),
                          "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else if (productVariant == RTK_POSTCARD)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
             else
-                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
 
             systemPrintf("This device is not whitelisted. Please contact "
                          "support@sparkfun.com %sto get the subscription "

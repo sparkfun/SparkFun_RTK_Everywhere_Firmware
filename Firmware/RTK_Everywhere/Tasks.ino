@@ -658,9 +658,13 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     // UM980 : Determine if we want to use corrections, and are connected to the broker
     if ((present.gnss_um980) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
         usingPPL = true;
+    // LG290P : Determine if we want to use corrections, and are connected to the broker
+    if ((present.gnss_lg290p) && (settings.enablePointPerfectCorrections) && (mqttClientIsConnected() == true))
+        usingPPL = true;
     // mosaic-X5 : Determine if we want to use corrections
     if ((present.gnss_mosaicX5) && (settings.enablePointPerfectCorrections))
         usingPPL = true;
+
     if (usingPPL)
     {
         bool passToPpl = false;
@@ -689,6 +693,35 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         {
             pplNewRtcmNmea = true; // Set flag for main loop updatePPL()
             sendGnssToPpl(parse->buffer, parse->length);
+
+            if ((settings.debugCorrections == true) && !inMainMenu)
+            {
+                systemPrint("Sent to PPL: ");
+
+                // Only messages GPGGA/ZDA, and RTCM1019/1020/1042/1046 need to be passed to PPL
+                if (type == RTK_NMEA_PARSER_INDEX)
+                {
+                    systemPrint("GN");
+                    if (strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+                        systemPrint("GGA");
+                    else if (strstr(sempNmeaGetSentenceName(parse), "ZDA") != nullptr)
+                        systemPrint("ZDA");
+                }
+                else if (type == RTK_RTCM_PARSER_INDEX)
+                {
+                    systemPrint("RTCM");
+                    if (sempRtcmGetMessageNumber(parse) == 1019)
+                        systemPrint("1019");
+                    else if (sempRtcmGetMessageNumber(parse) == 1020)
+                        systemPrint("1020");
+                    else if (sempRtcmGetMessageNumber(parse) == 1042)
+                        systemPrint("1042");
+                    else if (sempRtcmGetMessageNumber(parse) == 1046)
+                        systemPrint("1046");
+                }
+
+                systemPrintf(": %d bytes\r\n", parse->length);
+            }
         }
     }
 

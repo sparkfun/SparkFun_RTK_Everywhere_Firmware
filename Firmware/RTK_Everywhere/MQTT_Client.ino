@@ -525,11 +525,16 @@ void mqttClientReceiveMessage(int messageSize)
 #endif // COMPILE_ZED
             }
 
-            // For the UM980, we have to pass the data through the PPL first
-            else if (present.gnss_um980)
+            // For the UM980 or LG290P, we have to pass the data through the PPL first
+            else if (present.gnss_um980 || present.gnss_lg290p)
             {
                 if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                    systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
+                {
+                    if (present.gnss_um980)
+                        systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
+                    else if (present.gnss_lg290p)
+                        systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
+                }
 
                 if (online.ppl == false && settings.debugMqttClientData == true)
                     systemPrintln("Warning: PPL is offline");
