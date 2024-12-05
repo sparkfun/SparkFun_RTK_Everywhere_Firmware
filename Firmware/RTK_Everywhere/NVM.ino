@@ -977,7 +977,6 @@ bool parseLine(char *str)
     }
 
     bool knownSetting = false;
-    bool updateGNSS = false;
 
     if (settings.debugSettings)
         systemPrintf("settingName: %s - value: %s - d: %0.9f\r\n", settingName, settingString, d);
@@ -1034,7 +1033,6 @@ bool parseLine(char *str)
         {
             qualifier = rtkSettingsEntries[i].qualifier;
             type = rtkSettingsEntries[i].type;
-            updateGNSS |= rtkSettingsEntries[i].updateGNSSOnChange; // Does this setting require a GNSS update?
             var = rtkSettingsEntries[i].var;
             switch (type)
             {
@@ -1537,9 +1535,6 @@ bool parseLine(char *str)
         strcpy(otaFirmwareJsonUrl, url.c_str());
         knownSetting = true;
     }
-
-    if (updateGNSS)
-        settings.updateGNSSSettings = true;
 
     // Last catch
     if (knownSetting == false)
