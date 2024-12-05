@@ -229,6 +229,8 @@ bool GNSS_LG290P::configureOnce()
 
     // We do not set Rover or fix rate here because fix rate only applies in rover mode.
 
+    response &= exitConfigMode(); // We must exit config before we save otherwise we will save with NMEA/RTCM off
+
     if (response)
     {
         online.gnss = true; // If we failed before, mark as online now
@@ -243,8 +245,6 @@ bool GNSS_LG290P::configureOnce()
     }
     else
         online.gnss = false; // Take it offline
-
-    exitConfigMode();
 
     return (response);
 }
@@ -298,6 +298,8 @@ bool GNSS_LG290P::configureRover()
     if (settings.debugGnss && response == false)
         systemPrintln("Rover: Enable NMEA failed");
 
+    response &= exitConfigMode(); // We must exit config before we save otherwise we will save with NMEA/RTCM off
+
     if (response == false)
     {
         systemPrintln("LG290P Rover failed to configure");
@@ -313,8 +315,6 @@ bool GNSS_LG290P::configureRover()
         if (settings.debugGnss)
             systemPrintln("LG290P Rover configured");
     }
-
-    exitConfigMode();
 
     return (response);
 }
@@ -385,6 +385,8 @@ bool GNSS_LG290P::configureBase()
     if (settings.debugGnss && response == false)
         systemPrintln("Base: Enable NMEA failed");
 
+    response &= exitConfigMode(); // We must exit config before we save otherwise we will save with NMEA/RTCM off
+
     if (response == false)
     {
         systemPrintln("LG290P Base failed to configure");
@@ -397,11 +399,11 @@ bool GNSS_LG290P::configureBase()
         if (settingsWereSaved)
             settings.updateGNSSSettings = false;
 
+        softwareReset();
+
         if (settings.debugGnss)
             systemPrintln("LG290P Base configured");
     }
-
-    exitConfigMode();
 
     return (response);
 }
