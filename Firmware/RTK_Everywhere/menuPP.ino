@@ -1355,6 +1355,7 @@ void updateProvisioning()
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up
             recordSystemSettings();       // Make sure the new cert and keys are recorded
+            systemPrintln("Keys successfully updated!");
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_DEACTIVATED)

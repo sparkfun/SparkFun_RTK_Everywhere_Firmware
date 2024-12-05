@@ -1414,49 +1414,94 @@ uint8_t networkConsumers()
 {
     uint8_t consumerCount = 0;
 
+    uint16_t consumerType = 0;
+
     // Rover + NTRIP Client
     if (inRoverMode() == true && settings.enableNtripClient == true)
+    {
         consumerCount++;
+        consumerType |= (1 << 0);
+    }
 
     // Base + NTRIP Server
     if (inBaseMode() == true && settings.enableNtripServer == true)
+    {
         consumerCount++;
+        consumerType |= (1 << 1);
+    }
 
     // TCP Client
     if (settings.enableTcpClient == true)
+    {
         consumerCount++;
+        consumerType |= (1 << 2);
+    }
 
     // TCP Server
     if (settings.enableTcpServer == true)
+    {
         consumerCount++;
+        consumerType |= (1 << 3);
+    }
 
     // UDP Server
     if (settings.enableUdpServer == true)
+    {
         consumerCount++;
+        consumerType |= (1 << 4);
+    }
 
     // PointPerfect ZTP or get keys
     if (settings.requestKeyUpdate == true)
+    {
         consumerCount++;
+        consumerType |= (1 << 5);
+    }
 
     // PointPerfect Corrections enabled with a non-zero length key
     if (settings.enablePointPerfectCorrections == true && strlen(settings.pointPerfectCurrentKey) > 0)
     {
-        // Check if keys are expired
-        int daysRemaining = daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-        if (daysRemaining > 0)
-            consumerCount++;
+        if (online.rtc)
+        {
+            // Check if keys need updating
+            int daysRemaining =
+                daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
+            if (daysRemaining < 28)
+            {
+                consumerCount++;
+                consumerType |= (1 << 6);
+                if (settings.debugNetworkLayer)
+                    systemPrintf("Network consumer daysRemaining: %d\r\n", daysRemaining);
+            }
+        }
     }
 
-    //OTA
+    // OTA
 
     if (settings.debugNetworkLayer)
     {
-        static unsigned long lastPrint = millis();
+        static unsigned long lastPrint = 0;
 
         if (millis() - lastPrint > 2000)
         {
             lastPrint = millis();
-            systemPrintf("Network consumer count: %d\r\n", consumerCount);
+            systemPrintf("Network consumer count: %d - Consumers: ", consumerCount);
+
+            if (consumerType & (1 << 0))
+                systemPrint("Rover NTRIP Client, ");
+            if (consumerType & (1 << 1))
+                systemPrint("Base NTRIP Server, ");
+            if (consumerType & (1 << 2))
+                systemPrint("TCP Client, ");
+            if (consumerType & (1 << 3))
+                systemPrint("TCP Server, ");
+            if (consumerType & (1 << 4))
+                systemPrint("UDP Server, ");
+            if (consumerType & (1 << 5))
+                systemPrint("PPL Key request, ");
+            if (consumerType & (1 << 6))
+                systemPrint("PPL Key update, ");
+            systemPrintln();
         }
     }
 
