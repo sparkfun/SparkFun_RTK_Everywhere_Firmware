@@ -412,7 +412,9 @@ bool GNSS_LG290P::configureBase()
 //----------------------------------------
 uint8_t GNSS_LG290P::getSurveyInMode()
 {
-    return (_lg290p->getSurveyMode());
+    if (online.gnss)
+        return (_lg290p->getSurveyMode());
+    return (false);
 }
 
 //----------------------------------------
@@ -428,8 +430,10 @@ bool GNSS_LG290P::configureNtpMode()
 //----------------------------------------
 bool GNSS_LG290P::enterConfigMode()
 {
-    return (_lg290p->sendOkCommand("$PQTMCFGPROT",
-                                   ",W,1,2,00000000,00000000")); // Disable NMEA and RTCM on the LG290P UART2
+    if (online.gnss)
+        return (_lg290p->sendOkCommand("$PQTMCFGPROT",
+                                       ",W,1,2,00000000,00000000")); // Disable NMEA and RTCM on the LG290P UART2
+    return (false);
 }
 
 //----------------------------------------
@@ -437,8 +441,10 @@ bool GNSS_LG290P::enterConfigMode()
 //----------------------------------------
 bool GNSS_LG290P::exitConfigMode()
 {
-    return (
-        _lg290p->sendOkCommand("$PQTMCFGPROT", ",W,1,2,00000005,00000005")); // Enable NMEA and RTCM on the LG290P UART2
+    if (online.gnss)
+        return (_lg290p->sendOkCommand("$PQTMCFGPROT",
+                                       ",W,1,2,00000005,00000005")); // Enable NMEA and RTCM on the LG290P UART2
+    return (false);
 }
 
 //----------------------------------------
@@ -446,15 +452,19 @@ bool GNSS_LG290P::exitConfigMode()
 //----------------------------------------
 bool GNSS_LG290P::disableSurveyIn()
 {
-    bool response = _lg290p->sendOkCommand("$PQTMCFGSVIN", ",W,0,0,0,0,0,0"); // Disable survey mode
-    if (settings.debugGnss && response == false)
-        systemPrintln("disableSurveyIn: sendOkCommand failed");
-    response &= _lg290p->save();
-    if (settings.debugGnss && response == false)
-        systemPrintln("disableSurveyIn: save failed");
-    response &= _lg290p->reset();
-    if (settings.debugGnss && response == false)
-        systemPrintln("disableSurveyIn: reset failed");
+    bool response = false;
+    if (online.gnss)
+    {
+        response = _lg290p->sendOkCommand("$PQTMCFGSVIN", ",W,0,0,0,0,0,0"); // Disable survey mode
+        if (settings.debugGnss && response == false)
+            systemPrintln("disableSurveyIn: sendOkCommand failed");
+        response &= saveConfiguration();
+        if (settings.debugGnss && response == false)
+            systemPrintln("disableSurveyIn: save failed");
+        response &= softwareReset();
+        if (settings.debugGnss && response == false)
+            systemPrintln("disableSurveyIn: reset failed");
+    }
 
     return (response);
 }
@@ -1140,7 +1150,9 @@ bool GNSS_LG290P::inRoverMode()
 //----------------------------------------
 bool GNSS_LG290P::isBlocking()
 {
-    return (_lg290p->isBlocking());
+    if (online.gnss)
+        return (_lg290p->isBlocking());
+    return (false);
 }
 
 //----------------------------------------
@@ -1290,12 +1302,15 @@ bool GNSS_LG290P::isRTKFloat()
 //----------------------------------------
 bool GNSS_LG290P::isSurveyInComplete()
 {
-    // 0 - Invalid
-    // 1 - In-progress
-    // 2 - Complete
-    uint8_t surveyInStatus = _lg290p->getSurveyInStatus();
-    if (surveyInStatus == 2)
-        return (true);
+    if (online.gnss)
+    {
+        // 0 - Invalid
+        // 1 - In-progress
+        // 2 - Complete
+        uint8_t surveyInStatus = _lg290p->getSurveyInStatus();
+        if (surveyInStatus == 2)
+            return (true);
+    }
     return (false);
 }
 
@@ -1619,12 +1634,15 @@ bool GNSS_LG290P::setConstellations()
 {
     bool response = true;
 
-    response = _lg290p->setConstellations(settings.lg290pConstellations[0],  // GPS
-                                          settings.lg290pConstellations[1],  // GLONASS
-                                          settings.lg290pConstellations[2],  // Galileo
-                                          settings.lg290pConstellations[3],  // BDS
-                                          settings.lg290pConstellations[4],  // QZSS
-                                          settings.lg290pConstellations[5]); // NavIC
+    if (online.gnss)
+    {
+        response = _lg290p->setConstellations(settings.lg290pConstellations[0],  // GPS
+                                              settings.lg290pConstellations[1],  // GLONASS
+                                              settings.lg290pConstellations[2],  // Galileo
+                                              settings.lg290pConstellations[3],  // BDS
+                                              settings.lg290pConstellations[4],  // QZSS
+                                              settings.lg290pConstellations[5]); // NavIC
+    }
 
     return (response);
 }
@@ -1633,25 +1651,29 @@ bool GNSS_LG290P::setConstellations()
 // Always update if force is true. Otherwise, only update if enable has changed state
 bool GNSS_LG290P::setCorrRadioExtPort(bool enable, bool force)
 {
-    if (force || (enable != _corrRadioExtPortEnabled))
+    if (online.gnss)
     {
-        // Set UART3 InputProt: RTCM3 (4) vs NMEA (1)
-        if (_lg290p->setPortInputProtocols(3, enable ? 4 : 1))
+        if (force || (enable != _corrRadioExtPortEnabled))
         {
-            if ((settings.debugCorrections == true) && !inMainMenu)
+            // Set UART3 InputProt: RTCM3 (4) vs NMEA (1)
+            if (_lg290p->setPortInputProtocols(3, enable ? 4 : 1))
             {
-                systemPrintf("Radio Ext corrections: %s -> %s%s\r\n", _corrRadioExtPortEnabled ? "enabled" : "disabled",
-                             enable ? "enabled" : "disabled", force ? " (Forced)" : "");
-            }
+                if ((settings.debugCorrections == true) && !inMainMenu)
+                {
+                    systemPrintf("Radio Ext corrections: %s -> %s%s\r\n",
+                                 _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
+                                 force ? " (Forced)" : "");
+                }
 
-            _corrRadioExtPortEnabled = enable;
-            return true;
-        }
-        else
-        {
-            systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
-                         _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
-                         force ? " (Forced)" : "");
+                _corrRadioExtPortEnabled = enable;
+                return true;
+            }
+            else
+            {
+                systemPrintf("Radio Ext corrections FAILED: %s -> %s%s\r\n",
+                             _corrRadioExtPortEnabled ? "enabled" : "disabled", enable ? "enabled" : "disabled",
+                             force ? " (Forced)" : "");
+            }
         }
     }
 
@@ -1714,7 +1736,8 @@ uint8_t GNSS_LG290P::getMode()
 {
     // The fix rate can only be set in rover mode. Return false if we are in base mode.
     int currentMode = 0;
-    _lg290p->getMode(currentMode);
+    if (online.gnss)
+        _lg290p->getMode(currentMode);
     return (currentMode);
 }
 
@@ -1723,6 +1746,9 @@ uint8_t GNSS_LG290P::getMode()
 //----------------------------------------
 bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
 {
+    if (online.gnss == false)
+        return (false);
+
     // The fix rate can only be set in rover mode. Return false if we are in base mode.
     int currentMode = getMode();
     if (currentMode == 2) // Base
@@ -1819,8 +1845,10 @@ bool GNSS_LG290P::standby()
 //----------------------------------------
 bool GNSS_LG290P::surveyInReset()
 {
-    // It's not clear how to reset a Survey In on the LG290P. This may not work.
-    return (surveyInStart());
+    if (online.gnss)
+        // It's not clear how to reset a Survey In on the LG290P. This may not work.
+        return (surveyInStart());
+    return (false);
 }
 
 //----------------------------------------
@@ -1855,8 +1883,11 @@ bool GNSS_LG290P::surveyInStart()
 //----------------------------------------
 void lg290pHandler(uint8_t *incomingBuffer, int bufferLength)
 {
-    GNSS_LG290P *lg290p = (GNSS_LG290P *)gnss;
-    lg290p->lg290pUpdate(incomingBuffer, bufferLength);
+    if (online.gnss)
+    {
+        GNSS_LG290P *lg290p = (GNSS_LG290P *)gnss;
+        lg290p->lg290pUpdate(incomingBuffer, bufferLength);
+    }
 }
 
 //----------------------------------------
@@ -1864,7 +1895,10 @@ void lg290pHandler(uint8_t *incomingBuffer, int bufferLength)
 //----------------------------------------
 void GNSS_LG290P::lg290pUpdate(uint8_t *incomingBuffer, int bufferLength)
 {
-    _lg290p->update(incomingBuffer, bufferLength);
+    if (online.gnss)
+    {
+        _lg290p->update(incomingBuffer, bufferLength);
+    }
 }
 
 //----------------------------------------
