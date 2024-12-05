@@ -670,7 +670,7 @@ struct Settings
     uint16_t measurementRateMs = 250;       // Elapsed ms between GNSS measurements. 25ms to 65535ms. Default 4Hz.
     uint16_t navigationRate =
         1; // Ratio between number of measurements and navigation solutions. Default 1 for 4Hz (with measurementRate).
-    bool updateGNSSSettings = true;   // When in doubt, update the ZED with current settings
+    bool updateGNSSSettings = true;   // When in doubt, update the GNSS with current settings
 
     // GNSS UART
     uint16_t serialGNSSRxFullThreshold = 50; // RX FIFO full interrupt. Max of ~128. See pinUART2Task().
@@ -790,7 +790,7 @@ struct Settings
     bool enableTaskReports = false;                       // Turn on to display task high water marks
     uint8_t gnssReadTaskCore = 1;           // Core where task should run, 0=core, 1=Arduino
     uint8_t gnssReadTaskPriority =
-        1; // Read from ZED-F9x and Write to circular buffer (SD, TCP, BT). 3 being the highest, and 0 being the lowest
+        1; // Read from GNSS and Write to circular buffer (SD, TCP, BT). 3 being the highest, and 0 being the lowest
     uint8_t gnssUartInterruptsCore =
         1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint8_t handleGnssDataTaskCore = 1;     // Core where task should run, 0=core, 1=Arduino

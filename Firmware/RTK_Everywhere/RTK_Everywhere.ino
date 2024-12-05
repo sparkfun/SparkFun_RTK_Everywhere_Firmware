@@ -663,7 +663,7 @@ bool pplNewSpartnLBand = false; // L-Band (mosaic-X5)
 uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
-bool pplGnssOutput = false;
+bool pplGnssOutput = false; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
 bool pplMqttCorrections = false;
 bool pplLBandCorrections = false;     // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
