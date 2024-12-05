@@ -1825,12 +1825,31 @@ bool GNSS_LG290P::setTalkerGNGGA()
 }
 
 //----------------------------------------
-// Hotstart GNSS to try to get RTK lock
-// Needed on ZED based products where RTK Float lock is seen using L-Band
+// Reset GNSS via software command
+// Poll for isConnected()
 //----------------------------------------
 bool GNSS_LG290P::softwareReset()
 {
-    return _lg290p->reset();
+    if (online.gnss)
+    {
+        _lg290p->reset();
+
+        // Poll for a limited amount of time before unit comes back
+        int x = 0;
+        while (x++ < 50)
+        {
+            delay(100); // Wait for device to reboot
+            if (_lg290p->isConnected() == true)
+                break;
+            else
+                systemPrintln("GNSS still rebooting");
+        }
+        if (x < 50)
+            return (true);
+
+        systemPrintln("GNSS failed to connect after reboot");
+    }
+    return (false);
 }
 
 //----------------------------------------
