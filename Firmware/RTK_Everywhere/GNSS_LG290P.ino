@@ -670,7 +670,7 @@ void GNSS_LG290P::factoryReset()
         _lg290p->factoryRestore(); // Restores the parameters configured by all commands to their default values.
                                    // This command takes effect after restarting.
 
-        _lg290p->reset(); // Reboot the receiver.
+        softwareReset(); // Reboot the receiver.
 
         systemPrintln("Waiting for LG290P to reboot");
         while (1)
@@ -1786,9 +1786,9 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
                 if (settings.debugGnss)
                     systemPrintln("Rebooting LG290P");
 
-                response &= _lg290p->save();
+                response &= saveConfiguration();
 
-                response &= _lg290p->reset();
+                response &= softwareReset();
 
                 int maxTries = 10;
                 for (int x = 0; x < maxTries; x++)
