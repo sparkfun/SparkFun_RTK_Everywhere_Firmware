@@ -1124,7 +1124,7 @@ typedef enum
 
 const RTK_Settings_Entry rtkSettingsEntries[] =
 {
-// updateGNSS = A setting, if changed, that forces a GNSS receiver reconfig at next boot
+// updateGNSS = If 1, then the setting, if changed, requires updateGNSSsettings be set to true to force a receiver config update
 // inWebConfig = Should this setting be sent to the WiFi/Eth Config page
 // inCommands = Should this setting be exposed over the CLI
 // useSuffix = Setting has an additional array to search
