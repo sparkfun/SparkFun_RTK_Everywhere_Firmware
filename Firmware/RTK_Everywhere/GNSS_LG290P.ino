@@ -545,6 +545,7 @@ bool GNSS_LG290P::enableNMEA()
 bool GNSS_LG290P::enableRTCMBase()
 {
     bool response = true;
+    bool enableMSM = false; // Goes true if we need to enable MSM output reporting
 
     for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
     {
@@ -574,6 +575,17 @@ bool GNSS_LG290P::enableRTCMBase()
                 response &= false; // If any one of the commands fails, report failure overall
             }
         }
+
+        // If any message is enabled, enable MSM output
+        if (lgMessagesRTCM[messageNumber].msgTextName, settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
+            enableMSM = true;
+    }
+
+    if (enableMSM == true)
+    {
+        // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
+        _lg290p->sendOkCommand(
+            "PQTMCFGRTCM,W,7,0,-90,07,06,2,1"); // Enable MSM7, output regular intervals, interval (seconds)
     }
 
     return (response);
@@ -589,6 +601,7 @@ bool GNSS_LG290P::enableRTCMRover()
     bool rtcm1020Enabled = false;
     bool rtcm1042Enabled = false;
     bool rtcm1046Enabled = false;
+    bool enableMSM = false; // Goes true if we need to enable MSM output reporting
 
     for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
     {
@@ -619,6 +632,10 @@ bool GNSS_LG290P::enableRTCMRover()
             }
         }
 
+        // If any message is enabled, enable MSM output
+        if (lgMessagesRTCM[messageNumber].msgTextName, settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
+            enableMSM = true;
+
         // If we are using IP based corrections, we need to send local data to the PPL
         // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
         if (settings.enablePointPerfectCorrections)
@@ -632,6 +649,7 @@ bool GNSS_LG290P::enableRTCMRover()
                 rtcm1042Enabled = true;
             if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "RTCM3-1046") == 0)
                 rtcm1046Enabled = true;
+            enableMSM = true; // Force enable MSM output
         }
     }
 
@@ -646,6 +664,13 @@ bool GNSS_LG290P::enableRTCMRover()
             response &= _lg290p->setMessageRate("RTCM3-1042", 1);
         if (rtcm1046Enabled == false)
             response &= _lg290p->setMessageRate("RTCM3-1046", 1);
+    }
+
+    if (enableMSM == true)
+    {
+        // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
+        _lg290p->sendOkCommand(
+            "PQTMCFGRTCM,W,7,0,-90,07,06,2,1"); // Enable MSM7, output regular intervals, interval (seconds)
     }
 
     return (response);
