@@ -22,6 +22,7 @@ static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Toke
 
 #ifdef COMPILE_NETWORK
 MqttClient *menuppMqttClient;
+static NetPriority_t pointperfectPriority = NETWORK_OFFLINE;
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
@@ -891,7 +892,6 @@ void beginLBand()
 #endif // /COMPILE_MOSAICX5
 }
 
-// Set 'home' WiFi credentials
 // Provision device on ThingStream
 // Download keys
 void menuPointPerfect()
@@ -1177,7 +1177,7 @@ enum ProvisioningStates
     PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
     PROVISIONING_CHECK_ATTEMPT,
-    PROVISIONING_CHECK_NETWORK,
+    PROVISIONING_WAIT_FOR_NETWORK,
     PROVISIONING_STARTING,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
@@ -1191,7 +1191,7 @@ const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_NOT_STARTED",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_CHECK_ATTEMPT",
-                                             "PROVISIONING_CHECK_NETWORK",
+                                             "PROVISIONING_WAIT_FOR_NETWORK",
                                              "PROVISIONING_STARTING",
                                              "PROVISIONING_STARTED",
                                              "PROVISIONING_KEYS_REMAINING",
@@ -1273,21 +1273,21 @@ void updateProvisioning()
         {
             if (settings.debugPpCertificate)
                 systemPrintln("Invalid certificates or keys. Starting provisioning");
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         // If requestKeyUpdate is true, begin provisioning
         else if (settings.requestKeyUpdate)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("requestKeyUpdate is true. Starting provisioning");
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
         else if (!online.rtc)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("No RTC. Starting provisioning");
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         else
         {
@@ -1313,7 +1313,7 @@ void updateProvisioning()
         {
             settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
             recordSystemSettings();                   // Record these settings to unit
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         else
         {
@@ -1323,19 +1323,29 @@ void updateProvisioning()
         }
     }
     break;
-    case PROVISIONING_CHECK_NETWORK: {
-        if (!networkIsOnline())
+
+    // Wait for connection to the network
+    case PROVISIONING_WAIT_FOR_NETWORK: {
+        // Determine if the key update request has been canceled while waiting
+        if (settings.requestKeyUpdate == false)
         {
-            if (wifiNetworkCount() == 0)
-                displayNoSSIDs(2000);
-            else
-                displayNoNetwork(2000);
-            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            provisioningSetState(PROVISIONING_NOT_STARTED);
         }
-        else
+        // Wait until the network is available
+        else if (networkIsConnected(&pointperfectPriority))
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("PointPerfect key update connected to network");
+
+            // Go get latest keys
             provisioningSetState(PROVISIONING_STARTING);
+        }
+        // TODO If we just booted, show keys remaining regardless of provisioning state machine
+        // provisioningSetState(PROVISIONING_KEYS_REMAINING);
     }
+
     break;
+
     case PROVISIONING_STARTING: {
         ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
         httpClientModeNeeded = true;             // This will start the HTTP_Client
