@@ -1461,7 +1461,7 @@ uint8_t networkConsumers()
     // PointPerfect Corrections enabled with a non-zero length key
     if (settings.enablePointPerfectCorrections == true && strlen(settings.pointPerfectCurrentKey) > 0)
     {
-        if (online.rtc)
+        if (online.rtc == true)
         {
             // Check if keys need updating
             int daysRemaining =
@@ -1470,8 +1470,12 @@ uint8_t networkConsumers()
             {
                 consumerCount++;
                 consumerType |= (1 << 6);
-                if (settings.debugNetworkLayer)
-                    systemPrintf("Network consumer daysRemaining: %d\r\n", daysRemaining);
+            }
+            else
+            {
+                //PointPerfect is enabled, allow MQTT to begin
+                consumerCount++;
+                consumerType |= (1 << 7);
             }
         }
     }
@@ -1485,22 +1489,29 @@ uint8_t networkConsumers()
         if (millis() - lastPrint > 2000)
         {
             lastPrint = millis();
-            systemPrintf("Network consumer count: %d - Consumers: ", consumerCount);
+            systemPrintf("Network consumer count: %d ", consumerCount);
+            if (consumerCount > 0)
+            {
+                systemPrintf("- Consumers: ", consumerCount);
+                
+                if (consumerType & (1 << 0))
+                    systemPrint("Rover NTRIP Client, ");
+                if (consumerType & (1 << 1))
+                    systemPrint("Base NTRIP Server, ");
+                if (consumerType & (1 << 2))
+                    systemPrint("TCP Client, ");
+                if (consumerType & (1 << 3))
+                    systemPrint("TCP Server, ");
+                if (consumerType & (1 << 4))
+                    systemPrint("UDP Server, ");
+                if (consumerType & (1 << 5))
+                    systemPrint("PPL Key Request, ");
+                if (consumerType & (1 << 6))
+                    systemPrint("PPL Key Update, ");
+                if (consumerType & (1 << 7))
+                    systemPrint("PPL MQTT Client, ");
+            }
 
-            if (consumerType & (1 << 0))
-                systemPrint("Rover NTRIP Client, ");
-            if (consumerType & (1 << 1))
-                systemPrint("Base NTRIP Server, ");
-            if (consumerType & (1 << 2))
-                systemPrint("TCP Client, ");
-            if (consumerType & (1 << 3))
-                systemPrint("TCP Server, ");
-            if (consumerType & (1 << 4))
-                systemPrint("UDP Server, ");
-            if (consumerType & (1 << 5))
-                systemPrint("PPL Key request, ");
-            if (consumerType & (1 << 6))
-                systemPrint("PPL Key update, ");
             systemPrintln();
         }
     }
