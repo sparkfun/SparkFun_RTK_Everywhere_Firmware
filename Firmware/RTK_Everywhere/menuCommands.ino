@@ -1355,7 +1355,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
         apConfigFirmwareUpdateInProcess = true;
-        otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
+        otaForcedUpdate(); // otaForcedUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
         // We get here if WiFi failed to connect
         sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");

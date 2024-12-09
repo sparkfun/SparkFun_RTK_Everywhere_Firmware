@@ -546,7 +546,6 @@ const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measu
 enum OtaState
 {
     OTA_STATE_OFF = 0,
-    OTA_STATE_START_NETWORK,
     OTA_STATE_WAIT_FOR_NETWORK,
     OTA_STATE_GET_FIRMWARE_VERSION,
     OTA_STATE_CHECK_FIRMWARE_VERSION,

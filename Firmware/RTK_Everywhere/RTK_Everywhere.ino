@@ -334,6 +334,9 @@ char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
 
+bool otaRequestFirmwareVersionCheck = false;
+bool otaRequestFirmwareUpdate = false;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -1251,7 +1254,7 @@ void loop()
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
     DMW_c("otaAutoUpdate");
-    otaAutoUpdate();
+    otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air updates
 
     DMW_c("correctionUpdateSource");
     correctionUpdateSource(); // Retire expired sources
