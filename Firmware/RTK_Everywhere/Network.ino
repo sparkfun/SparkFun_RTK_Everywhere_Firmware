@@ -1436,7 +1436,6 @@ void networkVerifyTables()
 uint8_t networkConsumers()
 {
     uint8_t consumerCount = 0;
-
     uint16_t consumerType = 0;
 
     // Network needed for NTRIP Client
@@ -1447,7 +1446,17 @@ uint8_t networkConsumers()
     }
 
     // Network needed for NTRIP Server
-    if ((inBaseMode() == true && settings.enableNtripServer == true) || online.ntripServer)
+    bool ntripServerConnected = false;
+    for (int index = 0; index < NTRIP_SERVER_MAX; index++)
+    {
+        if (online.ntripServer[index])
+        {
+            ntripServerConnected = true;
+            break;
+        }
+    }
+
+    if ((inBaseMode() == true && settings.enableNtripServer == true) || ntripServerConnected)
     {
         consumerCount++;
         consumerType |= (1 << 1);
@@ -1474,18 +1483,11 @@ uint8_t networkConsumers()
         consumerType |= (1 << 4);
     }
 
-    // Network needed for PointPerfect ZTP or key update requested from menu (or display menu)
+    // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
     if (settings.requestKeyUpdate == true)
     {
         consumerCount++;
         consumerType |= (1 << 5);
-    }
-
-    // Network needed for PointPerfect Corrections key update
-    if (settings.requestKeyUpdate == true)
-    {
-        consumerCount++;
-        consumerType |= (1 << 6);
     }
 
     // Network needed for PointPerfect Corrections MQTT client
@@ -1494,21 +1496,21 @@ uint8_t networkConsumers()
     {
         // PointPerfect is enabled, allow MQTT to begin
         consumerCount++;
-        consumerType |= (1 << 7);
+        consumerType |= (1 << 6);
     }
 
     // Network needed to obtain the latest firmware version
     if (otaRequestFirmwareVersionCheck == true)
     {
         consumerCount++;
-        consumerType |= (1 << 8);
+        consumerType |= (1 << 7);
     }
 
     // Network needed for to start a firmware update
     if (otaRequestFirmwareUpdate == true)
     {
         consumerCount++;
-        consumerType |= (1 << 9);
+        consumerType |= (1 << 8);
     }
 
     // Debug
@@ -1537,12 +1539,10 @@ uint8_t networkConsumers()
                 if (consumerType & (1 << 5))
                     systemPrint("PPL Key Update Request, ");
                 if (consumerType & (1 << 6))
-                    systemPrint("PPL Key Update Scheduled, ");
-                if (consumerType & (1 << 7))
                     systemPrint("PPL MQTT Client, ");
-                if (consumerType & (1 << 8))
+                if (consumerType & (1 << 7))
                     systemPrint("OTA Version Check, ");
-                if (consumerType & (1 << 9))
+                if (consumerType & (1 << 8))
                     systemPrint("OTA Scheduled Check, ");
             }
 
