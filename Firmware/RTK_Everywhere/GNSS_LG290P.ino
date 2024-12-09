@@ -1907,8 +1907,7 @@ bool GNSS_LG290P::surveyInStart()
         bool response = true;
 
         response &=
-            _lg290p->setSurveyInMode(settings.observationSeconds, 0,
-                                     false); // Average for a number of seconds (default is 60), no 3D limit, no reset
+            _lg290p->setSurveyInMode(settings.observationSeconds); // Average for a number of seconds (default is 60)
 
         if (response == false)
         {
