@@ -979,9 +979,6 @@ void otaUpdate()
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
-                Serial.printf("otaReportedVersion: %s\r\n", otaReportedVersion);
-                Serial.printf("currentVersion: %s\r\n", currentVersion);
-
                 // If we are doing just a version check, set version number, turn off network request and stop machine
                 if (otaRequestFirmwareVersionCheck == true)
                 {

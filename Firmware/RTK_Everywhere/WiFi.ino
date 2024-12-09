@@ -527,10 +527,19 @@ void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
 //----------------------------------------
 // Wifi start sequence
 //----------------------------------------
-NETWORK_POLL_SEQUENCE wifiStartSequence[] =
-{   //  State               Parameter               Description
-    {wifiStart,             0,                      "Initialize Wifi"},
-    {nullptr,               0,                      "Termination"},
+NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
+    //  State               Parameter               Description
+    {wifiStart, 0, "Initialize WiFi"},
+    {nullptr, 0, "Termination"},
+};
+
+//----------------------------------------
+// Wifi start sequence
+//----------------------------------------
+NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
+    //  State               Parameter               Description
+    {wifiStop, 0, "Shutdown WiFi"},
+    {nullptr, 0, "Termination"},
 };
 
 //----------------------------------------
@@ -571,9 +580,19 @@ void wifiStop()
             systemPrintln("WiFi Stopped");
     }
 
+    // Take the network offline
+    networkMarkOffline(NETWORK_WIFI);
+
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
     wifiRunning = false;
+}
+
+// Needed for wifiStopSequence
+void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    wifiStop();
+    networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

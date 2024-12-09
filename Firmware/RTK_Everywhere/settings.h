@@ -1842,6 +1842,7 @@ typedef struct _NETWORK_TABLE_ENTRY
 
 // Sequence table declarations
 extern NETWORK_POLL_SEQUENCE wifiStartSequence[];
+extern NETWORK_POLL_SEQUENCE wifiStopSequence[];
 extern NETWORK_POLL_SEQUENCE laraBootSequence[];
 extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
@@ -1858,7 +1859,7 @@ const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
         {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_ETHERNET
     #ifdef COMPILE_WIFI
-        {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  nullptr},
+        {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence},
     #endif  // COMPILE_WIFI
     #ifdef  COMPILE_CELLULAR
         {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
