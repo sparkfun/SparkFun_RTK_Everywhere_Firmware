@@ -1316,7 +1316,7 @@ void networkUpdate()
         for (int index = NETWORK_WIFI; index < NETWORK_OFFLINE; index++)
         {
             NetMask_t bitMask = 1 << index;
-            if (networkInterfaceTable[index].stop)
+            if (networkInterfaceTable[index].stop && networkIsPresent(index))
             {
                 // Start this network
                 systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
