@@ -299,16 +299,7 @@ void networkBegin()
         ethernetStart();
 #endif // COMPILE_ETHERNET
 
-#ifdef COMPILE_WIFI
-    // Start WiFi
-    networkSequenceStart(NETWORK_WIFI, settings.debugNetworkLayer);
-#endif // COMPILE_WIFI
-
-// Start LARA (cellular modem)
-#ifdef COMPILE_CELLULAR
-    if (present.cellular_lara)
-        laraStart();
-#endif // COMPILE_CELLULAR
+    // WiFi and cellular networks are started/stopped as consumers come online/offline in networkUpdate()
 }
 
 //----------------------------------------
@@ -1296,10 +1287,42 @@ void networkUpdate()
     uint8_t priority;
     NETWORK_POLL_SEQUENCE *sequence;
 
-    if (networkConsumers() == 0)
+    // If there are no consumers, do not start the network
+    if (networkConsumers() == 0 && networkIsOnline() == false)
     {
-        // If there are no consumers, do not start the network
         return;
+    }
+
+    // If there are no consumers, but the network is online, shut down all networks
+    if (networkConsumers() == 0 && networkIsOnline() == true)
+    {
+        // Shutdown all networks
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+        {
+            NetMask_t bitMask = 1 << index;
+            if (networkInterfaceTable[index].stop && (networkStarted & bitMask))
+            {
+                // Stop this network
+                systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
+                networkSequenceStop(index, settings.debugNetworkLayer);
+            }
+        }
+    }
+
+    // Allow consumers to start networks
+    if (networkConsumers() > 0 && networkIsOnline() == false)
+    {
+        // Start network as needed. Skip Ethernet as its always on.
+        for (int index = NETWORK_WIFI; index < NETWORK_OFFLINE; index++)
+        {
+            NetMask_t bitMask = 1 << index;
+            if (networkInterfaceTable[index].stop)
+            {
+                // Start this network
+                systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
+                networkSequenceStart(index, settings.debugNetworkLayer);
+            }
+        }
     }
 
     // Walk the list of network priorities in descending order
@@ -1416,72 +1439,79 @@ uint8_t networkConsumers()
 
     uint16_t consumerType = 0;
 
-    // Rover + NTRIP Client
-    if (inRoverMode() == true && settings.enableNtripClient == true)
+    // Network needed for NTRIP Client
+    if ((inRoverMode() == true && settings.enableNtripClient == true) || online.ntripClient)
     {
         consumerCount++;
         consumerType |= (1 << 0);
     }
 
-    // Base + NTRIP Server
-    if (inBaseMode() == true && settings.enableNtripServer == true)
+    // Network needed for NTRIP Server
+    if ((inBaseMode() == true && settings.enableNtripServer == true) || online.ntripServer)
     {
         consumerCount++;
         consumerType |= (1 << 1);
     }
 
-    // TCP Client
-    if (settings.enableTcpClient == true)
+    // Network needed for TCP Client
+    if (settings.enableTcpClient == true || online.tcpClient)
     {
         consumerCount++;
         consumerType |= (1 << 2);
     }
 
-    // TCP Server
-    if (settings.enableTcpServer == true)
+    // Network needed for TCP Server
+    if (settings.enableTcpServer == true || online.tcpServer)
     {
         consumerCount++;
         consumerType |= (1 << 3);
     }
 
-    // UDP Server
-    if (settings.enableUdpServer == true)
+    // Network needed for UDP Server
+    if (settings.enableUdpServer == true || online.udpServer)
     {
         consumerCount++;
         consumerType |= (1 << 4);
     }
 
-    // PointPerfect ZTP or get keys
+    // Network needed for PointPerfect ZTP or key update requested from menu (or display menu)
     if (settings.requestKeyUpdate == true)
     {
         consumerCount++;
         consumerType |= (1 << 5);
     }
 
-    // PointPerfect Corrections enabled with a non-zero length key
-    if (settings.enablePointPerfectCorrections == true && strlen(settings.pointPerfectCurrentKey) > 0)
+    // Network needed for PointPerfect Corrections key update
+    if (settings.requestKeyUpdate == true)
     {
-        if (online.rtc == true)
-        {
-            // Check if keys need updating
-            int daysRemaining =
-                daysFromEpoch(settings.pointPerfectNextKeyStart + settings.pointPerfectNextKeyDuration + 1);
-            if (daysRemaining < 28)
-            {
-                consumerCount++;
-                consumerType |= (1 << 6);
-            }
-            else
-            {
-                //PointPerfect is enabled, allow MQTT to begin
-                consumerCount++;
-                consumerType |= (1 << 7);
-            }
-        }
+        consumerCount++;
+        consumerType |= (1 << 6);
     }
 
-    // OTA
+    // Network needed for PointPerfect Corrections MQTT client
+    if ((settings.enablePointPerfectCorrections == true && strlen(settings.pointPerfectCurrentKey) > 0) ||
+        online.mqttClient)
+    {
+        // PointPerfect is enabled, allow MQTT to begin
+        consumerCount++;
+        consumerType |= (1 << 7);
+    }
 
+    // Network needed to obtain the latest firmware version
+    if (otaRequestFirmwareVersionCheck == true)
+    {
+        consumerCount++;
+        consumerType |= (1 << 8);
+    }
+
+    // Network needed for to start a firmware update
+    if (otaRequestFirmwareUpdate == true)
+    {
+        consumerCount++;
+        consumerType |= (1 << 9);
+    }
+
+    // Debug
     if (settings.debugNetworkLayer)
     {
         static unsigned long lastPrint = 0;
@@ -1493,7 +1523,7 @@ uint8_t networkConsumers()
             if (consumerCount > 0)
             {
                 systemPrintf("- Consumers: ", consumerCount);
-                
+
                 if (consumerType & (1 << 0))
                     systemPrint("Rover NTRIP Client, ");
                 if (consumerType & (1 << 1))
@@ -1505,11 +1535,15 @@ uint8_t networkConsumers()
                 if (consumerType & (1 << 4))
                     systemPrint("UDP Server, ");
                 if (consumerType & (1 << 5))
-                    systemPrint("PPL Key Request, ");
+                    systemPrint("PPL Key Update Request, ");
                 if (consumerType & (1 << 6))
-                    systemPrint("PPL Key Update, ");
+                    systemPrint("PPL Key Update Scheduled, ");
                 if (consumerType & (1 << 7))
                     systemPrint("PPL MQTT Client, ");
+                if (consumerType & (1 << 8))
+                    systemPrint("OTA Version Check, ");
+                if (consumerType & (1 << 9))
+                    systemPrint("OTA Scheduled Check, ");
             }
 
             systemPrintln();
