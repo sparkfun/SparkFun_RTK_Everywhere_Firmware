@@ -525,7 +525,7 @@ void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //----------------------------------------
-// Wifi start sequence
+// WiFi start sequence
 //----------------------------------------
 NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
     //  State               Parameter               Description
@@ -534,7 +534,7 @@ NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
 };
 
 //----------------------------------------
-// Wifi start sequence
+// WiFi stop sequence
 //----------------------------------------
 NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
     //  State               Parameter               Description
