@@ -720,8 +720,8 @@ void beginBoard()
 
         pin_gpioExpanderInterrupt = 14; // Pin 'AOI' on Portability Shield
 
-        pin_bluetoothStatusLED = 0; // Green status LED
-        // pin_gnssStatusLED = 13;
+        pin_bluetoothStatusLED = 4; // Blue LED
+        pin_gnssStatusLED = 0; // Green LED
 
         pinMode(pin_bluetoothStatusLED, OUTPUT);
 
