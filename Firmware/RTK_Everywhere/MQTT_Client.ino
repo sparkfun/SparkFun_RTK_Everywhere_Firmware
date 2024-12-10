@@ -870,6 +870,9 @@ void mqttClientUpdate()
             millis(); // Prevent MQTT_CLIENT_SERVICES_CONNECTED from going immediately into timeout
 
         reportHeapNow(settings.debugMqttClientState);
+
+        online.mqttClient = true;
+
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
 
         break;
