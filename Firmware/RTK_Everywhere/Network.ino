@@ -1215,6 +1215,29 @@ void networkStart(NetIndex_t index, bool debug)
         if (networkInterfaceTable[index].start && (!(networkStarted & bitMask)))
             systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
         networkSequenceStart(index, debug);
+//----------------------------------------
+// Stop a network interface
+//----------------------------------------
+void networkStop(NetIndex_t index, bool debug)
+{
+    NetMask_t bitMask;
+
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Only stop networks that exist on the platform
+    if (networkIsPresent(index))
+    {
+        // Get the network bit
+        bitMask = (1 << index);
+
+        // If the network has a stop sequence, and it is started, then stop it
+        if (networkInterfaceTable[index].stop && (networkStarted & bitMask))
+        {
+            if (debug)
+                systemPrintf("Stopping network: %s\r\n", networkGetNameByIndex(index));
+            networkSequenceStop(index, debug);
+        }
     }
 }
 
