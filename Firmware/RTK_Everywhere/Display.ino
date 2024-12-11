@@ -915,17 +915,21 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                             64 - (correctionIconAttributes[i].yOffset + correctionIconAttributes[i].height);
                 correctionsIconPosCalculated = true;
             }
-            CORRECTION_ID_T correctionSource = correctionGetSource();
-            if (correctionSource < CORR_NUM)
+
+            if (inRoverMode() == true)
             {
-                iconPropertyBlinking prop;
-                prop.duty = 0b11111111;
-                prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
-                prop.icon.width = correctionIconAttributes[correctionSource].width;
-                prop.icon.height = correctionIconAttributes[correctionSource].height;
-                prop.icon.xPos = correctionsIconXPos128x64 + correctionIconAttributes[correctionSource].xOffset;
-                prop.icon.yPos = correctionsIconYPos128x64 + correctionIconAttributes[correctionSource].yOffset;
-                iconList->push_back(prop);
+                CORRECTION_ID_T correctionSource = correctionGetSource();
+                if (correctionSource < CORR_NUM)
+                {
+                    iconPropertyBlinking prop;
+                    prop.duty = 0b11111111;
+                    prop.icon.bitmap = correctionIconAttributes[correctionSource].pointer;
+                    prop.icon.width = correctionIconAttributes[correctionSource].width;
+                    prop.icon.height = correctionIconAttributes[correctionSource].height;
+                    prop.icon.xPos = correctionsIconXPos128x64 + correctionIconAttributes[correctionSource].xOffset;
+                    prop.icon.yPos = correctionsIconYPos128x64 + correctionIconAttributes[correctionSource].yOffset;
+                    iconList->push_back(prop);
+                }
             }
         }
     }
