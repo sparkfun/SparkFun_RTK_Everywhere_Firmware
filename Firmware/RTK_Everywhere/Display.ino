@@ -823,38 +823,24 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
+            bool networkOnline = false;
+
+#ifdef COMPILE_ETHERNET
+            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+                networkOnline = true;
+#endif // COMPILE_ETHERNET
+
 #ifdef COMPILE_WIFI
             if (networkIsInterfaceOnline(NETWORK_WIFI))
-            {
-                if (netIncomingRTCM == true) // Download : Columns 74 - 81
-                {
-                    iconPropertyBlinking prop;
-                    prop.icon = DownloadArrow128x64;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    netIncomingRTCM = false;
-                }
-                if (mqttClientDataReceived == true) // Download : Columns 74 - 81
-                {
-                    iconPropertyBlinking prop;
-                    prop.icon = DownloadArrow128x64;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    mqttClientDataReceived = false;
-                }
-                if (netOutgoingRTCM == true) // Upload : Columns 83 - 90
-                {
-                    iconPropertyBlinking prop;
-                    prop.icon = UploadArrow128x64;
-                    prop.duty = 0b11111111;
-                    iconList->push_back(prop);
-                    netOutgoingRTCM = false;
-                }
-            }
+                networkOnline = true;
 #endif // COMPILE_WIFI
 
 #ifdef COMPILE_CELLULAR
             if (networkIsInterfaceOnline(NETWORK_CELLULAR))
+                networkOnline = true;
+#endif // COMPILE_CELLULAR
+
+            if (networkOnline)
             {
                 if (netIncomingRTCM == true) // Download : Columns 74 - 81
                 {
@@ -881,7 +867,6 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                     netOutgoingRTCM = false;
                 }
             }
-#endif // COMPILE_CELLULAR
 
             switch (systemState) // Dynamic Model / Base : Columns 92 - 106
             {
