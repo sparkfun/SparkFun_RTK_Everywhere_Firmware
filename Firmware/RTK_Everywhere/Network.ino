@@ -595,6 +595,18 @@ bool networkIsInterfaceOnline(NetIndex_t index)
 }
 
 //----------------------------------------
+// Determine if the network interface has completed its start routine
+//----------------------------------------
+bool networkIsInterfaceStarted(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the network started state
+    return (networkStarted & (1 << index)) ? true : false;
+}
+
+//----------------------------------------
 // Determine if any network interface is online
 //----------------------------------------
 bool networkIsOnline()
