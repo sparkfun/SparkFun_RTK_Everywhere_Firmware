@@ -206,6 +206,8 @@ void cellularStart(NetIndex_t index, uintptr_t parameter, bool debug)
     // If the modem is on, this is too short to turn it off again
     systemPrintln("Starting the cellular modem. It might take a while!");
 
+    displayMessage("Cellular Start", 500);
+
     // Starting the cellular modem
     CELLULAR.begin(CELLULAR_MODEM_MODEL);
 
