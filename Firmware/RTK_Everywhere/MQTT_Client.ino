@@ -503,6 +503,8 @@ void mqttClientReceiveMessage(int messageSize)
 
                         gnss->pushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;
+
+                        mqttClientDataReceived = true;
                     }
                     else
                     {
