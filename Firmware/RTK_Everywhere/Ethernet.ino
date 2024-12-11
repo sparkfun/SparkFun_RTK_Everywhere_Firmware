@@ -161,20 +161,23 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_START:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Started");
-        ETH.setHostname(settings.mdnsHostName);
-        if (settings.ethernetDHCP)
-            paintGettingEthernetIP();
         break;
 
     case ARDUINO_EVENT_ETH_CONNECTED:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintln("ETH Connected");
+
+        ETH.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_ETH_GOT_IP:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintf("ETH Got IP: '%s'\r\n", ETH.localIP().toString().c_str());
+
         networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
+
+        if (settings.ethernetDHCP)
+            paintEthernetIPObtained();
         break;
 
     case ARDUINO_EVENT_ETH_LOST_IP:
