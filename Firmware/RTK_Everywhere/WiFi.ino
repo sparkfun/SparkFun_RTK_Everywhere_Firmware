@@ -448,7 +448,7 @@ void wifiRestart()
             return;
         }
 
-        wifiStart();
+        wifiForceStart();
     }
 }
 
@@ -457,9 +457,9 @@ void wifiRestart()
 // Sets the appropriate protocols (WiFi + ESP-Now)
 // If radio is off entirely, start WiFi
 // If ESP-Now is active, only add the LR protocol
-// Returns true if WiFi has started and false otherwise
+// Returns true if WiFi has connected and false otherwise
 //----------------------------------------
-bool wifiStart()
+bool wifiForceStart()
 {
     int wifiStatus;
 
@@ -490,7 +490,7 @@ bool wifiStart()
 }
 
 //----------------------------------------
-// Start WiFi
+// Start WiFi with throttling
 //----------------------------------------
 void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
 {
@@ -504,7 +504,7 @@ void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
     wifiStartLastTry = millis();
 
     // Start WiFi
-    if (wifiStart())
+    if (wifiForceStart())
         networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
     else
     {

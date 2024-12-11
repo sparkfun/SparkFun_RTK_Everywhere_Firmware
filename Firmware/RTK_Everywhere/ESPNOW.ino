@@ -375,7 +375,7 @@ void espnowStop()
     {
         if (settings.debugEspNow == true)
             systemPrintln("ESP-Now starting WiFi");
-        wifiStart(); // Force WiFi to restart
+        wifiForceStart(); // Force WiFi to restart
     }
 
 #endif // COMPILE_ESPNOW
