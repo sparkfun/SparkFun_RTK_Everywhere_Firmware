@@ -1212,9 +1212,17 @@ void networkStart(NetIndex_t index, bool debug)
     {
         // Get the network bit
         bitMask = (1 << index);
+
+        // If a network has a start sequence, and it is not started, start it
         if (networkInterfaceTable[index].start && (!(networkStarted & bitMask)))
-            systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
-        networkSequenceStart(index, debug);
+        {
+            if (debug)
+                systemPrintf("Starting network: %s\r\n", networkGetNameByIndex(index));
+            networkSequenceStart(index, debug);
+        }
+    }
+}
+
 //----------------------------------------
 // Stop a network interface
 //----------------------------------------
