@@ -23,6 +23,8 @@ bool restartWiFi = false; // Restart WiFi if user changes anything
 
 #ifdef COMPILE_WIFI
 
+WiFiMulti *wifiMulti;
+
 //----------------------------------------
 // Constants
 //----------------------------------------
@@ -213,18 +215,19 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 
     systemPrintln("Connecting WiFi... ");
 
-    static WiFiMulti wifiMulti;
+    if (wifiMulti == nullptr)
+        wifiMulti = new WiFiMulti;
 
     // Load SSIDs
-    wifiMulti.APlistClean();
+    wifiMulti->APlistClean();
     for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
     {
         if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            wifiMulti.addAP((const char *)&settings.wifiNetworks[x].ssid,
-                            (const char *)&settings.wifiNetworks[x].password);
+            wifiMulti->addAP((const char *)&settings.wifiNetworks[x].ssid,
+                             (const char *)&settings.wifiNetworks[x].password);
     }
 
-    int wifiStatus = wifiMulti.run(timeout);
+    int wifiStatus = wifiMulti->run(timeout);
     if (wifiStatus == WL_CONNECTED)
     {
         wifiRunning = true;
@@ -584,6 +587,9 @@ void wifiStop()
 
     // Take the network offline
     networkMarkOffline(NETWORK_WIFI);
+
+    if (wifiMulti != nullptr)
+        wifiMulti = nullptr;
 
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
