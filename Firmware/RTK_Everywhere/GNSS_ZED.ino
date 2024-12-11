@@ -146,7 +146,7 @@ void GNSS_ZED::begin()
 
     if (_zed->begin(*i2c_0) == false)
     {
-        log_d("GNSS Failed to begin. Trying again.");
+        systemPrintln("GNSS Failed to begin. Trying again.");
 
         // Try again with power on delay
         delay(1000); // Wait for ZED-F9P to power up before it can respond to ACK
