@@ -758,7 +758,7 @@ bool GNSS_ZED::configureRover()
 {
     if (online.gnss == false)
     {
-        log_d("GNSS not online");
+        systemPrintln("GNSS not online");
         return (false);
     }
 
@@ -836,9 +836,6 @@ bool GNSS_ZED::configureRover()
         if (response)
             success = true;
     }
-
-    if (!success)
-        log_d("Rover config failed 1");
 
     if (!success)
         systemPrintln("Rover config fail");
@@ -938,7 +935,7 @@ bool GNSS_ZED::fixedBaseStart()
 
     if (online.gnss == false)
     {
-        log_d("GNSS not online");
+        systemPrintln("GNSS not online");
         return (false);
     }
 
@@ -2179,9 +2176,9 @@ bool GNSS_ZED::setMessages(int maxRetries)
 
                 if (_zed->sendCfgValset() == false)
                 {
-                    log_d("sendCfg failed at messageNumber %d %s. Try %d of %d.", messageNumber - 1,
-                          (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "",
-                          tryNo + 1, maxRetries);
+                    systemPrintf("sendCfg failed at messageNumber %d %s. Try %d of %d.\r\n", messageNumber - 1,
+                                 (messageNumber - 1) < MAX_UBX_MSG ? ubxMessages[messageNumber - 1].msgTextName : "",
+                                 tryNo + 1, maxRetries);
                     response &= false; // If any one of the Valset fails, report failure overall
                 }
             }
