@@ -310,6 +310,8 @@ bool GNSS_ZED::beginPPS()
 }
 
 //----------------------------------------
+// Returns true if the 5 'standard' messages are enabled
+//----------------------------------------
 bool GNSS_ZED::checkNMEARates()
 {
     if (online.gnss)
@@ -1134,10 +1136,10 @@ uint8_t GNSS_ZED::getLoggingType()
     {
         if (checkNMEARates())
         {
-            loggingType = LOGGING_STANDARD;
+            logType = LOGGING_STANDARD;
 
             if (checkPPPRates())
-                loggingType = LOGGING_PPP;
+                logType = LOGGING_PPP;
         }
     }
 
