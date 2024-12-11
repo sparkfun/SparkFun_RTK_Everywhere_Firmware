@@ -1333,31 +1333,19 @@ void networkUpdate()
     {
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
-        {
-            NetMask_t bitMask = 1 << index;
-            if (networkInterfaceTable[index].stop && (networkStarted & bitMask))
-            {
-                // Stop this network
-                systemPrintf("Stopping %s\r\n", networkGetNameByIndex(index));
-                networkSequenceStop(index, settings.debugNetworkLayer);
-            }
-        }
+            networkStop(index, settings.debugNetworkLayer);
     }
 
-    // Allow consumers to start networks
+    // Allow consumers to re-start networks
     if (networkConsumers() > 0 && networkIsOnline() == false)
     {
-        // Start network as needed. Skip Ethernet as its always on.
-        for (int index = NETWORK_WIFI; index < NETWORK_OFFLINE; index++)
-        {
-            NetMask_t bitMask = 1 << index;
-            if (networkInterfaceTable[index].stop && networkIsPresent(index))
-            {
-                // Start this network
-                systemPrintf("Starting %s\r\n", networkGetNameByIndex(index));
-                networkSequenceStart(index, settings.debugNetworkLayer);
-            }
-        }
+        // Stop any running networks
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+            networkStop(index, settings.debugNetworkLayer);
+
+        // Start network as needed
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+            networkStart(index, settings.debugNetworkLayer);
     }
 
     // Walk the list of network priorities in descending order
