@@ -1344,13 +1344,11 @@ void networkUpdate()
             networkStop(index, settings.debugNetworkLayer);
     }
 
-    // Allow consumers to re-start networks
+    // Allow consumers to start networks
+    // Each network is expected to shut itself down if it is unavailable or of a lower priority
+    // so that a networkStart() succeeds.
     if (networkConsumers() > 0 && networkIsOnline() == false)
     {
-        // Stop any running networks
-        for (int index = 0; index < NETWORK_OFFLINE; index++)
-            networkStop(index, settings.debugNetworkLayer);
-
         // Start network as needed
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStart(index, settings.debugNetworkLayer);

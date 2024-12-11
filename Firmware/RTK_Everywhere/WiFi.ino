@@ -292,7 +292,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
     if (networkIsInterfaceOnline(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
         (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
     {
-        networkMarkOffline(NETWORK_WIFI);
+        networkStop(NETWORK_WIFI, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
     }
 
     // WiFi State Machine
