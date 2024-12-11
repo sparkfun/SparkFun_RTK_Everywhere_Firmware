@@ -853,6 +853,36 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             }
 #endif // COMPILE_WIFI
 
+#ifdef COMPILE_CELLULAR
+            if (networkIsInterfaceOnline(NETWORK_CELLULAR))
+            {
+                if (netIncomingRTCM == true) // Download : Columns 74 - 81
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = DownloadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    netIncomingRTCM = false;
+                }
+                if (mqttClientDataReceived == true) // Download : Columns 74 - 81
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = DownloadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    mqttClientDataReceived = false;
+                }
+                if (netOutgoingRTCM == true) // Upload : Columns 83 - 90
+                {
+                    iconPropertyBlinking prop;
+                    prop.icon = UploadArrow128x64;
+                    prop.duty = 0b11111111;
+                    iconList->push_back(prop);
+                    netOutgoingRTCM = false;
+                }
+            }
+#endif // COMPILE_CELLULAR
+
             switch (systemState) // Dynamic Model / Base : Columns 92 - 106
             {
             case (STATE_ROVER_NO_FIX):
