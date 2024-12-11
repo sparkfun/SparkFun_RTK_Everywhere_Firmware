@@ -2977,9 +2977,9 @@ void paintGettingKeys()
     displayMessage("Getting Keys", 2000);
 }
 
-void paintEthernetIPObtained()
+void paintEthernetConnected()
 {
-    displayMessage("IP Obtained", 1000);
+    displayMessage("Ethernet Connected", 1000);
 }
 
 // If an L-Band is indoors without reception, we have a ~2s wait for the RTC to come online

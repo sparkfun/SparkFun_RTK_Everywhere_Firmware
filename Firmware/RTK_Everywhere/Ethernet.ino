@@ -177,7 +177,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
         networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
 
         if (settings.ethernetDHCP)
-            paintEthernetIPObtained();
+            paintEthernetConnected();
         break;
 
     case ARDUINO_EVENT_ETH_LOST_IP:
