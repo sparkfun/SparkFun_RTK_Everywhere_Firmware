@@ -233,7 +233,9 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
     if (wifiStatus == WL_DISCONNECTED)
         systemPrint("No friendly WiFi networks detected.\r\n");
     else
-        systemPrintf("WiFi failed to connect: error #%d.\r\n", wifiStatus);
+    {
+        systemPrintf("WiFi failed to connect: error #%d - %s\r\n", wifiStatus, wifiPrintState((wl_status_t)wifiStatus));
+    }
     wifiRunning = false;
     return false;
 }
@@ -255,37 +257,8 @@ void wifiDisplayState()
 
         // Get the WiFi status
         wl_status_t wifiStatus = WiFi.status();
-        const char *wifiStatusString;
-        switch (wifiStatus)
-        {
-        case WL_NO_SHIELD:
-            wifiStatusString = "WL_NO_SHIELD";
-            break;
-        case WL_STOPPED:
-            wifiStatusString = "WL_STOPPED";
-            break;
-        case WL_IDLE_STATUS:
-            wifiStatusString = "WL_IDLE_STATUS";
-            break;
-        case WL_NO_SSID_AVAIL:
-            wifiStatusString = "WL_NO_SSID_AVAIL";
-            break;
-        case WL_SCAN_COMPLETED:
-            wifiStatusString = "WL_SCAN_COMPLETED";
-            break;
-        case WL_CONNECTED:
-            wifiStatusString = "WL_CONNECTED";
-            break;
-        case WL_CONNECT_FAILED:
-            wifiStatusString = "WL_CONNECT_FAILED";
-            break;
-        case WL_CONNECTION_LOST:
-            wifiStatusString = "WL_CONNECTION_LOST";
-            break;
-        case WL_DISCONNECTED:
-            wifiStatusString = "WL_DISCONNECTED";
-            break;
-        }
+
+        const char *wifiStatusString = wifiPrintState(wifiStatus);
 
         // Display the WiFi state
         systemPrintf("    SSID: %s\r\n", WiFi.STA.SSID());
@@ -427,6 +400,35 @@ int wifiNetworkCount()
             networkCount++;
     }
     return networkCount;
+}
+
+//----------------------------------------
+// Given a status, return the associated state or error
+//----------------------------------------
+const char *wifiPrintState(wl_status_t wifiStatus)
+{
+    switch (wifiStatus)
+    {
+    case WL_NO_SHIELD:
+        return ("WL_NO_SHIELD"); // 255
+    case WL_STOPPED:
+        return ("WL_STOPPED");
+    case WL_IDLE_STATUS: // 0
+        return ("WL_IDLE_STATUS");
+    case WL_NO_SSID_AVAIL: // 1
+        return ("WL_NO_SSID_AVAIL");
+    case WL_SCAN_COMPLETED: // 2
+        return ("WL_SCAN_COMPLETED");
+    case WL_CONNECTED: // 3
+        return ("WL_CONNECTED");
+    case WL_CONNECT_FAILED: // 4
+        return ("WL_CONNECT_FAILED");
+    case WL_CONNECTION_LOST: // 5
+        return ("WL_CONNECTION_LOST");
+    case WL_DISCONNECTED: // 6
+        return ("WL_DISCONNECTED");
+    }
+    return ("WiFi Status Unknown");
 }
 
 //----------------------------------------
