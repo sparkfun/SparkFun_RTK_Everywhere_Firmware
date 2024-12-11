@@ -485,13 +485,22 @@ bool wifiForceStart()
         // Start WiFi
         if (wifiConnect(settings.wifiConnectTimeoutMs))
         {
-            wifiStartTimeout = 0;
+            wifiResetTimeout();
             if (settings.debugWifiState == true)
                 systemPrintln("WiFi: Start timeout reset to zero");
         }
     }
     wifiStatus = WiFi.status();
     return (wifiStatus == WL_CONNECTED);
+}
+
+//----------------------------------------
+// Set WiFi timeout back to zero
+// Useful if other things (such as a successful ethernet connection) need to reset wifi timeout
+//----------------------------------------
+void wifiResetTimeout()
+{
+    wifiStartTimeout = 0;
 }
 
 //----------------------------------------
