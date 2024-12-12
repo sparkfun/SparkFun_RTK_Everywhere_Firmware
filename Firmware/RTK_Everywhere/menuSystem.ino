@@ -167,10 +167,24 @@ void menuSystem()
 
         systemPrintln("-----  Settings  -----");
 
-        if (present.beeper == true)
+        systemPrint("a) Automatic device reboot in minutes: ");
+        if (settings.rebootMinutes == 0)
+            systemPrintln("Disabled");
+        else
         {
-            systemPrint("a) Audible Prompts: ");
-            systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
+            int days;
+            int hours;
+            int minutes;
+
+            const int minutesInADay = 60 * 24;
+
+            minutes = settings.rebootMinutes;
+            days = minutes / minutesInADay;
+            minutes -= days * minutesInADay;
+            hours = minutes / 60;
+            minutes -= hours * 60;
+
+            systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
         }
 
         systemPrint("b) Set Bluetooth Mode: ");
@@ -204,6 +218,12 @@ void menuSystem()
             systemPrintln("f) Display microSD Files");
         }
 
+        if (present.beeper == true)
+        {
+            systemPrint("g) Enable Beeper: ");
+            systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
+        }
+
         systemPrintln("h) Debug hardware");
 
         systemPrintln("n) Debug network");
@@ -230,9 +250,38 @@ void menuSystem()
 
         byte incoming = getUserInputCharacterNumber();
 
-        if (incoming == 'a' && present.beeper == true)
+        if (incoming == 'a')
         {
-            settings.enableBeeper ^= 1;
+            // We use millis (uint32_t) to measure the reboot interval. 4294967000 is just less than (2^32 - 1)
+            systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
+            int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
+                {
+                    settings.rebootMinutes = 0;
+                    systemPrintln("Reset is disabled");
+                }
+                else
+                {
+                    int days;
+                    int hours;
+                    int minutes;
+
+                    const int minutesInADay = 60 * 24;
+
+                    // Set the reboot time
+                    settings.rebootMinutes = rebootMinutes;
+
+                    minutes = settings.rebootMinutes;
+                    days = minutes / minutesInADay;
+                    minutes -= days * minutesInADay;
+                    hours = minutes / 60;
+                    minutes -= hours * 60;
+
+                    systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
+                }
+            }
         }
         else if (incoming == 'b')
         {
@@ -261,6 +310,10 @@ void menuSystem()
         else if ((incoming == 'f') && (settings.enableSD == true) && (online.microSD == true))
         {
             printFileList();
+        }
+        else if (incoming == 'g' && present.beeper == true)
+        {
+            settings.enableBeeper ^= 1;
         }
         else if (incoming == 'h')
             menuDebugHardware();
@@ -750,33 +803,14 @@ void menuDebugSoftware()
         systemPrint("31) Print duplicate states: ");
         systemPrintf("%s\r\n", settings.enablePrintDuplicateStates ? "Enabled" : "Disabled");
 
-        systemPrint("32) Automatic device reboot in minutes: ");
-        if (settings.rebootMinutes == 0)
-            systemPrintln("Disabled");
-        else
-        {
-            int days;
-            int hours;
-            int minutes;
-
-            const int minutesInADay = 60 * 24;
-
-            minutes = settings.rebootMinutes;
-            days = minutes / minutesInADay;
-            minutes -= days * minutesInADay;
-            hours = minutes / 60;
-            minutes -= hours * 60;
-
-            systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
-        }
-
         systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
 
         systemPrintf("34) Print partition table: %s\r\n", settings.printPartitionTable ? "Enabled" : "Disabled");
 
         // Debug
 
-        systemPrintf("40) Print LittleFS and settings management: %s\r\n", settings.debugSettings ? "Enabled" : "Disabled");
+        systemPrintf("40) Print LittleFS and settings management: %s\r\n",
+                     settings.debugSettings ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
@@ -823,39 +857,6 @@ void menuDebugSoftware()
             settings.enablePrintStates ^= 1;
         else if (incoming == 31)
             settings.enablePrintDuplicateStates ^= 1;
-        else if (incoming == 32)
-        {
-            // We use millis (uint32_t) to measure the reboot interval. 4294967000 is just less than (2^32 - 1)
-            systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
-            int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
-                {
-                    settings.rebootMinutes = 0;
-                    systemPrintln("Reset is disabled");
-                }
-                else
-                {
-                    int days;
-                    int hours;
-                    int minutes;
-
-                    const int minutesInADay = 60 * 24;
-
-                    // Set the reboot time
-                    settings.rebootMinutes = rebootMinutes;
-
-                    minutes = settings.rebootMinutes;
-                    days = minutes / minutesInADay;
-                    minutes -= days * minutesInADay;
-                    hours = minutes / 60;
-                    minutes -= hours * 60;
-
-                    systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
-                }
-            }
-        }
         else if (incoming == 33)
             settings.printBootTimes ^= 1;
         else if (incoming == 34)
