@@ -66,9 +66,17 @@ void powerDown(bool displayInfo)
 
     while (1)
     {
-        // We should never get here but good to know if we do
+        // Platforms with power control won't get here
+        // Postcard will get here if the battery is too low
+        
         systemPrintln("Device powered down");
         delay(5000);
+
+        checkBatteryLevels(); // Force check so you see battery level immediately at power on
+
+        // Restart if charging has gotten us high enough
+        if (batteryLevelPercent > 5 && batteryChargingPercentPerHour > 0.5)
+            ESP.restart();
     }
 }
 
