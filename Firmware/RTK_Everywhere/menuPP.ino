@@ -21,8 +21,8 @@ static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Toke
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_NETWORK
-MqttClient *menuppMqttClient;
 static NetPriority_t pointperfectPriority = NETWORK_OFFLINE;
+MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
 
 //----------------------------------------
@@ -1332,6 +1332,7 @@ void updateProvisioning()
             provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         // Wait until the network is available
+#ifdef COMPILE_NETWORK
         else if (networkIsConnected(&pointperfectPriority))
         {
             if (settings.debugPpCertificate)
@@ -1340,6 +1341,8 @@ void updateProvisioning()
             // Go get latest keys
             provisioningSetState(PROVISIONING_STARTING);
         }
+#endif // COMPILE_NETWORK
+
         // TODO If we just booted, show keys remaining regardless of provisioning state machine
         // provisioningSetState(PROVISIONING_KEYS_REMAINING);
     }

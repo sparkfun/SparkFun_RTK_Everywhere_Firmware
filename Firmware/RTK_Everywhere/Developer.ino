@@ -115,6 +115,7 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 void otaAutoUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
+void otaUpdate() {}
 
 #endif  // COMPILE_OTA_AUTO
 
