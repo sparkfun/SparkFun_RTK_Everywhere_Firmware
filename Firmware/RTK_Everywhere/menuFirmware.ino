@@ -48,20 +48,12 @@ void menuFirmware()
         systemPrintf("a) Automatic firmware updates: %s\r\n",
                      settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
-        if (strlen(otaReportedVersion) > 0)
-        {
-            if (newOTAFirmwareAvailable == false)
-                systemPrintf("c) Check SparkFun for device firmware: Up to date\r\n");
-        }
-        else
-        {
-            systemPrint("c) Check SparkFun for device firmware: ");
+        systemPrint("c) Check SparkFun for device firmware: ");
 
-            if (otaRequestFirmwareVersionCheck == true)
-                systemPrintln("Requested");
-            else
-                systemPrintln("Not requested");
-        }
+        if (otaRequestFirmwareVersionCheck == true)
+            systemPrintln("Requested");
+        else
+            systemPrintln("Not requested");
 
         systemPrintf("e) Allow Beta Firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
 
@@ -74,7 +66,8 @@ void menuFirmware()
             systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         }
 
-        if (newOTAFirmwareAvailable)
+        if (isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
+            settings.debugFirmwareUpdate == true)
         {
             systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
             if (otaRequestFirmwareUpdate == true)
@@ -103,49 +96,6 @@ void menuFirmware()
         else if (incoming == 'c')
         {
             otaRequestFirmwareVersionCheck ^= 1;
-
-            // if (networkIsOnline() == false)
-            // {
-            //     if (wifiNetworkCount() == 0)
-            //         systemPrintln("Error: Please enter at least one SSID before updating firmware");
-            //     else
-            //         systemPrintln("Error: Network not available!");
-            // }
-            // else
-            // {
-            //     if (ESP.getFreeHeap() < 40000)
-            //         systemPrintln("Firmware update may require additional RAM. Please turn off services (ie, "
-            //                       "Bluetooth, WiFi, PPL, etc) if check fails.");
-
-            //     bool previouslyConnected = wifiIsRunning();
-
-            //     // Get firmware version from server
-            //     // otaCheckVersion will call wifiConnect if needed
-            //     if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
-            //     {
-            //         // We got a version number, now determine if it's newer or not
-            //         char currentVersion[21];
-            //         getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-            //         if (isotaReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true ||
-            //             FIRMWARE_VERSION_MAJOR == 99 || settings.debugFirmwareUpdate == true)
-            //         {
-            //             systemPrintln("New version detected");
-            //             newOTAFirmwareAvailable = true;
-            //         }
-            //         else
-            //         {
-            //             systemPrintln("No new firmware available");
-            //         }
-            //     }
-            //     else
-            //     {
-            //         // Failed to get version number
-            //         systemPrintln("Failed to get version number from server.");
-            //     }
-
-            //     if (previouslyConnected == false)
-            //         WIFI_STOP();
-            // } // End wifiNetworkCount() check
         }
 
         else if (incoming == 'e')
@@ -174,11 +124,9 @@ void menuFirmware()
             getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
         }
 
-        else if ((incoming == 'u') && newOTAFirmwareAvailable)
+        else if ((incoming == 'u') && (newOTAFirmwareAvailable || settings.debugFirmwareUpdate == true))
         {
-            otaRequestFirmwareUpdate = true; // Tell network we need access, and otaUpdate() that we want to update
-
-            // Old method: otaForcedUpdate(); // otaUpdate will call wifiConnect if needed.
+            otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
         }
 
         else if (incoming == 'x')
