@@ -679,7 +679,7 @@ unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key 
 
 SFE_PCA95XX io(PCA95XX_PCA9554); // Create a PCA9554, default address 0x20
 
-bool gpioChanged = false; // Set by gpioExpanderISR
+volatile bool gpioChanged = false; // Set by gpioExpanderISR
 uint8_t gpioExpander_previousState =
     0b00011111; // Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
 unsigned long gpioExpander_holdStart[8] = {0};
