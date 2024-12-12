@@ -550,7 +550,7 @@ void bluetoothStart()
                 xTaskCreatePinnedToCore(
                     bluetoothCommandTask,   // Function to run
                     "BluetoothCommandTask", // Just for humans
-                    2000,                   // Stack Size
+                    4000,                   // Stack Size - must be ~4000
                     nullptr,                // Task input parameter
                     0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &bluetoothCommandTaskHandle,       // Task handle
