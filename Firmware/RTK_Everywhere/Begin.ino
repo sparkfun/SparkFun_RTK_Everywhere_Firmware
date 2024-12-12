@@ -723,13 +723,10 @@ void beginBoard()
         pin_bluetoothStatusLED = 4; // Blue LED
         pin_gnssStatusLED = 0; // Green LED
 
-        pinMode(pin_bluetoothStatusLED, OUTPUT);
-
-        // DMW_if systemPrintf("pin_gnssStatusLED: %d\r\n", pin_gnssStatusLED);
-        // pinMode(pin_gnssStatusLED, OUTPUT);
-
         // Turn on Bluetooth and GNSS LEDs to indicate power on
+        pinMode(pin_bluetoothStatusLED, OUTPUT);
         bluetoothLedOn();
+        pinMode(pin_gnssStatusLED, OUTPUT);
         gnssStatusLedOn();
 
         pinMode(pin_GNSS_TimePulse, INPUT);
