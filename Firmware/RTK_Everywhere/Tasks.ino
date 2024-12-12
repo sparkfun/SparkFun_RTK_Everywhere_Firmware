@@ -1575,25 +1575,29 @@ void buttonCheckTask(void *e)
         if ((previousButtonRelease > 0) && (thisButtonRelease > 0) &&
             ((thisButtonRelease - previousButtonRelease) <= doubleTapInterval)) // Do we have a double tap?
         {
-            doubleTap = true;
-            singleTap = false;
-            previousButtonRelease = 0;
-            thisButtonRelease = 0;
+            // Do not register button taps until the system is displaying the menu
+            if (systemState == STATE_DISPLAY_SETUP)
+            {
+                doubleTap = true;
+                singleTap = false;
+                previousButtonRelease = 0;
+                thisButtonRelease = 0;
+            }
         }
         else if ((thisButtonRelease > 0) &&
                  ((millis() - thisButtonRelease) > doubleTapInterval)) // Do we have a single tap?
         {
-            // Discard the first button press as it was used to display the menu
-            if (showMenu == true)
+            // Do not register button taps until the system is displaying the menu
+            if (systemState == STATE_DISPLAY_SETUP)
             {
-                showMenu = false;
-            }
-            else
-            {
-                doubleTap = false;
-                singleTap = true;
                 previousButtonRelease = 0;
                 thisButtonRelease = 0;
+                doubleTap = false;
+
+                if (firstButtonThrownOut == false)
+                    firstButtonThrownOut = true; // Throw away the first button press
+                else
+                    singleTap = true;
             }
         }
 
@@ -1750,8 +1754,8 @@ void buttonCheckTask(void *e)
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
-                    setupSelectedButton = 0;   // Highlight the first button
-                    forceDisplayUpdate = true; // User is interacting so repaint display quickly
+                    setupSelectedButton = 0; // Highlight the first button
+                    showMenu = false;
                     break;
 
                 case STATE_DISPLAY_SETUP:
@@ -1838,7 +1842,10 @@ void buttonCheckTask(void *e)
                                 requestChangeState(STATE_PROFILE);
                             }
                             else if (it->newState == STATE_NOT_SET) // Exit
+                            {
+                                firstButtonThrownOut = false;
                                 requestChangeState(lastSystemState);
+                            }
                             else
                                 requestChangeState(it->newState);
 

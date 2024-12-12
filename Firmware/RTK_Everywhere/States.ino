@@ -389,7 +389,7 @@ void stateUpdate()
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
             {
-                // forceSystemStateUpdate = true; // Immediately go to this new state
+                firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
             }
         }
