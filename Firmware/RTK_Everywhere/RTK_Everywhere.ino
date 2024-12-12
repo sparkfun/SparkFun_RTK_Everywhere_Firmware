@@ -6,7 +6,7 @@
   This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
   and communicates with various GNSS receivers.
 
-  Compiled using Arduino CLI and ESP32 core v3.0.0.
+  Compiled using Arduino CLI and ESP32 core v3.0.7.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
@@ -474,7 +474,7 @@ const int btReadTaskStackSize = 4000;
 RING_BUFFER_OFFSET *rbOffsetArray = nullptr;
 uint16_t rbOffsetEntries;
 
-uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
+uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
 const int gnssReadTaskStackSize = 8000;
 const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
