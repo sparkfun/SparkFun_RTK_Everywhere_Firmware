@@ -265,7 +265,10 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                 break;
 
         // Start the multicast DNS server
-        networkMulticastDNSStart(startWiFi);
+        if (startWiFi == true)
+            networkMulticastDNSSwitch(NETWORK_WIFI);
+        else
+            networkMulticastDNSSwitch(NETWORK_ETHERNET);
 
         // Freed by stopWebServer
         if (online.psram == true)

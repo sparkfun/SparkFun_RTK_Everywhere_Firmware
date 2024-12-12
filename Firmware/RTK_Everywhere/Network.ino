@@ -769,21 +769,18 @@ void networkMarkOnline(NetIndex_t index)
 }
 
 //----------------------------------------
-// Start multicast DNS called only from Form.ino
+// Change multicast DNS to a given network
+// 
 //----------------------------------------
-void networkMulticastDNSStart(bool startWiFi)
+void networkMulticastDNSSwitch(NetIndex_t startIndex)
 {
-    NetMask_t bitMask;
-    NetIndex_t startIndex;
-
-    // Stop mDNS on other networks
-    startIndex = startWiFi ? NETWORK_WIFI : NETWORK_ETHERNET;
+    // Stop mDNS on the other networks
     for (int index = 0; index < NETWORK_OFFLINE; index++)
         if (index != startIndex)
             networkMulticastDNSStop(index);
 
     // Start mDNS on the requested network
-    networkMulticastDNSStart(index);
+    networkMulticastDNSStart(startIndex); //Start DNS on the selected network, either WiFi or Ethernet
 }
 
 //----------------------------------------
@@ -804,6 +801,7 @@ void networkMulticastDNSStart(NetIndex_t index)
         {
             MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
             networkMdnsRunning |= bitMask;
+
             if (settings.debugNetworkLayer)
                 systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
         }
@@ -815,10 +813,8 @@ void networkMulticastDNSStart(NetIndex_t index)
 //----------------------------------------
 void networkMulticastDNSStop(NetIndex_t index)
 {
-    NetMask_t bitMask;
-
     // Stop mDNS if it is running on this network
-    bitMask = 1 << index;
+    NetMask_t bitMask = 1 << index;
     if (settings.mdnsEnable && (networkMdnsRunning & bitMask))
     {
         MDNS.end();
@@ -833,11 +829,8 @@ void networkMulticastDNSStop(NetIndex_t index)
 //----------------------------------------
 void networkMulticastDNSStop()
 {
-    NetMask_t bitMask;
-    NetIndex_t startIndex;
-
     // Determine the highest priority network
-    startIndex = networkPriority;
+    NetIndex_t startIndex = networkPriority;
     if (startIndex < NETWORK_OFFLINE)
         startIndex = networkIndexTable[startIndex];
 
