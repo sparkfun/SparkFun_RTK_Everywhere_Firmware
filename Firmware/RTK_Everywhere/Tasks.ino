@@ -1575,9 +1575,11 @@ void buttonCheckTask(void *e)
         if ((previousButtonRelease > 0) && (thisButtonRelease > 0) &&
             ((thisButtonRelease - previousButtonRelease) <= doubleTapInterval)) // Do we have a double tap?
         {
-            // Do not register button taps until the system is displaying the menu
-            if (systemState == STATE_DISPLAY_SETUP)
+            // Do not register button tap until the system is displaying the menu
+            // If this platform doesn't have a display, then register the button tap
+            if (systemState == STATE_DISPLAY_SETUP || present.display_type == DISPLAY_MAX_NONE)
             {
+                Serial.println("Double tap");
                 doubleTap = true;
                 singleTap = false;
                 previousButtonRelease = 0;
@@ -1587,8 +1589,9 @@ void buttonCheckTask(void *e)
         else if ((thisButtonRelease > 0) &&
                  ((millis() - thisButtonRelease) > doubleTapInterval)) // Do we have a single tap?
         {
-            // Do not register button taps until the system is displaying the menu
-            if (systemState == STATE_DISPLAY_SETUP)
+            // Do not register button tap until the system is displaying the menu
+            // If this platform doesn't have a display, then register the button tap
+            if (systemState == STATE_DISPLAY_SETUP || present.display_type == DISPLAY_MAX_NONE)
             {
                 previousButtonRelease = 0;
                 thisButtonRelease = 0;
