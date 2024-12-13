@@ -1313,11 +1313,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
-        // Indicate to the network that we need access
+        // Indicate to the OTA state machine that we need to do a version check
         otaRequestFirmwareVersionCheck = true;
-
-        // Erase reported version. Once the reported version comes back, transmit to webpage
-        otaReportedVersion[0] = '\0';
 
         // Get firmware version from server
         // otaCheckVersion will call wifiConnect if needed

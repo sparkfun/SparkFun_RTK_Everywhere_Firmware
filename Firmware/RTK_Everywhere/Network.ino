@@ -1332,7 +1332,6 @@ void networkUpdate()
     // If there are no consumers, but the network is online, shut down all networks
     if (networkConsumers() == 0 && networkIsOnline() == true)
     {
-
         if (systemState == STATE_WIFI_CONFIG)
         {
             // The STATE_WIFI_CONFIG is in control of WiFi. Don't allow the network layer to shut it down
@@ -1575,7 +1574,7 @@ uint8_t networkConsumers()
                 if (consumerType & (1 << 7))
                     systemPrint("OTA Version Check, ");
                 if (consumerType & (1 << 8))
-                    systemPrint("OTA Scheduled Check, ");
+                    systemPrint("OTA Firmware Update, ");
             }
 
             systemPrintln();
