@@ -1313,38 +1313,41 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
-        char reportedVersion[20];
-        char newVersionCSV[100];
+        // Indicate to the network that we need access
+        otaRequestFirmwareVersionCheck = true;
+
+        // Erase reported version. Once the reported version comes back, transmit to webpage
+        otaReportedVersion[0] = '\0';
 
         // Get firmware version from server
         // otaCheckVersion will call wifiConnect if needed
-        if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
-        {
-            // We got a version number, now determine if it's newer or not
-            char currentVersion[21];
-            getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-            if (isReportedVersionNewer(reportedVersion, currentVersion) == true)
-            {
-                if (settings.debugWebConfig == true)
-                    systemPrintln("New version detected");
-                snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", reportedVersion);
-            }
-            else
-            {
-                if (settings.debugWebConfig == true)
-                    systemPrintln("No new firmware available");
-                snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
-            }
-        }
-        else
-        {
-            // Failed to get version number
-            if (settings.debugWebConfig == true)
-                systemPrintln("Sending error to AP config page");
-            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,ERROR,");
-        }
+        // if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
+        // {
+        //     // We got a version number, now determine if it's newer or not
+        //     char currentVersion[21];
+        //     getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+        //     if (isReportedVersionNewer(reportedVersion, currentVersion) == true)
+        //     {
+        //         if (settings.debugWebConfig == true)
+        //             systemPrintln("New version detected");
+        //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", reportedVersion);
+        //     }
+        //     else
+        //     {
+        //         if (settings.debugWebConfig == true)
+        //             systemPrintln("No new firmware available");
+        //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
+        //     }
+        // }
+        // else
+        // {
+        //     // Failed to get version number
+        //     if (settings.debugWebConfig == true)
+        //         systemPrintln("Sending error to AP config page");
+        //     snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,ERROR,");
+        // }
 
-        sendStringToWebsocket(newVersionCSV);
+        // sendStringToWebsocket(newVersionCSV);
         knownSetting = true;
     }
     else if (strcmp(settingName, "getNewFirmware") == 0)
@@ -1355,6 +1358,10 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket((char *)"gettingNewFirmware,1,");
 
         apConfigFirmwareUpdateInProcess = true;
+
+        // Notify the network layer we need access, and let OTA state machine take over
+        otaRequestFirmwareUpdate = true;
+
         otaForcedUpdate(); // otaForcedUpdate will call wifiConnect if needed. Also does previouslyConnected check
 
         // We get here if WiFi failed to connect
