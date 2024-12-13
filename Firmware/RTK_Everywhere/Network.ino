@@ -1332,9 +1332,19 @@ void networkUpdate()
     // If there are no consumers, but the network is online, shut down all networks
     if (networkConsumers() == 0 && networkIsOnline() == true)
     {
-        // Shutdown all networks
-        for (int index = 0; index < NETWORK_OFFLINE; index++)
-            networkStop(index, settings.debugNetworkLayer);
+
+        if (systemState == STATE_WIFI_CONFIG)
+        {
+            // The STATE_WIFI_CONFIG is in control of WiFi. Don't allow the network layer to shut it down
+            // As OTA exits, we need to keep AP running if we are in Web Config mode
+            // We don't want to make STATE_WIFI_CONFIG a consumer until startWebServer() uses the network layer
+        }
+        else
+        {
+            // Shutdown all networks
+            for (int index = 0; index < NETWORK_OFFLINE; index++)
+                networkStop(index, settings.debugNetworkLayer);
+        }
     }
 
     // Allow consumers to start networks
@@ -1528,7 +1538,7 @@ uint8_t networkConsumers()
         consumerType |= (1 << 7);
     }
 
-    // Network needed for to start a firmware update
+    // Network needed to start a firmware update
     if (otaRequestFirmwareUpdate == true)
     {
         consumerCount++;
