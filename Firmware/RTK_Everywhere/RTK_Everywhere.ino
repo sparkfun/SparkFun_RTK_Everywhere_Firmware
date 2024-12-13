@@ -334,6 +334,7 @@ char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
 
+char otaReportedVersion[50];
 bool otaRequestFirmwareVersionCheck = false;
 bool otaRequestFirmwareUpdate = false;
 
