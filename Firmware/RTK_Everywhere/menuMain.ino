@@ -39,7 +39,7 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
-                gnssPushRawData((uint8_t *)buffer, length);
+                gnss->pushRawData((uint8_t *)buffer, length);
         }
 
         // Does incoming data consist of RTCM correction messages
@@ -58,7 +58,7 @@ void terminalUpdate()
 
             // Push RTCM to GNSS module over I2C / SPI
             if (correctionLastSeen(CORR_USB))
-                gnssPushRawData((uint8_t *)buffer, length);
+                gnss->pushRawData((uint8_t *)buffer, length);
         }
         else
         {
@@ -117,7 +117,7 @@ void menuMain()
     if (settings.debugGnss == true)
     {
         // Turn off GNSS debug while in config menus
-        gnssDisableDebugging();
+        gnss->debuggingDisable();
     }
 
     // Check for remote app config entry into command mode
@@ -135,7 +135,8 @@ void menuMain()
             systemPrintln();
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), true);
-            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+            RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
+            systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
             systemPrintln("\r\n** Configure Via Ethernet Mode **\r\n");
 
@@ -177,17 +178,30 @@ void menuMain()
             systemPrintln();
             char versionString[21];
             getFirmwareVersion(versionString, sizeof(versionString), true);
-            systemPrintf("SparkFun RTK %s %s\r\n", platformPrefix, versionString);
+            RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
+            systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
 #ifdef COMPILE_BT
 
             if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+            {
                 systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+                systemPrint(deviceName);
+            }
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+            {
                 systemPrint("** Bluetooth SPP broadcasting as: ");
+                systemPrint(deviceName);
+            }
             else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+            {
                 systemPrint("** Bluetooth Low-Energy broadcasting as: ");
-            systemPrint(deviceName);
+                systemPrint(deviceName);
+            }
+            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+            {
+                systemPrint("** Bluetooth Turned Off");
+            }
             systemPrintln(" **");
 #else  // COMPILE_BT
             systemPrintln("** Bluetooth Not Compiled **");
@@ -238,7 +252,8 @@ void menuMain()
 
             systemPrintln("s) Configure System");
 
-            systemPrintln("t) Configure Instrument Setup");
+            if (present.imu_im19)
+                systemPrintln("t) Configure Instrument Setup");
 
             systemPrintln("u) Configure User Profiles");
 
@@ -254,11 +269,15 @@ void menuMain()
             if (incoming == 1)
                 menuGNSS();
             else if (incoming == 2)
-                gnssMenuMessages();
+                gnss->menuMessages();
             else if (incoming == 3)
                 menuBase();
             else if (incoming == 4)
                 menuPorts();
+#ifdef COMPILE_MOSAICX5
+            else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
+                menuLogMosaic();
+#endif                                                             // COMPILE_MOSAICX5
             else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
                 menuLog();
             else if (incoming == 6)
@@ -281,7 +300,7 @@ void menuMain()
                 menuRadio();
             else if (incoming == 's')
                 menuSystem();
-            else if (incoming == 't')
+            else if ((incoming == 't') && present.imu_im19)
                 menuInstrument();
             else if (incoming == 'b' && btPrintEcho == true)
             {
@@ -319,7 +338,7 @@ void menuMain()
             requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
         }
 
-        gnssSaveConfiguration();
+        gnss->saveConfiguration();
 
         recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
     }
@@ -327,7 +346,15 @@ void menuMain()
     if (settings.debugGnss == true)
     {
         // Re-enable GNSS debug once we exit config menus
-        gnssEnableDebugging();
+        gnss->debuggingEnable();
+    }
+
+    // Restart WiFi if anything changes
+    if (restartWiFi == true)
+    {
+        restartWiFi = false;
+
+        wifiRestart();
     }
 
     clearBuffer();           // Empty buffer of any newline chars
@@ -335,7 +362,11 @@ void menuMain()
     inMainMenu = false;
 
     // Change the USB serial output behavior if necessary
-    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+    //
+    // The mosaic-X5 has separate USB COM ports. NMEA and RTCM will be output on USB1 if
+    // settings.enableGnssToUsbSerial is true. forwardGnssDataToUsbSerial is never set true.
+    if (!present.gnss_mosaicX5)
+        forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 
     // While in LoRa mode, we need to know when the last serial interaction was
     loraLastIncomingSerial = millis();
@@ -542,7 +573,7 @@ void factoryReset(bool alreadyHasSemaphore)
     LittleFS.format();
 
     if (online.gnss == true)
-        gnssFactoryReset();
+        gnss->factoryReset();
 
     systemPrintln("Settings erased successfully. Rebooting. Goodbye!");
     delay(2000);
@@ -657,7 +688,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 4)
         {
-            if (wifiIsConnected() == false)
+            if (wifiIsRunning() == false)
             {
                 if (getNewSetting("Enter the WiFi channel to use for ESP-NOW communication", 1, 14,
                                   &settings.wifiChannel) == INPUT_RESPONSE_VALID)

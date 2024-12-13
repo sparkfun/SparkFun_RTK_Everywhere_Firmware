@@ -98,8 +98,11 @@ void stateUpdate()
 
             // Configure for rover mode
             displayRoverStart(0);
-            if (gnssConfigureRover() == false)
+            if (gnss->configureRover() == false)
             {
+                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
+                recordSystemSettings();             // Record this state for next POR
+
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
                 return;
@@ -107,17 +110,15 @@ void stateUpdate()
 
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
-            NETWORK_STOP(NETWORK_TYPE_WIFI);
-            WIFI_STOP();      // Stop WiFi, ntripClient will start as needed.
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            espnowStart();     // Start internal radio if enabled, otherwise disable
+            espnowStart();    // Start internal radio if enabled, otherwise disable
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
             else
             {
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the ZED on this profile
+                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS receiver
                 settings.lastState = STATE_ROVER_NOT_STARTED;
                 recordSystemSettings(); // Record this state for next POR
 
@@ -131,31 +132,31 @@ void stateUpdate()
         break;
 
         case (STATE_ROVER_NO_FIX): {
-            if (gnssIsFixed()) // 3D, 3D+DR
+            if (gnss->isFixed()) // 3D, 3D+DR
                 changeState(STATE_ROVER_FIX);
         }
         break;
 
         case (STATE_ROVER_FIX): {
-            if (gnssIsRTKFloat())
+            if (gnss->isRTKFloat())
                 changeState(STATE_ROVER_RTK_FLOAT);
-            else if (gnssIsRTKFix())
+            else if (gnss->isRTKFix())
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
 
         case (STATE_ROVER_RTK_FLOAT): {
-            if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
+            if (gnss->isRTKFix() == false && gnss->isRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (gnssIsRTKFix() == true)
+            if (gnss->isRTKFix() == true)
                 changeState(STATE_ROVER_RTK_FIX);
         }
         break;
 
         case (STATE_ROVER_RTK_FIX): {
-            if (gnssIsRTKFix() == false && gnssIsRTKFloat() == false) // No RTK
+            if (gnss->isRTKFix() == false && gnss->isRTKFloat() == false) // No RTK
                 changeState(STATE_ROVER_FIX);
-            if (gnssIsRTKFloat())
+            if (gnss->isRTKFloat())
                 changeState(STATE_ROVER_RTK_FLOAT);
         }
         break;
@@ -213,18 +214,11 @@ void stateUpdate()
 
             displayBaseStart(0); // Show 'Base'
 
-            // Allow WiFi to continue running if NTRIP Client is needed for assisted survey in
-            if (wifiIsNeeded() == false)
-            {
-                NETWORK_STOP(NETWORK_TYPE_WIFI);
-                WIFI_STOP();
-            }
-
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
-            if (tasksStartGnssUart() && gnssConfigureBase())
+            if (tasksStartGnssUart() && gnss->configureBase())
             {
                 settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
@@ -239,6 +233,9 @@ void stateUpdate()
             }
             else
             {
+                settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
+                recordSystemSettings();             // Record this state for next POR
+
                 displayBaseFail(1000);
             }
         }
@@ -254,24 +251,27 @@ void stateUpdate()
                 baseStatusLedBlink(); // Toggle the base/status LED
             }
 
-            int siv = gnssGetSatellitesInView();
-            float hpa = gnssGetHorizontalAccuracy();
+            int siv = gnss->getSatellitesInView();
+            float hpa = gnss->getHorizontalAccuracy();
 
             // Check for <1m horz accuracy before starting surveyIn
             char accuracy[20];
             char temp[20];
             const char *units = getHpaUnits(hpa, temp, sizeof(temp), 2, true);
             // gnssGetSurveyInStartingAccuracy is 10m max
-            const char *accUnits = getHpaUnits(gnssGetSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
+            const char *accUnits =
+                getHpaUnits(gnss->getSurveyInStartingAccuracy(), accuracy, sizeof(accuracy), 2, false);
             systemPrintf("Waiting for Horz Accuracy < %s (%s): %s%s%s%s, SIV: %d\r\n", accuracy, accUnits, temp,
                          (accUnits != units) ? " (" : "", (accUnits != units) ? units : "",
                          (accUnits != units) ? ")" : "", siv);
 
-            if (hpa > 0.0 && hpa < gnssGetSurveyInStartingAccuracy())
+            // On the mosaic-X5, the HPA is undefined while the GNSS is determining its fixed position
+            // We need to skip the HPA check...
+            if ((hpa > 0.0 && hpa < gnss->getSurveyInStartingAccuracy()) || present.gnss_mosaicX5)
             {
                 displaySurveyStart(0); // Show 'Survey'
 
-                if (gnssSurveyInStart() == true) // Begin survey
+                if (gnss->surveyInStart() == true) // Begin survey
                 {
                     displaySurveyStarted(500); // Show 'Survey Started'
 
@@ -292,11 +292,11 @@ void stateUpdate()
             }
 
             // Get the data once to avoid duplicate slow responses
-            int observationTime = gnssGetSurveyInObservationTime();
-            float meanAccuracy = gnssGetSurveyInMeanAccuracy();
-            int siv = gnssGetSatellitesInView();
+            int observationTime = gnss->getSurveyInObservationTime();
+            float meanAccuracy = gnss->getSurveyInMeanAccuracy();
+            int siv = gnss->getSatellitesInView();
 
-            if (gnssIsSurveyComplete() == true) // Survey in complete
+            if (gnss->isSurveyInComplete() == true) // Survey in complete
             {
                 systemPrintf("Observation Time: %d\r\n", observationTime);
                 systemPrintln("Base survey complete! RTCM now broadcasting.");
@@ -322,13 +322,13 @@ void stateUpdate()
                     systemPrintf("Survey-In took more than %d minutes. Returning to rover mode.\r\n",
                                  maxSurveyInWait_s / 60);
 
-                    if (gnssSurveyInReset() == false)
+                    if (gnss->surveyInReset() == false)
                     {
                         systemPrintln("Survey reset failed - attempt 1/3");
-                        if (gnssSurveyInReset() == false)
+                        if (gnss->surveyInReset() == false)
                         {
                             systemPrintln("Survey reset failed - attempt 2/3");
-                            if (gnssSurveyInReset() == false)
+                            if (gnss->surveyInReset() == false)
                             {
                                 systemPrintln("Survey reset failed - attempt 3/3");
                             }
@@ -368,7 +368,7 @@ void stateUpdate()
         // If fixed base fails, we'll handle it here
         case (STATE_BASE_FIXED_NOT_STARTED): {
             RTK_MODE(RTK_MODE_BASE_FIXED);
-            bool response = gnssFixedBaseStart();
+            bool response = gnss->fixedBaseStart();
             if (response == true)
             {
                 baseStatusLedOn(); // Turn on the base/status LED
@@ -395,7 +395,7 @@ void stateUpdate()
         case (STATE_DISPLAY_SETUP): {
             if (millis() - lastSetupMenuChange > 10000) // Exit Setup after 10s
             {
-                // forceSystemStateUpdate = true; // Immediately go to this new state
+                firstButtonThrownOut = false;
                 changeState(lastSystemState); // Return to the last system state
             }
         }
@@ -444,9 +444,8 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateGNSSSettings =
-                        true;               // When this profile is loaded next, force system to update GNSS settings.
-                    recordSystemSettings(); // Record these settings to unit
+                    settings.updateGNSSSettings = true; // New settings; update GNSS receiver on next boot
+                    recordSystemSettings();             // Record these settings to unit
 
                     // Clear buffer
                     incomingSettingsSpot = 0;
@@ -458,18 +457,32 @@ void stateUpdate()
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
-            // Dynamically update the coordinates on the AP page
+            // Handle dynamic requests coming from web config page
             if (websocketConnected == true)
             {
+                // Update the coordinates on the AP page
                 if (millis() - lastDynamicDataUpdate > 1000)
                 {
                     lastDynamicDataUpdate = millis();
                     createDynamicDataString(settingsCSV);
 
-                    // log_d("Sending coordinates: %s", settingsCSV);
                     sendStringToWebsocket(settingsCSV);
                 }
+
+                // If a firmware version was requested, and obtained, report it back to the web page
+                if (strlen(otaReportedVersion) > 0)
+                {
+                    createFirmwareVersionString(settingsCSV);
+
+                    if (settings.debugWebConfig)
+                        systemPrintf("Webconfig: Firmware version requested. Sending: %s\r\n", settingsCSV);
+
+                    sendStringToWebsocket(settingsCSV);
+
+                    otaReportedVersion[0] = '\0'; // Zero out the reported version
+                }
             }
+
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
         }
@@ -483,7 +496,7 @@ void stateUpdate()
                 tasksStopGnssUart(); // Stop absoring GNSS serial via task
                 zedUartPassed = false;
 
-                gnssEnableRTCMTest();
+                gnss->enableRTCMTest();
 
                 RTK_MODE(RTK_MODE_TESTING);
                 changeState(STATE_TESTING);
@@ -504,7 +517,7 @@ void stateUpdate()
 
         case (STATE_KEYS_REQUESTED): {
             settings.requestKeyUpdate = true; // Force a key update
-            changeState(lastSystemState); // Return to the last system state
+            changeState(lastSystemState);     // Return to the last system state
         }
         break;
 
@@ -573,7 +586,7 @@ void stateUpdate()
             else
             {
                 if (settings.debugNtp)
-                    systemPrintln("NTP Server ZED configuration failed");
+                    systemPrintln("NTP Server configuration failed");
                 displayNTPFail(1000); // Show 'NTP Failed'
                 // Do we stay in STATE_NTPSERVER_NOT_STARTED? Or should we reset?
             }

@@ -90,10 +90,12 @@ const RtkMode_t udpServerMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 //----------------------------------------
 
 // UDP server
-static RTKNetworkUDP *udpServer = nullptr;
+static NetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
+static NetPriority_t udpServerPriority;
+
 //----------------------------------------
 // UDP Server handleGnssDataTask Support Routines
 //----------------------------------------
@@ -105,17 +107,17 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkIsMediaConnected(networkGetUserNetwork(NETWORK_USER_UDP_SERVER)))
+    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
     {
-        IPAddress broadcastAddress = networkGetBroadcastIpAddress(networkGetType(NETWORK_USER_UDP_SERVER));
-        udpServer->beginPacket( broadcastAddress, settings.udpServerPort);
+        IPAddress broadcastAddress = networkGetBroadcastIpAddress();
+        udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
         udpServer->write(data, length);
         if (udpServer->endPacket())
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_BROADCAST_DATA)) && (!inMainMenu))
             {
-                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length, 
-                    broadcastAddress.toString().c_str(), settings.udpServerPort);
+                systemPrintf("UDP Server wrote %d bytes as broadcast (%s) on port %d\r\n", length,
+                             broadcastAddress.toString().c_str(), settings.udpServerPort);
                 PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             }
         }
@@ -124,7 +126,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         {
             PERIODIC_CLEAR(PD_UDP_SERVER_BROADCAST_DATA);
             systemPrintf("UDP Server failed to write %d bytes as broadcast (%s) on port %d\r\n", length,
-                broadcastAddress.toString().c_str(), settings.udpServerPort);
+                         broadcastAddress.toString().c_str(), settings.udpServerPort);
             length = 0;
         }
     }
@@ -233,7 +235,7 @@ bool udpServerStart()
         systemPrintln("UDP server starting");
 
     // Start the UDP server
-    udpServer = new RTKNetworkUDP(NETWORK_USER_UDP_SERVER);
+    udpServer = new NetworkUDP;
     if (!udpServer)
         return false;
 
@@ -268,8 +270,6 @@ void udpServerStop()
     // Stop using the network
     if (udpServerState != UDP_SERVER_STATE_OFF)
     {
-        networkUserClose(NETWORK_USER_UDP_SERVER);
-
         // The UDP server is now off
         udpServerSetState(UDP_SERVER_STATE_OFF);
         udpServerTimer = millis();
@@ -313,26 +313,23 @@ void udpServerUpdate()
     // Wait until the UDP server is enabled
     case UDP_SERVER_STATE_OFF:
         // Determine if the UDP server should be running
-        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer) // Was && (!wifiIsConnected())) - TODO check this
+        if (EQ_RTK_MODE(udpServerMode) && settings.enableUdpServer)
         {
-            if (networkUserOpen(NETWORK_USER_UDP_SERVER, NETWORK_TYPE_ACTIVE))
-            {
-                if (settings.debugUdpServer && (!inMainMenu))
-                    systemPrintln("UDP server starting the network");
-                udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
-            }
+            if (settings.debugUdpServer && (!inMainMenu))
+                systemPrintln("UDP server starting the network");
+            udpServerPriority = NETWORK_OFFLINE;
+            udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
         }
         break;
 
     // Wait until the network is connected
     case UDP_SERVER_STATE_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_UDP_SERVER))
-            // Failed to connect to to the network, attempt to restart the network
+        // Determine if the UDP server was turned off
+        if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
             udpServerStop();
 
-        // Wait for the network to connect to the media
-        else if (networkUserConnected(NETWORK_USER_UDP_SERVER))
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&udpServerPriority))
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -350,7 +347,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableUdpServer) || networkIsShuttingDown(NETWORK_USER_UDP_SERVER))
+        if ((!settings.enableUdpServer) || (!networkIsConnected(&udpServerPriority)))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

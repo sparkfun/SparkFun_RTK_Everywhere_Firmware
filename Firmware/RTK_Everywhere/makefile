@@ -20,10 +20,13 @@ ifeq ($(OS),Windows_NT)
 # Windows NT utilities
 CLEAR=cls
 COPY=copy
+DELETE=del /s
 DIR_LISTING=dir
 TERMINAL_APP=
 TERMINAL_PORT=
 TERMINAL_PARAMS=
+TERMINAL_PORT_TORCH=
+TERMINAL_PARAMS_TORCH=
 
 # Windows NT generic paths
 USER_DIRECTORY_PATH=C:\Users\$(USERNAME)
@@ -36,8 +39,8 @@ PARTITION_SRC_PATH=..\$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=Patch\
 
 # Windows NT patch destination paths
-BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)\ESP32_BleSerial\src\
 MBED_LIB_DEST_PATH=$(HOME_BOARD_PATH)\tools\esp32-arduino-libs\${{ env.ESP_IDF }}\esp32/lib\
+NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\libraries\Network\src\
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)\hardware\esp32\$(ESP_CORE_VERSION)\tools\partitions\$(PARTITION_CSV_FILE).csv
 
 # Windows Sketch path
@@ -52,10 +55,13 @@ else
 # Linux utilities
 CLEAR=clear
 COPY=cp
+DELETE=rm -Rf
 DIR_LISTING=ls
 TERMINAL_APP=minicom
 TERMINAL_PORT=/dev/ttyUSB0
 TERMINAL_PARAMS=-b 115200 -8 -D $(TERMINAL_PORT) < /dev/tty
+TERMINAL_PORT_TORCH=/dev/ttyACM1
+TERMINAL_PARAMS_TORCH=-b 115200 -8 -D $(TERMINAL_PORT_TORCH) < /dev/tty
 
 # Linux generic paths
 USER_DIRECTORY_PATH=~
@@ -68,8 +74,8 @@ PARTITION_SRC_PATH=../$(PARTITION_CSV_FILE).csv
 PATCH_SRC_PATH=Patch/
 
 # Linux patch destination paths
-BLE_PATCH_DST_PATH=$(ARDUINO_LIBRARY_PATH)/ESP32_BleSerial/src/
 MBED_LIB_DEST_PATH=$(ESP_IDF_PATH)/$(ESP_IDF_VERSION)/esp32/lib/
+NET_EVENT_PATCH_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/libraries/Network/src/
 PARTITION_DST_PATH=$(HOME_BOARD_PATH)/hardware/esp32/$(ESP_CORE_VERSION)/tools/partitions/$(PARTITION_CSV_FILE).csv
 
 # Linux Sketch path
@@ -135,9 +141,6 @@ lib-update:
 $(PARTITION_DST_PATH):	$(PARTITION_SRC_PATH)
 	$(COPY)  $(PARTITION_SRC_PATH)  $(PARTITION_DST_PATH)
 
-$(BLE_PATCH_DST_PATH)BleSerial.cpp: 	$(PATCH_SRC_PATH)BleSerial.cpp
-	$(COPY)  $<  $@
-
 $(MBED_LIB_DEST_PATH)libmbedtls.a: 	$(PATCH_SRC_PATH)libmbedtls.a  $(ESP_IDF_PATH)
 	$(DIR_LISTING) $(ESP_IDF_PATH)
 	echo ESP_
@@ -152,6 +155,12 @@ $(MBED_LIB_DEST_PATH)libmbedcrypto.a: 	$(PATCH_SRC_PATH)libmbedcrypto.a
 $(MBED_LIB_DEST_PATH)libmbedx509.a: 	$(PATCH_SRC_PATH)libmbedx509.a
 	$(COPY)  $<  $@
 
+$(NET_EVENT_PATCH_PATH)NetworkEvents.cpp:	$(PATCH_SRC_PATH)NetworkEvents.cpp
+	$(COPY)  $<  $@
+
+$(NET_EVENT_PATCH_PATH)NetworkEvents.h:	$(PATCH_SRC_PATH)NetworkEvents.h
+	$(COPY)  $<  $@
+
 #DEBUG_LEVEL=none
 DEBUG_LEVEL=debug
 ENABLE_DEVELOPER=false
@@ -163,7 +172,7 @@ form.h:	AP-Config/* AP-Config/src/* AP-Config/src/fonts/*
 	python ../Tools/index_html_zipper.py AP-Config/index.html form.h
 	python ../Tools/main_js_zipper.py AP-Config/src/main.js form.h
 
-$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h $(PARTITION_DST_PATH) $(BLE_PATCH_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a
+$(RTK_BIN_PATH):	RTK_Everywhere.ino *.ino *.h makefile $(PARTITION_DST_PATH) $(MBED_LIB_DEST_PATH)libmbedtls.a $(MBED_LIB_DEST_PATH)libmbedtls_2.a $(MBED_LIB_DEST_PATH)libmbedcrypto.a $(MBED_LIB_DEST_PATH)libmbedx509.a $(NET_EVENT_PATCH_PATH)NetworkEvents.cpp $(NET_EVENT_PATCH_PATH)NetworkEvents.h
 	$(CLEAR)
 	arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=$(DEBUG_LEVEL),PSRAM=enabled RTK_Everywhere.ino \
 		--warnings default \
@@ -198,12 +207,41 @@ upload:	$(RTK_BIN_PATH)
         0x10000   $<
 	$(TERMINAL_APP) $(TERMINAL_PARAMS)
 
+.PHONY: upload_torch
+
+upload_torch:	$(RTK_BIN_PATH)
+	python3 $(ESPTOOL_PATH)esptool.py \
+        --chip   esp32 \
+        --port   $(TERMINAL_PORT_TORCH) \
+        --baud   460800 \
+        --before   default_reset \
+        --after   hard_reset \
+        write_flash \
+        --flash_mode dio \
+        --flash_freq 80m \
+        --flash_size detect \
+        --compress \
+         0x1000   $(BOOT_LOADER_PATH)RTK_Surveyor.ino.bootloader.bin \
+         0x8000   $(BOOT_LOADER_PATH)RTK_Surveyor_Partitions_16MB.bin \
+         0xe000   $(BOOT_LOADER_PATH)boot_app0.bin \
+        0x10000   $<
+	$(TERMINAL_APP) $(TERMINAL_PARAMS_TORCH)
+
 .PHONY:	terminal
 
 terminal:
 	$(TERMINAL_APP) $(TERMINAL_PARAMS)
 
+.PHONY:	terminal_torch
+
+terminal_torch:
+	$(TERMINAL_APP) $(TERMINAL_PARAMS_TORCH)
+
 ########
 # Clean the build directory
 ##########
 
+.PHONY: clean
+
+clean:
+	$(DELETE) build

@@ -86,19 +86,22 @@ void menuBase()
         }
         else
         {
-            systemPrint("2) Set minimum observation time: ");
-            systemPrint(settings.observationSeconds);
-            systemPrintln(" seconds");
-
-            if (present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
+            if (!present.gnss_mosaicX5) // None of this applies to the X5
             {
-                systemPrint("3) Set required Mean 3D Standard Deviation: ");
-                systemPrint(settings.observationPositionAccuracy, 2);
-                systemPrintln(" meters");
-            }
+                systemPrint("2) Set minimum observation time: ");
+                systemPrint(settings.observationSeconds);
+                systemPrintln(" seconds");
 
-            systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
-                         gnssGetSurveyInStartingAccuracy());
+                if (present.gnss_zedf9p) // UM980 does not support survey in minimum deviation
+                {
+                    systemPrint("3) Set required Mean 3D Standard Deviation: ");
+                    systemPrint(settings.observationPositionAccuracy, 2);
+                    systemPrintln(" meters");
+                }
+
+                systemPrintf("4) Set required initial positional accuracy before Survey-In: %0.2f meters\r\n",
+                             gnss->getSurveyInStartingAccuracy());
+            }
         }
 
         systemPrintln("7) Set RTCM Message Rates");
@@ -235,12 +238,13 @@ void menuBase()
         }
         else if (settings.fixedBase == true && settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC && incoming == 6)
         {
-            getNewSetting("Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. Common antennas "
+            getNewSetting("Enter the antenna phase center (the distance between the ARP and the APC) in millimeters. "
+                          "Common antennas "
                           "Torch=116mm",
                           -200.0, 200.0, &settings.antennaPhaseCenter_mm);
         }
 
-        else if (settings.fixedBase == false && incoming == 2)
+        else if (settings.fixedBase == false && incoming == 2 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 10 minute limit
             getNewSetting("Enter the number of seconds for survey-in obseration time", 60, 60 * 10,
@@ -253,7 +257,7 @@ void menuBase()
             getNewSetting("Enter the number of meters for survey-in required position accuracy", 1.0,
                           (double)maxObservationPositionAccuracy, &settings.observationPositionAccuracy);
         }
-        else if (settings.fixedBase == false && incoming == 4)
+        else if (settings.fixedBase == false && incoming == 4 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 0.1m minimum
 
@@ -284,8 +288,8 @@ void menuBase()
             if (incoming == 0)
             {
                 systemPrintf("Enter Caster Address for Server %d: ", serverNumber + 1);
-                if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_CasterHost[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 1)
@@ -308,8 +312,8 @@ void menuBase()
                 else
                     systemPrintf("Enter Caster User for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_CasterUser[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 3)
@@ -319,8 +323,8 @@ void menuBase()
                 else
                     systemPrintf("Enter password for Caster User for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_CasterUserPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 4)
@@ -330,8 +334,8 @@ void menuBase()
                 else
                     systemPrintf("Enter Mount Point for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_MountPoint[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
             else if (incoming == 5)
@@ -341,8 +345,8 @@ void menuBase()
                 else
                     systemPrintf("Enter password for Mount Point for Server %d: ", serverNumber + 1);
 
-                if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0],
-                                       NTRIP_SERVER_STRING_SIZE) == INPUT_RESPONSE_VALID)
+                if (getUserInputString(&settings.ntripServer_MountPointPW[serverNumber][0], NTRIP_SERVER_STRING_SIZE) ==
+                    INPUT_RESPONSE_VALID)
                     restartBase = true;
             }
         }

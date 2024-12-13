@@ -64,11 +64,51 @@ void beepOff()
         digitalWrite(pin_beeper, LOW);
 }
 
+// Only useful for pin_chargerLED on Facet mosaic
+// pin_chargerLED is analog-only and is connected via a blocking diode. LOW will not be 0V
+bool readAnalogPinAsDigital(int pin)
+{
+    if (pin >= 34) // If the pin is analog-only
+        return (analogReadMilliVolts(pin) > (3300 / 2));
+
+    return digitalRead(pin);
+}
+
 // Update battery levels every 5 seconds
 // Update battery charger as needed
 // Output serial message if enabled
 void updateBattery()
 {
+    if (present.charger_mcp73833 && (pin_chargerLED != PIN_UNDEFINED) && (pin_chargerLED2 != PIN_UNDEFINED))
+    {
+        static unsigned long lastChargerStatusUpdate = 0;
+        if (millis() - lastChargerStatusUpdate > 5000)
+        {
+            lastChargerStatusUpdate = millis();
+
+            // Display the charge status
+            if (settings.enablePrintBatteryMessages)
+            {
+                //   State           | STAT1 | STAT2
+                // 3 Standby / Fault | HIGH  | HIGH
+                // 2 Charging        | LOW   | HIGH
+                // 1 Charge Complete | HIGH  | LOW
+                // 0 Test mode       | LOW   | LOW
+                uint8_t combinedStat = (((uint8_t)readAnalogPinAsDigital(pin_chargerLED2)) << 1) |
+                                       ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
+                systemPrint("MCP73833 Charger: ");
+                if (combinedStat == 3)
+                    systemPrintln("standby / fault");
+                else if (combinedStat == 2)
+                    systemPrintln("battery is charging");
+                else if (combinedStat == 1)
+                    systemPrintln("battery charging is complete");
+                else // if (combinedStat == 0)
+                    systemPrintln("test mode");
+            }
+        }
+    }
+
     if (online.batteryFuelGauge == true)
     {
         static unsigned long lastBatteryFuelGaugeUpdate = 0;
@@ -94,7 +134,7 @@ void updateBattery()
         }
     }
 
-    if (online.batteryCharger == true)
+    if (online.batteryCharger_mp2762a == true)
     {
         static unsigned long lastBatteryChargerUpdate = 0;
         if (millis() - lastBatteryChargerUpdate > 5000)
@@ -303,41 +343,6 @@ void settingsToDefaults()
     settings = defaultSettings;
 }
 
-// Given a spot in the ubxMsg array, return true if this message is supported on this platform and firmware version
-bool messageSupported(int messageNumber)
-{
-    bool messageSupported = false;
-
-    if (gnssFirmwareVersionInt >= ubxMessages[messageNumber].f9pFirmwareVersionSupported)
-        messageSupported = true;
-
-    return (messageSupported);
-}
-// Given a command key, return true if that key is supported on this platform and fimrware version
-bool commandSupported(const uint32_t key)
-{
-    bool commandSupported = false;
-
-    // Locate this key in the known key array
-    int commandNumber = 0;
-    for (; commandNumber < MAX_UBX_CMD; commandNumber++)
-    {
-        if (ubxCommands[commandNumber].cmdKey == key)
-            break;
-    }
-    if (commandNumber == MAX_UBX_CMD)
-    {
-        systemPrintf("commandSupported: Unknown command key 0x%02X\r\n", key);
-        commandSupported = false;
-    }
-    else
-    {
-        if (gnssFirmwareVersionInt >= ubxCommands[commandNumber].f9pFirmwareVersionSupported)
-            commandSupported = true;
-    }
-    return (commandSupported);
-}
-
 // Periodically print information if enabled
 void printReports()
 {
@@ -354,31 +359,31 @@ void printReports()
         lastPrintRoverAccuracy = millis();
         PERIODIC_CLEAR(PD_MQTT_CLIENT_DATA);
 
-        if (online.gnss == true)
+        if (online.gnss)
         {
             // If we are in rover mode, display HPA and SIV
             if (inRoverMode() == true)
             {
-                float hpa = gnssGetHorizontalAccuracy();
+                float hpa = gnss->getHorizontalAccuracy();
 
                 char modifiedHpa[20];
                 const char *hpaUnits =
                     getHpaUnits(hpa, modifiedHpa, sizeof(modifiedHpa), 3, true); // Returns string of the HPA units
 
                 systemPrintf("Rover Accuracy (%s): %s, SIV: %d GNSS State: ", hpaUnits, modifiedHpa,
-                             gnssGetSatellitesInView());
+                             gnss->getSatellitesInView());
 
-                if (gnssIsRTKFix() == true)
+                if (gnss->isRTKFix() == true)
                     systemPrint("RTK Fix");
-                else if (gnssIsRTKFloat() == true)
+                else if (gnss->isRTKFloat() == true)
                     systemPrint("RTK Float");
-                else if (gnssIsPppConverged() == true)
+                else if (gnss->isPppConverged() == true)
                     systemPrint("PPP Converged");
-                else if (gnssIsPppConverging() == true)
+                else if (gnss->isPppConverging() == true)
                     systemPrint("PPP Converging");
-                else if (gnssIsDgpsFixed() == true)
+                else if (gnss->isDgpsFixed() == true)
                     systemPrint("DGPS Fix");
-                else if (gnssIsFixed() == true)
+                else if (gnss->isFixed() == true)
                     systemPrint("3D Fix");
                 else
                     systemPrint("No Fix");
@@ -389,7 +394,7 @@ void printReports()
             // If we are in base mode, display SIV only
             else if (inBaseMode() == true)
             {
-                systemPrintf("Base Mode - SIV: %d\r\n", gnssGetSatellitesInView());
+                systemPrintf("Base Mode - SIV: %d\r\n", gnss->getSatellitesInView());
             }
         }
     }
@@ -755,38 +760,6 @@ const char *getHpaUnits(double hpa, char *buffer, int length, int decimals, bool
     return unknown;
 }
 
-// Helper method to convert GNSS time and date into Unix Epoch
-void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros)
-{
-    uint32_t t = SFE_UBLOX_DAYS_FROM_1970_TO_2020;                  // Jan 1st 2020 as days from Jan 1st 1970
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_2020[gnssGetYear() - 2020]; // Add on the number of days since 2020
-    t += (uint32_t)SFE_UBLOX_DAYS_SINCE_MONTH[gnssGetYear() % 4 == 0 ? 0 : 1]
-                                             [gnssGetMonth() - 1]; // Add on the number of days since Jan 1st
-    t += (uint32_t)gnssGetDay() - 1; // Add on the number of days since the 1st of the month
-    t *= 24;                         // Convert to hours
-    t += (uint32_t)gnssGetHour();    // Add on the hour
-    t *= 60;                         // Convert to minutes
-    t += (uint32_t)gnssGetMinute();  // Add on the minute
-    t *= 60;                         // Convert to seconds
-    t += (uint32_t)gnssGetSecond();  // Add on the second
-
-    int32_t us = gnssGetNanosecond() / 1000; // Convert nanos to micros
-    uint32_t micro;
-    // Adjust t if nano is negative
-    if (us < 0)
-    {
-        micro = (uint32_t)(us + 1000000); // Make nano +ve
-        t--;                              // Decrement t by 1 second
-    }
-    else
-    {
-        micro = us;
-    }
-
-    *epochSecs = t;
-    *epochMicros = micro;
-}
-
 // Return true if a USB cable is detected
 bool isUsbAttached()
 {
@@ -810,7 +783,7 @@ bool isCharging()
             return true;
         return false;
     }
-    else if (present.charger_mp2762a == true && online.batteryCharger == true)
+    else if (present.charger_mp2762a == true && online.batteryCharger_mp2762a == true)
     {
         // 0b00 - Not charging, 01 - trickle or precharge, 10 - fast charge, 11 - charge termination
         if (mp2762getChargeStatus() == 0b01 || mp2762getChargeStatus() == 0b10)

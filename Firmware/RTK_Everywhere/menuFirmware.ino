@@ -10,11 +10,8 @@ menuFirmware.ino
 
 #ifdef COMPILE_OTA_AUTO
 
-static const char *const otaStateNames[] = {"OTA_STATE_OFF",
-                                            "OTA_STATE_START_NETWORK",
-                                            "OTA_STATE_WAIT_FOR_NETWORK",
-                                            "OTA_STATE_GET_FIRMWARE_VERSION",
-                                            "OTA_STATE_CHECK_FIRMWARE_VERSION",
+static const char *const otaStateNames[] = {"OTA_STATE_OFF", "OTA_STATE_WAIT_FOR_NETWORK",
+                                            "OTA_STATE_GET_FIRMWARE_VERSION", "OTA_STATE_CHECK_FIRMWARE_VERSION",
                                             "OTA_STATE_UPDATE_FIRMWARE"};
 static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[0]);
 
@@ -23,9 +20,12 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 //----------------------------------------
 
 static uint32_t otaLastUpdateCheck;
+static NetPriority_t otaPriority = NETWORK_OFFLINE;
 static OtaState otaState;
 
 #endif // COMPILE_OTA_AUTO
+
+bool newOTAFirmwareAvailable = false;
 
 //----------------------------------------
 // Menu
@@ -34,9 +34,6 @@ static OtaState otaState;
 // Update firmware if bin files found
 void menuFirmware()
 {
-    bool newOTAFirmwareAvailable = false;
-    char reportedVersion[50] = {'\0'};
-
     while (1)
     {
         systemPrintln();
@@ -50,13 +47,12 @@ void menuFirmware()
         systemPrintf("a) Automatic firmware updates: %s\r\n",
                      settings.enableAutoFirmwareUpdate ? "Enabled" : "Disabled");
 
-        if (strlen(reportedVersion) > 0)
-        {
-            if (newOTAFirmwareAvailable == false)
-                systemPrintf("c) Check SparkFun for device firmware: Up to date\r\n");
-        }
+        systemPrint("c) Check SparkFun for device firmware: ");
+
+        if (otaRequestFirmwareVersionCheck == true)
+            systemPrintln("Requested");
         else
-            systemPrintln("c) Check SparkFun for device firmware");
+            systemPrintln("Not requested");
 
         systemPrintf("e) Allow Beta Firmware: %s\r\n", enableRCFirmware ? "Enabled" : "Disabled");
 
@@ -69,8 +65,15 @@ void menuFirmware()
             systemPrintf("s) Change Firmware JSON URL: %s\r\n", otaFirmwareJsonUrl);
         }
 
-        if (newOTAFirmwareAvailable)
-            systemPrintf("u) Update to new firmware: v%s\r\n", reportedVersion);
+        if (isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true || FIRMWARE_VERSION_MAJOR == 99 ||
+            settings.debugFirmwareUpdate == true)
+        {
+            systemPrintf("u) Update to new firmware: v%s - ", otaReportedVersion);
+            if (otaRequestFirmwareUpdate == true)
+                systemPrintln("Requested");
+            else
+                systemPrintln("Not requested");
+        }
 
         for (int x = 0; x < binCount; x++)
             systemPrintf("%d) Load SD file: %s\r\n", x + 1, binFileNames[x]);
@@ -91,51 +94,13 @@ void menuFirmware()
 
         else if (incoming == 'c')
         {
-            if (networkCanConnect() == false)
-            {
-                systemPrintln("Error: Please enter at least one SSID before updating firmware");
-            }
-            else
-            {
-                if (ESP.getFreeHeap() < 40000)
-                    systemPrintln("Firmware update may require additional RAM. Please turn off services (ie, "
-                                  "Bluetooth, WiFi, PPL, etc) if check fails.");
-
-                bool previouslyConnected = wifiIsConnected();
-
-                // Get firmware version from server
-                // otaCheckVersion will call wifiConnect if needed
-                if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
-                {
-                    // We got a version number, now determine if it's newer or not
-                    char currentVersion[21];
-                    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-                    if (isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true ||
-                        FIRMWARE_VERSION_MAJOR == 99 || settings.debugFirmwareUpdate == true)
-                    {
-                        systemPrintln("New version detected");
-                        newOTAFirmwareAvailable = true;
-                    }
-                    else
-                    {
-                        systemPrintln("No new firmware available");
-                    }
-                }
-                else
-                {
-                    // Failed to get version number
-                    systemPrintln("Failed to get version number from server.");
-                }
-
-                if (previouslyConnected == false)
-                    WIFI_STOP();
-            } // End wifiNetworkCount() check
+            otaRequestFirmwareVersionCheck ^= 1;
         }
 
         else if (incoming == 'e')
         {
             enableRCFirmware ^= 1;
-            strncpy(reportedVersion, "", sizeof(reportedVersion) - 1); // Reset to force c) menu
+            strncpy(otaReportedVersion, "", sizeof(otaReportedVersion) - 1); // Reset to force c) menu
             newOTAFirmwareAvailable = false;
         }
 
@@ -158,11 +123,9 @@ void menuFirmware()
             getUserInputString(otaFirmwareJsonUrl, sizeof(otaFirmwareJsonUrl) - 1);
         }
 
-        else if ((incoming == 'u') && newOTAFirmwareAvailable)
+        else if ((incoming == 'u') && (newOTAFirmwareAvailable || settings.debugFirmwareUpdate == true))
         {
-            otaUpdate(); // otaUpdate will call wifiConnect if needed. Also does previouslyConnected check
-
-            // We get here if WiFi failed or the server was not available
+            otaRequestFirmwareUpdate ^= 1; // Tell network we need access, and otaUpdate() that we want to update
         }
 
         else if (incoming == 'x')
@@ -394,7 +357,7 @@ void updateFromSD(const char *firmwareFileName)
                 firmwareFile.close();
 
                 sd->remove(firmwareFileName);
-                gnssFactoryReset();
+                gnss->factoryReset();
             }
 
             delay(1000);
@@ -464,89 +427,57 @@ const char *otaGetUrl()
 
 // Returns true if we successfully got the versionAvailable
 // Modifies versionAvailable with OTA getVersion response
-// Connects to WiFi as needed
+// This is currently limited to only WiFi (no cellular) because of ESP32OTAPull limitations
 bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
 {
     bool gotVersion = false;
 #ifdef COMPILE_NETWORK
-    bool previouslyConnected = wifiIsConnected();
 
-    bool wasInAPmode;
-
-    uint8_t networkType = networkGetActiveType();
-    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+    if (networkIsOnline() == false)
     {
-        systemPrintln("Error: Please enter at least one SSID before getting keys");
+        systemPrintln("Error: Network not available!");
+        return (false);
+    }
+
+    // Create a string of the unit's current firmware version
+    char currentVersion[21];
+    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+
+    systemPrintf("Current firmware version: %s\r\n", currentVersion);
+
+    const char *url = otaGetUrl();
+    if (settings.debugFirmwareUpdate)
+        systemPrintf("Checking to see if an update is available from %s\r\n", url);
+
+    ESP32OTAPull ota;
+
+    int response = ota.CheckForOTAUpdate(url, currentVersion, ESP32OTAPull::DONT_DO_UPDATE);
+
+    // We don't care if the library thinks the available firmware is newer, we just need a successful JSON parse
+    if (response == ESP32OTAPull::UPDATE_AVAILABLE || response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
+    {
+        gotVersion = true;
+
+        // Call getVersion after original inquiry
+        String otaVersion = ota.GetVersion();
+        otaVersion.toCharArray(versionAvailable, versionAvailableLength);
+    }
+    else if (response == ESP32OTAPull::HTTP_FAILED)
+    {
+        systemPrintln("Firmware server not available");
     }
     else
     {
-        if ((networkType != NETWORK_TYPE_WIFI) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
-                                                   true)) // Use WIFI_AP_STA if already in WIFI_AP mode
-        {
-            char versionString[21];
-            getFirmwareVersion(versionString, sizeof(versionString), enableRCFirmware);
-            systemPrintf("Current firmware version: %s\r\n", versionString);
-
-            const char *url = otaGetUrl();
-            systemPrintf("Checking to see if an update is available from %s\r\n", url);
-
-            ESP32OTAPull ota;
-
-            int response = ota.CheckForOTAUpdate(url, versionString, ESP32OTAPull::DONT_DO_UPDATE);
-
-            // We don't care if the library thinks the available firmware is newer, we just need a successful JSON parse
-            if (response == ESP32OTAPull::UPDATE_AVAILABLE || response == ESP32OTAPull::NO_UPDATE_AVAILABLE)
-            {
-                gotVersion = true;
-
-                // Call getVersion after original inquiry
-                String otaVersion = ota.GetVersion();
-                otaVersion.toCharArray(versionAvailable, versionAvailableLength);
-            }
-            else if (response == ESP32OTAPull::HTTP_FAILED)
-            {
-                systemPrintln("Firmware server not available");
-            }
-            else
-            {
-                systemPrintln("OTA failed");
-            }
-
-            if (networkType == NETWORK_TYPE_WIFI)
-            {
-                // If we were in WIFI_AP mode, return to WIFI_AP mode
-                // There may be some overlap with systemState STATE_WIFI_CONFIG ? Not sure...
-                if (wasInAPmode)
-                    wifiSetApMode();
-
-                if (systemState != STATE_WIFI_CONFIG)
-                {
-                    // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
-                    // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
-                    // running.
-
-                    // If WiFi was originally off, turn it off again
-                    if (previouslyConnected == false)
-                        WIFI_STOP();
-                }
-            }
-        }
-        else
-        {
-            systemPrintln("Network not available for OTA!");
-        }
+        systemPrintln("OTA failed");
     }
-
-    if (gotVersion == true)
-        log_d("Available OTA firmware version: %s\r\n", versionAvailable);
 
 #endif // COMPILE_NETWORK
     return (gotVersion);
 }
 
-// Force updates firmware using OTA pull
+// Updates firmware using OTA pull
 // Exits by either updating firmware and resetting, or failing to connect
-void overTheAirUpdate()
+void otaUpdateFirmware()
 {
 #ifdef COMPILE_NETWORK
     char versionString[9];
@@ -582,42 +513,42 @@ void overTheAirUpdate()
 #endif // COMPILE_NETWORK
 }
 
-// Start WiFi and perform the over-the-air update
-void otaUpdate()
+// Start WiFi outside of the network layer and perform the over-the-air update
+void otaForcedUpdate()
 {
 #ifdef COMPILE_NETWORK
-    bool previouslyConnected = wifiIsConnected();
+    bool wasInAPmode = false;
 
-    bool wasInAPmode;
-
-    uint8_t networkType = networkGetActiveType();
-    if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+    if (!networkIsOnline())
     {
-        systemPrintln("Error: Please enter at least one SSID before getting keys");
+        if (wifiNetworkCount() == 0)
+            systemPrintln("Error: Please enter at least one SSID before getting keys");
+        else
+            systemPrintln("Error: Network not available!");
     }
     else
     {
-        if ((networkType != NETWORK_TYPE_WIFI)
-            || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode)
-                == true)) // Use WIFI_AP_STA if already in WIFI_AP mode
-            overTheAirUpdate();
+        // Determine if WiFi is running
+        bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
 
-        // Update failed. If we were in WIFI_AP mode, return to WIFI_AP mode
-        if (networkType == NETWORK_TYPE_WIFI)
+        if ((networkIsOnline) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
+                                  true)) // Use WIFI_AP_STA if already in WIFI_AP mode
+            otaUpdateFirmware();
+
+        // Update failed.
+        // If we were in WIFI_AP mode, return to WIFI_AP mode
+        if (wasInAPmode)
+            wifiSetApMode();
+
+        if (systemState != STATE_WIFI_CONFIG)
         {
-            if (wasInAPmode)
-                wifiSetApMode();
+            // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
+            // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
+            // running.
 
-            if (systemState != STATE_WIFI_CONFIG)
-            {
-                // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
-                // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
-                // running.
-
-                // If WiFi was originally off, turn it off again
-                if (previouslyConnected == false)
-                    WIFI_STOP();
-            }
+            // If WiFi was originally off, turn it off again
+            if (wifiRunning == false)
+                WIFI_STOP();
         }
     }
 #endif // COMPILE_NETWORK
@@ -693,7 +624,7 @@ const char *otaPullErrorText(int code)
     return "Unknown error";
 }
 
-// Returns true if reportedVersion is newer than currentVersion
+// Returns true if otaReportedVersion is newer than currentVersion
 // Version number comes in as v2.7-Jan 5 2023
 // 2.7-Jan 5 2023 is newer than v2.7-Jan 1 2023
 // We can't use just the float number: v3.12 is a greater version than v3.9 but it is a smaller float number
@@ -716,12 +647,15 @@ bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
     breakVersionIntoParts(reportedVersion, &reportedVersionNumberMajor, &reportedVersionNumberMinor, &reportedYear,
                           &reportedMonth, &reportedDay);
 
-    log_d("currentVersion (%s): %d.%d %d %d %d", currentVersion, currentVersionNumberMajor, currentVersionNumberMinor,
-          currentYear, currentMonth, currentDay);
-    log_d("reportedVersion (%s): %d.%d %d %d %d", reportedVersion, reportedVersionNumberMajor,
-          reportedVersionNumberMinor, reportedYear, reportedMonth, reportedDay);
-    if (enableRCFirmware)
-        log_d("RC firmware enabled");
+    if (settings.debugFirmwareUpdate)
+    {
+        systemPrintf("currentVersion (%s): %d.%d %d %d %d\r\n", currentVersion, currentVersionNumberMajor,
+                     currentVersionNumberMinor, currentYear, currentMonth, currentDay);
+        systemPrintf("reportedVersion (%s): %d.%d %d %d %d\r\n", reportedVersion, reportedVersionNumberMajor,
+                     reportedVersionNumberMinor, reportedYear, reportedMonth, reportedDay);
+        if (enableRCFirmware)
+            systemPrintln("RC firmware enabled");
+    }
 
     // Production firmware is named "2.6"
     // Release Candidate firmware is named "2.6-Dec 5 2022"
@@ -751,10 +685,7 @@ bool isReportedVersionNewer(char *reportedVersion, char *currentVersion)
     int currentVersionScore = currentDay + currentMonth * 100 + currentYear * 2000;
 
     if (reportedVersionScore > currentVersionScore)
-    {
-        log_d("Reported version is greater");
         return (true);
-    }
 
     return (false);
 }
@@ -870,18 +801,18 @@ void otaSetState(OtaState newState)
 }
 
 // Stop the automatic OTA firmware update
-void otaAutoUpdateStop()
+void otaUpdateStop()
 {
     if (settings.debugFirmwareUpdate)
-        systemPrintln("otaAutoUpdateStop called");
+        systemPrintln("otaUpdateStop called");
 
     if (otaState != OTA_STATE_OFF)
     {
-        // Stop WiFi
-        systemPrintln("Firmware update stopping WiFi");
+        // Stop network
+        systemPrintln("Firmware update releasing network request");
         online.otaFirmwareUpdate = false;
-        if (networkGetUserNetwork(NETWORK_USER_OTA_AUTO_UPDATE))
-            networkUserClose(NETWORK_USER_OTA_AUTO_UPDATE);
+
+        otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
 
         // Stop the firmware update
         otaSetState(OTA_STATE_OFF);
@@ -889,75 +820,65 @@ void otaAutoUpdateStop()
     }
 };
 
-// Determine if it is time to initiate the over-the-air firmware update
-void otaAutoUpdate()
+// Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air updates
+void otaUpdate()
 {
-    uint32_t checkIntervalMillis;
-    char reportedVersion[50];
-
-    // Determine if the user enabled automatic firmware updates
+    // Check if we need a scheduled check
     if (settings.enableAutoFirmwareUpdate)
     {
         // Wait until it is time to check for a firmware update
-        checkIntervalMillis = settings.autoFirmwareCheckMinutes * 60 * 1000;
+        uint32_t checkIntervalMillis = settings.autoFirmwareCheckMinutes * 60 * 1000;
         if ((millis() - otaLastUpdateCheck) >= checkIntervalMillis)
         {
+            otaRequestFirmwareUpdate = true; // Notify the network we are a consumer and need access
+
             otaLastUpdateCheck = millis();
-            otaSetState(OTA_STATE_START_NETWORK);
         }
     }
 
     // Perform the OTA firmware update
-    if (otaState && (!inMainMenu))
+    if (!inMainMenu)
     {
-        // Walk the state machine to do the firmware update
+        // Walk the state machine
         switch (otaState)
         {
         default:
             systemPrintf("ERROR: Unknown OTA state (%d)\r\n", otaState);
 
-            // Stop the network
-            otaAutoUpdateStop();
+            // Stop the machine
+            otaUpdateStop();
             break;
 
+        // Wait for a request from a user or from the scheduler
         case OTA_STATE_OFF:
-            break;
-
-        // Start the WiFi network
-        case OTA_STATE_START_NETWORK:
-            if (settings.debugFirmwareUpdate)
-                systemPrintln("Firmware update starting WiFi");
-            if (!networkUserOpen(NETWORK_USER_OTA_AUTO_UPDATE, NETWORK_TYPE_ACTIVE))
-            {
-                systemPrintln("Firmware update failed, unable to start WiFi");
-                otaAutoUpdateStop();
-            }
-            else
+            if (otaRequestFirmwareVersionCheck == true)
+                otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
+            if (otaRequestFirmwareUpdate == true)
                 otaSetState(OTA_STATE_WAIT_FOR_NETWORK);
             break;
 
-        // Wait for connection to the access point
+        // Wait for connection to the network
         case OTA_STATE_WAIT_FOR_NETWORK:
-            // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
-                otaAutoUpdateStop();
+            // Determine if the OTA request has been canceled while waiting
+            if (otaRequestFirmwareVersionCheck == false && otaRequestFirmwareUpdate == false)
+                otaUpdateStop();
 
-            // Determine if the network is connected to the media
-            else if (networkUserConnected(NETWORK_USER_OTA_AUTO_UPDATE))
+            // Wait until the network is connected to the media
+            else if (networkIsConnected(&otaPriority))
             {
                 if (settings.debugFirmwareUpdate)
-                    systemPrintln("Firmware update connected to WiFi");
+                    systemPrintln("Firmware update connected to network");
 
                 // Get the latest firmware version
                 otaSetState(OTA_STATE_GET_FIRMWARE_VERSION);
             }
             break;
 
-        // Check for newer firmware
+        // Get firmware version from server
         case OTA_STATE_GET_FIRMWARE_VERSION:
             // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
-                otaAutoUpdateStop();
+            if (!networkIsConnected(&otaPriority))
+                otaUpdateStop();
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Firmware update checking SparkFun released firmware version");
 
@@ -965,46 +886,56 @@ void otaAutoUpdate()
             enableRCFirmware = 0;
 
             // Get firmware version from server
-            reportedVersion[0] = 0;
-            if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
+            otaReportedVersion[0] = 0;
+            if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
             {
-                // We got a version number, now determine if it's newer or not
+                // If we are doing just a version check, set version number, turn off network request and stop machine
+                if (otaRequestFirmwareVersionCheck == true)
+                {
+                    otaRequestFirmwareVersionCheck = false;
+                    otaUpdateStop();
+                    return;
+                }
+
+                // Create a string of the unit's current firmware version
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
-                // Allow update if locally compiled developer version
-                if ((isReportedVersionNewer(reportedVersion, &currentVersion[1]) == true) ||
+                // If we are doing a scheduled automatic update or a manually requested update, continue through the
+                // state machine
+
+                // We got a version number, now determine if it's newer or not
+                if ((isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true) ||
                     (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
-                    if (settings.debugFirmwareUpdate)
-                        systemPrintf("Firmware update detected new firmware version %s\r\n", reportedVersion);
+                    // Allow update if locally compiled developer version
+                    systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE);
                 }
                 else
                 {
-                    if (settings.debugFirmwareUpdate)
-                        systemPrintln("Firmware update, no new firmware available");
-                    otaAutoUpdateStop();
+                    systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
+                    otaUpdateStop();
                 }
             }
             else
             {
                 // Failed to get version number
                 systemPrintln("Failed to get version number from server.");
-                otaAutoUpdateStop();
+                otaUpdateStop();
             }
             break;
 
         // Update the firmware
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
-            if (networkIsShuttingDown(NETWORK_USER_OTA_AUTO_UPDATE))
-                otaAutoUpdateStop();
+            if (!networkIsConnected(&otaPriority))
+                otaUpdateStop();
             else
             {
                 // Perform the firmware update
-                overTheAirUpdate();
-                otaAutoUpdateStop();
+                otaUpdateFirmware();
+                otaUpdateStop();
             }
             break;
         }
