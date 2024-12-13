@@ -101,7 +101,7 @@ void stateUpdate()
             if (gnss->configureRover() == false)
             {
                 settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
-                recordSystemSettings(); // Record this state for next POR
+                recordSystemSettings();             // Record this state for next POR
 
                 systemPrintln("Rover config failed");
                 displayRoverFail(1000);
@@ -234,7 +234,7 @@ void stateUpdate()
             else
             {
                 settings.updateGNSSSettings = true; // On the next boot, update the GNSS receiver
-                recordSystemSettings(); // Record this state for next POR
+                recordSystemSettings();             // Record this state for next POR
 
                 displayBaseFail(1000);
             }
@@ -444,9 +444,8 @@ void stateUpdate()
                     systemPrintln();
 
                     parseIncomingSettings();
-                    settings.updateGNSSSettings =
-                        true;               // When this profile is loaded next, force system to update GNSS settings.
-                    recordSystemSettings(); // Record these settings to unit
+                    settings.updateGNSSSettings = true; // New settings; update GNSS receiver on next boot
+                    recordSystemSettings();             // Record these settings to unit
 
                     // Clear buffer
                     incomingSettingsSpot = 0;
@@ -458,18 +457,32 @@ void stateUpdate()
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
-            // Dynamically update the coordinates on the AP page
+            // Handle dynamic requests coming from web config page
             if (websocketConnected == true)
             {
+                // Update the coordinates on the AP page
                 if (millis() - lastDynamicDataUpdate > 1000)
                 {
                     lastDynamicDataUpdate = millis();
                     createDynamicDataString(settingsCSV);
 
-                    // log_d("Sending coordinates: %s", settingsCSV);
                     sendStringToWebsocket(settingsCSV);
                 }
+
+                // If a firmware version was requested, and obtained, report it back to the web page
+                if (strlen(otaReportedVersion) > 0)
+                {
+                    if(settings.debugWebConfig)
+                        systemPrintln("Webconfig: Reporting firmware version");
+                    
+                    createFirmwareVersionString(settingsCSV);
+
+                    sendStringToWebsocket(settingsCSV);
+
+                    otaReportedVersion[0] = '\0'; //Zero out the reported version
+                }
             }
+
 #endif // COMPILE_AP
 #endif // COMPILE_WIFI
         }

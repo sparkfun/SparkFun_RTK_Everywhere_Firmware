@@ -160,7 +160,7 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
 
     displayWiFiConnect();
 
-    // If otaUpdate or otaCheckVersion wants to use WIFI_AP_STA mode
+    // If otaUpdate wants to use WIFI_AP_STA mode
     if (useAPSTAMode && (wasInAPmode != nullptr))
     {
         *wasInAPmode = (WiFi.getMode() == WIFI_AP);

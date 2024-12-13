@@ -1579,7 +1579,6 @@ void buttonCheckTask(void *e)
             // If this platform doesn't have a display, then register the button tap
             if (systemState == STATE_DISPLAY_SETUP || present.display_type == DISPLAY_MAX_NONE)
             {
-                Serial.println("Double tap");
                 doubleTap = true;
                 singleTap = false;
                 previousButtonRelease = 0;
