@@ -1362,8 +1362,6 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // Notify the network layer we need access, and let OTA state machine take over
         otaRequestFirmwareUpdate = true;
 
-        otaForcedUpdate(); // otaForcedUpdate will call wifiConnect if needed. Also does previouslyConnected check
-
         // We get here if WiFi failed to connect
         sendStringToWebsocket((char *)"gettingNewFirmware,ERROR,");
         knownSetting = true;

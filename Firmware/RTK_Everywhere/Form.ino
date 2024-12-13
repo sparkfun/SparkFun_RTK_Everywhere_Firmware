@@ -6,6 +6,16 @@ Form.ino
 
 #ifdef COMPILE_AP
 
+static const char *const webconfigStateNames[] = {
+    "WEBCONFIG_STATE_OFF",     "WEBCONFIG_STATE_WAIT_FOR_NETWORK", "WEBCONFIG_STATE_NETWORK_CONNECTED",
+    "WEBCONFIG_STATE_STARTED", "WEBCONFIG_STATE_RUNNING",
+};
+
+static const int webconfigStateEntries = sizeof(webconfigStateNames) / sizeof(webconfigStateNames[0]);
+
+static NetPriority_t webconfigPriority = NETWORK_OFFLINE;
+static WebConfigState webconfigState;
+
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
@@ -250,6 +260,171 @@ class CaptiveRequestHandler : public RequestHandler
     }
 };
 
+// State machine to handle the starting/stopping of the web server
+void updateWebServer()
+{
+    if (!inMainMenu)
+    {
+        // Walk the state machine
+        switch (webconfigState)
+        {
+        default:
+            systemPrintf("ERROR: Unknown WebConfig state (%d)\r\n", webconfigState);
+
+            // Stop the machine
+            webconfigStop();
+            break;
+
+        // Wait for a request from a user
+        case WEBCONFIG_STATE_OFF:
+            if (webconfigRequest == true)
+                otaSetState(WEBCONFIG_STATE_WAIT_FOR_NETWORK);
+            break;
+
+        // Wait for connection to the network
+        case WEBCONFIG_STATE_WAIT_FOR_NETWORK:
+            // Determine if the request has been canceled while waiting
+            if (webconfigRequest == false)
+                webconfigUpdateStop();
+
+            // Wait until the network is connected to the media
+            else if (networkIsConnected(&webconfigPriority))
+            {
+                if (settings.debugWebConfig)
+                    systemPrintln("Web config connected to network");
+
+                webconfigSetState(WEBCONFIG_STATE_NETWORK_CONNECTED);
+            }
+            break;
+
+        // Start the web server
+        case WEBCONFIG_STATE_NETWORK_CONNECTED:
+
+            // Determine if the network has failed
+            if (!networkIsConnected(&webconfigPriority))
+                webconfigStop();
+            if (settings.debugWebConfig)
+                systemPrintln("Web config starting web server");
+
+            if (startWebServer(false, settings.httpPort) == true)
+                webconfigSetState(WEBCONFIG_STATE_STARTED);
+
+            break;
+
+        // Wait for web server to start
+        case WEBCONFIG_STATE_STARTED:
+            // Determine if the network has failed
+            if (!networkIsConnected(&webconfigPriority))
+                webconfigStop();
+            if (settings.debugWebConfig)
+                systemPrintln("Web config waiting for web server to start");
+
+            //...
+            webconfigSetState(WEBCONFIG_STATE_RUNNING);
+
+            break;
+
+        // Allow web services
+        case WEBCONFIG_STATE_RUNNING:
+            // Determine if the network has failed
+            if (!networkIsConnected(&webconfigPriority))
+                webconfigStop();
+
+            // TODO how does the system indicate we need to shut down the web server?
+            if (inWiFiConfigMode() == false)
+            {
+                webconfigRequest = false; // Tell the network layer we no longer need access
+                webconfigStop();
+            }
+
+            //...
+
+            break;
+        }
+    }
+}
+
+// Stop the web config state machine
+void webconfigStop()
+{
+    if (settings.debugWebConfig)
+        systemPrintln("webconfigStop called");
+
+    if (webconfigState != WEBCONFIG_STATE_OFF)
+    {
+        stop_wsserver(); // Release socket resources
+        stopWebServer(); // Release web server resources
+
+        // Stop network
+        systemPrintln("Web Config releasing network request");
+
+        webconfigRequested = false; // Let the network know we no longer need it
+
+        // Stop the machine
+        webconfigSetState(WEBCONFIG_STATE_OFF);
+    }
+};
+
+// Set the next webconfig state
+void webconfigSetState(WebConfigState newState)
+{
+    char string1[40];
+    char string2[40];
+    const char *arrow = nullptr;
+    const char *asterisk = nullptr;
+    const char *initialState = nullptr;
+    const char *endingState = nullptr;
+
+    // Display the state transition
+    if (settings.debugWebConfig)
+    {
+        arrow = "";
+        asterisk = "";
+        initialState = "";
+        if (newState == otaState)
+            asterisk = "*";
+        else
+        {
+            initialState = webconfigGetStateName(webconfigState, string1);
+            arrow = " --> ";
+        }
+    }
+
+    // Set the new state
+    webconfigState = newState;
+    if (settings.debugWebConfig)
+    {
+        // Display the new firmware update state
+        endingState = webconfigGetStateName(newState, string2);
+        if (!online.rtc)
+            systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
+        else
+        {
+            // Timestamp the state change
+            //          1         2
+            // 12345678901234567890123456
+            // YYYY-mm-dd HH:MM:SS.xxxrn0
+            struct tm timeinfo = rtc.getTimeStruct();
+            char s[30];
+            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
+            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
+        }
+    }
+
+    // Validate the state
+    if (newState >= WEBCONFIG_STATE_MAX)
+        reportFatalError("Invalid web config state");
+}
+
+// Get the webconfig state name
+const char *webconfigGetStateName(WebConfigState state, char *string)
+{
+    if (state < WEBCONFIG_STATE_MAX)
+        return webconfigStateNames[state];
+    sprintf(string, "Unknown state (%d)", state);
+    return string;
+}
+
 // Start webserver in AP mode
 bool startWebServer(bool startWiFi = true, int httpPort = 80)
 {
@@ -259,15 +434,15 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
             ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
-        if (startWiFi)
-            if (wifiStartAP() == false)
-                break;
+        // if (startWiFi)
+        //     if (wifiStartAP() == false)
+        //         break;
 
-        // Start the multicast DNS server
-        if (startWiFi == true)
-            networkMulticastDNSSwitch(NETWORK_WIFI);
-        else
-            networkMulticastDNSSwitch(NETWORK_ETHERNET);
+        // // Start the multicast DNS server
+        // if (startWiFi == true)
+        //     networkMulticastDNSSwitch(NETWORK_WIFI);
+        // else
+        //     networkMulticastDNSSwitch(NETWORK_ETHERNET);
 
         // Freed by stopWebServer
         if (online.psram == true)
@@ -565,6 +740,11 @@ void stopWebServer()
     if (task.updateWebServerTaskRunning)
         task.updateWebServerTaskStopRequest = true;
 
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
+
     if (webserver != nullptr)
     {
         webserver->close();
@@ -586,10 +766,6 @@ void stopWebServer()
         free(incomingSettings);
         incomingSettings = nullptr;
     }
-
-    do
-        delay(10);
-    while (task.updateWebServerTaskRunning);
 }
 
 void notFound()
@@ -825,7 +1001,7 @@ static void handleFirmwareFileUpload()
     }
 }
 
-// Report back to the web config page with a CSV that contains the either CURRENT or 
+// Report back to the web config page with a CSV that contains the either CURRENT or
 // the latest version as obtained by the OTA state machine
 void createFirmwareVersionString(char *settingsCSV)
 {

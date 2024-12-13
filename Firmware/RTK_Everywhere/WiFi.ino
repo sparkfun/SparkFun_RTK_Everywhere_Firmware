@@ -561,9 +561,6 @@ NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
 //----------------------------------------
 void wifiStop()
 {
-    // Stop the web server
-    stopWebServer();
-
     // Stop the DNS server if we were using the captive portal
     if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();

@@ -414,12 +414,13 @@ void stateUpdate()
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
 
-            WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
+            //WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
             bluetoothStop();
             espnowStop();
 
             tasksStopGnssUart();   // Delete serial tasks if running
-            if (!startWebServer()) // Start web server in WiFi mode and show config html page
+            // if (!startWebServer()) // Start web server in WiFi mode and show config html page
+            if (!startWebServer(false, settings.httpPort)) // Start the web server. Network layer starts WiFi.
                 changeState(STATE_ROVER_NOT_STARTED);
             else
             {
@@ -479,7 +480,7 @@ void stateUpdate()
 
                     sendStringToWebsocket(settingsCSV);
 
-                    otaReportedVersion[0] = '\0'; //Zero out the reported version
+                    otaReportedVersion[0] = '\0'; //Zero out the reported version to stop future reports
                 }
             }
 

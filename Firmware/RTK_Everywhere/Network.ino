@@ -770,7 +770,7 @@ void networkMarkOnline(NetIndex_t index)
 
 //----------------------------------------
 // Change multicast DNS to a given network
-// 
+//
 //----------------------------------------
 void networkMulticastDNSSwitch(NetIndex_t startIndex)
 {
@@ -780,7 +780,7 @@ void networkMulticastDNSSwitch(NetIndex_t startIndex)
             networkMulticastDNSStop(index);
 
     // Start mDNS on the requested network
-    networkMulticastDNSStart(startIndex); //Start DNS on the selected network, either WiFi or Ethernet
+    networkMulticastDNSStart(startIndex); // Start DNS on the selected network, either WiFi or Ethernet
 }
 
 //----------------------------------------
@@ -1333,18 +1333,14 @@ void networkUpdate()
     if (networkConsumers() == 0 && networkIsOnline() == true)
     {
 
-        if (systemState == STATE_WIFI_CONFIG)
-        {
-            // The STATE_WIFI_CONFIG is in control of WiFi. Don't allow the network layer to shut it down
-            // As OTA exits, we need to keep AP running if we are in Web Config mode
-            // We don't want to make STATE_WIFI_CONFIG a consumer until startWebServer() uses the network layer
-        }
-        else
-        {
-            // Shutdown all networks
-            for (int index = 0; index < NETWORK_OFFLINE; index++)
-                networkStop(index, settings.debugNetworkLayer);
-        }
+        // The STATE_WIFI_CONFIG is in control of WiFi. Don't allow the network layer to shut it down
+        // As OTA exits, we need to keep AP running if we are in Web Config mode
+        // We don't want to make STATE_WIFI_CONFIG a consumer until startWebServer() uses the network layer
+        // To do that, startWebServer() needs a state machine to wait for the network to come online
+
+        // Shutdown all networks
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+            networkStop(index, settings.debugNetworkLayer);
     }
 
     // Allow consumers to start networks
@@ -1545,6 +1541,13 @@ uint8_t networkConsumers()
         consumerType |= (1 << 8);
     }
 
+    // Network needed for Web Config
+    if (inWiFiConfigMode() == true)
+    {
+        consumerCount++;
+        consumerType |= (1 << 9);
+    }
+
     // Debug
     if (settings.debugNetworkLayer)
     {
@@ -1576,6 +1579,8 @@ uint8_t networkConsumers()
                     systemPrint("OTA Version Check, ");
                 if (consumerType & (1 << 8))
                     systemPrint("OTA Scheduled Check, ");
+                if (consumerType & (1 << 9))
+                    systemPrint("WiFi Config Mode, ");
             }
 
             systemPrintln();

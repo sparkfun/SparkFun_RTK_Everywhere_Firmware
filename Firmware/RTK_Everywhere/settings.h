@@ -557,6 +557,25 @@ enum OtaState
 
 #endif  // COMPILE_OTA_AUTO
 
+#ifdef COMPILE_AP
+
+// Web Config state machine to allow web server access to network layer
+enum WebConfigState
+{
+    WEBCONFIG_STATE_OFF = 0,
+    WEBCONFIG_STATE_WAIT_FOR_NETWORK,
+    WEBCONFIG_STATE_NETWORK_CONNECTED,
+    WEBCONFIG_STATE_STARTED,
+    WEBCONFIG_STATE_RUNNING,
+
+    // Add new states here
+    WEBCONFIG_STATE_MAX
+};
+
+#endif  // COMPILE_OTA_AUTO
+
+
+
 // Regional Support
 // Some regions have both L-Band and IP. More just have IP.
 // Do we want the user to be able to specify which region they are in?

@@ -513,7 +513,7 @@ void otaUpdateFirmware()
 #endif // COMPILE_NETWORK
 }
 
-// Start WiFi outside of the network layer and perform the over-the-air update
+// Start WiFi STA outside of the network layer and perform the over-the-air update
 void otaForcedUpdate()
 {
 #ifdef COMPILE_NETWORK
@@ -522,7 +522,7 @@ void otaForcedUpdate()
     if (!networkIsOnline())
     {
         if (wifiNetworkCount() == 0)
-            systemPrintln("Error: Please enter at least one SSID before getting keys");
+            systemPrintln("Error: Please enter at least one SSID before updating firmware");
         else
             systemPrintln("Error: Network not available!");
     }
@@ -535,7 +535,7 @@ void otaForcedUpdate()
                                   true)) // Use WIFI_AP_STA if already in WIFI_AP mode
             otaUpdateFirmware();
 
-        // Update failed.
+        // If we're here, the update failed
         // If we were in WIFI_AP mode, return to WIFI_AP mode
         if (wasInAPmode)
             wifiSetApMode();
