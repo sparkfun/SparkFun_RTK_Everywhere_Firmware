@@ -31,7 +31,6 @@ void sendStringToWebsocket(const char *stringToSend)
     }
 
     // To send content to the webserver, we would call: webserver->sendContent(stringToSend);
-    //
     // But here we want to send content to the websocket (wsserver)...
 
     httpd_ws_frame_t ws_pkt;
@@ -826,48 +825,36 @@ static void handleFirmwareFileUpload()
     }
 }
 
-/*
-// TODO: delete this. This is the old method - using AsyncWebSocketClient
-// Events triggered by web sockets
-void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
-               size_t len)
+// Report back to the web config page with a CSV that contains the either CURRENT or 
+// the latest version as obtained by the OTA state machine
+void createFirmwareVersionString(char *settingsCSV)
 {
-    if (type == WS_EVT_CONNECT)
-    {
-        if (settings.debugWebConfig == true)
-            systemPrintln("Websocket client connected");
-        client->text(settingsCSV);
-        lastDynamicDataUpdate = millis();
-        websocketConnected = true;
-    }
-    else if (type == WS_EVT_DISCONNECT)
-    {
-        if (settings.debugWebConfig == true)
-            systemPrintln("Websocket client disconnected");
+    char newVersionCSV[100];
 
-        // User has either refreshed the page or disconnected. Recompile the current settings.
-        createSettingsString(settingsCSV);
-        websocketConnected = false;
-    }
-    else if (type == WS_EVT_DATA)
+    settingsCSV[0] = '\0'; // Erase current settings string
+
+    // Create a string of the unit's current firmware version
+    char currentVersion[21];
+    getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+
+    // Compare the unit's version against the reported version from OTA
+    if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
     {
-        if (currentlyParsingData == false)
-        {
-            for (int i = 0; i < len; i++)
-            {
-                incomingSettings[incomingSettingsSpot++] = data[i];
-                incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
-            }
-            timeSinceLastIncomingSetting = millis();
-        }
+        if (settings.debugWebConfig == true)
+            systemPrintln("New version detected");
+        snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
     }
     else
     {
         if (settings.debugWebConfig == true)
-            systemPrintf("onWsEvent: unrecognised AwsEventType %d\r\n", type);
+            systemPrintln("No new firmware available");
+        snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
     }
+
+    stringRecord(settingsCSV, "newFirmwareVersion", newVersionCSV);
+
+    strcat(settingsCSV, "\0");
 }
-*/
 
 // Create a csv string with the dynamic data to update (current coordinates, battery level, etc)
 void createDynamicDataString(char *settingsCSV)
