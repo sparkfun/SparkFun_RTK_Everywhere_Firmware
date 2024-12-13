@@ -909,14 +909,12 @@ void otaUpdate()
                     (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
                     // Allow update if locally compiled developer version
-                    if (settings.debugFirmwareUpdate)
-                        systemPrintf("Firmware update detected new firmware version %s\r\n", otaReportedVersion);
+                    systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE);
                 }
                 else
                 {
-                    if (settings.debugFirmwareUpdate)
-                        systemPrintln("Firmware update, no new firmware available");
+                    systemPrintln("Version Check: Firmware is up to date. No new firmware available.");
                     otaUpdateStop();
                 }
             }
