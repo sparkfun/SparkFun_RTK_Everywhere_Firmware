@@ -605,7 +605,8 @@ void applyCompensationGNS(char *nmeaSentence, int sentenceLength)
     if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
+                         strlen(newSentence));
     }
 
     // Overwrite the original NMEA
@@ -711,7 +712,8 @@ void applyCompensationGLL(char *nmeaSentence, int sentenceLength)
     if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
+                         strlen(newSentence));
     }
 
     // Overwrite the original NMEA
@@ -817,7 +819,8 @@ void applyCompensationRMC(char *nmeaSentence, int sentenceLength)
     if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
+                         strlen(newSentence));
     }
 
     // Overwrite the original NMEA
@@ -992,7 +995,8 @@ void applyCompensationGGA(char *nmeaSentence, int sentenceLength)
     if (strlen(newSentence) > sentenceLength)
     {
         if (settings.enableImuCompensationDebug == true && !inMainMenu)
-            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength, strlen(newSentence));
+            systemPrintf("New compensated sentence too long! Orig: %d New: %d\r\n", sentenceLength,
+                         strlen(newSentence));
     }
 
     // Overwrite the original NMEA

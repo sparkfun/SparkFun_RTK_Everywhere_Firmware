@@ -175,6 +175,7 @@ const RtkMode_t ntripServerMode = RTK_MODE_BASE_FIXED;
 
 // NTRIP Servers
 static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
+static NetPriority_t ntripServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // NTRIP Server Routines
@@ -239,10 +240,6 @@ bool ntripServerConnectLimitReached(int serverIndex)
 
     // Retry the connection a few times
     bool limitReached = (ntripServer->connectionAttempts >= MAX_NTRIP_SERVER_CONNECTION_ATTEMPTS);
-
-    // Attempt to restart the network if possible
-    if (settings.enableNtripServer && (!limitReached))
-        networkRestart(NETWORK_USER_NTRIP_SERVER + serverIndex);
 
     // Shutdown the NTRIP server
     ntripServerStop(serverIndex, limitReached || (!settings.enableNtripServer));
@@ -514,14 +511,8 @@ void ntripServerStop(int serverIndex, bool shutdown)
 
     // Increase timeouts if we started the network
     if (ntripServer->state > NTRIP_SERVER_ON)
-    {
         // Mark the Server stop so that we don't immediately attempt re-connect to Caster
         ntripServer->timer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_NTRIP_SERVER + serverIndex))
-            networkUserClose(NETWORK_USER_NTRIP_SERVER + serverIndex);
-    }
 
     // Determine the next NTRIP server state
     online.ntripServer[serverIndex] = false;
@@ -554,11 +545,11 @@ void ntripServerStop(int serverIndex, bool shutdown)
                 enabled = true;
                 break;
             }
-        //settings.enableNtripServer = enabled;
-        // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? Setting settings.enableNtripServer to false means
-        // the server connections cannot be (re)started without setting settings.enableNtripServer back
-        // to true via the menu / web config... Was the intent to close the network connection when all
-        // servers have disconnected?
+        // settings.enableNtripServer = enabled;
+        //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? Setting settings.enableNtripServer to false means
+        //  the server connections cannot be (re)started without setting settings.enableNtripServer back
+        //  to true via the menu / web config... Was the intent to close the network connection when all
+        //  servers have disconnected?
     }
     else
     {
@@ -601,22 +592,26 @@ void ntripServerUpdate(int serverIndex)
 
     // Start the network
     case NTRIP_SERVER_ON:
-        if (networkUserOpen(NETWORK_USER_NTRIP_SERVER + serverIndex, NETWORK_TYPE_ACTIVE))
-            ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_STARTED);
+        ntripServerPriority = NETWORK_OFFLINE;
+        ntripServerSetState(ntripServer, NTRIP_SERVER_NETWORK_STARTED);
         break;
 
     // Wait for a network media connection
     case NTRIP_SERVER_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
-            // Failed to connect to to the network, attempt to restart the network
-            ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
+        // Determine if the NTRIP server was turned off
+        if (NEQ_RTK_MODE(ntripServerMode) || (settings.enableNtripServer == false) ||
+            (settings.ntripServer_CasterHost[serverIndex][0] == 0) ||
+            (settings.ntripServer_CasterPort[serverIndex] == 0) ||
+            (settings.ntripServer_MountPoint[serverIndex][0] == 0))
+        {
+            ntripServerStop(serverIndex, true);
+        }
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_NTRIP_SERVER + serverIndex))
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&ntripServerPriority))
         {
             // Allocate the networkClient structure
-            ntripServer->networkClient = new RTKNetworkClient(NETWORK_USER_NTRIP_SERVER + serverIndex);
+            ntripServer->networkClient = new NetworkClient();
             if (!ntripServer->networkClient)
             {
                 // Failed to allocate the networkClient structure
@@ -636,7 +631,7 @@ void ntripServerUpdate(int serverIndex)
     // Network available
     case NTRIP_SERVER_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
+        if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -654,7 +649,7 @@ void ntripServerUpdate(int serverIndex)
     // Wait for GNSS correction data
     case NTRIP_SERVER_WAIT_GNSS_DATA:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
+        if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -664,7 +659,7 @@ void ntripServerUpdate(int serverIndex)
     // Initiate the connection to the NTRIP caster
     case NTRIP_SERVER_CONNECTING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
+        if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -692,7 +687,7 @@ void ntripServerUpdate(int serverIndex)
     // Wait for authorization response
     case NTRIP_SERVER_AUTHORIZATION:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
+        if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -786,7 +781,7 @@ void ntripServerUpdate(int serverIndex)
     // NTRIP server authorized to send RTCM correction data to NTRIP caster
     case NTRIP_SERVER_CASTING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTRIP_SERVER + serverIndex))
+        if (!networkIsConnected(&ntripServerPriority))
             // Failed to connect to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -848,8 +843,6 @@ void ntripServerValidateTables()
 {
     if (ntripServerStateNameEntries != NTRIP_SERVER_STATE_MAX)
         reportFatalError("Fix ntripServerStateNameEntries to match NTRIPServerState");
-    if (NETWORK_USER_MAX > (sizeof(NETWORK_USER) * 8))
-        reportFatalError("Increase the NETWORK_USER type");
 }
 
 #endif // COMPILE_NETWORK

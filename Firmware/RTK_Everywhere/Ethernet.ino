@@ -1,6 +1,14 @@
 #ifdef COMPILE_ETHERNET
 
+//----------------------------------------
+// Locals
+//----------------------------------------
+
+arduino_event_id_t ethernetLastEvent = ARDUINO_EVENT_ETH_STOP; // Save the last event for display
+
+//----------------------------------------
 // Get the Ethernet parameters
+//----------------------------------------
 void menuEthernet()
 {
     if (present.ethernet_ws5500 == false)
@@ -13,6 +21,8 @@ void menuEthernet()
 
     while (1)
     {
+        networkDisplayInterface(NETWORK_ETHERNET);
+
         systemPrintln();
         systemPrintln("Menu: Ethernet");
         systemPrintln();
@@ -38,13 +48,6 @@ void menuEthernet()
         //------------------------------
         // Display the network layer menu items
         //------------------------------
-
-        systemPrint("d) Default network: ");
-        networkPrintName(settings.defaultNetworkType);
-        systemPrintln();
-
-        systemPrint("f) Ethernet / WiFi Failover: ");
-        systemPrintf("%s\r\n", settings.enableNetworkFailover ? "Enabled" : "Disabled");
 
         systemPrintln("x) Exit");
 
@@ -108,23 +111,6 @@ void menuEthernet()
                 systemPrint("Error: invalid Subnet Mask");
         }
 
-        //------------------------------
-        // Get the network layer parameters
-        //------------------------------
-
-        else if (incoming == 'd')
-        {
-            // Toggle the network type
-            settings.defaultNetworkType += 1;
-            if (settings.defaultNetworkType >= NETWORK_TYPE_MAX)
-                settings.defaultNetworkType = 0;
-        }
-        else if (incoming == 'f')
-        {
-            // Toggle failover support
-            settings.enableNetworkFailover ^= 1;
-        }
-
         else if (incoming == 'x')
             break;
         else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
@@ -147,251 +133,144 @@ void menuEthernet()
 // Ethernet routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// Display the Ethernet state
-void ethernetDisplayState()
+//----------------------------------------
+// Handle the Ethernet events
+//----------------------------------------
+void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
 {
-    if (online.ethernetStatus >= ethernetStateEntries)
-        systemPrint("UNKNOWN");
-    else
-        systemPrint(ethernetStates[online.ethernetStatus]);
-}
+    // Remember this event for display
+    ethernetLastEvent = event;
 
-// Return the IP address for the Ethernet controller
-IPAddress ethernetGetIpAddress()
-{
-    return ETH.localIP();
-}
-
-// Return the subnet mask for the Ethernet controller
-IPAddress ethernetGetSubnetMask()
-{
-    return ETH.subnetMask();
-}
-
-// Determine if Ethernet is needed. Saves RAM...
-bool ethernetIsNeeded()
-{
-    bool needed = true;
-
-    do
-    {
-        // Does NTP need Ethernet?
-        if (inNtpMode() == true)
-            break;
-
-        // Does Base mode NTRIP Server need Ethernet?
-        if (settings.enableNtripServer == true && inBaseMode() == true)
-            break;
-
-        // Does Rover mode NTRIP Client need Ethernet?
-        if (settings.enableNtripClient == true && inRoverMode() == true)
-            break;
-
-        // Does TCP client or server need Ethernet?
-        if (settings.enableTcpClient || settings.enableTcpServer || settings.enableUdpServer ||
-            settings.enableAutoFirmwareUpdate)
-            break;
-
-        // Is the platform using Ethernet
-        if (networkGetActiveType() == NETWORK_TYPE_ETHERNET)
-            break;
-
-        // Forced to use Ethernet
-        if ((settings.defaultNetworkType == NETWORK_TYPE_ETHERNET) && (!settings.enableNetworkFailover))
-            break;
-
-        needed = false;
-    } while (0);
-
-    if (settings.enablePrintEthernetDiag && (!inMainMenu))
-        systemPrintf("ethernetIsNeeded = %s\r\n", needed ? "true" : "false");
-    return needed;
-}
-
-// Restart the Ethernet controller
-void ethernetRestart()
-{
-    // Reset online.ethernetStatus so ethernetBegin will call Ethernet.begin to use the new settings
-    online.ethernetStatus = ETH_NOT_STARTED;
-
-    // NTP Server
-    ntpServerStop();
-
-    // NTRIP?
-}
-
-// Update the Ethernet state
-void ethernetUpdate()
-{
-    if (present.ethernet_ws5500 == false)
-        return;
-
-    // Skip if in configure-via-ethernet mode
-    if (configureViaEthernet)
-        return;
-
-    switch (online.ethernetStatus)
-    {
-    case (ETH_NOT_STARTED):
-        Network.onEvent(onEthernetEvent);
-
-        //        begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
-        if (!(ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI)))
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintln("ERROR: ETH.begin failed");
-            online.ethernetStatus = ETH_CAN_NOT_BEGIN;
-            return;
-        }
-
-        if (!settings.ethernetDHCP)
-            ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
-
-        online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
-        lastEthernetCheck = millis(); // Wait a full second before checking the cable
-
-        break;
-
-    case (ETH_STARTED_CHECK_CABLE):
-        if (millis() - lastEthernetCheck > 1000) // Check for cable every second
-        {
-            lastEthernetCheck = millis();
-
-            if (eth_connected) // eth_connected indicates that we are connected and have an IP address
-            {
-                if (settings.debugNetworkLayer)
-                    systemPrintln("Ethernet connected");
-
-                if (settings.ethernetDHCP)
-                {
-                    paintGettingEthernetIP();
-                    online.ethernetStatus = ETH_STARTED_START_DHCP;
-                }
-                else
-                {
-                    if (settings.debugNetworkLayer)
-                    {
-                        systemPrint("Ethernet started with static IP: ");
-                        systemPrintln(settings.ethernetIP);
-                    }
-                    online.ethernetStatus = ETH_CONNECTED;
-                }
-            }
-            else
-            {
-                // log_d("No cable detected");
-            }
-        }
-        break;
-
-    case (ETH_STARTED_START_DHCP):
-        if (millis() - lastEthernetCheck > 1000) // Try DHCP every second
-        {
-            lastEthernetCheck = millis();
-
-            // We should fall straight through this as eth_connected indicates we already have an IP address
-            if (eth_connected)
-            {
-                // Start the multicast DNS server
-                networkStartMulticastDNS();
-
-                if (settings.debugNetworkLayer)
-                    systemPrintln("Ethernet started with DHCP");
-                online.ethernetStatus = ETH_CONNECTED;
-            }
-        }
-        break;
-
-    case (ETH_CONNECTED):
-        if (!eth_connected)
-        {
-            // Stop the multicast domain name server
-            networkStopMulticastDNS();
-
-            if (settings.debugNetworkLayer)
-                systemPrintln("Ethernet disconnected!");
-            online.ethernetStatus = ETH_STARTED_CHECK_CABLE;
-        }
-        break;
-
-    case (ETH_CAN_NOT_BEGIN):
-        break;
-
-    default:
-        if (settings.debugNetworkLayer)
-            systemPrintf("ERROR: Unknown state, %d\r\n", online.ethernetStatus);
-        break;
-    }
-
-    // Display the current state
-    if (PERIODIC_DISPLAY(PD_ETHERNET_STATE))
-    {
-        PERIODIC_CLEAR(PD_ETHERNET_STATE);
-        ethernetDisplayState();
-        systemPrintln();
-    }
-}
-
-// Verify the Ethernet tables
-void ethernetVerifyTables()
-{
-    // Verify the table lengths
-    if (ethernetStateEntries != ETH_MAX_STATE)
-        reportFatalError("Please fix ethernetStates table to match ethernetStatus_e");
-}
-
-void onEthernetEvent(arduino_event_id_t event, arduino_event_info_t info)
-{
+    // Ethernet State Machine
+    //
+    //   .--------+<----------+<-----------+<---------.
+    //   v        |           |            |          |
+    // STOP --> START --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
+    //                        ^            ^          |             |
+    //                        |            '----------'             |
+    //                        '-------------------------------------'
+    //
+    // Handle the event
     switch (event)
     {
-    case ARDUINO_EVENT_ETH_START:
-        if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            systemPrintln("ETH Started");
-        // set eth hostname here
-        ETH.setHostname("esp32-eth0");
-        break;
-    case ARDUINO_EVENT_ETH_CONNECTED:
-        if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            systemPrintln("ETH Connected");
-        break;
-    case ARDUINO_EVENT_ETH_GOT_IP:
-        if (settings.enablePrintEthernetDiag && (!inMainMenu))
-        {
-            systemPrintf("ETH Got IP: '%s'\r\n", esp_netif_get_desc(info.got_ip.esp_netif));
-            //systemPrintln(ETH);
-        }
-        eth_connected = true;
-        break;
-    case ARDUINO_EVENT_ETH_LOST_IP:
-        if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            systemPrintln("ETH Lost IP");
-        eth_connected = false;
-        break;
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-        if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            systemPrintln("ETH Disconnected");
-        eth_connected = false;
-        break;
-    case ARDUINO_EVENT_ETH_STOP:
-        if (settings.enablePrintEthernetDiag && (!inMainMenu))
-            systemPrintln("ETH Stopped");
-        eth_connected = false;
-        break;
     default:
         if (settings.enablePrintEthernetDiag && (!inMainMenu))
             systemPrintf("ETH Unknown event: %d\r\n", event);
         break;
+
+    case ARDUINO_EVENT_ETH_START:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Started");
+        break;
+
+    case ARDUINO_EVENT_ETH_CONNECTED:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Connected");
+
+        ETH.setHostname(settings.mdnsHostName);
+        break;
+
+    case ARDUINO_EVENT_ETH_GOT_IP:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintf("ETH Got IP: '%s'\r\n", ETH.localIP().toString().c_str());
+
+        networkMarkOnline((NetIndex_t)NETWORK_ETHERNET);
+
+        if (settings.ethernetDHCP)
+            paintEthernetConnected();
+        break;
+
+    case ARDUINO_EVENT_ETH_LOST_IP:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Lost IP");
+        break;
+
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Disconnected");
+
+        wifiResetTimeout(); // If we loose ethernet, allow WiFi to immediately try to start
+
+        break;
+
+    case ARDUINO_EVENT_ETH_STOP:
+        if (settings.enablePrintEthernetDiag && (!inMainMenu))
+            systemPrintln("ETH Stopped");
+        break;
     }
+
+    // Take the network offline if necessary
+    if (networkIsInterfaceOnline(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
+    {
+        networkMarkOffline((NetIndex_t)NETWORK_ETHERNET);
+    }
+}
+
+//----------------------------------------
+// Convert the Ethernet event ID into an ASCII string
+//----------------------------------------
+const char *ethernetGetEventName(arduino_event_id_t event)
+{
+    // Get the event name
+    switch (event)
+    {
+    default:
+        return "Unknown";
+    case ARDUINO_EVENT_ETH_START:
+        return "ARDUINO_EVENT_ETH_START";
+    case ARDUINO_EVENT_ETH_CONNECTED:
+        return "ARDUINO_EVENT_ETH_CONNECTED";
+    case ARDUINO_EVENT_ETH_GOT_IP:
+        return "ARDUINO_EVENT_ETH_GOT_IP";
+    case ARDUINO_EVENT_ETH_LOST_IP:
+        return "ARDUINO_EVENT_ETH_LOST_IP";
+    case ARDUINO_EVENT_ETH_DISCONNECTED:
+        return "ARDUINO_EVENT_ETH_DISCONNECTED";
+    case ARDUINO_EVENT_ETH_STOP:
+        return "ARDUINO_EVENT_ETH_STOP";
+    }
+}
+
+//----------------------------------------
+// Restart the Ethernet controller
+//----------------------------------------
+void ethernetRestart()
+{
+    // Stop the Ethernet controller
+    ETH.end();
+
+    // Restart the Ethernet controller
+    ethernetStart();
+}
+
+//----------------------------------------
+// Start the Ethernet controller
+//----------------------------------------
+void ethernetStart()
+{
+    // Set the static IP address if necessary
+    if (!settings.ethernetDHCP)
+        ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
+
+    // Restart the Ethernet controller
+    ETH.begin(ETH_PHY_W5500,          // ETH_PHY_TYPE
+              0,                      // ETH_PHY_ADDR
+              pin_Ethernet_CS,        // CS pin
+              pin_Ethernet_Interrupt, // IRQ pin
+              -1,                     // RST pin
+              SPI);                   // SPIClass &
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Web server routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+//----------------------------------------
 // Start Ethernet for the web server
+//----------------------------------------
 void ethernetWebServerStartESP32W5500()
 {
-    Network.onEvent(onEthernetEvent);
+    Network.onEvent(ethernetEvent);
 
     //  begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
     ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
@@ -400,10 +279,13 @@ void ethernetWebServerStartESP32W5500()
         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
 }
 
+//----------------------------------------
 // Stop Ethernet for the web server
+//----------------------------------------
 void ethernetWebServerStopESP32W5500()
 {
     ETH.end();
+    Network.removeEvent(ethernetEvent);
 }
 
 #endif // COMPILE_ETHERNET

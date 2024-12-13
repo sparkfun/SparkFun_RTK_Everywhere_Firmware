@@ -11,85 +11,126 @@ void menuGNSS()
         systemPrintln();
         systemPrintln("Menu: GNSS Receiver");
 
-        systemPrint("1) Set measurement rate in Hz: ");
-        systemPrintln(1.0 / gnssGetRateS(), 5);
-
-        systemPrint("2) Set measurement rate in seconds between measurements: ");
-        systemPrintln(gnssGetRateS(), 5);
-
-        systemPrintln("        Note: The measurement rate is overridden to 1Hz when in Base mode.");
-
-        systemPrint("3) Set dynamic model: ");
-        if (present.gnss_zedf9p)
+        if (!present.gnss_mosaicX5)
         {
-            switch (settings.dynamicModel)
+            systemPrint("1) Set measurement rate in Hz: ");
+            systemPrintln(1.0 / gnss->getRateS(), 5);
+
+            systemPrint("2) Set measurement rate in seconds between measurements: ");
+            systemPrintln(gnss->getRateS(), 5);
+
+            systemPrintln("       Note: The measurement rate is overridden to 1Hz when in Base mode.");
+        }
+        else
+        {
+            systemPrintln(
+                "      Note: The message intervals / rates are set using the \"Configure GNSS Messages\" menu.");
+        }
+
+        if (present.dynamicModel) // ZED, mosaic, UM980 have dynamic models. LG290P does not.
+        {
+            systemPrint("3) Set dynamic model: ");
+            if (present.gnss_zedf9p)
             {
-            case DYN_MODEL_PORTABLE:
-                systemPrint("Portable");
-                break;
-            case DYN_MODEL_STATIONARY:
-                systemPrint("Stationary");
-                break;
-            case DYN_MODEL_PEDESTRIAN:
-                systemPrint("Pedestrian");
-                break;
-            case DYN_MODEL_AUTOMOTIVE:
-                systemPrint("Automotive");
-                break;
-            case DYN_MODEL_SEA:
-                systemPrint("Sea");
-                break;
-            case DYN_MODEL_AIRBORNE1g:
-                systemPrint("Airborne 1g");
-                break;
-            case DYN_MODEL_AIRBORNE2g:
-                systemPrint("Airborne 2g");
-                break;
-            case DYN_MODEL_AIRBORNE4g:
-                systemPrint("Airborne 4g");
-                break;
-            case DYN_MODEL_WRIST:
-                systemPrint("Wrist");
-                break;
-            case DYN_MODEL_BIKE:
-                systemPrint("Bike");
-                break;
-            case DYN_MODEL_MOWER:
-                systemPrint("Mower");
-                break;
-            case DYN_MODEL_ESCOOTER:
-                systemPrint("E-Scooter");
-                break;
-            default:
-                systemPrint("Unknown");
-                break;
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+#ifdef COMPILE_ZED
+                case DYN_MODEL_PORTABLE:
+                    systemPrint("Portable");
+                    break;
+                case DYN_MODEL_STATIONARY:
+                    systemPrint("Stationary");
+                    break;
+                case DYN_MODEL_PEDESTRIAN:
+                    systemPrint("Pedestrian");
+                    break;
+                case DYN_MODEL_AUTOMOTIVE:
+                    systemPrint("Automotive");
+                    break;
+                case DYN_MODEL_SEA:
+                    systemPrint("Sea");
+                    break;
+                case DYN_MODEL_AIRBORNE1g:
+                    systemPrint("Airborne 1g");
+                    break;
+                case DYN_MODEL_AIRBORNE2g:
+                    systemPrint("Airborne 2g");
+                    break;
+                case DYN_MODEL_AIRBORNE4g:
+                    systemPrint("Airborne 4g");
+                    break;
+                case DYN_MODEL_WRIST:
+                    systemPrint("Wrist");
+                    break;
+                case DYN_MODEL_BIKE:
+                    systemPrint("Bike");
+                    break;
+                case DYN_MODEL_MOWER:
+                    systemPrint("Mower");
+                    break;
+                case DYN_MODEL_ESCOOTER:
+                    systemPrint("E-Scooter");
+                    break;
+#endif // COMPILE_ZED
+                }
+                systemPrintln();
+            }
+
+#ifdef COMPILE_UM980
+            else if (present.gnss_um980)
+            {
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+                case UM980_DYN_MODEL_SURVEY:
+                    systemPrint("Survey");
+                    break;
+                case UM980_DYN_MODEL_UAV:
+                    systemPrint("UAV");
+                    break;
+                case UM980_DYN_MODEL_AUTOMOTIVE:
+                    systemPrint("Automotive");
+                    break;
+                }
+                systemPrintln();
+            }
+#endif // COMPILE_UM980
+
+            else if (present.gnss_mosaicX5)
+            {
+                switch (settings.dynamicModel)
+                {
+                default:
+                    systemPrint("Unknown");
+                    break;
+                case MOSAIC_DYN_MODEL_STATIC:
+                case MOSAIC_DYN_MODEL_QUASISTATIC:
+                case MOSAIC_DYN_MODEL_PEDESTRIAN:
+                case MOSAIC_DYN_MODEL_AUTOMOTIVE:
+                case MOSAIC_DYN_MODEL_RACECAR:
+                case MOSAIC_DYN_MODEL_HEAVYMACHINERY:
+                case MOSAIC_DYN_MODEL_UAV:
+                case MOSAIC_DYN_MODEL_UNLIMITED:
+                    systemPrint(mosaicReceiverDynamics[settings.dynamicModel].humanName);
+                    break;
+                }
+                systemPrintln();
             }
         }
-        else if (present.gnss_um980)
-        {
-            switch (settings.dynamicModel)
-            {
-            default:
-                systemPrint("Unknown");
-                break;
-            case UM980_DYN_MODEL_SURVEY:
-                systemPrint("Survey");
-                break;
-            case UM980_DYN_MODEL_UAV:
-                systemPrint("UAV");
-                break;
-            case UM980_DYN_MODEL_AUTOMOTIVE:
-                systemPrint("Automotive");
-                break;
-            }
-        }
-        systemPrintln();
 
         systemPrintln("4) Set Constellations");
 
-        systemPrintf("5) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n", settings.minElev);
+        if (present.minElevation)
+            systemPrintf("5) Minimum elevation for a GNSS satellite to be used in fix (degrees): %d\r\n",
+                         settings.minElev);
 
-        systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnssGetMinCno());
+        if (present.minCno)
+            systemPrintf("6) Minimum satellite signal level for navigation (dBHz): %d\r\n", gnss->getMinCno());
 
         systemPrint("7) Toggle NTRIP Client: ");
         if (settings.enableNtripClient == true)
@@ -124,7 +165,7 @@ void menuGNSS()
                 systemPrintln("Disabled");
         }
 
-        if (present.gnss_um980)
+        if (present.multipathMitigation)
         {
             systemPrintf("15) Multipath Mitigation: %s\r\n",
                          settings.enableMultipathMitigation ? "Enabled" : "Disabled");
@@ -134,20 +175,39 @@ void menuGNSS()
 
         int incoming = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
 
-        if (incoming == 1)
+        if ((incoming == 1) && (!present.gnss_mosaicX5))
         {
-            float rate = 0.0;
-            if (getNewSetting("Enter GNSS measurement rate in Hz", 0.00012, 20.0, &rate) ==
+            float rateHz = 0.0;
+            float minRateHz = 1.0; // Measurement rate per second
+            float maxRateHz = 1.0;
+
+            if (present.gnss_zedf9p)
+            {
+                minRateHz = 0.00012; // Limit of 127 (navRate) * 65000ms (measRate) = 137 minute limit.
+                maxRateHz = 20;      // 20Hz
+            }
+            else if (present.gnss_um980)
+            {
+                minRateHz = 0.02; // 1 / 65 = 0.015384 Hz = Found experimentally
+                maxRateHz = 20;   // 20Hz
+            }
+            else if (present.gnss_lg290p)
+            {
+                minRateHz = 1.0; // The LG290P doesn't support slower speeds than 1Hz
+                maxRateHz = 20;  // 20Hz
+            }
+
+            if (getNewSetting("Enter GNSS measurement rate in Hz", minRateHz, maxRateHz, &rateHz) ==
                 INPUT_RESPONSE_VALID) // 20Hz limit with all constellations enabled
             {
-                gnssSetRate(1.0 / rate); // Convert Hz to seconds. This will set settings.measurementRateMs,
-                                         // settings.navigationRate, and GSV message
+                gnss->setRate(1.0 / rateHz); // Convert Hz to seconds. This will set settings.measurementRateMs,
+                                             // settings.navigationRate, and GSV message
             }
         }
-        else if (incoming == 2)
+        else if ((incoming == 2) && (!present.gnss_mosaicX5))
         {
-            float rate = 0.0;
-            float minRate = 1.0;
+            float rate_ms = 0.0; //
+            float minRate = 1.0; // Seconds between fixes
             float maxRate = 1.0;
 
             if (present.gnss_zedf9p)
@@ -160,14 +220,20 @@ void menuGNSS()
                 minRate = 0.05; // 20Hz
                 maxRate = 65.0; // Found experimentally
             }
-
-            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate, &rate) ==
-                INPUT_RESPONSE_VALID)
+            else if (present.gnss_lg290p)
             {
-                gnssSetRate(rate); // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                minRate = 0.05; // 20Hz
+                maxRate = 1.0;  // The LG290P doesn't support slower speeds than 1Hz
+            }
+
+            if (getNewSetting("Enter GNSS measurement rate in seconds between measurements", minRate, maxRate,
+                              &rate_ms) == INPUT_RESPONSE_VALID)
+            {
+                // This will set settings.measurementRateMs, settings.navigationRate, and GSV message
+                gnss->setRate(rate_ms);
             }
         }
-        else if (incoming == 3)
+        else if (incoming == 3 && present.dynamicModel)
         {
             if (present.gnss_zedf9p)
             {
@@ -189,12 +255,19 @@ void menuGNSS()
                 systemPrintln("2) UAV");
                 systemPrintln("3) Automotive");
             }
+            else if (present.gnss_mosaicX5)
+            {
+                systemPrintln("Enter the dynamic model to use: ");
+                for (int i = 0; i < MAX_MOSAIC_RX_DYNAMICS; i++)
+                    systemPrintf("%d) %s\r\n", i + 1, mosaicReceiverDynamics[i].humanName);
+            }
 
             int dynamicModel = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
             if ((dynamicModel != INPUT_RESPONSE_GETNUMBER_EXIT) && (dynamicModel != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
             {
                 if (present.gnss_zedf9p)
                 {
+#ifdef COMPILE_ZED
                     uint8_t maxModel = DYN_MODEL_WRIST;
 
                     if (dynamicModel < 1 || dynamicModel > maxModel)
@@ -206,8 +279,9 @@ void menuGNSS()
                         else
                             settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnssSetModel(settings.dynamicModel);
+                        gnss->setModel(settings.dynamicModel);
                     }
+#endif // COMPILE_ZED
                 }
                 else if (present.gnss_um980)
                 {
@@ -218,32 +292,44 @@ void menuGNSS()
                         dynamicModel -= 1;                    // Align to 0 to 2
                         settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
 
-                        gnssSetModel(settings.dynamicModel);
+                        gnss->setModel(settings.dynamicModel);
+                    }
+                }
+                else if (present.gnss_mosaicX5)
+                {
+                    if (dynamicModel < 1 || dynamicModel > MAX_MOSAIC_RX_DYNAMICS)
+                        systemPrintln("Error: Dynamic model out of range");
+                    else
+                    {
+                        dynamicModel -= 1;                    // Align to 0 to MAX_MOSAIC_RX_DYNAMICS - 1
+                        settings.dynamicModel = dynamicModel; // Recorded to NVM and file at main menu exit
+
+                        gnss->setModel(settings.dynamicModel);
                     }
                 }
             }
         }
         else if (incoming == 4)
         {
-            gnssMenuConstellations();
+            gnss->menuConstellations();
         }
 
-        else if (incoming == 5)
+        else if (incoming == 5 && present.minElevation)
         {
             // Arbitrary 90 degree max
             if (getNewSetting("Enter minimum elevation in degrees", 0, 90, &settings.minElev) == INPUT_RESPONSE_VALID)
             {
-                gnssSetElevation(settings.minElev);
+                gnss->setElevation(settings.minElev);
             }
         }
-        else if (incoming == 6)
+        else if (incoming == 6 && present.minCno)
         {
             int minCNO = 0;
-            // Arbitrary 90 dBHz max
-            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0, 90, &minCNO) ==
-                INPUT_RESPONSE_VALID)
+            // Arbitrary 90 dBHz max. mosaic-X5 is 60dBHz max.
+            if (getNewSetting("Enter minimum satellite signal level for navigation in dBHz", 0,
+                              present.gnss_mosaicX5 ? 60 : 90, &minCNO) == INPUT_RESPONSE_VALID)
             {
-                gnssSetMinCno(minCNO); // Set the setting and configure the GNSS receiver
+                gnss->setMinCno(minCNO); // Set the setting and configure the GNSS receiver
             }
         }
 
@@ -297,7 +383,7 @@ void menuGNSS()
             restartRover = true;
         }
 
-        else if ((incoming == 15) && present.gnss_um980)
+        else if ((incoming == 15) && present.multipathMitigation)
         {
             settings.enableMultipathMitigation ^= 1;
             restartRover = true;

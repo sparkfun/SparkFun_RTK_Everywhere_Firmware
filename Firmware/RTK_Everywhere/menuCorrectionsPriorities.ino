@@ -30,6 +30,8 @@
 //  LBAND ---------------------------------------->|               |
 //                                                 |               |
 //  LORA ----------------------------------------->|               |
+//                                                 |               |
+//  USB ------------------------------------------>|               |
 //                                                                 |
 //  Serial (Radio Ext) --------------------------------------------'
 //
@@ -44,9 +46,9 @@
 //----------------------------------------
 // Locals
 //----------------------------------------
-static CORRECTION_ID_T correctionSourceId;        // ID of correction source
-static CORRECTION_MASK_T correctionActive;        // Bitmap of active correction sources
-static uint32_t correctionLastSeenMsec[CORR_NUM]; // Time when correction was last received
+static CORRECTION_ID_T correctionSourceId = CORR_NUM; // ID of correction source (default: None)
+static CORRECTION_MASK_T correctionActive;            // Bitmap of active correction sources
+static uint32_t correctionLastSeenMsec[CORR_NUM];     // Time when correction was last received
 
 //----------------------------------------
 // Support routines
@@ -454,10 +456,11 @@ bool correctionIsSourceActive(CORRECTION_ID_T id)
         return false;
     }
 
-    // Determine if corrections were received recently
-    bitMask = 1 << id;
     currentMsec = millis();
     timeoutMsec = settings.correctionsSourcesLifetime_s * 1000;
+
+    // Determine if corrections were received recently
+    bitMask = 1 << id;
     if ((currentMsec - correctionLastSeenMsec[id]) >= timeoutMsec)
     {
         // Correcions source is actually inactive
@@ -585,6 +588,28 @@ bool correctionPriorityValidation()
 //----------------------------------------
 void correctionUpdateSource()
 {
+    // Periodically check if data is arriving on the Radio Ext port
+    // If needed, fake the arrival of data on the Radio Ext port
+    // The code is the same:
+    //   On ZED / mosaic, we can detect if the port is active.
+    //   On LG290P, we fake the arrival of data if needed.
+    static uint32_t lastRadioExtCheck = millis();
+    uint32_t radioCheckIntervalMsec = settings.correctionsSourcesLifetime_s * 500; // Check twice per lifetime
+    bool setCorrRadioPort = false;
+
+    if (millis() > (lastRadioExtCheck + radioCheckIntervalMsec))
+    {
+        // LG290P will return settings.enableExtCorrRadio.
+        // ZED / mosaic will return true if settings.enableExtCorrRadio is
+        // true and the port is actually active.
+        if (gnss->isCorrRadioExtPortActive())
+            correctionLastSeen(CORR_RADIO_EXT);
+
+        lastRadioExtCheck = millis();
+        setCorrRadioPort = true; // Update the port protocols after updating the sources
+    }
+
+    // Now update the sources
     CORRECTION_ID_T id;
 
     for (id = 0; id < CORR_NUM; id++)
@@ -597,6 +622,14 @@ void correctionUpdateSource()
         systemPrintf("Correction Source: %s\r\n", correctionGetSourceName());
 
         // systemPrintf("%s\r\n", PERIODIC_SETTING(PD_RING_BUFFER_MILLIS) ? "Active" : "Inactive");
+    }
+
+    // Now that the sources have been updated
+    // If radioCheckIntervalMsec expired
+    if (setCorrRadioPort)
+    {
+        // Update the input protocols, based on CORR_RADIO_EXT being the active correction source
+        gnss->setCorrRadioExtPort(correctionGetSource() == CORR_RADIO_EXT, false); // Don't force
     }
 }
 

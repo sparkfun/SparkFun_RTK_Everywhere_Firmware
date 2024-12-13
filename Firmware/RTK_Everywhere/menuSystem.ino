@@ -15,9 +15,9 @@ void menuSystem()
         {
             systemPrint("Online - ");
 
-            gnssPrintModuleInfo();
+            gnss->printModuleInfo();
 
-            systemPrintf("Module ID: %s\r\n", gnssGetId());
+            systemPrintf("Module ID: %s\r\n", gnss->getId());
 
             printCurrentConditions();
         }
@@ -60,7 +60,7 @@ void menuSystem()
         {
             systemPrint("NEO-D9S L-Band: ");
 
-            if (online.lband == true)
+            if (online.lband_neo == true)
                 systemPrintln("Online - ");
             else
                 systemPrintln("Offline - ");
@@ -82,41 +82,33 @@ void menuSystem()
             printNEOInfo();
         }
 
+        if (present.gnss_mosaicX5 == true)
+        {
+            systemPrint("mosaic-X5 L-Band: ");
+
+            if (online.lband_gnss == true)
+                systemPrintln("Online - ");
+            else
+                systemPrintln("Offline - ");
+
+            if (online.lbandCorrections == true)
+                systemPrint("Keys Good");
+            else
+                systemPrint("No Keys");
+
+            systemPrint(" / Corrections Received");
+            if (spartnCorrectionsReceived == false)
+                systemPrint(" Failed");
+
+            // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
+        }
+
         // Display the Bluetooth status
         bluetoothTest(false);
 
-#ifdef COMPILE_WIFI
-        systemPrint("WiFi MAC Address: ");
-        systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1], wifiMACAddress[2],
-                     wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-        if (wifiState == WIFI_STATE_CONNECTED)
-            wifiDisplayIpAddress();
-#endif // COMPILE_WIFI
-
-#ifdef COMPILE_ETHERNET
-        if (present.ethernet_ws5500 == true)
-        {
-            systemPrint("Ethernet: ");
-            if (eth_connected)
-                systemPrintln("connected");
-            else
-                systemPrintln("disconnected");
-            systemPrint("Ethernet MAC Address: ");
-            systemPrintf("%02X:%02X:%02X:%02X:%02X:%02X\r\n", ethernetMACAddress[0], ethernetMACAddress[1],
-                         ethernetMACAddress[2], ethernetMACAddress[3], ethernetMACAddress[4], ethernetMACAddress[5]);
-            systemPrint("Ethernet IP Address: ");
-            systemPrintln(ETH.localIP().toString().c_str());
-            if (!settings.ethernetDHCP)
-            {
-                systemPrint("Ethernet DNS: ");
-                systemPrintf("%s\r\n", settings.ethernetDNS.toString().c_str());
-                systemPrint("Ethernet Gateway: ");
-                systemPrintf("%s\r\n", settings.ethernetGateway.toString().c_str());
-                systemPrint("Ethernet Subnet Mask: ");
-                systemPrintf("%s\r\n", settings.ethernetSubnet.toString().c_str());
-            }
-        }
-#endif // COMPILE_ETHERNET
+#ifdef COMPILE_NETWORK
+        networkDisplayStatus();
+#endif // COMPILE_NETWORK
 
         // Display the uptime
         uint64_t uptimeMilliseconds = millis();
@@ -175,10 +167,24 @@ void menuSystem()
 
         systemPrintln("-----  Settings  -----");
 
-        if (present.beeper == true)
+        systemPrint("a) Automatic device reboot in minutes: ");
+        if (settings.rebootMinutes == 0)
+            systemPrintln("Disabled");
+        else
         {
-            systemPrint("a) Audible Prompts: ");
-            systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
+            int days;
+            int hours;
+            int minutes;
+
+            const int minutesInADay = 60 * 24;
+
+            minutes = settings.rebootMinutes;
+            days = minutes / minutesInADay;
+            minutes -= days * minutesInADay;
+            hours = minutes / 60;
+            minutes -= hours * 60;
+
+            systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
         }
 
         systemPrint("b) Set Bluetooth Mode: ");
@@ -212,6 +218,12 @@ void menuSystem()
             systemPrintln("f) Display microSD Files");
         }
 
+        if (present.beeper == true)
+        {
+            systemPrint("g) Enable Beeper: ");
+            systemPrintf("%s\r\n", settings.enableBeeper ? "Enabled" : "Disabled");
+        }
+
         systemPrintln("h) Debug hardware");
 
         systemPrintln("n) Debug network");
@@ -238,9 +250,38 @@ void menuSystem()
 
         byte incoming = getUserInputCharacterNumber();
 
-        if (incoming == 'a' && present.beeper == true)
+        if (incoming == 'a')
         {
-            settings.enableBeeper ^= 1;
+            // We use millis (uint32_t) to measure the reboot interval. 4294967000 is just less than (2^32 - 1)
+            systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
+            int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
+            if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
+            {
+                if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
+                {
+                    settings.rebootMinutes = 0;
+                    systemPrintln("Reset is disabled");
+                }
+                else
+                {
+                    int days;
+                    int hours;
+                    int minutes;
+
+                    const int minutesInADay = 60 * 24;
+
+                    // Set the reboot time
+                    settings.rebootMinutes = rebootMinutes;
+
+                    minutes = settings.rebootMinutes;
+                    days = minutes / minutesInADay;
+                    minutes -= days * minutesInADay;
+                    hours = minutes / 60;
+                    minutes -= hours * 60;
+
+                    systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
+                }
+            }
         }
         else if (incoming == 'b')
         {
@@ -269,6 +310,10 @@ void menuSystem()
         else if ((incoming == 'f') && (settings.enableSD == true) && (online.microSD == true))
         {
             printFileList();
+        }
+        else if (incoming == 'g' && present.beeper == true)
+        {
+            settings.enableBeeper ^= 1;
         }
         else if (incoming == 'h')
             menuDebugHardware();
@@ -465,6 +510,8 @@ void menuDebugHardware()
         if (present.radio_lora)
             systemPrintln("17) STM32 direct connect");
 
+        systemPrintln("18) Display littleFS stats");
+
         systemPrintln("e) Erase LittleFS");
 
         systemPrintln("t) Test Screen");
@@ -501,9 +548,9 @@ void menuDebugHardware()
             settings.debugGnss ^= 1;
 
             if (settings.debugGnss)
-                gnssEnableDebugging();
+                gnss->debuggingEnable();
             else
-                gnssDisableDebugging();
+                gnss->debuggingDisable();
         }
         else if (incoming == 10)
         {
@@ -551,6 +598,11 @@ void menuDebugHardware()
 
                 ESP.restart();
             }
+        }
+        else if (incoming == 18)
+        {
+            systemPrintf("LittleFS total bytes: %d\r\n", LittleFS.totalBytes());
+            systemPrintf("LittleFS used bytes: %d\r\n", LittleFS.usedBytes());
         }
 
         else if (incoming == 'e')
@@ -730,7 +782,7 @@ void menuDebugSoftware()
 
         systemPrintf("3) WiFi Connect Timeout (ms): %d\r\n", settings.wifiConnectTimeoutMs);
 
-        // Ring buffer - ZED Tx
+        // Ring buffer
         systemPrint("10) Print ring buffer offsets: ");
         systemPrintf("%s\r\n", settings.enablePrintRingBufferOffsets ? "Enabled" : "Disabled");
 
@@ -751,29 +803,14 @@ void menuDebugSoftware()
         systemPrint("31) Print duplicate states: ");
         systemPrintf("%s\r\n", settings.enablePrintDuplicateStates ? "Enabled" : "Disabled");
 
-        systemPrint("32) Automatic device reboot in minutes: ");
-        if (settings.rebootMinutes == 0)
-            systemPrintln("Disabled");
-        else
-        {
-            int days;
-            int hours;
-            int minutes;
-
-            const int minutesInADay = 60 * 24;
-
-            minutes = settings.rebootMinutes;
-            days = minutes / minutesInADay;
-            minutes -= days * minutesInADay;
-            hours = minutes / 60;
-            minutes -= hours * 60;
-
-            systemPrintf("%d (%d days %d:%02d)\r\n", settings.rebootMinutes, days, hours, minutes);
-        }
-
         systemPrintf("33) Print boot times: %s\r\n", settings.printBootTimes ? "Enabled" : "Disabled");
 
         systemPrintf("34) Print partition table: %s\r\n", settings.printPartitionTable ? "Enabled" : "Disabled");
+
+        // Debug
+
+        systemPrintf("40) Print LittleFS and settings management: %s\r\n",
+                     settings.debugSettings ? "Enabled" : "Disabled");
 
         // Tasks
         systemPrint("50) Task Highwater Reporting: ");
@@ -820,43 +857,13 @@ void menuDebugSoftware()
             settings.enablePrintStates ^= 1;
         else if (incoming == 31)
             settings.enablePrintDuplicateStates ^= 1;
-        else if (incoming == 32)
-        {
-            // We use millis (uint32_t) to measure the reboot interval. 4294967000 is just less than (2^32 - 1)
-            systemPrint("Enter uptime minutes before reboot, Disabled = 0, Reboot range (1 - 4294967): ");
-            int rebootMinutes = getUserInputNumber(); // Returns EXIT, TIMEOUT, or long
-            if ((rebootMinutes != INPUT_RESPONSE_GETNUMBER_EXIT) && (rebootMinutes != INPUT_RESPONSE_GETNUMBER_TIMEOUT))
-            {
-                if (rebootMinutes < 1 || rebootMinutes > 4294967) // Disable the reboot
-                {
-                    settings.rebootMinutes = 0;
-                    systemPrintln("Reset is disabled");
-                }
-                else
-                {
-                    int days;
-                    int hours;
-                    int minutes;
-
-                    const int minutesInADay = 60 * 24;
-
-                    // Set the reboot time
-                    settings.rebootMinutes = rebootMinutes;
-
-                    minutes = settings.rebootMinutes;
-                    days = minutes / minutesInADay;
-                    minutes -= days * minutesInADay;
-                    hours = minutes / 60;
-                    minutes -= hours * 60;
-
-                    systemPrintf("Reboot after uptime reaches %d days %d:%02d\r\n", days, hours, minutes);
-                }
-            }
-        }
         else if (incoming == 33)
             settings.printBootTimes ^= 1;
         else if (incoming == 34)
             settings.printPartitionTable ^= 1;
+
+        else if (incoming == 40)
+            settings.debugSettings ^= 1;
 
         else if (incoming == 50)
             settings.enableTaskReports ^= 1;
@@ -1045,12 +1052,14 @@ void menuOperation()
         }
         else if (incoming == 10 && present.gnss_zedf9p)
         {
-            bool response = gnssSetMessagesUsb(MAX_SET_MESSAGES_RETRIES);
+#ifdef COMPILE_ZED
+            bool response = gnss->setMessagesUsb(MAX_SET_MESSAGES_RETRIES);
 
             if (response == false)
                 systemPrintln(F("Failed to enable USB messages"));
             else
                 systemPrintln(F("USB messages successfully enabled"));
+#endif // COMPILE_ZED
         }
         else if (incoming == 11)
         {
@@ -1126,16 +1135,13 @@ void menuPeriodicPrint()
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_BLUETOOTH_DATA_TX) ? "Enabled" : "Disabled");
 
         systemPrint("3) Ethernet IP address: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ETHERNET_IP_ADDRESS) ? "Enabled" : "Disabled");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_IP_ADDRESS) ? "Enabled" : "Disabled");
 
         systemPrint("4) Ethernet state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ETHERNET_STATE) ? "Enabled" : "Disabled");
 
         systemPrint("5) SD log write data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_SD_LOG_WRITE) ? "Enabled" : "Disabled");
-
-        systemPrint("6) WiFi IP Address: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_IP_ADDRESS) ? "Enabled" : "Disabled");
 
         systemPrint("7) WiFi state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_STATE) ? "Enabled" : "Disabled");
@@ -1256,13 +1262,11 @@ void menuPeriodicPrint()
         else if (incoming == 2)
             PERIODIC_TOGGLE(PD_BLUETOOTH_DATA_TX);
         else if (incoming == 3)
-            PERIODIC_TOGGLE(PD_ETHERNET_IP_ADDRESS);
+            PERIODIC_TOGGLE(PD_IP_ADDRESS);
         else if (incoming == 4)
             PERIODIC_TOGGLE(PD_ETHERNET_STATE);
         else if (incoming == 5)
             PERIODIC_TOGGLE(PD_SD_LOG_WRITE);
-        else if (incoming == 6)
-            PERIODIC_TOGGLE(PD_WIFI_IP_ADDRESS);
         else if (incoming == 7)
             PERIODIC_TOGGLE(PD_WIFI_STATE);
         else if (incoming == 8)
@@ -1440,19 +1444,19 @@ void printCurrentConditions()
     if (online.gnss == true)
     {
         systemPrint("SIV: ");
-        systemPrint(gnssGetSatellitesInView());
+        systemPrint(gnss->getSatellitesInView());
 
-        float hpa = gnssGetHorizontalAccuracy();
+        float hpa = gnss->getHorizontalAccuracy();
         char temp[20];
         const char *units = getHpaUnits(hpa, temp, sizeof(temp), 3, true);
         systemPrintf(", HPA (%s): %s", units, temp);
 
         systemPrint(", Lat: ");
-        systemPrint(gnssGetLatitude(), haeNumberOfDecimals);
+        systemPrint(gnss->getLatitude(), haeNumberOfDecimals);
         systemPrint(", Lon: ");
-        systemPrint(gnssGetLongitude(), haeNumberOfDecimals);
+        systemPrint(gnss->getLongitude(), haeNumberOfDecimals);
         systemPrint(", Altitude (m): ");
-        systemPrint(gnssGetAltitude(), 1);
+        systemPrint(gnss->getAltitude(), 3);
 
         systemPrintln();
     }
@@ -1464,11 +1468,11 @@ void printCurrentConditionsNMEA()
     {
         char systemStatus[100];
         snprintf(systemStatus, sizeof(systemStatus),
-                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.2f,%d,%d,%d", gnssGetHour(), gnssGetMinute(),
-                 gnssGetSecond(), gnssGetMillisecond(), gnssGetDay(), gnssGetMonth(),
-                 gnssGetYear() % 2000, // Limit to 2 digits
-                 gnssGetHorizontalAccuracy(), gnssGetSatellitesInView(), gnssGetLatitude(), gnssGetLongitude(),
-                 gnssGetAltitude(), gnssGetFixType(), gnssGetCarrierSolution(), batteryLevelPercent);
+                 "%02d%02d%02d.%02d,%02d%02d%02d,%0.3f,%d,%0.9f,%0.9f,%0.3f,%d,%d,%d", gnss->getHour(),
+                 gnss->getMinute(), gnss->getSecond(), gnss->getMillisecond(), gnss->getDay(), gnss->getMonth(),
+                 gnss->getYear() % 2000, // Limit to 2 digits
+                 gnss->getHorizontalAccuracy(), gnss->getSatellitesInView(), gnss->getLatitude(), gnss->getLongitude(),
+                 gnss->getAltitude(), gnss->getFixType(), gnss->getCarrierSolution(), batteryLevelPercent);
 
         char nmeaMessage[100]; // Max NMEA sentence length is 82
         createNMEASentence(CUSTOM_NMEA_TYPE_STATUS, nmeaMessage, sizeof(nmeaMessage),

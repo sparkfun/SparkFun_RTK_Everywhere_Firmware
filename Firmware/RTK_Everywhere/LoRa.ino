@@ -125,7 +125,7 @@ void updateLora()
     case (LORA_TX_SETTLING):
         // While the survey is running, avoid transmitting over LoRa to allow maximum GNSS reception
 
-        if (gnssIsSurveyComplete() == true)
+        if (gnss->isSurveyInComplete() == true)
         {
             if (settings.debugLora == true)
                 systemPrintln("LoRa: Moving to TX");
@@ -173,7 +173,7 @@ void updateLora()
             if (correctionLastSeen(CORR_RADIO_LORA))
             {
                 // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
-                gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+                gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
                 if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
                 {
@@ -252,7 +252,7 @@ void updateLora()
             if (correctionLastSeen(CORR_RADIO_LORA))
             {
                 // Pass RTCM bytes (presumably) from LoRa out ESP32-UART to GNSS
-                gnssPushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
+                gnss->pushRawData(rtcmData, rtcmCount); // Push RTCM to GNSS module
 
                 if (((settings.debugCorrections == true) || (settings.debugLora == true)) && !inMainMenu)
                 {

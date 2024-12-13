@@ -10,7 +10,7 @@ HTTP_Client.ino
 
 ------------------------------------------------------------------------------*/
 
-ZtpResponse ztpResponse = ZTP_NOT_STARTED; //Used in menuPP
+ZtpResponse ztpResponse = ZTP_NOT_STARTED; // Used in menuPP
 
 #ifdef COMPILE_HTTP_CLIENT
 
@@ -31,19 +31,15 @@ enum HTTPClientState
     HTTP_CLIENT_ON,                  // WIFI_STATE_START state
     HTTP_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
     HTTP_CLIENT_CONNECTING_2_SERVER, // Connecting to the HTTP server
-    HTTP_CLIENT_CONNECTED,  // Connected to the HTTP services
-    HTTP_CLIENT_COMPLETE,   // Complete. Can not or do not need to continue
+    HTTP_CLIENT_CONNECTED,           // Connected to the HTTP services
+    HTTP_CLIENT_COMPLETE,            // Complete. Can not or do not need to continue
     // Insert new states here
     HTTP_CLIENT_STATE_MAX // Last entry in the state list
 };
 
 const char *const httpClientStateName[] = {
-    "HTTP_CLIENT_OFF",
-    "HTTP_CLIENT_ON",
-    "HTTP_CLIENT_NETWORK_STARTED",
-    "HTTP_CLIENT_CONNECTING_2_SERVER",
-    "HTTP_CLIENT_CONNECTED",
-    "HTTP_CLIENT_COMPLETE",
+    "HTTP_CLIENT_OFF",       "HTTP_CLIENT_ON",       "HTTP_CLIENT_NETWORK_STARTED", "HTTP_CLIENT_CONNECTING_2_SERVER",
+    "HTTP_CLIENT_CONNECTED", "HTTP_CLIENT_COMPLETE",
 };
 
 const int httpClientStateNameEntries = sizeof(httpClientStateName) / sizeof(httpClientStateName[0]);
@@ -60,11 +56,12 @@ char *tempHolderPtr = nullptr;
 // Throttle the time between connection attempts
 static int httpClientConnectionAttempts; // Count the number of connection attempts between restarts
 static uint32_t httpClientConnectionAttemptTimeout = 5 * 1000L; // Wait 5s
-static int httpClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
+static int httpClientConnectionAttemptsTotal;                   // Count the number of connection attempts absolutely
 
 static volatile uint32_t httpClientLastDataReceived; // Last time data was received via HTTP
+static NetPriority_t httpClientPriority = NETWORK_OFFLINE;
 
-static RTKNetworkSecureClient *httpSecureClient;
+static NetworkClientSecure *httpSecureClient;
 
 static volatile uint8_t httpClientState = HTTP_CLIENT_OFF;
 
@@ -91,10 +88,6 @@ bool httpClientConnectLimitReached()
     bool enableHttpClient = true;
     if (!settings.enablePointPerfectCorrections)
         enableHttpClient = false;
-
-    // Attempt to restart the network if possible
-    if (enableHttpClient && (!limitReached))
-        networkRestart(NETWORK_USER_HTTP_CLIENT);
 
     // Restart the HTTP client
     httpClientStop(limitReached || (!enableHttpClient));
@@ -227,30 +220,24 @@ void httpClientStop(bool shutdown)
     {
         if (settings.debugHttpClientState)
             systemPrintln("Freeing httpSecureClient");
-        //delete httpSecureClient; // Don't. This causes issue #335
+        // delete httpSecureClient; // Don't. This causes issue #335
         httpSecureClient = nullptr;
         reportHeapNow(settings.debugHttpClientState);
     }
 
     // Increase timeouts if we started the network
     if (httpClientState > HTTP_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         httpClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_HTTP_CLIENT))
-            networkUserClose(NETWORK_USER_HTTP_CLIENT);
-    }
 
     // Determine the next HTTP client state
     online.httpClient = false;
     if (shutdown)
     {
         httpClientSetState(HTTP_CLIENT_OFF);
-        //settings.enablePointPerfectCorrections = false;
+        // settings.enablePointPerfectCorrections = false;
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Why? This means PointPerfect Corrections
-        //cannot be restarted without opening the menu or web configuration page...
+        // cannot be restarted without opening the menu or web configuration page...
         httpClientConnectionAttempts = 0;
         httpClientConnectionAttemptTimeout = 0;
     }
@@ -262,7 +249,7 @@ void httpClientUpdate()
 {
     // Shutdown the HTTP client when the mode or setting changes
     DMW_st(httpClientSetState, httpClientState);
-    
+
     if (!httpClientModeNeeded)
     {
         if (httpClientState > HTTP_CLIENT_OFF)
@@ -289,22 +276,20 @@ void httpClientUpdate()
     case HTTP_CLIENT_ON: {
         if ((millis() - httpClientTimer) > httpClientConnectionAttemptTimeout)
         {
-            if (networkUserOpen(NETWORK_USER_HTTP_CLIENT, NETWORK_TYPE_ACTIVE))
-                httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
+            httpClientPriority = NETWORK_OFFLINE;
+            httpClientSetState(HTTP_CLIENT_NETWORK_STARTED);
         }
         break;
     }
 
     // Wait for a network media connection
     case HTTP_CLIENT_NETWORK_STARTED: {
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_HTTP_CLIENT))
-            // Failed to connect to the network, attempt to restart the network
-            httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
+        // Determine if the HTTP client was turned off
+        if (!httpClientModeNeeded)
+            httpClientStop(true);
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_HTTP_CLIENT))
-            // The network is available for the HTTP client
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&httpClientPriority))
             httpClientSetState(HTTP_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -312,7 +297,7 @@ void httpClientUpdate()
     // Connect to the HTTP server
     case HTTP_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_HTTP_CLIENT))
+        if (!networkIsConnected(&httpClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
@@ -320,7 +305,7 @@ void httpClientUpdate()
         }
 
         // Allocate the httpSecureClient structure
-        httpSecureClient = new RTKNetworkSecureClient();
+        httpSecureClient = new NetworkClientSecure();
         if (!httpSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the httpSecureClient structure!");
@@ -354,7 +339,7 @@ void httpClientUpdate()
             systemPrintf("HTTP client connecting to %s\r\n", THINGSTREAM_ZTPURL);
 
         // Begin the HTTP client
-        if (!httpClient->begin(*httpSecureClient->getClient(), THINGSTREAM_ZTPURL))
+        if (!httpClient->begin(*httpSecureClient, THINGSTREAM_ZTPURL))
         {
             systemPrintln("ERROR: Failed to start httpClient!\r\n");
             httpClientRestart(); // I _think_ we want to restart here - i.e. retry after the timeout?
@@ -368,7 +353,7 @@ void httpClientUpdate()
 
     case HTTP_CLIENT_CONNECTED: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_HTTP_CLIENT))
+        if (!networkIsConnected(&httpClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
@@ -381,7 +366,7 @@ void httpClientUpdate()
         if (settings.debugCorrections || settings.debugHttpClientData)
         {
             systemPrintf("Sending JSON, %d bytes\r\n", ztpRequest.length());
-            //systemPrintln(ztpRequest.c_str());
+            // systemPrintln(ztpRequest.c_str());
         }
 
         httpClient->addHeader(F("Content-Type"), F("application/json"));
@@ -437,7 +422,7 @@ void httpClientUpdate()
                     systemPrintln("Device not whitelisted.");
 
                 ztpResponse = ZTP_NOT_WHITELISTED;
-                //paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
+                // paintKeyProvisionFail(10000); // Device not whitelisted. Show device ID.
                 httpClientSetState(HTTP_CLIENT_COMPLETE);
                 break;
             }
@@ -528,7 +513,7 @@ void httpClientUpdate()
                     {
                         char findMe[40];
                         snprintf(findMe, sizeof(findMe), "correction topic for %s",
-                                    Regional_Information_Table[r].name); // Search for "US" etc.
+                                 Regional_Information_Table[r].name); // Search for "US" etc.
                         subscription = findZtpJSONEntry("subscriptions", "description", (const char *)findMe, jsonZtp);
                         if (subscription >= 0)
                             strncpy(settings.regionalCorrectionTopics[r],
@@ -558,7 +543,7 @@ void httpClientUpdate()
                     if (settings.debugCorrections || settings.debugHttpClientData)
                         pointperfectPrintKeyInformation();
 
-                    //displayKeysUpdated();
+                    // displayKeysUpdated();
 
                     ztpResponse = ZTP_SUCCESS;
                     httpClientSetState(HTTP_CLIENT_COMPLETE);
@@ -572,12 +557,11 @@ void httpClientUpdate()
     // Hang here until httpClientModeNeeded is set to false by updateProvisioning
     case HTTP_CLIENT_COMPLETE: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_HTTP_CLIENT))
+        if (!networkIsConnected(&httpClientPriority))
             // Failed to connect to the network, attempt to restart the network
             httpClientStop(true); // Was httpClientRestart(); - #StopVsRestart
         break;
     }
-
     }
 
     // Periodically display the HTTP client state

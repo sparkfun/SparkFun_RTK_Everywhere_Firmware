@@ -1,3 +1,4 @@
+
 /*------------------------------------------------------------------------------
 NTP.ino
 
@@ -59,15 +60,13 @@ NTP.ino
 enum NTP_STATE
 {
     NTP_STATE_OFF,
-    NTP_STATE_NETWORK_STARTING,
     NTP_STATE_NETWORK_CONNECTED,
     NTP_STATE_SERVER_RUNNING,
     // Insert new states here
     NTP_STATE_MAX
 };
 
-const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_STARTING", "NTP_STATE_NETWORK_CONNECTED",
-                                          "NTP_STATE_SERVER_RUNNING"};
+const char *const ntpServerStateName[] = {"NTP_STATE_OFF", "NTP_STATE_NETWORK_CONNECTED", "NTP_STATE_SERVER_RUNNING"};
 const int ntpServerStateNameEntries = sizeof(ntpServerStateName) / sizeof(ntpServerStateName[0]);
 
 const RtkMode_t ntpServerMode = RTK_MODE_NTP;
@@ -76,6 +75,7 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
+static NetPriority_t ntpServerPriority = NETWORK_OFFLINE;
 static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
 static uint32_t lastLoggedNTPRequest;
@@ -502,15 +502,16 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
 
     if (packetDataSize > 0)
     {
-        gettimeofday((timeval *)&ethernetNtpTv, nullptr); // Record the time of the NTP request. This was in ethernetISR()
+        gettimeofday((timeval *)&ethernetNtpTv,
+                     nullptr); // Record the time of the NTP request. This was in ethernetISR()
 
         IPAddress remoteIP = ntpServer->remoteIP();
         uint16_t remotePort = ntpServer->remotePort();
 
         if (ntpDiag != nullptr) // Add the packet size and remote IP/Port to the diagnostics
         {
-            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n",
-                    remoteIP.toString(), remotePort);
+            snprintf(ntpDiag, ntpDiagSize, "NTP request from:  Remote IP: %s  Remote Port: %d\r\n", remoteIP.toString(),
+                     remotePort);
         }
 
         if (packetDataSize >= NTPpacket::NTPpacketSize)
@@ -542,7 +543,7 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf),
-                        "NTP request ignored. Time has not been synchronized - or not in NTP mode.\r\n");
+                         "NTP request ignored. Time has not been synchronized - or not in NTP mode.\r\n");
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
                 return false;
             }
@@ -578,7 +579,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Originate Timestamp (Client Transmit): %u.%06u\r\n",
-                        packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
+                         packet.transmitTimestampSeconds,
+                         packet.convertFractionToMicros(packet.transmitTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -599,7 +601,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Received Timestamp:                    %u.%06u\r\n",
-                        packet.receiveTimestampSeconds, packet.convertFractionToMicros(packet.receiveTimestampFraction));
+                         packet.receiveTimestampSeconds,
+                         packet.convertFractionToMicros(packet.receiveTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -616,8 +619,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Reference Timestamp (Last Sync):       %u.%06u\r\n",
-                        packet.referenceTimestampSeconds,
-                        packet.convertFractionToMicros(packet.referenceTimestampFraction));
+                         packet.referenceTimestampSeconds,
+                         packet.convertFractionToMicros(packet.referenceTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -644,7 +647,8 @@ bool ntpProcessOneRequest(bool process, const timeval *recTv, const timeval *syn
             {
                 char tmpbuf[128];
                 snprintf(tmpbuf, sizeof(tmpbuf), "Transmit Timestamp:                    %u.%06u\r\n",
-                        packet.transmitTimestampSeconds, packet.convertFractionToMicros(packet.transmitTimestampFraction));
+                         packet.transmitTimestampSeconds,
+                         packet.convertFractionToMicros(packet.transmitTimestampFraction));
                 strlcat(ntpDiag, tmpbuf, ntpDiagSize);
             }
 
@@ -698,86 +702,17 @@ bool configureUbloxModuleNTP()
         return (false);
 
     // If our settings haven't changed, and this is first config since power on, trust GNSS's settings
-    // Unless this is a Ref Syn - where the GNSS has no battery-backed RAM
+    // Unless this is an EVK - where the GNSS has no battery-backed RAM
     if ((productVariant != RTK_EVK) && (settings.updateGNSSSettings == false) && (firstPowerOn == true))
     {
         firstPowerOn = false; // Next time user switches modes, new settings will be applied
         log_d("Skipping ZED NTP configuration");
         return (true);
     }
-
     firstPowerOn = false; // If we switch between rover/base in the future, force config of module.
 
-    gnssUpdate(); // Regularly poll to get latest data
-
-    theGNSS->setNMEAGPGGAcallbackPtr(
-        nullptr); // Disable GPGGA call back that may have been set during Rover NTRIP Client mode
-
-    int tryNo = -1;
-    bool success = false;
-
-    // Try up to MAX_SET_MESSAGES_RETRIES times to configure the GNSS
-    // This corrects occasional failures seen on the Reference Station where the GNSS is connected via SPI
-    // instead of I2C and UART1. I believe the SETVAL ACK is occasionally missed due to the level of messages being
-    // processed.
-    while ((++tryNo < MAX_SET_MESSAGES_RETRIES) && !success)
-    {
-        bool response = true;
-
-        // In NTP mode we force 1Hz
-        response &= theGNSS->newCfgValset();
-        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_MEAS, 1000);
-        response &= theGNSS->addCfgValset(UBLOX_CFG_RATE_NAV, 1);
-
-        // Survey mode is only available on ZED-F9P modules
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TMODE_MODE, 0); // Disable survey-in mode
-
-        // Set dynamic model to stationary
-        response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_DYNMODEL, DYN_MODEL_STATIONARY); // Set dynamic model
-
-        // Set time pulse to 1Hz (100:900)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_DEF, 0); // Time pulse definition is a period (in us)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PULSE_LENGTH_DEF, 1); // Define timepulse by length (not ratio)
-        response &= theGNSS->addCfgValset(
-            UBLOX_CFG_TP_USE_LOCKED_TP1,
-            1); // Use CFG-TP-PERIOD_LOCK_TP1 and CFG-TP-LEN_LOCK_TP1 as soon as GNSS time is valid
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_TP1_ENA, 1); // Enable timepulse
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_POL_TP1, 1); // 1 = rising edge
-
-        // While the module is _locking_ to GNSS time, turn off pulse
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PERIOD_TP1, 1000000); // Set the period between pulses in us
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_LEN_TP1, 0);          // Set the pulse length in us
-
-        // When the module is _locked_ to GNSS time, make it generate 1Hz (100ms high, 900ms low)
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_PERIOD_LOCK_TP1, 1000000); // Set the period between pulses is us
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_LEN_LOCK_TP1, 100000);     // Set the pulse length in us
-
-        // Ensure pulse is aligned to top-of-second. This is the default. Set it here just to make sure.
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_ALIGN_TO_TOW_TP1, 1);
-
-        // Set the time grid to UTC. This is the default. Set it here just to make sure.
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_TIMEGRID_TP1, 0); // 0=UTC; 1=GPS
-
-        // Sync to GNSS. This is the default. Set it here just to make sure.
-        response &= theGNSS->addCfgValset(UBLOX_CFG_TP_SYNC_GNSS_TP1, 1);
-
-        response &= theGNSS->addCfgValset(UBLOX_CFG_NAVSPG_INFIL_MINELEV, settings.minElev); // Set minimum elevation
-
-        // Ensure PVT, HPPOSLLH and TP messages are being output at 1Hz on the correct port
-        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_PVT_I2C, 1);
-        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_NAV_HPPOSLLH_I2C, 1);
-        response &= theGNSS->addCfgValset(UBLOX_CFG_MSGOUT_UBX_TIM_TP_I2C, 1);
-
-        response &= theGNSS->sendCfgValset(); // Closing value
-
-        if (response)
-            success = true;
-    }
-
-    if (!success)
-        systemPrintln("NTP config fail");
-
-    return (success);
+    gnss->update(); // Regularly poll to get latest data
+    return gnss->configureNtpMode();
 }
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -824,10 +759,6 @@ void ntpServerStop()
             reportHeapNow(settings.debugNtp);
     }
 
-    // Release the network resources
-    if (networkGetUserNetwork(NETWORK_USER_NTP_SERVER))
-        networkUserClose(NETWORK_USER_NTP_SERVER);
-
     // Stop the NTP server
     ntpServerSetState(NTP_STATE_OFF);
 }
@@ -859,27 +790,18 @@ void ntpServerUpdate()
         // Determine if the NTP server is enabled
         if (EQ_RTK_MODE(ntpServerMode))
         {
-            // Start the network
-            if (networkUserOpen(NETWORK_USER_NTP_SERVER, NETWORK_TYPE_ETHERNET))
-                ntpServerSetState(NTP_STATE_NETWORK_STARTING);
+            // The NTP server only works over Ethernet
+            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+            {
+                ntpServerPriority = NETWORK_OFFLINE;
+                ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
+            }
         }
-        break;
-
-    // Wait for the network conection
-    case NTP_STATE_NETWORK_STARTING:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
-            // Stop the NTP server, restart it if possible
-            ntpServerStop();
-
-        // Determine if the network is connected
-        else if (networkUserConnected(NETWORK_USER_NTP_SERVER))
-            ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
         break;
 
     case NTP_STATE_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
+        if (!networkIsConnected(&ntpServerPriority))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 
@@ -903,7 +825,7 @@ void ntpServerUpdate()
 
     case NTP_STATE_SERVER_RUNNING:
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_NTP_SERVER))
+        if (!networkIsConnected(&ntpServerPriority))
             // Stop the NTP server, restart it if possible
             ntpServerStop();
 

@@ -6,7 +6,7 @@
   This firmware runs the core of the SparkFun RTK products with PSRAM. It runs on an ESP32
   and communicates with various GNSS receivers.
 
-  Compiled using Arduino CLI and ESP32 core v3.0.0.
+  Compiled using Arduino CLI and ESP32 core v3.0.7.
 
   For compilation instructions see https://docs.sparkfun.com/SparkFun_RTK_Firmware/firmware_update/#compiling-source
 
@@ -24,14 +24,19 @@
 #define COMPILE_BT       // Comment out to remove Bluetooth functionality
 #define COMPILE_WIFI     // Comment out to remove WiFi functionality
 #define COMPILE_ETHERNET // Comment out to remove Ethernet (W5500) support
+#define COMPILE_CELLULAR // Comment out to remove cellular modem support
 
 #ifdef COMPILE_WIFI
-#define COMPILE_AP          // Requires WiFi. Comment out to remove Access Point functionality
-#define COMPILE_ESPNOW      // Requires WiFi. Comment out to remove ESP-Now functionality.
-#endif                      // COMPILE_WIFI
+#define COMPILE_AP     // Requires WiFi. Comment out to remove Access Point functionality
+#define COMPILE_ESPNOW // Requires WiFi. Comment out to remove ESP-Now functionality.
+#endif                 // COMPILE_WIFI
 
-#define COMPILE_L_BAND               // Comment out to remove L-Band functionality
-#define COMPILE_UM980                // Comment out to remove UM980 functionality
+#define COMPILE_ZED      // Comment out to remove ZED-F9x functionality
+ #define COMPILE_L_BAND   // Comment out to remove L-Band functionality
+#define COMPILE_UM980 // Comment out to remove UM980 functionality
+#define COMPILE_MOSAICX5 // Comment out to remove mosaic-X5 functionality
+#define COMPILE_LG290P   // Comment out to remove LG290P functionality
+
 #define COMPILE_IM19_IMU             // Comment out to remove IM19_IMU functionality
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
@@ -73,7 +78,7 @@
 #include <DNSServer.h>    //Built-in.
 #include <ESPmDNS.h>      //Built-in.
 #include <HTTPClient.h>   //Built-in. Needed for ThingStream API for ZTP
-#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino v0.1.8
+#include <MqttClient.h>   //http://librarymanager/All#ArduinoMqttClient by Arduino
 #include <NetworkClient.h>
 #include <NetworkClientSecure.h>
 #include <NetworkUdp.h>
@@ -99,6 +104,10 @@ const uint16_t HTTPS_PORT = 443;                                                
 #include <WiFiClientSecure.h> //Built-in.
 #include <WiFiMulti.h>        //Built-in.
 #endif                        // COMPILE_WIFI
+
+#ifdef COMPILE_CELLULAR
+#include <PPP.h>
+#endif // COMPILE_CELLULAR
 
 #include "settings.h"
 
@@ -132,7 +141,13 @@ int pin_powerButton = PIN_UNDEFINED;          // Power and general purpose butto
 int pin_powerFastOff = PIN_UNDEFINED;         // Output on Facet
 int pin_muxDAC = PIN_UNDEFINED;
 int pin_muxADC = PIN_UNDEFINED;
-int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK
+int pin_peripheralPowerControl = PIN_UNDEFINED; // EVK and Facet mosaic
+
+int pin_GnssEvent = PIN_UNDEFINED;   // Facet mosaic
+int pin_GnssOnOff = PIN_UNDEFINED;   // Facet mosaic
+int pin_chargerLED = PIN_UNDEFINED;  // Facet mosaic
+int pin_chargerLED2 = PIN_UNDEFINED; // Facet mosaic
+int pin_GnssReady = PIN_UNDEFINED;   // Facet mosaic
 
 int pin_loraRadio_reset = PIN_UNDEFINED;
 int pin_loraRadio_boot = PIN_UNDEFINED;
@@ -142,11 +157,12 @@ int pin_Ethernet_CS = PIN_UNDEFINED;
 int pin_Ethernet_Interrupt = PIN_UNDEFINED;
 int pin_GNSS_CS = PIN_UNDEFINED;
 int pin_GNSS_TimePulse = PIN_UNDEFINED;
+int pin_GNSS_Reset = PIN_UNDEFINED;
 
 // microSD card pins
-int pin_PICO = 23;
-int pin_POCI = 19;
-int pin_SCK = 18;
+int pin_PICO = PIN_UNDEFINED;
+int pin_POCI = PIN_UNDEFINED;
+int pin_SCK = PIN_UNDEFINED;
 int pin_microSD_CardDetect = PIN_UNDEFINED;
 int pin_microSD_CS = PIN_UNDEFINED;
 
@@ -160,13 +176,20 @@ int pin_I2C1_SCL = PIN_UNDEFINED;
 int pin_GnssUart_RX = PIN_UNDEFINED;
 int pin_GnssUart_TX = PIN_UNDEFINED;
 
-int pin_GnssLBandUart_RX = PIN_UNDEFINED;
-int pin_GnssLBandUart_TX = PIN_UNDEFINED;
+int pin_GnssUart2_RX = PIN_UNDEFINED;
+int pin_GnssUart2_TX = PIN_UNDEFINED;
 
 int pin_Cellular_RX = PIN_UNDEFINED;
 int pin_Cellular_TX = PIN_UNDEFINED;
 int pin_Cellular_PWR_ON = PIN_UNDEFINED;
 int pin_Cellular_Network_Indicator = PIN_UNDEFINED;
+int pin_Cellular_Reset = PIN_UNDEFINED;
+int pin_Cellular_RTS = PIN_UNDEFINED;
+int pin_Cellular_CTS = PIN_UNDEFINED;
+bool cellularModemResetLow = false;
+#define CELLULAR_MODEM_FC ESP_MODEM_FLOW_CONTROL_NONE
+uint8_t laraPwrLowValue;
+uint32_t laraTimer; // Backoff timer
 
 int pin_IMU_RX = PIN_UNDEFINED;
 int pin_IMU_TX = PIN_UNDEFINED;
@@ -175,6 +198,14 @@ int pin_GNSS_DR_Reset = PIN_UNDEFINED;
 int pin_powerAdapterDetect = PIN_UNDEFINED;
 int pin_usbSelect = PIN_UNDEFINED;
 int pin_beeper = PIN_UNDEFINED;
+
+int pin_gpioExpanderInterrupt = PIN_UNDEFINED;
+int gpioExpander_up = 0;
+int gpioExpander_down = 1;
+int gpioExpander_right = 2;
+int gpioExpander_left = 3;
+int gpioExpander_center = 4;
+int gpioExpander_cardDetect = 5;
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // I2C for GNSS, battery gauge, display
@@ -206,7 +237,7 @@ const int COMMON_COORDINATES_MAX_STATIONS = 50; // Record up to 50 ECEF and Geod
 
 // Handy library for setting ESP32 system time to GNSS time
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <ESP32Time.h> //http://librarymanager/All#ESP32Time by FBiego v2.0.0
+#include <ESP32Time.h> //http://librarymanager/All#ESP32Time by FBiego
 ESP32Time rtc;
 unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interval can be increased once sync'd.
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -217,12 +248,12 @@ unsigned long syncRTCInterval = 1000; // To begin, sync RTC every second. Interv
 
 void beginSPI(bool force = false); // Header
 
-#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman. Currently uses v2.1.1
+#include "SdFat.h" //http://librarymanager/All#sdfat_exfat by Bill Greiman.
 SdFat *sd;
 
 #define platformFilePrefix platformFilePrefixTable[productVariant] // Sets the prefix for logs and settings files
 
-SdFile *ubxFile;                  // File that all GNSS ubx messages sentences are written to
+SdFile *logFile;                  // File that all GNSS messages sentences are written to
 unsigned long lastUBXLogSyncTime; // Used to record to SD every half second
 int startLogTime_minutes;         // Mark when we start any logging so we can stop logging after maxLogTime_minutes
 int startCurrentLogTime_minutes;
@@ -267,16 +298,9 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 
 #define MQTT_CERT_SIZE 2000
 
-#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack v6.19.4
+#include <ArduinoJson.h> //http://librarymanager/All#Arduino_JSON_messagepack
 
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
-
-#define NETWORK_STOP(type)                                                                                             \
-    {                                                                                                                  \
-        if (settings.debugNetworkLayer)                                                                                \
-            systemPrintf("networkStop called by %s %d\r\n", __FILE__, __LINE__);                                       \
-        networkStop(type);                                                                                             \
-    }
 
 #ifdef COMPILE_WIFI
 #define WIFI_STOP()                                                                                                    \
@@ -310,6 +334,10 @@ char otaRcFirmwareJsonUrl[OTA_FIRMWARE_JSON_URL_LENGTH];
 bool apConfigFirmwareUpdateInProcess; // Goes true once WiFi is connected and OTA pull begins
 unsigned int binBytesSent;            // Tracks firmware bytes sent over WiFi OTA update via AP config.
 
+char otaReportedVersion[50];
+bool otaRequestFirmwareVersionCheck = false;
+bool otaRequestFirmwareUpdate = false;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // Connection settings to NTRIP Caster
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -326,66 +354,11 @@ int wifiOriginalMaxConnectionAttempts = wifiMaxConnectionAttempts; // Modified d
 
 // GNSS configuration - ZED-F9x
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_u-blox_GNSS_v3.h> //http://librarymanager/All#SparkFun_u-blox_GNSS_v3 v3.0.5
+#include "GNSS_ZED.h"
+
+GNSS *gnss;
 
 char neoFirmwareVersion[20]; // Output to system status menu.
-
-// Use Michael's lock/unlock methods to prevent the GNSS UART task from calling checkUblox during a sendCommand and
-// waitForResponse. Also prevents pushRawData from being called.
-class SFE_UBLOX_GNSS_SUPER_DERIVED : public SFE_UBLOX_GNSS_SUPER
-{
-  public:
-    // SemaphoreHandle_t gnssSemaphore = nullptr;
-
-    // Revert to a simple bool lock. The Mutex was causing occasional panics caused by
-    // vTaskPriorityDisinheritAfterTimeout in lock() (I think possibly / probably caused by the GNSS not being pinned to
-    // one core?
-    bool iAmLocked = false;
-
-    bool createLock(void)
-    {
-        // if (gnssSemaphore == nullptr)
-        //   gnssSemaphore = xSemaphoreCreateMutex();
-        // return gnssSemaphore;
-
-        return true;
-    }
-    bool lock(void)
-    {
-        // return (xSemaphoreTake(gnssSemaphore, 2100) == pdPASS);
-
-        if (!iAmLocked)
-        {
-            iAmLocked = true;
-            return true;
-        }
-
-        unsigned long startTime = millis();
-        while (((millis() - startTime) < 2100) && (iAmLocked))
-            delay(1); // Yield
-
-        if (!iAmLocked)
-        {
-            iAmLocked = true;
-            return true;
-        }
-
-        return false;
-    }
-    void unlock(void)
-    {
-        // xSemaphoreGive(gnssSemaphore);
-
-        iAmLocked = false;
-    }
-    void deleteLock(void)
-    {
-        // vSemaphoreDelete(gnssSemaphore);
-        // gnssSemaphore = nullptr;
-    }
-};
-
-SFE_UBLOX_GNSS_SUPER_DERIVED *theGNSS = nullptr; // Don't instantiate until we know what gnssPlatform we're on
 
 #ifdef COMPILE_L_BAND
 static SFE_UBLOX_GNSS_SUPER i2cLBand; // NEO-D9S
@@ -402,8 +375,6 @@ bool timTpUpdated;
 uint32_t timTpEpoch;
 uint32_t timTpMicros;
 
-uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
-
 unsigned long lastARPLog; // Time of the last ARP log event
 bool newARPAvailable;
 int64_t ARPECEFX; // ARP ECEF is 38-bit signed
@@ -419,30 +390,30 @@ bool usbSerialIncomingRtcm; // Incoming RTCM over the USB serial port
 #define RTCM_CORRECTION_INPUT_TIMEOUT (2 * 1000)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-// GNSS configuration - UM980
+// Extensible Message Parser
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#ifdef COMPILE_UM980
-#include <SparkFun_Unicore_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_Unicore_GNSS v1.0.3
-#else
-#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser v1.0.0
-#endif                                          // COMPILE_UM980
+#include <SparkFun_Extensible_Message_Parser.h> //http://librarymanager/All#SparkFun_Extensible_Message_Parser
+SEMP_PARSE_STATE *rtkParse = nullptr;
+SEMP_PARSE_STATE *sbfParse = nullptr;    // mosaic-X5
+SEMP_PARSE_STATE *spartnParse = nullptr; // mosaic-X5
+
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Share GNSS variables
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Note: GnssPlatform gnssPlatform has been replaced by present.gnss_zedf9p etc.
-char gnssFirmwareVersion[20];
+char gnssFirmwareVersion[21]; // mosaic-X5 could be 20 digits
 int gnssFirmwareVersionInt;
-char gnssUniqueId[20]; // um980 ID is 16 digits
+char gnssUniqueId[21]; // um980 ID is 16 digits. mosaic-X5 could be 20 digits
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Battery fuel gauge and PWM LEDs
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library v1.0.4
+#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h> //Click here to get the library: http://librarymanager/All#SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library
 SFE_MAX1704X lipo(MAX1704X_MAX17048);
 
 #ifdef COMPILE_BQ40Z50
-#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50 v1.0.0
+#include "SparkFun_BQ40Z50_Battery_Manager_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_BQ40Z50
 BQ40Z50 *bq40z50Battery;
 #endif // COMPILE_BQ40Z50
 
@@ -490,8 +461,9 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
-#include <driver/uart.h>    //Required for uart_set_rx_full_threshold() on cores <v2.0.5
-HardwareSerial *serialGNSS; // Don't instantiate until we know what gnssPlatform we're on
+#include <driver/uart.h>     //Required for uart_set_rx_full_threshold() on cores <v2.0.5
+HardwareSerial *serialGNSS;  // Don't instantiate until we know what gnssPlatform we're on
+HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
@@ -503,9 +475,10 @@ const int btReadTaskStackSize = 4000;
 RING_BUFFER_OFFSET *rbOffsetArray = nullptr;
 uint16_t rbOffsetEntries;
 
-uint8_t *ringBuffer; // Buffer for reading from F9P. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
+uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
                      // * 0.25 = 5760 bytes worst case.
-const int gnssReadTaskStackSize = 4000;
+const int gnssReadTaskStackSize = 8000;
+const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
 
 const int handleGnssDataTaskStackSize = 3000;
 
@@ -527,7 +500,7 @@ bool runCommandMode; // Goes true when user or remote app enters ---------- comm
 
 // External Display
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED v1.0.10
+#include <SparkFun_Qwiic_OLED.h>  //http://librarymanager/All#SparkFun_Qwiic_Graphic_OLED
 unsigned long minSplashFor = 100; // Display SparkFun Logo for at least 1/10 of a second
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -562,13 +535,14 @@ const int beepTaskUpdatesHz = 20; // Update Beep 20 times a second. Shortest dur
 
 // Buttons - Interrupt driven and debounce
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#include <JC_Button.h> //http://librarymanager/All#JC_Button v2.1.2
+#include <JC_Button.h> //http://librarymanager/All#JC_Button
 Button *userBtn;
 
 const uint8_t buttonCheckTaskPriority = 1; // 3 being the highest, and 0 being the lowest
 const int buttonTaskStackSize = 2000;
 
 const int shutDownButtonTime = 2000; // ms press and hold before shutdown
+bool firstButtonThrownOut = false;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Webserver for serving config page from ESP32 as Acess Point
@@ -661,14 +635,13 @@ volatile struct timeval ethernetNtpTv; // This will hold the time the Ethernet N
 bool ntpLogIncreasing;
 #endif // COMPILE_ETHERNET
 
-static bool eth_connected = false;
 unsigned long lastEthernetCheck; // Prevents cable checking from continually happening
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // IM19 Tilt Compensation
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_IM19_IMU
-#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU v1.0.0
+#include <SparkFun_IM19_IMU_Arduino_Library.h> //http://librarymanager/All#SparkFun_IM19_IMU
 IM19 *tiltSensor;
 HardwareSerial *SerialForTilt; // Don't instantiate until we know the tilt sensor exists
 unsigned long lastTiltCheck;   // Limits polling on IM19 to 1Hz
@@ -680,7 +653,7 @@ unsigned long lastTiltBeepMs;  // Emit a beep every 10s if tilt is active
 // PointPerfect Library (PPL)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #ifdef COMPILE_POINTPERFECT_LIBRARY
-#include "PPL_PublicInterface.h" // Private repo v1.11.4
+#include "PPL_PublicInterface.h" // Private repo
 #include "PPL_Version.h"
 
 TaskHandle_t updatePplTaskHandle;        // Store handles so that we can delete the task once the size is found
@@ -690,14 +663,35 @@ const int updatePplTaskStackSize = 3000;
 #endif // COMPILE_POINTPERFECT_LIBRARY
 
 bool pplNewRtcmNmea = false;
-bool pplNewSpartn = false;
+bool pplNewSpartnMqtt = false;  // MQTT
+bool pplNewSpartnLBand = false; // L-Band (mosaic-X5)
 uint8_t *pplRtcmBuffer = nullptr;
 
 bool pplAttemptedStart = false;
-bool pplGnssOutput = false;
+bool pplGnssOutput = false; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
 bool pplMqttCorrections = false;
 bool pplLBandCorrections = false;     // Raw L-Band - e.g. from mosaic X5
 unsigned long pplKeyExpirationMs = 0; // Milliseconds until the current PPL key expires
+
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+// I2C GPIO Expander for Directional Pad
+//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+#include <SparkFun_I2C_Expander_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_I2C_Expander_Arduino_Library
+
+SFE_PCA95XX io(PCA95XX_PCA9554); // Create a PCA9554, default address 0x20
+
+volatile bool gpioChanged = false; // Set by gpioExpanderISR
+uint8_t gpioExpander_previousState =
+    0b00011111; // Buttons start high, card detect starts low. Ignore unconnected GPIO6/7.
+unsigned long gpioExpander_holdStart[8] = {0};
+bool gpioExpander_wasReleased[8] = {false};
+uint8_t gpioExpander_lastReleased = 255;
+
+#define GPIO_EXPANDER_BUTTON_PRESSED 0
+#define GPIO_EXPANDER_BUTTON_RELEASED 1
+#define GPIO_EXPANDER_CARD_INSERTED 1
+#define GPIO_EXPANDER_CARD_REMOVED 0
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -758,16 +752,20 @@ unsigned long splashStart; // Controls how long the splash is displayed for. Cur
 bool restartBase;          // If the user modifies any NTRIP Server settings, we need to restart the base
 bool restartRover; // If the user modifies any NTRIP Client or PointPerfect settings, we need to restart the rover
 
-unsigned long startTime;             // Used for checking longest-running functions
-bool lbandCorrectionsReceived;       // Used to display L-Band SIV icon when corrections are successfully decrypted
-unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message
+unsigned long startTime;       // Used for checking longest-running functions
+bool lbandCorrectionsReceived; // Used to display L-Band SIV icon when corrections are successfully decrypted (NEO-D9S
+                               // only)
+unsigned long lastLBandDecryption;   // Timestamp of last successfully decrypted PMP message from NEO-D9S
 volatile bool mqttMessageReceived;   // Goes true when the subscribed MQTT channel reports back
-uint8_t leapSeconds;                 // Gets set if GNSS is online
 unsigned long systemTestDisplayTime; // Timestamp for swapping the graphic during testing
 uint8_t systemTestDisplayNumber;     // Tracks which test screen we're looking at
 unsigned long rtcWaitTime; // At power on, we give the RTC a few seconds to update during PointPerfect Key checking
 
 uint8_t zedCorrectionsSource = 2; // Store which UBLOX_CFG_SPARTN_USE_SOURCE was used last. Initialize to 2 - invalid
+
+bool spartnCorrectionsReceived =
+    false; // Used to display L-Band SIV icon when L-Band SPARTN corrections are received by mosaic-X5
+unsigned long lastSpartnReception = 0; // Timestamp of last SPARTN reception
 
 TaskHandle_t idleTaskHandle[MAX_CPU_CORES];
 uint32_t max_idle_count = MAX_IDLE_TIME_COUNT;
@@ -801,8 +799,6 @@ volatile PeriodicDisplay_t periodicDisplay;
 
 unsigned long shutdownNoChargeTimer;
 
-unsigned long um980BaseStartTimer; // Tracks how long the base averaging mode has been running
-
 RtkMode_t rtkMode; // Mode of operation
 
 unsigned long beepLengthMs;      // Number of ms to make noise
@@ -812,19 +808,20 @@ unsigned long beepCount;         // Number of beeps to do
 
 unsigned long lastMqttToPpl = 0;
 unsigned long lastGnssToPpl = 0;
+unsigned long lastSpartnToPpl = 0;
 
 // Command processing
 int commandCount;
 int16_t *commandIndex;
 
-bool usbSerialIsSelected = true; //Goes false when switch U18 is moved from CH34x to LoRa
-unsigned long loraLastIncomingSerial; //Last time a user sent a serial command. Used in LoRa timeouts.
+bool usbSerialIsSelected = true;      // Goes false when switch U18 is moved from CH34x to LoRa
+unsigned long loraLastIncomingSerial; // Last time a user sent a serial command. Used in LoRa timeouts.
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 41
+#define MAX_BOOT_TIME_ENTRIES 42
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1043,9 +1040,9 @@ void setup()
     if (checkUpdateLoraFirmware() == true) // Check if updateLoraFirmware.txt exists
         beginLoraFirmwareUpdate();
 
-    DMW_b("checkUpdateUm980Firmware");
-    if (checkUpdateUm980Firmware() == true) // Check if updateLoraFirmware.txt exists
-        beginUm980FirmwareUpdate();
+    DMW_b("um980FirmwareCheckUpdate");
+    if (um980FirmwareCheckUpdate() == true) // Check if updateUm980Firmware.txt exists
+        um980FirmwareBeginUpdate();
 
     DMW_b("checkConfigureViaEthernet");
     configureViaEthernet =
@@ -1073,11 +1070,14 @@ void setup()
     beginGnssUart(); // Requires settings. Start the UART connected to the GNSS receiver on core 0. Start before
                      // gnssBegin in case it is needed (Torch).
 
-    DMW_b("gnssBegin");
-    gnssBegin(); // Requires settings. Connect to GNSS to get module type
+    DMW_b("beginGnssUart2");
+    beginGnssUart2();
 
     DMW_b("displaySplash");
     displaySplash(); // Display the RTK product name and firmware version
+
+    DMW_b("gnss->begin");
+    gnss->begin(); // Requires settings. Connect to GNSS to get module type
 
     DMW_b("beginSD");
     beginSD(); // Requires settings. Test if SD is present
@@ -1096,23 +1096,26 @@ void setup()
     DMW_b("beginIdleTasks");
     beginIdleTasks(); // Requires settings. Enable processor load calculations
 
+    DMW_b("networkBegin");
+    networkBegin();
+
     DMW_b("beginFuelGauge");
     beginFuelGauge(); // Configure battery fuel guage monitor
 
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger
 
-    DMW_b("gnssConfigure");
-    gnssConfigure(); // Requires settings. Configure GNSS module
+    DMW_b("gnss->configure");
+    gnss->configure(); // Requires settings. Configure GNSS module
 
     DMW_b("beginLBand");
     beginLBand(); // Begin L-Band
 
     DMW_b("beginExternalEvent");
-    gnssBeginExternalEvent(); // Configure the event input
+    gnss->beginExternalEvent(); // Configure the event input
 
     DMW_b("beginPPS");
-    gnssBeginPPS(); // Configure the time pulse output
+    gnss->beginPPS(); // Configure the time pulse output
 
     DMW_b("beginInterrupts");
     beginInterrupts(); // Begin the TP interrupts
@@ -1189,7 +1192,11 @@ void setup()
 
     // If necessary, switch to sending GNSS data out the USB serial port
     // to the PC
-    forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
+    //
+    // The mosaic-X5 has separate USB COM ports. NMEA and RTCM will be output on USB1 if
+    // settings.enableGnssToUsbSerial is true. forwardGnssDataToUsbSerial is never set true.
+    if (!present.gnss_mosaicX5)
+        forwardGnssDataToUsbSerial = settings.enableGnssToUsbSerial;
 }
 
 void loop()
@@ -1197,8 +1204,8 @@ void loop()
     DMW_c("periodicDisplay");
     updatePeriodicDisplay();
 
-    DMW_c("gnssUpdate");
-    gnssUpdate();
+    DMW_c("gnss->update");
+    gnss->update();
 
     DMW_c("stateUpdate");
     stateUpdate();
@@ -1211,6 +1218,9 @@ void loop()
 
     DMW_c("rtcUpdate");
     rtcUpdate(); // Set system time to GNSS once we have fix
+
+    DMW_c("bluetoothUpdate");
+    bluetoothUpdate(); // Check for BLE connections
 
     DMW_c("sdUpdate");
     sdUpdate(); // Check if SD needs to be started or is at max capacity
@@ -1246,7 +1256,7 @@ void loop()
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
     DMW_c("otaAutoUpdate");
-    otaAutoUpdate();
+    otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air updates
 
     DMW_c("correctionUpdateSource");
     correctionUpdateSource(); // Retire expired sources
@@ -1268,6 +1278,9 @@ void loopDelay()
 // Push new data to log as needed
 void logUpdate()
 {
+    static bool blockLogging =
+        false; // Used to prevent circular attempts to create a log file when previous attempts have failed
+
     // Convert current system time to minutes. This is used in gnssSerialReadTask()/updateLogs() to see if we are within
     // max log window.
     systemTime_minutes = millis() / 1000L / 60;
@@ -1282,9 +1295,14 @@ void logUpdate()
     if (outOfSDSpace == true)
         return; // We can't log if we are out of SD space
 
-    if (online.logging == false && settings.enableLogging == true)
+    if (online.logging == false && settings.enableLogging == true && blockLogging == false)
     {
-        beginLogging();
+        if (beginLogging() == false)
+        {
+            // Failed to create file, block future logging attempts
+            blockLogging = true;
+            return;
+        }
 
         setLoggingType(); // Determine if we are standard, PPP, or custom. Changes logging icon accordingly.
     }
@@ -1323,7 +1341,7 @@ void logUpdate()
             {
                 markSemaphore(FUNCTION_EVENT);
 
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 xSemaphoreGive(sdCardSemaphore);
                 newEventToRecord = false;
@@ -1369,7 +1387,7 @@ void logUpdate()
             {
                 markSemaphore(FUNCTION_EVENT);
 
-                ubxFile->println(nmeaMessage);
+                logFile->println(nmeaMessage);
 
                 xSemaphoreGive(sdCardSemaphore);
                 newEventToRecord = false;
@@ -1436,21 +1454,21 @@ void rtcUpdate()
             {
                 lastRTCAttempt = millis();
 
-                // gnssUpdate() is called in loop() but rtcUpdate
+                // gnss->update() is called in loop() but rtcUpdate
                 // can also be called during begin. To be safe, check for fresh PVT data here.
-                gnssUpdate();
+                gnss->update();
 
                 bool timeValid = false;
 
-                if (gnssIsValidTime() == true &&
-                    gnssIsValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
+                if (gnss->isValidTime() == true &&
+                    gnss->isValidDate() == true) // Will pass if ZED's RTC is reporting (regardless of GNSS fix)
                     timeValid = true;
 
-                if (gnssIsConfirmedTime() == true && gnssIsConfirmedDate() == true) // Requires GNSS fix
+                if (gnss->isConfirmedTime() == true && gnss->isConfirmedDate() == true) // Requires GNSS fix
                     timeValid = true;
 
                 if (timeValid &&
-                    (gnssGetFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
+                    (gnss->getFixAgeMilliseconds() > 999)) // If the GNSS time is over a second old, don't use it
                     timeValid = false;
 
                 if (timeValid == true)

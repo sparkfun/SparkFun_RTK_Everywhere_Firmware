@@ -10,14 +10,12 @@
 //----------------------------------------
 
 void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
-void ethernetBegin() {}
-IPAddress ethernetGetIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress ethernetGetSubnetMask() {return IPAddress((uint32_t)0);}
-void ethernetUpdate() {}
 void ethernetVerifyTables() {}
 
 void ethernetWebServerStartESP32W5500() {}
 void ethernetWebServerStopESP32W5500() {}
+
+bool ntpLogIncreasing = false;
 
 //----------------------------------------
 // NTP: Network Time Protocol
@@ -38,15 +36,22 @@ void ntpServerStop() {}
 //----------------------------------------
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
+void networkBegin() {}
+IPAddress networkGetIpAddress() {return("0.0.0.0");}
+const uint8_t * networkGetMacAddress() 
+{
+    static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
+#ifdef COMPILE_BT
+    if (bluetoothGetState() != BT_OFF)
+        return btMACAddress;
+#endif
+    return zero;
+  }
+bool networkIsOnline() {return false;}
+void networkMarkOffline(NetIndex_t index) {}
+void networkMarkOnline(NetIndex_t index) {}
 void networkUpdate() {}
 void networkVerifyTables() {}
-void networkStop(uint8_t networkType) {}
-NETWORK_DATA * networkGetUserNetwork(NETWORK_USER user){return nullptr;}
-void networkUserClose(uint8_t user) {}
-uint8_t networkGetActiveType() {return (0);}
-uint8_t networkGetType() {return (0);};
-IPAddress networkGetIpAddress(uint8_t networkType) {return("0.0.0.0");}
-bool networkCanConnect() {return(false);}
 
 //----------------------------------------
 // NTRIP client
@@ -56,7 +61,6 @@ void ntripClientPrintStatus() {systemPrintln("**NTRIP Client not compiled**");}
 void ntripClientStop(bool clientAllocated) {online.ntripClient = false;}
 void ntripClientUpdate() {}
 void ntripClientValidateTables() {}
-void pushGPGGA(NMEA_GGA_data_t *nmeaData) {}
 
 //----------------------------------------
 // NTRIP server
@@ -82,6 +86,15 @@ void tcpClientZeroTail() {}
 void discardTcpClientBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
 
 //----------------------------------------
+// TCP server
+//----------------------------------------
+
+int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
+void tcpServerZeroTail() {}
+void tcpServerValidateTables() {}
+void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
+
+//----------------------------------------
 // UDP server
 //----------------------------------------
 
@@ -100,8 +113,9 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 #ifndef COMPILE_OTA_AUTO
 
 void otaAutoUpdate() {}
-void otaAutoUpdateStop() {}
+void otaUpdateStop() {}
 void otaVerifyTables() {}
+void otaUpdate() {}
 
 #endif  // COMPILE_OTA_AUTO
 
@@ -150,37 +164,15 @@ void sendStringToWebsocket(const char* stringToSend) {}
 #ifndef COMPILE_WIFI
 
 //----------------------------------------
-// TCP server
-//----------------------------------------
-
-int32_t tcpServerSendData(uint16_t dataHead) {return 0;}
-void tcpServerStop() {}
-void tcpServerUpdate() {}
-void tcpServerZeroTail() {}
-void tcpServerValidateTables() {}
-void discardTcpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET newTail) {}
-
-//----------------------------------------
 // WiFi
 //----------------------------------------
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiConnect(unsigned long timeout) {return false;}
 bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
-IPAddress wifiGetGatewayIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress wifiGetIpAddress() {return IPAddress((uint32_t)0);}
-IPAddress wifiGetSubnetMask() {return IPAddress((uint32_t)0);}
-int wifiGetRssi() {return -999;}
-String wifiGetSsid() {return "**WiFi Not compiled**";}
-bool wifiIsConnected() {return false;}
-bool wifiIsNeeded() {return false;}
 int wifiNetworkCount() {return 0;}
-void wifiPrintNetworkInfo() {}
+bool wifiIsRunning() {return false;}
+void wifiRestart() {}
 void wifiSetApMode() {}
-void wifiStart() {}
-void wifiStop() {}
-void wifiUpdate() {}
-void wifiShutdown() {}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI
@@ -207,61 +199,23 @@ void tiltRequestStop() {}
 
 #ifndef  COMPILE_UM980
 
-bool     um980BaseAverageStart() {return false;}
-void     um980Begin() {systemPrintln("**UM980 not compiled**");}
-bool     um980Configure() {return false;}
-bool     um980ConfigureBase() {return false;}
-bool     um980ConfigureRover() {return false;}
-void     um980DisableDebugging() {}
-void     um980EnableDebugging() {}
-void     um980FactoryReset() {}
-uint16_t um980FixAgeMilliseconds() {return 65000;}
-bool     um980FixedBaseStart() {return false;}
-double   um980GetAltitude() {return 0;}
-uint8_t  um980GetDay() {return 0;}
-int      um980GetHorizontalAccuracy() {return false;}
-uint8_t  um980GetHour() {return 0;}
-double   um980GetLatitude() {return 0;}
-double   um980GetLongitude() {return 0;}
-uint8_t  um980GetMillisecond() {return 0;}
-uint8_t  um980GetMinute() {return 0;}
-uint8_t  um980GetMonth() {return 0;}
-uint8_t  um980GetPositionType() {return 0;}
-uint8_t  um980GetSatellitesInView() {return 0;}
-uint8_t  um980GetSecond() {return 0;}
-uint8_t  um980GetSolutionStatus() {return 0;}
-uint32_t um980GetTimeDeviation() {return 0;}
-uint16_t um980GetYear() {return 0;}
-bool     um980IsFullyResolved() {return false;}
-bool     um980IsValidDate() {return false;}
-bool     um980IsValidTime() {return false;}
-void     um980PrintInfo() {}
-int      um980PushRawData(uint8_t *dataToSend, int dataLength) {return 0;}
-bool     um980SaveConfiguration() {return false;}
-bool     um980SetBaudRateCOM3(uint32_t baudRate) {return false;}
-bool     um980SetConstellations() {return false;}
-void     um980SetMinCNO(uint8_t cnoValue) {}
-void     um980SetMinElevation(uint8_t elevationDegrees) {}
-void     um980SetModel(uint8_t modelNumber) {}
-bool     um980SetModeRoverSurvey() {return false;}
-bool     um980SetRate(double secondsBetweenSolutions) {return false;}
-void     um980UnicoreHandler(uint8_t * buffer, int length) {}
-char*    um980GetId() {return ((char*)"No compiled");}
-void     um980Boot() {}
-void     um980Reset() {}
-uint8_t  um980GetLeapSeconds() {return (0);}
-bool     um980IsBlocking() {return(false);}
-uint8_t  um980GetActiveMessageCount() {return(0);}
-void     um980MenuMessages(){}
-void     um980BaseRtcmDefault(){}
-void     um980BaseRtcmLowDataRate(){}
-char *   um980GetRtcmDefaultString() {return ((char*)"Not compiled");}
-char *   um980GetRtcmLowDataRateString() {return ((char*)"Not compiled");}
-void     um980MenuConstellations(){}
-double   um980GetRateS() {return(0.0);}
-void     um980MenuMessagesSubtype(float *localMessageRate, const char *messageType){}
+void um980UnicoreHandler(uint8_t * buffer, int length) {}
 
 #endif  // COMPILE_UM980
+
+//----------------------------------------
+// mosaic-X5
+//----------------------------------------
+
+#ifndef  COMPILE_MOSAICX5
+
+void mosaicVerifyTables() {}
+void nmeaExtractStdDeviations(char *nmeaSentence, int arraySize) {}
+void processNonSBFData(SEMP_PARSE_STATE *parse) {}
+void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type) {}
+void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type) {}
+
+#endif  // COMPILE_MOSAICX5
 
 //----------------------------------------
 // PointPerfect Library
@@ -273,6 +227,43 @@ void beginPPL() {systemPrintln("**PPL Not Compiled**");}
 void updatePPL() {}
 bool sendGnssToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
+bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes) {return false;}
 void pointperfectPrintKeyInformation() {systemPrintln("**PPL Not Compiled**");}
 
 #endif  // COMPILE_POINTPERFECT_LIBRARY
+
+//----------------------------------------
+// LG290P
+//----------------------------------------
+
+#ifndef COMPILE_LG290P
+
+void lg290pHandler(uint8_t * buffer, int length) {}
+
+#endif // COMPILE_LG290P
+
+//----------------------------------------
+// ZED-F9x
+//----------------------------------------
+
+#ifndef COMPILE_ZED
+
+// MON HW Antenna Status
+enum sfe_ublox_antenna_status_e
+{
+  SFE_UBLOX_ANTENNA_STATUS_INIT,
+  SFE_UBLOX_ANTENNA_STATUS_DONTKNOW,
+  SFE_UBLOX_ANTENNA_STATUS_OK,
+  SFE_UBLOX_ANTENNA_STATUS_SHORT,
+  SFE_UBLOX_ANTENNA_STATUS_OPEN
+};
+
+uint8_t aStatus = SFE_UBLOX_ANTENNA_STATUS_DONTKNOW;
+
+// void checkRXMCOR() {}
+// void pushRXMPMP() {}
+void convertGnssTimeToEpoch(uint32_t *epochSecs, uint32_t *epochMicros) {
+    systemPrintln("**Epoch not compiled** ZED not included so time will be invalid");
+}
+
+#endif // COMPILE_ZED

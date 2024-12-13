@@ -19,12 +19,14 @@ void updatePplTask(void *e)
             systemPrintln("UpdatePplTask running");
         }
 
-        if (pplNewRtcmNmea || pplNewSpartn) // Decide when to call PPL_GetRTCMOutput
+        if (pplNewRtcmNmea || pplNewSpartnMqtt || pplNewSpartnMqtt) // Decide when to call PPL_GetRTCMOutput
         {
             if (pplNewRtcmNmea)
                 pplNewRtcmNmea = false;
-            if (pplNewSpartn)
-                pplNewSpartn = false;
+            if (pplNewSpartnMqtt)
+                pplNewSpartnMqtt = false;
+            if (pplNewSpartnLBand)
+                pplNewSpartnLBand = false;
 
             uint32_t rtcmLength;
 
@@ -36,18 +38,25 @@ void updatePplTask(void *e)
                 {
                     if (correctionLastSeen(pplCorrectionsSource))
                     {
-                        // Set ZED SOURCE to 1 (L-Band) if needed
-                        // Note: this is almost certainly redundant. It would only be used if we
-                        // believe the PPL can do a better job generating corrections than the
-                        // ZED can internally using SPARTN direct.
-                        updateZEDCorrectionsSource(1);
+                        if (present.gnss_zedf9p)
+                        {
+                            // Set ZED SOURCE to 1 (L-Band) if needed
+                            // Note: this is almost certainly redundant. It would only be used if we
+                            // believe the PPL can do a better job generating corrections than the
+                            // ZED can internally using SPARTN direct.
+#ifdef COMPILE_ZED
+                            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+                            zed->updateCorrectionsSource(1);
+#endif // COMPILE_ZED
+                        }
 
-                        gnssPushRawData(pplRtcmBuffer, rtcmLength);
+                        gnss->pushRawData(pplRtcmBuffer, rtcmLength);
 
                         if (settings.debugCorrections == true && !inMainMenu)
-                            systemPrintf("Received %d RTCM bytes from PPL. Pushing to the GNSS.\r\n", rtcmLength);
-                        else if (!inMainMenu)
-                            systemPrintln("PointPerfect corrections sent to GNSS.");
+                            systemPrintf("Received %d RTCM bytes from PPL. Pushed to the GNSS.\r\n", rtcmLength);
+                        // Do we need to see this? I vote no...
+                        // else if (!inMainMenu)
+                        //    systemPrintln("PointPerfect corrections sent to GNSS.");
                     }
                     else
                     {
@@ -148,7 +157,12 @@ void beginPPL()
 
     bool successfulInit = true;
 
-    ePPL_ReturnStatus result = PPL_Initialize(PPL_CFG_DEFAULT_CFG); // IP and L-Band support
+    uint32_t pplConfigOptionsMask;
+    if (present.gnss_mosaicX5)
+        pplConfigOptionsMask = PPL_CFG_ENABLE_AUX_CHANNEL; // auxiliary channel support
+    else
+        pplConfigOptionsMask = PPL_CFG_DEFAULT_CFG; // IP and L-Band support
+    ePPL_ReturnStatus result = PPL_Initialize(pplConfigOptionsMask);
 
     if (result != ePPL_Success)
     {
@@ -225,14 +239,14 @@ void updatePPL()
 
     static unsigned long pplTime3dFixStarted;
 
-    if (online.ppl == false && settings.enablePointPerfectCorrections && gnssIsFixed())
+    if ((online.ppl == false) && (settings.enablePointPerfectCorrections) && (gnss->isFixed()))
     {
         // Start PPL only after GNSS is outputting appropriate NMEA+RTCM, we have a key, and the MQTT broker is
-        // connected. Don't restart the PPL if we've already tried
+        // connected or L-Band SPARTN is being received. Don't restart the PPL if we've already tried.
         if (pplAttemptedStart == false)
         {
             if ((strlen(settings.pointPerfectCurrentKey) > 0) && (pplGnssOutput == true) &&
-                (pplMqttCorrections == true))
+                ((pplMqttCorrections == true) || (pplLBandCorrections == true)))
             {
                 pplAttemptedStart = true;
 
@@ -248,7 +262,7 @@ void updatePPL()
             {
                 pplReport = millis();
 
-                if (gnssIsRTKFloat() && pplTimeFloatStarted > 0)
+                if (gnss->isRTKFloat() && pplTimeFloatStarted > 0)
                 {
                     systemPrintf("GNSS restarts: %d Time remaining before Float lock forced restart: %ds\r\n",
                                  floatLockRestarts,
@@ -256,14 +270,21 @@ void updatePPL()
                 }
 
                 // Report which data source may be fouling the RTCM generation from the PPL
-                if ((millis() - lastMqttToPpl) > 5000)
-                    systemPrintln("PPL MQTT Data is stale");
+                // SPARTN correction data can be coming from MQTT (IP) or mosaic-X5 L-Band
+                // (NEO-D9S L-Band SPARTN goes straight to the ZED-F9P, not via the PPL)
+                // For Torch, we get GNSS + MQTT
+                // For mosaic-X5, we get GNSS + L-Band SPARTN
+                // Only print the MQTT / SPARTN stale messages if corrections have been received at least once
                 if ((millis() - lastGnssToPpl) > 5000)
                     systemPrintln("PPL GNSS Data is stale");
+                if ((lastMqttToPpl > 0) && ((millis() - lastMqttToPpl) > 5000))
+                    systemPrintln("PPL MQTT Data is stale");
+                if ((lastSpartnToPpl > 0) && ((millis() - lastSpartnToPpl) > 5000))
+                    systemPrintln("PPL SPARTN Data is stale");
             }
         }
 
-        if (gnssIsRTKFloat())
+        if (gnss->isRTKFloat())
         {
             if (pplTimeFloatStarted == 0)
                 pplTimeFloatStarted = millis();
@@ -285,7 +306,7 @@ void updatePPL()
                 }
             }
         }
-        else if (gnssIsRTKFix())
+        else if (gnss->isRTKFix())
         {
             if (pplTimeFloatStarted != 0)
                 pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted
@@ -305,7 +326,7 @@ void updatePPL()
         {
             // We are not in RTK Float or RTK Fix
 
-            if (gnssIsFixed() == false)
+            if (gnss->isFixed() == false)
                 pplTimeFloatStarted = 0; // Reset pplTimeFloatStarted if we loose a 3D fix entirely
         }
     }
@@ -396,6 +417,8 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
+        if(settings.debugCorrections & !inMainMenu)
+            systemPrintln("sendGnssToPpl available");
         pplGnssOutput = true; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
     }
 
@@ -412,7 +435,7 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
         ePPL_ReturnStatus result = PPL_SendSpartn(buffer, numDataBytes);
         if (result != ePPL_Success)
         {
-            if (settings.debugCorrections == true)
+            if ((settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ERROR PPL_SendSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
@@ -421,6 +444,8 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
+        if(settings.debugCorrections & !inMainMenu)
+            systemPrintln("pplMqttCorrections available");
         pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
     }
 
@@ -428,6 +453,11 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
 }
 
 // Send raw L-Band Spartn packets from mosaic X5 to PPL
+// Note: for the mosaic-X5 we are parsing SPARTN from the raw L-Band stream.
+//   Because the SPARTN is parsed and validated, we should (probably) be using
+//   PPL_SendSpartn instead of PPL_SendAuxSpartn.
+//   Or, we could disable spartnParse and instead pass the unprocessed raw
+//   L-Band bytes using PPL_SendAuxSpartn.
 bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
 {
     if (online.ppl == true)
@@ -437,11 +467,11 @@ bool sendAuxSpartnToPpl(uint8_t *buffer, int numDataBytes)
         ePPL_ReturnStatus result = PPL_SendAuxSpartn(buffer, numDataBytes);
         if (result != ePPL_Success)
         {
-            if (settings.debugCorrections == true)
+            if ((settings.debugCorrections == true) && !inMainMenu)
                 systemPrintf("ERROR PPL_SendAuxSpartn: %s\r\n", PPLReturnStatusToStr(result));
             return false;
         }
-        lastMqttToPpl = millis();
+        lastSpartnToPpl = millis();
         return true;
     }
     else

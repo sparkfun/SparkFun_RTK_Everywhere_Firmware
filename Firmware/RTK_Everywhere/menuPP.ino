@@ -21,14 +21,9 @@ static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Toke
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_NETWORK
+static NetPriority_t pointperfectPriority = NETWORK_OFFLINE;
 MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
-
-//----------------------------------------
-// Forward declarations - compiled out
-//----------------------------------------
-
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct);
 
 //----------------------------------------
 // L-Band Routines - compiled out
@@ -301,16 +296,16 @@ void pointperfectGetToken(char *tokenString)
     // Convert uint8_t array into string with dashes in spots
     // We must assume u-blox will not change the position of their dashes or length of their token
 
-    if (productVariant == RTK_EVK)
+    if (productVariant == RTK_EVK) // EVK
     {
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandIpToken, sizeof(ppLbandIpToken));
     }
-    else if (present.gnss_mosaicX5 == false && present.lband_neo == false)
+    else if (present.gnss_mosaicX5 == false && present.lband_neo == false) // Torch, Facet v2
     {
         // If the hardware lacks L-Band capability, use IP token
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppIpToken, sizeof(ppIpToken));
     }
-    else if (present.gnss_mosaicX5 == true || present.lband_neo == true)
+    else if (present.gnss_mosaicX5 == true || present.lband_neo == true) // Facet mosaic, Facet v2 L-Band
     {
         // If the hardware is L-Band capable, use L-Band token
         pointperfectCreateTokenString(tokenString, (uint8_t *)ppLbandToken, sizeof(ppLbandToken));
@@ -581,7 +576,7 @@ long long thingstreamEpochToGPSEpoch(long long startEpoch)
     epoch /= 1000; // Convert PointPerfect ms Epoch to s
 
     // Convert Unix Epoch time from PointPerfect to GPS Time Of Week needed for UBX message
-    long long gpsEpoch = epoch - 315964800 + gnssGetLeapSeconds(); // Shift to GPS Epoch.
+    long long gpsEpoch = epoch - 315964800 + gnss->getLeapSeconds(); // Shift to GPS Epoch.
     return (gpsEpoch);
 }
 
@@ -652,7 +647,7 @@ void dateToKeyStart(uint8_t expDay, uint8_t expMonth, uint16_t expYear, uint64_t
     long long startUnixEpoch = expireUnixEpoch - (27 * 24 * 60 * 60); // Move back 27 days
 
     // Additionally, Thingstream seems to be reporting Epochs that do not have leap seconds
-    startUnixEpoch -= gnssGetLeapSeconds(); // Modify our Epoch to match Point Perfect
+    startUnixEpoch -= gnss->getLeapSeconds(); // Modify our Epoch to match Point Perfect
 
     // PointPerfect uses/reports unix epochs in milliseconds
     *settingsKeyStart = startUnixEpoch * 1000L; // Convert to ms
@@ -720,53 +715,13 @@ long gpsToMjd(long GpsCycle, long GpsWeek, long GpsSeconds)
     return dateToMjd(1980, 1, 6) + GpsDays;
 }
 
-// When new PMP message arrives from NEO-D9S push it back to ZED-F9P
-void pushRXMPMP(UBX_RXM_PMP_message_data_t *pmpData)
-{
-    uint16_t payloadLen = ((uint16_t)pmpData->lengthMSB << 8) | (uint16_t)pmpData->lengthLSB;
-
-    if (correctionLastSeen(CORR_LBAND))
-    {
-        updateZEDCorrectionsSource(1); // Set SOURCE to 1 (L-Band) if needed
-
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintf("Pushing %d bytes of RXM-PMP data to GNSS\r\n", payloadLen);
-
-        gnssPushRawData(&pmpData->sync1, (size_t)payloadLen + 6); // Push the sync chars, class, ID, length and payload
-        gnssPushRawData(&pmpData->checksumA, (size_t)2);          // Push the checksum bytes
-    }
-    else
-    {
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintf("NOT pushing %d bytes of RXM-PMP data to GNSS due to priority\r\n", payloadLen);
-    }
-}
-
-// Check if the PMP data is being decrypted successfully
-void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
-{
-    if (settings.debugCorrections == true && !inMainMenu && zedCorrectionsSource == 1) // Only print for L-Band
-        systemPrintf("L-Band Eb/N0[dB] (>9 is good): %0.2f\r\n", ubxDataStruct->ebno * pow(2, -3));
-
-    lBandEBNO = ubxDataStruct->ebno * pow(2, -3);
-
-    if (ubxDataStruct->statusInfo.bits.msgDecrypted == 2) // Successfully decrypted
-    {
-        lbandCorrectionsReceived = true;
-        lastLBandDecryption = millis();
-    }
-    else
-    {
-        if (settings.debugCorrections == true && !inMainMenu)
-            systemPrintln("PMP decryption failed");
-    }
-}
-
 //----------------------------------------
 // Global L-Band Routines
 //----------------------------------------
 
+// Begin any L-Band hardware
 // Check if NEO-D9S is connected. Configure if available.
+// If GNSS is mosaic-X5, configure LBandBeam1
 void beginLBand()
 {
     // Skip if going into configure-via-ethernet mode
@@ -778,100 +733,165 @@ void beginLBand()
     }
 
 #ifdef COMPILE_L_BAND
-    if (present.lband_neo == false)
-        return;
-
-    if (i2cLBand.begin(*i2c_0, 0x43) ==
-        false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
+    if (present.lband_neo)
     {
-        if (settings.debugCorrections == true)
-            systemPrintln("L-Band not detected");
-        return;
-    }
-
-    // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
-    if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
-    {
-        // Reconstruct the firmware version
-        snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
-                 i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
-
-        printNEOInfo(); // Print module firmware version
-    }
-
-    gnssUpdate();
-
-    uint32_t LBandFreq;
-    uint8_t fixType = gnssGetFixType();
-    double latitude = gnssGetLatitude();
-    double longitude = gnssGetLongitude();
-    // If we have a fix, check which frequency to use
-    if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
-    {
-        int r = 0; // Step through each geographic region
-        for (; r < numRegionalAreas; r++)
+        if (i2cLBand.begin(*i2c_0, 0x43) ==
+            false) // Connect to the u-blox NEO-D9S using Wire port. The D9S default I2C address is 0x43 (not 0x42)
         {
-            if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
-                (longitude <= Regional_Information_Table[r].area.lonEast) &&
-                (latitude >= Regional_Information_Table[r].area.latSouth) &&
-                (latitude <= Regional_Information_Table[r].area.latNorth))
+            if (settings.debugCorrections == true)
+                systemPrintln("L-Band not detected");
+            return;
+        }
+
+        // Check the firmware version of the NEO-D9S. Based on Example21_ModuleInfo.
+        if (i2cLBand.getModuleInfo(1100) == true) // Try to get the module info
+        {
+            // Reconstruct the firmware version
+            snprintf(neoFirmwareVersion, sizeof(neoFirmwareVersion), "%s %d.%02d", i2cLBand.getFirmwareType(),
+                     i2cLBand.getFirmwareVersionHigh(), i2cLBand.getFirmwareVersionLow());
+
+            printNEOInfo(); // Print module firmware version
+        }
+
+        gnss->update();
+
+        uint32_t LBandFreq;
+        uint8_t fixType = gnss->getFixType();
+        double latitude = gnss->getLatitude();
+        double longitude = gnss->getLongitude();
+        // If we have a fix, check which frequency to use
+        if (fixType >= 2 && fixType <= 5) // 2D, 3D, 3D+DR, or Time
+        {
+            int r = 0; // Step through each geographic region
+            for (; r < numRegionalAreas; r++)
             {
-                LBandFreq = Regional_Information_Table[r].frequency;
+                if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                    (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                    (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                    (latitude <= Regional_Information_Table[r].area.latNorth))
+                {
+                    LBandFreq = Regional_Information_Table[r].frequency;
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
+                                     LBandFreq);
+                    break;
+                }
+            }
+            if (r == numRegionalAreas) // Geographic region not found
+            {
+                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
                 if (settings.debugCorrections == true)
-                    systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
-                                 LBandFreq);
-                break;
+                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
             }
         }
-        if (r == numRegionalAreas) // Geographic region not found
+        else
         {
             LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
             if (settings.debugCorrections == true)
-                systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
                              Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
         }
-    }
-    else
-    {
-        LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+
+        bool response = true;
+        response &= i2cLBand.newCfgValset();
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
+        response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
+        response &=
+            i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Diasable UBX-RXM-PMP on UART1. Not used.
+
+        response &= i2cLBand.sendCfgValset();
+
+        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+        response &= zed->lBandCommunicationEnable();
+
+        if (response == false)
+            systemPrintln("L-Band failed to configure");
+
+        i2cLBand.softwareResetGNSSOnly(); // Do a restart
+
         if (settings.debugCorrections == true)
-            systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
-                         Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            systemPrintln("L-Band online");
+
+        gnss->applyPointPerfectKeys(); // Apply keys now, if we have them. This sets online.lbandCorrections
+
+        online.lband_neo = true;
     }
-
-    bool response = true;
-    response &= i2cLBand.newCfgValset();
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_CENTER_FREQUENCY, LBandFreq); // Default 1539812500 Hz
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SEARCH_WINDOW, 2200);         // Default 2200 Hz
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_SERVICE_ID, 0);           // Default 1
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_SERVICE_ID, 21845);           // Default 50821
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DATA_RATE, 2400);             // Default 2400 bps
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_DESCRAMBLER, 1);          // Default 1
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_DESCRAMBLER_INIT, 26969);     // Default 23560
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_USE_PRESCRAMBLING, 0);        // Default 0
-    response &= i2cLBand.addCfgValset(UBLOX_CFG_PMP_UNIQUE_WORD, 16238547128276412563ull);
-    response &=
-        i2cLBand.addCfgValset(UBLOX_CFG_MSGOUT_UBX_RXM_PMP_UART1, 0); // Diasable UBX-RXM-PMP on UART1. Not used.
-
-    response &= i2cLBand.sendCfgValset();
-
-    response &= zedEnableLBandCommunication();
-
-    if (response == false)
-        systemPrintln("L-Band failed to configure");
-
-    i2cLBand.softwareResetGNSSOnly(); // Do a restart
-
-    if (settings.debugCorrections == true)
-        systemPrintln("L-Band online");
-
-    gnssApplyPointPerfectKeys(); // Apply keys now, if we have them. This sets online.lbandCorrections
-
-    online.lband = true;
 #endif // COMPILE_L_BAND
+#ifdef COMPILE_MOSAICX5
+    if (present.gnss_mosaicX5 && settings.enablePointPerfectCorrections)
+    {
+        uint32_t LBandFreq;
+        uint8_t fixType = gnss->getFixType();
+        double latitude = gnss->getLatitude();
+        double longitude = gnss->getLongitude();
+        // If we have a fix, check which frequency to use
+        if (fixType >= 1) // Stand-Alone PVT or better
+        {
+            int r = 0; // Step through each geographic region
+            for (; r < numRegionalAreas; r++)
+            {
+                if ((longitude >= Regional_Information_Table[r].area.lonWest) &&
+                    (longitude <= Regional_Information_Table[r].area.lonEast) &&
+                    (latitude >= Regional_Information_Table[r].area.latSouth) &&
+                    (latitude <= Regional_Information_Table[r].area.latNorth))
+                {
+                    LBandFreq = Regional_Information_Table[r].frequency;
+                    if (settings.debugCorrections == true)
+                        systemPrintf("Setting L-Band frequency to %s (%dHz)\r\n", Regional_Information_Table[r].name,
+                                     LBandFreq);
+                    break;
+                }
+            }
+            if (r == numRegionalAreas) // Geographic region not found
+            {
+                LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+                if (settings.debugCorrections == true)
+                    systemPrintf("Error: Unknown L-Band geographic region. Using %s (%dHz)\r\n",
+                                 Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+            }
+        }
+        else
+        {
+            LBandFreq = Regional_Information_Table[settings.geographicRegion].frequency;
+            if (settings.debugCorrections == true)
+                systemPrintf("No fix available for L-Band geographic region determination. Using %s (%dHz)\r\n",
+                             Regional_Information_Table[settings.geographicRegion].name, LBandFreq);
+        }
+
+        bool result = true;
+
+        // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
+        GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
+        result &= mosaic->sendWithResponse("slsm,off\n\r", "LBandSelectMode"); // Turn L-Band off
+
+        // US SPARTN 1.8 service is on 1556290000 Hz
+        // EU SPARTN 1.8 service is on 1545260000 Hz
+        result &=
+            mosaic->sendWithResponse(String("slbb,User1," + String(LBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
+                                     "LBandBeams"); // Set Freq, baud rate
+        result &=
+            mosaic->sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
+        result &= mosaic->sendWithResponse("slsm,manual,Inmarsat,User1,\n\r",
+                                           "LBandSelectMode"); // Set L-Band demodulator to manual
+
+        if (result == false)
+            systemPrintln("mosaic-X5 L-Band failed to configure");
+        else if (settings.debugCorrections == true)
+            systemPrintln("mosaic-X5 L-Band online");
+
+        online.lband_gnss = result;
+    }
+#endif // /COMPILE_MOSAICX5
 }
 
-// Set 'home' WiFi credentials
 // Provision device on ThingStream
 // Download keys
 void menuPointPerfect()
@@ -1064,7 +1084,7 @@ void menuPointPerfect()
 
     if (strlen(settings.pointPerfectClientID) > 0)
     {
-        gnssApplyPointPerfectKeys();
+        gnss->applyPointPerfectKeys();
     }
 
     clearBuffer(); // Empty buffer of any newline chars
@@ -1100,7 +1120,7 @@ void updateLBand()
             lbandCorrectionsReceived = false;
 
         // If we don't get an L-Band fix within Timeout, hot-start ZED-F9x
-        if (gnssIsRTKFloat())
+        if (gnss->isRTKFloat())
         {
             if (lbandTimeFloatStarted == 0)
                 lbandTimeFloatStarted = millis();
@@ -1124,15 +1144,15 @@ void updateLBand()
                     lbandTimeFloatStarted =
                         millis(); // Restart timer for L-Band. Don't immediately reset ZED to achieve fix.
 
-                    // Hotstart ZED to try to get RTK lock
-                    theGNSS->softwareResetGNSSOnly();
+                    // Hotstart GNSS to try to get RTK lock
+                    gnss->softwareReset();
 
                     if (settings.debugCorrections == true)
                         systemPrintf("Restarting ZED. Number of Float lock restarts: %d\r\n", floatLockRestarts);
                 }
             }
         }
-        else if (gnssIsRTKFix() && rtkTimeToFixMs == 0)
+        else if (gnss->isRTKFix() && rtkTimeToFixMs == 0)
         {
             lbandTimeFloatStarted = 0; // Restart timer in case we drop from RTK Fix
 
@@ -1157,7 +1177,7 @@ enum ProvisioningStates
     PROVISIONING_NOT_STARTED,
     PROVISIONING_CHECK_REMAINING,
     PROVISIONING_CHECK_ATTEMPT,
-    PROVISIONING_CHECK_NETWORK,
+    PROVISIONING_WAIT_FOR_NETWORK,
     PROVISIONING_STARTING,
     PROVISIONING_STARTED,
     PROVISIONING_KEYS_REMAINING,
@@ -1171,7 +1191,7 @@ const char *const provisioningStateName[] = {"PROVISIONING_OFF",
                                              "PROVISIONING_NOT_STARTED",
                                              "PROVISIONING_CHECK_REMAINING",
                                              "PROVISIONING_CHECK_ATTEMPT",
-                                             "PROVISIONING_CHECK_NETWORK",
+                                             "PROVISIONING_WAIT_FOR_NETWORK",
                                              "PROVISIONING_STARTING",
                                              "PROVISIONING_STARTED",
                                              "PROVISIONING_KEYS_REMAINING",
@@ -1253,21 +1273,21 @@ void updateProvisioning()
         {
             if (settings.debugPpCertificate)
                 systemPrintln("Invalid certificates or keys. Starting provisioning");
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         // If requestKeyUpdate is true, begin provisioning
         else if (settings.requestKeyUpdate)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("requestKeyUpdate is true. Starting provisioning");
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         // If RTC is not online, we have to skip PROVISIONING_CHECK_ATTEMPT
         else if (!online.rtc)
         {
             if (settings.debugPpCertificate)
                 systemPrintln("No RTC. Starting provisioning");
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         else
         {
@@ -1293,7 +1313,7 @@ void updateProvisioning()
         {
             settings.lastKeyAttempt = rtc.getEpoch(); // Mark it
             recordSystemSettings();                   // Record these settings to unit
-            provisioningSetState(PROVISIONING_CHECK_NETWORK);
+            provisioningSetState(PROVISIONING_WAIT_FOR_NETWORK);
         }
         else
         {
@@ -1303,17 +1323,32 @@ void updateProvisioning()
         }
     }
     break;
-    case PROVISIONING_CHECK_NETWORK: {
-        uint8_t networkType = networkGetActiveType();
-        if ((networkType == NETWORK_TYPE_WIFI) && (wifiNetworkCount() == 0))
+
+    // Wait for connection to the network
+    case PROVISIONING_WAIT_FOR_NETWORK: {
+        // Determine if the key update request has been canceled while waiting
+        if (settings.requestKeyUpdate == false)
         {
-            displayNoSSIDs(2000);
-            provisioningSetState(PROVISIONING_KEYS_REMAINING);
+            provisioningSetState(PROVISIONING_NOT_STARTED);
         }
-        else
+        // Wait until the network is available
+#ifdef COMPILE_NETWORK
+        else if (networkIsConnected(&pointperfectPriority))
+        {
+            if (settings.debugPpCertificate)
+                systemPrintln("PointPerfect key update connected to network");
+
+            // Go get latest keys
             provisioningSetState(PROVISIONING_STARTING);
+        }
+#endif // COMPILE_NETWORK
+
+        // TODO If we just booted, show keys remaining regardless of provisioning state machine
+        // provisioningSetState(PROVISIONING_KEYS_REMAINING);
     }
+
     break;
+
     case PROVISIONING_STARTING: {
         ztpResponse = ZTP_NOT_STARTED;           // HTTP_Client will update this
         httpClientModeNeeded = true;             // This will start the HTTP_Client
@@ -1333,6 +1368,7 @@ void updateProvisioning()
         {
             httpClientModeNeeded = false; // Tell HTTP_Client to give up
             recordSystemSettings();       // Make sure the new cert and keys are recorded
+            systemPrintln("Keys successfully updated!");
             provisioningSetState(PROVISIONING_KEYS_REMAINING);
         }
         else if (ztpResponse == ZTP_DEACTIVATED)
@@ -1348,8 +1384,11 @@ void updateProvisioning()
             else if (productVariant == RTK_EVK)
                 snprintf(landingPageUrl, sizeof(landingPageUrl),
                          "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else if (productVariant == RTK_POSTCARD)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
             else
-                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
 
             systemPrintf("This device has been deactivated. Please contact "
                          "support@sparkfun.com %sto renew the PointPerfect "
@@ -1374,8 +1413,11 @@ void updateProvisioning()
             else if (productVariant == RTK_EVK)
                 snprintf(landingPageUrl, sizeof(landingPageUrl),
                          "or goto https://www.sparkfun.com/rtk_evk_registration ");
+            else if (productVariant == RTK_POSTCARD)
+                snprintf(landingPageUrl, sizeof(landingPageUrl),
+                         "or goto https://www.sparkfun.com/rtk_postcard_registration ");
             else
-                systemPrintln("pointperfectProvisionDevice() Platform missing landing page");
+                systemPrintln("pointperfectProvisionDevice(): Platform missing landing page");
 
             systemPrintf("This device is not whitelisted. Please contact "
                          "support@sparkfun.com %sto get the subscription "
@@ -1434,9 +1476,9 @@ void updateProvisioning()
         paintLBandConfigure();
 
         // Be sure we ignore any external RTCM sources
-        gnssDisableRtcmOnGnss();
+        gnss->rtcmOnGnssDisable();
 
-        gnssApplyPointPerfectKeys(); // Send current keys, if available, to GNSS
+        gnss->applyPointPerfectKeys(); // Send current keys, if available, to GNSS
 
         settings.requestKeyUpdate = false; // However we got here, clear requestKeyUpdate
         recordSystemSettings();            // Record these settings to unit

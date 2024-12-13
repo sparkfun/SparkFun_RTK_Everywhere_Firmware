@@ -138,8 +138,9 @@ static uint32_t mqttClientConnectionAttemptTimeout;
 static int mqttClientConnectionAttemptsTotal; // Count the number of connection attempts absolutely
 
 static volatile uint32_t mqttClientLastDataReceived; // Last time data was received via MQTT
+static NetPriority_t mqttClientPriority = NETWORK_OFFLINE;
 
-static RTKNetworkSecureClient *mqttSecureClient;
+static NetworkClientSecure *mqttSecureClient;
 
 static volatile uint8_t mqttClientState = MQTT_CLIENT_OFF;
 
@@ -166,10 +167,6 @@ bool mqttClientConnectLimitReached()
     bool enableMqttClient = true;
     if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
-
-    // Attempt to restart the network if possible
-    if (enableMqttClient && (!limitReached))
-        networkRestart(NETWORK_USER_MQTT_CLIENT);
 
     // Restart the MQTT client
     MQTT_CLIENT_STOP(limitReached || (!enableMqttClient));
@@ -248,6 +245,15 @@ void mqttClientPrintStatus()
 
     bool enableMqttClient = true;
     if (!settings.enablePointPerfectCorrections)
+        enableMqttClient = false;
+
+    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
+    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
+    // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
+    // to false.
+    // TODO : review this. This feels like a bit of a hack...
+    if (present.gnss_mosaicX5)
         enableMqttClient = false;
 
     // Display MQTT Client status and uptime
@@ -362,8 +368,8 @@ void mqttClientReceiveMessage(int messageSize)
                     float minDist = 99999.0;        // Minimum distance to tile center in centidegrees
                     char *preservedTile;
                     char *tile = strtok_r(nodes, ",", &preservedTile);
-                    int latitude = int(gnssGetLatitude() * 100.0);   // Centidegrees
-                    int longitude = int(gnssGetLongitude() * 100.0); // Centidegrees
+                    int latitude = int(gnss->getLatitude() * 100.0);   // Centidegrees
+                    int longitude = int(gnss->getLongitude() * 100.0); // Centidegrees
                     while (tile != nullptr)
                     {
                         char ns, ew;
@@ -448,8 +454,8 @@ void mqttClientReceiveMessage(int messageSize)
                 WeekToWToUnixEpoch(&settings.pointPerfectNextKeyStart, nextWeek, nextToW);
 
                 settings.pointPerfectCurrentKeyStart -=
-                    gnssGetLeapSeconds(); // Remove GPS leap seconds to align with u-blox
-                settings.pointPerfectNextKeyStart -= gnssGetLeapSeconds();
+                    gnss->getLeapSeconds(); // Remove GPS leap seconds to align with u-blox
+                settings.pointPerfectNextKeyStart -= gnss->getLeapSeconds();
 
                 settings.pointPerfectCurrentKeyStart *= 1000; // Convert to ms
                 settings.pointPerfectNextKeyStart *= 1000;
@@ -465,8 +471,8 @@ void mqttClientReceiveMessage(int messageSize)
 
                 if (online.rtc)
                     settings.lastKeyAttempt = rtc.getEpoch(); // Mark it - but only if RTC is online
-                    
-                recordSystemSettings();                       // Record these settings to unit
+
+                recordSystemSettings(); // Record these settings to unit
 
                 if (settings.debugCorrections == true)
                     pointperfectPrintKeyInformation();
@@ -475,6 +481,7 @@ void mqttClientReceiveMessage(int messageSize)
             // Correction data from PP can go direct to GNSS
             if (present.gnss_zedf9p)
             {
+#ifdef COMPILE_ZED
                 // Only push SPARTN if the priority says we can
                 if (
                     // We can get correction data from the continental topic
@@ -491,10 +498,13 @@ void mqttClientReceiveMessage(int messageSize)
                             !inMainMenu)
                             systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
-                        updateZEDCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
+                        GNSS_ZED *zed = (GNSS_ZED *)gnss;
+                        zed->updateCorrectionsSource(0); // Set SOURCE to 0 (IP) if needed
 
-                        gnssPushRawData(mqttData, mqttCount);
+                        gnss->pushRawData(mqttData, mqttCount);
                         bytesPushed += mqttCount;
+
+                        mqttClientDataReceived = true;
                     }
                     else
                     {
@@ -511,16 +521,22 @@ void mqttClientReceiveMessage(int messageSize)
                     if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
                         systemPrintf("Pushing %d bytes from %s topic to GNSS\r\n", mqttCount, topic);
 
-                    gnssPushRawData(mqttData, mqttCount);
+                    gnss->pushRawData(mqttData, mqttCount);
                     bytesPushed += mqttCount;
                 }
+#endif // COMPILE_ZED
             }
 
-            // For the UM980, we have to pass the data through the PPL first
-            else if (present.gnss_um980)
+            // For the UM980 or LG290P, we have to pass the data through the PPL first
+            else if (present.gnss_um980 || present.gnss_lg290p)
             {
                 if (((settings.debugMqttClientData == true) || (settings.debugCorrections == true)) && !inMainMenu)
-                    systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
+                {
+                    if (present.gnss_um980)
+                        systemPrintf("Pushing %d bytes from %s topic to PPL for UM980\r\n", mqttCount, topic);
+                    else if (present.gnss_lg290p)
+                        systemPrintf("Pushing %d bytes from %s topic to PPL for LG290P\r\n", mqttCount, topic);
+                }
 
                 if (online.ppl == false && settings.debugMqttClientData == true)
                     systemPrintln("Warning: PPL is offline");
@@ -533,7 +549,9 @@ void mqttClientReceiveMessage(int messageSize)
             mqttClientLastDataReceived = millis();
 
             // Set flag for main loop updatePPL()
-            pplNewSpartn = true;
+            // pplNewSpartnMqtt will be set true when SPARTN or Keys or MGA arrive...
+            // That's OK. It just means we're calling PPL_GetRTCMOutput slightly too often.
+            pplNewSpartnMqtt = true;
         }
     }
 }
@@ -575,20 +593,6 @@ void mqttClientSetState(uint8_t newState)
 void mqttClientShutdown()
 {
     MQTT_CLIENT_STOP(true);
-}
-
-// Start the MQTT client
-void mqttClientStart()
-{
-    if (settings.debugMqttClientState)
-    {
-        // Display the heap state
-        reportHeapNow(settings.debugMqttClientState);
-
-        // Start the MQTT client
-        systemPrintln("MQTT Client start");
-    }
-    MQTT_CLIENT_STOP(false);
 }
 
 // Shutdown or restart the MQTT client
@@ -640,14 +644,8 @@ void mqttClientStop(bool shutdown)
 
     // Increase timeouts if we started the network
     if (mqttClientState > MQTT_CLIENT_ON)
-    {
         // Mark the Client stop so that we don't immediately attempt re-connect to Caster
         mqttClientTimer = millis();
-
-        // Done with the network
-        if (networkGetUserNetwork(NETWORK_USER_MQTT_CLIENT))
-            networkUserClose(NETWORK_USER_MQTT_CLIENT);
-    }
 
     // Determine the next MQTT client state
     online.mqttClient = false;
@@ -674,6 +672,15 @@ void mqttClientUpdate()
     if (!settings.enablePointPerfectCorrections)
         enableMqttClient = false;
 
+    // For the mosaic-X5, settings.enablePointPerfectCorrections will be true if
+    // we are using the PPL and getting keys via ZTP. BUT the Facet mosaic-X5
+    // uses the L-Band (only) plan. It should not and can not subscribe to PP IP
+    // MQTT corrections. So, if present.gnss_mosaicX5 is true, set enableMqttClient
+    // to false.
+    // TODO : review this. This feels like a bit of a hack...
+    if (present.gnss_mosaicX5)
+        enableMqttClient = false;
+
     // Shutdown the MQTT client when the mode or setting changes
     DMW_st(mqttClientSetState, mqttClientState);
 
@@ -695,7 +702,12 @@ void mqttClientUpdate()
     default:
     case MQTT_CLIENT_OFF: {
         if (EQ_RTK_MODE(mqttClientMode) && enableMqttClient)
-            mqttClientStart();
+        {
+            // Start the MQTT client
+            if (settings.debugMqttClientState)
+                systemPrintln("MQTT Client start");
+            mqttClientStop(false);
+        }
         break;
     }
 
@@ -703,22 +715,20 @@ void mqttClientUpdate()
     case MQTT_CLIENT_ON: {
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
-            if (networkUserOpen(NETWORK_USER_MQTT_CLIENT, NETWORK_TYPE_ACTIVE))
-                mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+            mqttClientPriority = NETWORK_OFFLINE;
+            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
         }
         break;
     }
 
     // Wait for a network media connection
     case MQTT_CLIENT_NETWORK_STARTED: {
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
-            // Failed to connect to the network, attempt to restart the network
-            mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
+        // Determine if MQTT was turned off
+        if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
+            mqttClientStop(true);
 
-        // Determine if the network is connected to the media
-        else if (networkUserConnected(NETWORK_USER_MQTT_CLIENT))
-            // The network is available for the MQTT client
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&mqttClientPriority))
             mqttClientSetState(MQTT_CLIENT_CONNECTING_2_SERVER);
         break;
     }
@@ -726,7 +736,7 @@ void mqttClientUpdate()
     // Connect to the MQTT server
     case MQTT_CLIENT_CONNECTING_2_SERVER: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
@@ -734,7 +744,7 @@ void mqttClientUpdate()
         }
 
         // Allocate the mqttSecureClient structure
-        mqttSecureClient = new RTKNetworkSecureClient();
+        mqttSecureClient = new NetworkClientSecure();
         if (!mqttSecureClient)
         {
             systemPrintln("ERROR: Failed to allocate the mqttSecureClient structure!");
@@ -862,6 +872,9 @@ void mqttClientUpdate()
             millis(); // Prevent MQTT_CLIENT_SERVICES_CONNECTED from going immediately into timeout
 
         reportHeapNow(settings.debugMqttClientState);
+
+        online.mqttClient = true;
+
         mqttClientSetState(MQTT_CLIENT_SERVICES_CONNECTED);
 
         break;
@@ -869,7 +882,7 @@ void mqttClientUpdate()
 
     case MQTT_CLIENT_SERVICES_CONNECTED: {
         // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_MQTT_CLIENT))
+        if (!networkIsConnected(&mqttClientPriority))
         {
             // Failed to connect to the network, attempt to restart the network
             mqttClientStop(true); // Was mqttClientRestart(); - #StopVsRestart
@@ -952,10 +965,10 @@ void mqttClientUpdate()
         if ((strlen(settings.regionalCorrectionTopics[settings.geographicRegion]) > 0) &&
             (settings.useLocalizedDistribution))
         {
-            uint8_t fixType = gnssGetFixType();
-            double latitude = gnssGetLatitude();   // degrees
-            double longitude = gnssGetLongitude(); // degrees
-            if (fixType >= 3)                      // If we have a 3D fix
+            uint8_t fixType = gnss->getFixType();
+            double latitude = gnss->getLatitude();   // degrees
+            double longitude = gnss->getLongitude(); // degrees
+            if (fixType >= 3)                        // If we have a 3D fix
             {
                 // If both the dict and tile topics are empty, prepare to subscribe to the dict topic
                 if ((localizedDistributionDictTopic.length() == 0) && (localizedDistributionTileTopic.length() == 0))

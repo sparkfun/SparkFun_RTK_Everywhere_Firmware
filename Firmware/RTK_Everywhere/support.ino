@@ -9,7 +9,7 @@ int systemAvailable()
     // If the CH34x is disconnected (we are listening to LoRa), avoid reading characters from UART0
     // as this will trigger the system menu
     else if (usbSerialIsSelected == false)
-        return(0);
+        return (0);
 
     return (Serial.available());
 }
@@ -25,15 +25,40 @@ int systemRead()
 // Output a buffer of the specified length to the serial port
 void systemWrite(const uint8_t *buffer, uint16_t length)
 {
-    // Output data to bluetooth if necessary
-    if ((printEndpoint == PRINT_ENDPOINT_ALL) || (printEndpoint == PRINT_ENDPOINT_BLUETOOTH))
+    // Output data to all endpoints
+    if (printEndpoint == PRINT_ENDPOINT_ALL)
+    {
         bluetoothWrite(buffer, length);
 
-    // Output data to USB serial if necessary
-    if ((printEndpoint != PRINT_ENDPOINT_BLUETOOTH) && (!forwardGnssDataToUsbSerial))
+        if (forwardGnssDataToUsbSerial == false)
+        {
+            if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
+                Serial.write(buffer, length);
+        }
+
+        bluetoothCommandWrite(buffer, length);
+    }
+
+    // Output to only USB serial
+    else if (printEndpoint == PRINT_ENDPOINT_SERIAL)
     {
-        if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
-            Serial.write(buffer, length);
+        if (forwardGnssDataToUsbSerial == false)
+        {
+            if (usbSerialIsSelected == true) // Only use UART0 if we have the mux on the ESP's UART pointed at the CH34x
+                Serial.write(buffer, length);
+        }
+    }
+
+    // Output to only Bluetooth
+    else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH)
+    {
+        bluetoothWrite(buffer, length);
+    }
+
+    // Output to only BLE Command interface
+    else if (printEndpoint == PRINT_ENDPOINT_BLUETOOTH_COMMAND)
+    {
+        bluetoothCommandWrite(buffer, length);
     }
 }
 
@@ -275,7 +300,7 @@ InputResponse getUserInputString(char *userString, uint16_t stringSize, bool loc
         //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         // Keep doing these important things while waiting for the user to enter data
 
-        gnssUpdate(); // Regularly poll to get latest data
+        gnss->update(); // Regularly poll to get latest data
 
         // Keep processing NTP requests
         if (online.ethernetNTPServer)
@@ -683,7 +708,6 @@ void verifyTables()
         reportFatalError("Fix measurementScaleTable to match measurementUnits");
 
     // Verify the consistency of the internal tables
-    ethernetVerifyTables();
     mqttClientValidateTables();
     networkVerifyTables();
     ntpValidateTables();
@@ -695,6 +719,7 @@ void verifyTables()
     tasksValidateTables();
     httpClientValidateTables();
     provisioningVerifyTables();
+    mosaicVerifyTables();
     correctionVerifyTables();
 
     if (correctionsSource::CORR_NUM >= (int)('x' - 'a'))

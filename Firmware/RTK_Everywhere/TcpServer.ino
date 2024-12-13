@@ -73,9 +73,10 @@ static uint32_t tcpServerTimer;
 static volatile uint8_t tcpServerClientConnected;
 static volatile uint8_t tcpServerClientDataSent;
 static volatile uint8_t tcpServerClientWriteError;
-static RTKNetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
+static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
+static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // TCP Server handleGnssDataTask Support Routines
@@ -93,7 +94,8 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_CLIENT_DATA)) && (!inMainMenu))
         {
             PERIODIC_CLEAR(PD_TCP_SERVER_CLIENT_DATA);
-            systemPrintf("TCP server wrote %d bytes to %s\r\n", length, tcpServerClientIpAddress[index].toString().c_str());
+            systemPrintf("TCP server wrote %d bytes to %s\r\n", length,
+                         tcpServerClientIpAddress[index].toString().c_str());
         }
     }
 
@@ -109,7 +111,7 @@ int32_t tcpServerClientSendData(int index, uint8_t *data, uint16_t length)
         }
 
         tcpServerClient[index]->stop();
-        tcpServerClientConnected = tcpServerClientConnected  & (~(1 << index));
+        tcpServerClientConnected = tcpServerClientConnected & (~(1 << index));
         tcpServerClientWriteError = tcpServerClientWriteError | (1 << index);
         length = 0;
     }
@@ -237,7 +239,7 @@ bool tcpServerStart()
 
     tcpServer->begin();
     online.tcpServer = true;
-    localIp = networkGetIpAddress(networkGetType());
+    localIp = networkGetIpAddress();
     systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), settings.tcpServerPort);
     return true;
 }
@@ -277,8 +279,6 @@ void tcpServerStop()
     // Stop using the network
     if (tcpServerState != TCP_SERVER_STATE_OFF)
     {
-        networkUserClose(NETWORK_USER_TCP_SERVER);
-
         // The TCP server is now off
         tcpServerSetState(TCP_SERVER_STATE_OFF);
         tcpServerTimer = millis();
@@ -359,26 +359,23 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer) // Was && (!wifiIsConnected())) - TODO check this
+        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer)
         {
-            if (networkUserOpen(NETWORK_USER_TCP_SERVER, NETWORK_TYPE_ACTIVE))
-            {
-                if (settings.debugTcpServer && (!inMainMenu))
-                    systemPrintln("TCP server starting the network");
-                tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
-            }
+            if (settings.debugTcpServer && (!inMainMenu))
+                systemPrintln("TCP server start");
+            tcpServerPriority = NETWORK_OFFLINE;
+            tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
         }
         break;
 
     // Wait until the network is connected
     case TCP_SERVER_STATE_NETWORK_STARTED:
-        // Determine if the network has failed
-        if (networkIsShuttingDown(NETWORK_USER_TCP_SERVER))
-            // Failed to connect to to the network, attempt to restart the network
+        // Determine if the TCP server was turned off
+        if (NEQ_RTK_MODE(tcpServerMode) || !settings.enableTcpServer)
             tcpServerStop();
 
-        // Wait for the network to connect to the media
-        else if (networkUserConnected(NETWORK_USER_TCP_SERVER))
+        // Wait until the network is connected to the media
+        else if (networkIsConnected(&tcpServerPriority))
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -396,7 +393,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableTcpServer) || networkIsShuttingDown(NETWORK_USER_TCP_SERVER))
+        if ((!settings.enableTcpServer) || (!networkIsConnected(&tcpServerPriority)))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
@@ -454,7 +451,7 @@ void tcpServerUpdate()
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new RTKNetworkClientType(client, networkGetType());
+                tcpServerClient[index] = new NetworkClient;
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);

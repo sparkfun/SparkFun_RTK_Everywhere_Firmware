@@ -41,6 +41,11 @@ var messageText = "";
 var lastMessageType = "";
 var lastMessageTypeBase = "";
 
+var savedMessageNames = [];
+var savedMessageValues = [];
+var savedCheckboxNames = [];
+var savedCheckboxValues = [];
+
 var recordsECEF = [];
 var recordsGeodetic = [];
 var fullPageUpdate = false;
@@ -50,7 +55,7 @@ var sendDataTimeout;
 var checkNewFirmwareTimeout;
 var getNewFirmwareTimeout;
 
-const numCorrectionsSources = 7;
+const numCorrectionsSources = 8;
 var correctionsSourceNames = [];
 var correctionsSourcePriorities = [];
 
@@ -110,8 +115,14 @@ function parseIncoming(msg) {
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("useAssistNowCheckbox");
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useLocalizedDistributionCheckbox");
+                show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
             }
-            else if (platformPrefix == "Facet v2") {
+            else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
@@ -123,8 +134,14 @@ function parseIncoming(msg) {
                 hide("tiltConfig");
                 hide("beeperControl");
                 show("useAssistNowCheckbox");
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useLocalizedDistributionCheckbox");
+                show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
             }
-            else if (platformPrefix == "Facet mosaic") {
+            else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
                 show("ppConfig");
                 hide("ethernetConfig");
@@ -132,9 +149,38 @@ function parseIncoming(msg) {
                 show("portsConfig");
                 show("externalPortOptions");
                 show("logToSDCard");
+                hide("galileoHasSetting");
                 hide("tiltConfig");
                 hide("beeperControl");
                 hide("useAssistNowCheckbox");
+                hide("measurementRateInput");
+                show("mosaicNMEAStreamDropdowns");
+                hide("surveyInSettings");
+                hide("useLocalizedDistributionCheckbox");
+                show("useEnableExtCorrRadio");
+                hide("extCorrRadioSPARTNSourceDropdown");
+
+                select = ge("dynamicModel");
+                let newOption = new Option('Static', '0');
+                select.add(newOption, undefined);
+                newOption = new Option('Quasistatic', '1');
+                select.add(newOption, undefined);
+                newOption = new Option('Pedestrian', '2');
+                select.add(newOption, undefined);
+                newOption = new Option('Automotive', '3');
+                select.add(newOption, undefined);
+                newOption = new Option('Race Car', '4');
+                select.add(newOption, undefined);
+                newOption = new Option('Heavy Machinery', '5');
+                select.add(newOption, undefined);
+                newOption = new Option('UAV', '6');
+                select.add(newOption, undefined);
+                newOption = new Option('Unlimited', '7');
+                select.add(newOption, undefined);
+
+                ge("messageRateInfoText").setAttribute('data-bs-original-title','The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
+                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title','Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -147,8 +193,10 @@ function parseIncoming(msg) {
                 hide("logToSDCard");
 
                 hide("constellationSbas"); //Not supported on UM980
+                hide("constellationNavic"); //Not supported on UM980
 
                 show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
+                show("measurementRateInput");
 
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
@@ -157,13 +205,13 @@ function parseIncoming(msg) {
                 select.add(newOption, undefined);
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
             }
-
-
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
             //Modify settings due to firmware limitations
-            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+            if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 select = ge("dynamicModel");
                 let newOption = new Option('Portable', '0');
                 select.add(newOption, undefined);
@@ -314,23 +362,68 @@ function parseIncoming(msg) {
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
         }
-        else if (id.includes("messageRate")) {
+        else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
             // messageRateRTCMRover_RTCM1001
             // messagRatesRTCMBase_RTCM1001
+            // messageIntervalRTCMRover_RTCM1230
+            // messageIntervalRTCMBase_RTCM1230
             var messageName = id;
             var messageRate = parseFloat(val);
             var messageNameLabel = "";
+            var qualifier = "";
+            if (id.includes("messageIntervalRTCM")) {
+                qualifier = " interval"
+            }
 
             var messageData = messageName.split('_');
             messageNameLabel = messageData[1];
 
             messageText += "<div class='form-group row' id='msg" + messageName + "'>";
-            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
+            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + qualifier + ":</label>";
             messageText += "<div class='col-sm-4 col-4'><input type='number' class='form-control'";
             messageText += " id='" + messageName + "' value='" + messageRate + "'>";
             messageText += "<p id='" + messageName + "Error' class='inlineError'></p>";
             messageText += "</div></div>";
+        }
+        else if (id.includes("messageStreamNMEA")) {
+            // messageStreamNMEA_GGA
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div id='msg" + messageName + "'>";
+            messageText += "<label for='" + messageName + "' class='col-sm-4 col-6 col-form-label'>" + messageNameLabel + ":</label>";
+            messageText += "<select name='" + messageName + "' id='" + messageName + "' class='form-dropdown mb-2'>";
+            messageText += "<option value='0'>Off</option>";
+            messageText += "<option value='1'>Stream1</option>";
+            messageText += "<option value='2'>Stream2</option>";
+            messageText += "</select>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set the value yet. messageText has not yet been added to innerHTML
+            savedMessageNames.push(messageName);
+            savedMessageValues.push(val);
+        }
+        else if (id.includes("messageEnabledRTCM")) {
+            // messageEnabledRTCMRover_RTCM1230
+            // messageEnabledRTCMBase_RTCM1230
+            var messageName = id;
+            var messageNameLabel = "";
+
+            var messageData = messageName.split('_');
+            messageNameLabel = messageData[1];
+
+            messageText += "<div class='form-check mt-3'>";
+            messageText += "<label class='form-check-label' for='" + messageName + "'>Enable " + messageNameLabel + "</label>";
+            messageText += "<input class='form-check-input' type='checkbox' id='" + messageName + "'>";
+            messageText += "</div>";
+
+            // Save the name and value as we can't set 'checked' yet. messageText has not yet been added to innerHTML
+            savedCheckboxNames.push(messageName);
+            savedCheckboxValues.push(val);
         }
         else if (id.includes("correctionsPriority")) {
             var correctionName = id;
@@ -433,9 +526,11 @@ function parseIncoming(msg) {
         ge("dataPortChannel").dispatchEvent(new CustomEvent('change'));
         ge("enablePointPerfectCorrections").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
+        ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
         ge("antennaPhaseCenter_mm").dispatchEvent(new CustomEvent('change'));
         ge("enableLogging").dispatchEvent(new CustomEvent('change'));
+        ge("enableLoggingRINEX").dispatchEvent(new CustomEvent('change'));
         ge("enableARPLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoFirmwareUpdate").dispatchEvent(new CustomEvent('change'));
         ge("enableAutoReset").dispatchEvent(new CustomEvent('change'));
@@ -607,7 +702,7 @@ function validateFields() {
 
     //Check all UBX message boxes
     //match all ids starting with ubxMessageRate_
-    if (platformPrefix == "EVK" || platformPrefix == "Facet v2") {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
         for (let x = 0; x < ubxMessages.length; x++) {
             var messageName = ubxMessages[x].id;
@@ -637,6 +732,20 @@ function validateFields() {
         for (let x = 0; x < messages.length; x++) {
             var messageName = messages[x].id;
             checkMessageValueUM980Base(messageName);
+        }
+    }
+
+    //Check Facet mosaicX5 RTCM intervals
+    else if (platformPrefix == "Facet mosaicX5") {
+        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsg");
+        }
+        var messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase]');
+        for (let x = 0; x < messages.length; x++) {
+            var messageName = messages[x].id;
+            checkElementValue(messageName, 0.1, 600.0, "Must be between 0.1 and 600.0", "collapseGNSSConfigMsgBase");
         }
     }
 
@@ -679,30 +788,30 @@ function validateFields() {
     }
 
     if (ge("enableNtripServer").checked == true) {
-        checkElementString("ntripServerCasterHost_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementValue("ntripServerCasterPort_0", 1, 99999, "Must be 1 to 99999", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServer_CasterUser_0", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServer_CasterUserPW_0", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServerMountPoint_0", 1, 49, "Must be 1 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPointPW_0", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerCasterHost_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementValue("ntripServerCasterPort_1", 0, 99999, "Must be 0 to 99999", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServer_CasterUser_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServer_CasterUserPW_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServerMountPoint_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPointPW_1", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerCasterHost_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementValue("ntripServerCasterPort_2", 0, 99999, "Must be 0 to 99999", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServer_CasterUser_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServer_CasterUserPW_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServerMountPoint_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPointPW_2", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerCasterHost_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementValue("ntripServerCasterPort_3", 0, 99999, "Must be 0 to 99999", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServer_CasterUser_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServer_CasterUserPW_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfig");
-        checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
-        checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "collapseBaseConfigNTRIP");
+        checkElementString("ntripServerCasterHost_0", 1, 49, "Must be 1 to 49 characters", "ntripServerConfig0");
+        checkElementValue("ntripServerCasterPort_0", 1, 99999, "Must be 1 to 99999", "ntripServerConfig0");
+        checkElementString("ntripServerCasterUser_0", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig0");
+        checkElementString("ntripServerCasterUserPW_0", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig0");
+        checkElementString("ntripServerMountPoint_0", 1, 49, "Must be 1 to 49 characters", "ntripServerConfig0");
+        checkElementString("ntripServerMountPointPW_0", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig0");
+        checkElementString("ntripServerCasterHost_1", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig1");
+        checkElementValue("ntripServerCasterPort_1", 0, 99999, "Must be 0 to 99999", "ntripServerConfig1");
+        checkElementString("ntripServerCasterUser_1", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig1");
+        checkElementString("ntripServerCasterUserPW_1", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig1");
+        checkElementString("ntripServerMountPoint_1", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig1");
+        checkElementString("ntripServerMountPointPW_1", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig1");
+        checkElementString("ntripServerCasterHost_2", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig2");
+        checkElementValue("ntripServerCasterPort_2", 0, 99999, "Must be 0 to 99999", "ntripServerConfig2");
+        checkElementString("ntripServerCasterUser_2", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig2");
+        checkElementString("ntripServerCasterUserPW_2", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig2");
+        checkElementString("ntripServerMountPoint_2", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig2");
+        checkElementString("ntripServerMountPointPW_2", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig2");
+        checkElementString("ntripServerCasterHost_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
+        checkElementValue("ntripServerCasterPort_3", 0, 99999, "Must be 0 to 99999", "ntripServerConfig3");
+        checkElementString("ntripServerCasterUser_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
+        checkElementString("ntripServerCasterUserPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
+        checkElementString("ntripServerMountPoint_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
+        checkElementString("ntripServerMountPointPW_3", 0, 49, "Must be 0 to 49 characters", "ntripServerConfig3");
     }
     // Don't overwrite with the defaults here. User may want to disable NTRIP but not lose the existing settings.
     // else {
@@ -995,10 +1104,25 @@ function checkElementString(id, min, max, errorText, collapseID) {
     value = ge(id).value;
     if ((value.length < min) || (value.length > max)) {
         ge(id + 'Error').innerHTML = 'Error: ' + errorText;
-        if (collapseID == "collapseBaseConfigNTRIP") {
+        if (collapseID == "ntripServerConfig0") {
             ge("collapseBaseConfig").classList.add('show');
             ge("ntripServerConfig").classList.add('show');
             ge("ntripServerConfig0").classList.add('show');
+        }
+        else if (collapseID == "ntripServerConfig1") {
+            ge("collapseBaseConfig").classList.add('show');
+            ge("ntripServerConfig").classList.add('show');
+            ge("ntripServerConfig1").classList.add('show');
+        }
+        else if (collapseID == "ntripServerConfig2") {
+            ge("collapseBaseConfig").classList.add('show');
+            ge("ntripServerConfig").classList.add('show');
+            ge("ntripServerConfig2").classList.add('show');
+        }
+        else if (collapseID == "ntripServerConfig3") {
+            ge("collapseBaseConfig").classList.add('show');
+            ge("ntripServerConfig").classList.add('show');
+            ge("ntripServerConfig3").classList.add('show');
         }
         else
             ge(collapseID).classList.add('show');
@@ -1071,7 +1195,7 @@ function resetToCorrectionsPriorityDefaults() {
 }
 
 function zeroMessages() {
-    //match all ids starting with ubxMessageRate_ (not ubxMessageRateBase_)
+    //match all input ids starting with ubxMessageRate_ (not ubxMessageRateBase_)
     var ubxMessages = document.querySelectorAll('input[id^=ubxMessageRate_]');
     for (let x = 0; x < ubxMessages.length; x++) {
         var messageName = ubxMessages[x].id;
@@ -1089,6 +1213,24 @@ function zeroMessages() {
         var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
+    //match all select ids starting with messageStreamNMEA_
+    messages = document.querySelectorAll('select[id^=messageStreamNMEA_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).value = 0;
+    }
+    //match messageIntervalRTCMRover_
+    messages = document.querySelectorAll('input[id^=messageIntervalRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).value = 1.0;
+    }
+    //match messageEnabledRTCMRover_
+    messages = document.querySelectorAll('input[id^=messageEnabledRTCMRover_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function zeroBaseMessages() {
@@ -1104,11 +1246,23 @@ function zeroBaseMessages() {
         var messageName = messages[x].id;
         ge(messageName).value = 0.00;
     }
+    //match messageIntervalRTCMBase_
+    messages = document.querySelectorAll('input[id^=messageIntervalRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).value = 1.0;
+    }
+    //match messageEnabledRTCMBase_
+    messages = document.querySelectorAll('input[id^=messageEnabledRTCMBase_]');
+    for (let x = 0; x < messages.length; x++) {
+        var messageName = messages[x].id;
+        ge(messageName).checked = false;
+    }
 }
 
 function resetToSurveyingDefaults() {
     zeroMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1122,10 +1276,21 @@ function resetToSurveyingDefaults() {
         ge("messageRateNMEA_GPGSV").value = 1.0;
         ge("messageRateNMEA_GPRMC").value = 0.5;
     }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("streamIntervalNMEA_0").value = 6; //msec500
+        ge("streamIntervalNMEA_1").value = 7; //sec1
+        ge("messageStreamNMEA_GGA").value = 1;
+        ge("messageStreamNMEA_GSA").value = 1;
+        ge("messageStreamNMEA_GST").value = 1;
+        ge("messageStreamNMEA_GSV").value = 2;
+        ge("messageStreamNMEA_RMC").value = 1;
+
+        ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
+    }
 }
 function resetToLoggingDefaults() {
     zeroMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRate_NMEA_GGA").value = 1;
         ge("ubxMessageRate_NMEA_GSA").value = 1;
         ge("ubxMessageRate_NMEA_GST").value = 1;
@@ -1147,11 +1312,27 @@ function resetToLoggingDefaults() {
         ge("messageRateRTCMRover_RTCM1042").value = 1.0;
         ge("messageRateRTCMRover_RTCM1046").value = 1.0;
     }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("streamIntervalNMEA_0").value = 6; //msec500
+        ge("streamIntervalNMEA_1").value = 7; //sec1
+        ge("messageStreamNMEA_GGA").value = 1;
+        ge("messageStreamNMEA_GSA").value = 1;
+        ge("messageStreamNMEA_GST").value = 1;
+        ge("messageStreamNMEA_GSV").value = 2;
+        ge("messageStreamNMEA_RMC").value = 1;
+
+        ge("messageIntervalRTCMRover_RTCM1033").value = 10.0;
+
+        ge("messageEnabledRTCMRover_RTCM1019").checked = true;
+        ge("messageEnabledRTCMRover_RTCM1020").checked = true;
+        ge("messageEnabledRTCMRover_RTCM1042").checked = true;
+        ge("messageEnabledRTCMRover_RTCM1046").checked = true;
+    }
 }
 
 function resetToRTCMDefaults() {
     zeroBaseMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRateBase_RTCM_1005").value = 1;
         ge("ubxMessageRateBase_RTCM_1074").value = 1;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -1175,11 +1356,18 @@ function resetToRTCMDefaults() {
         ge("messageRateRTCMBase_RTCM1094").value = 1.0;
         ge("messageRateRTCMBase_RTCM1124").value = 1.0;
     }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
+
+        ge("messageEnabledRTCMBase_RTCM1005").checked = true;
+        ge("messageEnabledRTCMBase_RTCM1033").checked = true;
+        ge("messageEnabledRTCMBase_MSM4").checked = true;
+    }
 }
 
 function resetToRTCMLowBandwidth() {
     zeroBaseMessages();
-    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2")) {
+    if ((platformPrefix == "EVK") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
         ge("ubxMessageRateBase_RTCM_1005").value = 10;
         ge("ubxMessageRateBase_RTCM_1074").value = 2;
         ge("ubxMessageRateBase_RTCM_1077").value = 0;
@@ -1202,6 +1390,15 @@ function resetToRTCMLowBandwidth() {
         ge("messageRateRTCMBase_RTCM1084").value = 2.0;
         ge("messageRateRTCMBase_RTCM1094").value = 2.0;
         ge("messageRateRTCMBase_RTCM1124").value = 2.0;
+    }
+    else if (platformPrefix == "Facet mosaicX5") {
+        ge("messageIntervalRTCMBase_RTCM1005|6").value = 10.0;
+        ge("messageIntervalRTCMBase_RTCM1033").value = 10.0;
+        ge("messageIntervalRTCMBase_MSM4").value = 2.0;
+
+        ge("messageEnabledRTCMBase_RTCM1005").checked = true;
+        ge("messageEnabledRTCMBase_RTCM1033").checked = true;
+        ge("messageEnabledRTCMBase_MSM4").checked = true;
     }
 }
 
@@ -1326,7 +1523,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaic") || (platformPrefix == "Facet v2")) {
+            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 ge("antennaPhaseCenter_mm").value = 61.4;
             }
             else if (platformPrefix == "Torch") {
@@ -1407,6 +1604,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
+    ge("enableExternalHardwareEventLogging").addEventListener("change", function () {
+        if (ge("enableExternalHardwareEventLogging").checked == true) {
+            show("externalEventLoggingDetails");
+        }
+        else {
+            hide("externalEventLoggingDetails");
+        }
+    });
+
     ge("enableEspNow").addEventListener("change", function () {
         if (ge("enableEspNow").checked == true) {
             show("radioDetails");
@@ -1426,11 +1632,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
     });
 
     ge("enableLogging").addEventListener("change", function () {
-        if (ge("enableLogging").checked) {
-            show("enableLoggingDetails");
+        showHideLoggingDetails();
+    });
+
+    ge("enableLoggingRINEX").addEventListener("change", function () {
+        if (ge("enableLoggingRINEX").checked == true) {
+            show("enableLoggingRINEXDetails");
         }
         else {
-            hide("enableLoggingDetails");
+            hide("enableLoggingRINEXDetails");
         }
     });
 
@@ -1485,6 +1695,25 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
 
 })
+
+function showHideLoggingDetails() {
+    if (platformPrefix == "Facet mosaicX5") {
+        if (ge("enableLogging").checked) {
+            show("enableLoggingDetailsMosaic");
+        }
+        else {
+            hide("enableLoggingDetailsMosaic");
+        }
+    }
+    else {
+        if (ge("enableLogging").checked) {
+            show("enableLoggingDetails");
+        }
+        else {
+            hide("enableLoggingDetails");
+        }
+    }
+}
 
 function updateCorrectionsPriorities() {
     for (let x = 0; x < numCorrectionsSources; x++) {
@@ -1801,6 +2030,10 @@ function getMessageList() {
 
         ge("messageList").innerHTML = "";
         messageText = "";
+        savedMessageNames = [];
+        savedMessageValues = [];
+        savedCheckboxNames = [];
+        savedCheckboxValues = [];
 
         xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessages", false);
@@ -1809,6 +2042,24 @@ function getMessageList() {
         parseIncoming(xmlhttp.responseText); //Process CSV data into HTML
 
         ge("messageList").innerHTML += messageText;
+
+        // Reprocess any saved message names and values - i.e. the values for the NMEA stream dropdowns
+        for (let x = 0; x < savedMessageNames.length; x++) {
+            ge(savedMessageNames[x]).value = savedMessageValues[x];
+        }
+
+        // Reprocess any saved checkbox names and values - i.e. the values for the RTCM enabled checkboxes
+        for (let x = 0; x < savedCheckboxNames.length; x++) {
+            if (savedCheckboxValues[x] == "true") {
+                ge(savedCheckboxNames[x]).checked = true;
+            }
+            else if (savedCheckboxValues[x] == "false") {
+                ge(savedCheckboxNames[x]).checked = false;
+            }
+            else {
+                console.log("Issue with ID: " + savedCheckboxNames[x]);
+            }
+        }
     }
 }
 
@@ -1818,6 +2069,8 @@ function getMessageListBase() {
 
         ge("messageListBase").innerHTML = "";
         messageText = "";
+        savedCheckboxNames = [];
+        savedCheckboxValues = [];
 
         xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "/listMessagesBase", false);
@@ -1826,6 +2079,19 @@ function getMessageListBase() {
         parseIncoming(xmlhttp.responseText); //Process CSV data into HTML
 
         ge("messageListBase").innerHTML += messageText;
+
+        // Reprocess any saved checkbox names and values - i.e. the values for the RTCM enabled checkboxes
+        for (let x = 0; x < savedCheckboxNames.length; x++) {
+            if (savedCheckboxValues[x] == "true") {
+                ge(savedCheckboxNames[x]).checked = true;
+            }
+            else if (savedCheckboxValues[x] == "false") {
+                ge(savedCheckboxNames[x]).checked = false;
+            }
+            else {
+                console.log("Issue with ID: " + savedCheckboxNames[x]);
+            }
+        }
     }
 }
 

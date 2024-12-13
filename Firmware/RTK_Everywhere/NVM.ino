@@ -105,6 +105,9 @@ void setSettingsFileName()
              profileNumber);
     snprintf(stationCoordinateGeodeticFileName, sizeof(stationCoordinateGeodeticFileName),
              "/StationCoordinates-Geodetic_%d.csv", profileNumber);
+
+    if (settings.debugSettings)
+        systemPrintf("Settings file name: %s\r\n", settingsFileName);
 }
 
 // Load only LFS settings without recording
@@ -213,7 +216,8 @@ void recordSystemSettingsToFileLFS(char *fileName)
         {
             recordSystemSettingsToFile(&settingsFile); // Record all the settings via strings to file
             settingsFile.close();
-            log_d("Settings recorded to LittleFS: %s", fileName);
+            if (settings.debugSettings)
+                systemPrintf("Settings recorded to LittleFS: %s\r\n", fileName);
         }
     }
 }
@@ -224,6 +228,9 @@ void recordSystemSettingsToFile(File *settingsFile)
 {
     settingsFile->printf("%s=%d\r\n", "sizeOfSettings", settings.sizeOfSettings);
     settingsFile->printf("%s=%d\r\n", "rtkIdentifier", settings.rtkIdentifier);
+
+    if (settings.debugSettings)
+        systemPrintf("numRtkSettingsEntries: %d\r\n", numRtkSettingsEntries);
 
     for (int i = 0; i < numRtkSettingsEntries; i++)
     {
@@ -331,28 +338,7 @@ void recordSystemSettingsToFile(File *settingsFile)
             // Note: toString separates the four bytes with dots / periods "192.168.1.1"
         }
         break;
-        case tUbxMsgRt: {
-            // Record message settings
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
-        case tUbxConst: {
-            // Record constellation settings
-            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
-            {
-                char tempString[50]; // constellation_BeiDou=1
-                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
-                         settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
-                settingsFile->println(tempString);
-            }
-        }
-        break;
+
         case tEspNowPr: {
             // Record ESP-Now peer MAC addresses
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -366,10 +352,35 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+
+#ifdef COMPILE_ZED
+        case tUbxConst: {
+            // Record constellation settings
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // constellation_BeiDou=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         settings.ubxConstellations[x].textName, settings.ubxConstellations[x].enabled);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tUbxMsgRt: {
+            // Record message settings
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // ubxMessageRate_UBX_NMEA_DTM=5
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         ubxMessages[x].msgTextName, settings.ubxMessageRates[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
         case tUbMsgRtb: {
             // Record message settings
 
-            int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
+            GNSS_ZED *zed = (GNSS_ZED *)gnss;
+            int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
 
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
@@ -380,6 +391,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+#endif // COMPILE_ZED
+
         case tWiFiNet: {
             // Record WiFi credential table
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -442,6 +455,8 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+
+#ifdef COMPILE_UM980
         case tUmMRNmea: {
             // Record UM980 NMEA rates
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
@@ -486,13 +501,15 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+#endif // COMPILE_UM980
+
         case tCorrSPri: {
             // Record corrections priorities
             for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
             {
                 char tempString[80]; // correctionsPriority_Ethernet_IP_(PointPerfect/MQTT)=99
-                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
-                         correctionGetName(x), settings.correctionsSourcesPriority[x]);
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name, correctionGetName(x),
+                         settings.correctionsSourcesPriority[x]);
                 settingsFile->println(tempString);
             }
         }
@@ -505,6 +522,133 @@ void recordSystemSettingsToFile(File *settingsFile)
             }
         }
         break;
+
+#ifdef COMPILE_MOSAICX5
+        case tMosaicConst: {
+            // Record Mosaic Constellations
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // constellation_GLONASS=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
+                         mosaicSignalConstellations[x].configName, settings.mosaicConstellations[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMSNmea: {
+            // Record Mosaic NMEA message streams
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // messageStreamNMEA_GGA=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
+                         mosaicMessagesNMEA[x].msgTextName, settings.mosaicMessageStreamNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicSINmea: {
+            // Record Mosaic NMEA stream intervals
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // streamIntervalNMEA_1=1
+                snprintf(tempString, sizeof(tempString), "%s%d=%0d", rtkSettingsEntries[i].name, x,
+                         settings.mosaicStreamIntervalsNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMIRvRT: {
+            // Record Mosaic Rover RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // messageIntervalRTCMRover_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Rover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMIBaRT: {
+            // Record Mosaic Base RTCM intervals
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // messageIntervalRTCMBase_RTCM1001=0.2
+                snprintf(tempString, sizeof(tempString), "%s%s=%0.2f", rtkSettingsEntries[i].name,
+                         mosaicRTCMv3MsgIntervalGroups[x].name, settings.mosaicMessageIntervalsRTCMv3Base[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMERvRT: {
+            // Record Mosaic Rover RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // messageEnabledRTCMRover_RTCM1001=0
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
+                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Rover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tMosaicMEBaRT: {
+            // Record Mosaic Base RTCM enabled
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // messageEnabledRTCMBase_RTCM1001=0
+                snprintf(tempString, sizeof(tempString), "%s%s=%0d", rtkSettingsEntries[i].name,
+                         mosaicMessagesRTCMv3[x].name, settings.mosaicMessageEnabledRTCMv3Base[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+#endif // COMPILE_MOSAICX5
+
+#ifdef COMPILE_LG290P
+        case tLgMRNmea: {
+            // Record LG290P NMEA rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesNMEA_GPGGA=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRRvRT: {
+            // Record LG290P Rover RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMRover_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgMRBaRT: {
+            // Record LG290P Base RTCM rates
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pMessageRatesRTCMBase_RTCM1005=2
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMBase[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+        case tLgConst: {
+            // Record LG290P Constellations
+            for (int x = 0; x < rtkSettingsEntries[i].qualifier; x++)
+            {
+                char tempString[50]; // lg290pConstellations_GLONASS=1
+                snprintf(tempString, sizeof(tempString), "%s%s=%d", rtkSettingsEntries[i].name,
+                         lg290pConstellationNames[x], settings.lg290pConstellations[x]);
+                settingsFile->println(tempString);
+            }
+        }
+        break;
+#endif // COMPILE_LG290P
         }
     }
 
@@ -833,9 +977,9 @@ bool parseLine(char *str)
     }
 
     bool knownSetting = false;
-    bool updateGNSS = false;
 
-    // log_d("settingName: %s - value: %s - d: %0.9f", settingName, settingString, d);
+    if (settings.debugSettings)
+        systemPrintf("settingName: %s - value: %s - d: %0.9f\r\n", settingName, settingString, d);
 
     // Exceptions:
     if (strcmp(settingName, "sizeOfSettings") == 0)
@@ -889,7 +1033,6 @@ bool parseLine(char *str)
         {
             qualifier = rtkSettingsEntries[i].qualifier;
             type = rtkSettingsEntries[i].type;
-            updateGNSS |= rtkSettingsEntries[i].updateGNSSOnChange; // Does this setting require a GNSS update?
             var = rtkSettingsEntries[i].var;
             switch (type)
             {
@@ -1005,19 +1148,8 @@ bool parseLine(char *str)
                 knownSetting = true;
             }
             break;
-            case tUbxMsgRt: {
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
-                        (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
-                    {
-                        settings.ubxMessageRates[x] = (uint8_t)d;
-                        knownSetting = true;
-                        break;
-                    }
-                }
-            }
-            break;
+
+#ifdef COMPILE_ZED
             case tUbxConst: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1031,6 +1163,38 @@ bool parseLine(char *str)
                 }
             }
             break;
+            case tUbxMsgRt: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == ubxMessages[x].msgTextName[0]) &&
+                        (strcmp(suffix, ubxMessages[x].msgTextName) == 0))
+                    {
+                        settings.ubxMessageRates[x] = (uint8_t)d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tUbMsgRtb: {
+                GNSS_ZED *zed = (GNSS_ZED *)gnss;
+                int firstRTCMRecord = zed->getMessageNumberByName("RTCM_1005");
+
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
+                        (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
+                    {
+                        settings.ubxMessageRatesBase[x] = (uint8_t)d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+
+#endif // COMPILE_ZED
+
             case tEspNowPr: {
                 int suffixNum;
                 if (sscanf(suffix, "%d", &suffixNum) == 1)
@@ -1042,21 +1206,6 @@ bool parseLine(char *str)
                         for (int i = 0; i < 6; i++)
                             settings.espnowPeers[suffixNum][i] = mac[i];
                         knownSetting = true;
-                    }
-                }
-            }
-            break;
-            case tUbMsgRtb: {
-                int firstRTCMRecord = zedGetMessageNumberByName("RTCM_1005");
-
-                for (int x = 0; x < qualifier; x++)
-                {
-                    if ((suffix[0] == ubxMessages[firstRTCMRecord + x].msgTextName[0]) &&
-                        (strcmp(suffix, ubxMessages[firstRTCMRecord + x].msgTextName) == 0))
-                    {
-                        settings.ubxMessageRatesBase[x] = (uint8_t)d;
-                        knownSetting = true;
-                        break;
                     }
                 }
             }
@@ -1143,6 +1292,8 @@ bool parseLine(char *str)
                 }
             }
             break;
+
+#ifdef COMPILE_UM980
             case tUmMRNmea: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1195,6 +1346,8 @@ bool parseLine(char *str)
                 }
             }
             break;
+#endif // COMPILE_UM980
+
             case tCorrSPri: {
                 for (int x = 0; x < qualifier; x++)
                 {
@@ -1217,6 +1370,152 @@ bool parseLine(char *str)
                 }
             }
             break;
+
+#ifdef COMPILE_MOSAICX5
+            case tMosaicConst: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == mosaicSignalConstellations[x].configName[0]) &&
+                        (strcmp(suffix, mosaicSignalConstellations[x].configName) == 0))
+                    {
+                        settings.mosaicConstellations[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tMosaicMSNmea: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == mosaicMessagesNMEA[x].msgTextName[0]) &&
+                        (strcmp(suffix, mosaicMessagesNMEA[x].msgTextName) == 0))
+                    {
+                        settings.mosaicMessageStreamNMEA[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tMosaicSINmea: {
+                int stream;
+                if (sscanf(suffix, "%d", &stream) == 1)
+                {
+                    settings.mosaicStreamIntervalsNMEA[stream] = d;
+                    knownSetting = true;
+                    break;
+                }
+            }
+            break;
+            case tMosaicMIRvRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                        (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                    {
+                        settings.mosaicMessageIntervalsRTCMv3Rover[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tMosaicMIBaRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == mosaicRTCMv3MsgIntervalGroups[x].name[0]) &&
+                        (strcmp(suffix, mosaicRTCMv3MsgIntervalGroups[x].name) == 0))
+                    {
+                        settings.mosaicMessageIntervalsRTCMv3Base[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tMosaicMERvRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                        (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                    {
+                        settings.mosaicMessageEnabledRTCMv3Rover[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tMosaicMEBaRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == mosaicMessagesRTCMv3[x].name[0]) &&
+                        (strcmp(suffix, mosaicMessagesRTCMv3[x].name) == 0))
+                    {
+                        settings.mosaicMessageEnabledRTCMv3Base[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+#endif // COMPILE_MOSAICX5
+
+#ifdef COMPILE_LG290P
+            case tLgMRNmea: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesNMEA[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesNMEA[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesNMEA[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgMRRvRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesRTCMRover[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgMRBaRT: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lgMessagesRTCM[x].msgTextName[0]) &&
+                        (strcmp(suffix, lgMessagesRTCM[x].msgTextName) == 0))
+                    {
+                        settings.lg290pMessageRatesRTCMBase[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+            case tLgConst: {
+                for (int x = 0; x < qualifier; x++)
+                {
+                    if ((suffix[0] == lg290pConstellationNames[x][0]) &&
+                        (strcmp(suffix, lg290pConstellationNames[x]) == 0))
+                    {
+                        settings.lg290pConstellations[x] = d;
+                        knownSetting = true;
+                        break;
+                    }
+                }
+            }
+            break;
+#endif // COMPILE_LG290P
             }
         }
     }
@@ -1236,9 +1535,6 @@ bool parseLine(char *str)
         strcpy(otaFirmwareJsonUrl, url.c_str());
         knownSetting = true;
     }
-
-    if (updateGNSS)
-        settings.updateGNSSSettings = true;
 
     // Last catch
     if (knownSetting == false)
@@ -1488,7 +1784,7 @@ bool loadFile(const char *fileID, char *fileContents, bool debug)
     {
         if (debug)
             systemPrintf("File %s does not exist on LittleFS\r\n", fileName);
-        return false;        
+        return false;
     }
 
     File fileToRead = LittleFS.open(fileName, FILE_READ);
