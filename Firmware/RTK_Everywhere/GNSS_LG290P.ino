@@ -583,7 +583,7 @@ bool GNSS_LG290P::enableRTCMBase()
         }
 
         // If any message is enabled, enable MSM output
-        if (lgMessagesRTCM[messageNumber].msgTextName, settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
+        if (settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
             enableMSM = true;
     }
 
