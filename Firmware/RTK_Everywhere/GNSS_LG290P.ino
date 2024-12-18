@@ -1111,10 +1111,7 @@ uint8_t GNSS_LG290P::getRtcmMessageNumberByName(const char *msgName)
 uint8_t GNSS_LG290P::getSatellitesInView()
 {
     if (online.gnss)
-        return (_lg290p->getSatellitesInViewCount() - 4);
-        // As of v1.0.1 of the LG290P library, getSatellitesInViewCount is reporting staillites that
-        // have 0 in view ("00"). NAVIC and QZSS satellites are the most common problem. Artificially
-        // reducing until a fix is in place.
+        return (_lg290p->getSatellitesInViewCount());
     return 0;
 }
 
