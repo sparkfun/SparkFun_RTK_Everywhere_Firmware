@@ -154,7 +154,7 @@ class GNSS_LG290P : GNSS
 
     void debuggingEnable();
 
-    bool disableSurveyIn();
+    bool disableSurveyIn(bool saveAndReset);
 
     void enableGgaForNtrip();
 
