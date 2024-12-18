@@ -1146,10 +1146,10 @@ void menuPeriodicPrint()
         systemPrint("7) WiFi state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("8) ZED RX data: ");
+        systemPrint("8) GNSS RX data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_RX) ? "Enabled" : "Disabled");
 
-        systemPrint("9) ZED TX data: ");
+        systemPrint("9) GNSS TX data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_TX) ? "Enabled" : "Disabled");
 
         systemPrintln("-----  Software  -----");
