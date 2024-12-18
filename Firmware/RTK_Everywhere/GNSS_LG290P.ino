@@ -551,8 +551,6 @@ bool GNSS_LG290P::enableRTCMBase()
     bool response = true;
     bool enableMSM = false; // Goes true if we need to enable MSM output reporting
 
-    Serial.println("\r\n    Enabling RTCM");
-
     for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
     {
         // Setting RTCM-1005 must have only the rate

@@ -461,6 +461,9 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
         // Call getVersion after original inquiry
         String otaVersion = ota.GetVersion();
         otaVersion.toCharArray(versionAvailable, versionAvailableLength);
+
+        if (settings.debugFirmwareUpdate)
+            systemPrintf("Reported version available: %s\r\n", versionAvailable);
     }
     else if (response == ESP32OTAPull::HTTP_FAILED)
     {
@@ -809,7 +812,9 @@ void otaUpdateStop()
     if (otaState != OTA_STATE_OFF)
     {
         // Stop network
-        systemPrintln("Firmware update releasing network request");
+        if (settings.debugFirmwareUpdate)
+            systemPrintln("Firmware update releasing network request");
+
         online.otaFirmwareUpdate = false;
 
         otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
@@ -882,34 +887,36 @@ void otaUpdate()
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Firmware update checking SparkFun released firmware version");
 
-            // Only update to production firmware, disable release candidates
-            enableRCFirmware = 0;
+            // If we are using auto updates, only update to production firmware, disable release candidates
+            if (settings.enableAutoFirmwareUpdate)
+                enableRCFirmware = 0;
 
             // Get firmware version from server
             otaReportedVersion[0] = 0;
             if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
             {
-                // If we are doing just a version check, set version number, turn off network request and stop machine
-                if (otaRequestFirmwareVersionCheck == true)
-                {
-                    otaRequestFirmwareVersionCheck = false;
-                    otaUpdateStop();
-                    return;
-                }
-
                 // Create a string of the unit's current firmware version
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
 
-                // If we are doing a scheduled automatic update or a manually requested update, continue through the
-                // state machine
-
                 // We got a version number, now determine if it's newer or not
+                // Allow update if locally compiled developer version
                 if ((isReportedVersionNewer(otaReportedVersion, &currentVersion[1]) == true) ||
                     (currentVersion[0] == 'd') || (FIRMWARE_VERSION_MAJOR == 99))
                 {
-                    // Allow update if locally compiled developer version
                     systemPrintf("Version Check: New firmware version available: %s\r\n", otaReportedVersion);
+
+                    // If we are doing just a version check, set version number, turn off network request and stop
+                    // machine
+                    if (otaRequestFirmwareVersionCheck == true)
+                    {
+                        otaRequestFirmwareVersionCheck = false;
+                        otaUpdateStop();
+                        return;
+                    }
+
+                    // If we are doing a scheduled automatic update or a manually requested update, continue through the
+                    // state machine
                     otaSetState(OTA_STATE_UPDATE_FIRMWARE);
                 }
                 else
