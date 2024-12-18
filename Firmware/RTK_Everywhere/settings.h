@@ -301,8 +301,8 @@ enum PeriodDisplayValues
     PD_CELLULAR_STATE,          // 28
     PD_WIFI_STATE,              // 29
 
-    PD_ZED_DATA_RX,             // 30
-    PD_ZED_DATA_TX,             // 31
+    PD_GNSS_DATA_RX,             // 30
+    PD_GNSS_DATA_TX,             // 31
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
