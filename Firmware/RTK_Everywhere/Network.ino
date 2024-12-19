@@ -165,6 +165,9 @@ void menuTcpUdp()
         if (settings.enableUdpServer)
             systemPrintf("7) UDP Server Port: %ld\r\n", settings.udpServerPort);
 
+        if (settings.enableTcpServer)
+            systemPrintf("8) Enable NTRIP Caster: %s\r\n", settings.enableNtripCaster ? "Enabled" : "Disabled");
+
         //------------------------------
         // Display the mDNS server menu items
         //------------------------------
@@ -223,8 +226,10 @@ void menuTcpUdp()
         //------------------------------
 
         else if (incoming == 4)
+        {
             // Toggle TCP server
             settings.enableTcpServer ^= 1;
+        }
 
         else if (incoming == 5)
         {
@@ -243,6 +248,8 @@ void menuTcpUdp()
         {
             getNewSetting("Enter the UDP port to use", 0, 65535, &settings.udpServerPort);
         }
+        else if (incoming == 8 && settings.enableTcpServer)
+            settings.enableNtripCaster ^= 1;
 
         //------------------------------
         // Get the mDNS server parameters
@@ -299,7 +306,7 @@ void networkBegin()
         ethernetStart();
 #endif // COMPILE_ETHERNET
 
-    // WiFi and cellular networks are started/stopped as consumers come online/offline in networkUpdate()
+    // WiFi and cellular networks are started/stopped as consumers and come online/offline in networkUpdate()
 }
 
 //----------------------------------------
@@ -770,7 +777,6 @@ void networkMarkOnline(NetIndex_t index)
 
 //----------------------------------------
 // Change multicast DNS to a given network
-// 
 //----------------------------------------
 void networkMulticastDNSSwitch(NetIndex_t startIndex)
 {
@@ -780,7 +786,7 @@ void networkMulticastDNSSwitch(NetIndex_t startIndex)
             networkMulticastDNSStop(index);
 
     // Start mDNS on the requested network
-    networkMulticastDNSStart(startIndex); //Start DNS on the selected network, either WiFi or Ethernet
+    networkMulticastDNSStart(startIndex); // Start DNS on the selected network, either WiFi or Ethernet
 }
 
 //----------------------------------------

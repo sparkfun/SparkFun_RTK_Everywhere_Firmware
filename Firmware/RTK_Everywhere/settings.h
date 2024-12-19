@@ -1016,6 +1016,7 @@ struct Settings
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
+    bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1624,6 +1625,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 #endif  // COMPILE_LG290P
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above
