@@ -473,14 +473,14 @@ void stateUpdate()
                 // If a firmware version was requested, and obtained, report it back to the web page
                 if (strlen(otaReportedVersion) > 0)
                 {
-                    if(settings.debugWebConfig)
+                    if (settings.debugWebServer)
                         systemPrintln("Webconfig: Reporting firmware version");
-                    
+
                     createFirmwareVersionString(settingsCSV);
 
                     sendStringToWebsocket(settingsCSV);
 
-                    otaReportedVersion[0] = '\0'; //Zero out the reported version to stop future reports
+                    otaReportedVersion[0] = '\0'; // Zero out the reported version to stop future reports
                 }
             }
 
@@ -650,7 +650,7 @@ void stateUpdate()
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 
-            if (!startWebServer(false, settings.httpPort)) // Start the web server
+            if (!webServerStart(false, settings.httpPort)) // Start the web server
                 changeState(STATE_ROVER_NOT_STARTED);
             else
                 changeState(STATE_CONFIG_VIA_ETH);
@@ -774,6 +774,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_DISPLAY_SETUP";
     case (STATE_WIFI_CONFIG_NOT_STARTED):
         return "STATE_WIFI_CONFIG_NOT_STARTED";
+    case (STATE_WIFI_CONFIG_WAIT_FOR_NETWORK):
+        return "STATE_WIFI_CONFIG_WAIT_FOR_NETWORK";
     case (STATE_WIFI_CONFIG):
         return "STATE_WIFI_CONFIG";
     case (STATE_TEST):

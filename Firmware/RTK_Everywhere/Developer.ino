@@ -151,12 +151,12 @@ void httpClientValidateTables() {}
 
 #ifndef COMPILE_AP
 
-bool startWebServer(bool startWiFi = true, int httpPort = 80)
+bool webServerStart(bool startWiFi = true, int httpPort = 80)
 {
     systemPrintln("**AP not compiled**");
     return false;
 }
-void stopWebServer() {}
+void webServerStop() {}
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 

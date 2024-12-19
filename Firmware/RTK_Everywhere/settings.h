@@ -27,6 +27,7 @@ typedef enum
     STATE_BASE_FIXED_TRANSMITTING,
     STATE_DISPLAY_SETUP,
     STATE_WIFI_CONFIG_NOT_STARTED,
+    STATE_WIFI_CONFIG_WAIT_FOR_NETWORK,
     STATE_WIFI_CONFIG,
     STATE_TEST,
     STATE_TESTING,
@@ -560,19 +561,19 @@ enum OtaState
 #ifdef COMPILE_AP
 
 // Web Config state machine to allow web server access to network layer
-enum WebConfigState
+enum webserverState
 {
-    WEBCONFIG_STATE_OFF = 0,
-    WEBCONFIG_STATE_WAIT_FOR_NETWORK,
-    WEBCONFIG_STATE_NETWORK_CONNECTED,
-    WEBCONFIG_STATE_STARTED,
-    WEBCONFIG_STATE_RUNNING,
+    WEBSERVER_STATE_OFF = 0,
+    WEBSERVER_STATE_WAIT_FOR_NETWORK,
+    WEBSERVER_STATE_NETWORK_CONNECTED,
+    WEBSERVER_STATE_STARTED,
+    WEBSERVER_STATE_RUNNING,
 
     // Add new states here
-    WEBCONFIG_STATE_MAX
+    WEBSERVER_STATE_MAX
 };
 
-#endif  // COMPILE_OTA_AUTO
+#endif  // COMPILE_AP
 
 
 
@@ -995,7 +996,7 @@ struct Settings
     uint16_t httpPort = 80;
 
     // WiFi
-    bool debugWebConfig = false;
+    bool debugWebServer = false;
     bool debugWifiState = false;
     bool enableCaptivePortal = true;
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
@@ -1597,7 +1598,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
 
     // WiFi
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWebConfig, "debugWebConfig",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWebServer, "debugWebServer",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWifiState, "debugWifiState",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },

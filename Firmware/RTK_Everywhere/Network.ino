@@ -1335,8 +1335,8 @@ void networkUpdate()
 
         // The STATE_WIFI_CONFIG is in control of WiFi. Don't allow the network layer to shut it down
         // As OTA exits, we need to keep AP running if we are in Web Config mode
-        // We don't want to make STATE_WIFI_CONFIG a consumer until startWebServer() uses the network layer
-        // To do that, startWebServer() needs a state machine to wait for the network to come online
+        // We don't want to make STATE_WIFI_CONFIG a consumer until webServerStart() uses the network layer
+        // To do that, webServerStart() needs a state machine to wait for the network to come online
 
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
@@ -1385,6 +1385,8 @@ void networkUpdate()
     udpServerUpdate(); // Turn on the UDP server as needed
     DMW_c("httpClientUpdate");
     httpClientUpdate(); // Process any Point Perfect HTTP messages
+    DMW_c("webServerUpdate");
+    webServerUpdate(); // Start webserver for web config as needed
 
     // Periodically display the network interface state
     displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);

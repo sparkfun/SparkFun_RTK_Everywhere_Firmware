@@ -1134,7 +1134,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // This is one of the first settings to be received. If seen, remove the station files.
         removeFile(stationCoordinateECEFFileName);
         removeFile(stationCoordinateGeodeticFileName);
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Station coordinate files removed");
         knownSetting = true;
     }
@@ -1146,7 +1146,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file
         recordLineToSD(stationCoordinateECEFFileName, settingValueStr);
         recordLineToLFS(stationCoordinateECEFFileName, settingValueStr);
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("%s recorded\r\n", settingValueStr);
         knownSetting = true;
     }
@@ -1155,7 +1155,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         replaceCharacter((char *)settingValueStr, ' ', ','); // Replace all ' ' with ',' before recording to file
         recordLineToSD(stationCoordinateGeodeticFileName, settingValueStr);
         recordLineToLFS(stationCoordinateGeodeticFileName, settingValueStr);
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("%s recorded\r\n", settingValueStr);
         knownSetting = true;
     }
@@ -1207,7 +1207,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "exitAndReset") == 0)
     {
         // Confirm receipt
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Sending reset confirmation");
 
         sendStringToWebsocket((char *)"confirmReset,1,");
@@ -1239,7 +1239,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     else if (strcmp(settingName, "setProfile") == 0)
     {
         // Change to new profile
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("Changing to profile number %d\r\n", settingValue);
         changeProfileNumber(settingValue);
 
@@ -1251,7 +1251,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         createSettingsString(settingsCSV);
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
         {
             systemPrintf("Sending profile %d\r\n", settingValue);
             systemPrintf("Profile contents: %s\r\n", settingsCSV);
@@ -1274,7 +1274,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         createSettingsString(settingsCSV);
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
         {
             systemPrintf("Sending reset profile %d\r\n", settingValue);
             systemPrintf("Profile contents: %s\r\n", settingsCSV);
@@ -1308,7 +1308,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "checkNewFirmware") == 0)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Checking for new OTA Pull firmware");
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
@@ -1328,13 +1328,13 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         //     getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
         //     if (isReportedVersionNewer(reportedVersion, currentVersion) == true)
         //     {
-        //         if (settings.debugWebConfig == true)
+        //         if (settings.debugWebServer == true)
         //             systemPrintln("New version detected");
         //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", reportedVersion);
         //     }
         //     else
         //     {
-        //         if (settings.debugWebConfig == true)
+        //         if (settings.debugWebServer == true)
         //             systemPrintln("No new firmware available");
         //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
         //     }
@@ -1342,7 +1342,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         // else
         // {
         //     // Failed to get version number
-        //     if (settings.debugWebConfig == true)
+        //     if (settings.debugWebServer == true)
         //         systemPrintln("Sending error to AP config page");
         //     snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,ERROR,");
         // }
@@ -1352,7 +1352,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
     }
     else if (strcmp(settingName, "getNewFirmware") == 0)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Getting new OTA Pull firmware");
 
         sendStringToWebsocket((char *)"gettingNewFirmware,1,");
@@ -2057,7 +2057,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("ECEF SD station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2069,7 +2069,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("ECEF LFS station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2095,7 +2095,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("Geo SD station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2107,7 +2107,7 @@ void createSettingsString(char *newSettings)
         {
             trim(stationInfo); // Remove trailing whitespace
 
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintf("Geo LFS station %d - found: %s\r\n", index, stationInfo);
 
             replaceCharacter(stationInfo, ',', ' '); // Change all , to ' ' for easier parsing on the JS side
@@ -2840,7 +2840,7 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
 
     if (knownSetting == false)
     {
-        if (settings.debugWebConfig)
+        if (settings.debugWebServer)
             systemPrintf("getSettingValue() Unknown setting: %s\r\n", settingName);
     }
 
