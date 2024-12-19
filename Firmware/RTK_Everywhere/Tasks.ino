@@ -289,18 +289,18 @@ void sendGnssBuffer()
     {
         if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
-            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
+            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
             {
-                PERIODIC_CLEAR(PD_ZED_DATA_TX);
+                PERIODIC_CLEAR(PD_GNSS_DATA_TX);
                 systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
             }
         }
     }
     else
     {
-        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
+        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
         {
-            PERIODIC_CLEAR(PD_ZED_DATA_TX);
+            PERIODIC_CLEAR(PD_GNSS_DATA_TX);
             systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
         }
     }
@@ -573,9 +573,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     int32_t use;
 
     // Display the message
-    if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_ZED_DATA_RX)) && (!parse->crc) && (!inMainMenu))
+    if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && (!parse->crc) && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_ZED_DATA_RX);
+        PERIODIC_CLEAR(PD_GNSS_DATA_RX);
         if (settings.enablePrintLogFileMessages)
         {
             printTimeStamp();

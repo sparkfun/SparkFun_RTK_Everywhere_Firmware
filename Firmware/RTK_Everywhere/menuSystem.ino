@@ -1146,11 +1146,11 @@ void menuPeriodicPrint()
         systemPrint("7) WiFi state: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_WIFI_STATE) ? "Enabled" : "Disabled");
 
-        systemPrint("8) ZED RX data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ZED_DATA_RX) ? "Enabled" : "Disabled");
+        systemPrint("8) GNSS RX data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_RX) ? "Enabled" : "Disabled");
 
-        systemPrint("9) ZED TX data: ");
-        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_ZED_DATA_TX) ? "Enabled" : "Disabled");
+        systemPrint("9) GNSS TX data: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_TX) ? "Enabled" : "Disabled");
 
         systemPrintln("-----  Software  -----");
 
@@ -1270,9 +1270,9 @@ void menuPeriodicPrint()
         else if (incoming == 7)
             PERIODIC_TOGGLE(PD_WIFI_STATE);
         else if (incoming == 8)
-            PERIODIC_TOGGLE(PD_ZED_DATA_RX);
+            PERIODIC_TOGGLE(PD_GNSS_DATA_RX);
         else if (incoming == 9)
-            PERIODIC_TOGGLE(PD_ZED_DATA_TX);
+            PERIODIC_TOGGLE(PD_GNSS_DATA_TX);
 
         else if (incoming == 20)
         {
