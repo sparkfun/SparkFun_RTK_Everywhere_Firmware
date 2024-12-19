@@ -440,18 +440,18 @@ void tcpServerUpdate()
             // Determine if the client data structure is in use
             if (!(tcpServerClientConnected & (1 << index)))
             {
-                NetworkClient client;
+                if(tcpServerClient[index] == nullptr)
+                    tcpServerClient[index] = new NetworkClient;
 
                 // Data structure not in use
                 // Check for another TCP server client
-                client = tcpServer->accept();
+                *tcpServerClient[index] = tcpServer->accept();
 
-                // Done if no TCP server client found
-                if (!client)
+                // Exit if no TCP server client found
+                if (! *tcpServerClient[index])
                     break;
 
                 // Start processing the new TCP server client connection
-                tcpServerClient[index] = new NetworkClient;
                 tcpServerClientIpAddress[index] = tcpServerClient[index]->remoteIP();
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);
                 tcpServerClientDataSent = tcpServerClientDataSent | (1 << index);
