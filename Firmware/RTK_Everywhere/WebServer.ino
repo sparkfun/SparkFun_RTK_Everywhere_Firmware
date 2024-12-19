@@ -6,15 +6,15 @@ Form.ino
 
 #ifdef COMPILE_AP
 
-static const char *const webconfigStateNames[] = {
-    "WEBCONFIG_STATE_OFF",     "WEBCONFIG_STATE_WAIT_FOR_NETWORK", "WEBCONFIG_STATE_NETWORK_CONNECTED",
-    "WEBCONFIG_STATE_STARTED", "WEBCONFIG_STATE_RUNNING",
+static const char *const webserverStateNames[] = {
+    "WEBSERVER_STATE_OFF",     "WEBSERVER_STATE_WAIT_FOR_NETWORK", "WEBSERVER_STATE_NETWORK_CONNECTED",
+    "WEBSERVER_STATE_STARTED", "WEBSERVER_STATE_RUNNING",
 };
 
-static const int webconfigStateEntries = sizeof(webconfigStateNames) / sizeof(webconfigStateNames[0]);
+static const int webserverStateEntries = sizeof(webserverStateNames) / sizeof(webserverStateNames[0]);
 
 static NetPriority_t webconfigPriority = NETWORK_OFFLINE;
-static WebConfigState webconfigState;
+static webserverState webserverState;
 
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
@@ -63,7 +63,7 @@ void sendStringToWebsocket(const char *stringToSend)
     }
     else
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
     }
 }
@@ -80,7 +80,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         // TODO: do we need to be cleverer about this?
         last_ws_fd = httpd_req_to_sockfd(req);
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
 
         websocketConnected = true;
@@ -101,7 +101,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
         return ret;
     }
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("frame len is %d\r\n", ws_pkt.len);
     if (ws_pkt.len)
     {
@@ -126,7 +126,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
             return ret;
         }
     }
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("Packet type: %d\r\n", ws_pkt.type);
     // HTTPD_WS_TYPE_CONTINUE   = 0x0,
     // HTTPD_WS_TYPE_TEXT       = 0x1,
@@ -137,7 +137,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
 
         if (currentlyParsingData == false)
@@ -152,7 +152,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
     }
     else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Client closed or refreshed the web page");
 
         createSettingsString(settingsCSV);
@@ -182,7 +182,7 @@ static void start_wsserver(void)
     config.stack_size = updateWebSocketStackSize;
 
     // Start the httpd server
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
     if (wsserver == nullptr)
@@ -191,26 +191,13 @@ static void start_wsserver(void)
     if (httpd_start(wsserver, &config) == ESP_OK)
     {
         // Registering the ws handler
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Registering URI handlers");
         httpd_register_uri_handler(*wsserver, &ws);
         return;
     }
 
     systemPrintln("Error starting wsserver!");
-}
-
-void stop_wsserver()
-{
-    createSettingsString(settingsCSV);
-    websocketConnected = false;
-
-    if (*wsserver)
-    {
-        // Stop the httpd server
-        esp_err_t ret = httpd_stop(*wsserver);
-        //*wsserver = nullptr;
-    }
 }
 
 // ===== Request Handler class used to answer more complex requests =====
@@ -223,7 +210,7 @@ class CaptiveRequestHandler : public RequestHandler
                       "/check_network_status.txt"};
     CaptiveRequestHandler()
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("CaptiveRequestHandler is registered");
     }
     virtual ~CaptiveRequestHandler()
@@ -243,7 +230,7 @@ class CaptiveRequestHandler : public RequestHandler
     bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri)
     {
         String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln(logmessage);
         String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
         response += "<div class='container'>";
@@ -261,80 +248,80 @@ class CaptiveRequestHandler : public RequestHandler
 };
 
 // State machine to handle the starting/stopping of the web server
-void updateWebServer()
+void websServerUpdate()
 {
     if (!inMainMenu)
     {
         // Walk the state machine
-        switch (webconfigState)
+        switch (webserverState)
         {
         default:
-            systemPrintf("ERROR: Unknown WebConfig state (%d)\r\n", webconfigState);
+            systemPrintf("ERROR: Unknown WebConfig state (%d)\r\n", webserverState);
 
             // Stop the machine
-            webconfigStop();
+            webServerStop();
             break;
 
         // Wait for a request from a user
-        case WEBCONFIG_STATE_OFF:
+        case WEBSERVER_STATE_OFF:
             if (webconfigRequest == true)
-                otaSetState(WEBCONFIG_STATE_WAIT_FOR_NETWORK);
+                webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
             break;
 
         // Wait for connection to the network
-        case WEBCONFIG_STATE_WAIT_FOR_NETWORK:
+        case WEBSERVER_STATE_WAIT_FOR_NETWORK:
             // Determine if the request has been canceled while waiting
             if (webconfigRequest == false)
-                webconfigUpdateStop();
+                webServerStop();
 
             // Wait until the network is connected to the media
             else if (networkIsConnected(&webconfigPriority))
             {
-                if (settings.debugWebConfig)
+                if (settings.debugWebServer)
                     systemPrintln("Web config connected to network");
 
-                webconfigSetState(WEBCONFIG_STATE_NETWORK_CONNECTED);
+                webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
             }
             break;
 
         // Start the web server
-        case WEBCONFIG_STATE_NETWORK_CONNECTED:
+        case WEBSERVER_STATE_NETWORK_CONNECTED:
 
             // Determine if the network has failed
             if (!networkIsConnected(&webconfigPriority))
-                webconfigStop();
-            if (settings.debugWebConfig)
+                webServerStop();
+            if (settings.debugWebServer)
                 systemPrintln("Web config starting web server");
 
-            if (startWebServer(false, settings.httpPort) == true)
-                webconfigSetState(WEBCONFIG_STATE_STARTED);
+            if (webServerStart(false, settings.httpPort) == true)
+                webServerSetState(WEBSERVER_STATE_STARTED);
 
             break;
 
         // Wait for web server to start
-        case WEBCONFIG_STATE_STARTED:
+        case WEBSERVER_STATE_STARTED:
             // Determine if the network has failed
             if (!networkIsConnected(&webconfigPriority))
-                webconfigStop();
-            if (settings.debugWebConfig)
+                webServerStop();
+            if (settings.debugWebServer)
                 systemPrintln("Web config waiting for web server to start");
 
             //...
-            webconfigSetState(WEBCONFIG_STATE_RUNNING);
+            webServerSetState(WEBSERVER_STATE_RUNNING);
 
             break;
 
         // Allow web services
-        case WEBCONFIG_STATE_RUNNING:
+        case WEBSERVER_STATE_RUNNING:
             // Determine if the network has failed
             if (!networkIsConnected(&webconfigPriority))
-                webconfigStop();
+                webServerStop();
 
             // TODO how does the system indicate we need to shut down the web server?
             if (inWiFiConfigMode() == false)
             {
                 webconfigRequest = false; // Tell the network layer we no longer need access
-                webconfigStop();
+                webServerStop();
             }
 
             //...
@@ -345,28 +332,43 @@ void updateWebServer()
 }
 
 // Stop the web config state machine
-void webconfigStop()
+void webServerStop()
 {
-    if (settings.debugWebConfig)
-        systemPrintln("webconfigStop called");
+    webconfigRequest = false; //Notify the web config state machine to start up
 
-    if (webconfigState != WEBCONFIG_STATE_OFF)
+    if (settings.debugWebServer)
+        systemPrintln("webServerStop called");
+
+    if (webserverState != WEBSERVER_STATE_OFF)
     {
-        stop_wsserver(); // Release socket resources
-        stopWebServer(); // Release web server resources
+        webServerStopSockets(); // Release socket resources
+        webServerStop(); // Release web server resources
 
         // Stop network
         systemPrintln("Web Config releasing network request");
 
-        webconfigRequested = false; // Let the network know we no longer need it
+        webserverRequested = false; // Let the network know we no longer need it
 
         // Stop the machine
-        webconfigSetState(WEBCONFIG_STATE_OFF);
+        webServerSetState(WEBSERVER_STATE_OFF);
     }
-};
+}
+
+void webServerStopSockets()
+{
+    createSettingsString(settingsCSV);
+    websocketConnected = false;
+
+    if (*wsserver)
+    {
+        // Stop the httpd server
+        esp_err_t ret = httpd_stop(*wsserver);
+        //*wsserver = nullptr;
+    }
+}
 
 // Set the next webconfig state
-void webconfigSetState(WebConfigState newState)
+void webServerSetState(webserverState newState)
 {
     char string1[40];
     char string2[40];
@@ -376,26 +378,26 @@ void webconfigSetState(WebConfigState newState)
     const char *endingState = nullptr;
 
     // Display the state transition
-    if (settings.debugWebConfig)
+    if (settings.debugWebServer)
     {
         arrow = "";
         asterisk = "";
         initialState = "";
-        if (newState == otaState)
+        if (newState == webserverState)
             asterisk = "*";
         else
         {
-            initialState = webconfigGetStateName(webconfigState, string1);
+            initialState = webServerGetStateName(webserverState, string1);
             arrow = " --> ";
         }
     }
 
     // Set the new state
-    webconfigState = newState;
-    if (settings.debugWebConfig)
+    webserverState = newState;
+    if (settings.debugWebServer)
     {
         // Display the new firmware update state
-        endingState = webconfigGetStateName(newState, string2);
+        endingState = webServerGetStateName(newState, string2);
         if (!online.rtc)
             systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
         else
@@ -412,21 +414,27 @@ void webconfigSetState(WebConfigState newState)
     }
 
     // Validate the state
-    if (newState >= WEBCONFIG_STATE_MAX)
+    if (newState >= WEBSERVER_STATE_MAX)
         reportFatalError("Invalid web config state");
 }
 
 // Get the webconfig state name
-const char *webconfigGetStateName(WebConfigState state, char *string)
+const char *webServerGetStateName(webserverState state, char *string)
 {
-    if (state < WEBCONFIG_STATE_MAX)
-        return webconfigStateNames[state];
+    if (state < WEBSERVER_STATE_MAX)
+        return webserverStateNames[state];
     sprintf(string, "Unknown state (%d)", state);
     return string;
 }
 
+bool webServerIsStarted()
+{
+    if()
+}
+
+
 // Start webserver in AP mode
-bool startWebServer(bool startWiFi = true, int httpPort = 80)
+bool webServerStart(bool startWiFi = true, int httpPort = 80)
 {
     do
     {
@@ -444,7 +452,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // else
         //     networkMulticastDNSSwitch(NETWORK_ETHERNET);
 
-        // Freed by stopWebServer
+        // Freed by webServerStop
         if (online.psram == true)
             incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         else
@@ -458,7 +466,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
         // Pre-load settings CSV
-        // Freed by stopWebServer
+        // Freed by webServerStop
         if (online.psram == true)
             settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         else
@@ -638,7 +646,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // Handler for file manager
         webserver->on("/listfiles", HTTP_GET, []() {
             String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String files;
             getFileList(files);
@@ -648,11 +656,11 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // Handler for supported messages list
         webserver->on("/listMessages", HTTP_GET, []() {
             String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messages;
             createMessageList(messages);
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(messages);
             webserver->send(200, "text/plain", messages);
         });
@@ -660,11 +668,11 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // Handler for supported RTCM/Base messages list
         webserver->on("/listMessagesBase", HTTP_GET, []() {
             String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messageList;
             createMessageListBase(messageList);
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(messageList);
             webserver->send(200, "text/plain", messageList);
         });
@@ -684,14 +692,14 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                 updateWebServerTaskPriority,
                 &updateWebServerTaskHandle); // Task handle
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Web Server Started");
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
         start_wsserver();
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Web Socket Server Started");
         reportHeapNow(false);
 
@@ -699,8 +707,8 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
     } while (0);
 
     // Release the resources
-    stop_wsserver();
-    stopWebServer();
+    webServerStopSockets();
+    webServerStop();
     return false;
 }
 
@@ -735,7 +743,7 @@ void updateWebServerTask(void *e)
     vTaskDelete(updateWebServerTaskHandle);
 }
 
-void stopWebServer()
+void webServerStop()
 {
     if (task.updateWebServerTaskRunning)
         task.updateWebServerTaskStopRequest = true;
@@ -1016,13 +1024,13 @@ void createFirmwareVersionString(char *settingsCSV)
     // Compare the unit's version against the reported version from OTA
     if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("New version detected");
         snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
     }
     else
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("No new firmware available");
         snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
     }
@@ -1123,7 +1131,7 @@ bool parseIncomingSettings()
             headPtr = commaPtr + 1;
         }
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
 
         updateSettingWithValue(false, settingName, valueStr);
@@ -1140,7 +1148,7 @@ bool parseIncomingSettings()
     if (counter < maxAttempts)
     {
         // Confirm receipt
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Sending receipt confirmation of settings");
         sendStringToWebsocket("confirmDataReceipt,1,");
     }
@@ -1203,7 +1211,7 @@ void getFileList(String &returnText)
         systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
     }
 
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -1267,7 +1275,7 @@ void createMessageList(String &returnText)
     }
 #endif // COMPILE_MOSAICX5
 
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -1319,7 +1327,7 @@ void createMessageListBase(String &returnText)
     }
 #endif // COMPILE_MOSAICX5
 
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
