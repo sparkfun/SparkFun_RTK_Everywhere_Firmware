@@ -2605,9 +2605,12 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-    // if ((settings.debugGnss == true) && !inMainMenu)
-    //     systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
-    //     parse->length);
+    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    {
+        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
+        systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
+        parse->length);
+    }
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
@@ -2636,8 +2639,11 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 //----------------------------------------
 void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    if ((settings.debugCorrections == true) && !inMainMenu)
+    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    {
+        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
         systemPrintf("Pushing %d SPARTN (L-Band) bytes to PPL for mosaic-X5\r\n", parse->length);
+    }
 
     if (online.ppl == false && settings.debugCorrections == true && (!inMainMenu))
         systemPrintln("Warning: PPL is offline");

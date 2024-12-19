@@ -1152,6 +1152,9 @@ void menuPeriodicPrint()
         systemPrint("9) GNSS TX data: ");
         systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_TX) ? "Enabled" : "Disabled");
 
+        systemPrint("10) GNSS RX byte count: ");
+        systemPrintf("%s\r\n", PERIODIC_SETTING(PD_GNSS_DATA_RX_BYTE_COUNT) ? "Enabled" : "Disabled");
+
         systemPrintln("-----  Software  -----");
 
         systemPrintf("20) Periodic print: %llu (0x%016llx)\r\n", settings.periodicDisplay, settings.periodicDisplay);
@@ -1273,6 +1276,8 @@ void menuPeriodicPrint()
             PERIODIC_TOGGLE(PD_GNSS_DATA_RX);
         else if (incoming == 9)
             PERIODIC_TOGGLE(PD_GNSS_DATA_TX);
+        else if (incoming == 10)
+            PERIODIC_TOGGLE(PD_GNSS_DATA_RX_BYTE_COUNT);
 
         else if (incoming == 20)
         {

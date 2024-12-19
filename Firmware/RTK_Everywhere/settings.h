@@ -314,6 +314,8 @@ enum PeriodDisplayValues
     PD_PROVISIONING_STATE,      // 36
 
     PD_CORRECTION_SOURCE,       // 37
+
+    PD_GNSS_DATA_RX_BYTE_COUNT, // 38
     // Add new values before this line
 };
 
