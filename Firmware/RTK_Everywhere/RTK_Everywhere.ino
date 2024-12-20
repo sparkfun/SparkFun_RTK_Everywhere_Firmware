@@ -466,7 +466,7 @@ HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatfor
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 8192; // bleserial_multiple.ino uses 8192
+const int btReadTaskStackSize = 4000;
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
