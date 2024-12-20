@@ -137,57 +137,58 @@ void menuWiFi()
 }
 
 //----------------------------------------
-// Connect to a remote WiFi access point
+// Starts WiFi in STA, AP, or STA_AP mode depending on networkGetConsumerTypes()
+// Returns true if STA connects, or if AP is started, or if STA_AP is successful
 //----------------------------------------
-bool wifiConnect(unsigned long timeout)
+bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
 {
-    return wifiConnect(timeout, false, nullptr);
-}
+    // Is a change needed?
+    if (startWiFiStation && startWiFiAP && WiFi.getMode() == WIFI_AP_STA)
+        return (true); // There is nothing needing to be changed
 
-//----------------------------------------
-// Attempts a connection to all provided SSIDs
-// Returns true if successful
-// Gives up if no SSID detected or connection times out
-// If useAPSTAMode is true, do an extra check and go from WIFI_AP mode to WIFI_AP_STA mode
-//----------------------------------------
-bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
-{
-    // If WiFi is already connected and AP_STA mode is not needed, then return true now
-    if (wifiIsRunning() && !useAPSTAMode)
+    if (startWiFiStation && WiFi.getMode() == WIFI_STA)
+        return (true); // There is nothing needing to be changed
+
+    if (startWiFiAP && WiFi.getMode() == WIFI_AP)
+        return (true); // There is nothing needing to be changed
+
+    wifiRunning = false; //Mark it as offline while we mess about
+    
+    wifi_mode_t wifiMode = WIFI_OFF;
+    wifi_interface_t wifiInterface = WIFI_IF_STA;
+
+    if (networkGetConsumerTypes() == NETCONSUMER_WIFI_STA)
     {
-        return (true); // Nothing to do
+        systemPrintln("Starting WiFi Station");
+        wifiMode = WIFI_STA;
+        wifiInterface = WIFI_IF_STA;
+    }
+    else if (networkGetConsumerTypes() == NETCONSUMER_WIFI_AP)
+    {
+        systemPrintln("Starting WiFi AP");
+        wifiMode = WIFI_AP;
+        wifiInterface = WIFI_IF_AP;
+    }
+    else if (networkGetConsumerTypes() == NETCONSUMER_WIFI_AP_STA)
+    {
+        systemPrintln("Starting WiFi AP+Station");
+        wifiMode = WIFI_AP_STA;
+        wifiInterface = WIFI_IF_AP_STA;
     }
 
     displayWiFiConnect();
 
-    // If otaUpdate wants to use WIFI_AP_STA mode
-    if (useAPSTAMode && (wasInAPmode != nullptr))
+    if (WiFi.mode(wifiMode) == false) // Start WiFi in the appropriate mode
     {
-        *wasInAPmode = (WiFi.getMode() == WIFI_AP);
-
-        if (*wasInAPmode)
-        {
-            systemPrintln("wifiConnect: changing from WIFI_AP to WIFI_AP_STA");
-            WiFi.mode(WIFI_AP_STA); // Change mode from WIFI_AP to WIFI_AP_STA
-        }
-        else
-        {
-            systemPrintln("wifiConnect: was not in WIFI_AP mode. Going to WIFI_STA");
-            WiFi.mode(WIFI_STA); // Must have been off - or already in STA mode?
-        }
-    }
-    else
-    {
-        // Before we can issue esp_wifi_() commands WiFi must be started
-        if (WiFi.getMode() != WIFI_STA)
-            WiFi.mode(WIFI_STA);
+        systemPrintln("WiFi failed to set mode");
+        return (false);
     }
 
     // Verify that the necessary protocols are set
     uint8_t protocols = 0;
-    esp_err_t response = esp_wifi_get_protocol(WIFI_IF_STA, &protocols);
+    esp_err_t response = esp_wifi_get_protocol(wifiInterface, &protocols);
     if (response != ESP_OK)
-        systemPrintf("wifiConnect: Failed to get protocols: %s\r\n", esp_err_to_name(response));
+        systemPrintf("Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
     // If ESP-NOW is running, blend in ESP-NOW protocol.
     if (espnowState > ESPNOW_OFF)
@@ -195,10 +196,10 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
         if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR))
         {
             esp_err_t response =
-                esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N |
-                                                       WIFI_PROTOCOL_LR); // Enable WiFi + ESP-Now.
+                esp_wifi_set_protocol(wifiInterface, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N |
+                                                         WIFI_PROTOCOL_LR); // Enable WiFi + ESP-Now.
             if (response != ESP_OK)
-                systemPrintf("wifiConnect: Error setting WiFi + ESP-NOW protocols: %s\r\n", esp_err_to_name(response));
+                systemPrintf("Error setting WiFi + ESP-NOW protocols: %s\r\n", esp_err_to_name(response));
         }
     }
     else
@@ -206,14 +207,52 @@ bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode)
         // Make sure default WiFi protocols are in place
         if (protocols != (WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N))
         {
-            esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G |
-                                                                        WIFI_PROTOCOL_11N); // Enable WiFi.
+            esp_err_t response = esp_wifi_set_protocol(wifiInterface, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G |
+                                                                          WIFI_PROTOCOL_11N); // Enable WiFi.
             if (response != ESP_OK)
-                systemPrintf("wifiConnect: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
+                systemPrintf("Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
         }
     }
 
-    systemPrintln("Connecting WiFi... ");
+    // Start AP with fixed IP
+    if (wifiMode == WIFI_AP || wifiMode == WIFI_AP_STA)
+    {
+        IPAddress local_IP(192, 168, 4, 1);
+        IPAddress gateway(192, 168, 4, 1);
+        IPAddress subnet(255, 255, 255, 0);
+
+        WiFi.softAPConfig(local_IP, gateway, subnet);
+
+        const char *softApSsid = "RTK Config";
+        if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
+        {
+            systemPrintln("WiFi AP failed to start");
+            return (false);
+        }
+        systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
+        systemPrintln(WiFi.softAPIP());
+
+        // Start DNS Server
+        if (dnsServer.start(53, "*", WiFi.softAPIP()) == false)
+        {
+            systemPrintln("WiFi DNS Server failed to start");
+            return (false);
+        }
+        else
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("DNS Server started");
+        }
+
+        // If we're only here to start the AP, then we're done
+        if (wifiMode == WIFI_AP)
+        {
+            wifiRunning = true;
+            return true;
+        }
+    }
+
+    systemPrintln("Connecting to WiFi... ");
 
     if (wifiMulti == nullptr)
         wifiMulti = new WiFiMulti;
@@ -482,14 +521,43 @@ bool wifiForceStart()
         if (settings.debugWifiState == true)
             systemPrintln("Starting WiFi");
 
+        // Determine which parts of WiFi need to be started
+        bool startWiFiStation = false;
+        bool startWiFiAP = false;
+
+        // Only one bit is set, WiFi Station is default
+        if (networkGetConsumerTypes() == (1 << NETCONSUMER_ANY))
+            startWiFiStation = true;
+
+        // The consumers need both
+        else if (networkGetConsumerTypes() & ((1 << NETCONSUMER_AP) | (1 << NETCONSUMER_STA)))
+        {
+            startWiFiStation = true;
+            startWiFiAP = true;
+        }
+
+        // The consumers need station
+        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_STA))
+            startWiFiStation = true;
+
+        // The consumers need AP
+        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_AP))
+            startWiFiAP = true;
+
         // Start WiFi
-        if (wifiConnect(settings.wifiConnectTimeoutMs))
+        if (wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs))
         {
             wifiResetTimeout();
             if (settings.debugWifiState == true)
                 systemPrintln("WiFi: Start timeout reset to zero");
         }
     }
+
+    // If we are in AP only mode, as long as the AP is started, returned true
+    if (WiFi.getMode() == WIFI_MODE_AP)
+        return (true);
+
+    // If we are in STA or AP+STA mode, return if the station connected successfully
     wifiStatus = WiFi.status();
     return (wifiStatus == WL_CONNECTED);
 }
@@ -561,6 +629,9 @@ NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
 //----------------------------------------
 void wifiStop()
 {
+    // Stop the web server
+    stopWebServer();
+
     // Stop the DNS server if we were using the captive portal
     if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
@@ -614,14 +685,6 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 //----------------------------------------
-// Set AP mode
-//----------------------------------------
-void wifiSetApMode()
-{
-    WiFi.mode(WIFI_AP);
-}
-
-//----------------------------------------
 // Start the WiFi access point
 //----------------------------------------
 bool wifiStartAP()
@@ -653,33 +716,6 @@ bool wifiStartAP(bool forceAP)
         {
             if (settings.debugWifiState == true)
                 systemPrintln("WiFi protocols set");
-        }
-
-        IPAddress local_IP(192, 168, 4, 1);
-        IPAddress gateway(192, 168, 4, 1);
-        IPAddress subnet(255, 255, 255, 0);
-
-        WiFi.softAPConfig(local_IP, gateway, subnet);
-
-        const char *softApSsid = "RTK Config";
-        if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
-        {
-            systemPrintln("WiFi AP failed to start");
-            return (false);
-        }
-        systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
-        systemPrintln(WiFi.softAPIP());
-
-        // Start DNS Server
-        if (dnsServer.start(53, "*", WiFi.softAPIP()) == false)
-        {
-            systemPrintln("WiFi DNS Server failed to start");
-            return (false);
-        }
-        else
-        {
-            if (settings.debugWifiState == true)
-                systemPrintln("DNS Server started");
         }
     }
     else

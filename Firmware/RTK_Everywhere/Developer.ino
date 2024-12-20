@@ -151,12 +151,12 @@ void httpClientValidateTables() {}
 
 #ifndef COMPILE_AP
 
-bool webServerStart(bool startWiFi = true, int httpPort = 80)
+bool startWebServer(bool startWiFi = true, int httpPort = 80)
 {
     systemPrintln("**AP not compiled**");
     return false;
 }
-void webServerStop() {}
+void stopWebServer() {}
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 
@@ -168,11 +168,10 @@ void sendStringToWebsocket(const char* stringToSend) {}
 //----------------------------------------
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
+bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 int wifiNetworkCount() {return 0;}
 bool wifiIsRunning() {return false;}
 void wifiRestart() {}
-void wifiSetApMode() {}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI

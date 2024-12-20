@@ -614,6 +614,20 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 
 #define NTRIP_SERVER_STRING_SIZE        50
 
+//Bitfield for describing the type of network the consumer needs
+enum
+{
+    NETCONSUMER_NONE = 0, // No consumers
+    NETCONSUMER_WIFI_STA, // The consumer needs STA
+    NETCONSUMER_WIFI_AP, // The consumer needs AP
+    NETCONSUMER_WIFI_AP_STA, // The consumer needs STA and AP
+    NETCONSUMER_CELLULAR, // The consumer needs Cellular
+    NETCONSUMER_ETHERNET, // The consumer needs Ethernet
+    NETCONSUMER_ANY, // The consumer doesn't care what type of network access is granted
+    NETCONSUMER_UNKNOWN
+};
+uint16_t networkConsumerTypes = NETCONSUMER_NONE;
+
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
 struct Settings
@@ -1819,15 +1833,9 @@ typedef int8_t NetPriority_t;  // Index into networkPriorityTable
 enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    #ifdef COMPILE_ETHERNET
-        NETWORK_ETHERNET,
-    #endif  // COMPILE_ETHERNET
-    #ifdef COMPILE_WIFI
-        NETWORK_WIFI = 1,
-    #endif  // COMPILE_WIFI
-    #ifdef COMPILE_CELLULAR
-        NETWORK_CELLULAR,
-    #endif  // COMPILE_CELLULAR
+    NETWORK_ETHERNET = 0,
+    NETWORK_WIFI = 1,
+    NETWORK_CELLULAR = 2,
     // Add new networks here
     NETWORK_MAX
 };
@@ -1868,21 +1876,28 @@ extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
 // List of networks
-// Multiple networks may running in parallel with highest priority being
-// set to the default network.  The start routine is called as the priority
-// drops to that level.  The stop routine is called as the priority rises
-// above that level.  The priority will continue to fall or rise until a
+// Only one network is turned on at a time. The start routine is called as the priority
+// drops to that level. The stop routine is called as the priority rises
+// above that level. The priority will continue to fall or rise until a
 // network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
 { //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
     #ifdef COMPILE_ETHERNET
         {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    #else
+        {nullptr,      "Ethernet-NotCompiled",     nullptr,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_ETHERNET
+
     #ifdef COMPILE_WIFI
         {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence},
+    #else
+        {nullptr,   "WiFi-NotCompiled",     nullptr,            PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_WIFI
+
     #ifdef  COMPILE_CELLULAR
         {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+    #else
+        {nullptr,   "Cellular-NotCompiled",     nullptr,            PD_CELLULAR_STATE,      nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);
