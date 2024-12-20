@@ -173,7 +173,7 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     {
         systemPrintln("Starting WiFi AP+Station");
         wifiMode = WIFI_AP_STA;
-        wifiInterface = WIFI_IF_AP_STA;
+        wifiInterface = WIFI_IF_AP; // There is no WIFI_IF_AP_STA
     }
 
     displayWiFiConnect();
@@ -530,18 +530,18 @@ bool wifiForceStart()
             startWiFiStation = true;
 
         // The consumers need both
-        else if (networkGetConsumerTypes() & ((1 << NETCONSUMER_AP) | (1 << NETCONSUMER_STA)))
+        else if (networkGetConsumerTypes() & ((1 << NETCONSUMER_WIFI_AP) | (1 << NETCONSUMER_WIFI_STA)))
         {
             startWiFiStation = true;
             startWiFiAP = true;
         }
 
         // The consumers need station
-        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_STA))
+        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_WIFI_STA))
             startWiFiStation = true;
 
         // The consumers need AP
-        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_AP))
+        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_WIFI_AP))
             startWiFiAP = true;
 
         // Start WiFi
@@ -698,50 +698,52 @@ bool wifiStartAP()
 //----------------------------------------
 bool wifiStartAP(bool forceAP)
 {
-    if (settings.wifiConfigOverAP == true || forceAP)
-    {
-        // Stop any current WiFi activity
-        WIFI_STOP();
+    //TODO delete
+    return (false);
+    // if (settings.wifiConfigOverAP == true || forceAP)
+    // {
+    //     // Stop any current WiFi activity
+    //     WIFI_STOP();
 
-        // Start in AP mode
-        WiFi.mode(WIFI_AP);
+    //     // Start in AP mode
+    //     WiFi.mode(WIFI_AP);
 
-        // Before starting AP mode, be sure we have default WiFi protocols enabled.
-        // esp_wifi_set_protocol requires WiFi to be started
-        esp_err_t response =
-            esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
-        if (response != ESP_OK)
-            systemPrintf("wifiStartAP: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
-        else
-        {
-            if (settings.debugWifiState == true)
-                systemPrintln("WiFi protocols set");
-        }
-    }
-    else
-    {
-        // Start webServer on local WiFi instead of AP
+    //     // Before starting AP mode, be sure we have default WiFi protocols enabled.
+    //     // esp_wifi_set_protocol requires WiFi to be started
+    //     esp_err_t response =
+    //         esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+    //     if (response != ESP_OK)
+    //         systemPrintf("wifiStartAP: Error setting WiFi protocols: %s\r\n", esp_err_to_name(response));
+    //     else
+    //     {
+    //         if (settings.debugWifiState == true)
+    //             systemPrintln("WiFi protocols set");
+    //     }
+    // }
+    // else
+    // {
+    //     // Start webServer on local WiFi instead of AP
 
-        // Attempt to connect to local WiFi with increasing timeouts
-        int x = 0;
-        const int maxTries = 2;
-        for (; x < maxTries; x++)
-        {
-            if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
-            {
-                wifiDisplayState();
-                break;
-            }
-        }
-        if (x == maxTries)
-        {
-            displayNoWiFi(2000);
-            return (wifiStartAP(true)); // Because there is no local WiFi available, force AP mode so user can still get
-                                        // access/configure it
-        }
-    }
+    //     // Attempt to connect to local WiFi with increasing timeouts
+    //     int x = 0;
+    //     const int maxTries = 2;
+    //     for (; x < maxTries; x++)
+    //     {
+    //         if (wifiConnect(settings.wifiConnectTimeoutMs) == true) // Attempt to connect to any SSID on settings list
+    //         {
+    //             wifiDisplayState();
+    //             break;
+    //         }
+    //     }
+    //     if (x == maxTries)
+    //     {
+    //         displayNoWiFi(2000);
+    //         return (wifiStartAP(true)); // Because there is no local WiFi available, force AP mode so user can still get
+    //                                     // access/configure it
+    //     }
+    // }
 
-    return (true);
+    // return (true);
 }
 
 #endif // COMPILE_WIFI

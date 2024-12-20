@@ -7,11 +7,8 @@ Form.ino
 #ifdef COMPILE_AP
 
 static const char *const webServerStateNames[] = {
-    "WEBSERVER_STATE_OFF",
-    "WEBSERVER_STATE_WAIT_FOR_NETWORK",
-    "WEBSERVER_STATE_NETWORK_CONNECTED",
-    "WEBSERVER_STATE_STARTED",
-    "WEBSERVER_STATE_RUNNING",
+    "WEBSERVER_STATE_OFF",     "WEBSERVER_STATE_WAIT_FOR_NETWORK", "WEBSERVER_STATE_NETWORK_CONNECTED",
+    "WEBSERVER_STATE_STARTED", "WEBSERVER_STATE_RUNNING",
 };
 
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
@@ -207,7 +204,7 @@ static void start_wsserver(void)
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/WebServer/WebServer.ino
 class CaptiveRequestHandler : public RequestHandler
 {
-public:
+  public:
     // https://en.wikipedia.org/wiki/Captive_portal
     String urls[5] = {"/hotspot-detect.html", "/library/test/success.html", "/generate_204", "/ncsi.txt",
                       "/check_network_status.txt"};
@@ -250,89 +247,292 @@ public:
     }
 };
 
-// State machine to handle the starting/stopping of the web server
-void webServerUpdate()
+// Start the webServer
+bool webServerStart(bool startWiFi = true, int httpPort = 80)
 {
-    if (!inMainMenu)
+    do
     {
-        // Walk the state machine
-        switch (webServerState)
+        ntripClientStop(true); // Do not allocate new wifiClient
+        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+            ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
+
+        // if (startWiFi)
+        //     if (wifiStartAP() == false)
+        //         break;
+
+        // // Start the multicast DNS server
+        // if (startWiFi == true)
+        //     networkMulticastDNSSwitch(NETWORK_WIFI);
+        // else
+        //     networkMulticastDNSSwitch(NETWORK_ETHERNET);
+
+        // Freed by webServerStop
+        if (online.psram == true)
+            incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
+        else
+            incomingSettings = (char *)malloc(AP_CONFIG_SETTING_SIZE);
+
+        if (!incomingSettings)
         {
-        default:
-            systemPrintf("ERROR: Unknown WebConfig state (%d)\r\n", webServerState);
-
-            // Stop the machine
-            webServerStop();
-            break;
-
-        // Wait for a request from a user
-        case WEBSERVER_STATE_OFF:
-            if (webServerRequest == true)
-                webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
-            break;
-
-        // Wait for connection to the network
-        case WEBSERVER_STATE_WAIT_FOR_NETWORK:
-            // Determine if the request has been canceled while waiting
-            if (webServerRequest == false)
-                webServerStop();
-
-            // Wait until the network is connected to the media
-            else if (networkIsConnected(&webconfigPriority))
-            {
-                if (settings.debugWebServer)
-                    systemPrintln("Web config connected to network");
-
-                webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
-            }
-            break;
-
-        // Start the web server
-        case WEBSERVER_STATE_NETWORK_CONNECTED:
-
-            // Determine if the network has failed
-            if (!networkIsConnected(&webconfigPriority))
-                webServerStop();
-            if (settings.debugWebServer)
-                systemPrintln("Starting web server");
-
-            if (web2(false, settings.httpPort) == true)
-                webServerSetState(WEBSERVER_STATE_STARTED);
-
-            break;
-
-        // Wait for web server to start
-        case WEBSERVER_STATE_STARTED:
-            // Determine if the network has failed
-            if (!networkIsConnected(&webconfigPriority))
-                webServerStop();
-            if (settings.debugWebServer)
-                systemPrintln("Web config waiting for web server to start");
-
-            //...
-            webServerSetState(WEBSERVER_STATE_RUNNING);
-
-            break;
-
-        // Allow web services
-        case WEBSERVER_STATE_RUNNING:
-            // Determine if the network has failed
-            if (!networkIsConnected(&webconfigPriority))
-                webServerStop();
-
-            // TODO how does the system indicate we need to shut down the web server?
-            if (inWiFiConfigMode() == false)
-            {
-                webServerRequest = false; // Tell the network layer we no longer need access
-                webServerStop();
-            }
-
-            //...
-
+            systemPrintln("ERROR: Failed to allocate incomingSettings");
             break;
         }
-    }
+        memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
+
+        // Pre-load settings CSV
+        // Freed by webServerStop
+        if (online.psram == true)
+            settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
+        else
+            settingsCSV = (char *)malloc(AP_CONFIG_SETTING_SIZE);
+
+        if (!settingsCSV)
+        {
+            systemPrintln("ERROR: Failed to allocate settingsCSV");
+            break;
+        }
+        createSettingsString(settingsCSV);
+
+        //
+        https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+        if (settings.enableCaptivePortal == true)
+        {
+            dnsserver = new DNSServer;
+            dnsserver->start();
+        }
+
+        webServer = new WebServer(httpPort);
+        // TODO: webServer = new WebServer(WiFi.localIP(), httpPort);
+        // TODO: webServer = new WebServer(ETH.localIP(), httpPort);
+
+        if (!webServer)
+        {
+            systemPrintln("ERROR: Failed to allocate webServer");
+            break;
+        }
+
+        if (settings.enableCaptivePortal == true)
+        {
+            webServer->addHandler(new CaptiveRequestHandler());
+
+            // TODO: add a handler for /connecttest.txt
+        }
+
+        // * index.html (not gz'd)
+        // * favicon.ico
+
+        // * /src/bootstrap.bundle.min.js - Needed for popper
+        // * /src/bootstrap.min.css
+        // * /src/bootstrap.min.js
+        // * /src/jquery-3.6.0.min.js
+        // * /src/main.js (not gz'd)
+        // * /src/rtk-setup.png
+        // * /src/style.css
+
+        // * /src/fonts/icomoon.eot
+        // * /src/fonts/icomoon.svg
+        // * /src/fonts/icomoon.ttf
+        // * /src/fonts/icomoon.woof
+
+        // * /listfiles responds with a CSV of files and sizes in root
+        // * /listMessages responds with a CSV of messages supported by this platform
+        // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
+        // * /file allows the download or deletion of a file
+
+        webServer->onNotFound(notFound);
+
+        webServer->on("/", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/html", (const char *)index_html, sizeof(index_html)); });
+
+        webServer->on("/favicon.ico", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico)); });
+
+        webServer->on("/src/bootstrap.bundle.min.js", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
+                              sizeof(bootstrap_bundle_min_js)); });
+
+        webServer->on("/src/bootstrap.min.css", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css)); });
+
+        webServer->on("/src/bootstrap.min.js", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js)); });
+
+        webServer->on("/src/jquery-3.6.0.min.js", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js)); });
+
+        webServer->on("/src/main.js", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js)); });
+
+        webServer->on("/src/rtk-setup.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            if (productVariant == RTK_EVK)
+                webServer->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
+            else
+                webServer->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png)); });
+
+        // Battery icons
+        webServer->on("/src/BatteryBlank.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png)); });
+        webServer->on("/src/Battery0.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png)); });
+        webServer->on("/src/Battery1.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png)); });
+        webServer->on("/src/Battery2.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png)); });
+        webServer->on("/src/Battery3.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png)); });
+
+        webServer->on("/src/Battery0_Charging.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png));
+            });
+        webServer->on("/src/Battery1_Charging.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png));
+            });
+        webServer->on("/src/Battery2_Charging.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png));
+            });
+        webServer->on("/src/Battery3_Charging.png", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png));
+            });
+
+        webServer->on("/src/style.css", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/css", (const char *)style_css, sizeof(style_css)); });
+
+        webServer->on("/src/fonts/icomoon.eot", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot)); });
+
+        webServer->on("/src/fonts/icomoon.svg", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg)); });
+
+        webServer->on("/src/fonts/icomoon.ttf", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf)); });
+
+        webServer->on("/src/fonts/icomoon.woof", HTTP_GET, []()
+                      {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof)); });
+
+        // Handler for the /uploadFile form POST
+        webServer->on(
+            "/uploadFile", HTTP_POST, []()
+            { webServer->send(200, "text/plain", ""); },
+            handleUpload); // Run handleUpload function when file manager file is uploaded
+
+        // Handler for the /uploadFirmware form POST
+        webServer->on(
+            "/uploadFirmware", HTTP_POST, []()
+            { webServer->send(200, "text/plain", ""); }, handleFirmwareFileUpload);
+
+        // Handler for file manager
+        webServer->on("/listfiles", HTTP_GET, []()
+                      {
+            String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            if (settings.debugWebServer == true)
+                systemPrintln(logmessage);
+            String files;
+            getFileList(files);
+            webServer->send(200, "text/plain", files); });
+
+        // Handler for supported messages list
+        webServer->on("/listMessages", HTTP_GET, []()
+                      {
+            String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            if (settings.debugWebServer == true)
+                systemPrintln(logmessage);
+            String messages;
+            createMessageList(messages);
+            if (settings.debugWebServer == true)
+                systemPrintln(messages);
+            webServer->send(200, "text/plain", messages); });
+
+        // Handler for supported RTCM/Base messages list
+        webServer->on("/listMessagesBase", HTTP_GET, []()
+                      {
+            String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            if (settings.debugWebServer == true)
+                systemPrintln(logmessage);
+            String messageList;
+            createMessageListBase(messageList);
+            if (settings.debugWebServer == true)
+                systemPrintln(messageList);
+            webServer->send(200, "text/plain", messageList); });
+
+        // Handler for file manager
+        webServer->on("/file", HTTP_GET, handleFileManager);
+
+        webServer->begin();
+
+        // Starts task for updating webServer with handleClient
+        if (task.updateWebServerTaskRunning == false)
+            xTaskCreate(
+                updateWebServerTask,
+                "UpdateWebServer",            // Just for humans
+                updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
+                nullptr,                      // Task input parameter
+                updateWebServerTaskPriority,
+                &updateWebServerTaskHandle); // Task handle
+
+        if (settings.debugWebServer == true)
+            systemPrintln("Web Server Started");
+        reportHeapNow(false);
+
+        // Start the web socket server on port 81 using <esp_http_server.h>
+        start_wsserver();
+
+        if (settings.debugWebServer == true)
+            systemPrintln("Web Socket Server Started");
+        reportHeapNow(false);
+
+        return true;
+    } while (0);
+
+    // Release the resources
+    webServerStopSockets();
+    webServerReleaseResources();
+    return false;
 }
+
 
 // Stop the web config state machine
 void webServerStop()
@@ -435,292 +635,6 @@ bool webServerIsRunning()
     return (false);
 }
 
-bool web2(bool startWiFi = true, int httpPort = 80)
-{
-    return(false);
-}
-
-// Start webServer in AP mode
-// bool webServerStart(bool startWiFi = true, int httpPort = 80)
-// {
-//     do
-//     {
-//         ntripClientStop(true); // Do not allocate new wifiClient
-//         for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-//             ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
-
-//         // if (startWiFi)
-//         //     if (wifiStartAP() == false)
-//         //         break;
-
-//         // // Start the multicast DNS server
-//         // if (startWiFi == true)
-//         //     networkMulticastDNSSwitch(NETWORK_WIFI);
-//         // else
-//         //     networkMulticastDNSSwitch(NETWORK_ETHERNET);
-
-//         // Freed by webServerStop
-//         if (online.psram == true)
-//             incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
-//         else
-//             incomingSettings = (char *)malloc(AP_CONFIG_SETTING_SIZE);
-
-//         if (!incomingSettings)
-//         {
-//             systemPrintln("ERROR: Failed to allocate incomingSettings");
-//             break;
-//         }
-//         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
-
-//         // Pre-load settings CSV
-//         // Freed by webServerStop
-//         if (online.psram == true)
-//             settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
-//         else
-//             settingsCSV = (char *)malloc(AP_CONFIG_SETTING_SIZE);
-
-//         if (!settingsCSV)
-//         {
-//             systemPrintln("ERROR: Failed to allocate settingsCSV");
-//             break;
-//         }
-//         createSettingsString(settingsCSV);
-
-//         // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
-//         if (settings.enableCaptivePortal == true)
-//         {
-//             dnsserver = new DNSServer;
-//             dnsserver->start();
-//         }
-
-//         webServer = new WebServer(httpPort);
-//         // TODO: webServer = new WebServer(WiFi.localIP(), httpPort);
-//         // TODO: webServer = new WebServer(ETH.localIP(), httpPort);
-
-//         if (!webServer)
-//         {
-//             systemPrintln("ERROR: Failed to allocate webServer");
-//             break;
-//         }
-
-//         if (settings.enableCaptivePortal == true)
-//         {
-//             webServer->addHandler(new CaptiveRequestHandler());
-
-//             // TODO: add a handler for /connecttest.txt
-//         }
-
-//         // * index.html (not gz'd)
-//         // * favicon.ico
-
-//         // * /src/bootstrap.bundle.min.js - Needed for popper
-//         // * /src/bootstrap.min.css
-//         // * /src/bootstrap.min.js
-//         // * /src/jquery-3.6.0.min.js
-//         // * /src/main.js (not gz'd)
-//         // * /src/rtk-setup.png
-//         // * /src/style.css
-
-//         // * /src/fonts/icomoon.eot
-//         // * /src/fonts/icomoon.svg
-//         // * /src/fonts/icomoon.ttf
-//         // * /src/fonts/icomoon.woof
-
-//         // * /listfiles responds with a CSV of files and sizes in root
-//         // * /listMessages responds with a CSV of messages supported by this platform
-//         // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
-//         // * /file allows the download or deletion of a file
-
-//         webServer->onNotFound(notFound);
-
-//         webServer->on("/", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/html", (const char *)index_html, sizeof(index_html)); });
-
-//         webServer->on("/favicon.ico", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico)); });
-
-//         webServer->on("/src/bootstrap.bundle.min.js", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
-//                               sizeof(bootstrap_bundle_min_js)); });
-
-//         webServer->on("/src/bootstrap.min.css", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css)); });
-
-//         webServer->on("/src/bootstrap.min.js", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js)); });
-
-//         webServer->on("/src/jquery-3.6.0.min.js", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js)); });
-
-//         webServer->on("/src/main.js", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js)); });
-
-//         webServer->on("/src/rtk-setup.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             if (productVariant == RTK_EVK)
-//                 webServer->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
-//             else
-//                 webServer->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png)); });
-
-//         // Battery icons
-//         webServer->on("/src/BatteryBlank.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png)); });
-//         webServer->on("/src/Battery0.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png)); });
-//         webServer->on("/src/Battery1.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png)); });
-//         webServer->on("/src/Battery2.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png)); });
-//         webServer->on("/src/Battery3.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png)); });
-
-//         webServer->on("/src/Battery0_Charging.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png)); });
-//         webServer->on("/src/Battery1_Charging.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png)); });
-//         webServer->on("/src/Battery2_Charging.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png)); });
-//         webServer->on("/src/Battery3_Charging.png", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png)); });
-
-//         webServer->on("/src/style.css", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/css", (const char *)style_css, sizeof(style_css)); });
-
-//         webServer->on("/src/fonts/icomoon.eot", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot)); });
-
-//         webServer->on("/src/fonts/icomoon.svg", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg)); });
-
-//         webServer->on("/src/fonts/icomoon.ttf", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf)); });
-
-//         webServer->on("/src/fonts/icomoon.woof", HTTP_GET, []()
-//                       {
-//             webServer->sendHeader("Content-Encoding", "gzip");
-//             webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof)); });
-
-//         // Handler for the /uploadFile form POST
-//         webServer->on(
-//             "/uploadFile", HTTP_POST, []()
-//             { webServer->send(200, "text/plain", ""); },
-//             handleUpload); // Run handleUpload function when file manager file is uploaded
-
-//         // Handler for the /uploadFirmware form POST
-//         webServer->on(
-//             "/uploadFirmware", HTTP_POST, []()
-//             { webServer->send(200, "text/plain", ""); }, handleFirmwareFileUpload);
-
-//         // Handler for file manager
-//         webServer->on("/listfiles", HTTP_GET, []()
-//                       {
-//             String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
-//             if (settings.debugWebServer == true)
-//                 systemPrintln(logmessage);
-//             String files;
-//             getFileList(files);
-//             webServer->send(200, "text/plain", files); });
-
-//         // Handler for supported messages list
-//         webServer->on("/listMessages", HTTP_GET, []()
-//                       {
-//             String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
-//             if (settings.debugWebServer == true)
-//                 systemPrintln(logmessage);
-//             String messages;
-//             createMessageList(messages);
-//             if (settings.debugWebServer == true)
-//                 systemPrintln(messages);
-//             webServer->send(200, "text/plain", messages); });
-
-//         // Handler for supported RTCM/Base messages list
-//         webServer->on("/listMessagesBase", HTTP_GET, []()
-//                       {
-//             String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
-//             if (settings.debugWebServer == true)
-//                 systemPrintln(logmessage);
-//             String messageList;
-//             createMessageListBase(messageList);
-//             if (settings.debugWebServer == true)
-//                 systemPrintln(messageList);
-//             webServer->send(200, "text/plain", messageList); });
-
-//         // Handler for file manager
-//         webServer->on("/file", HTTP_GET, handleFileManager);
-
-//         webServer->begin();
-
-//         // Starts task for updating webServer with handleClient
-//         if (task.updateWebServerTaskRunning == false)
-//             xTaskCreate(
-//                 updateWebServerTask,
-//                 "UpdateWebServer",            // Just for humans
-//                 updateWebServerTaskStackSize, // Stack Size - needs to be large enough to hold the file manager list
-//                 nullptr,                      // Task input parameter
-//                 updateWebServerTaskPriority,
-//                 &updateWebServerTaskHandle); // Task handle
-
-//         if (settings.debugWebServer == true)
-//             systemPrintln("Web Server Started");
-//         reportHeapNow(false);
-
-//         // Start the web socket server on port 81 using <esp_http_server.h>
-//         start_wsserver();
-
-//         if (settings.debugWebServer == true)
-//             systemPrintln("Web Socket Server Started");
-//         reportHeapNow(false);
-
-//         return true;
-//     } while (0);
-
-//     // Release the resources
-//     webServerStopSockets();
-//     webServerReleaseResources();
-//     return false;
-// }
-
 void updateWebServerTask(void *e)
 {
     // Start notification
@@ -750,6 +664,38 @@ void updateWebServerTask(void *e)
         systemPrintln("Task updateWebServerTask stopped");
     task.updateWebServerTaskRunning = false;
     vTaskDelete(updateWebServerTaskHandle);
+}
+
+void stopWebServer()
+{
+    if (task.updateWebServerTaskRunning)
+        task.updateWebServerTaskStopRequest = true;
+
+    if (webServer != nullptr)
+    {
+        webServer->close();
+        free(webServer);
+        webServer = nullptr;
+    }
+
+    // Stop the multicast DNS server
+    networkMulticastDNSStop();
+
+    if (settingsCSV != nullptr)
+    {
+        free(settingsCSV);
+        settingsCSV = nullptr;
+    }
+
+    if (incomingSettings != nullptr)
+    {
+        free(incomingSettings);
+        incomingSettings = nullptr;
+    }
+
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
 }
 
 void webServerReleaseResources()
@@ -782,6 +728,90 @@ void webServerReleaseResources()
     {
         free(incomingSettings);
         incomingSettings = nullptr;
+    }
+}
+
+
+// State machine to handle the starting/stopping of the web server
+void webServerUpdate()
+{
+    if (!inMainMenu)
+    {
+        // Walk the state machine
+        switch (webServerState)
+        {
+        default:
+            systemPrintf("ERROR: Unknown WebConfig state (%d)\r\n", webServerState);
+
+            // Stop the machine
+            webServerStop();
+            break;
+
+        // Wait for a request from a user
+        case WEBSERVER_STATE_OFF:
+            if (webServerRequest == true)
+                webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+            break;
+
+        // Wait for connection to the network
+        case WEBSERVER_STATE_WAIT_FOR_NETWORK:
+            // Determine if the request has been canceled while waiting
+            if (webServerRequest == false)
+                webServerStop();
+
+            // Wait until the network is connected to the media
+            else if (networkIsConnected(&webconfigPriority))
+            {
+                if (settings.debugWebServer)
+                    systemPrintln("Web config connected to network");
+
+                webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
+            }
+            break;
+
+        // Start the web server
+        case WEBSERVER_STATE_NETWORK_CONNECTED: {
+            // Determine if the network has failed
+            if (!networkIsConnected(&webconfigPriority))
+                webServerStop();
+            if (settings.debugWebServer)
+                systemPrintln("Starting web server");
+
+            if (webServerStart(false, settings.httpPort) == true)
+                webServerSetState(WEBSERVER_STATE_STARTED);
+        }
+        break;
+
+        // Wait for web server to start
+        case WEBSERVER_STATE_STARTED:
+            // Determine if the network has failed
+            if (!networkIsConnected(&webconfigPriority))
+                webServerStop();
+            if (settings.debugWebServer)
+                systemPrintln("Web config waiting for web server to start");
+
+            //...
+            webServerSetState(WEBSERVER_STATE_RUNNING);
+
+            break;
+
+        // Allow web services
+        case WEBSERVER_STATE_RUNNING:
+            // Determine if the network has failed
+            if (!networkIsConnected(&webconfigPriority))
+                webServerStop();
+
+            // TODO how does the system indicate we need to shut down the web server?
+            if (inWiFiConfigMode() == false)
+            {
+                webServerRequest = false; // Tell the network layer we no longer need access
+                webServerStop();
+            }
+
+            //...
+
+            break;
+        }
     }
 }
 

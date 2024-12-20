@@ -516,42 +516,6 @@ void otaUpdateFirmware()
 #endif // COMPILE_NETWORK
 }
 
-// Start WiFi outside of the network layer and perform the over-the-air update
-void otaForcedUpdate()
-{
-#ifdef COMPILE_NETWORK
-    bool wasInAPmode = false;
-
-    if (!networkIsOnline())
-    {
-        if (wifiNetworkCount() == 0)
-            systemPrintln("Error: Please enter at least one SSID before updating firmware");
-        else
-            systemPrintln("Error: Network not available!");
-    }
-    else
-    {
-        // Determine if WiFi is running
-        bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
-
-        if ((networkIsOnline) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
-                                  true)) // Use WIFI_AP_STA if already in WIFI_AP mode
-            otaUpdateFirmware();
-
-        if (systemState != STATE_WIFI_CONFIG)
-        {
-            // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
-            // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
-            // running.
-
-            // If WiFi was originally off, turn it off again
-            if (wifiRunning == false)
-                WIFI_STOP();
-        }
-    }
-#endif // COMPILE_NETWORK
-}
-
 // Called while the OTA Pull update is happening
 void otaPullCallback(int bytesWritten, int totalLength)
 {

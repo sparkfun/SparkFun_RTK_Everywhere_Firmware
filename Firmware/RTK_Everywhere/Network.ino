@@ -1493,14 +1493,15 @@ uint16_t networkGetConsumerTypes()
 }
 
 // Return the count of consumers (TCP, NTRIP Client, etc) that are enabled
+// and set networkConsumerTypes bitfield
 // From this number we can decide if the network (WiFi, ethernet, cellular, etc) needs to be started
-// ESP-NOW is an exception and is not considered a network consumer
+// ESP-NOW is not considered a network consumer and is blended during wifiConnect()
 uint8_t networkConsumers()
 {
     uint8_t consumerCount = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
 
-    networkConsumerTypes = NETCONSUMER_NONE;
+    networkConsumerTypes = NETCONSUMER_NONE; // Clear bitfield
 
     // Network needed for NTRIP Client
     if ((inRoverMode() == true && settings.enableNtripClient == true) || online.ntripClient)
