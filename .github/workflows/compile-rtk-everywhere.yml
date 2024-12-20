@@ -140,7 +140,8 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
-          cp Firmware/RTKEverywhere_8MB.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
+          # Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
+          cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch
         run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
