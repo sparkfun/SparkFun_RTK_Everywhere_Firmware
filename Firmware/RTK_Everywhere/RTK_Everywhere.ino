@@ -461,13 +461,12 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
-#include <driver/uart.h>     //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
 
 #define SERIAL_SIZE_TX 512
 uint8_t wBuffer[SERIAL_SIZE_TX]; // Buffer for writing from incoming SPP to F9P
-const int btReadTaskStackSize = 4000;
+const int btReadTaskStackSize = 8192; // bleserial_multiple.ino uses 8192
 
 // Array of start-of-sentence offsets into the ring buffer
 #define AMOUNT_OF_RING_BUFFER_DATA_TO_DISCARD (settings.gnssHandlerBufferSize >> 2)
