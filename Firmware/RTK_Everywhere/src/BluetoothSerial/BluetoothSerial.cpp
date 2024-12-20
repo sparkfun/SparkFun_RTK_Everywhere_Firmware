@@ -789,10 +789,12 @@ static bool waitForConnect(int timeout) {
   if ((rc & SPP_CONNECTED) != 0) {
     return true;
   } else if ((rc & SPP_CLOSED) != 0) {
-    log_d("connection closed!");
+    if (timeout > 0)
+      log_d("connection closed!");
     return false;
   }
-  log_d("timeout");
+  if (timeout > 0)
+    log_d("timeout");
   return false;
 }
 
