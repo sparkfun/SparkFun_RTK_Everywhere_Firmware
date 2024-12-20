@@ -199,7 +199,7 @@ uint8_t bluetoothCommandRead()
 }
 
 // Determine if data is available
-bool bluetoothRxDataAvailable()
+int bluetoothRxDataAvailable()
 {
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
@@ -217,20 +217,20 @@ bool bluetoothRxDataAvailable()
 
     return (0);
 #else  // COMPILE_BT
-    return false;
+    return 0;
 #endif // COMPILE_BT
 }
 
 // Determine if data is available on the BLE Command interface
-bool bluetoothCommandAvailable()
+int bluetoothCommandAvailable()
 {
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
         settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBleCommands->available();
-    return (false);
+    return (0);
 #else  // COMPILE_BT
-    return false;
+    return 0;
 #endif // COMPILE_BT
 }
 

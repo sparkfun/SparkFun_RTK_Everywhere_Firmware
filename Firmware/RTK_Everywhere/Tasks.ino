@@ -159,7 +159,7 @@ void btReadTask(void *e)
         rxBytes = 0;
         if (bluetoothGetState() == BT_CONNECTED)
         {
-            while (btPrintEcho == false && bluetoothRxDataAvailable())
+            while (btPrintEcho == false && (bluetoothRxDataAvailable() > 0))
             {
                 // Check stream for command characters
                 byte incoming = bluetoothRead();
@@ -2118,7 +2118,7 @@ void bluetoothCommandTask(void *pvParameters)
         }
 
         // Check stream for incoming characters
-        if (bluetoothCommandAvailable())
+        if (bluetoothCommandAvailable() > 0)
         {
             byte incoming = bluetoothCommandRead();
 
