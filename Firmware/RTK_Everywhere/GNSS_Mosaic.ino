@@ -2337,6 +2337,7 @@ bool GNSS_MOSAIC::setTalkerGNGGA()
 bool GNSS_MOSAIC::softwareReset()
 {
     // We could restart L-Band here if needed, but gnss->softwareReset is never called on the X5
+    // Instead, update() does it when spartnCorrectionsReceived times out
     return false;
 }
 
