@@ -489,6 +489,46 @@ bool GNSS_MOSAIC::configureNtpMode()
 }
 
 //----------------------------------------
+// Configure mosaic-X5 COM1 for Encapsulated RTCMv3 + SBF + NMEA, plus L-Band
+//----------------------------------------
+bool GNSS_MOSAIC::configureGNSSCOM(bool enableLBand)
+{
+    // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
+    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
+    if (enableLBand)
+        setting += String("+LBandBeam1");
+    setting += String("\n\r");
+    return sendWithResponse(setting, "DataInOut");
+}
+
+//----------------------------------------
+// Configure mosaic-X5 L-Band
+//----------------------------------------
+bool GNSS_MOSAIC::configureLBand(bool enableLBand, uint32_t LBandFreq)
+{
+    bool result = sendWithResponse("slsm,off\n\r", "LBandSelectMode"); // Turn L-Band off
+
+    if (!enableLBand)
+        return result;
+
+    static uint32_t storedLBandFreq = 0;
+    if (LBandFreq > 0)
+        storedLBandFreq = LBandFreq;
+
+    // US SPARTN 1.8 service is on 1556290000 Hz
+    // EU SPARTN 1.8 service is on 1545260000 Hz
+    result &=
+        sendWithResponse(String("slbb,User1," + String(storedLBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
+                                    "LBandBeams"); // Set Freq, baud rate
+    result &=
+        sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
+    result &= sendWithResponse("slsm,manual,Inmarsat,User1,\n\r",
+                                        "LBandSelectMode"); // Set L-Band demodulator to manual
+
+    return result;
+}
+
+//----------------------------------------
 // Perform the GNSS configuration
 // Outputs:
 //   Returns true if successfully configured and false upon failure
@@ -508,11 +548,7 @@ bool GNSS_MOSAIC::configureOnce()
     bool response = true;
 
     // Configure COM1. NMEA and RTCMv3 will be encapsulated in SBF format
-    String setting = String("sdio,COM1,auto,RTCMv3+SBF+NMEA+Encapsulate");
-    if (settings.enablePointPerfectCorrections)
-        setting += String("+LBandBeam1");
-    setting += String("\n\r");
-    response &= sendWithResponse(setting, "DataInOut");
+    response &= configureGNSSCOM(settings.enablePointPerfectCorrections);
 
     // COM2 is configured by setCorrRadioExtPort
 
@@ -522,7 +558,7 @@ bool GNSS_MOSAIC::configureOnce()
     // Output SBF PVTGeodetic and ReceiverTime on their own stream - on COM1 only
     // TODO : make the interval adjustable
     // TODO : do we need to enable SBF LBandTrackerStatus so we can get CN0 ?
-    setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
+    String setting = String("sso,Stream" + String(MOSAIC_SBF_PVT_STREAM) + ",COM1,PVTGeodetic+ReceiverTime,msec500\n\r");
     response &= sendWithResponse(setting, "SBFOutput");
 
     // Output SBF InputLink on its own stream - at 1Hz - on COM1 only
@@ -2300,6 +2336,8 @@ bool GNSS_MOSAIC::setTalkerGNGGA()
 //----------------------------------------
 bool GNSS_MOSAIC::softwareReset()
 {
+    // We could restart L-Band here if needed, but gnss->softwareReset is never called on the X5
+    // Instead, update() does it when spartnCorrectionsReceived times out
     return false;
 }
 
@@ -2441,8 +2479,14 @@ void GNSS_MOSAIC::update()
     }
 
     // Update spartnCorrectionsReceived
-    if (millis() > (lastSpartnReception + 5000))
-        spartnCorrectionsReceived = false;
+    if (millis() > (lastSpartnReception + (settings.correctionsSourcesLifetime_s * 1000))) // Timeout
+    {
+        if (spartnCorrectionsReceived) // If corrections were being received
+        {
+            configureLBand(settings.enablePointPerfectCorrections); // Restart L-Band using stored frequency
+            spartnCorrectionsReceived = false;
+        }
+    }
 }
 
 //----------------------------------------
@@ -2605,9 +2649,12 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 {
     GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
 
-    // if ((settings.debugGnss == true) && !inMainMenu)
-    //     systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
-    //     parse->length);
+    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    {
+        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
+        systemPrintf("Processing SBF Block %d (%d bytes) from mosaic-X5\r\n", sempSbfGetBlockNumber(parse),
+        parse->length);
+    }
 
     // If this is PVTGeodetic, extract some data
     if (sempSbfGetBlockNumber(parse) == 4007)
@@ -2636,8 +2683,11 @@ void processUart1SBF(SEMP_PARSE_STATE *parse, uint16_t type)
 //----------------------------------------
 void processUart1SPARTN(SEMP_PARSE_STATE *parse, uint16_t type)
 {
-    if ((settings.debugCorrections == true) && !inMainMenu)
+    if (((settings.debugGnss == true) || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && !inMainMenu)
+    {
+        // Don't call PERIODIC_CLEAR(PD_GNSS_DATA_RX); here. Let processUart1Message do it via rtkParse
         systemPrintf("Pushing %d SPARTN (L-Band) bytes to PPL for mosaic-X5\r\n", parse->length);
+    }
 
     if (online.ppl == false && settings.debugCorrections == true && (!inMainMenu))
         systemPrintln("Warning: PPL is offline");

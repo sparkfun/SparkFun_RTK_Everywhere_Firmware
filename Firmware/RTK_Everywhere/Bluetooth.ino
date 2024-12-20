@@ -42,7 +42,7 @@ BTSerialInterface *bluetoothSerialBleCommands; // Second BLE serial for CLI inte
 #define BLE_COMMAND_RX_UUID "7e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define BLE_COMMAND_TX_UUID "7e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
-TaskHandle_t bluetoothCommandTaskHandle; // Task to monitor incoming CLI from BLE
+TaskHandle_t bluetoothCommandTaskHandle = nullptr; // Task to monitor incoming CLI from BLE
 
 #endif // COMPILE_BT
 
@@ -54,24 +54,32 @@ TaskHandle_t bluetoothCommandTaskHandle; // Task to monitor incoming CLI from BL
 void bluetoothUpdate()
 {
 #ifdef COMPILE_BT
-    if (bluetoothIsConnected() == true && bluetoothState == BT_NOTCONNECTED)
+    static uint32_t lastCheck = millis(); // Check if connected every 100ms
+    if (millis() > (lastCheck + 100))
     {
-        systemPrintln("BT client connected");
-        bluetoothState = BT_CONNECTED;
-        // LED is controlled by tickerBluetoothLedUpdate()
+        lastCheck = millis();
 
-        btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
-    }
+        // If bluetoothState == BT_OFF, don't call bluetoothIsConnected()
 
-    if (bluetoothIsConnected() == false && bluetoothState == BT_CONNECTED)
-    {
-        systemPrintln("BT client disconnected");
+        if ((bluetoothState == BT_NOTCONNECTED) && (bluetoothIsConnected()))
+        {
+            systemPrintln("BT client connected");
+            bluetoothState = BT_CONNECTED;
+            // LED is controlled by tickerBluetoothLedUpdate()
 
-        btPrintEcho = false;
-        btPrintEchoExit = true; // Force exit all config menus and/or command modes
-        printEndpoint = PRINT_ENDPOINT_SERIAL;
+            btPrintEchoExit = false; // Reset the exiting of config menus and/or command modes
+        }
 
-        bluetoothState = BT_NOTCONNECTED;
+        else if ((bluetoothState == BT_CONNECTED) && (!bluetoothIsConnected()))
+        {
+            systemPrintln("BT client disconnected");
+
+            btPrintEcho = false;
+            btPrintEchoExit = true; // Force exit all config menus and/or command modes
+            printEndpoint = PRINT_ENDPOINT_SERIAL;
+
+            bluetoothState = BT_NOTCONNECTED;
+        }
     }
 #endif // COMPILE_BT
 }
@@ -199,7 +207,7 @@ uint8_t bluetoothCommandRead()
 }
 
 // Determine if data is available
-bool bluetoothRxDataAvailable()
+int bluetoothRxDataAvailable()
 {
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
@@ -217,20 +225,20 @@ bool bluetoothRxDataAvailable()
 
     return (0);
 #else  // COMPILE_BT
-    return false;
+    return 0;
 #endif // COMPILE_BT
 }
 
 // Determine if data is available on the BLE Command interface
-bool bluetoothCommandAvailable()
+int bluetoothCommandAvailable()
 {
 #ifdef COMPILE_BT
     if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE ||
         settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
         return bluetoothSerialBleCommands->available();
-    return (false);
+    return (0);
 #else  // COMPILE_BT
-    return false;
+    return 0;
 #endif // COMPILE_BT
 }
 

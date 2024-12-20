@@ -870,17 +870,10 @@ void beginLBand()
 
         // If no SPARTN data is received, the L-Band may need a 'kick'. Turn L-Band off and back on again!
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
-        result &= mosaic->sendWithResponse("slsm,off\n\r", "LBandSelectMode"); // Turn L-Band off
 
-        // US SPARTN 1.8 service is on 1556290000 Hz
-        // EU SPARTN 1.8 service is on 1545260000 Hz
-        result &=
-            mosaic->sendWithResponse(String("slbb,User1," + String(LBandFreq) + ",baud2400,PPerfect,EU,Enabled\n\r"),
-                                     "LBandBeams"); // Set Freq, baud rate
-        result &=
-            mosaic->sendWithResponse("slcs,5555,6959\n\r", "LBandCustomServiceID"); // 21845 = 0x5555; 26969 = 0x6959
-        result &= mosaic->sendWithResponse("slsm,manual,Inmarsat,User1,\n\r",
-                                           "LBandSelectMode"); // Set L-Band demodulator to manual
+        result &= mosaic->configureGNSSCOM(true); // Ensure LBandBeam1 is enabled on COM1
+
+        result &= mosaic->configureLBand(true, LBandFreq); // Start L-Band
 
         if (result == false)
             systemPrintln("mosaic-X5 L-Band failed to configure");

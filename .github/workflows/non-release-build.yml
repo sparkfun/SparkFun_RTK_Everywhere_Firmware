@@ -10,7 +10,7 @@ env:
   POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
   POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
   POINTPERFECT_LBAND_IP_TOKEN: ${{ secrets.POINTPERFECT_LBAND_IP_TOKEN }}
-  CORE_VERSION: 3.0.1
+  CORE_VERSION: 3.0.7
 
 jobs:
   build:
@@ -78,7 +78,7 @@ jobs:
         run: arduino-cli lib install
           ArduinoJson@7.0.4
           ESP32Time@2.0.0
-          ESP32_BleSerial@1.0.4
+          ESP32_BleSerial@2.0.1
           "ESP32-OTA-Pull"@1.0.0
           JC_Button@2.1.2
           PubSubClient@2.8.0
@@ -88,18 +88,14 @@ jobs:
           "SparkFun u-blox GNSS v3"@3.1.8
           "SparkFun Qwiic OLED Arduino Library"@1.0.13
           SSLClientESP32@2.0.0
-          "SparkFun Extensible Message Parser"@1.0.0
+          "SparkFun Extensible Message Parser"@1.0.2
           "SparkFun BQ40Z50 Battery Manager Arduino Library"@1.0.0
           "ArduinoMqttClient"@0.1.8
           "SparkFun u-blox PointPerfect Library"@1.11.4
           "SparkFun IM19 IMU Arduino Library"@1.0.1
           "SparkFun UM980 Triband RTK GNSS Arduino Library"@1.0.4
-
-      # https://github.com/avinabmalla/ESP32_BleSerial/issues/15
-      - name: Patch ESP32_BleSerial BLECharacteristic
-        run: |
-          cd Firmware/RTK_Everywhere/Patch/
-          cp BleSerial.cpp /home/runner/Arduino/libraries/ESP32_BleSerial/src/BleSerial.cpp
+          "SparkFun LG290P Quadband RTK GNSS Arduino Library"@1.0.0
+          "SparkFun I2C Expander Arduino Library"@1.0.1
 
       - name: Patch libmbedtls
         run: |
@@ -108,6 +104,11 @@ jobs:
           cp libmbedtls_2.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedtls_2.a
           cp libmbedcrypto.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedcrypto.a
           cp libmbedx509.a /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/${{ env.ESP_IDF }}/esp32/lib/libmbedx509.a
+
+      - name: Patch NetworkEvents
+        run: |
+          cd Firmware/RTK_Everywhere/Patch/
+          cp NetworkEvents.* /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/libraries/Network/src/
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -139,12 +140,13 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
+          # Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
           cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch
         run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
           --build-property build.partitions=RTKEverywhere
-          --build-property upload.maximum_size=3145728 
+          --build-property upload.maximum_size=4055040
           --build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_LBAND_TOKEN=$POINTPERFECT_LBAND_TOKEN\" \"-DPOINTPERFECT_IP_TOKEN=$POINTPERFECT_IP_TOKEN\" \"-DPOINTPERFECT_LBAND_IP_TOKEN=$POINTPERFECT_LBAND_IP_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
           --export-binaries
 
