@@ -561,7 +561,7 @@ enum OtaState
 #ifdef COMPILE_AP
 
 // Web Config state machine to allow web server access to network layer
-enum webserverState
+enum WebServerState
 {
     WEBSERVER_STATE_OFF = 0,
     WEBSERVER_STATE_WAIT_FOR_NETWORK,

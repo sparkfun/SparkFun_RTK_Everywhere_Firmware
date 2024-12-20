@@ -557,6 +557,8 @@ int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
 
+bool webServerRequest = false; // Goes true when STATE_WIFI_CONFIG_NOT_STARTED is entered. Goes false when Rover/Base is started.
+
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
 
@@ -567,7 +569,7 @@ unsigned long lastDynamicDataUpdate;
 
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
 DNSServer *dnsserver;
-WebServer *webserver;
+WebServer *webServer;
 
 httpd_handle_t *wsserver = nullptr;
 // httpd_req_t *last_ws_req;

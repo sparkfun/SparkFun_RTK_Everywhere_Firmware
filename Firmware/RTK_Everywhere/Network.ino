@@ -1411,6 +1411,8 @@ void networkUpdate()
     udpServerUpdate(); // Turn on the UDP server as needed
     DMW_c("httpClientUpdate");
     httpClientUpdate(); // Process any Point Perfect HTTP messages
+    DMW_c("webServerUpdate");
+    webServerUpdate(); // Start webServer for web config as needed
 
     // Periodically display the network interface state
     displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
@@ -1586,9 +1588,8 @@ uint8_t networkConsumers()
         networkConsumerTypes |= (1 << NETCONSUMER_WIFI_STA); // OTA Pull library only supports WiFi
     }
 
-    // Network needed for web configuration
-    // if (webConfigRequested == true)
-    if (false)
+    // Network needed for Web Config
+    if (inWiFiConfigMode() == true)
     {
         consumerCount++;
         consumerId |= (1 << 9);

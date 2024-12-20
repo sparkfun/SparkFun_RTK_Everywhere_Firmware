@@ -7,6 +7,8 @@
 
 static uint32_t lastStateTime = 0;
 
+extern bool websocketConnected;
+
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -413,16 +415,21 @@ void stateUpdate()
             baseStatusLedOff(); // Turn off the status LED
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
-
-            //WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
+           
+            // TODO - Do we need to stop BT and ESP-NOW?
             bluetoothStop();
             espnowStop();
+            tasksStopGnssUart(); // Delete serial tasks if running
 
-            tasksStopGnssUart();   // Delete serial tasks if running
-            // if (!startWebServer()) // Start web server in WiFi mode and show config html page
-            if (!startWebServer(false, settings.httpPort)) // Start the web server. Network layer starts WiFi.
-                changeState(STATE_ROVER_NOT_STARTED);
-            else
+            webServerRequest = true; // Notify the network that we need access, start web server
+
+            changeState(STATE_WIFI_CONFIG_WAIT_FOR_NETWORK);
+        }
+        break;
+
+        case (STATE_WIFI_CONFIG_WAIT_FOR_NETWORK): {
+            // Wait while web server starts
+            if (webServerIsRunning() == true)
             {
                 RTK_MODE(RTK_MODE_WIFI_CONFIG);
                 changeState(STATE_WIFI_CONFIG);
@@ -650,10 +657,15 @@ void stateUpdate()
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 
-            if (!webServerStart(false, settings.httpPort)) // Start the web server
-                changeState(STATE_ROVER_NOT_STARTED);
-            else
-                changeState(STATE_CONFIG_VIA_ETH);
+            webServerRequest = true; // Notify the network that we need access, start web server
+
+            // TODO add a state machine step for ethernet to wait for web server to start
+            // See wifi web server / web config
+
+            // if (!webServerStart(false, settings.httpPort)) // Start the web server
+            //     changeState(STATE_ROVER_NOT_STARTED);
+            // else
+            //     changeState(STATE_CONFIG_VIA_ETH);
         }
         break;
 

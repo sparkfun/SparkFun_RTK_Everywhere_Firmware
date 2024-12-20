@@ -478,7 +478,7 @@ const char *wifiPrintState(wl_status_t wifiStatus)
 //----------------------------------------
 void wifiRestart()
 {
-    // Restart the AP webserver if we are in that state
+    // Restart the AP webServer if we are in that state
     if (systemState == STATE_WIFI_CONFIG)
         requestChangeState(STATE_WIFI_CONFIG_NOT_STARTED);
     else
@@ -720,7 +720,7 @@ bool wifiStartAP(bool forceAP)
     }
     else
     {
-        // Start webserver on local WiFi instead of AP
+        // Start webServer on local WiFi instead of AP
 
         // Attempt to connect to local WiFi with increasing timeouts
         int x = 0;
