@@ -91,7 +91,7 @@ void menuSystem()
             else
                 systemPrintln("Offline - ");
 
-            if (online.lbandCorrections == true)
+            if (online.ppl == true)
                 systemPrint("Keys Good");
             else
                 systemPrint("No Keys");
