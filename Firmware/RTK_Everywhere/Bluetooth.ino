@@ -558,7 +558,7 @@ void bluetoothStart()
                 xTaskCreatePinnedToCore(
                     bluetoothCommandTask,   // Function to run
                     "BluetoothCommandTask", // Just for humans
-                    4000,                   // Stack Size - must be ~4000
+                    8192,                   // Stack Size - bleserial_multiple.ino uses 8192
                     nullptr,                // Task input parameter
                     0, // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest
                     &bluetoothCommandTaskHandle,       // Task handle
