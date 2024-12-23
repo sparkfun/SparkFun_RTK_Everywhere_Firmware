@@ -449,7 +449,6 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
-        present.button_mode = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
         present.charger_mcp73833 = true;
@@ -530,7 +529,6 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
-        present.button_mode = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
         present.charger_mcp73833 = true;
