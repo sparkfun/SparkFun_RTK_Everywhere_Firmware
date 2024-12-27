@@ -52,6 +52,8 @@ void networkMarkOffline(NetIndex_t index) {}
 void networkMarkOnline(NetIndex_t index) {}
 void networkUpdate() {}
 void networkVerifyTables() {}
+uint16_t networkGetConsumerTypes() {return(0);}
+uint8_t networkConsumers() {return(0);}
 
 //----------------------------------------
 // NTRIP client
@@ -151,12 +153,12 @@ void httpClientValidateTables() {}
 
 #ifndef COMPILE_AP
 
-bool startWebServer(bool startWiFi = true, int httpPort = 80)
+bool webServerStart(int httpPort = 80)
 {
     systemPrintln("**AP not compiled**");
     return false;
 }
-void stopWebServer() {}
+void webServerStop() {}
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 
