@@ -418,12 +418,18 @@ void stateUpdate()
 
             baseStatusLedOff(); // Turn off the status LED
 
-            displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
+            displayWiFiConfigNotStarted(); // Display immediately while we wait for server to start
 
             // TODO - Do we need to stop BT and ESP-NOW during web config or can we leave it running?
-            bluetoothStop();
-            espnowStop();
-            tasksStopGnssUart(); // Delete serial tasks if running
+            //bluetoothStop();
+            //espnowStop();
+
+            //tasksStopGnssUart(); // Delete serial tasks if running
+
+            // Stop any running NTRIP Client or Server
+            ntripClientStop(true); // Do not allocate new wifiClient
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+                ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
 
             webServerStart(); // Start the webserver state machine for web config
 
