@@ -249,16 +249,11 @@ class CaptiveRequestHandler : public RequestHandler
     }
 };
 
-// Start the webServer
+// Create the web server and web sockets
 bool webServerAssignResources(int httpPort = 80)
 {
     do
     {
-        // TODO Do we need to stop NTRIP Clients? Let them run while Web Config is running?
-        // ntripClientStop(true); // Do not allocate new wifiClient
-        // for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-        //     ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
-
         // TODO DNS should be started/stopped at the network layer
         // // Start the multicast DNS server
         // if (startWiFi == true)
@@ -744,18 +739,6 @@ void webServerReleaseResources()
 // State machine to handle the starting/stopping of the web server
 void webServerUpdate()
 {
-    // Shutdown the Web Server setting changes
-    // if (settings.enableNtripClient == false)
-    // {
-    //     if (ntripClientState > NTRIP_CLIENT_OFF)
-    //     {
-    //         ntripClientStop(true); // Was false - #StopVsRestart
-    //         ntripClientConnectionAttempts = 0;
-    //         ntripClientConnectionAttemptTimeout = 0;
-    //         ntripClientSetState(NTRIP_CLIENT_OFF);
-    //     }
-    // }
-
     // Walk the state machine
     switch (webServerState)
     {
@@ -788,7 +771,7 @@ void webServerUpdate()
         if (!networkIsConnected(&webServerPriority))
             webServerStop();
         if (settings.debugWebServer)
-            systemPrintln("Starting web server");
+            systemPrintln("Assigning web server resources");
 
         if (webServerAssignResources(settings.httpPort) == true)
         {
