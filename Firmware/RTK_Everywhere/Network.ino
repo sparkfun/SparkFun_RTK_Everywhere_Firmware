@@ -1389,8 +1389,10 @@ void networkUpdate()
 
     // Once services have been updated, determine if the network needs to be started/stopped
 
-    int consumerCount = networkConsumers();
-    uint16_t consumerTypes = networkGetConsumerTypes();
+    static uint16_t previousConsumerTypes = NETCONSUMER_NONE;
+    static uint16_t consumerTypes = NETCONSUMER_NONE;
+
+    int consumerCount = networkConsumers(&consumerTypes); // Update the current consumer types
 
     // If there are no consumers, but the network is online, shut down all networks
     if (consumerCount == 0 && networkIsOnline() == true)
@@ -1405,8 +1407,10 @@ void networkUpdate()
 
     // If the consumers have indicated a network type change (ie, must have WiFi AP even though STA is connected)
     // then stop all networks and let the lower code restart the network accordingly
-    if (networkConsumerTypes != previousNetworkConsumerTypes)
+    if (consumerTypes != previousConsumerTypes)
     {
+        previousConsumerTypes = networkGetConsumerTypes(); // Update the previous consumer types
+
         // if (networkConsumersOnline() > 0 && networkShutdownRequest == false)
         // {
         //     // Tell consumers to shut down
@@ -1424,6 +1428,10 @@ void networkUpdate()
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStop(index, settings.debugNetworkLayer);
         // }
+
+        // Once we've stopped the networks, we need to update all the services to correctly mark any consumer types
+        // As it stands, the types are still residual from before the network stop
+        // 
     }
 
     // Allow consumers to start networks
@@ -1520,22 +1528,30 @@ void networkUpdate()
 // Return the bitfield containing the type of consumers currently using the network
 uint16_t networkGetConsumerTypes()
 {
-    networkConsumers(); // Updates networkConsumerTypes
+    uint16_t consumerTypes = 0;
 
-    return (networkConsumerTypes);
+    networkConsumers(&consumerTypes);
+
+    return (consumerTypes);
 }
 
 // Return the count of consumers (TCP, NTRIP Client, etc) that are enabled
-// and set networkConsumerTypes bitfield
+// and set consumerTypes bitfield
 // From this number we can decide if the network (WiFi, ethernet, cellular, etc) needs to be started
 // ESP-NOW is not considered a network consumer and is blended during wifiConnect()
 uint8_t networkConsumers()
 {
+    uint16_t consumerTypes = 0;
+
+    return (networkConsumers(&consumerTypes));
+}
+
+uint8_t networkConsumers(uint16_t *consumerTypes)
+{
     uint8_t consumerCount = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
 
-    previousNetworkConsumerTypes = networkConsumerTypes;
-    networkConsumerTypes = NETCONSUMER_NONE; // Clear bitfield
+    *consumerTypes = NETCONSUMER_NONE; // Clear bitfield
 
     // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
@@ -1545,7 +1561,7 @@ uint8_t networkConsumers()
     {
         consumerCount++;
         consumerId |= (1 << 0);
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed for NTRIP Server
@@ -1565,7 +1581,7 @@ uint8_t networkConsumers()
         consumerId |= (1 << 1);
 
         // TODO - Base type. If AP then limit to NETCONSUMER_WIFI_AP
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed for TCP Client
@@ -1573,7 +1589,7 @@ uint8_t networkConsumers()
     {
         consumerCount++;
         consumerId |= (1 << 2);
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed for TCP Server
@@ -1581,7 +1597,7 @@ uint8_t networkConsumers()
     {
         consumerCount++;
         consumerId |= (1 << 3);
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed for UDP Server
@@ -1589,7 +1605,7 @@ uint8_t networkConsumers()
     {
         consumerCount++;
         consumerId |= (1 << 4);
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
@@ -1597,7 +1613,7 @@ uint8_t networkConsumers()
     {
         consumerCount++;
         consumerId |= (1 << 5);
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed for PointPerfect Corrections MQTT client
@@ -1606,7 +1622,7 @@ uint8_t networkConsumers()
         // PointPerfect is enabled, allow MQTT to begin
         consumerCount++;
         consumerId |= (1 << 6);
-        networkConsumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
     }
 
     // Network needed to obtain the latest firmware version or do a firmware update
@@ -1614,7 +1630,7 @@ uint8_t networkConsumers()
     {
         consumerCount++;
         consumerId |= (1 << 7);
-        networkConsumerTypes |= (1 << NETCONSUMER_WIFI_STA); // OTA Pull library only supports WiFi
+        *consumerTypes |= (1 << NETCONSUMER_WIFI_STA); // OTA Pull library only supports WiFi
     }
 
     // Network needed for Web Config
@@ -1623,10 +1639,12 @@ uint8_t networkConsumers()
         consumerCount++;
         consumerId |= (1 << 8);
 
+        // The web server takes precedence over other network consumers so that we can start in AP mode only as needed
+        // TODO Make web server over ethernet work here as well
         if (settings.wifiConfigOverAP == true)
-            networkConsumerTypes |= (1 << NETCONSUMER_WIFI_AP); //
+            *consumerTypes = (1 << NETCONSUMER_WIFI_AP); // Force into AP only mode
         else
-            networkConsumerTypes |= (1 << NETCONSUMER_WIFI_STA); //
+            *consumerTypes = (1 << NETCONSUMER_WIFI_STA); // Force into STA only mode
     }
 
     // Debug

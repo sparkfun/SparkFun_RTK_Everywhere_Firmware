@@ -564,7 +564,6 @@ enum WebServerState
     WEBSERVER_STATE_OFF = 0,
     WEBSERVER_STATE_WAIT_FOR_NETWORK,
     WEBSERVER_STATE_NETWORK_CONNECTED,
-    WEBSERVER_STATE_STARTED,
     WEBSERVER_STATE_RUNNING,
 
     // Add new states here
@@ -622,8 +621,6 @@ enum
     NETCONSUMER_ANY, // The consumer doesn't care what type of network access is granted
     NETCONSUMER_UNKNOWN
 };
-uint16_t networkConsumerTypes = NETCONSUMER_NONE;
-uint16_t previousNetworkConsumerTypes = NETCONSUMER_NONE;
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
