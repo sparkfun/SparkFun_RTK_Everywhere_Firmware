@@ -157,35 +157,20 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     wifi_mode_t wifiMode = WIFI_OFF;
     wifi_interface_t wifiInterface = WIFI_IF_STA;
 
-    if (networkGetConsumerTypes() == NETCONSUMER_ANY)
-    {
-        if (settings.debugWifiState == true)
-            systemPrintln("Starting WiFi Station due to NETCONSUMER_ANY");
-        else
-            systemPrintln("Starting WiFi Station");
-        wifiMode = WIFI_STA;
-        wifiInterface = WIFI_IF_STA;
-    }
-    
-    // See if consumers are calling for AP+STA directly, or AP and STA individually
-    else if ((networkGetConsumerTypes() && (1 << NETCONSUMER_WIFI_AP_STA)) ||
-             (networkGetConsumerTypes() && ((1 << NETCONSUMER_WIFI_AP) || (1 << NETCONSUMER_WIFI_STA))))
+    // Establish what WiFi mode we need to be in
+    if (startWiFiStation && startWiFiAP)
     {
         systemPrintln("Starting WiFi AP+Station");
         wifiMode = WIFI_AP_STA;
         wifiInterface = WIFI_IF_AP; // There is no WIFI_IF_AP_STA
     }
-
-    else if (networkGetConsumerTypes() && (1 << NETCONSUMER_WIFI_STA))
+    else if (startWiFiStation)
     {
-        if (settings.debugWifiState == true)
-            systemPrintln("Starting WiFi Station due to NETCONSUMER_WIFI_STA");
-        else
-            systemPrintln("Starting WiFi Station");
+        systemPrintln("Starting WiFi Station");
         wifiMode = WIFI_STA;
         wifiInterface = WIFI_IF_STA;
     }
-    else if (networkGetConsumerTypes() && (1 << NETCONSUMER_WIFI_AP))
+    else if (startWiFiAP)
     {
         systemPrintln("Starting WiFi AP");
         wifiMode = WIFI_AP;
@@ -534,31 +519,39 @@ bool wifiForceStart()
     // Determine if WiFi is already running
     if (!wifiRunning)
     {
-        if (settings.debugWifiState == true)
-            systemPrintln("Starting WiFi");
-
         // Determine which parts of WiFi need to be started
         bool startWiFiStation = false;
         bool startWiFiAP = false;
 
+        uint16_t consumerTypes = networkGetConsumerTypes();
+
         // Only one bit is set, WiFi Station is default
-        if (networkGetConsumerTypes() == (1 << NETCONSUMER_ANY))
+        if (consumerTypes == (1 << NETCONSUMER_ANY))
+        {
             startWiFiStation = true;
+        }
 
         // The consumers need both
-        else if (networkGetConsumerTypes() & ((1 << NETCONSUMER_WIFI_AP) | (1 << NETCONSUMER_WIFI_STA)))
+        else if (consumerTypes & ((1 << NETCONSUMER_WIFI_AP) | (1 << NETCONSUMER_WIFI_STA)))
         {
             startWiFiStation = true;
             startWiFiAP = true;
         }
 
         // The consumers need station
-        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_WIFI_STA))
+        else if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
+        {
             startWiFiStation = true;
+        }
 
         // The consumers need AP
-        else if (networkGetConsumerTypes() & (1 << NETCONSUMER_WIFI_AP))
+        else if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
+        {
             startWiFiAP = true;
+        }
+
+        else
+            systemPrintln("wifiForceStart(): Unknown NETCONSUMER combination");
 
         // Start WiFi
         if (wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs))
