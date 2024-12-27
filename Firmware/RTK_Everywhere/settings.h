@@ -175,7 +175,6 @@ typedef struct
     uint8_t newProfile; // Only valid when newState == STATE_PROFILE
 } setupButton;
 
-
 const SystemState platformPreviousStateTable[] =
 {
     STATE_ROVER_NOT_STARTED,    // EVK
@@ -511,7 +510,6 @@ typedef enum
     SETTING_KNOWN_STRING,
 } SettingValueResponse;
 
-
 #define INCHES_IN_A_METER   39.37007874
 #define FEET_IN_A_METER     3.280839895
 
@@ -560,7 +558,7 @@ enum OtaState
 
 #ifdef COMPILE_AP
 
-// Web Config state machine to allow web server access to network layer
+// State machine to allow web server access to network layer
 enum WebServerState
 {
     WEBSERVER_STATE_OFF = 0,
@@ -574,8 +572,6 @@ enum WebServerState
 };
 
 #endif  // COMPILE_AP
-
-
 
 // Regional Support
 // Some regions have both L-Band and IP. More just have IP.
@@ -627,6 +623,7 @@ enum
     NETCONSUMER_UNKNOWN
 };
 uint16_t networkConsumerTypes = NETCONSUMER_NONE;
+uint16_t previousNetworkConsumerTypes = NETCONSUMER_NONE;
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
@@ -1796,34 +1793,35 @@ struct struct_present
 // Monitor which devices on the device are on or offline.
 struct struct_online
 {
-    bool microSD = false;
-    bool display = false;
-    bool gnss = false;
-    bool logging = false;
-    bool serialOutput = false;
-    bool fs = false;
-    bool rtc = false;
+    bool batteryCharger_mp2762a = false;
     bool batteryFuelGauge = false;
+    bool bluetooth = false;
+    bool button = false;
+    bool display = false;
+    bool ethernetNTPServer = false; // EthernetUDP
+    bool fs = false;
+    bool gnss = false;
+    bool gpioExpander = false;
+    bool httpClient = false;
+    bool i2c = false;
+    bool lband_gnss = false;
+    bool lband_neo = false;
+    bool lbandCorrections = false;
+    bool logging = false;
+    bool loraRadio = false;
+    bool microSD = false;
+    bool mqttClient = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
-    bool lband_neo = false;
-    bool lband_gnss = false;
-    bool lbandCorrections = false;
-    bool i2c = false;
+    bool otaFirmwareUpdate = false;
+    bool ppl = false;
+    bool psram = false;
+    bool rtc = false;
+    bool serialOutput = false;
     bool tcpClient = false;
     bool tcpServer = false;
     bool udpServer = false;
-    bool ethernetNTPServer = false; // EthernetUDP
-    bool otaFirmwareUpdate = false;
-    bool bluetooth = false;
-    bool mqttClient = false;
-    bool psram = false;
-    bool ppl = false;
-    bool batteryCharger_mp2762a = false;
-    bool httpClient = false;
-    bool loraRadio = false;
-    bool button = false;
-    bool gpioExpander = false;
+    bool webServer = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
