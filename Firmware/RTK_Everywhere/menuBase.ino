@@ -247,7 +247,7 @@ void menuBase()
         else if (settings.fixedBase == false && incoming == 2 && (!present.gnss_mosaicX5))
         {
             // Arbitrary 10 minute limit
-            getNewSetting("Enter the number of seconds for survey-in obseration time", 60, 60 * 10,
+            getNewSetting("Enter the number of seconds for survey-in observation time", 60, 60 * 10,
                           &settings.observationSeconds);
         }
         else if (settings.fixedBase == false && incoming == 3 &&
