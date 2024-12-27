@@ -10,6 +10,19 @@ menuFirmware.ino
 
 #ifdef COMPILE_OTA_AUTO
 
+// Automatic over-the-air (OTA) firmware update support
+enum OtaState
+{
+    OTA_STATE_OFF = 0,
+    OTA_STATE_WAIT_FOR_NETWORK,
+    OTA_STATE_GET_FIRMWARE_VERSION,
+    OTA_STATE_CHECK_FIRMWARE_VERSION,
+    OTA_STATE_UPDATE_FIRMWARE,
+
+    // Add new states here
+    OTA_STATE_MAX
+};
+
 static const char *const otaStateNames[] = {"OTA_STATE_OFF", "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_FIRMWARE_VERSION", "OTA_STATE_CHECK_FIRMWARE_VERSION",
                                             "OTA_STATE_UPDATE_FIRMWARE"};
@@ -21,7 +34,7 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 
 static uint32_t otaLastUpdateCheck;
 static NetPriority_t otaPriority = NETWORK_OFFLINE;
-static OtaState otaState;
+static uint8_t otaState;
 
 #endif // COMPILE_OTA_AUTO
 
@@ -703,7 +716,7 @@ int mapMonthName(char *mmm)
 #ifdef COMPILE_OTA_AUTO
 
 // Get the OTA state name
-const char *otaGetStateName(OtaState state, char *string)
+const char *otaGetStateName(uint8_t state, char *string)
 {
     if (state < OTA_STATE_MAX)
         return otaStateNames[state];
@@ -712,7 +725,7 @@ const char *otaGetStateName(OtaState state, char *string)
 }
 
 // Set the next OTA state
-void otaSetState(OtaState newState)
+void otaSetState(uint8_t newState)
 {
     char string1[40];
     char string2[40];

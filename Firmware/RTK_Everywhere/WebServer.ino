@@ -6,6 +6,19 @@ Form.ino
 
 #ifdef COMPILE_AP
 
+
+// State machine to allow web server access to network layer
+enum WebServerState
+{
+    WEBSERVER_STATE_OFF = 0,
+    WEBSERVER_STATE_WAIT_FOR_NETWORK,
+    WEBSERVER_STATE_NETWORK_CONNECTED,
+    WEBSERVER_STATE_RUNNING,
+
+    // Add new states here
+    WEBSERVER_STATE_MAX
+};
+
 static const char *const webServerStateNames[] = {
     "WEBSERVER_STATE_OFF",
     "WEBSERVER_STATE_WAIT_FOR_NETWORK",
@@ -16,7 +29,7 @@ static const char *const webServerStateNames[] = {
 static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
 
 static NetPriority_t webServerPriority = NETWORK_OFFLINE;
-static WebServerState webServerState;
+static uint8_t webServerState;
 
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
@@ -254,13 +267,6 @@ bool webServerAssignResources(int httpPort = 80)
 {
     do
     {
-        // TODO DNS should be started/stopped at the network layer
-        // // Start the multicast DNS server
-        // if (startWiFi == true)
-        //     networkMulticastDNSSwitch(NETWORK_WIFI);
-        // else
-        //     networkMulticastDNSSwitch(NETWORK_ETHERNET);
-
         // Freed by webServerStop
         if (online.psram == true)
             incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
@@ -574,7 +580,7 @@ void webServerStopSockets()
 }
 
 // Set the next webconfig state
-void webServerSetState(WebServerState newState)
+void webServerSetState(uint8_t newState)
 {
     char string1[40];
     char string2[40];
@@ -625,7 +631,7 @@ void webServerSetState(WebServerState newState)
 }
 
 // Get the webconfig state name
-const char *webServerGetStateName(WebServerState state, char *string)
+const char *webServerGetStateName(uint8_t state, char *string)
 {
     if (state < WEBSERVER_STATE_MAX)
         return webServerStateNames[state];

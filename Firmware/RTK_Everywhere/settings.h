@@ -539,39 +539,6 @@ const measurementScaleEntry measurementScaleTable[] = {
 };
 const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
 
-#ifdef COMPILE_OTA_AUTO
-
-// Automatic over-the-air (OTA) firmware update support
-enum OtaState
-{
-    OTA_STATE_OFF = 0,
-    OTA_STATE_WAIT_FOR_NETWORK,
-    OTA_STATE_GET_FIRMWARE_VERSION,
-    OTA_STATE_CHECK_FIRMWARE_VERSION,
-    OTA_STATE_UPDATE_FIRMWARE,
-
-    // Add new states here
-    OTA_STATE_MAX
-};
-
-#endif  // COMPILE_OTA_AUTO
-
-#ifdef COMPILE_AP
-
-// State machine to allow web server access to network layer
-enum WebServerState
-{
-    WEBSERVER_STATE_OFF = 0,
-    WEBSERVER_STATE_WAIT_FOR_NETWORK,
-    WEBSERVER_STATE_NETWORK_CONNECTED,
-    WEBSERVER_STATE_RUNNING,
-
-    // Add new states here
-    WEBSERVER_STATE_MAX
-};
-
-#endif  // COMPILE_AP
-
 // Regional Support
 // Some regions have both L-Band and IP. More just have IP.
 // Do we want the user to be able to specify which region they are in?
