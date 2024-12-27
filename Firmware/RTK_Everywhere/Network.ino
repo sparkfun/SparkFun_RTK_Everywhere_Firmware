@@ -1367,15 +1367,30 @@ void networkUpdate()
     uint8_t priority;
     NETWORK_POLL_SEQUENCE *sequence;
 
+    // Update the network services
+    DMW_c("mqttClientUpdate");
+    mqttClientUpdate(); // Process any Point Perfect MQTT messages
+    DMW_c("ntpServerUpdate");
+    ntpServerUpdate(); // Process any received NTP requests
+    DMW_c("ntripClientUpdate");
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
+    DMW_c("ntripServerUpdate");
+    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
+    DMW_c("tcpClientUpdate");
+    tcpClientUpdate(); // Turn on the TCP client as needed
+    DMW_c("tcpServerUpdate");
+    tcpServerUpdate(); // Turn on the TCP server as needed
+    DMW_c("udpServerUpdate");
+    udpServerUpdate(); // Turn on the UDP server as needed
+    DMW_c("httpClientUpdate");
+    httpClientUpdate(); // Process any Point Perfect HTTP messages
+    DMW_c("webServerUpdate");
+    webServerUpdate(); // Start webServer for web config as needed
+
+    //Once services have been updated, determine if the network needs to be started/stopped
+
     int consumerCount = networkConsumers();
-
     uint16_t consumerTypes = networkGetConsumerTypes();
-
-    // If there are no consumers, do not start the network
-    if (consumerCount == 0 && networkIsOnline() == false)
-    {
-        return;
-    }
 
     // If there are no consumers, but the network is online, shut down all networks
     if (consumerCount == 0 && networkIsOnline() == true)
@@ -1464,26 +1479,6 @@ void networkUpdate()
                 pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
         }
     }
-
-    // Update the network services
-    DMW_c("mqttClientUpdate");
-    mqttClientUpdate(); // Process any Point Perfect MQTT messages
-    DMW_c("ntpServerUpdate");
-    ntpServerUpdate(); // Process any received NTP requests
-    DMW_c("ntripClientUpdate");
-    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
-    DMW_c("ntripServerUpdate");
-    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
-    DMW_c("tcpClientUpdate");
-    tcpClientUpdate(); // Turn on the TCP client as needed
-    DMW_c("tcpServerUpdate");
-    tcpServerUpdate(); // Turn on the TCP server as needed
-    DMW_c("udpServerUpdate");
-    udpServerUpdate(); // Turn on the UDP server as needed
-    DMW_c("httpClientUpdate");
-    httpClientUpdate(); // Process any Point Perfect HTTP messages
-    DMW_c("webServerUpdate");
-    webServerUpdate(); // Start webServer for web config as needed
 
     // Periodically display the network interface state
     displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
