@@ -1387,7 +1387,7 @@ void networkUpdate()
     DMW_c("webServerUpdate");
     webServerUpdate(); // Start webServer for web config as needed
 
-    //Once services have been updated, determine if the network needs to be started/stopped
+    // Once services have been updated, determine if the network needs to be started/stopped
 
     int consumerCount = networkConsumers();
     uint16_t consumerTypes = networkGetConsumerTypes();
@@ -1395,6 +1395,9 @@ void networkUpdate()
     // If there are no consumers, but the network is online, shut down all networks
     if (consumerCount == 0 && networkIsOnline() == true)
     {
+        if (settings.debugNetworkLayer)
+            systemPrintln("Stopping all networks because there are no consumers");
+
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStop(index, settings.debugNetworkLayer);
@@ -1514,9 +1517,11 @@ void networkUpdate()
     }
 }
 
-// Return the bitfield containing
+// Return the bitfield containing the type of consumers currently using the network
 uint16_t networkGetConsumerTypes()
 {
+    networkConsumers(); // Updates networkConsumerTypes
+
     return (networkConsumerTypes);
 }
 
@@ -1532,7 +1537,7 @@ uint8_t networkConsumers()
     previousNetworkConsumerTypes = networkConsumerTypes;
     networkConsumerTypes = NETCONSUMER_NONE; // Clear bitfield
 
-    // If a consumer is waiting for the network, or is currently consuming the network (is online) then increment
+    // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
 
     // Network needed for NTRIP Client
