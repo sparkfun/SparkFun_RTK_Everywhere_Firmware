@@ -44,7 +44,7 @@ tcpServer.ino
 enum tcpServerStates
 {
     TCP_SERVER_STATE_OFF = 0,
-    TCP_SERVER_STATE_NETWORK_STARTED,
+    TCP_SERVER_STATE_WAIT_FOR_NETWORK,
     TCP_SERVER_STATE_RUNNING,
     // Insert new states here
     TCP_SERVER_STATE_MAX // Last entry in the state list
@@ -52,7 +52,7 @@ enum tcpServerStates
 
 const char *const tcpServerStateName[] = {
     "TCP_SERVER_STATE_OFF",
-    "TCP_SERVER_STATE_NETWORK_STARTED",
+    "TCP_SERVER_STATE_WAIT_FOR_NETWORK",
     "TCP_SERVER_STATE_RUNNING",
 };
 
@@ -338,7 +338,7 @@ void tcpServerUpdate()
                 | tcpServerStop             | settings.enableTcpServer
                 |                           |
                 |                           V
-                +<----------TCP_SERVER_STATE_NETWORK_STARTED
+                +<----------TCP_SERVER_STATE_WAIT_FOR_NETWORK
                 ^                           |
                 |                           | networkUserConnected
                 |                           |
@@ -364,12 +364,12 @@ void tcpServerUpdate()
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
             tcpServerPriority = NETWORK_OFFLINE;
-            tcpServerSetState(TCP_SERVER_STATE_NETWORK_STARTED);
+            tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
-    case TCP_SERVER_STATE_NETWORK_STARTED:
+    case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Determine if the TCP server was turned off
         if (NEQ_RTK_MODE(tcpServerMode) || !settings.enableTcpServer)
             tcpServerStop();
