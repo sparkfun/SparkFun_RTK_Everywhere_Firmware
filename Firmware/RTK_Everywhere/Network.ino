@@ -1428,10 +1428,6 @@ void networkUpdate()
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStop(index, settings.debugNetworkLayer);
         // }
-
-        // Once we've stopped the networks, we need to update all the services to correctly mark any consumer types
-        // As it stands, the types are still residual from before the network stop
-        // 
     }
 
     // Allow consumers to start networks
@@ -1450,12 +1446,14 @@ void networkUpdate()
                 systemPrintln("Starting WiFi Specific Network");
 
             networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
+            //networkMulticastDNSSwitch(NETWORK_WIFI); This should be taken care of by networkMarkOnline()
         }
 
         // We don't have this type of consumer yet but good to have...
         else if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
         {
             networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
+            //networkMulticastDNSSwitch(NETWORK_ETHERNET);
         }
 
         // We don't have this type of consumer yet but good to have...
