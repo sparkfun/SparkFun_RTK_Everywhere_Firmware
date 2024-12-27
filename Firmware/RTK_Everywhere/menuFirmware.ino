@@ -920,7 +920,7 @@ void otaVerifyTables()
 
 bool otaNeedsNetwork()
 {
-    if (httpClientState >= OTA_STATE_WAIT_FOR_NETWORK && httpClientState <= OTA_STATE_UPDATE_FIRMWARE)
+    if (otaState >= OTA_STATE_WAIT_FOR_NETWORK && otaState <= OTA_STATE_UPDATE_FIRMWARE)
         return true;
     return false;
 }
