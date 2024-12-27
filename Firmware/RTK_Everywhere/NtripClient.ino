@@ -556,7 +556,7 @@ void ntripClientUpdate()
     switch (ntripClientState)
     {
     case NTRIP_CLIENT_OFF:
-        // Don't allow the client to restart if a forced shutdown occured
+        // Don't allow the client to restart if a forced shutdown occurred
         if (ntripClientForcedShutdown == false && EQ_RTK_MODE(ntripClientMode) && settings.enableNtripClient)
             ntripClientStart();
         break;
