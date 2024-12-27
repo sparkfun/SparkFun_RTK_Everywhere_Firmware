@@ -568,7 +568,6 @@ bool webServerNeedsNetwork()
 
 void webServerStopSockets()
 {
-    createSettingsString(settingsCSV);
     websocketConnected = false;
 
     if (*wsserver)
