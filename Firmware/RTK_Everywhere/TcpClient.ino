@@ -128,14 +128,14 @@ TcpClient.ino
 enum tcpClientStates
 {
     TCP_CLIENT_STATE_OFF = 0,
-    TCP_CLIENT_STATE_NETWORK_STARTED,
+    TCP_CLIENT_STATE_WAIT_FOR_NETWORK,
     TCP_CLIENT_STATE_CLIENT_STARTING,
     TCP_CLIENT_STATE_CONNECTED,
     // Insert new states here
     TCP_CLIENT_STATE_MAX // Last entry in the state list
 };
 
-const char *const tcpClientStateName[] = {"TCP_CLIENT_STATE_OFF", "TCP_CLIENT_STATE_NETWORK_STARTED",
+const char *const tcpClientStateName[] = {"TCP_CLIENT_STATE_OFF", "TCP_CLIENT_STATE_WAIT_FOR_NETWORK",
                                           "TCP_CLIENT_STATE_CLIENT_STARTING", "TCP_CLIENT_STATE_CONNECTED"};
 
 const int tcpClientStateNameEntries = sizeof(tcpClientStateName) / sizeof(tcpClientStateName[0]);
@@ -383,7 +383,7 @@ void tcpClientUpdate()
                 | tcpClientStop             | settings.enableTcpClient
                 |                           |
                 |                           V
-                +<----------TCP_CLIENT_STATE_NETWORK_STARTED
+                +<----------TCP_CLIENT_STATE_WAIT_FOR_NETWORK
                 ^                           |
                 |                           | networkUserConnected
                 |                           |
@@ -410,12 +410,12 @@ void tcpClientUpdate()
         {
             timer = 0;
             tcpClientPriority = NETWORK_OFFLINE;
-            tcpClientSetState(TCP_CLIENT_STATE_NETWORK_STARTED);
+            tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
-    case TCP_CLIENT_STATE_NETWORK_STARTED:
+    case TCP_CLIENT_STATE_WAIT_FOR_NETWORK:
         // Determine if the TCP client was turned off
         if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
             tcpClientStop();
