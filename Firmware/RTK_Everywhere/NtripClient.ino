@@ -83,7 +83,7 @@ NtripClient.ino
   NTRIP Client States:
     NTRIP_CLIENT_OFF: Network off or using NTRIP server
     NTRIP_CLIENT_ON: WIFI_STATE_START state
-    NTRIP_CLIENT_NETWORK_STARTED: Connecting to the network
+    NTRIP_CLIENT_WAIT_FOR_NETWORK: Connecting to the network
     NTRIP_CLIENT_NETWORK_CONNECTED: Connected to the network
     NTRIP_CLIENT_CONNECTING: Attempting a connection to the NTRIP caster
     NTRIP_CLIENT_WAIT_RESPONSE: Wait for a response from the NTRIP caster
@@ -97,7 +97,7 @@ NtripClient.ino
                                        |                      |
                                        |                      | ntripClientRestart()
                                        v                Fail  |
-                         NTRIP_CLIENT_NETWORK_STARTED ------->+
+                         NTRIP_CLIENT_WAIT_FOR_NETWORK ------->+
                                        |                      ^
                                        |                      |
                                        v                      |
@@ -153,7 +153,7 @@ enum NTRIPClientState
 {
     NTRIP_CLIENT_OFF = 0,           // Using Bluetooth or NTRIP server
     NTRIP_CLIENT_ON,                // WIFI_STATE_START state
-    NTRIP_CLIENT_NETWORK_STARTED,   // Connecting to WiFi access point or Ethernet
+    NTRIP_CLIENT_WAIT_FOR_NETWORK,   // Connecting to WiFi access point or Ethernet
     NTRIP_CLIENT_NETWORK_CONNECTED, // Connected to an access point or Ethernet
     NTRIP_CLIENT_CONNECTING,        // Attempting a connection to the NTRIP caster
     NTRIP_CLIENT_WAIT_RESPONSE,     // Wait for a response from the NTRIP caster
@@ -164,7 +164,7 @@ enum NTRIPClientState
 
 const char *const ntripClientStateName[] = {"NTRIP_CLIENT_OFF",
                                             "NTRIP_CLIENT_ON",
-                                            "NTRIP_CLIENT_NETWORK_STARTED",
+                                            "NTRIP_CLIENT_WAIT_FOR_NETWORK",
                                             "NTRIP_CLIENT_NETWORK_CONNECTED",
                                             "NTRIP_CLIENT_CONNECTING",
                                             "NTRIP_CLIENT_WAIT_RESPONSE",
@@ -357,7 +357,7 @@ void ntripClientPrintStateSummary()
         systemPrint("Disconnected");
         break;
     case NTRIP_CLIENT_ON:
-    case NTRIP_CLIENT_NETWORK_STARTED:
+    case NTRIP_CLIENT_WAIT_FOR_NETWORK:
     case NTRIP_CLIENT_NETWORK_CONNECTED:
     case NTRIP_CLIENT_CONNECTING:
     case NTRIP_CLIENT_WAIT_RESPONSE:
@@ -556,11 +556,11 @@ void ntripClientUpdate()
     // Start the network
     case NTRIP_CLIENT_ON:
         ntripClientPriority = NETWORK_OFFLINE;
-        ntripClientSetState(NTRIP_CLIENT_NETWORK_STARTED);
+        ntripClientSetState(NTRIP_CLIENT_WAIT_FOR_NETWORK);
         break;
 
     // Wait for a network media connection
-    case NTRIP_CLIENT_NETWORK_STARTED:
+    case NTRIP_CLIENT_WAIT_FOR_NETWORK:
         // Determine if the NTRIP client was turned off
         if (ntripClientForcedShutdown || NEQ_RTK_MODE(ntripClientMode) || !settings.enableNtripClient)
             ntripClientStop(true);
@@ -591,6 +591,8 @@ void ntripClientUpdate()
         if (!networkIsConnected(&ntripClientPriority))
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
+
+        
 
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
