@@ -508,14 +508,6 @@ bool wifiForceStart()
 {
     int wifiStatus;
 
-    if (wifiNetworkCount() == 0)
-    {
-        systemPrintln("Error: Please enter at least one SSID before using WiFi");
-        displayNoSSIDs(2000);
-        WIFI_STOP();
-        return false;
-    }
-
     // Determine if WiFi is already running
     if (!wifiRunning)
     {
@@ -532,7 +524,7 @@ bool wifiForceStart()
         }
 
         // The consumers need both
-        else if (consumerTypes & ((1 << NETCONSUMER_WIFI_AP) | (1 << NETCONSUMER_WIFI_STA)))
+        else if ((consumerTypes & (1 << NETCONSUMER_WIFI_AP)) && (consumerTypes & (1 << NETCONSUMER_WIFI_STA)))
         {
             startWiFiStation = true;
             startWiFiAP = true;
@@ -553,6 +545,23 @@ bool wifiForceStart()
         else
             systemPrintln("wifiForceStart(): Unknown NETCONSUMER combination");
 
+        if (wifiNetworkCount() == 0)
+        {
+            if (startWiFiStation == true && startWiFiAP == false)
+            {
+                systemPrintln("Error: Please enter at least one SSID before using WiFi");
+                displayNoSSIDs(2000);
+                WIFI_STOP();
+                return false;
+            }
+            else if (startWiFiStation == true && startWiFiAP == true)
+            {
+                systemPrintln("Error: No SSID available to start WiFi Station during AP");
+                // Allow the system to continue in AP only mode
+                startWiFiStation = false;
+            }
+        }
+
         // Start WiFi
         if (wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs))
         {
@@ -562,9 +571,12 @@ bool wifiForceStart()
         }
     }
 
-    // If we are in AP only mode, as long as the AP is started, returned true
+    // If we are in AP only mode, as long as the AP is started, return true
     if (WiFi.getMode() == WIFI_MODE_AP)
+    {
+        networkMarkOnline(NETWORK_WIFI);
         return (true);
+    }
 
     // If we are in STA or AP+STA mode, return if the station connected successfully
     wifiStatus = WiFi.status();
