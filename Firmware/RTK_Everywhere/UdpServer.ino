@@ -69,7 +69,7 @@ UdpServer.ino
 enum udpServerStates
 {
     UDP_SERVER_STATE_OFF = 0,
-    UDP_SERVER_STATE_NETWORK_STARTED,
+    UDP_SERVER_STATE_WAIT_FOR_NETWORK,
     UDP_SERVER_STATE_RUNNING,
     // Insert new states here
     UDP_SERVER_STATE_MAX // Last entry in the state list
@@ -77,7 +77,7 @@ enum udpServerStates
 
 const char *const udpServerStateName[] = {
     "UDP_SERVER_STATE_OFF",
-    "UDP_SERVER_STATE_NETWORK_STARTED",
+    "UDP_SERVER_STATE_WAIT_FOR_NETWORK",
     "UDP_SERVER_STATE_RUNNING",
 };
 
@@ -297,7 +297,7 @@ void udpServerUpdate()
                 | udpServerStop             | settings.enableUdpServer
                 |                           |
                 |                           V
-                +<---------UDP_SERVER_STATE_NETWORK_STARTED
+                +<---------UDP_SERVER_STATE_WAIT_FOR_NETWORK
                 ^                           |
                 |                           | networkUserConnected
                 |                           |
@@ -318,12 +318,12 @@ void udpServerUpdate()
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
             udpServerPriority = NETWORK_OFFLINE;
-            udpServerSetState(UDP_SERVER_STATE_NETWORK_STARTED);
+            udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
 
     // Wait until the network is connected
-    case UDP_SERVER_STATE_NETWORK_STARTED:
+    case UDP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Determine if the UDP server was turned off
         if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
             udpServerStop();
