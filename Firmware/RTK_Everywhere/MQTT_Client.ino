@@ -96,7 +96,7 @@ enum MQTTClientState
 {
     MQTT_CLIENT_OFF = 0,             // Using Bluetooth or NTRIP server
     MQTT_CLIENT_ON,                  // WIFI_STATE_START state
-    MQTT_CLIENT_NETWORK_STARTED,     // Connecting to WiFi access point or Ethernet
+    MQTT_CLIENT_WAIT_FOR_NETWORK,     // Connecting to WiFi access point or Ethernet
     MQTT_CLIENT_CONNECTING_2_SERVER, // Connecting to the MQTT server
     MQTT_CLIENT_SERVICES_CONNECTED,  // Connected to the MQTT services
     // Insert new states here
@@ -106,7 +106,7 @@ enum MQTTClientState
 const char *const mqttClientStateName[] = {
     "MQTT_CLIENT_OFF",
     "MQTT_CLIENT_ON",
-    "MQTT_CLIENT_NETWORK_STARTED",
+    "MQTT_CLIENT_WAIT_FOR_NETWORK",
     "MQTT_CLIENT_CONNECTING_2_SERVER",
     "MQTT_CLIENT_SERVICES_CONNECTED",
 };
@@ -220,7 +220,7 @@ void mqttClientPrintStateSummary()
         break;
 
     case MQTT_CLIENT_ON:
-    case MQTT_CLIENT_NETWORK_STARTED:
+    case MQTT_CLIENT_WAIT_FOR_NETWORK:
         systemPrint("Disconnected");
         break;
 
@@ -716,13 +716,13 @@ void mqttClientUpdate()
         if ((millis() - mqttClientTimer) > mqttClientConnectionAttemptTimeout)
         {
             mqttClientPriority = NETWORK_OFFLINE;
-            mqttClientSetState(MQTT_CLIENT_NETWORK_STARTED);
+            mqttClientSetState(MQTT_CLIENT_WAIT_FOR_NETWORK);
         }
         break;
     }
 
     // Wait for a network media connection
-    case MQTT_CLIENT_NETWORK_STARTED: {
+    case MQTT_CLIENT_WAIT_FOR_NETWORK: {
         // Determine if MQTT was turned off
         if (NEQ_RTK_MODE(mqttClientMode) || !enableMqttClient)
             mqttClientStop(true);
