@@ -475,7 +475,8 @@ const int btReadTaskStackSize = 4000;
 RING_BUFFER_OFFSET *rbOffsetArray = nullptr;
 uint16_t rbOffsetEntries;
 
-uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we need 23040
+uint8_t *ringBuffer; // Buffer for reading from GNSS receiver. At 230400bps, 23040 bytes/s. If SD blocks for 250ms, we
+                     // need 23040
                      // * 0.25 = 5760 bytes worst case.
 const int gnssReadTaskStackSize = 8000;
 const size_t sempGnssReadBufferSize = 8000; // Make the SEMP buffer size the ~same
@@ -556,8 +557,6 @@ char *incomingSettings;
 int incomingSettingsSpot;
 unsigned long timeSinceLastIncomingSetting;
 unsigned long lastDynamicDataUpdate;
-
-bool webServerRequest = false; // Goes true when STATE_WIFI_CONFIG_NOT_STARTED is entered. Goes false when Rover/Base is started.
 
 #ifdef COMPILE_WIFI
 #ifdef COMPILE_AP
@@ -1258,13 +1257,14 @@ void loop()
     printReports(); // Periodically print GNSS coordinates and accuracy if enabled
 
     DMW_c("otaAutoUpdate");
-    otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air updates
+    otaUpdate(); // Initiate firmware version checks, scheduled automatic updates, or requested firmware over-the-air
+                 // updates
 
     DMW_c("correctionUpdateSource");
     correctionUpdateSource(); // Retire expired sources
 
     DMW_c("updateProvisioning");
-    updateProvisioning(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction
+    provisioningUpdate(); // Check if we should attempt to connect to PointPerfect to get keys / certs / correction
                           // topic etc.
 
     loopDelay(); // A small delay prevents panic if no other I2C or functions are called
@@ -1288,7 +1288,7 @@ void logUpdate()
     systemTime_minutes = millis() / 1000L / 60;
 
     // If we are in AP config, don't touch the SD card
-    if (systemState == STATE_WIFI_CONFIG_NOT_STARTED || systemState == STATE_WIFI_CONFIG)
+    if (inWiFiConfigMode())
         return;
 
     if (online.microSD == false)

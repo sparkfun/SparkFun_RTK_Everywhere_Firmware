@@ -653,7 +653,7 @@ void menuDebugNetwork()
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
 
         // WiFi Config
-        systemPrint("4) Debug Web Config: ");
+        systemPrint("4) Debug Web Server: ");
         systemPrintf("%s\r\n", settings.debugWebServer ? "Enabled" : "Disabled");
 
         // Network

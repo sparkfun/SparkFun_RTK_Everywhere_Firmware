@@ -1232,7 +1232,15 @@ void provisioningSetState(uint8_t newState)
 unsigned long provisioningStartTime_millis;
 const unsigned long provisioningTimeout_ms = 120000;
 
-void updateProvisioning()
+// Return true if we are in states that require network access
+bool provisioningNeedsNetwork()
+{
+    if (provisioningState >= PROVISIONING_WAIT_FOR_NETWORK && provisioningState <= PROVISIONING_STARTED)
+        return true;
+    return false;
+}
+
+void provisioningUpdate()
 {
     // Skip if in configure-via-ethernet mode
     if (configureViaEthernet)
@@ -1253,17 +1261,15 @@ void updateProvisioning()
     }
     break;
     case PROVISIONING_WAIT_RTC: {
-        if ((online.rtc)
-            // If RTC is not online after provisioningTimeout_ms, try to provision anyway
-            || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) || (settings.requestKeyUpdate))
+        // If RTC is not online after provisioningTimeout_ms, try to provision anyway
+        if ((online.rtc) || (millis() > (provisioningStartTime_millis + provisioningTimeout_ms)) ||
+            (settings.requestKeyUpdate))
             provisioningSetState(PROVISIONING_NOT_STARTED);
     }
     break;
     case PROVISIONING_NOT_STARTED: {
         if (settings.enablePointPerfectCorrections && (settings.autoKeyRenewal || settings.requestKeyUpdate))
-        {
             provisioningSetState(PROVISIONING_CHECK_REMAINING);
-        }
     }
     break;
     case PROVISIONING_CHECK_REMAINING: {

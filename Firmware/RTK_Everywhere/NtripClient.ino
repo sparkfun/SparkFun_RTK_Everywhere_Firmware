@@ -526,6 +526,14 @@ void ntripClientStop(bool shutdown)
         ntripClientSetState(NTRIP_CLIENT_ON);
 }
 
+// Return true if we are in states that require network access
+bool ntripClientNeedsNetwork()
+{
+    if (ntripClientState >= NTRIP_CLIENT_WAIT_FOR_NETWORK && ntripClientState <= NTRIP_CLIENT_CONNECTED)
+        return true;
+    return false;
+}
+
 // Check for the arrival of any correction data. Push it to the GNSS.
 // Stop task if the connection has dropped or if we receive no data for
 // NTRIP_CLIENT_RECEIVE_DATA_TIMEOUT

@@ -1813,7 +1813,7 @@ struct struct_online
     bool mqttClient = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
-    bool otaFirmwareUpdate = false;
+    bool otaClient = false;
     bool ppl = false;
     bool psram = false;
     bool rtc = false;

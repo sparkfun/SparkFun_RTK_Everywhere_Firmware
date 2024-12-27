@@ -774,7 +774,7 @@ void otaUpdateStop()
         if (settings.debugFirmwareUpdate)
             systemPrintln("Firmware update releasing network request");
 
-        online.otaFirmwareUpdate = false;
+        online.otaClient = false;
 
         otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
 
@@ -854,6 +854,8 @@ void otaUpdate()
             otaReportedVersion[0] = 0;
             if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
             {
+                online.otaClient = true;
+
                 // Create a string of the unit's current firmware version
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
@@ -916,4 +918,10 @@ void otaVerifyTables()
         reportFatalError("Fix otaStateNames table to match OtaState");
 }
 
+bool otaNeedsNetwork()
+{
+    if (httpClientState >= OTA_STATE_WAIT_FOR_NETWORK && httpClientState <= OTA_STATE_UPDATE_FIRMWARE)
+        return true;
+    return false;
+}
 #endif // COMPILE_OTA_AUTO

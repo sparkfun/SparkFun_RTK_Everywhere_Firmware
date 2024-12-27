@@ -115,6 +115,8 @@ void stateUpdate()
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
             espnowStart();    // Start internal radio if enabled, otherwise disable
 
+            webServerStop(); // Stop the web config server
+
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
@@ -218,6 +220,8 @@ void stateUpdate()
 
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
+
+            webServerStop(); // Stop the web config server
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
@@ -415,25 +419,16 @@ void stateUpdate()
             baseStatusLedOff(); // Turn off the status LED
 
             displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
-           
-            // TODO - Do we need to stop BT and ESP-NOW?
+
+            // TODO - Do we need to stop BT and ESP-NOW during web config or can we leave it running?
             bluetoothStop();
             espnowStop();
             tasksStopGnssUart(); // Delete serial tasks if running
 
-            webServerRequest = true; // Notify the network that we need access, start web server
+            webServerStart(); // Start the webserver state machine for web config
 
-            changeState(STATE_WIFI_CONFIG_WAIT_FOR_NETWORK);
-        }
-        break;
-
-        case (STATE_WIFI_CONFIG_WAIT_FOR_NETWORK): {
-            // Wait while web server starts
-            if (webServerIsRunning() == true)
-            {
-                RTK_MODE(RTK_MODE_WIFI_CONFIG);
-                changeState(STATE_WIFI_CONFIG);
-            }
+            RTK_MODE(RTK_MODE_WIFI_CONFIG);
+            changeState(STATE_WIFI_CONFIG);
         }
         break;
 
@@ -657,7 +652,7 @@ void stateUpdate()
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 
-            webServerRequest = true; // Notify the network that we need access, start web server
+            webServerStart(); // Start the webserver state machine for web config
 
             // TODO add a state machine step for ethernet to wait for web server to start
             // See wifi web server / web config
@@ -786,8 +781,6 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_DISPLAY_SETUP";
     case (STATE_WIFI_CONFIG_NOT_STARTED):
         return "STATE_WIFI_CONFIG_NOT_STARTED";
-    case (STATE_WIFI_CONFIG_WAIT_FOR_NETWORK):
-        return "STATE_WIFI_CONFIG_WAIT_FOR_NETWORK";
     case (STATE_WIFI_CONFIG):
         return "STATE_WIFI_CONFIG";
     case (STATE_TEST):

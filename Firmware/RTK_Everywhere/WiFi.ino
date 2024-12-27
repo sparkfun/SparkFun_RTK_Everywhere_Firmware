@@ -152,28 +152,44 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     if (startWiFiAP && WiFi.getMode() == WIFI_AP)
         return (true); // There is nothing needing to be changed
 
-    wifiRunning = false; //Mark it as offline while we mess about
-    
+    wifiRunning = false; // Mark it as offline while we mess about
+
     wifi_mode_t wifiMode = WIFI_OFF;
     wifi_interface_t wifiInterface = WIFI_IF_STA;
 
-    if (networkGetConsumerTypes() == NETCONSUMER_WIFI_STA)
+    if (networkGetConsumerTypes() == NETCONSUMER_ANY)
     {
-        systemPrintln("Starting WiFi Station");
+        if (settings.debugWifiState == true)
+            systemPrintln("Starting WiFi Station due to NETCONSUMER_ANY");
+        else
+            systemPrintln("Starting WiFi Station");
         wifiMode = WIFI_STA;
         wifiInterface = WIFI_IF_STA;
     }
-    else if (networkGetConsumerTypes() == NETCONSUMER_WIFI_AP)
-    {
-        systemPrintln("Starting WiFi AP");
-        wifiMode = WIFI_AP;
-        wifiInterface = WIFI_IF_AP;
-    }
-    else if (networkGetConsumerTypes() == NETCONSUMER_WIFI_AP_STA)
+    
+    // See if consumers are calling for AP+STA directly, or AP and STA individually
+    else if ((networkGetConsumerTypes() && (1 << NETCONSUMER_WIFI_AP_STA)) ||
+             (networkGetConsumerTypes() && ((1 << NETCONSUMER_WIFI_AP) || (1 << NETCONSUMER_WIFI_STA))))
     {
         systemPrintln("Starting WiFi AP+Station");
         wifiMode = WIFI_AP_STA;
         wifiInterface = WIFI_IF_AP; // There is no WIFI_IF_AP_STA
+    }
+
+    else if (networkGetConsumerTypes() && (1 << NETCONSUMER_WIFI_STA))
+    {
+        if (settings.debugWifiState == true)
+            systemPrintln("Starting WiFi Station due to NETCONSUMER_WIFI_STA");
+        else
+            systemPrintln("Starting WiFi Station");
+        wifiMode = WIFI_STA;
+        wifiInterface = WIFI_IF_STA;
+    }
+    else if (networkGetConsumerTypes() && (1 << NETCONSUMER_WIFI_AP))
+    {
+        systemPrintln("Starting WiFi AP");
+        wifiMode = WIFI_AP;
+        wifiInterface = WIFI_IF_AP;
     }
 
     displayWiFiConnect();
@@ -679,6 +695,5 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
     wifiStop();
     networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
 }
-
 
 #endif // COMPILE_WIFI

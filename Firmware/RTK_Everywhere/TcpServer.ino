@@ -314,6 +314,14 @@ void tcpServerStopClient(int index)
     tcpServerClientWriteError = tcpServerClientWriteError & (~(1 << index));
 }
 
+// Return true if we are in a state that requires network access
+bool tcpServerNeedsNetwork()
+{
+    if (tcpServerState >= TCP_SERVER_STATE_WAIT_FOR_NETWORK && tcpServerState <= TCP_SERVER_STATE_RUNNING)
+        return true;
+    return false;
+}
+
 // Update the TCP server state
 void tcpServerUpdate()
 {
