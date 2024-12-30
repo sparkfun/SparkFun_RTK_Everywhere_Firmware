@@ -709,14 +709,14 @@ void beginBoard()
         pin_GnssUart_TX = 22;
 
         pin_GNSS_Reset = 33;
-        pin_GNSS_TimePulse = 8; // PPS on LG290P
+        pin_GNSS_TimePulse = 36; // PPS on LG290P
 
         pin_SCK = 32;
         pin_POCI = 25;
         pin_PICO = 26;
         pin_microSD_CS = 27;
 
-        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' on Portability Shield
+        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
 
         pin_bluetoothStatusLED = 4; // Blue LED
         pin_gnssStatusLED = 0; // Green LED
