@@ -1599,7 +1599,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     }
 
     // Network needed for UDP Server
-    if (udpServerIsWaitingForNetwork() || online.udpServer)
+    if (udpServerNeedsNetwork() || online.udpServer)
     {
         consumerCount++;
         consumerId |= (1 << 4);

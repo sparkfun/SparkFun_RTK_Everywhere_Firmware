@@ -277,7 +277,7 @@ void udpServerStop()
 }
 
 // Return true if we are in a state that requires network access
-bool udpServerIsWaitingForNetwork()
+bool udpServerNeedsNetwork()
 {
     if (udpServerState >= UDP_SERVER_STATE_WAIT_FOR_NETWORK && udpServerState <= UDP_SERVER_STATE_RUNNING)
         return true;
