@@ -18,7 +18,7 @@
   createSettingsString();
     In menuCommands.ino
     Generates a CSV string of all settings and their values - if they are inWebConfig
-    Called by startWebServer, onWsEvent, updateSettingWithValue (when setting / resetting a profile),
+    Called by webServerStart, onWsEvent, updateSettingWithValue (when setting / resetting a profile),
     Calls the stringRecord methods - also in menuCommands.ino
     Note: there is a _lot_ of commonality between this and recordSystemSettingsToFile. It may be
           possible to share code between the two.

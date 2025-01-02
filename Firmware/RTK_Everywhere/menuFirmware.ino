@@ -10,6 +10,19 @@ menuFirmware.ino
 
 #ifdef COMPILE_OTA_AUTO
 
+// Automatic over-the-air (OTA) firmware update support
+enum OtaState
+{
+    OTA_STATE_OFF = 0,
+    OTA_STATE_WAIT_FOR_NETWORK,
+    OTA_STATE_GET_FIRMWARE_VERSION,
+    OTA_STATE_CHECK_FIRMWARE_VERSION,
+    OTA_STATE_UPDATE_FIRMWARE,
+
+    // Add new states here
+    OTA_STATE_MAX
+};
+
 static const char *const otaStateNames[] = {"OTA_STATE_OFF", "OTA_STATE_WAIT_FOR_NETWORK",
                                             "OTA_STATE_GET_FIRMWARE_VERSION", "OTA_STATE_CHECK_FIRMWARE_VERSION",
                                             "OTA_STATE_UPDATE_FIRMWARE"};
@@ -21,7 +34,7 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 
 static uint32_t otaLastUpdateCheck;
 static NetPriority_t otaPriority = NETWORK_OFFLINE;
-static OtaState otaState;
+static uint8_t otaState;
 
 #endif // COMPILE_OTA_AUTO
 
@@ -516,47 +529,6 @@ void otaUpdateFirmware()
 #endif // COMPILE_NETWORK
 }
 
-// Start WiFi outside of the network layer and perform the over-the-air update
-void otaForcedUpdate()
-{
-#ifdef COMPILE_NETWORK
-    bool wasInAPmode = false;
-
-    if (!networkIsOnline())
-    {
-        if (wifiNetworkCount() == 0)
-            systemPrintln("Error: Please enter at least one SSID before getting keys");
-        else
-            systemPrintln("Error: Network not available!");
-    }
-    else
-    {
-        // Determine if WiFi is running
-        bool wifiRunning = WiFi.STA.started() || WiFi.STA.linkUp() || WiFi.STA.connected();
-
-        if ((networkIsOnline) || (wifiConnect(settings.wifiConnectTimeoutMs, true, &wasInAPmode) ==
-                                  true)) // Use WIFI_AP_STA if already in WIFI_AP mode
-            otaUpdateFirmware();
-
-        // Update failed.
-        // If we were in WIFI_AP mode, return to WIFI_AP mode
-        if (wasInAPmode)
-            wifiSetApMode();
-
-        if (systemState != STATE_WIFI_CONFIG)
-        {
-            // WIFI_STOP() turns off the entire radio including the webserver. We need to turn off Station mode
-            // only. For now, unit exits AP mode via reset so if we are in AP config mode, leave WiFi Station
-            // running.
-
-            // If WiFi was originally off, turn it off again
-            if (wifiRunning == false)
-                WIFI_STOP();
-        }
-    }
-#endif // COMPILE_NETWORK
-}
-
 // Called while the OTA Pull update is happening
 void otaPullCallback(int bytesWritten, int totalLength)
 {
@@ -744,7 +716,7 @@ int mapMonthName(char *mmm)
 #ifdef COMPILE_OTA_AUTO
 
 // Get the OTA state name
-const char *otaGetStateName(OtaState state, char *string)
+const char *otaGetStateName(uint8_t state, char *string)
 {
     if (state < OTA_STATE_MAX)
         return otaStateNames[state];
@@ -753,7 +725,7 @@ const char *otaGetStateName(OtaState state, char *string)
 }
 
 // Set the next OTA state
-void otaSetState(OtaState newState)
+void otaSetState(uint8_t newState)
 {
     char string1[40];
     char string2[40];
@@ -815,7 +787,7 @@ void otaUpdateStop()
         if (settings.debugFirmwareUpdate)
             systemPrintln("Firmware update releasing network request");
 
-        online.otaFirmwareUpdate = false;
+        online.otaClient = false;
 
         otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
 
@@ -895,6 +867,8 @@ void otaUpdate()
             otaReportedVersion[0] = 0;
             if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
             {
+                online.otaClient = true;
+
                 // Create a string of the unit's current firmware version
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
@@ -957,4 +931,10 @@ void otaVerifyTables()
         reportFatalError("Fix otaStateNames table to match OtaState");
 }
 
+bool otaNeedsNetwork()
+{
+    if (otaState >= OTA_STATE_WAIT_FOR_NETWORK && otaState <= OTA_STATE_UPDATE_FIRMWARE)
+        return true;
+    return false;
+}
 #endif // COMPILE_OTA_AUTO

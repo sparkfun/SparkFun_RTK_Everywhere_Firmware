@@ -27,6 +27,7 @@ typedef enum
     STATE_BASE_FIXED_TRANSMITTING,
     STATE_DISPLAY_SETUP,
     STATE_WIFI_CONFIG_NOT_STARTED,
+    STATE_WIFI_CONFIG_WAIT_FOR_NETWORK,
     STATE_WIFI_CONFIG,
     STATE_TEST,
     STATE_TESTING,
@@ -173,7 +174,6 @@ typedef struct
     SystemState newState;
     uint8_t newProfile; // Only valid when newState == STATE_PROFILE
 } setupButton;
-
 
 const SystemState platformPreviousStateTable[] =
 {
@@ -512,7 +512,6 @@ typedef enum
     SETTING_KNOWN_STRING,
 } SettingValueResponse;
 
-
 #define INCHES_IN_A_METER   39.37007874
 #define FEET_IN_A_METER     3.280839895
 
@@ -541,23 +540,6 @@ const measurementScaleEntry measurementScaleTable[] = {
     { MEASUREMENT_UNITS_FEET_INCHES, "feet and inches", "ft", "in", FEET_IN_A_METER, 3.0, 12.0, 100.0 }
 };
 const int measurementScaleEntries = sizeof(measurementScaleTable) / sizeof(measurementScaleTable[0]);
-
-#ifdef COMPILE_OTA_AUTO
-
-// Automatic over-the-air (OTA) firmware update support
-enum OtaState
-{
-    OTA_STATE_OFF = 0,
-    OTA_STATE_WAIT_FOR_NETWORK,
-    OTA_STATE_GET_FIRMWARE_VERSION,
-    OTA_STATE_CHECK_FIRMWARE_VERSION,
-    OTA_STATE_UPDATE_FIRMWARE,
-
-    // Add new states here
-    OTA_STATE_MAX
-};
-
-#endif  // COMPILE_OTA_AUTO
 
 // Regional Support
 // Some regions have both L-Band and IP. More just have IP.
@@ -595,6 +577,19 @@ const Regional_Information Regional_Information_Table[] =
 const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regional_Information_Table[0]);
 
 #define NTRIP_SERVER_STRING_SIZE        50
+
+//Bitfield for describing the type of network the consumer needs
+enum
+{
+    NETCONSUMER_NONE = 0, // No consumers
+    NETCONSUMER_WIFI_STA, // The consumer needs STA
+    NETCONSUMER_WIFI_AP, // The consumer needs AP
+    NETCONSUMER_WIFI_AP_STA, // The consumer needs STA and AP
+    NETCONSUMER_CELLULAR, // The consumer needs Cellular
+    NETCONSUMER_ETHERNET, // The consumer needs Ethernet
+    NETCONSUMER_ANY, // The consumer doesn't care what type of network access is granted
+    NETCONSUMER_UNKNOWN
+};
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
@@ -978,7 +973,7 @@ struct Settings
     uint16_t httpPort = 80;
 
     // WiFi
-    bool debugWebConfig = false;
+    bool debugWebServer = false;
     bool debugWifiState = false;
     bool enableCaptivePortal = true;
     uint8_t wifiChannel = 1; //Valid channels are 1 to 14
@@ -1581,7 +1576,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.httpPort, "httpPort",  },
 
     // WiFi
-    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWebConfig, "debugWebConfig",  },
+    { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWebServer, "debugWebServer",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugWifiState, "debugWifiState",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableCaptivePortal, "enableCaptivePortal",  },
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _uint8_t,  0, & settings.wifiChannel, "wifiChannel",  },
@@ -1764,34 +1759,35 @@ struct struct_present
 // Monitor which devices on the device are on or offline.
 struct struct_online
 {
-    bool microSD = false;
-    bool display = false;
-    bool gnss = false;
-    bool logging = false;
-    bool serialOutput = false;
-    bool fs = false;
-    bool rtc = false;
+    bool batteryCharger_mp2762a = false;
     bool batteryFuelGauge = false;
+    bool bluetooth = false;
+    bool button = false;
+    bool display = false;
+    bool ethernetNTPServer = false; // EthernetUDP
+    bool fs = false;
+    bool gnss = false;
+    bool gpioExpander = false;
+    bool httpClient = false;
+    bool i2c = false;
+    bool lband_gnss = false;
+    bool lband_neo = false;
+    bool lbandCorrections = false;
+    bool logging = false;
+    bool loraRadio = false;
+    bool microSD = false;
+    bool mqttClient = false;
     bool ntripClient = false;
     bool ntripServer[NTRIP_SERVER_MAX] = {false, false, false, false};
-    bool lband_neo = false;
-    bool lband_gnss = false;
-    bool lbandCorrections = false;
-    bool i2c = false;
+    bool otaClient = false;
+    bool ppl = false;
+    bool psram = false;
+    bool rtc = false;
+    bool serialOutput = false;
     bool tcpClient = false;
     bool tcpServer = false;
     bool udpServer = false;
-    bool ethernetNTPServer = false; // EthernetUDP
-    bool otaFirmwareUpdate = false;
-    bool bluetooth = false;
-    bool mqttClient = false;
-    bool psram = false;
-    bool ppl = false;
-    bool batteryCharger_mp2762a = false;
-    bool httpClient = false;
-    bool loraRadio = false;
-    bool button = false;
-    bool gpioExpander = false;
+    bool webServer = false;
 } online;
 
 typedef uint8_t NetIndex_t;     // Index into the networkInterfaceTable
@@ -1803,15 +1799,9 @@ typedef int8_t NetPriority_t;  // Index into networkPriorityTable
 enum NetworkTypes
 {
     NETWORK_NONE = -1,  // The values below must start at zero and be sequential
-    #ifdef COMPILE_ETHERNET
-        NETWORK_ETHERNET,
-    #endif  // COMPILE_ETHERNET
-    #ifdef COMPILE_WIFI
-        NETWORK_WIFI = 1,
-    #endif  // COMPILE_WIFI
-    #ifdef COMPILE_CELLULAR
-        NETWORK_CELLULAR,
-    #endif  // COMPILE_CELLULAR
+    NETWORK_ETHERNET = 0,
+    NETWORK_WIFI = 1,
+    NETWORK_CELLULAR = 2,
     // Add new networks here
     NETWORK_MAX
 };
@@ -1852,21 +1842,28 @@ extern NETWORK_POLL_SEQUENCE laraOffSequence[];
 extern NETWORK_POLL_SEQUENCE laraOnSequence[];
 
 // List of networks
-// Multiple networks may running in parallel with highest priority being
-// set to the default network.  The start routine is called as the priority
-// drops to that level.  The stop routine is called as the priority rises
-// above that level.  The priority will continue to fall or rise until a
+// Only one network is turned on at a time. The start routine is called as the priority
+// drops to that level. The stop routine is called as the priority rises
+// above that level. The priority will continue to fall or rise until a
 // network is found that is online.
 const NETWORK_TABLE_ENTRY networkInterfaceTable[] =
 { //     Interface  Name            Present                     Periodic State      Boot Sequence           Start Sequence      Stop Sequence
     #ifdef COMPILE_ETHERNET
         {&ETH,      "Ethernet",     &present.ethernet_ws5500,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
+    #else
+        {nullptr,      "Ethernet-NotCompiled",     nullptr,   PD_ETHERNET_STATE,  nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_ETHERNET
+
     #ifdef COMPILE_WIFI
         {&WiFi.STA, "WiFi",         nullptr,                    PD_WIFI_STATE,      nullptr,                wifiStartSequence,  wifiStopSequence},
+    #else
+        {nullptr,   "WiFi-NotCompiled",     nullptr,            PD_WIFI_STATE,      nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_WIFI
+
     #ifdef  COMPILE_CELLULAR
         {&PPP,      "Cellular",     &present.cellular_lara,     PD_CELLULAR_STATE,  laraBootSequence,       laraOnSequence,     laraOffSequence},
+    #else
+        {nullptr,   "Cellular-NotCompiled",     nullptr,            PD_CELLULAR_STATE,      nullptr,                nullptr,            nullptr},
     #endif  // COMPILE_CELLULAR
 };
 const int networkInterfaceTableEntries = sizeof(networkInterfaceTable) / sizeof(networkInterfaceTable[0]);

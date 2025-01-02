@@ -52,6 +52,8 @@ void networkMarkOffline(NetIndex_t index) {}
 void networkMarkOnline(NetIndex_t index) {}
 void networkUpdate() {}
 void networkVerifyTables() {}
+uint16_t networkGetConsumerTypes() {return(0);}
+uint8_t networkConsumers() {return(0);}
 
 //----------------------------------------
 // NTRIP client
@@ -68,7 +70,7 @@ void ntripClientValidateTables() {}
 
 void ntripServerPrintStatus(int serverIndex) {systemPrintf("**NTRIP Server %d not compiled**\r\n", serverIndex);}
 void ntripServerProcessRTCM(int serverIndex, uint8_t incoming) {}
-void ntripServerStop(int serverIndex, bool clientAllocated) {online.ntripServer[serverIndex] = false;}
+void ntripServerStop(int serverIndex, bool shutdown) {online.ntripServer[serverIndex] = false;}
 void ntripServerUpdate() {}
 void ntripServerValidateTables() {}
 bool ntripServerIsCasting(int serverIndex) {
@@ -151,12 +153,12 @@ void httpClientValidateTables() {}
 
 #ifndef COMPILE_AP
 
-bool startWebServer(bool startWiFi = true, int httpPort = 80)
+bool webServerStart(int httpPort = 80)
 {
     systemPrintln("**AP not compiled**");
     return false;
 }
-void stopWebServer() {}
+void webServerStop() {}
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 
@@ -168,11 +170,10 @@ void sendStringToWebsocket(const char* stringToSend) {}
 //----------------------------------------
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiConnect(unsigned long timeout, bool useAPSTAMode, bool *wasInAPmode) {return false;}
+bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 int wifiNetworkCount() {return 0;}
 bool wifiIsRunning() {return false;}
 void wifiRestart() {}
-void wifiSetApMode() {}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI

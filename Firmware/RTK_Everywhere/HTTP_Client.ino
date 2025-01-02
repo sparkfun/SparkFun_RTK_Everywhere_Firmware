@@ -347,6 +347,7 @@ void httpClientUpdate()
         }
 
         reportHeapNow(settings.debugHttpClientState);
+        online.httpClient = true;
         httpClientSetState(HTTP_CLIENT_CONNECTED);
         break;
     }
@@ -574,13 +575,6 @@ void httpClientValidateTables()
 {
     if (httpClientStateNameEntries != HTTP_CLIENT_STATE_MAX)
         reportFatalError("Fix httpClientStateNameEntries to match HTTPClientState");
-}
-
-bool httpClientIsConnected()
-{
-    if (httpClientState == HTTP_CLIENT_CONNECTED)
-        return true;
-    return false;
 }
 
 #endif // COMPILE_HTTP_CLIENT

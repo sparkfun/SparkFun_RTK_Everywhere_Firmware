@@ -6,6 +6,31 @@ Form.ino
 
 #ifdef COMPILE_AP
 
+
+// State machine to allow web server access to network layer
+enum WebServerState
+{
+    WEBSERVER_STATE_OFF = 0,
+    WEBSERVER_STATE_WAIT_FOR_NETWORK,
+    WEBSERVER_STATE_NETWORK_CONNECTED,
+    WEBSERVER_STATE_RUNNING,
+
+    // Add new states here
+    WEBSERVER_STATE_MAX
+};
+
+static const char *const webServerStateNames[] = {
+    "WEBSERVER_STATE_OFF",
+    "WEBSERVER_STATE_WAIT_FOR_NETWORK",
+    "WEBSERVER_STATE_NETWORK_CONNECTED",
+    "WEBSERVER_STATE_RUNNING",
+};
+
+static const int webServerStateEntries = sizeof(webServerStateNames) / sizeof(webServerStateNames[0]);
+
+static NetPriority_t webServerPriority = NETWORK_OFFLINE;
+static uint8_t webServerState;
+
 // Once connected to the access point for WiFi Config, the ESP32 sends current setting values in one long string to
 // websocket After user clicks 'save', data is validated via main.js and a long string of values is returned.
 
@@ -30,7 +55,7 @@ void sendStringToWebsocket(const char *stringToSend)
         return;
     }
 
-    // To send content to the webserver, we would call: webserver->sendContent(stringToSend);
+    // To send content to the webServer, we would call: webServer->sendContent(stringToSend);
     // But here we want to send content to the websocket (wsserver)...
 
     httpd_ws_frame_t ws_pkt;
@@ -53,7 +78,7 @@ void sendStringToWebsocket(const char *stringToSend)
     }
     else
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("sendStringToWebsocket: %s\r\n", stringToSend);
     }
 }
@@ -70,7 +95,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         // TODO: do we need to be cleverer about this?
         last_ws_fd = httpd_req_to_sockfd(req);
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("Handshake done, the new ws connection was opened with fd %d\r\n", last_ws_fd);
 
         websocketConnected = true;
@@ -91,7 +116,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
         systemPrintf("httpd_ws_recv_frame failed to get frame len with %d\r\n", ret);
         return ret;
     }
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("frame len is %d\r\n", ws_pkt.len);
     if (ws_pkt.len)
     {
@@ -116,7 +141,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
             return ret;
         }
     }
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("Packet type: %d\r\n", ws_pkt.type);
     // HTTPD_WS_TYPE_CONTINUE   = 0x0,
     // HTTPD_WS_TYPE_TEXT       = 0x1,
@@ -127,7 +152,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
 
         if (currentlyParsingData == false)
@@ -142,7 +167,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
     }
     else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Client closed or refreshed the web page");
 
         createSettingsString(settingsCSV);
@@ -165,14 +190,14 @@ static void start_wsserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
-    // Use different ports for websocket and webserver - use port 81 for the websocket - also defined in main.js
+    // Use different ports for websocket and webServer - use port 81 for the websocket - also defined in main.js
     config.server_port = 81;
 
     // Increase the stack size from 4K to ~15K
     config.stack_size = updateWebSocketStackSize;
 
     // Start the httpd server
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("Starting wsserver on port: %d\r\n", config.server_port);
 
     if (wsserver == nullptr)
@@ -181,26 +206,13 @@ static void start_wsserver(void)
     if (httpd_start(wsserver, &config) == ESP_OK)
     {
         // Registering the ws handler
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Registering URI handlers");
         httpd_register_uri_handler(*wsserver, &ws);
         return;
     }
 
     systemPrintln("Error starting wsserver!");
-}
-
-void stop_wsserver()
-{
-    createSettingsString(settingsCSV);
-    websocketConnected = false;
-
-    if (*wsserver)
-    {
-        // Stop the httpd server
-        esp_err_t ret = httpd_stop(*wsserver);
-        //*wsserver = nullptr;
-    }
 }
 
 // ===== Request Handler class used to answer more complex requests =====
@@ -213,7 +225,7 @@ class CaptiveRequestHandler : public RequestHandler
                       "/check_network_status.txt"};
     CaptiveRequestHandler()
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("CaptiveRequestHandler is registered");
     }
     virtual ~CaptiveRequestHandler()
@@ -233,7 +245,7 @@ class CaptiveRequestHandler : public RequestHandler
     bool handle(WebServer &server, HTTPMethod requestMethod, String requestUri)
     {
         String logmessage = "Captive Portal Client:" + server.client().remoteIP().toString() + " " + requestUri;
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln(logmessage);
         String response = "<!DOCTYPE html><html><head><title>RTK Config</title></head><body>";
         response += "<div class='container'>";
@@ -250,26 +262,12 @@ class CaptiveRequestHandler : public RequestHandler
     }
 };
 
-// Start webserver in AP mode
-bool startWebServer(bool startWiFi = true, int httpPort = 80)
+// Create the web server and web sockets
+bool webServerAssignResources(int httpPort = 80)
 {
     do
     {
-        ntripClientStop(true); // Do not allocate new wifiClient
-        for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
-            ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
-
-        if (startWiFi)
-            if (wifiStartAP() == false)
-                break;
-
-        // Start the multicast DNS server
-        if (startWiFi == true)
-            networkMulticastDNSSwitch(NETWORK_WIFI);
-        else
-            networkMulticastDNSSwitch(NETWORK_ETHERNET);
-
-        // Freed by stopWebServer
+        // Freed by webServerStop
         if (online.psram == true)
             incomingSettings = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         else
@@ -283,7 +281,7 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
 
         // Pre-load settings CSV
-        // Freed by stopWebServer
+        // Freed by webServerStop
         if (online.psram == true)
             settingsCSV = (char *)ps_malloc(AP_CONFIG_SETTING_SIZE);
         else
@@ -296,26 +294,27 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         }
         createSettingsString(settingsCSV);
 
-        // https://github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
+    //
+    https: // github.com/espressif/arduino-esp32/blob/master/libraries/DNSServer/examples/CaptivePortal/CaptivePortal.ino
         if (settings.enableCaptivePortal == true)
         {
             dnsserver = new DNSServer;
             dnsserver->start();
         }
 
-        webserver = new WebServer(httpPort);
-        // TODO: webserver = new WebServer(WiFi.localIP(), httpPort);
-        // TODO: webserver = new WebServer(ETH.localIP(), httpPort);
+        webServer = new WebServer(httpPort);
+        // TODO: webServer = new WebServer(WiFi.localIP(), httpPort);
+        // TODO: webServer = new WebServer(ETH.localIP(), httpPort);
 
-        if (!webserver)
+        if (!webServer)
         {
-            systemPrintln("ERROR: Failed to allocate webserver");
+            systemPrintln("ERROR: Failed to allocate webServer");
             break;
         }
 
         if (settings.enableCaptivePortal == true)
         {
-            webserver->addHandler(new CaptiveRequestHandler());
+            webServer->addHandler(new CaptiveRequestHandler());
 
             // TODO: add a handler for /connecttest.txt
         }
@@ -341,165 +340,165 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
         // * /listMessagesBase responds with a CSV of RTCM Base messages supported by this platform
         // * /file allows the download or deletion of a file
 
-        webserver->onNotFound(notFound);
+        webServer->onNotFound(notFound);
 
-        webserver->on("/", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/html", (const char *)index_html, sizeof(index_html));
+        webServer->on("/", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/html", (const char *)index_html, sizeof(index_html));
         });
 
-        webserver->on("/favicon.ico", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico));
+        webServer->on("/favicon.ico", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)favicon_ico, sizeof(favicon_ico));
         });
 
-        webserver->on("/src/bootstrap.bundle.min.js", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
+        webServer->on("/src/bootstrap.bundle.min.js", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)bootstrap_bundle_min_js,
                               sizeof(bootstrap_bundle_min_js));
         });
 
-        webserver->on("/src/bootstrap.min.css", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css));
+        webServer->on("/src/bootstrap.min.css", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/css", (const char *)bootstrap_min_css, sizeof(bootstrap_min_css));
         });
 
-        webserver->on("/src/bootstrap.min.js", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js));
+        webServer->on("/src/bootstrap.min.js", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)bootstrap_min_js, sizeof(bootstrap_min_js));
         });
 
-        webserver->on("/src/jquery-3.6.0.min.js", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js));
+        webServer->on("/src/jquery-3.6.0.min.js", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)jquery_js, sizeof(jquery_js));
         });
 
-        webserver->on("/src/main.js", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js));
+        webServer->on("/src/main.js", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/javascript", (const char *)main_js, sizeof(main_js));
         });
 
-        webserver->on("/src/rtk-setup.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
+        webServer->on("/src/rtk-setup.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
             if (productVariant == RTK_EVK)
-                webserver->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
+                webServer->send_P(200, "image/png", (const char *)rtkSetup_png, sizeof(rtkSetup_png));
             else
-                webserver->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
+                webServer->send_P(200, "image/png", (const char *)rtkSetupWiFi_png, sizeof(rtkSetupWiFi_png));
         });
 
         // Battery icons
-        webserver->on("/src/BatteryBlank.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png));
+        webServer->on("/src/BatteryBlank.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)batteryBlank_png, sizeof(batteryBlank_png));
         });
-        webserver->on("/src/Battery0.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png));
+        webServer->on("/src/Battery0.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery0_png, sizeof(battery0_png));
         });
-        webserver->on("/src/Battery1.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png));
+        webServer->on("/src/Battery1.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery1_png, sizeof(battery1_png));
         });
-        webserver->on("/src/Battery2.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png));
+        webServer->on("/src/Battery2.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery2_png, sizeof(battery2_png));
         });
-        webserver->on("/src/Battery3.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png));
-        });
-
-        webserver->on("/src/Battery0_Charging.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png));
-        });
-        webserver->on("/src/Battery1_Charging.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png));
-        });
-        webserver->on("/src/Battery2_Charging.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png));
-        });
-        webserver->on("/src/Battery3_Charging.png", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png));
+        webServer->on("/src/Battery3.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery3_png, sizeof(battery3_png));
         });
 
-        webserver->on("/src/style.css", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/css", (const char *)style_css, sizeof(style_css));
+        webServer->on("/src/Battery0_Charging.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery0_Charging_png, sizeof(battery0_Charging_png));
+        });
+        webServer->on("/src/Battery1_Charging.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery1_Charging_png, sizeof(battery1_Charging_png));
+        });
+        webServer->on("/src/Battery2_Charging.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery2_Charging_png, sizeof(battery2_Charging_png));
+        });
+        webServer->on("/src/Battery3_Charging.png", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "image/png", (const char *)battery3_Charging_png, sizeof(battery3_Charging_png));
         });
 
-        webserver->on("/src/fonts/icomoon.eot", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot));
+        webServer->on("/src/style.css", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/css", (const char *)style_css, sizeof(style_css));
         });
 
-        webserver->on("/src/fonts/icomoon.svg", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg));
+        webServer->on("/src/fonts/icomoon.eot", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_eot, sizeof(icomoon_eot));
         });
 
-        webserver->on("/src/fonts/icomoon.ttf", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf));
+        webServer->on("/src/fonts/icomoon.svg", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_svg, sizeof(icomoon_svg));
         });
 
-        webserver->on("/src/fonts/icomoon.woof", HTTP_GET, []() {
-            webserver->sendHeader("Content-Encoding", "gzip");
-            webserver->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
+        webServer->on("/src/fonts/icomoon.ttf", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_ttf, sizeof(icomoon_ttf));
+        });
+
+        webServer->on("/src/fonts/icomoon.woof", HTTP_GET, []() {
+            webServer->sendHeader("Content-Encoding", "gzip");
+            webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
         });
 
         // Handler for the /uploadFile form POST
-        webserver->on(
-            "/uploadFile", HTTP_POST, []() { webserver->send(200, "text/plain", ""); },
+        webServer->on(
+            "/uploadFile", HTTP_POST, []() { webServer->send(200, "text/plain", ""); },
             handleUpload); // Run handleUpload function when file manager file is uploaded
 
         // Handler for the /uploadFirmware form POST
-        webserver->on(
-            "/uploadFirmware", HTTP_POST, []() { webserver->send(200, "text/plain", ""); }, handleFirmwareFileUpload);
+        webServer->on(
+            "/uploadFirmware", HTTP_POST, []() { webServer->send(200, "text/plain", ""); }, handleFirmwareFileUpload);
 
         // Handler for file manager
-        webserver->on("/listfiles", HTTP_GET, []() {
-            String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            if (settings.debugWebConfig == true)
+        webServer->on("/listfiles", HTTP_GET, []() {
+            String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String files;
             getFileList(files);
-            webserver->send(200, "text/plain", files);
+            webServer->send(200, "text/plain", files);
         });
 
         // Handler for supported messages list
-        webserver->on("/listMessages", HTTP_GET, []() {
-            String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            if (settings.debugWebConfig == true)
+        webServer->on("/listMessages", HTTP_GET, []() {
+            String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messages;
             createMessageList(messages);
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(messages);
-            webserver->send(200, "text/plain", messages);
+            webServer->send(200, "text/plain", messages);
         });
 
         // Handler for supported RTCM/Base messages list
-        webserver->on("/listMessagesBase", HTTP_GET, []() {
-            String logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
-            if (settings.debugWebConfig == true)
+        webServer->on("/listMessagesBase", HTTP_GET, []() {
+            String logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
+            if (settings.debugWebServer == true)
                 systemPrintln(logmessage);
             String messageList;
             createMessageListBase(messageList);
-            if (settings.debugWebConfig == true)
+            if (settings.debugWebServer == true)
                 systemPrintln(messageList);
-            webserver->send(200, "text/plain", messageList);
+            webServer->send(200, "text/plain", messageList);
         });
 
         // Handler for file manager
-        webserver->on("/file", HTTP_GET, handleFileManager);
+        webServer->on("/file", HTTP_GET, handleFileManager);
 
-        webserver->begin();
+        webServer->begin();
 
-        // Starts task for updating webserver with handleClient
+        // Starts task for updating webServer with handleClient
         if (task.updateWebServerTaskRunning == false)
             xTaskCreate(
                 updateWebServerTask,
@@ -509,14 +508,14 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
                 updateWebServerTaskPriority,
                 &updateWebServerTaskHandle); // Task handle
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Web Server Started");
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
         start_wsserver();
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Web Socket Server Started");
         reportHeapNow(false);
 
@@ -524,9 +523,127 @@ bool startWebServer(bool startWiFi = true, int httpPort = 80)
     } while (0);
 
     // Release the resources
-    stop_wsserver();
-    stopWebServer();
+    webServerStopSockets();
+    webServerReleaseResources();
     return false;
+}
+
+// Start the Web Server state machine
+void webServerStart()
+{
+    // Display the heap state
+    reportHeapNow(settings.debugWebServer);
+
+    systemPrintln("Web Server start");
+    webServerSetState(WEBSERVER_STATE_WAIT_FOR_NETWORK);
+}
+
+// Stop the web config state machine
+void webServerStop()
+{
+    online.webServer = false;
+
+    if (settings.debugWebServer)
+        systemPrintln("webServerStop called");
+
+    if (webServerState != WEBSERVER_STATE_OFF)
+    {
+        webServerStopSockets();      // Release socket resources
+        webServerReleaseResources(); // Release web server resources
+
+        // Stop network
+        systemPrintln("Web Server releasing network request");
+
+        // Stop the machine
+        webServerSetState(WEBSERVER_STATE_OFF);
+    }
+}
+
+// Return true if we are in a state that requires network access
+bool webServerNeedsNetwork()
+{
+    if (webServerState >= WEBSERVER_STATE_WAIT_FOR_NETWORK && webServerState <= WEBSERVER_STATE_RUNNING)
+        return true;
+    return false;
+}
+
+void webServerStopSockets()
+{
+    websocketConnected = false;
+
+    if (*wsserver)
+    {
+        // Stop the httpd server
+        esp_err_t ret = httpd_stop(*wsserver);
+        //*wsserver = nullptr;
+    }
+}
+
+// Set the next webconfig state
+void webServerSetState(uint8_t newState)
+{
+    char string1[40];
+    char string2[40];
+    const char *arrow = nullptr;
+    const char *asterisk = nullptr;
+    const char *initialState = nullptr;
+    const char *endingState = nullptr;
+
+    // Display the state transition
+    if (settings.debugWebServer)
+    {
+        arrow = "";
+        asterisk = "";
+        initialState = "";
+        if (newState == webServerState)
+            asterisk = "*";
+        else
+        {
+            initialState = webServerGetStateName(webServerState, string1);
+            arrow = " --> ";
+        }
+    }
+
+    // Set the new state
+    webServerState = newState;
+    if (settings.debugWebServer)
+    {
+        // Display the new firmware update state
+        endingState = webServerGetStateName(newState, string2);
+        if (!online.rtc)
+            systemPrintf("%s%s%s%s\r\n", asterisk, initialState, arrow, endingState);
+        else
+        {
+            // Timestamp the state change
+            //          1         2
+            // 12345678901234567890123456
+            // YYYY-mm-dd HH:MM:SS.xxxrn0
+            struct tm timeinfo = rtc.getTimeStruct();
+            char s[30];
+            strftime(s, sizeof(s), "%Y-%m-%d %H:%M:%S", &timeinfo);
+            systemPrintf("%s%s%s%s, %s.%03ld\r\n", asterisk, initialState, arrow, endingState, s, rtc.getMillis());
+        }
+    }
+
+    // Validate the state
+    if (newState >= WEBSERVER_STATE_MAX)
+        reportFatalError("Invalid web config state");
+}
+
+// Get the webconfig state name
+const char *webServerGetStateName(uint8_t state, char *string)
+{
+    if (state < WEBSERVER_STATE_MAX)
+        return webServerStateNames[state];
+    sprintf(string, "Unknown state (%d)", state);
+    return string;
+}
+
+bool webServerIsRunning()
+{
+    if (webServerState == WEBSERVER_STATE_RUNNING)
+        return (true);
+    return (false);
 }
 
 void updateWebServerTask(void *e)
@@ -547,7 +664,7 @@ void updateWebServerTask(void *e)
             systemPrintln("updateWebServerTask running");
         }
 
-        webserver->handleClient();
+        webServer->handleClient();
 
         feedWdt();
         taskYIELD();
@@ -565,11 +682,11 @@ void stopWebServer()
     if (task.updateWebServerTaskRunning)
         task.updateWebServerTaskStopRequest = true;
 
-    if (webserver != nullptr)
+    if (webServer != nullptr)
     {
-        webserver->close();
-        free(webserver);
-        webserver = nullptr;
+        webServer->close();
+        free(webServer);
+        webServer = nullptr;
     }
 
     // Stop the multicast DNS server
@@ -592,11 +709,101 @@ void stopWebServer()
     while (task.updateWebServerTaskRunning);
 }
 
+void webServerReleaseResources()
+{
+    if (task.updateWebServerTaskRunning)
+        task.updateWebServerTaskStopRequest = true;
+
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
+
+    if (webServer != nullptr)
+    {
+        webServer->close();
+        free(webServer);
+        webServer = nullptr;
+    }
+
+    // Stop the multicast DNS server
+    networkMulticastDNSStop();
+
+    if (settingsCSV != nullptr)
+    {
+        free(settingsCSV);
+        settingsCSV = nullptr;
+    }
+
+    if (incomingSettings != nullptr)
+    {
+        free(incomingSettings);
+        incomingSettings = nullptr;
+    }
+}
+
+// State machine to handle the starting/stopping of the web server
+void webServerUpdate()
+{
+    // Walk the state machine
+    switch (webServerState)
+    {
+    default:
+        systemPrintf("ERROR: Unknown Web Server state (%d)\r\n", webServerState);
+
+        // Stop the machine
+        webServerStop();
+        break;
+
+    case WEBSERVER_STATE_OFF:
+        // Wait until webServerStart() is called
+        break;
+
+    // Wait for connection to the network
+    case WEBSERVER_STATE_WAIT_FOR_NETWORK:
+        // Wait until the network is connected to the media
+        if (networkIsConnected(&webServerPriority))
+        {
+            if (settings.debugWebServer)
+                systemPrintln("Web Server connected to network");
+
+            webServerSetState(WEBSERVER_STATE_NETWORK_CONNECTED);
+        }
+        break;
+
+    // Start the web server
+    case WEBSERVER_STATE_NETWORK_CONNECTED: {
+        // Determine if the network has failed
+        if (!networkIsConnected(&webServerPriority))
+            webServerStop();
+        if (settings.debugWebServer)
+            systemPrintln("Assigning web server resources");
+
+        if (webServerAssignResources(settings.httpPort) == true)
+        {
+            online.webServer = true;
+            webServerSetState(WEBSERVER_STATE_RUNNING);
+        }
+    }
+    break;
+
+    // Allow web services
+    case WEBSERVER_STATE_RUNNING:
+        // Determine if the network has failed
+        if (!networkIsConnected(&webServerPriority))
+            webServerStop();
+
+        // This state is exited when webServerStop() is called
+
+        break;
+    }
+}
+
 void notFound()
 {
-    String logmessage = "notFound: Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
+    String logmessage = "notFound: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
     systemPrintln(logmessage);
-    webserver->send(404, "text/plain", "Not found");
+    webServer->send(404, "text/plain", "Not found");
 }
 
 // Handler for firmware file downloads
@@ -604,14 +811,14 @@ static void handleFileManager()
 {
     // This section does not tolerate semaphore transactions
     String logmessage =
-        "handleFileManager: Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri();
+        "handleFileManager: Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri();
 
-    if (webserver->hasArg("name") && webserver->hasArg("action"))
+    if (webServer->hasArg("name") && webServer->hasArg("action"))
     {
-        String fileName = webserver->arg("name");
-        String fileAction = webserver->arg("action");
+        String fileName = webServer->arg("name");
+        String fileAction = webServer->arg("action");
 
-        logmessage = "Client:" + webserver->client().remoteIP().toString() + " " + webserver->uri() +
+        logmessage = "Client:" + webServer->client().remoteIP().toString() + " " + webServer->uri() +
                      "?name=" + fileName + "&action=" + fileAction;
 
         char slashFileName[60];
@@ -624,7 +831,7 @@ static void handleFileManager()
             logmessage += " ERROR: file ";
             logmessage += slashFileName;
             logmessage += " does not exist";
-            webserver->send(400, "text/plain", "ERROR: file does not exist");
+            webServer->send(400, "text/plain", "ERROR: file does not exist");
         }
         else
         {
@@ -634,7 +841,7 @@ static void handleFileManager()
             {
                 logmessage += " downloaded";
 
-                // This would be SO much easier with webserver->streamFile
+                // This would be SO much easier with webServer->streamFile
                 // except streamFile only works with File - not SdFile...
                 // TODO: if we ever upgrade to SD from SdFat, replace this with streamFile
 
@@ -659,7 +866,7 @@ static void handleFileManager()
                 else
                 {
                     // File is already in use. Wait your turn.
-                    webserver->send(202, "text/plain", "ERROR: File already downloading");
+                    webServer->send(202, "text/plain", "ERROR: File already downloading");
                 }
 
                 const size_t maxLen = 8192;
@@ -684,15 +891,15 @@ static void handleFileManager()
 
                     if (firstSend) // First send?
                     {
-                        webserver->setContentLength(dataAvailable);
-                        webserver->sendHeader("Cache-Control", "no-cache");
-                        webserver->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
-                        webserver->sendHeader("Access-Control-Allow-Origin", "*");
-                        webserver->send(200, "application/octet-stream", "");
+                        webServer->setContentLength(dataAvailable);
+                        webServer->sendHeader("Cache-Control", "no-cache");
+                        webServer->sendHeader("Content-Disposition", "attachment; filename=" + String(fileName));
+                        webServer->sendHeader("Access-Control-Allow-Origin", "*");
+                        webServer->send(200, "application/octet-stream", "");
                         firstSend = false;
                     }
 
-                    webserver->sendContent((const char *)buf, sending);
+                    webServer->sendContent((const char *)buf, sending);
 
                     if (sending < maxLen) // Last send?
                     {
@@ -712,19 +919,19 @@ static void handleFileManager()
             {
                 logmessage += " deleted";
                 sd->remove(slashFileName);
-                webserver->send(200, "text/plain", "Deleted File: " + fileName);
+                webServer->send(200, "text/plain", "Deleted File: " + fileName);
             }
             else
             {
                 logmessage += " ERROR: invalid action param supplied";
-                webserver->send(400, "text/plain", "ERROR: invalid action param supplied");
+                webServer->send(400, "text/plain", "ERROR: invalid action param supplied");
             }
         }
         systemPrintln(logmessage);
     }
     else
     {
-        webserver->send(400, "text/plain", "ERROR: name and action params required");
+        webServer->send(400, "text/plain", "ERROR: name and action params required");
     }
 }
 
@@ -733,7 +940,7 @@ static void handleFirmwareFileUpload()
 {
     String fileName = "";
 
-    HTTPUpload &upload = webserver->upload();
+    HTTPUpload &upload = webServer->upload();
 
     if (upload.status == UPLOAD_FILE_START)
     {
@@ -758,21 +965,21 @@ static void handleFirmwareFileUpload()
                 if (!Update.begin(UPDATE_SIZE_UNKNOWN))
                 {
                     Update.printError(Serial);
-                    webserver->send(400, "text/plain", "OTA could not begin");
+                    webServer->send(400, "text/plain", "OTA could not begin");
                     return;
                 }
             }
             else
             {
                 systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
-                webserver->send(400, "text/html", "<b>Error:</b> Unknown file type");
+                webServer->send(400, "text/html", "<b>Error:</b> Unknown file type");
                 return;
             }
         }
         else
         {
             systemPrintf("handleFirmwareFileUpload: Unknown: %s\r\n", fname);
-            webserver->send(400, "text/html", "<b>Error:</b> Unknown file type");
+            webServer->send(400, "text/html", "<b>Error:</b> Unknown file type");
             return;
         }
     }
@@ -782,7 +989,7 @@ static void handleFirmwareFileUpload()
     {
         if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
         {
-            webserver->send(400, "text/plain", "OTA could not begin");
+            webServer->send(400, "text/plain", "OTA could not begin");
             return;
         }
         else
@@ -812,7 +1019,7 @@ static void handleFirmwareFileUpload()
         if (!Update.end(true))
         {
             Update.printError(Serial);
-            webserver->send(400, "text/plain", "Could not end OTA");
+            webServer->send(400, "text/plain", "Could not end OTA");
             return;
         }
         else
@@ -825,7 +1032,7 @@ static void handleFirmwareFileUpload()
     }
 }
 
-// Report back to the web config page with a CSV that contains the either CURRENT or 
+// Report back to the web config page with a CSV that contains the either CURRENT or
 // the latest version as obtained by the OTA state machine
 void createFirmwareVersionString(char *settingsCSV)
 {
@@ -840,13 +1047,13 @@ void createFirmwareVersionString(char *settingsCSV)
     // Compare the unit's version against the reported version from OTA
     if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("New version detected");
         snprintf(newVersionCSV, sizeof(newVersionCSV), "%s,", otaReportedVersion);
     }
     else
     {
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("No new firmware available");
         snprintf(newVersionCSV, sizeof(newVersionCSV), "CURRENT,");
     }
@@ -947,7 +1154,7 @@ bool parseIncomingSettings()
             headPtr = commaPtr + 1;
         }
 
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintf("settingName: %s value: %s\r\n", settingName, valueStr);
 
         updateSettingWithValue(false, settingName, valueStr);
@@ -964,7 +1171,7 @@ bool parseIncomingSettings()
     if (counter < maxAttempts)
     {
         // Confirm receipt
-        if (settings.debugWebConfig == true)
+        if (settings.debugWebServer == true)
             systemPrintln("Sending receipt confirmation of settings");
         sendStringToWebsocket("confirmDataReceipt,1,");
     }
@@ -1027,7 +1234,7 @@ void getFileList(String &returnText)
         systemPrintf("sdCardSemaphore failed to yield, held by %s, Form.ino line %d\r\n", semaphoreHolder, __LINE__);
     }
 
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -1091,7 +1298,7 @@ void createMessageList(String &returnText)
     }
 #endif // COMPILE_MOSAICX5
 
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -1143,7 +1350,7 @@ void createMessageListBase(String &returnText)
     }
 #endif // COMPILE_MOSAICX5
 
-    if (settings.debugWebConfig == true)
+    if (settings.debugWebServer == true)
         systemPrintf("returnText (%d bytes): %s\r\n", returnText.length(), returnText.c_str());
 }
 
@@ -1151,7 +1358,7 @@ void createMessageListBase(String &returnText)
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/FSBrowser/FSBrowser.ino
 void handleUpload()
 {
-    HTTPUpload &upload = webserver->upload();
+    HTTPUpload &upload = webServer->upload();
 
     if (upload.status == UPLOAD_FILE_START)
     {
@@ -1193,7 +1400,7 @@ void handleUpload()
         else
         {
             // File is already in use. Wait your turn.
-            webserver->send(202, "text/plain", "ERROR: File already uploading");
+            webServer->send(202, "text/plain", "ERROR: File already uploading");
         }
 
         systemPrintln(logmessage);
@@ -1232,8 +1439,8 @@ void handleUpload()
         systemPrintln(logmessage);
 
         // Redirect to "/"
-        webserver->sendHeader("Location", "/");
-        webserver->send(302, "text/plain", "");
+        webServer->sendHeader("Location", "/");
+        webServer->send(302, "text/plain", "");
     }
 }
 

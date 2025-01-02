@@ -7,6 +7,8 @@
 
 static uint32_t lastStateTime = 0;
 
+extern bool websocketConnected;
+
 // Given the current state, see if conditions have moved us to a new state
 // A user pressing the mode button (change between rover/base) is handled by buttonCheckTask()
 void stateUpdate()
@@ -113,6 +115,8 @@ void stateUpdate()
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
             espnowStart();    // Start internal radio if enabled, otherwise disable
 
+            webServerStop(); // Stop the web config server
+
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
@@ -216,6 +220,8 @@ void stateUpdate()
 
             bluetoothStop();
             bluetoothStart(); // Restart Bluetooth with 'Base' identifier
+
+            webServerStop(); // Stop the web config server
 
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() && gnss->configureBase())
@@ -412,20 +418,23 @@ void stateUpdate()
 
             baseStatusLedOff(); // Turn off the status LED
 
-            displayWiFiConfigNotStarted(); // Display immediately during SD cluster pause
+            displayWiFiConfigNotStarted(); // Display immediately while we wait for server to start
 
-            WIFI_STOP(); // Notify the network layer that it should stop so we can take over control of WiFi
-            bluetoothStop();
-            espnowStop();
+            // TODO - Do we need to stop BT and ESP-NOW during web config or can we leave it running?
+            //bluetoothStop();
+            //espnowStop();
 
-            tasksStopGnssUart();   // Delete serial tasks if running
-            if (!startWebServer()) // Start web server in WiFi mode and show config html page
-                changeState(STATE_ROVER_NOT_STARTED);
-            else
-            {
-                RTK_MODE(RTK_MODE_WIFI_CONFIG);
-                changeState(STATE_WIFI_CONFIG);
-            }
+            //tasksStopGnssUart(); // Delete serial tasks if running
+
+            // Stop any running NTRIP Client or Server
+            ntripClientStop(true); // Do not allocate new wifiClient
+            for (int serverIndex = 0; serverIndex < NTRIP_SERVER_MAX; serverIndex++)
+                ntripServerStop(serverIndex, true); // Do not allocate new wifiClient
+
+            webServerStart(); // Start the webserver state machine for web config
+
+            RTK_MODE(RTK_MODE_WIFI_CONFIG);
+            changeState(STATE_WIFI_CONFIG);
         }
         break;
 
@@ -474,8 +483,8 @@ void stateUpdate()
                 {
                     createFirmwareVersionString(settingsCSV);
 
-                    if (settings.debugWebConfig)
-                        systemPrintf("Webconfig: Firmware version requested. Sending: %s\r\n", settingsCSV);
+                    if (settings.debugWebServer)
+                        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
 
                     sendStringToWebsocket(settingsCSV);
 
@@ -649,10 +658,15 @@ void stateUpdate()
 
             ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
 
-            if (!startWebServer(false, settings.httpPort)) // Start the web server
-                changeState(STATE_ROVER_NOT_STARTED);
-            else
-                changeState(STATE_CONFIG_VIA_ETH);
+            webServerStart(); // Start the webserver state machine for web config
+
+            // TODO add a state machine step for ethernet to wait for web server to start
+            // See wifi web server / web config
+
+            // if (!webServerStart(false, settings.httpPort)) // Start the web server
+            //     changeState(STATE_ROVER_NOT_STARTED);
+            // else
+            //     changeState(STATE_CONFIG_VIA_ETH);
         }
         break;
 

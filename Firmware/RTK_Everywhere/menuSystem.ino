@@ -653,8 +653,8 @@ void menuDebugNetwork()
         systemPrintf("%s\r\n", settings.debugWifiState ? "Enabled" : "Disabled");
 
         // WiFi Config
-        systemPrint("4) Debug Web Config: ");
-        systemPrintf("%s\r\n", settings.debugWebConfig ? "Enabled" : "Disabled");
+        systemPrint("4) Debug Web Server: ");
+        systemPrintf("%s\r\n", settings.debugWebServer ? "Enabled" : "Disabled");
 
         // Network
         systemPrint("10) Debug network layer: ");
@@ -716,7 +716,7 @@ void menuDebugNetwork()
         else if (incoming == 3)
             settings.debugWifiState ^= 1;
         else if (incoming == 4)
-            settings.debugWebConfig ^= 1;
+            settings.debugWebServer ^= 1;
         else if (incoming == 10)
             settings.debugNetworkLayer ^= 1;
         else if (incoming == 11)
