@@ -617,6 +617,12 @@ class GNSS_MOSAIC : GNSS
     //   Returns true if successfully configured and false upon failure
     bool configureBase();
 
+    // Configure mosaic-X5 COM1 for Encapsulated RTCMv3 + SBF + NMEA, plus L-Band
+    bool configureGNSSCOM(bool enableLBand);
+
+    // Configure mosaic-X5 L-Band
+    bool configureLBand(bool enableLBand, uint32_t LBandFreq = 0);
+
     bool configureLogging();
 
     // Configure specific aspects of the receiver for NTP mode

@@ -1318,6 +1318,123 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
 }
 
 //----------------------------------------
+<<<<<<< HEAD
+=======
+// Maintain the network connections
+//----------------------------------------
+void networkUpdate()
+{
+    bool displayIpAddress;
+    NetIndex_t index;
+    IPAddress ipAddress;
+    bool ipAddressDisplayed;
+    uint8_t networkType;
+    NETWORK_POLL_ROUTINE pollRoutine;
+    uint8_t priority;
+    NETWORK_POLL_SEQUENCE *sequence;
+
+    // If there are no consumers, do not start the network
+    if (networkConsumers() == 0 && networkIsOnline() == false)
+    {
+        return;
+    }
+
+    // If there are no consumers, but the network is online, shut down all networks
+    if (networkConsumers() == 0 && networkIsOnline() == true)
+    {
+        if (systemState == STATE_WIFI_CONFIG)
+        {
+            // The STATE_WIFI_CONFIG is in control of WiFi. Don't allow the network layer to shut it down
+            // As OTA exits, we need to keep AP running if we are in Web Config mode
+            // We don't want to make STATE_WIFI_CONFIG a consumer until startWebServer() uses the network layer
+        }
+        else
+        {
+            // Shutdown all networks
+            for (int index = 0; index < NETWORK_OFFLINE; index++)
+                networkStop(index, settings.debugNetworkLayer);
+        }
+    }
+
+    // Allow consumers to start networks
+    // Each network is expected to shut itself down if it is unavailable or of a lower priority
+    // so that a networkStart() succeeds.
+    if (networkConsumers() > 0 && networkIsOnline() == false)
+    {
+        // Start network as needed
+        for (int index = 0; index < NETWORK_OFFLINE; index++)
+            networkStart(index, settings.debugNetworkLayer);
+    }
+
+    // Walk the list of network priorities in descending order
+    for (priority = 0; priority < NETWORK_OFFLINE; priority++)
+    {
+        // Execute any active polling routine
+        index = networkIndexTable[priority];
+        sequence = networkSequence[index];
+        if (sequence)
+        {
+            pollRoutine = sequence->routine;
+            if (pollRoutine)
+                // Execute the poll routine
+                pollRoutine(index, sequence->parameter, settings.debugNetworkLayer);
+        }
+    }
+
+    // Update the network services
+    DMW_c("mqttClientUpdate");
+    mqttClientUpdate(); // Process any Point Perfect MQTT messages
+    DMW_c("ntpServerUpdate");
+    ntpServerUpdate(); // Process any received NTP requests
+    DMW_c("ntripClientUpdate");
+    ntripClientUpdate(); // Check the NTRIP client connection and move data NTRIP --> ZED
+    DMW_c("ntripServerUpdate");
+    ntripServerUpdate(); // Check the NTRIP server connection and move data ZED --> NTRIP
+    DMW_c("tcpClientUpdate");
+    tcpClientUpdate(); // Turn on the TCP client as needed
+    DMW_c("tcpServerUpdate");
+    tcpServerUpdate(); // Turn on the TCP server as needed
+    DMW_c("udpServerUpdate");
+    udpServerUpdate(); // Turn on the UDP server as needed
+    DMW_c("httpClientUpdate");
+    httpClientUpdate(); // Process any Point Perfect HTTP messages
+
+    // Periodically display the network interface state
+    displayIpAddress = PERIODIC_DISPLAY(PD_IP_ADDRESS);
+    for (int index = 0; index < NETWORK_OFFLINE; index++)
+    {
+        // Display the current state
+        ipAddressDisplayed = displayIpAddress && (index == networkPriority);
+        if (PERIODIC_DISPLAY(networkInterfaceTable[index].pdState) || PERIODIC_DISPLAY(PD_NETWORK_STATE) ||
+            ipAddressDisplayed)
+        {
+            PERIODIC_CLEAR(networkInterfaceTable[index].pdState);
+            if (networkInterfaceTable[index].netif->hasIP())
+            {
+                ipAddress = networkInterfaceTable[index].netif->localIP();
+                systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name, ipAddress.toString().c_str(),
+                             networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
+            }
+            else if (networkInterfaceTable[index].netif->linkUp())
+                systemPrintf("%s: Link Up\r\n", networkInterfaceTable[index].name);
+            else if (networkInterfaceTable[index].netif->started())
+                systemPrintf("%s: Started\r\n", networkInterfaceTable[index].name);
+            else
+                systemPrintf("%s: Stopped\r\n", networkInterfaceTable[index].name);
+        }
+    }
+    if (PERIODIC_DISPLAY(PD_NETWORK_STATE))
+        PERIODIC_CLEAR(PD_NETWORK_STATE);
+    if (displayIpAddress)
+    {
+        if (!ipAddressDisplayed)
+            systemPrintln("Network: Offline");
+        PERIODIC_CLEAR(PD_IP_ADDRESS);
+    }
+}
+
+//----------------------------------------
+>>>>>>> release_candidate
 // Validate the network index
 //----------------------------------------
 void networkValidateIndex(NetIndex_t index)
@@ -1672,10 +1789,17 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
                     systemPrint("PPL Key Update Request, ");
                 if (consumerId & (1 << 6))
                     systemPrint("PPL MQTT Client, ");
+<<<<<<< HEAD
                 if (consumerId & (1 << 7))
                     systemPrint("OTA Version Check or Update, ");
                 if (consumerId & (1 << 8))
                     systemPrint("Web Config, ");
+=======
+                if (consumerType & (1 << 7))
+                    systemPrint("OTA Version Check, ");
+                if (consumerType & (1 << 8))
+                    systemPrint("OTA Firmware Update, ");
+>>>>>>> release_candidate
             }
 
             systemPrintln();

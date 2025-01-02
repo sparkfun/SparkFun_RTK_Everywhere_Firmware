@@ -449,7 +449,6 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
-        present.button_mode = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
         present.charger_mcp73833 = true;
@@ -530,7 +529,6 @@ void beginBoard()
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
-        present.button_mode = true;
         present.peripheralPowerControl = true;
         present.button_powerLow = true; // Button is pressed when low
         present.charger_mcp73833 = true;
@@ -711,14 +709,14 @@ void beginBoard()
         pin_GnssUart_TX = 22;
 
         pin_GNSS_Reset = 33;
-        pin_GNSS_TimePulse = 8; // PPS on LG290P
+        pin_GNSS_TimePulse = 36; // PPS on LG290P
 
         pin_SCK = 32;
         pin_POCI = 25;
         pin_PICO = 26;
         pin_microSD_CS = 27;
 
-        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' on Portability Shield
+        pin_gpioExpanderInterrupt = 14; // Pin 'AOI' (Analog Output Input) on Portability Shield
 
         pin_bluetoothStatusLED = 4; // Blue LED
         pin_gnssStatusLED = 0; // Green LED
@@ -1061,8 +1059,7 @@ void pinGnssUartTask(void *pvParameters)
 
     // Reduce threshold value above which RX FIFO full interrupt is generated
     // Allows more time between when the UART interrupt occurs and when the FIFO buffer overruns
-    // serialGNSS->setRxFIFOFull(50); //Available in >v2.0.5
-    uart_set_rx_full_threshold(2, settings.serialGNSSRxFullThreshold); // uart_num, threshold
+    serialGNSS->setRxFIFOFull(settings.serialGNSSRxFullThreshold);
 
     // Stop notification
     if (settings.printTaskStartStop)

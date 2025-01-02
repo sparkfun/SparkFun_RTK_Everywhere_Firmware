@@ -6,7 +6,7 @@ on:
 env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
   FIRMWARE_VERSION_MAJOR: 2
-  FIRMWARE_VERSION_MINOR: 0
+  FIRMWARE_VERSION_MINOR: 1
   POINTPERFECT_LBAND_TOKEN: ${{ secrets.POINTPERFECT_LBAND_TOKEN }}
   POINTPERFECT_IP_TOKEN: ${{ secrets.POINTPERFECT_IP_TOKEN }}
   POINTPERFECT_LBAND_IP_TOKEN: ${{ secrets.POINTPERFECT_LBAND_IP_TOKEN }}
@@ -140,6 +140,7 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
+          # Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
           cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch

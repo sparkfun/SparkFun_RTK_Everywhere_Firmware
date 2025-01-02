@@ -103,7 +103,7 @@ class BTLESerial : public virtual BTSerialInterface, public BleSerial
     bool begin(String deviceName, bool isMaster, bool disableBLE, uint16_t rxQueueSize, uint16_t txQueueSize,
                const char *serviceID, const char *rxID, const char *txID)
     {
-        BleSerial::begin(deviceName.c_str(), serviceID, rxID, txID);
+        BleSerial::begin(deviceName.c_str(), serviceID, rxID, txID, -1); // name, service_uuid, rx_uuid, tx_uuid, led_pin
         return true;
     }
 

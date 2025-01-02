@@ -159,7 +159,7 @@ void btReadTask(void *e)
         rxBytes = 0;
         if (bluetoothGetState() == BT_CONNECTED)
         {
-            while (btPrintEcho == false && bluetoothRxDataAvailable())
+            while (btPrintEcho == false && (bluetoothRxDataAvailable() > 0))
             {
                 // Check stream for command characters
                 byte incoming = bluetoothRead();
@@ -289,18 +289,18 @@ void sendGnssBuffer()
     {
         if (gnss->pushRawData(bluetoothOutgoingToGnss, bluetoothOutgoingToGnssHead))
         {
-            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
+            if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
             {
-                PERIODIC_CLEAR(PD_ZED_DATA_TX);
+                PERIODIC_CLEAR(PD_GNSS_DATA_TX);
                 systemPrintf("Sent %d BT bytes to GNSS\r\n", bluetoothOutgoingToGnssHead);
             }
         }
     }
     else
     {
-        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_ZED_DATA_TX)) && !inMainMenu)
+        if ((settings.debugCorrections || PERIODIC_DISPLAY(PD_GNSS_DATA_TX)) && !inMainMenu)
         {
-            PERIODIC_CLEAR(PD_ZED_DATA_TX);
+            PERIODIC_CLEAR(PD_GNSS_DATA_TX);
             systemPrintf("%d BT bytes NOT sent due to priority\r\n", bluetoothOutgoingToGnssHead);
         }
     }
@@ -424,6 +424,14 @@ void gnssReadTask(void *e)
         if ((settings.enableTaskReports == true) && (!inMainMenu))
             systemPrintf("SerialReadTask High watermark: %d\r\n", uxTaskGetStackHighWaterMark(nullptr));
 
+        // Display the RX byte count
+        static uint32_t totalRxByteCount = 0;
+        if (PERIODIC_DISPLAY(PD_GNSS_DATA_RX_BYTE_COUNT))
+        {
+            PERIODIC_CLEAR(PD_GNSS_DATA_RX_BYTE_COUNT);
+            systemPrintf("gnssReadTask total byte count: %d\r\n", totalRxByteCount);
+        }
+
         // Two methods are accessing the hardware serial port (um980Config) at the
         // same time: gnssReadTask() (to harvest incoming serial data) and um980 (the unicore library to configure the
         // device) To allow the Unicore library to send/receive serial commands, we need to block the gnssReadTask
@@ -454,6 +462,7 @@ void gnssReadTask(void *e)
                 // Read the data from UART1
                 uint8_t incomingData[500];
                 int bytesIncoming = serialGNSS->read(incomingData, sizeof(incomingData));
+                totalRxByteCount += bytesIncoming;
 
                 for (int x = 0; x < bytesIncoming; x++)
                 {
@@ -573,9 +582,9 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
     int32_t use;
 
     // Display the message
-    if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_ZED_DATA_RX)) && (!parse->crc) && (!inMainMenu))
+    if ((settings.enablePrintLogFileMessages || PERIODIC_DISPLAY(PD_GNSS_DATA_RX)) && (!parse->crc) && (!inMainMenu))
     {
-        PERIODIC_CLEAR(PD_ZED_DATA_RX);
+        PERIODIC_CLEAR(PD_GNSS_DATA_RX);
         if (settings.enablePrintLogFileMessages)
         {
             printTimeStamp();
@@ -2109,7 +2118,7 @@ void bluetoothCommandTask(void *pvParameters)
         }
 
         // Check stream for incoming characters
-        if (bluetoothCommandAvailable())
+        if (bluetoothCommandAvailable() > 0)
         {
             byte incoming = bluetoothCommandRead();
 

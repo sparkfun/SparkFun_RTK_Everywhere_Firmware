@@ -37,7 +37,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10; // 1005 0.1Hz - Exclude antenna height
+        10;                                                                            // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -286,7 +286,7 @@ bool GNSS_LG290P::configureRover()
     }
 
     // Set the fix rate. Default on LG290P is 10Hz so set accordingly.
-    response &= setRate(settings.measurementRateMs / 1000.0);
+    response &= setRate(settings.measurementRateMs / 1000.0); // May require save/reset
     if (settings.debugGnss && response == false)
         systemPrintln("Rover: Set rate failed");
 
@@ -358,7 +358,7 @@ bool GNSS_LG290P::configureBase()
         // response &= _lg290p->setModeBase(); // Wait for save and reset
         // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
         // fail because NMEA is not present.
-        _lg290p->setModeBase(); // Wait for save and reset
+        _lg290p->setModeBase(false); // Don't save and reset
         if (settings.debugGnss && response == false)
             systemPrintln("Base: Set mode base failed");
 
@@ -372,7 +372,7 @@ bool GNSS_LG290P::configureBase()
         // response &= disableSurveyIn(); // Wait for save and reset
         // Ignore result for now. enterConfigMode disables NMEA, which causes the built-in write/save/reset methods to
         // fail because NMEA is not present.
-        disableSurveyIn(); // Wait for save and reset
+        disableSurveyIn(false); // Don't save and reset
         if (settings.debugGnss && response == false)
             systemPrintln("Base: disable survey in failed");
     }
@@ -452,7 +452,7 @@ bool GNSS_LG290P::exitConfigMode()
 //----------------------------------------
 // Disable Survey-In
 //----------------------------------------
-bool GNSS_LG290P::disableSurveyIn()
+bool GNSS_LG290P::disableSurveyIn(bool saveAndReset)
 {
     bool response = false;
     if (online.gnss)
@@ -460,12 +460,16 @@ bool GNSS_LG290P::disableSurveyIn()
         response = _lg290p->sendOkCommand("$PQTMCFGSVIN", ",W,0,0,0,0,0,0"); // Disable survey mode
         if (settings.debugGnss && response == false)
             systemPrintln("disableSurveyIn: sendOkCommand failed");
-        response &= saveConfiguration();
-        if (settings.debugGnss && response == false)
-            systemPrintln("disableSurveyIn: save failed");
-        response &= softwareReset();
-        if (settings.debugGnss && response == false)
-            systemPrintln("disableSurveyIn: reset failed");
+
+        if (saveAndReset)
+        {
+            response &= saveConfiguration();
+            if (settings.debugGnss && response == false)
+                systemPrintln("disableSurveyIn: save failed");
+            response &= softwareReset();
+            if (settings.debugGnss && response == false)
+                systemPrintln("disableSurveyIn: reset failed");
+        }
     }
 
     return (response);
@@ -577,12 +581,16 @@ bool GNSS_LG290P::enableRTCMBase()
         }
 
         // If any message is enabled, enable MSM output
-        if (lgMessagesRTCM[messageNumber].msgTextName, settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
+        if (settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
             enableMSM = true;
     }
 
     if (enableMSM == true)
     {
+        if(settings.debugGnss)
+        
+            systemPrintln("Enabling RTCM MSM output");
+
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
         _lg290p->sendOkCommand(
             "PQTMCFGRTCM,W,7,0,-90,07,06,2,1"); // Enable MSM7, output regular intervals, interval (seconds)
@@ -738,7 +746,8 @@ bool GNSS_LG290P::fixedBaseStart()
 
     if (settings.fixedBaseCoordinateType == COORD_TYPE_ECEF)
     {
-        _lg290p->setSurveyFixedMode(settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
+        // Waits for save and reset
+        response &= _lg290p->setSurveyFixedMode(settings.fixedEcefX, settings.fixedEcefY, settings.fixedEcefZ);
     }
     else if (settings.fixedBaseCoordinateType == COORD_TYPE_GEODETIC)
     {
@@ -755,7 +764,8 @@ bool GNSS_LG290P::fixedBaseStart()
         // Convert LLA to ECEF
         geodeticToEcef(settings.fixedLat, settings.fixedLong, totalFixedAltitude, &ecefX, &ecefY, &ecefZ);
 
-        _lg290p->setSurveyFixedMode(ecefX, ecefY, ecefZ);
+        // Waits for save and reset
+        response &= _lg290p->setSurveyFixedMode(ecefX, ecefY, ecefZ);
     }
 
     return (response);
@@ -1099,9 +1109,7 @@ uint8_t GNSS_LG290P::getRtcmMessageNumberByName(const char *msgName)
 uint8_t GNSS_LG290P::getSatellitesInView()
 {
     if (online.gnss)
-        // return (_lg290p->getSatellitesInView());
-        // Use getSatellitesUsed until SIV works correctly
-        return (_lg290p->getSatellitesUsedCount());
+        return (_lg290p->getSatellitesInViewCount());
     return 0;
 }
 

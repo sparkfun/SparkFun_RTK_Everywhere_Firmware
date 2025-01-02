@@ -461,7 +461,6 @@ volatile bool forwardGnssDataToUsbSerial;
 
 #define platformPrefix platformPrefixTable[productVariant] // Sets the prefix for broadcast names
 
-#include <driver/uart.h>     //Required for uart_set_rx_full_threshold() on cores <v2.0.5
 HardwareSerial *serialGNSS;  // Don't instantiate until we know what gnssPlatform we're on
 HardwareSerial *serial2GNSS; // Don't instantiate until we know what gnssPlatform we're on
 

@@ -301,8 +301,8 @@ enum PeriodDisplayValues
     PD_CELLULAR_STATE,          // 28
     PD_WIFI_STATE,              // 29
 
-    PD_ZED_DATA_RX,             // 30
-    PD_ZED_DATA_TX,             // 31
+    PD_GNSS_DATA_RX,             // 30
+    PD_GNSS_DATA_TX,             // 31
 
     PD_MQTT_CLIENT_DATA,        // 32
     PD_MQTT_CLIENT_STATE,       // 33
@@ -314,6 +314,8 @@ enum PeriodDisplayValues
     PD_PROVISIONING_STATE,      // 36
 
     PD_CORRECTION_SOURCE,       // 37
+
+    PD_GNSS_DATA_RX_BYTE_COUNT, // 38
     // Add new values before this line
 };
 
@@ -1011,7 +1013,11 @@ struct Settings
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
+<<<<<<< HEAD
     bool enableNtripCaster = false;
+=======
+    bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
+>>>>>>> release_candidate
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
