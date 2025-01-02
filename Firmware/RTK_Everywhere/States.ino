@@ -481,12 +481,9 @@ void stateUpdate()
                 // If a firmware version was requested, and obtained, report it back to the web page
                 if (strlen(otaReportedVersion) > 0)
                 {
-                    if (settings.debugWebServer)
-                        systemPrintln("Webconfig: Reporting firmware version");
-
                     createFirmwareVersionString(settingsCSV);
 
-                    if (settings.debugWebConfig)
+                    if (settings.debugWebServer)
                         systemPrintf("Webconfig: Firmware version requested. Sending: %s\r\n", settingsCSV);
 
                     sendStringToWebsocket(settingsCSV);
