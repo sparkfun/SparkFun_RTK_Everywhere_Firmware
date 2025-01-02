@@ -1637,12 +1637,9 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         consumerCount++;
         consumerId |= (1 << 8);
 
-        // The web server takes precedence over other network consumers so that we can start in AP mode only as needed
         // TODO Make web server over ethernet work here as well
         if (settings.wifiConfigOverAP == true)
-            *consumerTypes = (1 << NETCONSUMER_WIFI_AP); // Force into AP only mode
-        else
-            *consumerTypes = (1 << NETCONSUMER_WIFI_STA); // Force into STA only mode
+            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP_STA); //WebConfig requires both AP and STA (for firmware check)
     }
 
     // Debug
