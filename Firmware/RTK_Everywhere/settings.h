@@ -1013,11 +1013,7 @@ struct Settings
 #endif // COMPILE_LG290P
 
     bool debugSettings = false;
-<<<<<<< HEAD
-    bool enableNtripCaster = false;
-=======
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
->>>>>>> release_candidate
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below

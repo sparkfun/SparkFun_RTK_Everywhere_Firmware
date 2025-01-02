@@ -787,11 +787,7 @@ void otaUpdateStop()
         if (settings.debugFirmwareUpdate)
             systemPrintln("Firmware update releasing network request");
 
-<<<<<<< HEAD
         online.otaClient = false;
-=======
-        online.otaFirmwareUpdate = false;
->>>>>>> release_candidate
 
         otaRequestFirmwareUpdate = false; // Let the network know we no longer need it
 
@@ -871,11 +867,8 @@ void otaUpdate()
             otaReportedVersion[0] = 0;
             if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
             {
-<<<<<<< HEAD
                 online.otaClient = true;
 
-=======
->>>>>>> release_candidate
                 // Create a string of the unit's current firmware version
                 char currentVersion[21];
                 getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
