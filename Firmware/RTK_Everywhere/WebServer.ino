@@ -6,7 +6,6 @@ Form.ino
 
 #ifdef COMPILE_AP
 
-
 // State machine to allow web server access to network layer
 enum WebServerState
 {
@@ -302,9 +301,29 @@ bool webServerAssignResources(int httpPort = 80)
             dnsserver->start();
         }
 
-        webServer = new WebServer(httpPort);
-        // TODO: webServer = new WebServer(WiFi.localIP(), httpPort);
-        // TODO: webServer = new WebServer(ETH.localIP(), httpPort);
+        // Start the server with a given IP
+        if (WiFi.getMode() == WIFI_MODE_APSTA)
+        {
+            // If we are connected to a local AP, use that IP
+            if (settings.wifiConfigOverAP == false && wifiIsConnected())
+                webServer = new WebServer(WiFi.localIP(), httpPort);
+            else // Use our own AP's IP
+                webServer = new WebServer(WiFi.softAPIP(), httpPort);
+        }
+        else if (WiFi.getMode() == WIFI_MODE_AP)
+            webServer = new WebServer(WiFi.softAPIP(), httpPort);
+        else if (WiFi.getMode() == WIFI_MODE_STA)
+            webServer = new WebServer(WiFi.localIP(), httpPort);
+
+        // If WiFi is off, fall back to ethernet
+        else if (WiFi.getMode() == WIFI_OFF && present.ethernet_ws5500)
+            webServer = new WebServer(ETH.localIP(), httpPort);
+
+        else
+        {
+            systemPrintln("Error: Unknown WebServer connection mode.");
+            return (false);
+        }
 
         if (!webServer)
         {
