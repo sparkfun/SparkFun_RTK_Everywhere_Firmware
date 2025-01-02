@@ -407,12 +407,12 @@ void displayUpdate()
             case (STATE_DISPLAY_SETUP):
                 paintDisplaySetup();
                 break;
-            case (STATE_WIFI_CONFIG_NOT_STARTED):
-                displayWiFiConfigNotStarted(); // Display 'WiFi Config'
+            case (STATE_WEB_CONFIG_NOT_STARTED):
+                displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
-            case (STATE_WIFI_CONFIG):
                 setWiFiIcon(&iconPropertyList); // Blink WiFi in center
                 displayWiFiConfig();            // Display SSID and IP
+            case (STATE_WEB_CONFIG):
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -2165,116 +2165,6 @@ void displayWiFiConnect()
     displayMessage("WiFi Connect", 0);
 }
 
-// When user enters WiFi Config mode from setup, show splash while config happens
-void displayWiFiConfigNotStarted()
-{
-    displayMessage("WiFi Config", 0);
-}
-
-void displayWiFiConfig()
-{
-    int yPos = WiFi_Symbol_Height + 2;
-    int fontHeight = 8;
-
-    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
-    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
-
-    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-    yPos = yPos + fontHeight + 1;
-
-    // Toggle display back and forth for long SSIDs and IPs
-    // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
-    if (millis() - ssidDisplayTimer > 2000)
-    {
-        ssidDisplayTimer = millis();
-        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
-    }
-
-    // Convert current SSID to string
-    char mySSID[50] = {'\0'};
-
-#ifdef COMPILE_WIFI
-    if (settings.wifiConfigOverAP == true)
-        snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
-    else
-    {
-        if (WiFi.getMode() == WIFI_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
-
-        // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
-        else if (WiFi.getMode() == WIFI_AP)
-            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
-
-        // If we are in AP+STA mode, still display RTK Config
-        else if (WiFi.getMode() == WIFI_AP_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
-
-        else
-            snprintf(mySSID, sizeof(mySSID), "%s", "Error");
-    }
-#else  // COMPILE_WIFI
-    snprintf(mySSID, sizeof(mySSID), "%s", "!Compiled");
-#endif // COMPILE_WIFI
-
-    char mySSIDFront[displayMaxCharacters + 1]; // 1 for null terminator
-    char mySSIDBack[displayMaxCharacters + 1];  // 1 for null terminator
-
-    // Trim SSID to a max length
-    strncpy(mySSIDFront, mySSID, displayMaxCharacters);
-
-    if (strlen(mySSID) > displayMaxCharacters)
-        strncpy(mySSIDBack, mySSID + (strlen(mySSID) - displayMaxCharacters), displayMaxCharacters);
-    else
-        strncpy(mySSIDBack, mySSID, displayMaxCharacters);
-
-    mySSIDFront[displayMaxCharacters] = '\0';
-    mySSIDBack[displayMaxCharacters] = '\0';
-
-    if (ssidDisplayFirstHalf)
-        printTextCenter(mySSIDFront, yPos, QW_FONT_5X7, 1, false);
-    else
-        printTextCenter(mySSIDBack, yPos, QW_FONT_5X7, 1, false);
-
-    yPos = yPos + fontHeight + 3;
-    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
-
-    yPos = yPos + fontHeight + 1;
-
-#ifdef COMPILE_AP
-    IPAddress myIpAddress;
-    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
-        myIpAddress = WiFi.softAPIP();
-    else
-        myIpAddress = WiFi.localIP();
-
-    // Convert to string
-    char myIP[20] = {'\0'};
-    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
-
-    char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
-    char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
-
-    strncpy(myIPFront, myIP, displayMaxCharacters);
-
-    if (strlen(myIP) > displayMaxCharacters)
-        strncpy(myIPBack, myIP + (strlen(myIP) - displayMaxCharacters), displayMaxCharacters);
-    else
-        strncpy(myIPBack, myIP, displayMaxCharacters);
-
-    myIPFront[displayMaxCharacters] = '\0';
-    myIPBack[displayMaxCharacters] = '\0';
-
-    if (ssidDisplayFirstHalf == true)
-        printTextCenter(myIPFront, yPos, QW_FONT_5X7, 1, false);
-    else
-        printTextCenter(myIPBack, yPos, QW_FONT_5X7, 1, false);
-
-#else  // COMPILE_AP
-    printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
-#endif // COMPILE_AP
-}
-
 // When user does a factory reset, let us know
 void displaySytemReset()
 {
@@ -3170,6 +3060,116 @@ void displayConfigViaEthStarted(uint16_t displayTime)
 
         delay(displayTime);
     }
+}
+
+// When user enters Web Config mode, show splash while web server starts
+void displayWebConfigNotStarted()
+{
+    displayMessage("Web Config", 0);
+}
+
+void displayConfigViaWiFi()
+{
+    int yPos = WiFi_Symbol_Height + 2;
+    int fontHeight = 8;
+
+    // Characters before pixels start getting cut off. 11 characters can cut off a few pixels.
+    const int displayMaxCharacters = (present.display_type == DISPLAY_64x48) ? 10 : 21;
+
+    printTextCenter("SSID:", yPos, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
+
+    yPos = yPos + fontHeight + 1;
+
+    // Toggle display back and forth for long SSIDs and IPs
+    // Run the timer no matter what, but load firstHalf/lastHalf with the same thing if strlen < maxWidth
+    if (millis() - ssidDisplayTimer > 2000)
+    {
+        ssidDisplayTimer = millis();
+        ssidDisplayFirstHalf = !ssidDisplayFirstHalf;
+    }
+
+    // Convert current SSID to string
+    char mySSID[50] = {'\0'};
+
+#ifdef COMPILE_WIFI
+    if (settings.wifiConfigOverAP == true)
+        snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+    else
+    {
+        if (WiFi.getMode() == WIFI_STA)
+            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.SSID().c_str());
+
+        // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP)
+            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+
+        // If we are in AP+STA mode, still display RTK Config
+        else if (WiFi.getMode() == WIFI_AP_STA)
+            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+
+        else
+            snprintf(mySSID, sizeof(mySSID), "%s", "Error");
+    }
+#else  // COMPILE_WIFI
+    snprintf(mySSID, sizeof(mySSID), "%s", "!Compiled");
+#endif // COMPILE_WIFI
+
+    char mySSIDFront[displayMaxCharacters + 1]; // 1 for null terminator
+    char mySSIDBack[displayMaxCharacters + 1];  // 1 for null terminator
+
+    // Trim SSID to a max length
+    strncpy(mySSIDFront, mySSID, displayMaxCharacters);
+
+    if (strlen(mySSID) > displayMaxCharacters)
+        strncpy(mySSIDBack, mySSID + (strlen(mySSID) - displayMaxCharacters), displayMaxCharacters);
+    else
+        strncpy(mySSIDBack, mySSID, displayMaxCharacters);
+
+    mySSIDFront[displayMaxCharacters] = '\0';
+    mySSIDBack[displayMaxCharacters] = '\0';
+
+    if (ssidDisplayFirstHalf)
+        printTextCenter(mySSIDFront, yPos, QW_FONT_5X7, 1, false);
+    else
+        printTextCenter(mySSIDBack, yPos, QW_FONT_5X7, 1, false);
+
+    yPos = yPos + fontHeight + 3;
+    printTextCenter("IP:", yPos, QW_FONT_5X7, 1, false);
+
+    yPos = yPos + fontHeight + 1;
+
+#ifdef COMPILE_AP
+    IPAddress myIpAddress;
+    if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
+        myIpAddress = WiFi.softAPIP();
+    else
+        myIpAddress = WiFi.localIP();
+
+    // Convert to string
+    char myIP[20] = {'\0'};
+    snprintf(myIP, sizeof(myIP), "%s", myIpAddress.toString());
+
+    char myIPFront[displayMaxCharacters + 1]; // 1 for null terminator
+    char myIPBack[displayMaxCharacters + 1];  // 1 for null terminator
+
+    strncpy(myIPFront, myIP, displayMaxCharacters);
+
+    if (strlen(myIP) > displayMaxCharacters)
+        strncpy(myIPBack, myIP + (strlen(myIP) - displayMaxCharacters), displayMaxCharacters);
+    else
+        strncpy(myIPBack, myIP, displayMaxCharacters);
+
+    myIPFront[displayMaxCharacters] = '\0';
+    myIPBack[displayMaxCharacters] = '\0';
+
+    if (ssidDisplayFirstHalf == true)
+        printTextCenter(myIPFront, yPos, QW_FONT_5X7, 1, false);
+    else
+        printTextCenter(myIPBack, yPos, QW_FONT_5X7, 1, false);
+
+#else  // COMPILE_AP
+    printTextCenter("!Compiled", yPos, QW_FONT_5X7, 1, false);
+#endif // COMPILE_AP
 }
 
 void displayConfigViaEthernet()

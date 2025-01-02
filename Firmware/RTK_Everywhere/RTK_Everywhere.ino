@@ -1286,8 +1286,8 @@ void logUpdate()
     // max log window.
     systemTime_minutes = millis() / 1000L / 60;
 
-    // If we are in AP config, don't touch the SD card
-    if (inWiFiConfigMode())
+    // If we are in Web Config, don't touch the SD card
+    if (inWebConfigMode())
         return;
 
     if (online.microSD == false)

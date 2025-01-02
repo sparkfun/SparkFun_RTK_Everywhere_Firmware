@@ -1380,7 +1380,7 @@ void handleGnssDataTask(void *e)
 void tickerBluetoothLedUpdate()
 {
     // If we are in WiFi config mode, fade LED
-    if (inWiFiConfigMode() == true)
+    if (inWebConfigMode() == true)
     {
         // Fade in/out the BT LED during WiFi AP mode
         btFadeLevel += pwmFadeAmount;
@@ -1660,11 +1660,11 @@ void buttonCheckTask(void *e)
                     }
 
                     forceSystemStateUpdate = true; // Immediately go to this new state
-                    changeState(STATE_WIFI_CONFIG_NOT_STARTED);
+                    changeState(STATE_WEB_CONFIG_NOT_STARTED);
                 }
 
                 // If we are in WiFi Config Mode, exit to Rover
-                else if (inWiFiConfigMode())
+                else if (inWebConfigMode())
                 {
                     // Beep if we are not locally compiled or a release candidate
                     if (ENABLE_DEVELOPER == false)
@@ -1754,8 +1754,8 @@ void buttonCheckTask(void *e)
                 case STATE_BASE_TEMP_TRANSMITTING:
                 case STATE_BASE_FIXED_NOT_STARTED:
                 case STATE_BASE_FIXED_TRANSMITTING:
-                case STATE_WIFI_CONFIG_NOT_STARTED:
-                case STATE_WIFI_CONFIG:
+                case STATE_WEB_CONFIG_NOT_STARTED:
+                case STATE_WEB_CONFIG:
                 case STATE_ESPNOW_PAIRING_NOT_STARTED:
                 case STATE_ESPNOW_PAIRING:
                 case STATE_NTPSERVER_NOT_STARTED:

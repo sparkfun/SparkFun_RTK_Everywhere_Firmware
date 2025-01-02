@@ -480,8 +480,8 @@ const char *wifiPrintState(wl_status_t wifiStatus)
 void wifiRestart()
 {
     // Restart the AP webServer if we are in that state
-    if (systemState == STATE_WIFI_CONFIG)
-        requestChangeState(STATE_WIFI_CONFIG_NOT_STARTED);
+    if (systemState == STATE_WEB_CONFIG)
+        requestChangeState(STATE_WEB_CONFIG_NOT_STARTED);
     else
     {
         // Restart WiFi if we are not in AP config mode

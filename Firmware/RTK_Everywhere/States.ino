@@ -407,7 +407,7 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_WIFI_CONFIG_NOT_STARTED): {
+        case (STATE_WEB_CONFIG_NOT_STARTED): {
             if (pin_bluetoothStatusLED != PIN_UNDEFINED)
             {
                 // Start BT LED Fade to indicate the start of WiFi
@@ -418,7 +418,7 @@ void stateUpdate()
 
             baseStatusLedOff(); // Turn off the status LED
 
-            displayWiFiConfigNotStarted(); // Display immediately while we wait for server to start
+            displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             // TODO - Do we need to stop BT and ESP-NOW during web config or can we leave it running?
             //bluetoothStop();
@@ -434,11 +434,11 @@ void stateUpdate()
             webServerStart(); // Start the webserver state machine for web config
 
             RTK_MODE(RTK_MODE_WIFI_CONFIG);
-            changeState(STATE_WIFI_CONFIG);
+            changeState(STATE_WEB_CONFIG);
         }
         break;
 
-        case (STATE_WIFI_CONFIG): {
+        case (STATE_WEB_CONFIG): {
             if (incomingSettingsSpot > 0)
             {
                 // Allow for 750ms before we parse buffer for all data to arrive
@@ -785,10 +785,10 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_BASE_FIXED_TRANSMITTING";
     case (STATE_DISPLAY_SETUP):
         return "STATE_DISPLAY_SETUP";
-    case (STATE_WIFI_CONFIG_NOT_STARTED):
-        return "STATE_WIFI_CONFIG_NOT_STARTED";
-    case (STATE_WIFI_CONFIG):
-        return "STATE_WIFI_CONFIG";
+    case (STATE_WEB_CONFIG_NOT_STARTED):
+        return "STATE_WEB_CONFIG_NOT_STARTED";
+    case (STATE_WEB_CONFIG):
+        return "STATE_WEB_CONFIG";
     case (STATE_TEST):
         return "STATE_TEST";
     case (STATE_TESTING):
@@ -932,9 +932,9 @@ bool inBaseMode()
     return (false);
 }
 
-bool inWiFiConfigMode()
+bool inWebConfigMode()
 {
-    if (systemState >= STATE_WIFI_CONFIG_NOT_STARTED && systemState <= STATE_WIFI_CONFIG)
+    if (systemState >= STATE_WEB_CONFIG_NOT_STARTED && systemState <= STATE_WEB_CONFIG)
         return (true);
     return (false);
 }
@@ -959,19 +959,15 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
 {
     buttons->clear();
 
-    // It looks like we don't need "Mark"? TODO: check this!
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
     if (present.ethernet_ws5500 == true)
     {
         addSetupButton(buttons, "NTP", STATE_NTPSERVER_NOT_STARTED);
-        addSetupButton(buttons, "Cfg Eth", STATE_CONFIG_VIA_ETH_NOT_STARTED);
-        addSetupButton(buttons, "Cfg WiFi", STATE_WIFI_CONFIG_NOT_STARTED);
     }
-    else
-    {
-        addSetupButton(buttons, "Config", STATE_WIFI_CONFIG_NOT_STARTED);
-    }
+
+    addSetupButton(buttons, "Config", STATE_WEB_CONFIG_NOT_STARTED);
+
     if (settings.enablePointPerfectCorrections)
     {
         addSetupButton(buttons, "Get Keys", STATE_KEYS_REQUESTED);

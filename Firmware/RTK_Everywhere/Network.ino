@@ -625,6 +625,21 @@ bool networkIsOnline()
 }
 
 //----------------------------------------
+// Determine if the given network is online
+//----------------------------------------
+bool networkIsOnline(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Check for network offline
+    NetMask_t bitMask = 1 << index;
+    if (networkOnline & bitMask)
+        return true;
+    return false;
+}
+
+//----------------------------------------
 // Determine if the network is present on the platform
 //----------------------------------------
 bool networkIsPresent(NetIndex_t index)

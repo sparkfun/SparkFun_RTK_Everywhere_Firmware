@@ -407,7 +407,7 @@ void menuSystem()
         else if (incoming == 'W')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
-            changeState(STATE_WIFI_CONFIG_NOT_STARTED);
+            changeState(STATE_WEB_CONFIG_NOT_STARTED);
         }
         else if (incoming == 'S' && present.fastPowerOff == true)
         {
