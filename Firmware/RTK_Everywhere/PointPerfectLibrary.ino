@@ -211,16 +211,16 @@ void stopPPL()
     if (task.updatePplTaskRunning)
         task.updatePplTaskStopRequest = true;
 
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updatePplTaskRunning);
+
     if (pplRtcmBuffer != nullptr)
     {
         free(pplRtcmBuffer);
         pplRtcmBuffer = nullptr;
     }
-
-    // Wait for task to stop running
-    do
-        delay(10);
-    while (task.updatePplTaskRunning);
 
     online.ppl = false;
 }
@@ -417,7 +417,7 @@ bool sendGnssToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
-        if(settings.debugCorrections & !inMainMenu)
+        if (settings.debugCorrections & !inMainMenu)
             systemPrintln("sendGnssToPpl available");
         pplGnssOutput = true; // Notify updatePPL() that GNSS is outputting NMEA/RTCM
     }
@@ -444,7 +444,7 @@ bool sendSpartnToPpl(uint8_t *buffer, int numDataBytes)
     }
     else
     {
-        if(settings.debugCorrections & !inMainMenu)
+        if (settings.debugCorrections & !inMainMenu)
             systemPrintln("pplMqttCorrections available");
         pplMqttCorrections = true; // Notify updatePPL() that MQTT is online
     }

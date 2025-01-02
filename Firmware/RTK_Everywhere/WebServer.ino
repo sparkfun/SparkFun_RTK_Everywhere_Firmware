@@ -682,6 +682,11 @@ void stopWebServer()
     if (task.updateWebServerTaskRunning)
         task.updateWebServerTaskStopRequest = true;
 
+    // Wait for task to stop running
+    do
+        delay(10);
+    while (task.updateWebServerTaskRunning);
+
     if (webServer != nullptr)
     {
         webServer->close();
@@ -703,10 +708,6 @@ void stopWebServer()
         free(incomingSettings);
         incomingSettings = nullptr;
     }
-
-    do
-        delay(10);
-    while (task.updateWebServerTaskRunning);
 }
 
 void webServerReleaseResources()
