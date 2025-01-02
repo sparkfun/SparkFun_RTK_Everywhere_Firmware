@@ -233,7 +233,6 @@ typedef enum
     CUSTOM_NMEA_TYPE_SYSTEM_VERSION,
     CUSTOM_NMEA_TYPE_ZED_VERSION,
     CUSTOM_NMEA_TYPE_STATUS,
-    CUSTOM_NMEA_TYPE_LOGTEST_STATUS,
     CUSTOM_NMEA_TYPE_DEVICE_BT_ID,
     CUSTOM_NMEA_TYPE_PARSER_STATS,
     CUSTOM_NMEA_TYPE_CURRENT_DATE,
@@ -374,27 +373,6 @@ typedef enum
     BLUETOOTH_RADIO_OFF,
 } BluetoothRadioType_e;
 
-// Don't make this a typedef enum as logTestState
-// can be incremented beyond LOGTEST_END
-enum LogTestState
-{
-    LOGTEST_START = 0,
-    LOGTEST_4HZ_5MSG_10MS,
-    LOGTEST_4HZ_7MSG_10MS,
-    LOGTEST_10HZ_5MSG_10MS,
-    LOGTEST_10HZ_7MSG_10MS,
-    LOGTEST_4HZ_5MSG_0MS,
-    LOGTEST_4HZ_7MSG_0MS,
-    LOGTEST_10HZ_5MSG_0MS,
-    LOGTEST_10HZ_7MSG_0MS,
-    LOGTEST_4HZ_5MSG_50MS,
-    LOGTEST_4HZ_7MSG_50MS,
-    LOGTEST_10HZ_5MSG_50MS,
-    LOGTEST_10HZ_7MSG_50MS,
-    LOGTEST_END,
-};
-uint8_t logTestState = LOGTEST_END;
-
 typedef struct WiFiNetwork
 {
     char ssid[50];
@@ -464,7 +442,6 @@ typedef enum
     FUNCTION_CREATEFILE,
     FUNCTION_ENDLOGGING,
     FUNCTION_FINDLOG,
-    FUNCTION_LOGTEST,
     FUNCTION_FILELIST,
     FUNCTION_FILEMANAGER_OPEN1,
     FUNCTION_FILEMANAGER_OPEN2,
@@ -681,7 +658,6 @@ struct Settings
     bool enablePrintLogFileStatus = true;
     int maxLogLength_minutes = 60 * 24; // Default to 24 hours
     int maxLogTime_minutes = 60 * 24;        // Default to 24 hours
-    bool runLogTest = false;           // When set to true, device will create a series of test logs
 
     // MQTT
     bool debugMqttClientData = false;  // Debug the MQTT SPARTAN data flow
@@ -1284,7 +1260,6 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 0, 0, 0, 1, 1, 1, 0, 1, 1, _bool,     0, & settings.enablePrintLogFileStatus, "enablePrintLogFileStatus",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _int,      0, & settings.maxLogLength_minutes, "maxLogLength",  },
     { 1, 1, 0, 1, 1, 1, 0, 1, 1, _int,      0, & settings.maxLogTime_minutes, "maxLogTime"},
-    { 0, 0, 0, 1, 1, 0, 0, 1, 1, _bool,     0, & settings.runLogTest, "runLogTest",  }, // Not stored in NVM
 
     // Mosaic
 

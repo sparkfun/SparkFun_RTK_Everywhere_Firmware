@@ -222,10 +222,10 @@ void recordSystemSettingsToFile(File *settingsFile)
         if (settingAvailableOnPlatform(i) == false)
             continue;
 
-        // Exceptions:
-        // runLogTest not stored in NVM
-        if (strcmp(rtkSettingsEntries[i].name, "runLogTest") == 0)
-            continue;
+        // Exceptions not stored in NVM:
+        // none currently
+        // if (strcmp(rtkSettingsEntries[i].name, "example") == 0)
+        //     continue;
 
         switch (rtkSettingsEntries[i].type)
         {
@@ -990,7 +990,7 @@ bool parseLine(char *str)
     {
         const char *table[] = {
             "gnssFirmwareVersion", "gnssUniqueId",  "neoFirmwareVersion",
-            "rtkFirmwareVersion",  "rtkIdentifier", "runLogTest",
+            "rtkFirmwareVersion",  "rtkIdentifier",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 

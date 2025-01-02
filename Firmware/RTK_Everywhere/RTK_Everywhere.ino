@@ -1304,10 +1304,7 @@ void logUpdate()
     else if (online.logging == true && settings.enableLogging == true &&
              (systemTime_minutes - startCurrentLogTime_minutes) >= settings.maxLogLength_minutes)
     {
-        if (settings.runLogTest == false)
-            endSD(false, true); // Close down file. A new one will be created at the next calling of updateLogs().
-        else if (settings.runLogTest == true)
-            updateLogTest();
+        endSD(false, true); // Close down file. A new one will be created at the next calling of updateLogs().
     }
 
     if (online.logging == true)
@@ -1593,9 +1590,6 @@ void getSemaphoreFunction(char *functionName)
         break;
     case FUNCTION_FINDLOG:
         strcpy(functionName, "Find Log");
-        break;
-    case FUNCTION_LOGTEST:
-        strcpy(functionName, "Log Test");
         break;
     case FUNCTION_FILELIST:
         strcpy(functionName, "File List");

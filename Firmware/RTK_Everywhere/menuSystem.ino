@@ -464,9 +464,6 @@ void menuDebugHardware()
         systemPrint("5) Print log file status: ");
         systemPrintf("%s\r\n", settings.enablePrintLogFileStatus ? "Enabled" : "Disabled");
 
-        systemPrint("6) Run Logging Test: ");
-        systemPrintf("%s\r\n", settings.runLogTest ? "Enabled" : "Disabled");
-
         systemPrint("7) Print SD and UART buffer sizes: ");
         systemPrintf("%s\r\n", settings.enablePrintSDBuffers ? "Enabled" : "Disabled");
 
@@ -532,15 +529,7 @@ void menuDebugHardware()
             settings.enablePrintLogFileMessages ^= 1;
         else if (incoming == 5)
             settings.enablePrintLogFileStatus ^= 1;
-        else if (incoming == 6)
-        {
-            settings.runLogTest ^= 1;
 
-            logTestState = LOGTEST_START; // Start test
-
-            // Mark the current log file as complete to force the test start
-            startCurrentLogTime_minutes = systemTime_minutes - settings.maxLogLength_minutes;
-        }
         else if (incoming == 7)
             settings.enablePrintSDBuffers ^= 1;
         else if (incoming == 9)
