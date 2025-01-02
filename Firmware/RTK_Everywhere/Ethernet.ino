@@ -268,24 +268,24 @@ void ethernetStart()
 //----------------------------------------
 // Start Ethernet for the web server
 //----------------------------------------
-void ethernetWebServerStartESP32W5500()
-{
-    Network.onEvent(ethernetEvent);
+// void ethernetWebServerStartESP32W5500()
+// {
+//     Network.onEvent(ethernetEvent);
 
-    //  begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
-    ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
+//     //  begin(ETH_PHY_TYPE, ETH_PHY_ADDR, CS, IRQ, RST, SPIClass &)
+//     ETH.begin(ETH_PHY_W5500, 0, pin_Ethernet_CS, pin_Ethernet_Interrupt, -1, SPI);
 
-    if (!settings.ethernetDHCP)
-        ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
-}
+//     if (!settings.ethernetDHCP)
+//         ETH.config(settings.ethernetIP, settings.ethernetGateway, settings.ethernetSubnet, settings.ethernetDNS);
+// }
 
-//----------------------------------------
-// Stop Ethernet for the web server
-//----------------------------------------
-void ethernetWebServerStopESP32W5500()
-{
-    ETH.end();
-    Network.removeEvent(ethernetEvent);
-}
+// //----------------------------------------
+// // Stop Ethernet for the web server
+// //----------------------------------------
+// void ethernetWebServerStopESP32W5500()
+// {
+//     ETH.end();
+//     Network.removeEvent(ethernetEvent);
+// }
 
 #endif // COMPILE_ETHERNET

@@ -391,16 +391,6 @@ void displayUpdate()
             }
             break;
 
-            case (STATE_CONFIG_VIA_ETH_NOT_STARTED):
-                break;
-            case (STATE_CONFIG_VIA_ETH_STARTED):
-                break;
-            case (STATE_CONFIG_VIA_ETH):
-                displayConfigViaEthernet();
-                break;
-            case (STATE_CONFIG_VIA_ETH_RESTART_BASE):
-                break;
-
             case (STATE_PROFILE):
                 paintProfile(displayProfile);
                 break;
@@ -410,9 +400,14 @@ void displayUpdate()
             case (STATE_WEB_CONFIG_NOT_STARTED):
                 displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
-                setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                displayWiFiConfig();            // Display SSID and IP
             case (STATE_WEB_CONFIG):
+                if (networkIsOnline(NETWORK_ETHERNET))
+                    displayConfigViaEthernet();
+                else
+                {
+                    setWiFiIcon(&iconPropertyList); // Blink WiFi in center
+                    displayConfigViaWiFi(); // Display SSID and IP
+                }
                 break;
             case (STATE_TEST):
                 paintSystemTest();
@@ -2987,74 +2982,6 @@ void displayNTPFail(uint16_t displayTime)
 
         printTextCenter("NTP", yPos, QW_FONT_5X7, 1, false);                 // text, y, font type, kerning, inverted
         printTextCenter("Failed", yPos + fontHeight, QW_FONT_5X7, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
-}
-
-void displayConfigViaEthStarting(uint16_t displayTime)
-{
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 12;
-        uint8_t yPos = fontHeight;
-
-        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Starting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
-}
-void displayConfigViaEthExiting(uint16_t displayTime)
-{
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 12;
-        uint8_t yPos = fontHeight;
-
-        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Exiting", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-
-        oled->display();
-
-        delay(displayTime);
-    }
-}
-
-void displayConfigViaEthStarted(uint16_t displayTime)
-{
-    if (online.display == true)
-    {
-        oled->erase();
-
-        uint8_t fontHeight = 12;
-        uint8_t yPos = fontHeight;
-
-        printTextCenter("Configure", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Via", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Ethernet", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
-        yPos += fontHeight;
-        printTextCenter("Started", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
 
         oled->display();
 

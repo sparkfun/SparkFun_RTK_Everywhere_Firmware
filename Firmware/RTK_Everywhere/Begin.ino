@@ -973,14 +973,6 @@ void beginGnssUart()
     if (present.gnss_to_uart == false)
         return;
 
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginGnssUart");
-        return;
-    }
-
     size_t length;
     TaskHandle_t taskHandle;
 
@@ -1073,14 +1065,6 @@ void beginGnssUart2()
     if (present.gnss_to_uart2 == false)
         return;
 
-    // Skip if going into configure-via-ethernet mode
-    if (configureViaEthernet)
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("configureViaEthernet: skipping beginGnssUart2");
-        return;
-    }
-
     serial2GNSS = new HardwareSerial(1); // Use UART1 on the ESP32 to communicate with the mosaic
 
     serial2GNSS->setRxBufferSize(1024 * 1);
@@ -1108,47 +1092,6 @@ void beginFS()
             }
         }
     }
-}
-
-// Check if configureViaEthernet.txt exists
-bool checkConfigureViaEthernet()
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists("/configureViaEthernet.txt"))
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("LittleFS configureViaEthernet.txt exists");
-        LittleFS.remove("/configureViaEthernet.txt");
-        return true;
-    }
-
-    return false;
-}
-
-// Force configure-via-ethernet mode by creating configureViaEthernet.txt in LittleFS
-bool forceConfigureViaEthernet()
-{
-    if (online.fs == false)
-        return false;
-
-    if (LittleFS.exists("/configureViaEthernet.txt"))
-    {
-        if (settings.debugNetworkLayer)
-            systemPrintln("LittleFS configureViaEthernet.txt already exists");
-        return true;
-    }
-
-    File cveFile = LittleFS.open("/configureViaEthernet.txt", FILE_WRITE);
-    cveFile.close();
-
-    if (LittleFS.exists("/configureViaEthernet.txt"))
-        return true;
-
-    if (settings.debugNetworkLayer)
-        systemPrintln("Unable to create configureViaEthernet.txt on LittleFS");
-    return false;
 }
 
 // Begin interrupts

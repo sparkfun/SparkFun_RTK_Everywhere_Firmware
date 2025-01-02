@@ -66,22 +66,6 @@ void loadSettings()
 
     settings.resetCount = resetCount; // resetCount from LFS should override SD
 
-    // SD is not accessible during configure-via-Ethernet
-    // If stateFromLFS indicates that the firmware is not in configure-via-Ethernet mode
-    if (!((stateFromLFS >= STATE_CONFIG_VIA_ETH_NOT_STARTED) && (stateFromLFS <= STATE_CONFIG_VIA_ETH_RESTART_BASE)))
-    {
-        // and lastState from SD indicates the firmware was previously in configure-via-Ethernet mode
-        if ((settings.lastState >= STATE_CONFIG_VIA_ETH_NOT_STARTED) &&
-            (settings.lastState <= STATE_CONFIG_VIA_ETH_RESTART_BASE))
-        {
-            // then reload the settings from LFS since they will include any changes made during configure-via-Ethernet
-            // mode
-            systemPrintln("Restart after config-via-ethernet. Overwriting SD settings with those from LittleFS");
-            loadSystemSettingsFromFileLFS(settingsFileName);
-            recordSystemSettings(); // Overwrite SD settings with those from LFS
-        }
-    }
-
     // Change empty profile name to 'Profile1' etc
     if (strlen(settings.profileName) == 0)
     {

@@ -1213,26 +1213,7 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         sendStringToWebsocket((char *)"confirmReset,1,");
         delay(500); // Allow for delivery
 
-        if (configureViaEthernet)
-            systemPrintln("Reset after Configure-Via-Ethernet");
-        else
-            systemPrintln("Reset after AP Config");
-
-        if (configureViaEthernet)
-        {
-            ethernetWebServerStopESP32W5500();
-
-            // We need to exit configure-via-ethernet mode.
-            // But if the settings have not been saved then lastState will still be STATE_CONFIG_VIA_ETH_STARTED.
-            // If that is true, then force exit to Base mode. I think it is the best we can do.
-            //(If the settings have been saved, then the code will restart in NTP, Base or Rover mode as desired.)
-            if (settings.lastState == STATE_CONFIG_VIA_ETH_STARTED)
-            {
-                systemPrintln("Settings were not saved. Resetting into Base mode.");
-                settings.lastState = STATE_BASE_NOT_STARTED;
-                recordSystemSettings();
-            }
-        }
+        systemPrintln("Reset after AP Config");
 
         ESP.restart();
     }

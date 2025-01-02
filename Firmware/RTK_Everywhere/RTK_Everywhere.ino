@@ -443,7 +443,7 @@ float batteryChargingPercentPerHour;
 // serial.
 //
 // Switching from status and debug messages to GNSS output is done in two
-// places, at the end of setup and at the end of maenuMain.  In both of
+// places, at the end of setup and at the end of menuMain.  In both of
 // these places the new value comes from settings.enableGnssToUsbSerial.
 // Upon boot status and debug messages are output at least until the end
 // of setup.  Upon entry into menuMain, this value is set false to again
@@ -785,13 +785,6 @@ uint16_t failedParserMessages_NMEA;
 // Corrections Priorities Support
 CORRECTION_ID_T pplCorrectionsSource = CORR_NUM; // Record which source is feeding the PPL
 
-// configureViaEthernet:
-//  Set to true if configureViaEthernet.txt exists in LittleFS.
-//  Previously, the SparkFun_WebServer_ESP32_W5500 needed _exclusive_ access to SPI and Interrupts.
-//  That's no longer true - thanks to Espressif adding full support for the W5500 within the
-//  arduino-esp32 core (v3.0.0+). But it's easier to leave the code as it is.
-bool configureViaEthernet;
-
 int floatLockRestarts;
 unsigned long rtkTimeToFixMs;
 
@@ -821,7 +814,7 @@ unsigned long loraLastIncomingSerial; // Last time a user sent a serial command.
 
 // Display boot times
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#define MAX_BOOT_TIME_ENTRIES 42
+#define MAX_BOOT_TIME_ENTRIES 41
 uint8_t bootTimeIndex;
 uint32_t bootTime[MAX_BOOT_TIME_ENTRIES];
 const char *bootTimeString[MAX_BOOT_TIME_ENTRIES];
@@ -1043,10 +1036,6 @@ void setup()
     DMW_b("um980FirmwareCheckUpdate");
     if (um980FirmwareCheckUpdate() == true) // Check if updateUm980Firmware.txt exists
         um980FirmwareBeginUpdate();
-
-    DMW_b("checkConfigureViaEthernet");
-    configureViaEthernet =
-        checkConfigureViaEthernet(); // Check if going into dedicated configureViaEthernet (STATE_CONFIG_VIA_ETH) mode
 
     DMW_b("beginPsram");
     beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.

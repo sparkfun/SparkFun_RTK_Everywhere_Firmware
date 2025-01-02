@@ -38,10 +38,6 @@ typedef enum
     STATE_NTPSERVER_NOT_STARTED,
     STATE_NTPSERVER_NO_SYNC,
     STATE_NTPSERVER_SYNC,
-    STATE_CONFIG_VIA_ETH_NOT_STARTED,
-    STATE_CONFIG_VIA_ETH_STARTED,
-    STATE_CONFIG_VIA_ETH,
-    STATE_CONFIG_VIA_ETH_RESTART_BASE,
     STATE_SHUTDOWN,
     STATE_NOT_SET, // Must be last on list
 } SystemState;
@@ -53,11 +49,10 @@ bool newSystemStateRequested = false;
 // Base modes set with RTK_MODE
 #define RTK_MODE_BASE_FIXED         0x0001
 #define RTK_MODE_BASE_SURVEY_IN     0x0002
-#define RTK_MODE_ETHERNET_CONFIG    0x0004
-#define RTK_MODE_NTP                0x0008
-#define RTK_MODE_ROVER              0x0010
-#define RTK_MODE_TESTING            0x0020
-#define RTK_MODE_WIFI_CONFIG        0x0040
+#define RTK_MODE_NTP                0x0004
+#define RTK_MODE_ROVER              0x0008
+#define RTK_MODE_TESTING            0x0010
+#define RTK_MODE_WEB_CONFIG         0x0020
 
 typedef uint8_t RtkMode_t;
 

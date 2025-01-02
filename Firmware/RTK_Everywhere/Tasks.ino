@@ -1761,7 +1761,6 @@ void buttonCheckTask(void *e)
                 case STATE_NTPSERVER_NOT_STARTED:
                 case STATE_NTPSERVER_NO_SYNC:
                 case STATE_NTPSERVER_SYNC:
-                case STATE_CONFIG_VIA_ETH_NOT_STARTED:
                     lastSystemState = systemState; // Remember this state to return if needed
                     requestChangeState(STATE_DISPLAY_SETUP);
                     lastSetupMenuChange = millis();
@@ -1817,14 +1816,6 @@ void buttonCheckTask(void *e)
                 case STATE_PROFILE:
                     // If the user presses the setup button during a profile change, do nothing
                     // Allow system to return to lastSystemState
-                    break;
-
-                case STATE_CONFIG_VIA_ETH_STARTED:
-                case STATE_CONFIG_VIA_ETH:
-                    // If the user presses the button during configure-via-ethernet,
-                    // do a complete restart into Base mode
-                    lastSetupMenuChange = millis(); // Prevent a timeout during state change
-                    requestChangeState(STATE_CONFIG_VIA_ETH_RESTART_BASE);
                     break;
 
                 default:

@@ -48,6 +48,7 @@ const uint8_t * networkGetMacAddress()
     return zero;
   }
 bool networkIsOnline() {return false;}
+bool networkIsOnline(NetIndex_t index) {return false;}
 void networkMarkOffline(NetIndex_t index) {}
 void networkMarkOnline(NetIndex_t index) {}
 void networkUpdate() {}

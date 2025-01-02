@@ -421,10 +421,10 @@ void stateUpdate()
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             // TODO - Do we need to stop BT and ESP-NOW during web config or can we leave it running?
-            //bluetoothStop();
-            //espnowStop();
+            // bluetoothStop();
+            // espnowStop();
 
-            //tasksStopGnssUart(); // Delete serial tasks if running
+            // tasksStopGnssUart(); // Delete serial tasks if running
 
             // Stop any running NTRIP Client or Server
             ntripClientStop(true); // Do not allocate new wifiClient
@@ -433,7 +433,7 @@ void stateUpdate()
 
             webServerStart(); // Start the webserver state machine for web config
 
-            RTK_MODE(RTK_MODE_WIFI_CONFIG);
+            RTK_MODE(RTK_MODE_WEB_CONFIG);
             changeState(STATE_WEB_CONFIG);
         }
         break;
@@ -622,114 +622,6 @@ void stateUpdate()
         }
         break;
 
-        case (STATE_CONFIG_VIA_ETH_NOT_STARTED): {
-            displayConfigViaEthStarting(1500);
-
-            settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
-            settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Record the _next_ state for POR
-            recordSystemSettings();
-
-            forceConfigureViaEthernet(); // Create a file in LittleFS to force code into configure-via-ethernet mode
-
-            ESP.restart(); // Restart to go into the dedicated configure-via-ethernet mode
-        }
-        break;
-
-        case (STATE_CONFIG_VIA_ETH_STARTED): {
-            RTK_MODE(RTK_MODE_ETHERNET_CONFIG);
-            // The code should only be able to enter this state if configureViaEthernet is true.
-            // If configureViaEthernet is not true, we need to restart again.
-            if (!configureViaEthernet)
-            {
-                displayConfigViaEthStarting(1500);
-                settings.lastState = STATE_CONFIG_VIA_ETH_STARTED; // Re-record this state for POR
-                recordSystemSettings();
-
-                forceConfigureViaEthernet(); // Create a file in LittleFS to force code into configure-via-ethernet mode
-
-                ESP.restart(); // Restart to go into the dedicated configure-via-ethernet mode
-            }
-
-            displayConfigViaEthStarted(1500);
-
-            bluetoothStop();     // Should be redundant - but just in case
-            espnowStop();        // Should be redundant - but just in case
-            tasksStopGnssUart(); // Delete F9 serial tasks if running
-
-            ethernetWebServerStartESP32W5500(); // Start Ethernet in dedicated configure-via-ethernet mode
-
-            webServerStart(); // Start the webserver state machine for web config
-
-            // TODO add a state machine step for ethernet to wait for web server to start
-            // See wifi web server / web config
-
-            // if (!webServerStart(false, settings.httpPort)) // Start the web server
-            //     changeState(STATE_ROVER_NOT_STARTED);
-            // else
-            //     changeState(STATE_CONFIG_VIA_ETH);
-        }
-        break;
-
-        case (STATE_CONFIG_VIA_ETH): {
-            // Display will show the IP address (displayConfigViaEthernet)
-
-            if (incomingSettingsSpot > 0)
-            {
-                // Allow for 750ms before we parse buffer for all data to arrive
-                if (millis() - timeSinceLastIncomingSetting > 750)
-                {
-                    currentlyParsingData =
-                        true; // Disallow new data to flow from websocket while we are parsing the current data
-
-                    systemPrint("Parsing: ");
-                    for (int x = 0; x < incomingSettingsSpot; x++)
-                        systemWrite(incomingSettings[x]);
-                    systemPrintln();
-
-                    parseIncomingSettings();
-                    settings.updateGNSSSettings =
-                        true;               // When this profile is loaded next, force system to update GNSS settings.
-                    recordSystemSettings(); // Record these settings to unit
-
-                    // Clear buffer
-                    incomingSettingsSpot = 0;
-                    memset(incomingSettings, 0, AP_CONFIG_SETTING_SIZE);
-
-                    currentlyParsingData = false; // Allow new data from websocket
-                }
-            }
-
-#ifdef COMPILE_WIFI
-#ifdef COMPILE_AP
-            // Dynamically update the coordinates on the AP page
-            if (websocketConnected == true)
-            {
-                if (millis() - lastDynamicDataUpdate > 1000)
-                {
-                    lastDynamicDataUpdate = millis();
-                    createDynamicDataString(settingsCSV);
-
-                    // log_d("Sending coordinates: %s", settingsCSV);
-                    sendStringToWebsocket(settingsCSV);
-                }
-            }
-#endif // COMPILE_AP
-#endif // COMPILE_WIFI
-        }
-        break;
-
-        case (STATE_CONFIG_VIA_ETH_RESTART_BASE): {
-            displayConfigViaEthExiting(1000);
-
-            ethernetWebServerStopESP32W5500();
-
-            settings.updateGNSSSettings = false;         // On the next boot, no need to update the GNSS on this profile
-            settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
-            recordSystemSettings();
-
-            ESP.restart();
-        }
-        break;
 #endif // COMPILE_ETHERNET
 
         case (STATE_SHUTDOWN): {
@@ -811,15 +703,6 @@ const char *getState(SystemState state, char *buffer)
     case (STATE_NTPSERVER_SYNC):
         return "STATE_NTPSERVER_SYNC";
 
-    case (STATE_CONFIG_VIA_ETH_NOT_STARTED):
-        return "STATE_CONFIG_VIA_ETH_NOT_STARTED";
-    case (STATE_CONFIG_VIA_ETH_STARTED):
-        return "STATE_CONFIG_VIA_ETH_STARTED";
-    case (STATE_CONFIG_VIA_ETH):
-        return "STATE_CONFIG_VIA_ETH";
-    case (STATE_CONFIG_VIA_ETH_RESTART_BASE):
-        return "STATE_CONFIG_VIA_ETH_RESTART_BASE";
-
     case (STATE_SHUTDOWN):
         return "STATE_SHUTDOWN";
     case (STATE_NOT_SET):
@@ -892,14 +775,12 @@ typedef struct _RTK_MODE_ENTRY
     SystemState last;
 } RTK_MODE_ENTRY;
 
-const RTK_MODE_ENTRY stateModeTable[] = {
-    {"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
-    {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
-    {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
-    {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
-    {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
-    {"Ethernet Config", STATE_CONFIG_VIA_ETH_NOT_STARTED, STATE_CONFIG_VIA_ETH_RESTART_BASE},
-    {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
+const RTK_MODE_ENTRY stateModeTable[] = {{"Rover", STATE_ROVER_NOT_STARTED, STATE_ROVER_RTK_FIX},
+                                         {"Base", STATE_BASE_NOT_STARTED, STATE_BASE_FIXED_TRANSMITTING},
+                                         {"Setup", STATE_DISPLAY_SETUP, STATE_PROFILE},
+                                         {"ESPNOW Pairing", STATE_ESPNOW_PAIRING_NOT_STARTED, STATE_ESPNOW_PAIRING},
+                                         {"NTP", STATE_NTPSERVER_NOT_STARTED, STATE_NTPSERVER_SYNC},
+                                         {"Shutdown", STATE_SHUTDOWN, STATE_SHUTDOWN}};
 const int stateModeTableEntries = sizeof(stateModeTable) / sizeof(stateModeTable[0]);
 
 const char *stateToRtkMode(SystemState state)

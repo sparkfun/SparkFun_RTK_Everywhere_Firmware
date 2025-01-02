@@ -128,220 +128,170 @@ void menuMain()
         return;
     }
 
-    if (configureViaEthernet)
+    while (1)
     {
-        while (1)
-        {
-            systemPrintln();
-            char versionString[21];
-            getFirmwareVersion(versionString, sizeof(versionString), true);
-            RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-            systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
-
-            systemPrintln("\r\n** Configure Via Ethernet Mode **\r\n");
-
-            systemPrintln("Menu: Main");
-
-            systemPrintln("r) Restart Base");
-
-            systemPrintln("x) Exit");
-
-            byte incoming = getUserInputCharacterNumber();
-
-            if (incoming == 'r')
-            {
-                displayConfigViaEthStarting(1000);
-
-                ethernetWebServerStopESP32W5500();
-
-                settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
-                settings.lastState = STATE_BASE_NOT_STARTED; // Record the _next_ state for POR
-                recordSystemSettings();
-
-                ESP.restart();
-            }
-            else if (incoming == 'x')
-                break;
-            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-                break;
-            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-                break;
-            else
-                printUnknown(incoming);
-        }
-    }
-
-    else
-    {
-        while (1)
-        {
-            systemPrintln();
-            char versionString[21];
-            getFirmwareVersion(versionString, sizeof(versionString), true);
-            RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
-            systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
+        systemPrintln();
+        char versionString[21];
+        getFirmwareVersion(versionString, sizeof(versionString), true);
+        RTKBrandAttribute *brandAttributes = getBrandAttributeFromBrand(present.brand);
+        systemPrintf("%s RTK %s %s\r\n", brandAttributes->name, platformPrefix, versionString);
 
 #ifdef COMPILE_BT
 
-            if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
-            {
-                systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
-                systemPrint(deviceName);
-            }
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
-            {
-                systemPrint("** Bluetooth SPP broadcasting as: ");
-                systemPrint(deviceName);
-            }
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
-            {
-                systemPrint("** Bluetooth Low-Energy broadcasting as: ");
-                systemPrint(deviceName);
-            }
-            else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
-            {
-                systemPrint("** Bluetooth Turned Off");
-            }
-            systemPrintln(" **");
+        if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP_AND_BLE)
+        {
+            systemPrint("** Bluetooth SPP and BLE broadcasting as: ");
+            systemPrint(deviceName);
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_SPP)
+        {
+            systemPrint("** Bluetooth SPP broadcasting as: ");
+            systemPrint(deviceName);
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_BLE)
+        {
+            systemPrint("** Bluetooth Low-Energy broadcasting as: ");
+            systemPrint(deviceName);
+        }
+        else if (settings.bluetoothRadioType == BLUETOOTH_RADIO_OFF)
+        {
+            systemPrint("** Bluetooth Turned Off");
+        }
+        systemPrintln(" **");
 #else  // COMPILE_BT
-            systemPrintln("** Bluetooth Not Compiled **");
+        systemPrintln("** Bluetooth Not Compiled **");
 #endif // COMPILE_BT
 
-            systemPrintln("Menu: Main");
+        systemPrintln("Menu: Main");
 
-            systemPrintln("1) Configure GNSS Receiver");
+        systemPrintln("1) Configure GNSS Receiver");
 
-            systemPrintln("2) Configure GNSS Messages");
+        systemPrintln("2) Configure GNSS Messages");
 
-            systemPrintln("3) Configure Base");
+        systemPrintln("3) Configure Base");
 
-            systemPrintln("4) Configure Ports");
+        systemPrintln("4) Configure Ports");
 
-            if (productVariant != RTK_TORCH) // Torch does not have logging
-                systemPrintln("5) Configure Logging");
+        if (productVariant != RTK_TORCH) // Torch does not have logging
+            systemPrintln("5) Configure Logging");
 
 #ifdef COMPILE_WIFI
-            systemPrintln("6) Configure WiFi");
+        systemPrintln("6) Configure WiFi");
 #else  // COMPILE_WIFI
-            systemPrintln("6) **WiFi Not Compiled**");
+        systemPrintln("6) **WiFi Not Compiled**");
 #endif // COMPILE_WIFI
 
 #ifdef COMPILE_NETWORK
-            systemPrintln("7) Configure TCP/UDP");
+        systemPrintln("7) Configure TCP/UDP");
 #else  // COMPILE_NETWORK
-            systemPrintln("7) **TCP/UDP Not Compiled**");
+        systemPrintln("7) **TCP/UDP Not Compiled**");
 #endif // COMPILE_NETWORK
 
 #ifdef COMPILE_ETHERNET
-            if (present.ethernet_ws5500 == true)
-                systemPrintln("e) Configure Ethernet");
+        if (present.ethernet_ws5500 == true)
+            systemPrintln("e) Configure Ethernet");
 #endif // COMPILE_ETHERNET
 
-            systemPrintln("f) Firmware Update");
+        systemPrintln("f) Firmware Update");
 
-            systemPrintln("i) Configure Corrections Priorities");
+        systemPrintln("i) Configure Corrections Priorities");
 
 #ifdef COMPILE_ETHERNET
-            if (present.ethernet_ws5500 == true)
-                systemPrintln("n) Configure NTP");
+        if (present.ethernet_ws5500 == true)
+            systemPrintln("n) Configure NTP");
 #endif // COMPILE_ETHERNET
 
-            systemPrintln("p) Configure PointPerfect");
+        systemPrintln("p) Configure PointPerfect");
 
-            systemPrintln("r) Configure Radios");
+        systemPrintln("r) Configure Radios");
 
-            systemPrintln("s) Configure System");
+        systemPrintln("s) Configure System");
 
-            if (present.imu_im19)
-                systemPrintln("t) Configure Instrument Setup");
+        if (present.imu_im19)
+            systemPrintln("t) Configure Instrument Setup");
 
-            systemPrintln("u) Configure User Profiles");
+        systemPrintln("u) Configure User Profiles");
 
-            if (btPrintEcho)
-                systemPrintln("b) Exit Bluetooth Echo mode");
+        if (btPrintEcho)
+            systemPrintln("b) Exit Bluetooth Echo mode");
 
-            systemPrintln("+) Enter Command line mode");
+        systemPrintln("+) Enter Command line mode");
 
-            systemPrintln("x) Exit");
+        systemPrintln("x) Exit");
 
-            byte incoming = getUserInputCharacterNumber();
+        byte incoming = getUserInputCharacterNumber();
 
-            if (incoming == 1)
-                menuGNSS();
-            else if (incoming == 2)
-                gnss->menuMessages();
-            else if (incoming == 3)
-                menuBase();
-            else if (incoming == 4)
-                menuPorts();
+        if (incoming == 1)
+            menuGNSS();
+        else if (incoming == 2)
+            gnss->menuMessages();
+        else if (incoming == 3)
+            menuBase();
+        else if (incoming == 4)
+            menuPorts();
 #ifdef COMPILE_MOSAICX5
-            else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
-                menuLogMosaic();
-#endif                                                             // COMPILE_MOSAICX5
-            else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
-                menuLog();
-            else if (incoming == 6)
-                menuWiFi();
-            else if (incoming == 7)
-                menuTcpUdp();
-            else if (incoming == 'e' && (present.ethernet_ws5500 == true))
-                menuEthernet();
-            else if (incoming == 'f')
-                menuFirmware();
-            else if (incoming == 'i')
-                menuCorrectionsPriorities();
-            else if (incoming == 'n' && (present.ethernet_ws5500 == true))
-                menuNTP();
-            else if (incoming == 'u')
-                menuUserProfiles();
-            else if (incoming == 'p')
-                menuPointPerfect();
-            else if (incoming == 'r')
-                menuRadio();
-            else if (incoming == 's')
-                menuSystem();
-            else if ((incoming == 't') && present.imu_im19)
-                menuInstrument();
-            else if (incoming == 'b' && btPrintEcho == true)
-            {
-                printEndpoint = PRINT_ENDPOINT_SERIAL;
-                systemPrintln("BT device has exited echo mode");
-                btPrintEcho = false;
-                break; // Exit config menu
-            }
-            else if (incoming == '+')
-                menuCommands();
-            else if (incoming == 'x')
-                break;
-            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-                break;
-            else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-                break;
-            else
-                printUnknown(incoming);
+        else if (incoming == 5 && productVariant == RTK_FACET_MOSAIC)
+            menuLogMosaic();
+#endif                                                         // COMPILE_MOSAICX5
+        else if (incoming == 5 && productVariant != RTK_TORCH) // Torch does not have logging
+            menuLog();
+        else if (incoming == 6)
+            menuWiFi();
+        else if (incoming == 7)
+            menuTcpUdp();
+        else if (incoming == 'e' && (present.ethernet_ws5500 == true))
+            menuEthernet();
+        else if (incoming == 'f')
+            menuFirmware();
+        else if (incoming == 'i')
+            menuCorrectionsPriorities();
+        else if (incoming == 'n' && (present.ethernet_ws5500 == true))
+            menuNTP();
+        else if (incoming == 'u')
+            menuUserProfiles();
+        else if (incoming == 'p')
+            menuPointPerfect();
+        else if (incoming == 'r')
+            menuRadio();
+        else if (incoming == 's')
+            menuSystem();
+        else if ((incoming == 't') && present.imu_im19)
+            menuInstrument();
+        else if (incoming == 'b' && btPrintEcho == true)
+        {
+            printEndpoint = PRINT_ENDPOINT_SERIAL;
+            systemPrintln("BT device has exited echo mode");
+            btPrintEcho = false;
+            break; // Exit config menu
         }
+        else if (incoming == '+')
+            menuCommands();
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
     }
 
-    if (!configureViaEthernet)
+    // Reboot as base only if currently operating as a base station
+    if (restartBase == true && inBaseMode() == true)
     {
-
-        // Reboot as base only if currently operating as a base station
-        if (restartBase == true && inBaseMode() == true)
-        {
-            restartBase = false;
-            requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
-        }
-
-        if (restartRover == true && inRoverMode() == true)
-        {
-            restartRover = false;
-            requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
-        }
-
-        gnss->saveConfiguration();
-
-        recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
+        restartBase = false;
+        requestChangeState(STATE_BASE_NOT_STARTED); // Restart base upon exit for latest changes to take effect
     }
+
+    if (restartRover == true && inRoverMode() == true)
+    {
+        restartRover = false;
+        requestChangeState(STATE_ROVER_NOT_STARTED); // Restart rover upon exit for latest changes to take effect
+    }
+
+    gnss->saveConfiguration();
+
+    recordSystemSettings(); // Once all menus have exited, record the new settings to LittleFS and config file
 
     if (settings.debugGnss == true)
     {

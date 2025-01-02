@@ -142,8 +142,6 @@ void GNSS_ZED::begin()
     if (_zed == nullptr)
         _zed = new SFE_UBLOX_GNSS_SUPER();
 
-    // Note: we don't need to skip this for configureViaEthernet because the ZED is on I2C only - not SPI
-
     if (_zed->begin(*i2c_0) == false)
     {
         systemPrintln("GNSS Failed to begin. Trying again.");
