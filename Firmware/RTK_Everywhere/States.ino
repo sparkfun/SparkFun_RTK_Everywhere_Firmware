@@ -484,7 +484,7 @@ void stateUpdate()
                     createFirmwareVersionString(settingsCSV);
 
                     if (settings.debugWebServer)
-                        systemPrintf("Webconfig: Firmware version requested. Sending: %s\r\n", settingsCSV);
+                        systemPrintf("WebServer: Firmware version requested. Sending: %s\r\n", settingsCSV);
 
                     sendStringToWebsocket(settingsCSV);
 

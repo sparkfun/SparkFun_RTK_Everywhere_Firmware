@@ -1428,6 +1428,7 @@ void networkUpdate()
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStop(index, settings.debugNetworkLayer);
         // }
+
     }
 
     // Allow consumers to start networks
