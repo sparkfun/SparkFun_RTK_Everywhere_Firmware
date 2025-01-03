@@ -178,9 +178,9 @@ function parseIncoming(msg) {
                 newOption = new Option('Unlimited', '7');
                 select.add(newOption, undefined);
 
-                ge("messageRateInfoText").setAttribute('data-bs-original-title','The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
-                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
-                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title','Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
+                ge("messageRateInfoText").setAttribute('data-bs-original-title', 'The GNSS can output NMEA and RTCMv3 at different rates. For NMEA: select a stream for each message, and set an interval for each stream. For RTCMv3: set an interval for each message group, and enable individual messages.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, MSM4, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0.1 to 600.');
+                ge("enableExtCorrRadioInfoText").setAttribute('data-bs-original-title', 'Enable external radio corrections: RTCMv3 on mosaic COM2. Default: False');
             }
             else if (platformPrefix == "Torch") {
                 show("baseConfig");
@@ -198,6 +198,8 @@ function parseIncoming(msg) {
                 show("useAssistNowCheckbox"); //Does the PPL use MGA? Not sure...
                 show("measurementRateInput");
 
+                show("loraConfig");
+
                 select = ge("dynamicModel");
                 let newOption = new Option('Survey', '0');
                 select.add(newOption, undefined);
@@ -206,7 +208,36 @@ function parseIncoming(msg) {
                 newOption = new Option('Automotive', '2');
                 select.add(newOption, undefined);
 
-                ge("rtcmRateInfoText").setAttribute('data-bs-original-title','RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1124, and 0.1Hz for 1033. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
+
+            }
+            else if (platformPrefix == "Postcard") {
+                show("baseConfig");
+                show("ppConfig");
+                hide("ethernetConfig");
+                hide("ntpConfig");
+                show("portsConfig");
+                show("externalPortOptions");
+                show("logToSDCard");
+
+                hide("galileoHasSetting");
+                hide("tiltConfig");
+                hide("beeperControl");
+
+                show("useAssistNowCheckbox");
+                show("measurementRateInput");
+                hide("mosaicNMEAStreamDropdowns");
+                show("surveyInSettings");
+                show("useLocalizedDistributionCheckbox");
+                show("useEnableExtCorrRadio");
+                show("extCorrRadioSPARTNSourceDropdown");
+
+                hide("constellationSbas"); //Not supported on LG290P
+                show("constellationNavic");
+
+                hide("dynamicModel"); //Not supported on LG290P
+
+                ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
             }
         }
         else if (id.includes("gnssFirmwareVersionInt")) {
@@ -528,6 +559,7 @@ function parseIncoming(msg) {
         ge("enableExternalPulse").dispatchEvent(new CustomEvent('change'));
         ge("enableExternalHardwareEventLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableEspNow").dispatchEvent(new CustomEvent('change'));
+        ge("enableLora").dispatchEvent(new CustomEvent('change'));
         ge("antennaPhaseCenter_mm").dispatchEvent(new CustomEvent('change'));
         ge("enableLogging").dispatchEvent(new CustomEvent('change'));
         ge("enableLoggingRINEX").dispatchEvent(new CustomEvent('change'));
@@ -876,6 +908,13 @@ function validateFields() {
     //On Ethernet, TCP Client and Server can not be enabled at the same time
     //But, on WiFi, they can be...
     //checkCheckboxMutex("enableTcpClient", "enableTcpServer", "TCP Client and Server can not be enabled at the same time", "collapseTCPUDPConfig");
+
+    //Radio Config
+    if (ge("enableLora").checked == true) {
+        checkElementValue("loraCoordinationFrequency", 903, 927, "Must be 903 to 927", "collapseRadioConfig");
+        checkElementValue("loraSerialInteractionTimeout_s", 10, 600, "Must be 10 to 600", "collapseRadioConfig");
+    }
+
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -1523,11 +1562,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
             hide("ecefConfig");
             show("geodeticConfig");
 
-            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
-                ge("antennaPhaseCenter_mm").value = 61.4;
+            if ((platformPrefix == "Facet mosaicX5") || (platformPrefix == "Facet v2 LBand")) {
+                ge("antennaPhaseCenter_mm").value = 68.5; //Average of L1/L2
+            }
+            else if (platformPrefix == "Facet v2") {
+                ge("antennaPhaseCenter_mm").value = 69.6; //Average of L1/L2
             }
             else if (platformPrefix == "Torch") {
-                ge("antennaPhaseCenter_mm").value = 116.2;
+                ge("antennaPhaseCenter_mm").value = 116.5; //Average of L1/L2
+            }
+            else if (platformPrefix == "EVK") {
+                ge("antennaPhaseCenter_mm").value = 42.0; //Average of L1/L2
             }
             else {
                 ge("antennaPhaseCenter_mm").value = 0.0;
@@ -1628,6 +1673,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             ge("btnForgetRadios").disabled = true;
+        }
+    });
+
+    ge("enableLora").addEventListener("change", function () {
+        if (ge("enableLora").checked == true) {
+            show("loraDetails");
+        }
+        else {
+            hide("loraDetails");
         }
     });
 
