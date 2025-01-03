@@ -464,7 +464,8 @@
                             <div id="mosaicNMEAStreamDropdowns">
                                 <div id="mosaicNMEAStream1Dropdown">
                                     <label for="streamIntervalNMEA_0">NMEA Stream1 interval: </label>
-                                    <select name="streamIntervalNMEA_0" id="streamIntervalNMEA_0" class="form-dropdown mb-2">
+                                    <select name="streamIntervalNMEA_0" id="streamIntervalNMEA_0"
+                                        class="form-dropdown mb-2">
                                         <option value="0">10ms</option>
                                         <option value="1">20ms</option>
                                         <option value="2">40ms</option>
@@ -494,7 +495,8 @@
                                 </div>
                                 <div id="mosaicNMEAStream2Dropdown">
                                     <label for="streamIntervalNMEA_1">NMEA Stream2 interval: </label>
-                                    <select name="streamIntervalNMEA_1" id="streamIntervalNMEA_1" class="form-dropdown mb-2">
+                                    <select name="streamIntervalNMEA_1" id="streamIntervalNMEA_1"
+                                        class="form-dropdown mb-2">
                                         <option value="0">10ms</option>
                                         <option value="1">20ms</option>
                                         <option value="2">40ms</option>
@@ -524,7 +526,7 @@
                             </div>
                             <div id="messageList">
 
-                                
+
                             </div>
                         </div>
                     </div>
@@ -1259,7 +1261,8 @@
 
                         <div id="useLocalizedDistributionCheckbox">
                             <div class="form-check mt-3">
-                                <label class="form-check-label" for="useLocalizedDistribution">Localized Distribution </label>
+                                <label class="form-check-label" for="useLocalizedDistribution">Localized Distribution
+                                </label>
                                 <input class="form-check-input" type="checkbox" value="" id="useLocalizedDistribution">
                                 <span class="tt" data-bs-placement="right"
                                     title="When enabled, localized corrections for your location will be used instead of the continental corrections. Default: Disabled">
@@ -1269,7 +1272,8 @@
 
                             <div id="localizedDistributionTileLevelDropdown">
                                 <label for="localizedDistributionTileLevel">Localized Distribution Tile Level:</label>
-                                <select name="localizedDistributionTileLevel" id="localizedDistributionTileLevel" class="form-dropdown mb-2">
+                                <select name="localizedDistributionTileLevel" id="localizedDistributionTileLevel"
+                                    class="form-dropdown mb-2">
                                     <option value="0">1000 x 1000km Sparse</option>
                                     <option value="1">500 x 500km Sparse</option>
                                     <option value="2">250 x 250km Sparse</option>
@@ -1284,7 +1288,7 @@
                                 <br>
                             </div>
                         </div>
-    
+
 
                     </div>
                 </div>
@@ -1437,17 +1441,19 @@
 
                             <div id="useEnableExtCorrRadio">
                                 <div class="form-check mt-3">
-                                    <label class="form-check-label" for="enableExtCorrRadio">Enable External Radio Corrections</label>
+                                    <label class="form-check-label" for="enableExtCorrRadio">Enable External Radio
+                                        Corrections</label>
                                     <input class="form-check-input" type="checkbox" value="" id="enableExtCorrRadio">
                                     <span class="tt" data-bs-placement="right" id="enableExtCorrRadioInfoText"
                                         title="Enable external radio corrections: RTCM/UBX/SPARTN on ZED-F9P UART2. Default: False">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </div>
-                                
+
                                 <div id="extCorrRadioSPARTNSourceDropdown" class="mt-3">
                                     <label for="extCorrRadioSPARTNSource">External SPARTN Source: </label>
-                                    <select name="extCorrRadioSPARTNSourceType" id="extCorrRadioSPARTNSource" class="form-dropdown">
+                                    <select name="extCorrRadioSPARTNSourceType" id="extCorrRadioSPARTNSource"
+                                        class="form-dropdown">
                                         <option value="1">L-Band</option>
                                         <option value="0">IP</option>
                                     </select>
@@ -1689,10 +1695,10 @@
             <div class="card card-body">
 
                 <div class="form-check mt-3">
-                    <label class="form-check-label" for="enableEspNow">ESP-Now </label>
+                    <label class="form-check-label" for="enableEspNow">ESP-NOW</label>
                     <input class="form-check-input" type="checkbox" value="" id="enableEspNow">
                     <span class="tt" data-bs-placement="right"
-                        title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. However, Bluetooth SPP cannot be used at the same time; use Bluetooth BLE. Default: Off">
+                        title="The internal ESP32 can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
@@ -1735,8 +1741,44 @@
                             <p id="btnForgetRadiosMsg" class="inlineSuccess"></p>
                         </div>
                     </div>
+                </div>
+
+                <div class="form-check mt-3">
+                    <label class="form-check-label" for="enableLora">LoRa</label>
+                    <input class="form-check-input" type="checkbox" value="" id="enableLora">
+                    <span class="tt" data-bs-placement="right"
+                        title="The internal LoRa Radio can be used as a point-to-point, or point-to-multipoint radio for RTCM transmission. Default: Off">
+                        <span class="icon-info-circle text-primary ms-2"></span>
+                    </span>
+                </div>
+
+                <div id="loraDetails" class="collapse mb-2">
+                    <div class="form-check">
+                        Coordination Frequency (MHz):
+                        <span class="tt" data-bs-placement="right"
+                            title="The base frequency used to control hopping between channels. Radios that need to hear each other must use the same coordination frequency. Default: 910MHz. Limit: 903 to 927MHz.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="col-sm-4 col-5 ms-3 form-group">
+                        <input type="number" class="form-control mb-2" id="loraCoordinationFrequency">
+                        <p id="loraCoordinationFrequencyError" class="inlineError"></p>
+                    </div>
+
+                    <div class="form-check">
+                        Seconds before dedicated listening mode:
+                        <span class="tt" data-bs-placement="right"
+                            title="After this number of seconds, incoming serial over USB is ignored so that LoRa serial can flow between devices. Reset the device to re-enable serial over USB. Default: 30s. Limit: 10 to 600s.">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                    <div class="col-sm-4 col-5 ms-3 form-group">
+                        <input type="number" class="form-control mb-2" id="loraSerialInteractionTimeout_s">
+                        <p id="loraSerialInteractionTimeout_sError" class="inlineError"></p>
+                    </div>
 
                 </div>
+
             </div>
         </div>
 
@@ -1826,7 +1868,7 @@
                         <label for="antennaPhaseCenter_mm" class="col-sm-4 col-6 col-form-label">Antenna Phase
                             Center (mm):
                             <span class="tt" data-bs-placement="right"
-                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(116mm)">
+                                title="APC is the distance from the base of the antenna to the antenna phase center. This is usually printed on the side of the antenna and is calculated during antenna calibration. Amount is added to HAE before starting fixed base. Common APCs: Torch(117mm) EVK(42mm) Facet mosaic(69mm) Facet L-Band v2(69mm) Facet v2(70mm)">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
@@ -2049,7 +2091,8 @@
 
                         <div id="enableLoggingRINEXDetails" class="collapse mb-2">
                             <div id="rinexFileDurationDropdown" class="mb-2 mt-3">
-                                <label for="RINEXFileDuration" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX file duration: </label>
+                                <label for="RINEXFileDuration" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX
+                                    file duration: </label>
                                 <select name="RINEXFileDuration" id="RINEXFileDuration" class="form-dropdown">
                                     <option value="0">1 Hour</option>
                                     <option value="1">6 Hours</option>
@@ -2063,7 +2106,8 @@
                             </div>
 
                             <div id="rinexObservationIntervalDropdown" class="mb-2 mt-3">
-                                <label for="RINEXObsInterval" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX observation interval: </label>
+                                <label for="RINEXObsInterval" class="box-margin20 col-sm-3 col-4 col-form-label">RINEX
+                                    observation interval: </label>
                                 <select name="RINEXObsInterval" id="RINEXObsInterval" class="form-dropdown">
                                     <option value="0">1s</option>
                                     <option value="1">2s</option>
