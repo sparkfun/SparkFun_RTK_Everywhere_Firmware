@@ -10,10 +10,6 @@
 //----------------------------------------
 
 void menuEthernet() {systemPrintln("**Ethernet not compiled**");}
-void ethernetVerifyTables() {}
-
-void ethernetWebServerStartESP32W5500() {}
-void ethernetWebServerStopESP32W5500() {}
 
 bool ntpLogIncreasing = false;
 
