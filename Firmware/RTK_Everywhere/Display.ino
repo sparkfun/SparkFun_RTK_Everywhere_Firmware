@@ -401,7 +401,7 @@ void displayUpdate()
                 displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
             case (STATE_WEB_CONFIG):
-                if (networkIsOnline(NETWORK_ETHERNET))
+                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
                     displayConfigViaEthernet();
                 else
                 {

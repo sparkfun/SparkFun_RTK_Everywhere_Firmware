@@ -625,21 +625,6 @@ bool networkIsOnline()
 }
 
 //----------------------------------------
-// Determine if the given network is online
-//----------------------------------------
-bool networkIsOnline(NetIndex_t index)
-{
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Check for network offline
-    NetMask_t bitMask = 1 << index;
-    if (networkOnline & bitMask)
-        return true;
-    return false;
-}
-
-//----------------------------------------
 // Determine if the network is present on the platform
 //----------------------------------------
 bool networkIsPresent(NetIndex_t index)
@@ -1412,7 +1397,7 @@ void networkUpdate()
     // If there are no consumers, but the network is online, shut down all networks
     if (consumerCount == 0 && networkIsOnline() == true)
     {
-        if (settings.debugNetworkLayer)
+        if (settings.debugNetworkLayer && networkIsInterfaceOnline(NETWORK_ETHERNET) == false) //Ethernet is never stopped, so only print for other networks
             systemPrintln("Stopping all networks because there are no consumers");
 
         // Shutdown all networks
