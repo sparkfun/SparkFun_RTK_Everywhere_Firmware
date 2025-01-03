@@ -545,7 +545,7 @@ const int shutDownButtonTime = 2000; // ms press and hold before shutdown
 bool firstButtonThrownOut = false;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// Webserver for serving config page from ESP32 as Acess Point
+// Webserver for serving config page from ESP32 as Access Point
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 // Because the incoming string is longer than max len, there are multiple callbacks so we
@@ -737,7 +737,7 @@ uint32_t lastSetupMenuChange; // Limits how much time is spent in the setup menu
 uint32_t lastTestMenuChange;  // Avoids exiting the test menu for at least 1 second
 uint8_t setupSelectedButton =
     0; // In Display Setup, start displaying at this button. This is the selected (highlighted) button.
-std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'butttons'
+std::vector<setupButton> setupButtons; // A vector (linked list) of the setup 'buttons'
 
 bool firstRoverStart; // Used to detect if the user is toggling the power button at POR to enter the test menu
 
@@ -1038,7 +1038,7 @@ void setup()
         um980FirmwareBeginUpdate();
 
     DMW_b("beginPsram");
-    beginPsram(); // Inialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
+    beginPsram(); // Initialize PSRAM (if available). Needs to occur before beginGnssUart and other malloc users.
 
     DMW_b("beginMux");
     beginMux(); // Must come before I2C activity to avoid external devices from corrupting the bus. See issue #474:
@@ -1089,7 +1089,7 @@ void setup()
     networkBegin();
 
     DMW_b("beginFuelGauge");
-    beginFuelGauge(); // Configure battery fuel guage monitor
+    beginFuelGauge(); // Configure battery fuel gauge monitor
 
     DMW_b("beginCharger");
     beginCharger(); // Configure battery charger

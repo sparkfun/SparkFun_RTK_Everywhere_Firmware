@@ -364,9 +364,9 @@ void networkDisplayInterface(NetIndex_t index)
     if (hasIP)
     {
         if (netif->hasGlobalIPv6())
-            systemPrintf("    Global IPv6 Adress: %s\r\n", netif->globalIPv6().toString().c_str());
+            systemPrintf("    Global IPv6 Address: %s\r\n", netif->globalIPv6().toString().c_str());
         if (netif->hasLinkLocalIPv6())
-            systemPrintf("    Link Local IPv6 Adress: %s\r\n", netif->linkLocalIPv6().toString().c_str());
+            systemPrintf("    Link Local IPv6 Address: %s\r\n", netif->linkLocalIPv6().toString().c_str());
         systemPrintf("    IPv4 Address: %s (%s)\r\n", netif->localIP().toString().c_str(),
                      settings.ethernetDHCP ? "DHCP" : "Static");
         systemPrintf("    Subnet Mask: %s\r\n", netif->subnetMask().toString().c_str());
@@ -671,7 +671,7 @@ void networkMarkOffline(NetIndex_t index)
         // Leave this network on in hopes that it will regain a connection
         previousPriority = networkPriority;
 
-        // Search in decending priority order for the next online network
+        // Search in descending priority order for the next online network
         priority = networkPriorityTable[index];
         for (priority += 1; priority < NETWORK_OFFLINE; priority += 1)
         {

@@ -761,7 +761,7 @@ struct Settings
     uint8_t gnssUartInterruptsCore =
         1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint8_t handleGnssDataTaskCore = 1;     // Core where task should run, 0=core, 1=Arduino
-    uint8_t handleGnssDataTaskPriority = 1; // Read from the cicular buffer and dole out to end points (SD, TCP, BT).
+    uint8_t handleGnssDataTaskPriority = 1; // Read from the circular buffer and dole out to end points (SD, TCP, BT).
     uint8_t i2cInterruptsCore = 1; // Core where hardware is started and interrupts are assigned to, 0=core, 1=Arduino
     uint8_t measurementScale = MEASUREMENT_UNITS_METERS;
     bool printBootTimes = false; // Print times and deltas during boot

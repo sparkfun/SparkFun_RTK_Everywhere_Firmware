@@ -1034,7 +1034,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
                 prop.icon = ESPNowSymbol1Left64x48;
             else // if (espnowRSSI > -255)
                 prop.icon =
-                    ESPNowSymbol0Left64x48; // Always show the synbol because we've got incoming or outgoing data
+                    ESPNowSymbol0Left64x48; // Always show the symbol because we've got incoming or outgoing data
             iconList->push_back(prop);
 
             // Share the spot. Determine if we need to indicate Up, or Down
@@ -2161,7 +2161,7 @@ void displayWiFiConnect()
 }
 
 // When user does a factory reset, let us know
-void displaySytemReset()
+void displaySystemReset()
 {
     displayMessage("Factory Reset", 0);
 }

@@ -486,7 +486,7 @@ void changeProfileNumber(byte newProfileNumber)
 // Erase all settings. Upon restart, unit will use defaults
 void factoryReset(bool alreadyHasSemaphore)
 {
-    displaySytemReset(); // Display friendly message on OLED
+    displaySystemReset(); // Display friendly message on OLED
 
     tasksStopGnssUart();
 

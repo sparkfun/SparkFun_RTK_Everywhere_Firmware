@@ -398,7 +398,7 @@ function parseIncoming(msg) {
         else if (id.includes("messageRate") || id.includes("messageIntervalRTCM")) {
             // messageRateNMEA_GPDTM
             // messageRateRTCMRover_RTCM1001
-            // messagRatesRTCMBase_RTCM1001
+            // messageRatesRTCMBase_RTCM1001
             // messageIntervalRTCMRover_RTCM1230
             // messageIntervalRTCMBase_RTCM1230
             var messageName = id;

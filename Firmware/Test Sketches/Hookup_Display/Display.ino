@@ -1566,7 +1566,7 @@ void displayWiFiConfig()
 }
 
 //When user does a factory reset, let us know
-void displaySytemReset()
+void displaySystemReset()
 {
   displayMessage("Factory Reset", 0);
 }

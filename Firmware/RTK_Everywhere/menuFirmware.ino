@@ -317,7 +317,7 @@ void updateFromSD(const char *firmwareFileName)
     // Bulk write from the SD file to flash
     while (firmwareFile.available())
     {
-        bluetoothLedBlink(); // Toggle LED to indcate activity
+        bluetoothLedBlink(); // Toggle LED to indicate activity
 
         int bytesToWrite = pageSize; // Max number of bytes to read
         if (firmwareFile.available() < bytesToWrite)
