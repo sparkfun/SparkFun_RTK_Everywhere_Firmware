@@ -235,7 +235,9 @@ function parseIncoming(msg) {
                 hide("constellationSbas"); //Not supported on LG290P
                 show("constellationNavic");
 
-                hide("dynamicModel"); //Not supported on LG290P
+                hide("dynamicModelDropdown"); //Not supported on LG290P
+                hide("minElevConfig"); //Not supported on LG290P
+                hide("minCNOConfig"); //Not supported on LG290P
 
                 ge("rtcmRateInfoText").setAttribute('data-bs-original-title', 'RTCM is transmitted by the base at a default of 1Hz for messages 1005, 1074, 1084, 1094, 1114, 1124, 1134. This can be lowered for radios with low bandwidth or tailored to transmit any/all RTCM messages. Limits: 0 to 20. Note: The measurement rate is overridden to 1Hz when in Base mode.');
             }

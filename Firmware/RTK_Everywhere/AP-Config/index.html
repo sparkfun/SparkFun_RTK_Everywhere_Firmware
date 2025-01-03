@@ -282,29 +282,33 @@
                         </div>
                     </div>
 
-                    <div class="form-group row">
-                        <label for="minElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation:
-                            <span class="tt" data-bs-placement="right"
-                                title="Minimum elevation in degrees for a GNSS satellite to be used in a fix.">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-4 col-6">
-                            <input type="number" class="form-control" id="minElev">
-                            <p id="minElevError" class="inlineError"></p>
+                    <div class="form-group row" id="minElevConfig">
+                        <div class="form-group row">
+                            <label for="minElev" class="col-sm-4 col-6 col-form-label">Min SV Elevation:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Minimum elevation in degrees for a GNSS satellite to be used in a fix.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="minElev">
+                                <p id="minElevError" class="inlineError"></p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-group row">
-                        <label for="minCNO" class="col-sm-4 col-6 col-form-label">Min C/N0:
-                            <span class="tt" data-bs-placement="right"
-                                title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 10dBHz for UM980.">
-                                <span class="icon-info-circle text-primary ms-2"></span>
-                            </span>
-                        </label>
-                        <div class="col-sm-4 col-6">
-                            <input type="number" class="form-control" id="minCNO">
-                            <p id="minCNOError" class="inlineError"></p>
+                    <div class="form-group row" id="minCNOConfig">
+                        <div class="form-group row">
+                            <label for="minCNO" class="col-sm-4 col-6 col-form-label">Min C/N0:
+                                <span class="tt" data-bs-placement="right"
+                                    title="Minimum satellite signal level to be used in a fix. Default: 6dBHz for ZED-F9P and 10dBHz for UM980.">
+                                    <span class="icon-info-circle text-primary ms-2"></span>
+                                </span>
+                            </label>
+                            <div class="col-sm-4 col-6">
+                                <input type="number" class="form-control" id="minCNO">
+                                <p id="minCNOError" class="inlineError"></p>
+                            </div>
                         </div>
                     </div>
 
@@ -331,8 +335,8 @@
                             <input class="form-check-input" type="checkbox" value="" id="constellation_GPS">
                         </div>
                         <div id="constellationNavic" class="form-check mt-3 box-margin20">
-                            <label class="form-check-label" for="constellation_MAVIC">NAVIC</label>
-                            <input class="form-check-input" type="checkbox" value="" id="constellation_NAVIC">
+                            <label class="form-check-label" for="constellation_NavIC">NAVIC</label>
+                            <input class="form-check-input" type="checkbox" value="" id="constellation_NavIC">
                         </div>
                         <div id="constellationQzss" class="form-check mt-3 box-margin20">
                             <label class="form-check-label" for="constellation_QZSS">QZSS</label>
@@ -1653,8 +1657,7 @@
                     </div>
 
                     <div class="form-check mt-3">
-                        <input type="checkbox" value="" id="enableNtripCaster"
-                            onClick="tcpServerBoxes()">
+                        <input type="checkbox" value="" id="enableNtripCaster" onClick="tcpServerBoxes()">
                         <label for="enableNtripCaster">NTRIP Caster</label>
                         <span class="tt" data-bs-placement="right"
                             title="If enabled, device will emulate an NTRIP caster, allowing inbound NTRIP Clients to connect and get RTCM over the given port.">
