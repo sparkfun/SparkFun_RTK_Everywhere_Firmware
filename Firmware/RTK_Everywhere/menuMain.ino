@@ -299,8 +299,8 @@ void menuMain()
         gnss->debuggingEnable();
     }
 
-    // Restart WiFi if anything changes
-    if (restartWiFi == true)
+    // Restart WiFi if anything changes and we have consumers
+    if (restartWiFi == true && networkConsumers() > 0)
     {
         restartWiFi = false;
 
