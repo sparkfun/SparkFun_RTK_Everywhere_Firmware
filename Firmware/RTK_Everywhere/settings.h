@@ -1129,7 +1129,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _double,   9, & settings.fixedLong, "fixedLong",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int,      0, & settings.observationSeconds, "observationSeconds",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _float,    2, & settings.observationPositionAccuracy, "observationPositionAccuracy",  },
-    { 1, 1, 0, 1, 1, 0, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
+    { 0, 1, 0, 1, 1, 0, 1, 1, 1, _float,    1, & settings.surveyInStartingAccuracy, "surveyInStartingAccuracy",  },
 
     // Battery
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
@@ -1283,7 +1283,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Multicast DNS
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.mdnsEnable, "mdnsEnable",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, tCharArry, sizeof(settings.mdnsHostName), & settings.mdnsHostName, "mdnsHostName",  },
 
     // Network layer
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugNetworkLayer, "debugNetworkLayer",  },
@@ -1306,7 +1306,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // NTP (Ethernet Only)
     { 0, 0, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.debugNtp, "debugNtp",  },
-    { 1, 1, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.enableNTPFile, "enableNTPFile",  },
+    { 0, 1, 0, 1, 0, 0, 0, 0, 0, _bool,     0, & settings.enableNTPFile, "enableNTPFile",  },
     { 1, 1, 0, 1, 0, 0, 0, 0, 0, _uint16_t, 0, & settings.ethernetNtpPort, "ethernetNtpPort",  },
     { 1, 1, 0, 1, 0, 0, 0, 0, 0, _uint8_t,  0, & settings.ntpPollExponent, "ntpPollExponent",  },
     { 1, 1, 0, 1, 0, 0, 0, 0, 0, _int8_t,   0, & settings.ntpPrecision, "ntpPrecision",  },
@@ -1465,7 +1465,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 //    g  s  x  k  2  c  h  d  d  Type    Qual  Variable                  Name
 
     // Setup Button
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.disableSetupButton, "disableSetupButton",  },
 
     // State
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintDuplicateStates, "enablePrintDuplicateStates",  },
@@ -1484,9 +1484,9 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _uint16_t, 0, & settings.tcpServerPort, "tcpServerPort",  },
 
     // Time Zone
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneHours, "timeZoneHours",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneMinutes, "timeZoneMinutes",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _int8_t,   0, & settings.timeZoneSeconds, "timeZoneSeconds",  },
 
 //                         F
 //                         a
