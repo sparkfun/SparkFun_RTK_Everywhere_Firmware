@@ -556,7 +556,7 @@ enum
     NETCONSUMER_NONE = 0, // No consumers
     NETCONSUMER_WIFI_STA, // The consumer needs STA
     NETCONSUMER_WIFI_AP, // The consumer needs AP
-    NETCONSUMER_WIFI_AP_STA, // The consumer needs STA and AP
+    //NETCONSUMER_WIFI_AP_STA, // The consumer needs STA and AP - Don't use. Use combination of STA and AP bits
     NETCONSUMER_CELLULAR, // The consumer needs Cellular
     NETCONSUMER_ETHERNET, // The consumer needs Ethernet
     NETCONSUMER_ANY, // The consumer doesn't care what type of network access is granted

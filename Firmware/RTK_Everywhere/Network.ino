@@ -1409,25 +1409,14 @@ void networkUpdate()
     // then stop all networks and let the lower code restart the network accordingly
     if (consumerTypes != previousConsumerTypes)
     {
-        previousConsumerTypes = networkGetConsumerTypes(); // Update the previous consumer types
+        if (settings.debugNetworkLayer)
+            systemPrintf("Changing from consumer type 0x%02X to 0x%02X\r\n", previousConsumerTypes, consumerTypes);
 
-        // if (networkConsumersOnline() > 0 && networkShutdownRequest == false)
-        // {
-        //     // Tell consumers to shut down
-        //     networkShutdownRequest = true;
-        //     if (settings.debugNetworkLayer)
-        //         systemPrintln("Notifying consumers of impending network shutdown");
-        // }
-        // else
-        // {
-        //     // We're clear to shutdown
-        //     if (settings.debugNetworkLayer)
-        //         systemPrintln("Stopping all networks because of consumer type change");
+        previousConsumerTypes = networkGetConsumerTypes(); // Update the previous consumer types
 
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStop(index, settings.debugNetworkLayer);
-        // }
 
     }
 
@@ -1440,8 +1429,7 @@ void networkUpdate()
         // If a consumer is requesting a particular type, it gets priority
 
         // Consumer is requesting WiFi specifically
-        if ((consumerTypes && (1 << NETCONSUMER_WIFI_STA)) || (consumerTypes && (1 << NETCONSUMER_WIFI_AP)) ||
-            (consumerTypes && (1 << NETCONSUMER_WIFI_AP_STA)))
+        if ((consumerTypes && (1 << NETCONSUMER_WIFI_STA)) || (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
         {
             if (settings.debugNetworkLayer)
                 systemPrintln("Starting WiFi Specific Network");
@@ -1640,7 +1628,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
 
         // TODO Make web server over ethernet work here as well
         if (settings.wifiConfigOverAP == true)
-            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP_STA); //WebConfig requires both AP and STA (for firmware check)
+            *consumerTypes |= ((1 << NETCONSUMER_WIFI_AP) | (1 << NETCONSUMER_WIFI_STA)); //WebConfig requires both AP and STA (for firmware check)
     }
 
     // Debug

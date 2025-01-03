@@ -857,7 +857,7 @@ void otaUpdate()
             if (!networkIsConnected(&otaPriority))
                 otaUpdateStop();
             if (settings.debugFirmwareUpdate)
-                systemPrintln("Firmware update checking SparkFun released firmware version");
+                systemPrintln("Checking for latest firmware version");
 
             // If we are using auto updates, only update to production firmware, disable release candidates
             if (settings.enableAutoFirmwareUpdate)

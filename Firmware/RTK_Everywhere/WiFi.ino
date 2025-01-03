@@ -523,14 +523,7 @@ bool wifiForceStart()
             startWiFiStation = true;
         }
 
-        // The consumers need both (explicit)
-        else if (consumerTypes & (1 << NETCONSUMER_WIFI_AP_STA))
-        {
-            startWiFiStation = true;
-            startWiFiAP = true;
-        }
-
-        // The consumers need both (implicit)
+        // The consumers need both
         else if ((consumerTypes & (1 << NETCONSUMER_WIFI_AP)) && (consumerTypes & (1 << NETCONSUMER_WIFI_STA)))
         {
             startWiFiStation = true;
