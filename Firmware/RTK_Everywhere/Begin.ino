@@ -208,6 +208,7 @@ void beginBoard()
         present.brand = BRAND_SPARKFUN;
         present.psram_2mb = true;
         present.gnss_um980 = true;
+        present.antennaPhaseCenter_mm = 116.5; // Default to Torch helical APC, average of L1/L2
         present.radio_lora = true;
         present.fuelgauge_bq40z50 = true;
         present.charger_mp2762a = true;
@@ -215,7 +216,6 @@ void beginBoard()
         present.button_powerHigh = true; // Button is pressed when high
         present.beeper = true;
         present.gnss_to_uart = true;
-        present.antennaPhaseCenter_mm = 115.7; // Default to Torch helical APC
         present.needsExternalPpl = true;       // Uses the PointPerfect Library
         present.galileoHasCapable = true;
         present.multipathMitigation = true; // UM980 has MPM, other platforms do not
@@ -316,6 +316,7 @@ void beginBoard()
         // Pin defs etc. for EVK v1.1
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.antennaPhaseCenter_mm = 42.0; // Default to NGS certified SPK6615H APC, average of L1/L2
         present.lband_neo = true;
         present.cellular_lara = true;
         present.ethernet_ws5500 = true;
@@ -443,6 +444,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
         present.lband_neo = true;
         present.microSd = true;
         present.microSdCardDetectLow = true;
@@ -524,6 +526,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_zedf9p = true;
+        present.antennaPhaseCenter_mm = 69.6; // Default to NGS certified RTK Facet element APC, average of L1/L2
         present.microSd = true;
         present.microSdCardDetectLow = true;
         present.display_i2c0 = true;
@@ -618,6 +621,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_4mb = true;
         present.gnss_mosaicX5 = true;
+        present.antennaPhaseCenter_mm = 68.5; // Default to L-Band element APC, average of L1/L2
         present.display_i2c0 = true;
         present.display_type = DISPLAY_64x48;
         present.i2c0BusSpeed_400 = true;
@@ -688,7 +692,7 @@ void beginBoard()
         present.brand = BRAND_SPARKPNT;
         present.psram_2mb = true;
         present.gnss_lg290p = true;
-        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC
+        present.antennaPhaseCenter_mm = 42.0; // Default to SPK6618H APC, average of L1/L2
         present.needsExternalPpl = true;      // Uses the PointPerfect Library
         present.gnss_to_uart = true;
 
