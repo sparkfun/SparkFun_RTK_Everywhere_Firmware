@@ -510,20 +510,20 @@ function parseIncoming(msg) {
         else if (id.includes("antennaHeight_mm")) {
             ge("antennaHeight_m").value = val / 1000.0;
         }
-
+            
         //Check boxes / radio buttons
         else if (val == "true") {
             try {
                 ge(id).checked = true;
             } catch (error) {
-                console.log("Issue with ID: " + id);
+                console.log("Set True issue with ID: " + id);
             }
         }
         else if (val == "false") {
             try {
                 ge(id).checked = false;
             } catch (error) {
-                console.log("Issue with ID: " + id);
+                console.log("Set False issue with ID: " + id);
             }
         }
 
@@ -884,6 +884,12 @@ function validateFields() {
         ge("autoKeyRenewal").checked = true;
     }
 
+    //Port Config
+    if (ge("enableExternalPulse").checked == true) {
+        checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+        checkElementValue("externalPulseLength", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
+    }
+
     //WiFi Config
     checkElementString("wifiNetwork_0SSID", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
     checkElementString("wifiNetwork_0Password", 0, 49, "Must be 0 to 49 characters", "collapseWiFiConfig");
@@ -915,6 +921,12 @@ function validateFields() {
         checkElementValue("loraSerialInteractionTimeout_s", 10, 600, "Must be 10 to 600", "collapseRadioConfig");
     }
 
+    //Corrections Config
+    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
+
+    //Instrument Config
+    checkElementValue("antennaHeight_m", -15, 15, "Must be -15 to 15", "collapseBaseConfig");
+    checkElementValue("antennaPhaseCenter_mm", -200.0, 200.0, "Must be -200.0 to 200.0", "collapseBaseConfig");
 
     //System Config
     if (ge("enableLogging").checked == true) {
@@ -965,15 +977,6 @@ function validateFields() {
         checkElementValue("ntpRootDispersion", 0, 10000000, "Must be 0 to 10,000,000", "collapseNTPConfig");
         checkElementString("ntpReferenceId", 1, 4, "Must be 1 to 4 chars", "collapseNTPConfig");
     }
-
-    //Port Config
-    if (ge("enableExternalPulse").checked == true) {
-        checkElementValue("externalPulseTimeBetweenPulse", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-        checkElementValue("externalPulseLength", 1, 60000000, "Must be 1 to 60,000,000", "collapsePortsConfig");
-    }
-
-    //Corrections Priorities
-    checkElementValue("correctionsSourcesLifetime", 5, 120, "Must be 5 to 120", "collapseCorrectionsPriorityConfig");
 }
 
 var currentProfileNumber = 0;
@@ -1011,12 +1014,14 @@ function changeProfile() {
         collapseSection("collapsePortsConfig", "portsCaret");
         collapseSection("collapseWiFiConfig", "wifiCaret");
         collapseSection("collapseTCPUDPConfig", "tcpUdpCaret");
+        collapseSection("collapseRadioConfig", "radioCaret");
         collapseSection("collapseCorrectionsPriorityConfig", "correctionsCaret");
+        collapseSection("collapseInstrumentConfig", "instrumentCaret");
         collapseSection("collapseSystemConfig", "systemCaret");
+
         collapseSection("collapseEthernetConfig", "ethernetCaret");
         collapseSection("collapseNTPConfig", "ntpCaret");
         collapseSection("collapseFileManager", "fileManagerCaret");
-        collapseSection("collapseInstrumentConfig", "instrumentCaret");
     }
 }
 
@@ -2111,7 +2116,7 @@ function getMessageList() {
                 ge(savedCheckboxNames[x]).checked = false;
             }
             else {
-                console.log("Issue with ID: " + savedCheckboxNames[x]);
+                console.log("getMessageList Issue with ID: " + savedCheckboxNames[x]);
             }
         }
     }
@@ -2143,7 +2148,7 @@ function getMessageListBase() {
                 ge(savedCheckboxNames[x]).checked = false;
             }
             else {
-                console.log("Issue with ID: " + savedCheckboxNames[x]);
+                console.log("getMessageListBase issue with ID: " + savedCheckboxNames[x]);
             }
         }
     }
