@@ -420,11 +420,10 @@ void stateUpdate()
 
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
-            // TODO - Do we need to stop BT and ESP-NOW during web config or can we leave it running?
-            // bluetoothStop();
-            // espnowStop();
+            bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
+            espnowStop(); // We don't need ESP-NOW during web config
 
-            // tasksStopGnssUart(); // Delete serial tasks if running
+            // The GNSS UART task is left running to allow non-ZED platforms to obtain LLh data for 1Hz page updates
 
             // Stop any running NTRIP Client or Server
             ntripClientStop(true); // Do not allocate new wifiClient
