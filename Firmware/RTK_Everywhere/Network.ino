@@ -786,11 +786,13 @@ void networkMulticastDNSSwitch(NetIndex_t startIndex)
 //----------------------------------------
 // Start multicast DNS
 //----------------------------------------
-void networkMulticastDNSStart(NetIndex_t index)
+bool networkMulticastDNSStart(NetIndex_t index)
 {
     NetMask_t bitMask;
+    bool started;
 
     // Start mDNS if it is enabled and not running on this network
+    started = false;
     bitMask = 1 << index;
     if (settings.mdnsEnable && (!(networkMdnsRunning & bitMask)) && (mDNSUse & bitMask))
     {
@@ -801,11 +803,13 @@ void networkMulticastDNSStart(NetIndex_t index)
         {
             MDNS.addService("http", "tcp", settings.httpPort); // Add service to MDNS
             networkMdnsRunning |= bitMask;
+            started = true;
 
             if (settings.debugNetworkLayer)
                 systemPrintf("mDNS started as %s.local\r\n", settings.mdnsHostName);
         }
     }
+    return started;
 }
 
 //----------------------------------------

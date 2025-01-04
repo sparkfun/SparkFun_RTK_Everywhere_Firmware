@@ -177,6 +177,9 @@ void webServerUpdate()  {}
 
 #ifndef COMPILE_ESPNOW
 
+bool espNowStart()  {return false;}
+bool espNowStop()   {return false;}
+
 bool espnowIsPaired()                   {return false;}
 void espnowProcessRTCM(byte incoming)   {}
 esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}

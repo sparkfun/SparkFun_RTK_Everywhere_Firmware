@@ -303,6 +303,9 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #ifdef COMPILE_WIFI
+int packetRSSI;
+RTK_WIFI wifi(false);
+
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
@@ -606,7 +609,6 @@ uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
 uint16_t espnowBytesSent;    // May be more than 255
 uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
 
-int packetRSSI;
 unsigned long lastEspnowRssiUpdate;
 
 #endif // COMPILE_ESPNOW
