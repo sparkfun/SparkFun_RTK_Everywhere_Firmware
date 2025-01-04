@@ -1397,7 +1397,8 @@ void networkUpdate()
     // If there are no consumers, but the network is online, shut down all networks
     if (consumerCount == 0 && networkIsOnline() == true)
     {
-        if (settings.debugNetworkLayer && networkIsInterfaceOnline(NETWORK_ETHERNET) == false) //Ethernet is never stopped, so only print for other networks
+        if (settings.debugNetworkLayer && networkIsInterfaceOnline(NETWORK_ETHERNET) ==
+                                              false) // Ethernet is never stopped, so only print for other networks
             systemPrintln("Stopping all networks because there are no consumers");
 
         // Shutdown all networks
@@ -1417,7 +1418,6 @@ void networkUpdate()
         // Shutdown all networks
         for (int index = 0; index < NETWORK_OFFLINE; index++)
             networkStop(index, settings.debugNetworkLayer);
-
     }
 
     // Allow consumers to start networks
@@ -1425,42 +1425,16 @@ void networkUpdate()
     // so that a networkStart() succeeds.
     if (consumerCount > 0 && networkIsOnline() == false)
     {
-        // Determine which type of network is needed
-        // If a consumer is requesting a particular type, it gets priority
+        // Attempt to start any network that is needed, in the order Ethernet/WiFi/Cellular
 
-        // Consumer is requesting WiFi specifically
-        if ((consumerTypes && (1 << NETCONSUMER_WIFI_STA)) || (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintln("Starting WiFi Specific Network");
-
-            networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
-            //networkMulticastDNSSwitch(NETWORK_WIFI); This should be taken care of by networkMarkOnline()
-        }
-
-        // We don't have this type of consumer yet but good to have...
-        else if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
-        {
+        if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
             networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
-            //networkMulticastDNSSwitch(NETWORK_ETHERNET);
-        }
 
-        // We don't have this type of consumer yet but good to have...
-        else if (consumerTypes && (1 << NETCONSUMER_CELLULAR))
-        {
+        if ((consumerTypes && (1 << NETCONSUMER_WIFI_STA)) || (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
+            networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
+
+        if (consumerTypes && (1 << NETCONSUMER_CELLULAR))
             networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
-        }
-
-        // Most consumers don't care and so they get whatever is available
-        else if (consumerTypes == NETCONSUMER_ANY)
-        {
-            if (settings.debugNetworkLayer)
-                systemPrintln("Starting any network");
-
-            // Start any network that is available, in the order Ethernet/WiFi/Cellular
-            for (int index = 0; index < NETWORK_OFFLINE; index++)
-                networkStart(index, settings.debugNetworkLayer);
-        }
     }
 
     // Walk the list of network priorities in descending order
@@ -1548,7 +1522,8 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 0);
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
     // Network needed for NTRIP Server
@@ -1567,8 +1542,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         consumerCount++;
         consumerId |= (1 << 1);
 
-        // TODO - Base type. If AP then limit to NETCONSUMER_WIFI_AP
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
     // Network needed for TCP Client
@@ -1576,7 +1550,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 2);
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
     // Network needed for TCP Server
@@ -1584,7 +1558,14 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 3);
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
+
+        // If NTRIP Caster is enabled then add AP mode
+        // Caster us available over ethernet, WiFi AP, WiFi STA, and cellular
+        // Caster is available in all mode: Rover, and Base
+        if (settings.enableNtripCaster == true)
+            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP);
     }
 
     // Network needed for UDP Server
@@ -1592,7 +1573,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 4);
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
     // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
@@ -1600,7 +1581,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 5);
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
     // Network needed for PointPerfect Corrections MQTT client
@@ -1609,7 +1590,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         // PointPerfect is enabled, allow MQTT to begin
         consumerCount++;
         consumerId |= (1 << 6);
-        *consumerTypes |= (1 << NETCONSUMER_ANY); // Ask for any network access
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
     // Network needed to obtain the latest firmware version or do a firmware update
@@ -1617,7 +1598,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 7);
-        *consumerTypes |= (1 << NETCONSUMER_WIFI_STA); // OTA Pull library only supports WiFi
+        *consumerTypes = (1 << NETCONSUMER_WIFI_STA); // OTA Pull library only supports WiFi
     }
 
     // Network needed for Web Config
@@ -1626,9 +1607,10 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         consumerCount++;
         consumerId |= (1 << 8);
 
-        // TODO Make web server over ethernet work here as well
+        *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
+
         if (settings.wifiConfigOverAP == true)
-            *consumerTypes |= ((1 << NETCONSUMER_WIFI_AP) | (1 << NETCONSUMER_WIFI_STA)); //WebConfig requires both AP and STA (for firmware check)
+            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // WebConfig requires both AP and STA (for firmware check)
     }
 
     // Debug

@@ -517,33 +517,20 @@ bool wifiForceStart()
 
         uint16_t consumerTypes = networkGetConsumerTypes();
 
-        // Only one bit is set, WiFi Station is default
-        if (consumerTypes == (1 << NETCONSUMER_ANY))
-        {
-            startWiFiStation = true;
-        }
-
-        // The consumers need both
-        else if ((consumerTypes & (1 << NETCONSUMER_WIFI_AP)) && (consumerTypes & (1 << NETCONSUMER_WIFI_STA)))
-        {
-            startWiFiStation = true;
-            startWiFiAP = true;
-        }
-
         // The consumers need station
-        else if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
-        {
+        if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
             startWiFiStation = true;
-        }
 
         // The consumers need AP
-        else if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
-        {
+        if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
             startWiFiAP = true;
-        }
 
-        else
-            systemPrintln("wifiForceStart(): Unknown NETCONSUMER combination");
+        if(startWiFiStation == false && startWiFiAP == false)
+        {
+            systemPrintln("wifiForceStart requested without any NETCONSUMER combination");
+            WIFI_STOP();
+            return (false);
+        }
 
         if (wifiNetworkCount() == 0)
         {
