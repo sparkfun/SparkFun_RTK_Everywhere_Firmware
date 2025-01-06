@@ -1680,7 +1680,6 @@ void buttonCheckTask(void *e)
 
                     forceSystemStateUpdate = true; // Immediately go to this new state
                     changeState(STATE_ROVER_NOT_STARTED);
-                    wifiRestart();
                 }
             }
 

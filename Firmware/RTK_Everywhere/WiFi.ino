@@ -489,29 +489,6 @@ const char *wifiPrintState(wl_status_t wifiStatus)
 }
 
 //----------------------------------------
-// Restart WiFi
-//----------------------------------------
-void wifiRestart()
-{
-    // Restart the AP webServer if we are in that state
-    if (systemState == STATE_WEB_CONFIG)
-        requestChangeState(STATE_WEB_CONFIG_NOT_STARTED);
-    else
-    {
-        // Restart WiFi if we are not in AP config mode
-        WIFI_STOP();
-
-        if (networkConsumers() == 0)
-        {
-            // Don't restart WiFi if there is no need for it
-            return;
-        }
-
-        wifiForceStart();
-    }
-}
-
-//----------------------------------------
 // Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
 // Sets the appropriate protocols (WiFi + ESP-Now)
 // If radio is off entirely, start WiFi

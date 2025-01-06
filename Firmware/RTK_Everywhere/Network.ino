@@ -128,7 +128,7 @@ NETWORK_POLL_SEQUENCE *networkSequence[NETWORK_OFFLINE];
 
 NetMask_t networkMdnsRunning; // Non-zero when mDNS is running
 
-bool networkShutdownRequest = false; // Used to notify consumers that the network layer needs to shut down
+extern bool restartWiFi; // From WiFi.ino
 
 //----------------------------------------
 // Menu for configuring TCP/UDP interfaces
@@ -524,7 +524,7 @@ IPAddress networkGetIpAddress()
     {
         index = networkIndexTable[index];
 
-        //NETIF doesn't capture the IP address of a soft AP
+        // NETIF doesn't capture the IP address of a soft AP
         if (index == NETWORK_WIFI && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
             return WiFi.softAPIP();
 
@@ -1404,6 +1404,14 @@ void networkUpdate()
 
     int consumerCount = networkConsumers(&consumerTypes); // Update the current consumer types
 
+    // restartWiFi is used by the settings interface to indicate SSIDs or else has changed
+    // Stop WiFi to allow restart with new settings
+    if (restartWiFi == true && networkIsInterfaceOnline(NETWORK_WIFI))
+    {
+        restartWiFi = false;
+        networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
+    }
+
     // If there are no consumers, but the network is online, shut down all networks
     if (consumerCount == 0 && networkIsOnline() == true)
     {
@@ -1485,7 +1493,7 @@ void networkUpdate()
 
             else if (index == NETWORK_WIFI && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
             {
-                //NETIF doesn't capture the IP address of a soft AP
+                // NETIF doesn't capture the IP address of a soft AP
                 ipAddress = WiFi.softAPIP();
                 systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name, ipAddress.toString().c_str(),
                              networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");

@@ -299,14 +299,6 @@ void menuMain()
         gnss->debuggingEnable();
     }
 
-    // Restart WiFi if anything changes and we have consumers
-    if (restartWiFi == true && networkConsumers() > 0)
-    {
-        restartWiFi = false;
-
-        wifiRestart();
-    }
-
     clearBuffer();           // Empty buffer of any newline chars
     btPrintEchoExit = false; // We are out of the menu system
     inMainMenu = false;

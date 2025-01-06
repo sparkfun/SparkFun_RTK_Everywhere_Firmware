@@ -170,7 +170,6 @@ void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 int wifiNetworkCount() {return 0;}
 bool wifiIsRunning() {return false;}
-void wifiRestart() {}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI
