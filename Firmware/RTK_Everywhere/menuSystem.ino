@@ -162,7 +162,7 @@ void menuSystem()
         if (present.ethernet_ws5500 == true)
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
-        systemPrintln("W) Switch to WiFi Config mode");
+        systemPrintln("W) Switch to Web Config mode");
         if (present.fastPowerOff == true)
             systemPrintln("S) Shut down");
 

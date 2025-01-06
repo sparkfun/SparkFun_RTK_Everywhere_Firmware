@@ -667,6 +667,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
                 settings.lastState = STATE_BASE_NOT_STARTED;
             else if (settingValue == 2 && productVariant == RTK_EVK)
                 settings.lastState = STATE_NTPSERVER_NOT_STARTED;
+            else if (settingValue == 3)
+                settings.lastState = STATE_BASE_CASTER_NOT_STARTED;
         }
         break;
         case tPulseEdg: {
@@ -1493,6 +1495,7 @@ void createSettingsString(char *newSettings)
             break;
             case tSysState: {
                 SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
+
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
@@ -1882,20 +1885,24 @@ void createSettingsString(char *newSettings)
 
     stringRecord(newSettings, "measurementRateHz", 1.0 / gnss->getRateS(), 2); // 2 = decimals to print
 
-    // System state at power on. Convert various system states to either Rover or Base or NTP.
-    int lastState; // 0 = Rover, 1 = Base, 2 = NTP
+    // System state at power on. Convert various system states to either Rover, Base, NTP, or BaseCast.
+    int lastState; // 0 = Rover, 1 = Base, 2 = NTP, 3 = BaseCast
     if (present.ethernet_ws5500 == true)
     {
         lastState = 1; // Default Base
-        if (settings.lastState >= STATE_ROVER_NOT_STARTED && settings.lastState <= STATE_ROVER_RTK_FIX)
+        if (settings.baseCasterOverride)
+            lastState = 3;
+        else if (settings.lastState >= STATE_ROVER_NOT_STARTED && settings.lastState <= STATE_ROVER_RTK_FIX)
             lastState = 0;
-        if (settings.lastState >= STATE_NTPSERVER_NOT_STARTED && settings.lastState <= STATE_NTPSERVER_SYNC)
+        else if (settings.lastState >= STATE_NTPSERVER_NOT_STARTED && settings.lastState <= STATE_NTPSERVER_SYNC)
             lastState = 2;
     }
     else
     {
         lastState = 0; // Default Rover
-        if (settings.lastState >= STATE_BASE_NOT_STARTED && settings.lastState <= STATE_BASE_FIXED_TRANSMITTING)
+        if (settings.baseCasterOverride)
+            lastState = 3;
+        else if (settings.lastState >= STATE_BASE_NOT_STARTED && settings.lastState <= STATE_BASE_FIXED_TRANSMITTING)
             lastState = 1;
     }
     stringRecord(newSettings, "lastState", lastState);
@@ -2317,11 +2324,13 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             knownSetting = true;
         }
         break;
-        case tSysState: {
-            SystemState *ptr = (SystemState *)var;
-            writeToString(settingValueStr, (int)*ptr);
-            knownSetting = true;
-        }
+            // System state at power on. Convert various system states to either Rover, Base, NTP, or BaseCast.
+            // Manually handled below
+        // case tSysState: {
+        //     SystemState *ptr = (SystemState *)var;
+        //     writeToString(settingValueStr, (int)*ptr);
+        //     knownSetting = true;
+        // }
         break;
         case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;

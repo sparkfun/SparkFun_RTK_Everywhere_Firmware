@@ -121,6 +121,7 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+                hide("shutdownNoChargeTimeoutCheckbox");
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
@@ -1729,6 +1730,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         else {
             hide("enableAutomaticResetDetails");
+        }
+    });
+
+    ge("shutdownNoChargeTimeout").addEventListener("change", function () {
+        if (ge("shutdownNoChargeTimeout").checked == true) {
+            show("shutdownNoChargeTimeoutDetails");
+        }
+        else {
+            hide("shutdownNoChargeTimeoutDetails");
         }
     });
 

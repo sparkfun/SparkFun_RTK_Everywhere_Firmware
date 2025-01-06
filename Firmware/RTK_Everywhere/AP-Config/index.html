@@ -242,7 +242,7 @@
                                 <label for="measurementRateHz" class="col-form-label">In
                                     Hz:
                                     <span class="tt" data-bs-placement="right"
-                                        title="The number of solutions or location ‘fixes’ per second. Anything above 4Hz may cause Bluetooth congestion and/or logging discrepancies. Note: The measurement rate is overridden to 1Hz when in Base mode. Default: 4Hz. Limit: 0.000122 to 10Hz.">
+                                        title="The number of solutions or location ‘fixes’ per second. Anything above 4Hz may cause Bluetooth congestion and/or logging discrepancies. Note: The measurement rate is overridden to 1Hz when in Base mode. Default: 4Hz. Limits: 0.000122 to 10Hz.">
                                         <span class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
@@ -257,7 +257,7 @@
                             <div class="col-sm-2 col-12 ms-3 form-group">
                                 <label for="measurementRateSec">Seconds between measurements:
                                     <span class="tt" data-bs-placement="right"
-                                        title="The number of seconds between measurements. This input is the inverse of the measurement rate and is useful when taking a measurement every few seconds across a long survey (24+ hours). Note: The measurement rate is overridden to 1Hz when in Base mode.Limit: 0.1 to 8196 seconds."><span
+                                        title="The number of seconds between measurements. This input is the inverse of the measurement rate and is useful when taking a measurement every few seconds across a long survey (24+ hours). Note: The measurement rate is overridden to 1Hz when in Base mode.Limits: 0.1 to 8196 seconds."><span
                                             class="icon-info-circle text-primary ms-2"></span>
                                     </span>
                                 </label>
@@ -1770,7 +1770,7 @@
                         <div class="form-check">
                             Coordination Frequency (MHz):
                             <span class="tt" data-bs-placement="right"
-                                title="The base frequency used to control hopping between channels. Radios that need to hear each other must use the same coordination frequency. Default: 910MHz. Limit: 903 to 927MHz.">
+                                title="The base frequency used to control hopping between channels. Radios that need to hear each other must use the same coordination frequency. Default: 910MHz. Limits: 903 to 927MHz.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
@@ -1782,7 +1782,7 @@
                         <div class="form-check">
                             Seconds before dedicated listening mode:
                             <span class="tt" data-bs-placement="right"
-                                title="After this number of seconds, incoming serial over USB is ignored so that LoRa serial can flow between devices. Reset the device to re-enable serial over USB. Default: 30s. Limit: 10 to 600s.">
+                                title="After this number of seconds, incoming serial over USB is ignored so that LoRa serial can flow between devices. Reset the device to re-enable serial over USB. Default: 30s. Limits: 10 to 600s.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </div>
@@ -1813,7 +1813,7 @@
                     <label for="correctionsSourcesLifetime"
                         class="box-margin40 col-sm-6 col-6 col-form-label">Corrections Source Lifetime:
                         <span class="tt" data-bs-placement="right"
-                            title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limit: 5 to 120 seconds.">
+                            title="A correction source expires if no data is received for this many seconds. Priority will be given to the next highest source. Limits: 5 to 120 seconds.">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </label>
@@ -2007,9 +2007,10 @@
                         <option value="0">Rover</option>
                         <option value="1">Base</option>
                         <option value="2">NTP</option>
+                        <option value="3">BaseCast</option>
                     </select>
                     <span class="tt" data-bs-placement="right"
-                        title="Put the system into rover, base or NTP mode at next Power On or Reset.">
+                        title="Put the system into the selected mode at next Power On or Reset.">
                         <span class="icon-info-circle text-primary ms-2"></span>
                     </span>
                 </div>
@@ -2030,7 +2031,7 @@
                             <label for="maxLogTime" class="box-margin40 col-sm-3 col-7 col-form-label">Max Logging
                                 Time (min):
                                 <span class="tt" data-bs-placement="right"
-                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                    title="Once the max log time is achieved, logging will cease. This is useful for limiting long term, overnight, static surveys to a certain length of time. Default: 1440 minutes. Limits: 1 to 2880 minutes.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
@@ -2041,7 +2042,7 @@
                         <div class="form-group row">
                             <label for="maxLogLength" class="box-margin40 col-sm-3 col-7 col-form-label">Max Log
                                 File Length (min):<span class="tt" data-bs-placement="right"
-                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limit: 1 to 2880 minutes.">
+                                    title="Once this length of time is achieved, a new log will be created. This is useful for creating multiple logs over a long survey. Default: 1440 minutes. Limits: 1 to 2880 minutes.">
                                     <span class="icon-info-circle text-primary ms-2"></span>
                                 </span>
                             </label>
@@ -2191,6 +2192,31 @@
                             restarts:
                             <span class="tt" data-bs-placement="right"
                                 title="If automatic restart is enabled, the device will reset after this many minutes have elapsed">
+                                <span class="icon-info-circle text-primary ms-2"></span>
+                            </span>
+                        </label>
+                        <input type="number" class="form-control box-small" id="rebootMinutes">
+                        <p id="rebootMinutesError" class="inlineError"></p>
+                    </div>
+                </div>
+
+                <div id="shutdownNoChargeTimeoutCheckbox">
+                    <div class="form-check mt-3">
+                        <label class="form-check-label" for="shutdownNoChargeTimeout">Shutdown if not charging:</label>
+                        <input class="form-check-input" type="checkbox" value="" id="shutdownNoChargeTimeout">
+                        <span class="tt" data-bs-placement="right"
+                            title="If enabled, device will turn off if no external charger is present. This is helpful when deploying in machinery or where a user may forget to turn the device off. Default: Disabled">
+                            <span class="icon-info-circle text-primary ms-2"></span>
+                        </span>
+                    </div>
+                </div>
+
+                <div id="shutdownNoChargeTimeoutDetails" class="collapse mb-2">
+                    <div class="form-group row">
+                        <label for="rebootMinutes" class="box-margin40 col-sm-3 col-7 col-form-label">Seconds before
+                            shutdown:
+                            <span class="tt" data-bs-placement="right"
+                                title="If shutdown is enabled, the device will turn off after this many seconds if no external charger is detected. Limits: 0 (disabled) to 604800.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
@@ -2369,7 +2395,7 @@
                 <div class="form-group row">
                     <label for="ntpReferenceId" class="col-5 col-form-label">Reference ID:
                         <span class="tt" data-bs-placement="right"
-                            title="This code identifies the reference clock. Default: GPS. Limit: 1-4 characters">
+                            title="This code identifies the reference clock. Default: GPS. Limits: 1-4 characters">
                             <span class="icon-info-circle text-primary ms-2"></span>
                         </span>
                     </label>

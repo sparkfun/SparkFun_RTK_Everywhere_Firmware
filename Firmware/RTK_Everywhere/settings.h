@@ -1596,7 +1596,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
-    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
+    { 0, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

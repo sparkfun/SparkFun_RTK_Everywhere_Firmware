@@ -511,8 +511,6 @@ bool GNSS_LG290P::enableNMEA()
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
 
-    Serial.println("\r\n setting nmea");
-
     for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
     {
         if (_lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
