@@ -3020,7 +3020,7 @@ void displayConfigViaWiFi()
 
 #ifdef COMPILE_WIFI
     if (settings.wifiConfigOverAP == true)
-        snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+        snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
     else
     {
         if (WiFi.getMode() == WIFI_STA)
@@ -3028,11 +3028,11 @@ void displayConfigViaWiFi()
 
         // If we failed to connect to a friendly WiFi, and then fell back to AP mode, still display RTK Config
         else if (WiFi.getMode() == WIFI_AP)
-            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
 
         // If we are in AP+STA mode, still display RTK Config
         else if (WiFi.getMode() == WIFI_AP_STA)
-            snprintf(mySSID, sizeof(mySSID), "%s", "RTK Config");
+            snprintf(mySSID, sizeof(mySSID), "%s", WiFi.softAPSSID().c_str());
 
         else
             snprintf(mySSID, sizeof(mySSID), "%s", "Error");

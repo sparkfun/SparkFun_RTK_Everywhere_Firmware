@@ -224,14 +224,28 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
 
         WiFi.softAPConfig(local_IP, gateway, subnet);
 
-        const char *softApSsid = "RTK Config";
-        if (WiFi.softAP(softApSsid) == false) // Must be short enough to fit OLED Width
+        // Determine the AP name
+        // If in web config mode then 'RTK Config'
+        // otherwise 'RTK Caster'
+
+        char softApSsid[strlen("RTK Config")]; // Must be short enough to fit OLED Width
+
+        if (inWebConfigMode())
+            strncpy(softApSsid, "RTK Config", sizeof(softApSsid));
+            //snprintf("%s", sizeof(softApSsid), softApSsid, (const char)"RTK Config"); // TODO use settings.webconfigApName
+        else
+            strncpy(softApSsid, "RTK Caster", sizeof(softApSsid));
+            //snprintf("%s", sizeof(softApSsid), softApSsid, (const char)"RTK Caster");
+
+        if (WiFi.softAP(softApSsid) == false)
         {
             systemPrintln("WiFi AP failed to start");
             return (false);
         }
         systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
         systemPrintln(WiFi.softAPIP());
+
+        networkMarkOnline(NETWORK_WIFI); // Regardless of WiFi STA success of failure, we have some network access
 
         // Start DNS Server
         if (dnsServer.start(53, "*", WiFi.softAPIP()) == false)
@@ -525,7 +539,7 @@ bool wifiForceStart()
         if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
             startWiFiAP = true;
 
-        if(startWiFiStation == false && startWiFiAP == false)
+        if (startWiFiStation == false && startWiFiAP == false)
         {
             systemPrintln("wifiForceStart requested without any NETCONSUMER combination");
             WIFI_STOP();
@@ -560,10 +574,7 @@ bool wifiForceStart()
 
     // If we are in AP only mode, as long as the AP is started, return true
     if (WiFi.getMode() == WIFI_MODE_AP)
-    {
-        networkMarkOnline(NETWORK_WIFI);
         return (true);
-    }
 
     // If we are in STA or AP+STA mode, return if the station connected successfully
     wifiStatus = WiFi.status();
