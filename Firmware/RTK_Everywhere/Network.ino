@@ -523,10 +523,18 @@ IPAddress networkGetIpAddress()
     if (index < NETWORK_OFFLINE)
     {
         index = networkIndexTable[index];
+
+        //NETIF doesn't capture the IP address of a soft AP
+        if (index == NETWORK_WIFI && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
+            return WiFi.softAPIP();
+
         return networkInterfaceTable[index].netif->localIP();
     }
 
     // No IP address available
+    if (settings.debugNetworkLayer)
+        systemPrintln("No network online - No IP available");
+
     return IPAddress(0, 0, 0, 0);
 }
 
@@ -1117,6 +1125,7 @@ void networkSequenceStop(NetIndex_t index, bool debug)
             // Start the sequence
             networkSeqStopping |= bitMask;
             networkStarted &= ~bitMask;
+
             networkSequence[index] = sequence;
         }
     }
@@ -1176,6 +1185,7 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
     if (forcedStop)
     {
         networkStarted &= ~bitMask;
+
         networkSeqRequest &= ~bitMask;
         networkSeqNext &= ~bitMask;
     }
@@ -1472,6 +1482,14 @@ void networkUpdate()
                 systemPrintf("%s: Link Up\r\n", networkInterfaceTable[index].name);
             else if (networkInterfaceTable[index].netif->started())
                 systemPrintf("%s: Started\r\n", networkInterfaceTable[index].name);
+
+            else if (index == NETWORK_WIFI && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
+            {
+                //NETIF doesn't capture the IP address of a soft AP
+                ipAddress = WiFi.softAPIP();
+                systemPrintf("%s: %s%s\r\n", networkInterfaceTable[index].name, ipAddress.toString().c_str(),
+                             networkInterfaceTable[index].netif->isDefault() ? " (default)" : "");
+            }
             else
                 systemPrintf("%s: Stopped\r\n", networkInterfaceTable[index].name);
         }
