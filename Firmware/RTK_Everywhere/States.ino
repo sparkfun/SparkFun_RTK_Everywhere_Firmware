@@ -116,7 +116,8 @@ void stateUpdate()
             espnowStart();    // Start internal radio if enabled, otherwise disable
 
             webServerStop(); // Stop the web config server
-
+            baseCasterDisableOverride(); // Disable casting overrides
+            
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
@@ -207,6 +208,12 @@ void stateUpdate()
 
             */
 
+        case (STATE_BASE_CASTER_NOT_STARTED): {
+            baseCasterEnableOverride();
+            changeState(STATE_BASE_NOT_STARTED);
+        }
+        break;
+
         case (STATE_BASE_NOT_STARTED): {
             RTK_MODE(RTK_MODE_BASE_SURVEY_IN);
             firstRoverStart = false; // If base is starting, no test menu, normal button use.
@@ -228,7 +235,8 @@ void stateUpdate()
             {
                 settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
-                recordSystemSettings();                      // Record this state for next POR
+
+                recordSystemSettings();                                 // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
@@ -421,7 +429,7 @@ void stateUpdate()
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
-            espnowStop(); // We don't need ESP-NOW during web config
+            espnowStop();    // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow non-ZED platforms to obtain LLh data for 1Hz page updates
 
@@ -662,6 +670,8 @@ const char *getState(SystemState state, char *buffer)
         return "STATE_ROVER_RTK_FLOAT";
     case (STATE_ROVER_RTK_FIX):
         return "STATE_ROVER_RTK_FIX";
+    case (STATE_BASE_CASTER_NOT_STARTED):
+        return "STATE_BASE_CASTER_NOT_STARTED";
     case (STATE_BASE_NOT_STARTED):
         return "STATE_BASE_NOT_STARTED";
     case (STATE_BASE_TEMP_SETTLE):
@@ -840,6 +850,7 @@ void constructSetupDisplay(std::vector<setupButton> *buttons)
     buttons->clear();
 
     addSetupButton(buttons, "Base", STATE_BASE_NOT_STARTED);
+    addSetupButton(buttons, "BaseCast", STATE_BASE_CASTER_NOT_STARTED);
     addSetupButton(buttons, "Rover", STATE_ROVER_NOT_STARTED);
     if (present.ethernet_ws5500 == true)
     {

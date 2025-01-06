@@ -1809,6 +1809,7 @@ void buttonCheckTask(void *e)
                 case STATE_TESTING:
                     // If we are in testing, return to Base Not Started
                     lastSetupMenuChange = millis(); // Prevent a timeout during state change
+                    baseCasterDisableOverride();    // Leave Caster mode
                     requestChangeState(STATE_BASE_NOT_STARTED);
                     break;
 
@@ -1846,6 +1847,11 @@ void buttonCheckTask(void *e)
                             {
                                 firstButtonThrownOut = false;
                                 requestChangeState(lastSystemState);
+                            }
+                            else if (it->newState == STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
+                            {
+                                baseCasterDisableOverride();
+                                requestChangeState(it->newState);
                             }
                             else
                                 requestChangeState(it->newState);

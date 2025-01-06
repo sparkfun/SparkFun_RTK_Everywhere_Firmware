@@ -158,6 +158,7 @@ void menuSystem()
 
         // Support mode switching
         systemPrintln("B) Switch to Base mode");
+        systemPrintln("C) Switch to Base Caster mode");
         if (present.ethernet_ws5500 == true)
             systemPrintln("N) Switch to NTP Server mode");
         systemPrintln("R) Switch to Rover mode");
@@ -392,7 +393,13 @@ void menuSystem()
         else if (incoming == 'B')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
+            baseCasterDisableOverride(); // Leave Caster mode
             changeState(STATE_BASE_NOT_STARTED);
+        }
+        else if (incoming == 'C')
+        {
+            forceSystemStateUpdate = true; // Immediately go to this new state
+            changeState(STATE_BASE_CASTER_NOT_STARTED);
         }
         else if ((incoming == 'N') && (present.ethernet_ws5500 == true))
         {

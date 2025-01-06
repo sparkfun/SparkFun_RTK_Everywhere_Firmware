@@ -29,3 +29,16 @@ void processRTCM(uint8_t *rtcmData, uint16_t dataLength)
             rtcmPacketsSent = 1; // Trim to three digits to avoid log icon and increasing bar
     }
 }
+
+//------------------------------
+// When settings.baseCasterOverride is true, override enableTcpServer, tcpServerPort, and enableNtripCaster settings
+//------------------------------
+void baseCasterEnableOverride()
+{
+    settings.baseCasterOverride = true;
+}
+
+void baseCasterDisableOverride()
+{
+    settings.baseCasterOverride = false;
+}

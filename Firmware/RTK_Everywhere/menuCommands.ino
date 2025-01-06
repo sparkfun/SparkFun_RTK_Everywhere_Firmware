@@ -661,18 +661,12 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
             SystemState *ptr = (SystemState *)var;
             knownSetting = true;
 
-            // 0 = Rover, 1 = Base, 2 = NTP
-            if (settingValue == 2)
-            {
-                if (productVariant == RTK_EVK)
-                    settings.lastState = STATE_NTPSERVER_NOT_STARTED;
-                else
-                    knownSetting = false;
-            }
+            // 0 = Rover, 1 = Base, 2 = NTP, 3 = Base Caster
+            settings.lastState = STATE_ROVER_NOT_STARTED; // Default
             if (settingValue == 1)
                 settings.lastState = STATE_BASE_NOT_STARTED;
-            else
-                settings.lastState = STATE_ROVER_NOT_STARTED; // Default
+            else if (settingValue == 2 && productVariant == RTK_EVK)
+                settings.lastState = STATE_NTPSERVER_NOT_STARTED;
         }
         break;
         case tPulseEdg: {

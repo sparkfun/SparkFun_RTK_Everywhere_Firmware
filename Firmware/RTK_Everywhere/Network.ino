@@ -1595,7 +1595,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         // If NTRIP Caster is enabled then add AP mode
         // Caster us available over ethernet, WiFi AP, WiFi STA, and cellular
         // Caster is available in all mode: Rover, and Base
-        if (settings.enableNtripCaster == true)
+        if (settings.enableNtripCaster == true || settings.baseCasterOverride == true)
             *consumerTypes |= (1 << NETCONSUMER_WIFI_AP);
     }
 

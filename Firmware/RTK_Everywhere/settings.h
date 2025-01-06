@@ -19,12 +19,14 @@ typedef enum
     STATE_ROVER_FIX,
     STATE_ROVER_RTK_FLOAT,
     STATE_ROVER_RTK_FIX,
+    STATE_BASE_CASTER_NOT_STARTED, //Set override flag
     STATE_BASE_NOT_STARTED,
     STATE_BASE_TEMP_SETTLE, // User has indicated base, but current pos accuracy is too low
     STATE_BASE_TEMP_SURVEY_STARTED,
     STATE_BASE_TEMP_TRANSMITTING,
     STATE_BASE_FIXED_NOT_STARTED,
     STATE_BASE_FIXED_TRANSMITTING,
+
     STATE_DISPLAY_SETUP,
     STATE_WEB_CONFIG_NOT_STARTED,
     STATE_WEB_CONFIG_WAIT_FOR_NETWORK,
@@ -985,6 +987,7 @@ struct Settings
 
     bool debugSettings = false;
     bool enableNtripCaster = false; //When true, respond as a faux NTRIP Caster to incoming TCP connections
+    bool baseCasterOverride = false; //When true, user has put device into 'BaseCast' mode. Change settings, but don't save to NVM.
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in rtkSettingsEntries below
@@ -1593,6 +1596,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     { 0, 0, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.debugSettings, "debugSettings",  },
     { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.enableNtripCaster, "enableNtripCaster",  },
+    { 1, 1, 0, 1, 1, 1, 1, 1, 1, _bool,     0, & settings.baseCasterOverride, "baseCasterOverride",  },
 
     // Add new settings to appropriate group above or create new group
     // Then also add to the same group in settings above

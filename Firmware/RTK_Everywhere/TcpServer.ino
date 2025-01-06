@@ -232,8 +232,12 @@ bool tcpServerStart()
     if (settings.debugTcpServer && (!inMainMenu))
         systemPrintln("TCP server starting the server");
 
+    uint16_t tcpPort = settings.tcpServerPort;
+    if(settings.baseCasterOverride == true)
+        tcpPort = 2101;
+
     // Start the TCP server
-    tcpServer = new NetworkServer(settings.tcpServerPort, TCP_SERVER_MAX_CLIENTS);
+    tcpServer = new NetworkServer(tcpPort, TCP_SERVER_MAX_CLIENTS);
     if (!tcpServer)
         return false;
 
@@ -243,9 +247,9 @@ bool tcpServerStart()
 
     if (settings.enableNtripCaster)
         systemPrintf("TCP server online, IP address %s:%d, responding as NTRIP Caster\r\n", localIp.toString().c_str(),
-                     settings.tcpServerPort);
+                     tcpPort);
     else
-        systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), settings.tcpServerPort);
+        systemPrintf("TCP server online, IP address %s:%d\r\n", localIp.toString().c_str(), tcpPort);
 
     return true;
 }
@@ -338,7 +342,7 @@ void tcpServerUpdate()
 
     // Shutdown the TCP server when the mode or setting changes
     DMW_st(tcpServerSetState, tcpServerState);
-    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer))
+    if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
     {
         if (tcpServerState > TCP_SERVER_STATE_OFF)
             tcpServerStop();
@@ -373,7 +377,7 @@ void tcpServerUpdate()
     // Wait until the TCP server is enabled
     case TCP_SERVER_STATE_OFF:
         // Determine if the TCP server should be running
-        if (EQ_RTK_MODE(tcpServerMode) && settings.enableTcpServer)
+        if (EQ_RTK_MODE(tcpServerMode) && (settings.enableTcpServer || settings.baseCasterOverride))
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
@@ -385,7 +389,7 @@ void tcpServerUpdate()
     // Wait until the network is connected
     case TCP_SERVER_STATE_WAIT_FOR_NETWORK:
         // Determine if the TCP server was turned off
-        if (NEQ_RTK_MODE(tcpServerMode) || !settings.enableTcpServer)
+        if (NEQ_RTK_MODE(tcpServerMode) || (!settings.enableTcpServer && !settings.baseCasterOverride))
             tcpServerStop();
 
         // Wait until the network is connected to the media
@@ -407,7 +411,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableTcpServer) || (!networkIsConnected(&tcpServerPriority)))
+        if ((networkIsConnected(&tcpServerPriority) == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
@@ -477,7 +481,7 @@ void tcpServerUpdate()
 
                 // If we are acting as an NTRIP Caster, intercept the initial communication from the client
                 //  and respond accordingly
-                if (settings.enableNtripCaster)
+                if (settings.enableNtripCaster || settings.baseCasterOverride)
                 {
                     // Read response from client
                     char response[512];
@@ -520,7 +524,7 @@ void tcpServerUpdate()
                         if (settings.debugTcpServer)
                             systemPrintf("Unknown response: %s\r\n", response);
                     }
-                } // settings.enableNtripCaster == true
+                } // settings.enableNtripCaster == true || settings.baseCasterOverride == true
 
                 // Make client online after any NTRIP injections so ring buffer can start outputting data to it
                 tcpServerClientConnected = tcpServerClientConnected | (1 << index);

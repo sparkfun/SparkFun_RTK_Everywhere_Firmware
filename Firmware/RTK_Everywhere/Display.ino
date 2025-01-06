@@ -304,6 +304,7 @@ void displayUpdate()
                 setRadioIcons(&iconPropertyList);
                 break;
 
+            case (STATE_BASE_CASTER_NOT_STARTED):
             case (STATE_BASE_NOT_STARTED):
                 // Do nothing. Static display shown during state change.
                 break;
@@ -1276,6 +1277,7 @@ void setModeIcon(std::vector<iconPropertyBlinking> *iconList)
         paintDynamicModel(iconList);
         break;
 
+    case (STATE_BASE_CASTER_NOT_STARTED):
     case (STATE_BASE_NOT_STARTED):
         // Do nothing. Static display shown during state change.
         break;
