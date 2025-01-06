@@ -327,7 +327,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);    // 128x64 only
+                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
@@ -335,7 +335,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);    // 128x64 only
+                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
@@ -348,7 +348,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
-                displaySivVsOpenShort(&iconPropertyList);    // 128x64 only
+                displaySivVsOpenShort(&iconPropertyList); // 128x64 only
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -410,7 +410,7 @@ void displayUpdate()
                 else
                 {
                     setWiFiIcon(&iconPropertyList); // Blink WiFi in center
-                    displayConfigViaWiFi(); // Display SSID and IP
+                    displayConfigViaWiFi();         // Display SSID and IP
                 }
                 break;
             case (STATE_TEST):
@@ -1659,14 +1659,14 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
                 icon = &LBandIconProperties;
             else
             {
-                if(inBaseMode() == false)
+                if (inBaseMode() == false)
                     icon = &SIVIconProperties;
-                else if(inBaseMode() && present.display_type == DISPLAY_128x64)
-                    icon = &BaseSIVIconProperties; //Move SIV down to avoid collision with 'Xmitting RTCM' text
+                else if (inBaseMode() && present.display_type == DISPLAY_128x64)
+                    icon = &BaseSIVIconProperties; // Move SIV down to avoid collision with 'Xmitting RTCM' text
             }
 
             // if in base mode, don't blink
-            if(inBaseMode() == true)
+            if (inBaseMode() == true)
             {
                 // override duty - solid satellite dish icon regardless of fix state
                 duty = 0b11111111;
@@ -1704,7 +1704,7 @@ void paintSIVText(displayCoords textCoords)
 
     if (online.gnss)
     {
-        if(inBaseMode() == true)
+        if (inBaseMode() == true)
             oled->print(gnss->getSatellitesInView());
         else if (gnss->isFixed() == false)
             oled->print("0");
@@ -2008,9 +2008,13 @@ void displayBaseStart(uint16_t displayTime)
         oled->erase();
 
         uint8_t fontHeight = 15; // Assume fontsize 1
-        uint8_t yPos = oled->getHeight() / 2 - fontHeight;
+        uint8_t yPos = oled->getHeight() / 2 - fontHeight + 1;
 
-        printTextCenter("Base", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        if (settings.baseCasterOverride == true)
+            printTextCenter("BaseCast", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+        else
+            printTextCenter("Base", yPos, QW_FONT_8X16, 1, false); // text, y, font type, kerning, inverted
+
         oled->display();
 
         oled->display();
@@ -2021,12 +2025,18 @@ void displayBaseStart(uint16_t displayTime)
 
 void displayBaseSuccess(uint16_t displayTime)
 {
-    displayMessage("Base Started", displayTime);
+    if (settings.baseCasterOverride == true)
+        displayMessage("BaseCast Started", displayTime);
+    else
+        displayMessage("Base Started", displayTime);
 }
 
 void displayBaseFail(uint16_t displayTime)
 {
-    displayMessage("Base Failed", displayTime);
+    if (settings.baseCasterOverride == true)
+        displayMessage("BaseCast Failed", displayTime);
+    else
+        displayMessage("Base Failed", displayTime);
 }
 
 void displayGNSSFail(uint16_t displayTime)
