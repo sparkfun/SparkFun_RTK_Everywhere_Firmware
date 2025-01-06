@@ -234,10 +234,11 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
 
         if (inWebConfigMode())
             strncpy(softApSsid, "RTK Config", sizeof(softApSsid));
-            //snprintf("%s", sizeof(softApSsid), softApSsid, (const char)"RTK Config"); // TODO use settings.webconfigApName
+        // snprintf("%s", sizeof(softApSsid), softApSsid, (const char)"RTK Config"); // TODO use
+        // settings.webconfigApName
         else
             strncpy(softApSsid, "RTK Caster", sizeof(softApSsid));
-            //snprintf("%s", sizeof(softApSsid), softApSsid, (const char)"RTK Caster");
+        // snprintf("%s", sizeof(softApSsid), softApSsid, (const char)"RTK Caster");
 
         if (WiFi.softAP(softApSsid) == false)
         {
@@ -344,11 +345,19 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
     char ssid[sizeof(info.wifi_sta_connected.ssid) + 1];
     IPAddress ipAddress;
 
-    // Take the network offline if necessary
-    if (networkIsInterfaceOnline(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
-        (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
+    // If we are in AP or AP_STA, the network is immediately marked online
+    // Once AP is online, don't stop WiFi because STA has various events
+    if (WiFi.getMode() == WIFI_MODE_STA)
     {
-        networkStop(NETWORK_WIFI, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
+        // Take the network offline if necessary
+        if (networkIsInterfaceOnline(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+            (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
+        {
+            if (settings.debugWifiState)
+                systemPrintf("Stopping WiFi because of event # %d\r\n", event);
+
+            networkStop(NETWORK_WIFI, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
+        }
     }
 
     // WiFi State Machine
@@ -490,7 +499,6 @@ const char *wifiPrintState(wl_status_t wifiStatus)
     return ("WiFi Status Unknown");
 }
 
-
 //----------------------------------------
 // Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
 // Sets the appropriate protocols (WiFi + ESP-Now)
@@ -545,11 +553,7 @@ bool wifiStart()
 
         // Start WiFi
         if (wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs))
-        {
-            wifiResetTimeout();
-            if (settings.debugWifiState == true)
-                systemPrintln("WiFi: Start timeout reset to zero");
-        }
+            wifiResetTimeout(); // If we successfully connected then reset the throttling timeout
     }
 
     // If we are in AP only mode, as long as the AP is started, return true
@@ -568,6 +572,8 @@ bool wifiStart()
 void wifiResetTimeout()
 {
     wifiStartTimeout = 0;
+    if (settings.debugWifiState == true)
+        systemPrintln("WiFi: Start timeout reset to zero");
 }
 
 //----------------------------------------
