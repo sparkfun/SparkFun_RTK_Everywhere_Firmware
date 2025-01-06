@@ -1408,7 +1408,12 @@ void networkUpdate()
     // Stop WiFi to allow restart with new settings
     if (restartWiFi == true && networkIsInterfaceOnline(NETWORK_WIFI))
     {
+        if (settings.debugNetworkLayer) 
+            systemPrintln("WiFi settings changed, restarting WiFi");
+
         restartWiFi = false;
+        wifiResetThrottleTimeout();
+        WIFI_STOP();
         networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
     }
 

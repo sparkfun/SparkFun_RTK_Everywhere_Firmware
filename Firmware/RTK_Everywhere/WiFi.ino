@@ -46,6 +46,8 @@ static uint32_t wifiConnectionAttemptTimeout;
 // Start timeout
 static uint32_t wifiStartTimeout;
 
+static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
+
 // WiFi Timer usage:
 //  * Measure interval to display IP address
 static unsigned long wifiDisplayTimer;
@@ -488,6 +490,7 @@ const char *wifiPrintState(wl_status_t wifiStatus)
     return ("WiFi Status Unknown");
 }
 
+
 //----------------------------------------
 // Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
 // Sets the appropriate protocols (WiFi + ESP-Now)
@@ -495,7 +498,7 @@ const char *wifiPrintState(wl_status_t wifiStatus)
 // If ESP-Now is active, only add the LR protocol
 // Returns true if WiFi has connected and false otherwise
 //----------------------------------------
-bool wifiForceStart()
+bool wifiStart()
 {
     int wifiStatus;
 
@@ -518,7 +521,7 @@ bool wifiForceStart()
 
         if (startWiFiStation == false && startWiFiAP == false)
         {
-            systemPrintln("wifiForceStart requested without any NETCONSUMER combination");
+            systemPrintln("wifiStart() requested without any NETCONSUMER combination");
             WIFI_STOP();
             return (false);
         }
@@ -568,11 +571,19 @@ void wifiResetTimeout()
 }
 
 //----------------------------------------
+// Reset the last WiFi start attempt
+// Useful when WiFi settings have changed
+//----------------------------------------
+void wifiResetThrottleTimeout()
+{
+    wifiStartLastTry = 0;
+}
+
+//----------------------------------------
 // Start WiFi with throttling
 //----------------------------------------
-void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
+void wifiThrottledStart(NetIndex_t index, uintptr_t parameter, bool debug)
 {
-    static uint32_t wifiStartLastTry;
     int seconds;
     int minutes;
 
@@ -582,7 +593,7 @@ void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
     wifiStartLastTry = millis();
 
     // Start WiFi
-    if (wifiForceStart())
+    if (wifiStart())
         networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
     else
     {
@@ -607,7 +618,7 @@ void wifiStart(NetIndex_t index, uintptr_t parameter, bool debug)
 //----------------------------------------
 NETWORK_POLL_SEQUENCE wifiStartSequence[] = {
     //  State               Parameter               Description
-    {wifiStart, 0, "Initialize WiFi"},
+    {wifiThrottledStart, 0, "Initialize WiFi"},
     {nullptr, 0, "Termination"},
 };
 
