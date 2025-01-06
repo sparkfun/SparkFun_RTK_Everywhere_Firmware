@@ -333,6 +333,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);    // 128x64 only
                 break;
             case (STATE_BASE_FIXED_NOT_STARTED):
                 displayBatteryVsEthernet(&iconPropertyList); // Top right
@@ -345,6 +346,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintRTCM(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);    // 128x64 only
                 break;
 
             case (STATE_NTPSERVER_NOT_STARTED):
@@ -1653,10 +1655,22 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
             if (lbandCorrectionsReceived || spartnCorrectionsReceived)
                 icon = &LBandIconProperties;
             else
-                icon = &SIVIconProperties;
+            {
+                if(inBaseMode() == false)
+                    icon = &SIVIconProperties;
+                else if(inBaseMode() && present.display_type == DISPLAY_128x64)
+                    icon = &BaseSIVIconProperties; //Move SIV down to avoid collision with 'Xmitting RTCM' text
+            }
+
+            // if in base mode, don't blink
+            if(inBaseMode() == true)
+            {
+                // override duty - solid satellite dish icon regardless of fix state
+                duty = 0b11111111;
+            }
 
             // Determine if there is a fix
-            if (gnss->isFixed() == false)
+            else if (gnss->isFixed() == false)
             {
                 // override duty - blink satellite dish icon if we don't have a fix
                 duty = 0b01010101;
@@ -1687,7 +1701,9 @@ void paintSIVText(displayCoords textCoords)
 
     if (online.gnss)
     {
-        if (gnss->isFixed() == false)
+        if(inBaseMode() == true)
+            oled->print(gnss->getSatellitesInView());
+        else if (gnss->isFixed() == false)
             oled->print("0");
         else
             oled->print(gnss->getSatellitesInView());
