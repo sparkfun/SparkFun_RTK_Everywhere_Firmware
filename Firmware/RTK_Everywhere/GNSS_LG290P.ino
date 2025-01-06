@@ -37,7 +37,7 @@ void GNSS_LG290P::baseRtcmLowDataRate()
         settings.lg290pMessageRatesRTCMBase[x] = 0;
 
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-1005")] =
-        10;                                                                            // 1005 0.1Hz - Exclude antenna height
+        10; // 1005 0.1Hz - Exclude antenna height
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-107X")] = 2; // 1074 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-108X")] = 2; // 1084 0.5Hz
     settings.lg290pMessageRatesRTCMBase[getRtcmMessageNumberByName("RTCM3-109X")] = 2; // 1094 0.5Hz
@@ -401,6 +401,10 @@ bool GNSS_LG290P::configureBase()
 
         softwareReset();
 
+        // When a device is changed from Rover to Base, NMEA messages settings do not survive PQTMSAVEPAR
+        // Re-enable NMEA post reset
+        enableNMEA(); // Set NMEA messages
+
         if (settings.debugGnss)
             systemPrintln("LG290P Base configured");
     }
@@ -507,6 +511,8 @@ bool GNSS_LG290P::enableNMEA()
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
 
+    Serial.println("\r\n setting nmea");
+
     for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
     {
         if (_lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
@@ -587,8 +593,8 @@ bool GNSS_LG290P::enableRTCMBase()
 
     if (enableMSM == true)
     {
-        if(settings.debugGnss)
-        
+        if (settings.debugGnss)
+
             systemPrintln("Enabling RTCM MSM output");
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
