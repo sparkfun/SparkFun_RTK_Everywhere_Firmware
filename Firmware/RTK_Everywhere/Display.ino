@@ -327,6 +327,7 @@ void displayUpdate()
                 displayFullIPAddress(&iconPropertyList);     // Bottom left - 128x64 only
                 setRadioIcons(&iconPropertyList);
                 paintBaseTempSurveyStarted(&iconPropertyList);
+                displaySivVsOpenShort(&iconPropertyList);    // 128x64 only
                 break;
             case (STATE_BASE_TEMP_TRANSMITTING):
                 paintLogging(&iconPropertyList);
