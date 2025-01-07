@@ -1789,7 +1789,7 @@ enum NetworkTypes
 typedef void (* NETWORK_POLL_ROUTINE)(NetIndex_t index, uintptr_t parameter, bool debug);
 
 // Sequence entry specifying a poll routine call for a network interface
-typedef struct _NETWORK_POLL_SEQUENCE
+typedef const struct _NETWORK_POLL_SEQUENCE
 {
     NETWORK_POLL_ROUTINE routine; // Address of poll routine, nullptr at end of table
     uintptr_t parameter;          // Parameter passed to poll routine
