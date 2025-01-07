@@ -115,9 +115,9 @@ void stateUpdate()
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
             espnowStart();    // Start internal radio if enabled, otherwise disable
 
-            webServerStop(); // Stop the web config server
+            webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
-            
+
             // Start the UART connected to the GNSS receiver for NMEA and UBX data (enables logging)
             if (tasksStartGnssUart() == false)
                 displayRoverFail(1000);
@@ -210,6 +210,19 @@ void stateUpdate()
 
         case (STATE_BASE_CASTER_NOT_STARTED): {
             baseCasterEnableOverride();
+
+#ifdef COMPILE_WIFI
+            // If the AP is already running, check that the name is correct
+            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
+            {
+                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Caster") != 0)
+                {
+                    // The AP name cannot be changed while it is running. WiFi must be restarted.
+                    restartWiFi = true; // Tell network layer to restart WiFi
+                }
+            }
+#endif // COMPILE_WIFI
+
             changeState(STATE_BASE_NOT_STARTED);
         }
         break;
@@ -236,7 +249,7 @@ void stateUpdate()
                 settings.updateGNSSSettings = false; // On the next boot, no need to update the GNSS on this profile
                 settings.lastState = STATE_BASE_NOT_STARTED; // Record this state for next POR
 
-                recordSystemSettings();                                 // Record this state for next POR
+                recordSystemSettings(); // Record this state for next POR
 
                 displayBaseSuccess(500); // Show 'Base Started'
 
@@ -431,7 +444,19 @@ void stateUpdate()
             bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
             espnowStop();    // We don't need ESP-NOW during web config
 
-            // The GNSS UART task is left running to allow non-ZED platforms to obtain LLh data for 1Hz page updates
+            // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
+
+#ifdef COMPILE_WIFI
+            // If the AP is already running, check that the name is correct
+            if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA))
+            {
+                if (strcmp(WiFi.softAPSSID().c_str(), "RTK Config") != 0)
+                {
+                    // The AP name cannot be changed while it is running. WiFi must be restarted.
+                    restartWiFi = true; // Tell network layer to restart WiFi
+                }
+            }
+#endif // COMPILE_WIFI
 
             // Stop any running NTRIP Client or Server
             ntripClientStop(true); // Do not allocate new wifiClient

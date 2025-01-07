@@ -139,8 +139,8 @@ void menuWiFi()
 }
 
 //----------------------------------------
-// Starts WiFi in STA, AP, or STA_AP mode depending on networkGetConsumerTypes()
-// Returns true if STA connects, or if AP is started, or if STA_AP is successful
+// Starts WiFi in STA, AP, or STA_AP mode depending on bools
+// Returns true if STA connects, or if AP is started
 //----------------------------------------
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
 {
