@@ -138,7 +138,6 @@ NETWORK_POLL_SEQUENCE laraBootSequence[] =
 // (Remember that LARA_PWR is inverted by the RTK EVK level-shifter)
 NETWORK_POLL_SEQUENCE laraOnSequence[] =
 {   //  State               Parameter               Description
-    {cellularSimInstalled,  0,                      "SIM card validation"},
     {laraPowerLow,          LARA_ON_TIME,           "Notify LARA of power state change"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Tell LARA to power on"},
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power on sequence"},
