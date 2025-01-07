@@ -145,10 +145,10 @@ void menuWiFi()
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
 {
     // Is a change needed?
-    if (startWiFiStation && startWiFiAP && WiFi.getMode() == WIFI_AP_STA)
+    if (startWiFiStation && startWiFiAP && WiFi.getMode() == WIFI_AP_STA && WiFi.status() == WL_CONNECTED)
         return (true); // There is nothing needing to be changed
 
-    if (startWiFiStation && WiFi.getMode() == WIFI_STA)
+    if (startWiFiStation && WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED)
         return (true); // There is nothing needing to be changed
 
     if (startWiFiAP && WiFi.getMode() == WIFI_AP)
@@ -287,6 +287,7 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     int wifiStatus = wifiMulti->run(timeout);
     if (wifiStatus == WL_CONNECTED)
     {
+        wifiResetTimeout(); // If we successfully connected then reset the throttling timeout
         wifiRunning = true;
         return true;
     }
@@ -552,8 +553,7 @@ bool wifiStart()
         }
 
         // Start WiFi
-        if (wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs))
-            wifiResetTimeout(); // If we successfully connected then reset the throttling timeout
+        wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs);
     }
 
     // If we are in AP only mode, as long as the AP is started, return true
