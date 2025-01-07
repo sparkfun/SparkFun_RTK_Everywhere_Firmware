@@ -122,6 +122,8 @@ function parseIncoming(msg) {
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
                 hide("shutdownNoChargeTimeoutCheckbox");
+
+                hide("constellationNavic"); //Not supported on ZED
             }
             else if ((platformPrefix == "Facet v2") || (platformPrefix == "Facet v2 LBand")) {
                 show("baseConfig");
@@ -141,6 +143,8 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
+
+                hide("constellationNavic"); //Not supported on ZED
             }
             else if (platformPrefix == "Facet mosaicX5") {
                 show("baseConfig");
