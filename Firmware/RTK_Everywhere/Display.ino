@@ -1854,9 +1854,11 @@ void paintRTCM(std::vector<iconPropertyBlinking> *iconList)
     uint8_t yPos = CrossHairProperties.iconDisplay[present.display_type].yPos;
 
     if (present.display_type == DISPLAY_64x48)
-        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle. TODO: find a better solution
+        yPos = yPos - 1; // Move text up by 1 pixel on 64x48. Note: this is brittle.
 
-    if (casting)
+    if(settings.baseCasterOverride == true)
+        printTextAt("BaseCast", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
+    else if (casting)
         printTextAt("Casting", xPos + 4, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
     else
         printTextAt("Xmitting", xPos, yPos, QW_FONT_8X16, 1); // text, y, font type, kerning
