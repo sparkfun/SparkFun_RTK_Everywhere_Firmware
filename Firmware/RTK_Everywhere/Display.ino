@@ -1661,6 +1661,8 @@ displayCoords paintSIVIcon(std::vector<iconPropertyBlinking> *iconList, const ic
             {
                 if (inBaseMode() == false)
                     icon = &SIVIconProperties;
+                else if (systemState == STATE_BASE_TEMP_SETTLE)
+                    icon = &SIVIconProperties; //During base settle, SIV inline with HPA
                 else if (inBaseMode() && present.display_type == DISPLAY_128x64)
                     icon = &BaseSIVIconProperties; // Move SIV down to avoid collision with 'Xmitting RTCM' text
             }
