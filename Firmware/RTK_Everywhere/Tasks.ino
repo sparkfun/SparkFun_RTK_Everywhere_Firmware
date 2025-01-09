@@ -734,6 +734,19 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
+    // If BaseCasterOverride is enabled, remove everything but RTCM from the circular buffer
+    // to avoid saturating the downstream radio link that is consuming over a TCP (NTRIP Caster) connection
+    // Remove NMEA, etc after passing to the GNSS receiver library so that we still have SIV and other stats available
+    if (settings.baseCasterOverride == true)
+    {
+        if (type != RTK_RTCM_PARSER_INDEX)
+        {
+            // Erase buffer
+            parse->buffer[0] = 0;
+            parse->length = 0;
+        }
+    }
+
     // Determine if this message will fit into the ring buffer
     bytesToCopy = parse->length;
     space = availableHandlerSpace;
@@ -1848,7 +1861,8 @@ void buttonCheckTask(void *e)
                                 firstButtonThrownOut = false;
                                 requestChangeState(lastSystemState);
                             }
-                            else if (it->newState == STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
+                            else if (it->newState ==
+                                     STATE_BASE_NOT_STARTED) // User selected Base, clear BaseCast override
                             {
                                 baseCasterDisableOverride();
                                 requestChangeState(it->newState);
