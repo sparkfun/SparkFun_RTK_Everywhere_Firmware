@@ -334,8 +334,6 @@ bool webServerAssignResources(int httpPort = 80)
         if (settings.enableCaptivePortal == true)
         {
             webServer->addHandler(new CaptiveRequestHandler());
-
-            // TODO: add a handler for /connecttest.txt
         }
 
         // * index.html (not gz'd)
@@ -467,6 +465,11 @@ bool webServerAssignResources(int httpPort = 80)
         webServer->on("/src/fonts/icomoon.woof", HTTP_GET, []() {
             webServer->sendHeader("Content-Encoding", "gzip");
             webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
+        });
+
+        //https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
+        webServer->on("/connecttest.txt", HTTP_GET, []() {
+            webServer->send(200, "text/plain", "Microsoft Connect Test");
         });
 
         // Handler for the /uploadFile form POST
@@ -1129,6 +1132,10 @@ void createDynamicDataString(char *settingsCSV)
             snprintf(batteryIconFileName, sizeof(batteryIconFileName), "src/Battery%d.png", iconLevel);
 
         stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
+
+        //Limit batteryLevelPercent to sane levels
+        if (batteryLevelPercent > 100)
+            batteryLevelPercent = 100;
 
         // Determine battery percent
         char batteryPercent[sizeof("+100%__")];
