@@ -577,6 +577,13 @@ void wifiResetTimeout()
 }
 
 //----------------------------------------
+//----------------------------------------
+uint32_t wifiGetStartTimeout()
+{
+    return (wifiStartTimeout);
+}
+
+//----------------------------------------
 // Reset the last WiFi start attempt
 // Useful when WiFi settings have changed
 //----------------------------------------
