@@ -1453,10 +1453,11 @@ void networkUpdate()
         if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
             networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
 
-        if ((consumerTypes && (1 << NETCONSUMER_WIFI_STA)) || (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
+        if ((networkIsOnline() == false) && (consumerTypes && (1 << NETCONSUMER_WIFI_STA)) ||
+            (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
             networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
 
-        if (consumerTypes && (1 << NETCONSUMER_CELLULAR))
+        if ((networkIsOnline() == false) && (consumerTypes && (1 << NETCONSUMER_CELLULAR)))
             networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
     }
 
