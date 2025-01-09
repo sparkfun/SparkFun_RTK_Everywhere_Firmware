@@ -1408,7 +1408,7 @@ void networkUpdate()
     // Stop WiFi to allow restart with new settings
     if (restartWiFi == true && networkIsInterfaceOnline(NETWORK_WIFI))
     {
-        if (settings.debugNetworkLayer) 
+        if (settings.debugNetworkLayer)
             systemPrintln("WiFi settings changed, restarting WiFi");
 
         restartWiFi = false;
@@ -1643,6 +1643,15 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
 
         if (settings.wifiConfigOverAP == true)
             *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // WebConfig requires both AP and STA (for firmware check)
+
+        // A good number of RTK products have only WiFi
+        // If WiFi STA has failed, fall back to WiFi AP, but allow STA to keep hunting
+        if (networkIsPresent(NETWORK_ETHERNET) == false && networkIsPresent(NETWORK_CELLULAR) == false &&
+            settings.wifiConfigOverAP == false && wifiGetStartTimeout() > 0)
+        {
+            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // Re-allow Webconfig over AP
+            wifiResetTimeout();                           // Force immediate switch to AP mode
+        }
     }
 
     // Debug
