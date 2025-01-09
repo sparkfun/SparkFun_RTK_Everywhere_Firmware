@@ -225,8 +225,26 @@ void GNSS_MOSAIC::begin()
 
     if (retries == retryLimit)
     {
-        systemPrintln("Could not communicate with mosaic-X5!");
-        return;
+        systemPrintln("Could not communicate with mosaic-X5! Attempting a soft reset...");
+
+        sendWithResponse("erst,soft,none\n\r", "ResetReceiver");
+
+        retries = 0;
+
+        // Set COM4 to: CMD input (only), SBF output (only)
+        while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
+        {
+            if (retries == retryLimit)
+                break;
+            retries++;
+            sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+
+        if (retries == retryLimit)
+        {
+            systemPrintln("Could not communicate with mosaic-X5!");
+            return;
+        }
     }
 
     retries = 0;
