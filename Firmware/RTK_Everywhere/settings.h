@@ -594,7 +594,7 @@ struct Settings
 
     // Battery
     bool enablePrintBatteryMessages = true;
-    uint32_t shutdownNoChargeTimeout_s = 0; // If > 0, shut down unit after timeout if not charging
+    uint32_t shutdownNoChargeTimeoutMinutes = 0; // If > 0, shut down unit after timeout if not charging
 
     // Beeper
     bool enableBeeper = true; // Some platforms have an audible notification
@@ -1136,7 +1136,7 @@ const RTK_Settings_Entry rtkSettingsEntries[] =
 
     // Battery
     { 0, 0, 0, 0, 1, 1, 1, 1, 1, _bool,     0, & settings.enablePrintBatteryMessages, "enablePrintBatteryMessages",  },
-    { 1, 1, 0, 0, 1, 1, 1, 1, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeout_s, "shutdownNoChargeTimeout",  },
+    { 1, 1, 0, 0, 1, 1, 1, 1, 1, _uint32_t, 0, & settings.shutdownNoChargeTimeoutMinutes, "shutdownNoChargeTimeoutMinutes",  },
 
 //                         F
 //                         a

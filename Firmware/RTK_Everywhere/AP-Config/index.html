@@ -2200,10 +2200,10 @@
                     </div>
                 </div>
 
-                <div id="shutdownNoChargeTimeoutCheckbox">
+                <div id="shutdownNoChargeTimeoutMinutesCheckboxDetail">
                     <div class="form-check mt-3">
-                        <label class="form-check-label" for="shutdownNoChargeTimeout">Shutdown if not charging:</label>
-                        <input class="form-check-input" type="checkbox" value="" id="shutdownNoChargeTimeout">
+                        <label class="form-check-label" for="shutdownNoChargeTimeoutMinutes">Shutdown if not charging:</label>
+                        <input class="form-check-input" type="checkbox" value="" id="shutdownNoChargeTimeoutMinutesCheckbox">
                         <span class="tt" data-bs-placement="right"
                             title="If enabled, device will turn off if no external charger is present. This is helpful when deploying in machinery or where a user may forget to turn the device off. Default: Disabled">
                             <span class="icon-info-circle text-primary ms-2"></span>
@@ -2211,17 +2211,17 @@
                     </div>
                 </div>
 
-                <div id="shutdownNoChargeTimeoutDetails" class="collapse mb-2">
+                <div id="shutdownNoChargeTimeoutMinutesDetails" class="collapse mb-2">
                     <div class="form-group row">
-                        <label for="rebootMinutes" class="box-margin40 col-sm-3 col-7 col-form-label">Seconds before
+                        <label for="shutdownNoChargeTimeoutMinutes" class="box-margin40 col-sm-3 col-7 col-form-label">Minutes before
                             shutdown:
                             <span class="tt" data-bs-placement="right"
-                                title="If shutdown is enabled, the device will turn off after this many seconds if no external charger is detected. Limits: 0 (disabled) to 604800.">
+                                title="If shutdown is enabled, the device will turn off after this many minutes if no external charger is detected. Limits: 0 (disabled) to 10,080.">
                                 <span class="icon-info-circle text-primary ms-2"></span>
                             </span>
                         </label>
-                        <input type="number" class="form-control box-small" id="rebootMinutes">
-                        <p id="rebootMinutesError" class="inlineError"></p>
+                        <input type="number" class="form-control box-small" id="shutdownNoChargeTimeoutMinutes">
+                        <p id="shutdownNoChargeTimeoutMinutesError" class="inlineError"></p>
                     </div>
                 </div>
 

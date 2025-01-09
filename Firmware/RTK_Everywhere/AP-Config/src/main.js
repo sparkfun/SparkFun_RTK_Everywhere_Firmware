@@ -121,7 +121,7 @@ function parseIncoming(msg) {
                 show("useLocalizedDistributionCheckbox");
                 show("useEnableExtCorrRadio");
                 show("extCorrRadioSPARTNSourceDropdown");
-                hide("shutdownNoChargeTimeoutCheckbox");
+                hide("shutdownNoChargeTimeoutMinutesCheckboxDetail");
 
                 hide("constellationNavic"); //Not supported on ZED
             }
@@ -510,6 +510,18 @@ function parseIncoming(msg) {
                 ge("rebootMinutes").value = 0;
                 ge("enableAutoReset").checked = false;
                 hide("enableAutomaticResetDetails");
+            }
+        }
+        else if (id.includes("shutdownNoChargeTimeoutMinutes")) {
+            if (val > 0) {
+                ge("shutdownNoChargeTimeoutMinutes").value = val;
+                ge("shutdownNoChargeTimeoutMinutesCheckbox").checked = true;
+                show("shutdownNoChargeTimeoutMinutesDetails");
+            }
+            else {
+                ge("shutdownNoChargeTimeoutMinutes").value = 0;
+                ge("shutdownNoChargeTimeoutMinutesCheckbox").checked = false;
+                hide("shutdownNoChargeTimeoutMinutesDetails");
             }
         }
 
@@ -960,12 +972,18 @@ function validateFields() {
     }
 
     if (ge("enableAutoReset").checked == true) {
-        checkElementValue("rebootMinutes", 1, 4294967, "Must be 1 to 4294967", "collapseSystemConfig");
+        checkElementValue("rebootMinutes", 0, 4294967, "Must be 0 to 4,294,967", "collapseSystemConfig");
     }
     else {
         clearElement("rebootMinutes", 0); //0 = disable
     }
 
+    if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
+        checkElementValue("shutdownNoChargeTimeoutMinutes", 0, 604800, "Must be 0 to 604,800", "collapseSystemConfig");
+    }
+    else {
+        clearElement("shutdownNoChargeTimeoutMinutes", 0); //0 = disable
+    }
 
     //Ethernet
     if (platformPrefix == "EVK") {
@@ -1737,12 +1755,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
     });
 
-    ge("shutdownNoChargeTimeout").addEventListener("change", function () {
-        if (ge("shutdownNoChargeTimeout").checked == true) {
-            show("shutdownNoChargeTimeoutDetails");
+    ge("shutdownNoChargeTimeoutMinutesCheckbox").addEventListener("change", function () {
+        if (ge("shutdownNoChargeTimeoutMinutesCheckbox").checked == true) {
+            show("shutdownNoChargeTimeoutMinutesDetails");
         }
         else {
-            hide("shutdownNoChargeTimeoutDetails");
+            hide("shutdownNoChargeTimeoutMinutesDetails");
         }
     });
 

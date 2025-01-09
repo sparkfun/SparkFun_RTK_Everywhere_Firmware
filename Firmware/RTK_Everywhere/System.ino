@@ -162,12 +162,12 @@ void updateBattery()
         }
 
         // Check if we need to shutdown due to no charging
-        if (settings.shutdownNoChargeTimeout_s > 0)
+        if (settings.shutdownNoChargeTimeoutMinutes > 0)
         {
             if (isCharging() == false)
             {
-                int secondsSinceLastCharger = (millis() - shutdownNoChargeTimer) / 1000;
-                if (secondsSinceLastCharger > settings.shutdownNoChargeTimeout_s)
+                int minutesSinceLastCharge = ((millis() - shutdownNoChargeTimer) / 1000) / 60;
+                if (minutesSinceLastCharge > settings.shutdownNoChargeTimeoutMinutes)
                     powerDown(true);
             }
             else

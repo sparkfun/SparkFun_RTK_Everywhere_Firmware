@@ -1645,12 +1645,11 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
             *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // WebConfig requires both AP and STA (for firmware check)
 
         // A good number of RTK products have only WiFi
-        // If WiFi STA has failed, fall back to WiFi AP, but allow STA to keep hunting
+        // If WiFi STA has failed or we have no WiFi SSIDs, fall back to WiFi AP, but allow STA to keep hunting
         if (networkIsPresent(NETWORK_ETHERNET) == false && networkIsPresent(NETWORK_CELLULAR) == false &&
-            settings.wifiConfigOverAP == false && wifiGetStartTimeout() > 0)
+            settings.wifiConfigOverAP == false && (wifiGetStartTimeout() > 0 || wifiNetworkCount() == 0))
         {
             *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // Re-allow Webconfig over AP
-            wifiResetTimeout();                           // Force immediate switch to AP mode
         }
     }
 

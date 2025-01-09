@@ -200,10 +200,10 @@ void menuSystem()
 
         if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a)
         {
-            if (settings.shutdownNoChargeTimeout_s == 0)
+            if (settings.shutdownNoChargeTimeoutMinutes == 0)
                 systemPrintln("c) Shutdown if not charging: Disabled");
             else
-                systemPrintf("c) Shutdown if not charging after: %d seconds\r\n", settings.shutdownNoChargeTimeout_s);
+                systemPrintf("c) Shutdown if not charging after: %d minutes\r\n", settings.shutdownNoChargeTimeoutMinutes);
         }
 
         systemPrintln("d) Debug software");
@@ -299,8 +299,8 @@ void menuSystem()
         else if ((incoming == 'c') &&
                  (present.fuelgauge_max17048 || present.fuelgauge_bq40z50 || present.charger_mp2762a))
         {
-            getNewSetting("Enter time in seconds to shutdown unit if not charging (0 to disable)", 0, 60 * 60 * 24 * 7,
-                          &settings.shutdownNoChargeTimeout_s); // Arbitrary 7 day limit
+            getNewSetting("Enter time in minutes to shutdown unit if not charging (0 to disable)", 0, 60 * 24 * 7,
+                          &settings.shutdownNoChargeTimeoutMinutes); // Arbitrary 7 day limit
         }
         else if (incoming == 'd')
             menuDebugSoftware();
