@@ -162,11 +162,30 @@ bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
 
 #endif  // COMPILE_AP
-#ifndef COMPILE_WIFI
+
+//----------------------------------------
+// ESP-NOW
+//----------------------------------------
+
+#ifndef COMPILE_ESPNOW
+
+bool espnowIsPaired()                   {return false;}
+void espnowProcessRTCM(byte incoming)   {}
+esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
+bool espnowSetChannel(uint8_t channelNumber)        {return false;}
+void espnowStart()                      {}
+void espnowStaticPairing()              {}
+void espnowStop()                       {}
+void updateEspnow()                     {}
+
+#endif   // COMPILE_ESPNOW
 
 //----------------------------------------
 // WiFi
 //----------------------------------------
+
+#ifndef COMPILE_WIFI
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
