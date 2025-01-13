@@ -166,7 +166,7 @@ void espnowStart()
     if (response != ESP_OK)
         systemPrintf("espnowStart: Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
-    if ((!wifiIsRunning()) && espnowState == ESPNOW_OFF)
+    if ((wifiIsRunning() == false) && espnowState == ESPNOW_OFF)
     {
         // Radio is off, turn it on
         if (protocols != (WIFI_PROTOCOL_LR))
@@ -362,9 +362,9 @@ void espnowStop()
 
     espnowSetState(ESPNOW_OFF);
 
-    if (!wifiIsRunning())
+    if (wifiIsRunning() == false)
     {
-        // ESP Now was the only thing using the radio so turn WiFi radio off entirely
+        // ESP-NOW was the only thing using the radio so turn WiFi radio off entirely
         WiFi.mode(WIFI_OFF);
 
         if (settings.debugEspNow == true)

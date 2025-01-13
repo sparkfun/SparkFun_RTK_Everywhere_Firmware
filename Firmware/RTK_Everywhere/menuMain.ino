@@ -638,7 +638,7 @@ void menuRadio()
             }
             else
             {
-                systemPrintln("ESP-NOW channel can't be modified while WiFi is connected.");
+                systemPrintln("ESP-NOW channel can't be modified while WiFi is active.");
             }
         }
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)

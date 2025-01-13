@@ -446,7 +446,7 @@ bool otaCheckVersion(char *versionAvailable, uint8_t versionAvailableLength)
     bool gotVersion = false;
 #ifdef COMPILE_NETWORK
 
-    if (networkIsOnline() == false)
+    if (networkHasInternet() == false)
     {
         systemPrintln("Error: Network not available!");
         return (false);

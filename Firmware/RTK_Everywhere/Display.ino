@@ -359,7 +359,7 @@ void displayUpdate()
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
 #ifdef COMPILE_ETHERNET
-                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
 #endif // COMPILE_ETHERNET
@@ -381,7 +381,7 @@ void displayUpdate()
                 iconPropertyBlinking prop;
                 prop.icon = EthernetIconProperties.iconDisplay[present.display_type];
 #ifdef COMPILE_ETHERNET
-                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
                     prop.duty = 0b11111111;
                 else
 #endif // COMPILE_ETHERNET
@@ -405,7 +405,7 @@ void displayUpdate()
                 displayWebConfigNotStarted(); // Display 'Web Config'
                 break;
             case (STATE_WEB_CONFIG):
-                if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+                if (networkInterfaceHasInternet(NETWORK_ETHERNET))
                     displayConfigViaEthernet();
                 else
                 {
@@ -822,24 +822,24 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 usbSerialIncomingRtcm = false;
             }
 
-            bool networkOnline = false;
+            bool networkHasInternet = false;
 
 #ifdef COMPILE_ETHERNET
-            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
-                networkOnline = true;
+            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
+                networkHasInternet = true;
 #endif // COMPILE_ETHERNET
 
 #ifdef COMPILE_WIFI
-            if (networkIsInterfaceOnline(NETWORK_WIFI))
-                networkOnline = true;
+            if (networkInterfaceHasInternet(NETWORK_WIFI))
+                networkHasInternet = true;
 #endif // COMPILE_WIFI
 
 #ifdef COMPILE_CELLULAR
-            if (networkIsInterfaceOnline(NETWORK_CELLULAR))
-                networkOnline = true;
+            if (networkInterfaceHasInternet(NETWORK_CELLULAR))
+                networkHasInternet = true;
 #endif // COMPILE_CELLULAR
 
-            if (networkOnline)
+            if (networkHasInternet)
             {
                 if (netIncomingRTCM == true) // Download : Columns 74 - 81
                 {
@@ -1099,7 +1099,7 @@ void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
 #ifdef COMPILE_WIFI
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1169,7 +1169,7 @@ void setWiFiIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 void setWiFiIcon_ThreeRadios(std::vector<iconPropertyBlinking> *iconList)
 {
 #ifdef COMPILE_WIFI
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
     {
         if (netIncomingRTCM || netOutgoingRTCM || mqttClientDataReceived)
         {
@@ -1248,7 +1248,7 @@ void setWiFiIcon(std::vector<iconPropertyBlinking> *iconList)
         icon.icon.yPos = 0;
 
 #ifdef COMPILE_WIFI
-        if (networkIsInterfaceOnline(NETWORK_WIFI))
+        if (networkInterfaceHasInternet(NETWORK_WIFI))
             icon.duty = 0b11111111;
         else
 #endif // COMPILE_WIFI
@@ -1534,7 +1534,7 @@ void displayBatteryVsEthernet(std::vector<iconPropertyBlinking> *iconList)
 #ifdef COMPILE_ETHERNET
     else // if (present.ethernet_ws5500 == true)
     {
-        if (!networkIsInterfaceOnline(NETWORK_ETHERNET))
+        if (!networkInterfaceHasInternet(NETWORK_ETHERNET))
             return; // Only display the Ethernet icon if we are successfully connected (no blinking)
 
         iconPropertyBlinking prop;

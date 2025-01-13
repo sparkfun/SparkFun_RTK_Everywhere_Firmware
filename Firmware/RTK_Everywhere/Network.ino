@@ -115,7 +115,7 @@ NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTa
 
 // The following entries have one bit per interface
 // Each bit represents an index into the networkInterfaceTable
-NetMask_t networkOnline; // Track the online networks
+NetMask_t networkHasInternet_bm; // Track the online networks
 
 NetMask_t networkSeqStarting; // Track the starting sequences
 NetMask_t networkSeqStopping; // Track the stopping sequences
@@ -550,11 +550,11 @@ const uint8_t *networkGetMacAddress()
         return btMACAddress;
 #endif // COMPILE_BT
 #ifdef COMPILE_WIFI
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
         return wifiMACAddress;
 #endif // COMPILE_WIFI
 #ifdef COMPILE_ETHERNET
-    if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+    if (networkInterfaceHasInternet(NETWORK_ETHERNET))
         return ethernetMACAddress;
 #endif // COMPILE_ETHERNET
     return zero;
@@ -591,24 +591,24 @@ bool networkIsConnected(NetPriority_t *clientPriority)
 {
     // If the client is using the highest priority network and that
     // network is still available then continue as normal
-    if (networkOnline && (*clientPriority == networkPriority))
+    if (networkHasInternet_bm && (*clientPriority == networkPriority))
         return true;
 
     // The network has changed, notify the client of the change
-    *clientPriority = networkPriority;
     return false;
+    *clientPriority = networkPriority;
 }
 
 //----------------------------------------
 // Determine if the network interface is online
 //----------------------------------------
-bool networkIsInterfaceOnline(NetIndex_t index)
+bool networkInterfaceHasInternet(NetIndex_t index)
 {
     // Validate the index
     networkValidateIndex(index);
 
     // Return the network interface state
-    return (networkOnline & (1 << index)) ? true : false;
+    return (networkHasInternet_bm & (1 << index)) ? true : false;
 }
 
 //----------------------------------------
@@ -626,10 +626,10 @@ bool networkIsInterfaceStarted(NetIndex_t index)
 //----------------------------------------
 // Determine if any network interface is online
 //----------------------------------------
-bool networkIsOnline()
+bool networkHasInternet()
 {
     // Return the network state
-    return networkOnline ? true : false;
+    return networkHasInternet_bm ? true : false;
 }
 
 //----------------------------------------
@@ -658,12 +658,12 @@ void networkMarkOffline(NetIndex_t index)
 
     // Check for network offline
     bitMask = 1 << index;
-    if (!(networkOnline & bitMask))
+    if (!(networkHasInternet_bm & bitMask))
         // Already offline, nothing to do
         return;
 
     // Mark this network as offline
-    networkOnline &= ~bitMask;
+    networkHasInternet_bm &= ~bitMask;
 
     // Disable mDNS if necessary
     networkMulticastDNSStop(index);
@@ -686,7 +686,7 @@ void networkMarkOffline(NetIndex_t index)
             // Is the network online?
             index = networkIndexTable[priority];
             bitMask = 1 << index;
-            if (networkOnline & bitMask)
+            if (networkHasInternet_bm & bitMask)
             {
                 // Successfully found an online network
                 networkMulticastDNSStart(index);
@@ -716,7 +716,7 @@ void networkMarkOffline(NetIndex_t index)
 //----------------------------------------
 // Mark network online
 //----------------------------------------
-void networkMarkOnline(NetIndex_t index)
+void networkMarkHasInternet(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetIndex_t previousIndex;
@@ -729,12 +729,12 @@ void networkMarkOnline(NetIndex_t index)
     // Check for network online
     bitMask = 1 << index;
     previousIndex = index;
-    if (networkOnline & bitMask)
+    if (networkHasInternet_bm & bitMask)
         // Already online, nothing to do
         return;
 
     // Mark this network as online
-    networkOnline |= bitMask;
+    networkHasInternet_bm |= bitMask;
 
     // Raise the network priority if necessary
     previousPriority = networkPriority;
@@ -882,7 +882,7 @@ void networkPrintStatus(uint8_t priority)
     bitMask = (1 << index);
     highestPriority = (networkPriority == priority) ? '*' : ' ';
     status = "Starting";
-    if (networkOnline & bitMask)
+    if (networkHasInternet_bm & bitMask)
         status = "Online";
     else if (networkInterfaceTable[index].boot)
     {
@@ -1300,7 +1300,7 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
         // Only lower priority networks running, start this network interface
         name = networkGetNameByIndex(index);
         currentInterfaceName = networkGetCurrentInterfaceName();
-        if ((networkOnline & highPriorityBitMask) == 0)
+        if ((networkHasInternet_bm & highPriorityBitMask) == 0)
         {
             if (debug)
                 systemPrintf("%s online, Starting %s\r\n", currentInterfaceName, name);
@@ -1406,7 +1406,7 @@ void networkUpdate()
 
     // restartWiFi is used by the settings interface to indicate SSIDs or else has changed
     // Stop WiFi to allow restart with new settings
-    if (restartWiFi == true && networkIsInterfaceOnline(NETWORK_WIFI))
+    if (restartWiFi == true && networkInterfaceHasInternet(NETWORK_WIFI))
     {
         if (settings.debugNetworkLayer)
             systemPrintln("WiFi settings changed, restarting WiFi");
@@ -1418,9 +1418,9 @@ void networkUpdate()
     }
 
     // If there are no consumers, but the network is online, shut down all networks
-    if (consumerCount == 0 && networkIsOnline() == true)
+    if (consumerCount == 0 && networkHasInternet() == true)
     {
-        if (settings.debugNetworkLayer && networkIsInterfaceOnline(NETWORK_ETHERNET) ==
+        if (settings.debugNetworkLayer && networkInterfaceHasInternet(NETWORK_ETHERNET) ==
                                               false) // Ethernet is never stopped, so only print for other networks
             systemPrintln("Stopping all networks because there are no consumers");
 
@@ -1446,18 +1446,18 @@ void networkUpdate()
     // Allow consumers to start networks
     // Each network is expected to shut itself down if it is unavailable or of a lower priority
     // so that a networkStart() succeeds.
-    if (consumerCount > 0 && networkIsOnline() == false)
+    if (consumerCount > 0 && networkHasInternet() == false)
     {
         // Attempt to start any network that is needed, in the order Ethernet/WiFi/Cellular
 
         if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
             networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
 
-        if ((networkIsOnline() == false) && (consumerTypes && (1 << NETCONSUMER_WIFI_STA)) ||
+        if ((networkHasInternet() == false) && (consumerTypes && (1 << NETCONSUMER_WIFI_STA)) ||
             (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
             networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
 
-        if ((networkIsOnline() == false) && (consumerTypes && (1 << NETCONSUMER_CELLULAR)))
+        if ((networkHasInternet() == false) && (consumerTypes && (1 << NETCONSUMER_CELLULAR)))
             networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
     }
 
@@ -1731,7 +1731,7 @@ uint8_t networkConsumersOnline()
         consumerId |= (1 << 2);
     }
 
-    // Network needed for TCP Server
+    // Network needed for TCP Server - May use WiFi AP or WiFi STA
     if (online.tcpServer)
     {
         consumerCountOnline++;

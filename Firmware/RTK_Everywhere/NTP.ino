@@ -791,7 +791,7 @@ void ntpServerUpdate()
         if (EQ_RTK_MODE(ntpServerMode))
         {
             // The NTP server only works over Ethernet
-            if (networkIsInterfaceOnline(NETWORK_ETHERNET))
+            if (networkInterfaceHasInternet(NETWORK_ETHERNET))
             {
                 ntpServerPriority = NETWORK_OFFLINE;
                 ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
