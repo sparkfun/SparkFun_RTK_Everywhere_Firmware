@@ -1483,7 +1483,13 @@ void rtcUpdate()
                 }
                 else
                 {
-                    systemPrintln("No GNSS date/time available for system RTC.");
+                    // Reduce the output frequency
+                    static uint32_t lastErrorMsec = -1000 * 1000 * 1000;
+                    if ((millis() - lastErrorMsec) > (30 * 1000))
+                    {
+                        lastErrorMsec = millis();
+                        systemPrintln("No GNSS date/time available for system RTC.");
+                    }
                 } // End timeValid
             } // End lastRTCAttempt
         } // End online.gnss
