@@ -46,6 +46,7 @@ const uint8_t * networkGetMacAddress()
 bool networkHasInternet() {return false;}
 bool networkHasInternet(NetIndex_t index) {return false;}
 bool networkInterfaceHasInternet(NetIndex_t index) {return false;}
+bool networkIsInterfaceStarted(NetIndex_t index) {return false;}
 void networkMarkOffline(NetIndex_t index) {}
 void networkMarkHasInternet(NetIndex_t index) {}
 void networkUpdate() {}
@@ -169,9 +170,11 @@ void sendStringToWebsocket(const char* stringToSend) {}
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
+bool wifiStart() {return false;}
 int wifiNetworkCount() {return 0;}
 bool wifiStationIsRunning() {return false;}
 bool wifiApIsRunning() {return false;}
+bool wifiIsRunning() {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
 #define WIFI_STOP() {}
 
