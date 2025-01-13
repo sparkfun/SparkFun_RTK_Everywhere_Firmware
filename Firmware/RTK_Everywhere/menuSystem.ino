@@ -203,7 +203,8 @@ void menuSystem()
             if (settings.shutdownNoChargeTimeoutMinutes == 0)
                 systemPrintln("c) Shutdown if not charging: Disabled");
             else
-                systemPrintf("c) Shutdown if not charging after: %d minutes\r\n", settings.shutdownNoChargeTimeoutMinutes);
+                systemPrintf("c) Shutdown if not charging after: %d minutes\r\n",
+                             settings.shutdownNoChargeTimeoutMinutes);
         }
 
         systemPrintln("d) Debug software");
@@ -393,7 +394,7 @@ void menuSystem()
         else if (incoming == 'B')
         {
             forceSystemStateUpdate = true; // Immediately go to this new state
-            baseCasterDisableOverride(); // Leave Caster mode
+            baseCasterDisableOverride();   // Leave Caster mode
             changeState(STATE_BASE_NOT_STARTED);
         }
         else if (incoming == 'C')
@@ -489,6 +490,8 @@ void menuDebugHardware()
 
         if (present.gnss_um980)
             systemPrintln("13) UM980 direct connect");
+        else if (present.gnss_lg290p)
+            systemPrintln("13) LG290P reset for firmware update");
 
         systemPrint("14) PSRAM (");
         if (ESP.getPsramSize() == 0)
@@ -560,16 +563,28 @@ void menuDebugHardware()
         {
             settings.enableImuCompensationDebug ^= 1;
         }
-        else if (incoming == 13 && present.gnss_um980)
+        else if (incoming == 13)
         {
-            // Create a file in LittleFS
-            if (createUm980Passthrough() == true)
+            if (present.gnss_um980)
+            {
+                // Create a file in LittleFS
+                if (createUm980Passthrough() == true)
+                {
+                    systemPrintln();
+                    systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
+                    systemFlush(); // Complete prints
+
+                    ESP.restart();
+                }
+            }
+            else if (present.gnss_lg290p)
             {
                 systemPrintln();
-                systemPrintln("UM980 passthrough mode has been recorded to LittleFS. Device will now reset.");
-                systemFlush(); // Complete prints
-
-                ESP.restart();
+                systemPrintln("QGNSS must be connected to CH342 Port B at 460800bps. Begin firmware update from QGNSS (hit the play button) then reset the LG290P.");
+                lg290pReset();
+                delay(100);
+                lg290pBoot();
+                systemPrintln("LG290P reset complete.");
             }
         }
         else if (incoming == 14)
