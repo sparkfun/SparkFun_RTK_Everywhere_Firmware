@@ -8,6 +8,8 @@ GNSS_LG290P.ino
 
 #ifdef COMPILE_LG290P
 
+uint8_t lg290pFirmwareVersion = 0;
+
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
@@ -105,8 +107,23 @@ void GNSS_LG290P::begin()
     if (_lg290p->getVersionInfo(version, buildDate, buildTime))
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s", version.c_str());
 
-    if (sscanf(gnssFirmwareVersion, "%d", &gnssFirmwareVersionInt) != 1)
-        gnssFirmwareVersionInt = 99;
+    // Version strings look like LG290P03AANR01A03S and is version 03
+    char *spot = strnstr(gnssFirmwareVersion, "LG290P03AANR01A", sizeof(gnssFirmwareVersion));
+    if (spot != NULL)
+    {
+        spot += strlen("LG290P03AANR01A");
+        if (sscanf(spot, "%d", &lg290pFirmwareVersion) != 1)
+            lg290pFirmwareVersion = 99;
+    }
+
+    if (lg290pFirmwareVersion < 4)
+    {
+        systemPrintf(
+            "Current LG290P firmware: v%d (full form: %s). GST and DATA port configuration require v4 or newer. Please "
+            "update the "
+            "firmware on your LG290P to allow for these features. Please see https://bit.ly/sfe-rtk-lg290p-update\r\n",
+            lg290pFirmwareVersion, gnssFirmwareVersion);
+    }
 
     snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", getId());
 }
@@ -511,27 +528,35 @@ bool GNSS_LG290P::enableNMEA()
     bool gpggaEnabled = false;
     bool gpzdaEnabled = false;
 
-    for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
+    for (int portNumber = 0; portNumber < 3; portNumber++)
     {
-        if (_lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
-                                    settings.lg290pMessageRatesNMEA[messageNumber]) == false)
+        for (int messageNumber = 0; messageNumber < MAX_LG290P_NMEA_MSG; messageNumber++)
         {
-            if (settings.debugGnss)
-                systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
-                             lgMessagesNMEA[messageNumber].msgTextName);
-            response &= false; // If any one of the commands fails, report failure overall
-        }
+            // Check if this NMEA message is supported by the current LG290P firmware
+            if (lg290pFirmwareVersion >= lgMessagesNMEA[messageNumber].firmwareVersionSupported)
+            {
+                // Enable this message, at this rate, on this port
+                if (_lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName,
+                                            settings.lg290pMessageRatesNMEA[messageNumber], portNumber + 1) == false)
+                {
+                    if (settings.debugGnss)
+                        systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
+                                     lgMessagesNMEA[messageNumber].msgTextName);
+                    response &= false; // If any one of the commands fails, report failure overall
+                }
 
-        // If we are using IP based corrections, we need to send local data to the PPL
-        // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-        if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
-        {
-            // Mark PPL required messages as enabled if rate > 0
-            if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
-                gpggaEnabled = true;
-            // ZDA not supported on LG290P
-            // if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
-            gpzdaEnabled = true;
+                // If we are using IP based corrections, we need to send local data to the PPL
+                // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
+                if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
+                {
+                    // Mark PPL required messages as enabled if rate > 0
+                    if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "GGA") == 0)
+                        gpggaEnabled = true;
+                    // ZDA not supported on LG290P
+                    // if (strcmp(lgMessagesNMEA[messageNumber].msgTextName, "ZDA") == 0)
+                    gpzdaEnabled = true;
+                }
+            }
         }
     }
 
@@ -557,36 +582,40 @@ bool GNSS_LG290P::enableRTCMBase()
 
     for (int messageNumber = 0; messageNumber < MAX_LG290P_RTCM_MSG; messageNumber++)
     {
-        // Setting RTCM-1005 must have only the rate
-        // Setting RTCM-107X must have rate and offset
-        if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
+        // Check if this RTCM message is supported by the current LG290P firmware
+        if (lg290pFirmwareVersion >= lgMessagesRTCM[messageNumber].firmwareVersionSupported)
         {
-            // No X found. This is RTCM-1??? message. No offset.
-            if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                        settings.lg290pMessageRatesRTCMBase[messageNumber]) == false)
+            // Setting RTCM-1005 must have only the rate
+            // Setting RTCM-107X must have rate and offset
+            if (strchr(lgMessagesRTCM[messageNumber].msgTextName, 'X') == nullptr)
             {
-                // if (settings.debugGnss)
-                systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
-                             lgMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
+                // No X found. This is RTCM-1??? message. No offset.
+                if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                            settings.lg290pMessageRatesRTCMBase[messageNumber]) == false)
+                {
+                    // if (settings.debugGnss)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                                 lgMessagesRTCM[messageNumber].msgTextName);
+                    response &= false; // If any one of the commands fails, report failure overall
+                }
             }
-        }
-        else
-        {
-            // X found. This is RTCM-1??X message. Assign 'offset' of 0
-            if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
-                                        settings.lg290pMessageRatesRTCMBase[messageNumber], 0) == false)
+            else
             {
-                // if (settings.debugGnss)
-                systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
-                             lgMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
+                // X found. This is RTCM-1??X message. Assign 'offset' of 0
+                if (_lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                            settings.lg290pMessageRatesRTCMBase[messageNumber], 0) == false)
+                {
+                    // if (settings.debugGnss)
+                    systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
+                                 lgMessagesRTCM[messageNumber].msgTextName);
+                    response &= false; // If any one of the commands fails, report failure overall
+                }
             }
-        }
 
-        // If any message is enabled, enable MSM output
-        if (settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
-            enableMSM = true;
+            // If any message is enabled, enable MSM output
+            if (settings.lg290pMessageRatesRTCMRover[messageNumber] == true)
+                enableMSM = true;
+        }
     }
 
     if (enableMSM == true)
@@ -1008,8 +1037,18 @@ uint8_t GNSS_LG290P::getLoggingType()
 {
     LoggingType logType = LOGGING_CUSTOM;
 
-    if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
-        logType = LOGGING_STANDARD;
+    if (lg290pFirmwareVersion <= 3)
+    {
+        // GST is not available/default
+        if (getActiveNmeaMessageCount() == 6 && getActiveRtcmMessageCount() == 0)
+            logType = LOGGING_STANDARD;
+    }
+    else
+    {
+        // GST *is* available/default
+        if (getActiveNmeaMessageCount() == 7 && getActiveRtcmMessageCount() == 0)
+            logType = LOGGING_STANDARD;
+    }
 
     // What RTCM messages need to be logged to reach LOGGING_PPP?
 
