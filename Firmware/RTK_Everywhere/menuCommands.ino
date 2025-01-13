@@ -1290,38 +1290,56 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
 
         sendStringToWebsocket((char *)"checkingNewFirmware,1,"); // Tell the config page we received their request
 
-        // Indicate to the OTA state machine that we need to do a version check
-        otaRequestFirmwareVersionCheck = true;
+        // We don't use the OTA state machine here because we need to respond to
+        // Web Config immediately of success or failure
+
+        // If we're in AP only mode (no internet), try WiFi with current SSIDs
+        if (networkIsInterfaceStarted(NETWORK_WIFI) && networkHasInternet() == false)
+        {
+            wifiStart();
+        }
 
         // Get firmware version from server
-        // otaCheckVersion will call wifiConnect if needed
-        // if (otaCheckVersion(reportedVersion, sizeof(reportedVersion)))
-        // {
-        //     // We got a version number, now determine if it's newer or not
-        //     char currentVersion[21];
-        //     getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
-        //     if (isReportedVersionNewer(reportedVersion, currentVersion) == true)
-        //     {
-        //         if (settings.debugWebServer == true)
-        //             systemPrintln("New version detected");
-        //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", reportedVersion);
-        //     }
-        //     else
-        //     {
-        //         if (settings.debugWebServer == true)
-        //             systemPrintln("No new firmware available");
-        //         snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
-        //     }
-        // }
-        // else
-        // {
-        //     // Failed to get version number
-        //     if (settings.debugWebServer == true)
-        //         systemPrintln("Sending error to AP config page");
-        //     snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,ERROR,");
-        // }
+        char newVersionCSV[40];
+        if (networkHasInternet() == false)
+        {
+            // No internet. Report error.
+            if (settings.debugWebServer == true)
+                systemPrintln("No internet available. Sending error to Web config page.");
+            snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_INTERNET,");
+        }
+        else
+        {
+            char otaReportedVersion[50];
+            if (otaCheckVersion(otaReportedVersion, sizeof(otaReportedVersion)))
+            {
+                // We got a version number, now determine if it's newer or not
+                char currentVersion[40];
+                getFirmwareVersion(currentVersion, sizeof(currentVersion), enableRCFirmware);
+                if (isReportedVersionNewer(otaReportedVersion, currentVersion) == true)
+                {
+                    if (settings.debugWebServer == true)
+                        systemPrintln("New version detected");
+                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,%s,", otaReportedVersion);
+                }
+                else
+                {
+                    if (settings.debugWebServer == true)
+                        systemPrintln("No new firmware available");
+                    snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,CURRENT,");
+                }
+            }
+            else
+            {
+                // Failed to get version number
+                if (settings.debugWebServer == true)
+                    systemPrintln("Sending error to Web config page");
+                snprintf(newVersionCSV, sizeof(newVersionCSV), "newFirmwareVersion,NO_SERVER,");
+            }
+        }
 
-        // sendStringToWebsocket(newVersionCSV);
+        sendStringToWebsocket(newVersionCSV);
+
         knownSetting = true;
     }
     else if (strcmp(settingName, "getNewFirmware") == 0)
@@ -2326,12 +2344,12 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
         break;
             // System state at power on. Convert various system states to either Rover, Base, NTP, or BaseCast.
             // Manually handled below
-        // case tSysState: {
-        //     SystemState *ptr = (SystemState *)var;
-        //     writeToString(settingValueStr, (int)*ptr);
-        //     knownSetting = true;
-        // }
-        break;
+            // case tSysState: {
+            //     SystemState *ptr = (SystemState *)var;
+            //     writeToString(settingValueStr, (int)*ptr);
+            //     knownSetting = true;
+            // }
+            break;
         case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
             writeToString(settingValueStr, (int)*ptr);

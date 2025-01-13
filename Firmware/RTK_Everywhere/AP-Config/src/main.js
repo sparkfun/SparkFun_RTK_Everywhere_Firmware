@@ -2358,7 +2358,13 @@ function checkingNewFirmware() {
 
 function newFirmwareVersion(firmwareVersion) {
     clearMsg('firmwareCheckNewMsg');
-    if (firmwareVersion == "ERROR") {
+    if (firmwareVersion == "NO_INTERNET") {
+        showMsgError('firmwareCheckNewMsg', "No internet");
+        hide("divGetNewFirmware");
+        ge("btnCheckNewFirmware").disabled = false;
+        return;
+    }
+    else if (firmwareVersion == "NO_SERVER") {
         showMsgError('firmwareCheckNewMsg', "Network or Server not available");
         hide("divGetNewFirmware");
         ge("btnCheckNewFirmware").disabled = false;
