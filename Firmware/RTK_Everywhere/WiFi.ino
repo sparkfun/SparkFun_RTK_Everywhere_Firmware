@@ -55,7 +55,8 @@ static unsigned long wifiDisplayTimer;
 // DNS server for Captive Portal
 static DNSServer dnsServer;
 
-static bool wifiRunning;
+static bool wifiStationRunning;
+static bool wifiApRunning;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
@@ -154,7 +155,8 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     if (startWiFiAP && WiFi.getMode() == WIFI_AP)
         return (true); // There is nothing needing to be changed
 
-    wifiRunning = false; // Mark it as offline while we mess about
+    wifiStationRunning = false; // Mark it as offline while we mess about
+    wifiApRunning = false;      // Mark it as offline while we mess about
 
     wifi_mode_t wifiMode = WIFI_OFF;
     wifi_interface_t wifiInterface = WIFI_IF_STA;
@@ -248,8 +250,6 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
         systemPrintf("WiFi AP '%s' started with IP: ", softApSsid);
         systemPrintln(WiFi.softAPIP());
 
-        networkMarkOnline(NETWORK_WIFI); // Regardless of WiFi STA success of failure, we have some network access
-
         // Start DNS Server
         if (dnsServer.start(53, "*", WiFi.softAPIP()) == false)
         {
@@ -262,12 +262,11 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
                 systemPrintln("DNS Server started");
         }
 
+        wifiApRunning = true;
+
         // If we're only here to start the AP, then we're done
         if (wifiMode == WIFI_AP)
-        {
-            wifiRunning = true;
             return true;
-        }
     }
 
     systemPrintln("Connecting to WiFi... ");
@@ -288,7 +287,7 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     if (wifiStatus == WL_CONNECTED)
     {
         wifiResetTimeout(); // If we successfully connected then reset the throttling timeout
-        wifiRunning = true;
+        wifiStationRunning = true;
         return true;
     }
     if (wifiStatus == WL_DISCONNECTED)
@@ -297,7 +296,7 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     {
         systemPrintf("WiFi failed to connect: error #%d - %s\r\n", wifiStatus, wifiPrintState((wl_status_t)wifiStatus));
     }
-    wifiRunning = false;
+    wifiStationRunning = false;
     return false;
 }
 
@@ -306,10 +305,10 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
 //----------------------------------------
 void wifiDisplayState()
 {
-    systemPrintf("WiFi: %s\r\n", networkIsInterfaceOnline(NETWORK_WIFI) ? "Online" : "Offline");
+    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI) ? "Online" : "Offline");
     systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1],
                  wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-    if (networkIsInterfaceOnline(NETWORK_WIFI))
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
     {
         // Get the DNS addresses
         IPAddress dns1 = WiFi.STA.dnsIP(0);
@@ -351,7 +350,7 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
     if (WiFi.getMode() == WIFI_MODE_STA)
     {
         // Take the network offline if necessary
-        if (networkIsInterfaceOnline(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+        if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
             (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
         {
             if (settings.debugWifiState)
@@ -422,13 +421,13 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
         ipAddress = WiFi.localIP();
         systemPrint("WiFi STA Got IPv4: ");
         systemPrintln(ipAddress);
-        networkMarkOnline(NETWORK_WIFI);
+        networkMarkHasInternet(NETWORK_WIFI);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
         systemPrint("WiFi STA Got IPv6: ");
         systemPrintln(ipAddress);
-        networkMarkOnline(NETWORK_WIFI);
+        networkMarkHasInternet(NETWORK_WIFI);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
@@ -449,11 +448,29 @@ bool wifiIsConnected()
 }
 
 //----------------------------------------
-// Determine if WIFI is running
+// Determine if WiFi Station is running
+//----------------------------------------
+bool wifiStationIsRunning()
+{
+    return wifiStationRunning;
+}
+
+//----------------------------------------
+// Determine if WiFi AP is running
+//----------------------------------------
+bool wifiApIsRunning()
+{
+    return wifiApRunning;
+}
+
+//----------------------------------------
+// Determine if either Station or AP is running
 //----------------------------------------
 bool wifiIsRunning()
 {
-    return wifiRunning;
+    if (wifiStationRunning || wifiApRunning)
+        return true;
+    return false;
 }
 
 //----------------------------------------
@@ -511,54 +528,59 @@ bool wifiStart()
 {
     int wifiStatus;
 
-    // Determine if WiFi is already running
-    if (!wifiRunning)
+    // Determine which parts of WiFi need to be started
+    bool startWiFiStation = false;
+    bool startWiFiAp = false;
+
+    uint16_t consumerTypes = networkGetConsumerTypes();
+
+    // The consumers need station
+    if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
+        startWiFiStation = true;
+
+    // The consumers need AP
+    if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
+        startWiFiAp = true;
+
+    if (startWiFiStation == false && startWiFiAp == false)
     {
-        // Determine which parts of WiFi need to be started
-        bool startWiFiStation = false;
-        bool startWiFiAP = false;
-
-        uint16_t consumerTypes = networkGetConsumerTypes();
-
-        // The consumers need station
-        if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
-            startWiFiStation = true;
-
-        // The consumers need AP
-        if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
-            startWiFiAP = true;
-
-        if (startWiFiStation == false && startWiFiAP == false)
-        {
-            systemPrintln("wifiStart() requested without any NETCONSUMER combination");
-            WIFI_STOP();
-            return (false);
-        }
-
-        if (wifiNetworkCount() == 0)
-        {
-            if (startWiFiStation == true && startWiFiAP == false)
-            {
-                systemPrintln("Error: Please enter at least one SSID before using WiFi");
-                displayNoSSIDs(2000);
-                WIFI_STOP();
-                return false;
-            }
-            else if (startWiFiStation == true && startWiFiAP == true)
-            {
-                systemPrintln("Error: No SSID available to start WiFi Station during AP");
-                // Allow the system to continue in AP only mode
-                startWiFiStation = false;
-            }
-        }
-
-        // Start WiFi
-        wifiConnect(startWiFiStation, startWiFiAP, settings.wifiConnectTimeoutMs);
+        systemPrintln("wifiStart() requested without any NETCONSUMER combination");
+        WIFI_STOP();
+        return (false);
     }
+
+    // Determine if WiFi is already running
+    if (startWiFiStation == wifiStationRunning && startWiFiAp == wifiApRunning)
+    {
+        if (settings.debugWifiState == true)
+            systemPrintln("WiFi is already running with requested setup");
+        return (true);
+    }
+
+    // Handle special cases if no networks have been entered
+    if (wifiNetworkCount() == 0)
+    {
+        if (startWiFiStation == true && startWiFiAp == false)
+        {
+            systemPrintln("Error: Please enter at least one SSID before using WiFi");
+            displayNoSSIDs(2000);
+            WIFI_STOP();
+            return false;
+        }
+        else if (startWiFiStation == true && startWiFiAp == true)
+        {
+            systemPrintln("Error: No SSID available to start WiFi Station during AP");
+            // Allow the system to continue in AP only mode
+            startWiFiStation = false;
+        }
+    }
+
+    // Start WiFi
+    wifiConnect(startWiFiStation, startWiFiAp, settings.wifiConnectTimeoutMs);
 
     // If we are in AP only mode, as long as the AP is started, return true
     if (WiFi.getMode() == WIFI_MODE_AP)
-        return (true);
+        return (wifiApIsRunning);
 
     // If we are in STA or AP+STA mode, return if the station connected successfully
     wifiStatus = WiFi.status();
@@ -690,7 +712,8 @@ void wifiStop()
 
     // Display the heap state
     reportHeapNow(settings.debugWifiState);
-    wifiRunning = false;
+    wifiStationRunning = false;
+    wifiApRunning = false;
 }
 
 // Needed for wifiStopSequence

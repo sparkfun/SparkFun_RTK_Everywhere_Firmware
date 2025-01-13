@@ -170,7 +170,8 @@ void sendStringToWebsocket(const char* stringToSend) {}
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 int wifiNetworkCount() {return 0;}
-bool wifiIsRunning() {return false;}
+bool wifiStationIsRunning() {return false;}
+bool wifiApIsRunning() {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
 #define WIFI_STOP() {}
 
