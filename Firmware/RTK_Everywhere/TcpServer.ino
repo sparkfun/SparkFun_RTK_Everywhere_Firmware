@@ -76,7 +76,6 @@ static volatile uint8_t tcpServerClientWriteError;
 static NetworkClient *tcpServerClient[TCP_SERVER_MAX_CLIENTS];
 static IPAddress tcpServerClientIpAddress[TCP_SERVER_MAX_CLIENTS];
 static volatile RING_BUFFER_OFFSET tcpServerClientTails[TCP_SERVER_MAX_CLIENTS];
-static NetPriority_t tcpServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // TCP Server handleGnssDataTask Support Routines
@@ -381,7 +380,6 @@ void tcpServerUpdate()
         {
             if (settings.debugTcpServer && (!inMainMenu))
                 systemPrintln("TCP server start");
-            tcpServerPriority = NETWORK_OFFLINE;
             tcpServerSetState(TCP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -393,7 +391,7 @@ void tcpServerUpdate()
             tcpServerStop();
 
         // Wait until the network is connected to the media
-        else if (networkIsConnected(&tcpServerPriority))
+        else if (networkHasInternet())
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -411,7 +409,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkIsConnected(&tcpServerPriority) == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if ((networkHasInternet() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {

@@ -148,7 +148,6 @@ const RtkMode_t tcpClientMode = RTK_MODE_BASE_FIXED | RTK_MODE_BASE_SURVEY_IN | 
 
 static NetworkClient *tcpClient;
 static IPAddress tcpClientIpAddress;
-static NetPriority_t tcpClientPriority = NETWORK_OFFLINE;
 static uint8_t tcpClientState;
 static volatile RING_BUFFER_OFFSET tcpClientTail;
 static volatile bool tcpClientWriteError;
@@ -417,7 +416,6 @@ void tcpClientUpdate()
         if (EQ_RTK_MODE(tcpClientMode) && settings.enableTcpClient)
         {
             timer = 0;
-            tcpClientPriority = NETWORK_OFFLINE;
             tcpClientSetState(TCP_CLIENT_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -428,8 +426,8 @@ void tcpClientUpdate()
         if (NEQ_RTK_MODE(tcpClientMode) || !settings.enableTcpClient)
             tcpClientStop();
 
-        // Wait until the network is connected to the media
-        else if (networkIsConnected(&tcpClientPriority))
+        // Wait until the network is connected
+        else if (networkHasInternet())
         {
 #ifdef COMPILE_WIFI
             // Determine if WiFi is required
@@ -465,7 +463,7 @@ void tcpClientUpdate()
     // Attempt the connection ot the TCP server
     case TCP_CLIENT_STATE_CLIENT_STARTING:
         // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 
@@ -510,7 +508,7 @@ void tcpClientUpdate()
     // Wait for the TCP client to shutdown or a TCP client link failure
     case TCP_CLIENT_STATE_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&tcpClientPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             tcpClientStop();
 

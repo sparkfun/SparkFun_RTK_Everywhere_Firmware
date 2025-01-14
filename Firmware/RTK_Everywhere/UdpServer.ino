@@ -94,7 +94,6 @@ static NetworkUDP *udpServer = nullptr;
 static uint8_t udpServerState;
 static uint32_t udpServerTimer;
 static volatile RING_BUFFER_OFFSET udpServerTail;
-static NetPriority_t udpServerPriority;
 
 //----------------------------------------
 // UDP Server handleGnssDataTask Support Routines
@@ -107,7 +106,7 @@ int32_t udpServerSendDataBroadcast(uint8_t *data, uint16_t length)
         return 0;
 
     // Send the data as broadcast
-    if (settings.enableUdpServer && online.udpServer && networkIsConnected(&udpServerPriority))
+    if (settings.enableUdpServer && online.udpServer && networkHasInternet())
     {
         IPAddress broadcastAddress = networkGetBroadcastIpAddress();
         udpServer->beginPacket(broadcastAddress, settings.udpServerPort);
@@ -325,7 +324,6 @@ void udpServerUpdate()
         {
             if (settings.debugUdpServer && (!inMainMenu))
                 systemPrintln("UDP server starting the network");
-            udpServerPriority = NETWORK_OFFLINE;
             udpServerSetState(UDP_SERVER_STATE_WAIT_FOR_NETWORK);
         }
         break;
@@ -336,8 +334,8 @@ void udpServerUpdate()
         if (NEQ_RTK_MODE(udpServerMode) || !settings.enableUdpServer)
             udpServerStop();
 
-        // Wait until the network is connected to the media
-        else if (networkIsConnected(&udpServerPriority))
+        // Wait until the network is connected
+        else if (networkHasInternet())
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -355,7 +353,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableUdpServer) || (!networkIsConnected(&udpServerPriority)))
+        if ((!settings.enableUdpServer) || (networkHasInternet() == false))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

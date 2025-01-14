@@ -585,21 +585,6 @@ const char *networkGetNameByPriority(NetPriority_t priority)
 }
 
 //----------------------------------------
-// Determine if the network is available
-//----------------------------------------
-bool networkIsConnected(NetPriority_t *clientPriority)
-{
-    // If the client is using the highest priority network and that
-    // network is still available then continue as normal
-    if (networkHasInternet_bm && (*clientPriority == networkPriority))
-        return true;
-
-    // The network has changed, notify the client of the change
-    return false;
-    *clientPriority = networkPriority;
-}
-
-//----------------------------------------
 // Determine if the network interface is online
 //----------------------------------------
 bool networkInterfaceHasInternet(NetIndex_t index)
@@ -1406,15 +1391,19 @@ void networkUpdate()
 
     // restartWiFi is used by the settings interface to indicate SSIDs or else has changed
     // Stop WiFi to allow restart with new settings
-    if (restartWiFi == true && networkInterfaceHasInternet(NETWORK_WIFI))
+    if (restartWiFi == true)
     {
-        if (settings.debugNetworkLayer)
-            systemPrintln("WiFi settings changed, restarting WiFi");
-
         restartWiFi = false;
-        wifiResetThrottleTimeout();
-        WIFI_STOP();
-        networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
+
+        if (networkInterfaceHasInternet(NETWORK_WIFI))
+        {
+            if (settings.debugNetworkLayer)
+                systemPrintln("WiFi settings changed, restarting WiFi");
+
+            wifiResetThrottleTimeout();
+            WIFI_STOP();
+            networkStop(NETWORK_WIFI, settings.debugNetworkLayer);
+        }
     }
 
     // If there are no consumers, but the network is online, shut down all networks
