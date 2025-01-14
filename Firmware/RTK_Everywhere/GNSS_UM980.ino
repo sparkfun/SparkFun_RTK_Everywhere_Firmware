@@ -450,24 +450,26 @@ bool GNSS_UM980::enableNMEA()
         // has UNLOG or similar.
         if (settings.um980MessageRatesNMEA[messageNumber] > 0)
         {
-            if (_um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
-                                           settings.um980MessageRatesNMEA[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
-                                 umMessagesNMEA[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
+            // If any one of the commands fails, report failure overall
+            response &= _um980->setNMEAPortMessage(umMessagesNMEA[messageNumber].msgTextName, "COM3",
+                                                   settings.um980MessageRatesNMEA[messageNumber]);
+
+            if (response == false && settings.debugGnss)
+                systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
+                             umMessagesNMEA[messageNumber].msgTextName);
 
             // If we are using IP based corrections, we need to send local data to the PPL
             // The PPL requires being fed GPGGA/ZDA, and RTCM1019/1020/1042/1046
-            if (strstr(settings.pointPerfectKeyDistributionTopic, "/ip") != nullptr)
+            if (settings.enablePointPerfectCorrections)
             {
                 // Mark PPL required messages as enabled if rate > 0
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
-                    gpggaEnabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
-                    gpzdaEnabled = true;
+                if (settings.um980MessageRatesNMEA[messageNumber] > 0)
+                {
+                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPGGA") == 0)
+                        gpggaEnabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "GPZDA") == 0)
+                        gpzdaEnabled = true;
+                }
             }
         }
     }
@@ -497,14 +499,13 @@ bool GNSS_UM980::enableRTCMBase()
         // has UNLOG or similar.
         if (settings.um980MessageRatesRTCMBase[messageNumber] > 0)
         {
-            if (_um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
-                                           settings.um980MessageRatesRTCMBase[messageNumber]) == false)
-            {
-                if (settings.debugGnss)
-                    systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
-                                 umMessagesRTCM[messageNumber].msgTextName);
-                response &= false; // If any one of the commands fails, report failure overall
-            }
+            // If any one of the commands fails, report failure overall
+            response &= _um980->setRTCMPortMessage(umMessagesRTCM[messageNumber].msgTextName, "COM3",
+                                                   settings.um980MessageRatesRTCMBase[messageNumber]);
+
+            if (response == false && settings.debugGnss)
+                systemPrintf("Enable RTCM failed at messageNumber %d %s.", messageNumber,
+                             umMessagesRTCM[messageNumber].msgTextName);
         }
     }
 
@@ -542,14 +543,17 @@ bool GNSS_UM980::enableRTCMRover()
             if (settings.enablePointPerfectCorrections)
             {
                 // Mark PPL required messages as enabled if rate > 0
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
-                    rtcm1019Enabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
-                    rtcm1020Enabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
-                    rtcm1042Enabled = true;
-                if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
-                    rtcm1046Enabled = true;
+                if (settings.um980MessageRatesRTCMRover[messageNumber] > 0)
+                {
+                    if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1019") == 0)
+                        rtcm1019Enabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1020") == 0)
+                        rtcm1020Enabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1042") == 0)
+                        rtcm1042Enabled = true;
+                    else if (strcmp(umMessagesNMEA[messageNumber].msgTextName, "RTCM1046") == 0)
+                        rtcm1046Enabled = true;
+                }
             }
         }
     }
