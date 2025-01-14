@@ -329,6 +329,9 @@ bool GNSS_LG290P::configureRover()
         if (settingsWereSaved)
             settings.updateGNSSSettings = false;
 
+        //For RTCM and MSM messages to take effect (ie, PointPerfect is active) we must save/reset
+        softwareReset();
+
         if (settings.debugGnss)
             systemPrintln("LG290P Rover configured");
     }
@@ -546,7 +549,7 @@ bool GNSS_LG290P::enableNMEA()
                 else
                     // Enable this message, at this rate
                     response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
-                                                       settings.lg290pMessageRatesNMEA[messageNumber]);
+                                                        settings.lg290pMessageRatesNMEA[messageNumber]);
                 if (response == false && settings.debugGnss)
                     systemPrintf("Enable NMEA failed at messageNumber %d %s.\r\n", messageNumber,
                                  lgMessagesNMEA[messageNumber].msgTextName);
@@ -616,12 +619,12 @@ bool GNSS_LG290P::enableRTCMBase()
                     if (lg290pFirmwareVersion >= 4)
                         // Enable this message, at this rate, on this port
                         response &=
-                            _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName,
-                                                          settings.lg290pMessageRatesNMEA[messageNumber], portNumber);
+                            _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
+                                                          settings.lg290pMessageRatesRTCMBase[messageNumber], portNumber);
                     else
                         // Enable this message, at this rate
-                        response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesNMEA[messageNumber]);
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                                            settings.lg290pMessageRatesRTCMBase[messageNumber]);
 
                     if (response == false && settings.debugGnss)
                         systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
@@ -634,13 +637,13 @@ bool GNSS_LG290P::enableRTCMBase()
                     // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
                     if (lg290pFirmwareVersion >= 4)
                         // Enable this message, at this rate, on this port
-                        response &= _lg290p->setMessageRateOnPort(lgMessagesNMEA[messageNumber].msgTextName,
-                                                                  settings.lg290pMessageRatesNMEA[messageNumber],
+                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
+                                                                  settings.lg290pMessageRatesRTCMBase[messageNumber],
                                                                   portNumber, 0);
                     else
                         // Enable this message, at this rate
-                        response &= _lg290p->setMessageRate(lgMessagesNMEA[messageNumber].msgTextName,
-                                                            settings.lg290pMessageRatesNMEA[messageNumber], 0);
+                        response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
+                                                            settings.lg290pMessageRatesRTCMBase[messageNumber], 0);
 
                     if (response == false && settings.debugGnss)
                         systemPrintf("Enable RTCM failed at messageNumber %d %s\r\n", messageNumber,
@@ -755,7 +758,6 @@ bool GNSS_LG290P::enableRTCMRover()
                             rtcm1042Enabled = true;
                         else if (strcmp(lgMessagesRTCM[messageNumber].msgTextName, "RTCM3-1046") == 0)
                             rtcm1046Enabled = true;
-                        enableMSM = true; // Force enable MSM output
                     }
                 }
             }
@@ -770,20 +772,40 @@ bool GNSS_LG290P::enableRTCMRover()
 
     if (settings.enablePointPerfectCorrections)
     {
+        enableMSM = true; // Force enable MSM output
+
         // Force on any messages that are needed for PPL
         if (rtcm1019Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1019");
             response &= _lg290p->setMessageRate("RTCM3-1019", 1);
+        }
         if (rtcm1020Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1020");
+
             response &= _lg290p->setMessageRate("RTCM3-1020", 1);
+        }
         if (rtcm1042Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1042");
+
             response &= _lg290p->setMessageRate("RTCM3-1042", 1);
+        }
         if (rtcm1046Enabled == false)
+        {
+            if (settings.debugCorrections)
+                systemPrintln("PPL Enabling RTCM3-1046");
             response &= _lg290p->setMessageRate("RTCM3-1046", 1);
+        }
     }
 
     if (enableMSM == true)
     {
-        if (settings.debugGnss)
+        if (settings.debugCorrections)
             systemPrintln("Enabling Rover RTCM MSM output");
 
         // PQTMCFGRTCM fails to respond with OK over UART2 of LG290P, so don't look for it
@@ -1908,7 +1930,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
     int currentMode = getMode();
     if (currentMode == 2) // Base
     {
-        if (settings.debugGnss)
+        if (settings.debugGnss || settings.debugCorrections)
             systemPrintln("Error: setRate can only be used in Rover mode");
         return (false);
     }
@@ -1929,7 +1951,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
     {
         if (fixInterval != msBetweenSolutions)
         {
-            if (settings.debugGnss)
+            if (settings.debugGnss || settings.debugCorrections)
                 systemPrintf("Modifying fix interval to %d\r\n", msBetweenSolutions);
 
             // Set the fix interval
@@ -1938,7 +1960,7 @@ bool GNSS_LG290P::setRate(double secondsBetweenSolutions)
             // Reboot receiver to apply changes
             if (response == true)
             {
-                if (settings.debugGnss)
+                if (settings.debugGnss || settings.debugCorrections)
                     systemPrintln("Rebooting LG290P");
 
                 response &= saveConfiguration();
