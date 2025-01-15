@@ -394,7 +394,10 @@ void printReports()
             // If we are in base mode, display SIV only
             else if (inBaseMode() == true)
             {
-                systemPrintf("Base Mode - SIV: %d\r\n", gnss->getSatellitesInView());
+                if (settings.baseCasterOverride == true)
+                    systemPrintf("Base Caster Mode - SIV: %d\r\n", gnss->getSatellitesInView());
+                else
+                    systemPrintf("Base Mode - SIV: %d\r\n", gnss->getSatellitesInView());
             }
         }
     }
