@@ -329,7 +329,7 @@ bool GNSS_LG290P::configureRover()
         if (settingsWereSaved)
             settings.updateGNSSSettings = false;
 
-        //For RTCM and MSM messages to take effect (ie, PointPerfect is active) we must save/reset
+        // For RTCM and MSM messages to take effect (ie, PointPerfect is active) we must save/reset
         softwareReset();
 
         if (settings.debugGnss)
@@ -618,9 +618,9 @@ bool GNSS_LG290P::enableRTCMBase()
                     // If firmware is 4 or higher, use setMessageRateOnPort, otherwise setMessageRate
                     if (lg290pFirmwareVersion >= 4)
                         // Enable this message, at this rate, on this port
-                        response &=
-                            _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
-                                                          settings.lg290pMessageRatesRTCMBase[messageNumber], portNumber);
+                        response &= _lg290p->setMessageRateOnPort(lgMessagesRTCM[messageNumber].msgTextName,
+                                                                  settings.lg290pMessageRatesRTCMBase[messageNumber],
+                                                                  portNumber);
                     else
                         // Enable this message, at this rate
                         response &= _lg290p->setMessageRate(lgMessagesRTCM[messageNumber].msgTextName,
@@ -1639,24 +1639,42 @@ void GNSS_LG290P::menuMessagesSubtype(int *localMessageRate, const char *message
             endOfBlock = MAX_LG290P_NMEA_MSG;
 
             for (int x = 0; x < MAX_LG290P_NMEA_MSG; x++)
-                systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesNMEA[x].msgTextName,
-                             settings.lg290pMessageRatesNMEA[x]);
+            {
+                if (lg290pFirmwareVersion <= lgMessagesNMEA[x].firmwareVersionSupported)
+                    systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
+                                 lgMessagesNMEA[x].msgTextName, settings.lg290pMessageRatesNMEA[x]);
+                else
+                    systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesNMEA[x].msgTextName,
+                                 settings.lg290pMessageRatesNMEA[x]);
+            }
         }
         else if (strcmp(messageType, "RTCMRover") == 0)
         {
             endOfBlock = MAX_LG290P_RTCM_MSG;
 
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
-                systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
-                             settings.lg290pMessageRatesRTCMRover[x]);
+            {
+                if (lg290pFirmwareVersion <= lgMessagesRTCM[x].firmwareVersionSupported)
+                    systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1,
+                                 lgMessagesRTCM[x].msgTextName, settings.lg290pMessageRatesRTCMRover[x]);
+                else
+                    systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
+                                 settings.lg290pMessageRatesRTCMRover[x]);
+            }
         }
         else if (strcmp(messageType, "RTCMBase") == 0)
         {
             endOfBlock = MAX_LG290P_RTCM_MSG;
 
             for (int x = 0; x < MAX_LG290P_RTCM_MSG; x++)
-                systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
-                             settings.lg290pMessageRatesRTCMBase[x]);
+            {
+                if (lg290pFirmwareVersion <= lgMessagesRTCM[x].firmwareVersionSupported)
+                    systemPrintf("%d) Message %s: %d - Requires firmware update\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
+                                 settings.lg290pMessageRatesRTCMBase[x]);
+                else
+                    systemPrintf("%d) Message %s: %d\r\n", x + 1, lgMessagesRTCM[x].msgTextName,
+                                 settings.lg290pMessageRatesRTCMBase[x]);
+            }
         }
 
         systemPrintln("x) Exit");
