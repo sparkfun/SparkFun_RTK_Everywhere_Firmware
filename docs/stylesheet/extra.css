@@ -1,0 +1,587 @@
+/* ================================================================================== */
+/* General Customizations                                                             */
+/* ================================================================================== */
+
+/* Sets page to use screens full width (can also use initial; instead of 100%) */
+.md-grid {
+	max-width: 100%;
+}
+
+/* Center images in figure elements */
+.md-typeset figure {
+	text-align: -webkit-center;
+}
+
+/* SparkFun dark brand color: #3c464d */
+
+/* Sets the maximum height size of the code blocks */
+/* (code block becomes scrollable, but not compatible when lines are displayed) */
+/* .md-typeset pre > code {
+	max-height: var(--md-codeblock-height, 800px);
+} */
+
+/* Failed workaround (lines are not scrollable)*/
+/* .highlighttable .linenodiv {
+	max-height: var(--md-codeblock-height, 800px);
+} */
+
+
+/* ================================================================================== */
+/* Code Block                                                                         */
+/* ================================================================================== */
+
+/* Fixes highlighting of code blocks in other elements (i.e. content tabs, buttons, etc.) */
+.md-typeset a:focus code, .md-typeset a:hover code {
+	background-color: var(--md-code-fg-color);
+}
+
+
+/* ================================================================================== */
+/* Content Tabs                                                                       */
+/* ================================================================================== */
+
+/* Sets the background color of the labels and creates an outline */
+.md-typeset .tabbed-labels > label {
+	background-color: var(--md-code-bg-color--light);
+	border-top: .1rem solid var(--md-default-fg-color--lighter);
+	border-left: .1rem solid var(--md-default-fg-color--lighter);
+	border-right: .1rem solid var(--md-default-fg-color--lighter);
+	margin-left: .1rem;
+	margin-right: .1rem;
+}
+
+/* Sets background color of active label to accent, when mouse is hovered over item */
+.md-typeset .tabbed-labels > label > a:hover {
+	/* Bright Red - Issue with red code block text */
+	/* background-color: var(--md-accent-fg-color); */
+
+	/* Transparent Red - Issue, not visible in dark theme */
+	/* background-color: var(--md-accent-bg-color--transparent); */
+
+	/* Blue - In light theme, issue with dark blue on black letters */
+	/* background-color: var(--md-typeset-a-color); */
+
+	/* Grey - In light theme, issue with dark grey on black letters (better than blue) */
+	/* background-color: var(--md-primary-fg-color); */
+
+	/* Light Blue */
+	background-color: #547cc6b7;
+
+}
+
+/* Sets kbd button aesthetic */
+.md-typeset {
+	--md-typeset-kbd-color:rgb(80, 80, 80);
+	--md-typeset-kbd-border-color: rgb(175, 175, 175);
+	--md-typeset-kbd-accent-color: hsla(0, 0%, 50%, 0.4);
+}
+
+.md-typeset kbd {
+	color:#ffffff;
+}
+
+
+/* Sets the color of the background and outline on the active label */
+.md-typeset .tabbed-set>input:first-child:checked~.tabbed-labels>:first-child,
+.md-typeset .tabbed-set>input:nth-child(2):checked~.tabbed-labels>:nth-child(2),
+.md-typeset .tabbed-set>input:nth-child(3):checked~.tabbed-labels>:nth-child(3),
+.md-typeset .tabbed-set>input:nth-child(4):checked~.tabbed-labels>:nth-child(4),
+.md-typeset .tabbed-set>input:nth-child(5):checked~.tabbed-labels>:nth-child(5),
+.md-typeset .tabbed-set>input:nth-child(6):checked~.tabbed-labels>:nth-child(6),
+.md-typeset .tabbed-set>input:nth-child(7):checked~.tabbed-labels>:nth-child(7),
+.md-typeset .tabbed-set>input:nth-child(8):checked~.tabbed-labels>:nth-child(8),
+.md-typeset .tabbed-set>input:nth-child(9):checked~.tabbed-labels>:nth-child(9),
+.md-typeset .tabbed-set>input:nth-child(10):checked~.tabbed-labels>:nth-child(10),
+.md-typeset .tabbed-set>input:nth-child(11):checked~.tabbed-labels>:nth-child(11),
+.md-typeset .tabbed-set>input:nth-child(12):checked~.tabbed-labels>:nth-child(12),
+.md-typeset .tabbed-set>input:nth-child(13):checked~.tabbed-labels>:nth-child(13),
+.md-typeset .tabbed-set>input:nth-child(14):checked~.tabbed-labels>:nth-child(14),
+.md-typeset .tabbed-set>input:nth-child(15):checked~.tabbed-labels>:nth-child(15),
+.md-typeset .tabbed-set>input:nth-child(16):checked~.tabbed-labels>:nth-child(16),
+.md-typeset .tabbed-set>input:nth-child(17):checked~.tabbed-labels>:nth-child(17),
+.md-typeset .tabbed-set>input:nth-child(18):checked~.tabbed-labels>:nth-child(18),
+.md-typeset .tabbed-set>input:nth-child(19):checked~.tabbed-labels>:nth-child(19),
+.md-typeset .tabbed-set>input:nth-child(20):checked~.tabbed-labels>:nth-child(20) {
+	background-color: #0000;
+	border-top: .1rem solid var(--md-default-fg-color);
+	border-left: .1rem solid var(--md-default-fg-color);
+	border-right: .1rem solid var(--md-default-fg-color);
+}
+
+
+
+/* ================================================================================== */
+/* Icons                                                                              */
+/* ================================================================================== */
+
+/* Heart Animation ================================================================== */
+@keyframes heart {
+	0%, 40%, 80%, 100% {
+	  transform: scale(1);
+	}
+	20%, 60% {
+	  transform: scale(1.15);
+	}
+}
+
+.heart {
+	animation: heart 1000ms infinite;
+}
+
+/* Enlarge Logos ==================================================================== */
+.md-typeset .twemoji.enlarge-logo svg {
+	display: inline-flex;
+	height: 1rem;
+	width: 100%;
+}
+
+
+/* ================================================================================== */
+/* Custom Admonitions                                                                 */
+/* ================================================================================== */
+
+/* SparkFun ========================================================================= */
+.md-typeset :is(.tip)>:is(.admonition-title,summary):before {
+	background-color: #e0311d;
+}
+
+
+/* GitHub =========================================================================== */
+.md-typeset .admonition.github,
+.md-typeset details.github {
+	border-color: white;
+}
+.md-typeset .github > .admonition-title,
+.md-typeset .github > summary {
+	background-image: linear-gradient(to bottom, #8241f9, #4e277b);
+	/* background-color: rgb(110, 64, 201); */
+}
+.md-typeset .github > .admonition-title::before,
+.md-typeset .github > summary::before {
+	background-color: white;
+	-webkit-mask-image: var(--md-admonition-icon--github);
+	        mask-image: var(--md-admonition-icon--github);
+}
+
+
+/* Arduino ========================================================================== */
+.md-typeset .admonition.arduino,
+.md-typeset details.arduino {
+	border-color: #005c5f;
+}
+.md-typeset .arduino > .admonition-title,
+.md-typeset .arduino > summary {
+	background-color: rgba(0, 92, 95, 0.1);
+}
+.md-typeset .arduino > .admonition-title::before,
+.md-typeset .arduino > summary::before {
+	background-color: #005c5f;
+	-webkit-mask-image: var(--md-admonition-icon--arduino);
+	        mask-image: var(--md-admonition-icon--arduino);
+}
+
+
+/* Python =========================================================================== */
+.md-typeset .admonition.python,
+.md-typeset details.python {
+	border-color: #3776ab;
+}
+.md-typeset .python > .admonition-title,
+.md-typeset .python > summary {
+	background-color: #1e415e;
+}
+.md-typeset .python > .admonition-title::before,
+.md-typeset .python > summary::before {
+	background-color: #3776ab;
+	-webkit-mask-image: var(--md-admonition-icon--python);
+	        mask-image: var(--md-admonition-icon--python);
+}
+
+
+/* Code ============================================================================= */
+.md-typeset .admonition.code,
+.md-typeset details.code {
+	border-color: #9e9e9e;
+}
+.md-typeset .code > .admonition-title,
+.md-typeset .code > summary {
+	background-color: rgba(158, 158, 158, 0.1);
+}
+.md-typeset .code > .admonition-title::before,
+.md-typeset .code > summary::before {
+	background-color: #9e9e9e;
+	-webkit-mask-image: var(--md-admonition-icon--code);
+	        mask-image: var(--md-admonition-icon--code);
+}
+
+
+/* Terminal ========================================================================= */
+.md-typeset .admonition.terminal,
+.md-typeset details.terminal {
+	border-color: #9e9e9e;
+}
+.md-typeset .terminal > .admonition-title,
+.md-typeset .terminal > summary {
+	background-color: rgba(158, 158, 158, 0.1);
+}
+.md-typeset .terminal > .admonition-title::before,
+.md-typeset .terminal > summary::before {
+	background-color: #9e9e9e;
+	-webkit-mask-image: var(--md-admonition-icon--terminal);
+	        mask-image: var(--md-admonition-icon--terminal);
+}
+
+
+/* Serial Monitor =================================================================== */
+.md-typeset .admonition.serial,
+.md-typeset details.serial {
+	border-color: #9e9e9e;
+}
+.md-typeset .serial > .admonition-title,
+.md-typeset .serial > summary {
+	background-color: rgba(158, 158, 158, 0.1);
+}
+.md-typeset .serial > .admonition-title::before,
+.md-typeset .serial > summary::before {
+	background-color: #9e9e9e;
+	-webkit-mask-image: var(--md-admonition-icon--serial);
+	        mask-image: var(--md-admonition-icon--serial);
+}
+
+
+/* Hot ============================================================================== */
+.md-typeset .admonition.hot,
+.md-typeset details.hot {
+	border-color: #ff1744;
+}
+.md-typeset .hot > .admonition-title,
+.md-typeset .hot > summary {
+	background-color: #ff17441a;
+}
+.md-typeset .hot > .admonition-title::before,
+.md-typeset .hot > summary::before {
+	background-color: #ff1744;
+	-webkit-mask-image: var(--md-admonition-icon--hot);
+	        mask-image: var(--md-admonition-icon--hot);
+}
+
+
+
+/* ================================================================================== */
+/* Header Permalinks                                                                  */
+/* ================================================================================== */
+/* https://github.com/squidfunk/mkdocs-material/discussions/3535 */
+
+.headerlink {
+	--permalink-size: 16px; /* for font-relative sizes, 0.6em is a good choice */
+	--permalink-spacing: 4px;
+
+	width: calc(var(--permalink-size) + var(--permalink-spacing));
+	height: var(--permalink-size);
+	vertical-align: middle;
+	background-color: var(--md-default-fg-color--lighter);
+	background-size: var(--permalink-size);
+	mask-size: var(--permalink-size);
+	-webkit-mask-size: var(--permalink-size);
+	mask-repeat: no-repeat;
+	-webkit-mask-repeat: no-repeat;
+	visibility: visible;
+	-webkit-mask-image: var(--md-admonition-icon--link);
+	        mask-image: var(--md-admonition-icon--link);
+}
+
+[id]:target .headerlink {
+	background-color: var(--md-typeset-a-color);
+}
+
+.headerlink:hover {
+	background-color: var(--md-accent-fg-color) !important;
+}
+
+/* Abbreviations - Still causes issues */
+/* @media screen and (min-width: 76.25em) {
+	h1, h2, h3, h4, h5, h6 {
+		display: flex;
+		align-items: center;
+		flex-direction: row;
+
+		Fixes word spacing of an abbreviation
+		column-gap: 0.2em;
+
+		Fixes vertical line spacing on an abbreviation
+		position: relative;
+		padding-bottom: 0.3em;
+	}
+} */
+
+
+
+/* ================================================================================== */
+/* Grid Cards                                                                         */
+/* ================================================================================== */
+
+/* For Bobby - delete */
+/* .grid.cards.products{
+	grid-template-columns: repeat(auto-fill, 280px);
+	justify-content: center;
+} */
+
+/* Sets grid width for introduction */
+.grid.cards.desc {
+	grid-template-columns: 35% 65%;
+}
+
+/* Sets images size in grid cards */
+.md-typeset .grid ul figure img {
+	width: 100%;
+	max-width: 200px;
+}
+
+/* Add compatibility to mobile platforms - by setting minimum width for grid cards */
+@media (max-width: 750px) {
+	.grid.cards.desc {
+	  grid-template-columns: 100%;
+	}
+	/* .grid.cards.show {
+	  grid-template-columns: 100%;
+	} */
+}
+
+
+/* ================================================================================== */
+/* YouTube Videos                                                                     */
+/* ================================================================================== */
+
+/* Auto adjust embedded youtube videos size */
+/* Aspect ratio: height = 56.25% of width */
+/* 90vw = 90% of (viewport width) */
+
+.video-container {
+	position: relative;
+	padding-bottom: 56.25%; /* 16:9 */
+	height: 0;
+}
+.video-container iframe {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.video {
+	position: relative;
+	width: 100%;
+}
+.video iframe {
+	position: relative;
+	top: 0;
+	width: 60vw;
+	height: 33.75vw;
+	border: 0;
+	overflow: hidden;
+}
+
+.video-500px {
+	position: relative;
+	padding-bottom: min(281.25px, 56.25%); /* 16:9 */
+	height: 0;
+	max-width: 500px;
+	max-height: 281.25px;
+}
+.video-500px iframe {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+/* Add compatibility for mobile devices */
+/* ================================================================================== */
+/* ================================================================================== */
+
+/* Double ToC */
+/* ================================================================================== */
+
+@media (max-width: 1219px) {
+	.video-container iframe {
+	  /* width: 16vw;
+	  height: 9vw; */
+	  min-width: 200px;
+	  min-height: 112.5px;
+	}
+}
+
+@media (min-width: 1220px) {
+	.video-container iframe {
+	  max-width: 50vw;
+	  max-height: 28.125vw;
+	}
+}
+
+@media (min-width:1600px) {
+	.video-container iframe {
+	  max-width: 60vw;
+	  max-height: 33.75vw;
+	}
+}
+
+/* Single ToC */
+/* ================================================================================== */
+@media (max-width: 960px) {
+	.video-container iframe {
+	  /* width: 20vw;
+	  height: 11.25vw; */
+	  min-width: 200px;
+	  min-height: 112.5px;
+	}
+}
+
+/* No ToC */
+/* ================================================================================== */
+/* @media (max-width: 750px) {
+	.video-container iframe {
+	  width: 60vw;
+	  height: 33.75vw;
+	}
+} */
+
+
+/* ================================================================================== */
+/* Parameters for PDF Rendering                                                       */
+/* ================================================================================== */
+
+/* Hides elemments with <class="qr"> or <class="tinyqr"> on webpage (used for the generated PDF) */
+
+.md-typeset *.qr {
+	display: none;
+}
+.md-typeset *.tinyqr {
+	display: none;
+}
+
+@media print {
+	/* Shows elements with <class="qr"> or <class="tinyqr"> on webpage (used for the generated PDF) */
+
+	.md-typeset *.qr {
+	  display: inline-flex;
+	  align-items: center;
+	}
+
+	.md-typeset *.tinyqr {
+	  display: inline-flex;
+	  vertical-align: middle;
+	  width: 40px;
+	}
+
+	/* Sets table to 100% of page width */
+	.md-typeset table:not([class]) {
+	  width: 100%;
+	  display: table;
+	  table-layout: fixed;
+	}
+	
+	/* Sets images size in tables */
+	.md-typeset table:not([class]) td img {
+	  width: 100%;
+	  max-height: 150px;
+	}
+
+
+	/* ================================================================================== */
+	/* YoutTube Videos                                                                    */
+	/* ================================================================================== */
+
+	.video-container iframe {
+	  display: none;
+	}
+
+	.video iframe {
+	  display: none;
+	}
+
+	.video-500px iframe {
+	  display: none;
+	}
+
+	/* ================================================================================== */
+	/* Grid Cards                                                                         */
+	/* ================================================================================== */
+
+	/* Column Spacing =================================================================== */
+
+	/* Two Column Setting */
+	.md-typeset .grid.grid.cards.col-2 {
+	  grid-template-columns: repeat(auto-fit,minmax(16rem,1fr));
+	}
+
+	/* Three Column Setting */
+	.md-typeset .grid.grid.cards.col-3 {
+	  grid-template-columns: repeat(auto-fit,minmax(12rem,1fr));
+	}
+
+	/* Four Column Setting */
+	.md-typeset .grid.grid.cards.col-4 {
+	  grid-template-columns: repeat(auto-fit,minmax(8rem,1fr));
+	}
+	
+	/* Sets maximum image size */
+	.md-typeset img {
+	  max-width:  350px;
+	  max-height: 500px;
+	}
+
+
+
+	/* Fixes positioning of admonition icon */
+	/* .md-typeset :is(.admonition-title,summary):before {
+	  top: 0.6rem;
+	  left: 0.6rem; 
+	} */
+	/* Fixes appearance of admonition icon */
+	/* .md-typeset :is(.admonition,details)>:last-child {
+	  background-color: transparent; 
+	} */
+
+	/* Fixes margin spacing for lists */
+	/* .md-typeset ol,ul {
+	  margin-left: 1.5rem;
+	} */
+
+	/* Adjusts page break for PDF generator */
+	/* article h2,h3,h4,h5,h6,ol,ul {
+	  page-break-before: avoid;
+	}
+	article div.admonition {
+	  page-break-before: avoid;
+	}
+	article table,ol,ul {
+	  page-break-inside: auto !important;
+	} */
+
+	/* Displays first tab (workaround to rendering issue) */
+	/* * + .tabbed-content {
+	  display: contents;
+	}
+	* + .tabbed-content .tabbed-block {
+	  display: contents;
+	  page-break-after: always;
+	} */
+
+	/* Prevents page break when tabs are embedded in an admonition*/
+	/* article details.note {
+	  display: inline-block;
+	  overflow: hidden; */
+	  /* Hardcode max height to match code block size, when tabbed (need to find better alternative) */
+	  /* max-height: 138mm;
+	} */
+
+	/* Limits size of code blocks in admonitions (workaround to rendering issue) */
+	/* .md-typeset :is(pre, code) {
+	  display: inline-flexbox;
+	  max-height: 120mm;
+	  overflow: hidden;
+	} */
+}

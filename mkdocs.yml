@@ -1,60 +1,127 @@
-
+# Documentation page information
 site_name: SparkFun RTK Everywhere Product Manual
 site_description: A guide to the SparkFun RTK Everywhere hardware, firmware, and features.
 site_url: https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/
+site_author: SparkFun Electronics
 
-repo_name: sparkfun/SparkFun_RTK_Everywhere_Firmware
 repo_url: https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware
+repo_name: sparkfun/SparkFun_RTK_Everywhere_Firmware
+
+copyright:
+  Copyright 2024 - <a href="https://www.sparkfun.com/" target="_blank" rel="noopener">SparkFun Electronics&#174;</a><br>
+  <a href="https://goo.gl/maps/vkstCpQZW6jZMjzYA" target="_blank" rel="noopener">6333 Dry Creek Parkway, Niwot, Colorado 80503</a>
+
+# Default edit/view actions to "main" branch, instead of "master"
+# edit_uri: blob/main/docs/
 edit_uri: edit/main/docs/
 
+
+# Configuration for webpage theme
 theme:
+  # Theme: https://squidfunk.github.io/mkdocs-material/
   name: material
-  custom_dir: docs/overrides
-  logo: img/Icons/sfe_logo_sm.png
-  palette:
-    primary: grey
-    accent: red
+  custom_dir: overrides # Personalized changes to the theme
+
+  # Icon in Browser Tab (must be a square image - i.e. 32x32 pixels)
+  favicon: img/Icons/sfe_logo_sq.png
+
+  # Page Font
   font:
     text: Roboto
     code: Roboto Mono
+
+
   features:
+    # Enable the copy button on code blocks
+    - content.code.copy
+
+    # Enables code selection button to link a specific section of a code block
+    - content.code.select
+
+    # Enable annotations in code blocks
     - content.code.annotate
 
     # Enable "view source" and "edit this page" buttons
     - content.action.edit
+    # - content.action.view
 
-    # Enables anchor tracking (updates page url with the section user is on)
+    # Enable tooltips (pop-open dialog boxes)
+    - content.tooltips
+
+    # Enable Navigation buttons in the footer (i.e. previous/next)
+    # - navigation.footer
+
+    # Enables anchor tracking (updates page URL with the section the user is on)
     # i.e. https://docs.sparkfun.com/<page link>/#<sub-section>
     - navigation.tracking
-    - navigation.tabs.sticky
-      
+
     # Enables tabs for navigating the website
     # - navigation.tabs
+
     # Keeps tabs visible in the header when scrolling
-    #- navigation.tabs.sticky
-    
+    # - navigation.tabs.sticky
+
     # Adds pop-up button just below the header (when the user starts to scroll up)
-    # Allows users to easily jump to the beginning of the page
+    # i.e. Allows users to easily jump to the beginning of the page
     - navigation.top
 
-    # Renders path for page navigation at top of the page (makes page navigation more mobile friendly)
+    # Renders path for page navigation at the top of the page (makes page navigation more mobile friendly)
     - navigation.path
 
+    # Enables instant previews globally, for all internal links
+    - navigation.instant.preview
 
-  # Icon in Browser Tab (must be square img - i.e. 32x32 pixels)
-  favicon: img/Icons/sfe_logo_sq.png
-  
+    # Highlights all occurrences of a search result when clicked on
+    - search.highlight
+
+
+  # Adds light/dark theme to the webpage
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: grey
+      accent: red
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to dark mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: grey
+      accent: red
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to system preference
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: grey
+      accent: red
+      scheme: slate
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+
+
+  # Configures icons
   icon:
-    repo: fontawesome/brands/github
+    # Sets homepage icon
+    logo: sfe
 
-    # Sets icon for "edit this page" buttons
-    edit: material/file-document-edit-outline
+    # Sets repo icon to GitHub icon
+    repo: fontawesome/brands/github
     
+    # Sets icons for "view source" (commented out) and "edit this page" buttons
+    edit: material/file-document-edit-outline
+    # view: material/file-code-outline
+    
+    # Admonition Icons (callout boxes)
     admonition:
       note: octicons/tag-16
       abstract: octicons/checklist-16
       info: octicons/info-16
-      tip: octicons/squirrel-16
+      tip: simple/sparkfun
       success: octicons/check-16
       question: octicons/question-16
       warning: octicons/alert-16
@@ -63,56 +130,210 @@ theme:
       bug: octicons/bug-16
       example: octicons/beaker-16
       quote: octicons/quote-16
+      # Add custom admonitions
+      github: simple/github
+      arduino: simple/arduino
+      rpi: simple/raspberrypi
+      python: simple/python
+      code: fontawesome/regular/file-code
+      terminal: octicons/terminal-16
+      serial: fontawesome/solid/display
+      hot: material/fire-alert
+      # Permalink icon
+      link: octicons/link-16
 
+
+# Included MkDocs plugins
+# Add the installation of any new plugins to the ./github/workflows/mkdocs.yml file also
 plugins:
+  # Default search plugin
   - search
-  - monorepo
 
-  #Generates PDF
-  - with-pdf:
-      copyright: SparkFun Electronics - 2023
-      cover_subtitle: Simple and Cost Effective High-Precision Navigation
-      output_path: pdf/SparkFun_RTK_Everywhere_User_Manual.pdf
-      author: This PDF is automatically generated. See https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/ for the latest version.
-      toc_title: Table Of Contents
-      #cover_title: TITLE TEXT
-      #heading_shift: false
-      #toc_level: 3
-      #ordered_chapter_level: 2
-      #exclude_pages:
-      #    - 'bugs/'
-      #    - 'appendix/contribute/'
-      #convert_iframe:
-      #    - src: IFRAME SRC
-      #      img: POSTER IMAGE URL
-      #      text: ALTERNATE TEXT
-      #    - src: ...
-      #two_columns_level: 3
-      #debug_html: true
-      #show_anchors: true
-      #verbose: true
+  # Allows formatting (code block, icons, etc.) in headings and titles
+  - typeset
 
-copyright: 
-    Copyright 2023 - <a href="https://www.sparkfun.com/" target="_blank" rel="noopener">SparkFun Electronics&#174;<br>
-    <a href="https://goo.gl/maps/vkstCpQZW6jZMjzYA" target="_blank" rel="noopener">6333 Dry Creek Parkway, Niwot, Colorado 80503</a>
+  # Redirects page navigation
+  # - redirects:
+  #     redirect_maps:
+  #       'index.md': 'introduction.md'
 
+  # Enables improved security for external links
+  - privacy:
+      # Disables cache mechanism, so that external assets can be updated during rebuilds
+      cache: false
+
+      # # Allows for external assets to be used
+      # assets: true
+      # assets_fetch: true
+
+      # Provide domains for assets that are retrieved from external sites
+      assets_include:
+        - https://docs.sparkfun.com/*
+
+      # External links open in a new tab
+      links_attr_map:
+        target: _blank
+      links_noopener: true
+
+  # Optimizes media files (*.png and *.jpg)
+  - optimize:
+      # Disables plugin on local builds
+      enabled: !ENV [CI, false]
+
+      # Specify directory; otherwise, multiple instances are created (.cache/plugins and .cache/plugin)
+      cache_dir: .cache/plugins/optimize
+
+      # Default values (from auto-complete)
+      # ------------------------------
+      # enabled: true
+      # cache: true
+      # cache_dir: .cache/plugins/optimize
+      # optimize_png: true
+      # optimize_png_speed: 4
+      # optimize_png_strip: true
+      # optimize_jpg: true
+      # optimize_jpg_quality: 60
+      # optimize_jpg_progressive: true
+      # print_gain: true
+      # print_gain_summary: true
+
+
+  # Add revision date
+  - git-revision-date-localized:
+      # Disables plugin on local builds
+      enabled: !ENV [CI, false]
+
+      enable_creation_date: true
+      type: timeago
+
+  # Add git committers at bottom of the page
+  - git-committers:
+      # Disables plugin on local builds
+      enabled: !ENV [CI, false]
+
+      repository: sparkfun/SparkFun_RTK_Everywhere_Firmware
+      branch: main
+
+  # Add git authors at bottom of the page
+  - git-authors:
+      # Disables plugin on local builds
+      enabled: !ENV [CI, false]
+
+  # Enables use of Git submodules and larger code base
+  - monorepo:
+      # Disables plugin on local builds
+      enabled: !ENV [CI, false]
+
+
+
+
+# Included Markdown extensions
 markdown_extensions:
+  # Adds support for syntax highlighting of code blocks
   - pymdownx.highlight:
       anchor_linenums: true
+
+  # Adds support for syntax highlighting of inline code blocks
   - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
-  - pymdownx.details
+
+  # Adds the ability to embed content from arbitrary files
+  - pymdownx.snippets:
+      base_path: ['.', './docs']
+      url_download: true
+      url_max_size: 0
+      url_timeout: 0
+      url_request_headers: {}
+      dedent_subsections: True
+
+      # Adds support for a glossary of abbreviations
+      auto_append:
+        # - https://raw.githubusercontent.com/santaimpersonator/git-test/main/glossary-sparkfun.md
+        # - glossary-sparkfun.md
+        # - glossary-local.md
+
+  # Allows embedding of code blocks in other elements
+  - pymdownx.superfences:
+      # Allows the use of diagrams
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  # Allows the use of tabs in the document
+  - pymdownx.tabbed:
+      alternate_style: true 
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+
+  # Allows the use of Markup syntax
   - pymdownx.betterem:
       smart_enable: all
+
+  # Allows the use of in-text highlighting in Markdown syntax
   - pymdownx.mark
+  - pymdownx.critic
+
+  # Allows the use of superscript/subscript formatting in Markdown syntax
   - pymdownx.caret
+
+  # Allows the use of strikeout formatting in Markdown syntax
   - pymdownx.tilde
+
+  # Allows the use of keyboard button formatting in Markdown syntax
+  - pymdownx.keys
+
+  # Allows the use of tables in Markdown syntax
   - tables
+
+  # Allows the use of admonition/call-out boxes
   - admonition
 
+  # Allows admonition extension to collapse the call-out boxes
+  - pymdownx.details
+
+  # Allows the use of Markdown syntax in HTML elements
+  - md_in_html
+
+  # Allows the use of HTML syntax in Markdown elements
+  - attr_list
+
+  # Allows the use of definition list formatting in Markdown syntax
+  - def_list
+
+  # Allows the use of footnotes
+  - footnotes
+
+  # Allows the use of abbreviations
+  - abbr
+
+  # Allows the use of bundled and custom icons and emojis
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons/
+
+  # Allows for the rendering of block and inline-block equations
+  - pymdownx.arithmatex:
+      generic: true
+
+  # Adds permalink icon to headers
+  - toc:
+      permalink: ''
+      # Link: &#x1F517; 🔗
+      # Chain: &#x26D3; ⛓
+
+
 extra:
+  # Configures the hyperlink for the logo in the header
+  homepage: https://www.sparkfun.com
+
+  # Configures social icons in the footer
   social:
+    - icon: sfe
+      link: https://www.sparkfun.com/
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/sparkfun
     - icon: fontawesome/brands/instagram
@@ -121,9 +342,60 @@ extra:
       link: https://www.github.com/sparkfun
     - icon: fontawesome/brands/facebook
       link: https://www.facebook.com/SparkFun
-    - icon: fontawesome/brands/twitter
+    - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/sparkfun
-  
+    - icon: fontawesome/solid/cookie-bite
+      link: /#__consent
+      name: Change cookie settings
+
+  # Configures Google Analytics
+  analytics:
+    provider: google
+    property: G-7Y7EYCZVC1
+
+  consent:
+    cookies:
+      analytics:
+        name: Google Analytics
+        checked: true
+    title: Cookie consent
+    description:
+      We use cookies to recognize your repeated visits and preferences, as well as to measure the effectiveness of our documentation and whether users find what they're searching for. With your consent, you're helping us to make our documentation better.
+    actions:
+      - accept
+      - manage 
+      - reject
+
+
+# Configures styling for the webpage
+extra_css:
+  # SparkFun Customizations
+  - stylesheet/extra.css
+
+  # Enables support for KaTeX
+  - https://unpkg.com/katex@0/dist/katex.min.css
+
+
+# Enables support for rendering block and inline block equations through MathJax and KaTeX
+extra_javascript:
+  # Enables support for MathJax
+  - javascript/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+  # Enables support for KaTeX
+  - javascripts/katex.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+
+# Configures webpage navigation
+
+# Excludes README.md files from being built as webpages
+exclude_docs: |
+  README.md
+
+# Webpage navigation menu
 nav:
   - Introduction: index.md
   - Quick Start:
