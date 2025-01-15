@@ -592,11 +592,11 @@ void webServerStopSockets()
 {
     websocketConnected = false;
 
-    if (*wsserver)
+    if (wsserver != nullptr)
     {
         // Stop the httpd server
         esp_err_t ret = httpd_stop(*wsserver);
-        //*wsserver = nullptr;
+        wsserver = nullptr;
     }
 }
 
