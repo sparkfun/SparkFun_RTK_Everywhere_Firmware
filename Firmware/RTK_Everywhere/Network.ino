@@ -518,16 +518,15 @@ IPAddress networkGetIpAddress()
     NetIndex_t index;
     IPAddress ip;
 
+    // NETIF doesn't capture the IP address of a soft AP
+    if (wifiApIsRunning() == true && wifiStationIsRunning() == false)
+        return WiFi.softAPIP();
+
     // Get the networkInterfaceTable index
     index = networkPriority;
     if (index < NETWORK_OFFLINE)
     {
         index = networkIndexTable[index];
-
-        // NETIF doesn't capture the IP address of a soft AP
-        if (index == NETWORK_WIFI && (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA))
-            return WiFi.softAPIP();
-
         return networkInterfaceTable[index].netif->localIP();
     }
 

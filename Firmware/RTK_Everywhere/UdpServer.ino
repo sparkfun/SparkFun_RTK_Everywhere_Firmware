@@ -335,7 +335,7 @@ void udpServerUpdate()
             udpServerStop();
 
         // Wait until the network is connected
-        else if (networkHasInternet())
+        else if (networkHasInternet() || wifiApIsRunning())
         {
             // Delay before starting the UDP server
             if ((millis() - udpServerTimer) >= (1 * 1000))
@@ -353,7 +353,7 @@ void udpServerUpdate()
     // Handle client connections and link failures
     case UDP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((!settings.enableUdpServer) || (networkHasInternet() == false))
+        if ((networkHasInternet() == false && wifiApIsRunning() == false) || (!settings.enableUdpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugUdpServer || PERIODIC_DISPLAY(PD_UDP_SERVER_DATA)) && (!inMainMenu))
             {

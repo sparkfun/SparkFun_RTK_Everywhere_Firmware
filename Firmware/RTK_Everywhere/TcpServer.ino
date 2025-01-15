@@ -244,7 +244,7 @@ bool tcpServerStart()
     online.tcpServer = true;
     localIp = networkGetIpAddress();
 
-    if (settings.enableNtripCaster)
+    if (settings.enableNtripCaster || settings.baseCasterOverride)
         systemPrintf("TCP server online, IP address %s:%d, responding as NTRIP Caster\r\n", localIp.toString().c_str(),
                      tcpPort);
     else
@@ -391,7 +391,7 @@ void tcpServerUpdate()
             tcpServerStop();
 
         // Wait until the network is connected to the media
-        else if (networkHasInternet())
+        else if (networkHasInternet() || wifiApIsRunning())
         {
             // Delay before starting the TCP server
             if ((millis() - tcpServerTimer) >= (1 * 1000))
@@ -409,7 +409,7 @@ void tcpServerUpdate()
     // Handle client connections and link failures
     case TCP_SERVER_STATE_RUNNING:
         // Determine if the network has failed
-        if ((networkHasInternet() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
+        if ((networkHasInternet() == false && wifiApIsRunning() == false) || (!settings.enableTcpServer && !settings.baseCasterOverride))
         {
             if ((settings.debugTcpServer || PERIODIC_DISPLAY(PD_TCP_SERVER_DATA)) && (!inMainMenu))
             {
