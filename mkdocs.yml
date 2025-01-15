@@ -153,9 +153,9 @@ plugins:
   - typeset
 
   # Redirects page navigation
-  # - redirects:
-  #     redirect_maps:
-  #       'index.md': 'introduction.md'
+  - redirects:
+      redirect_maps:
+        'index.md': 'introduction.md'
 
   # Enables improved security for external links
   - privacy:
@@ -395,9 +395,13 @@ extra_javascript:
 exclude_docs: |
   README.md
 
+# Pages that are built, but not in the navigation menu
+not_in_nav: |
+  index.md
+
 # Webpage navigation menu
 nav:
-  - Introduction: index.md
+  - Introduction: introduction.md
   - Quick Start:
     - quickstart-torch.md
     - quickstart-evk.md
