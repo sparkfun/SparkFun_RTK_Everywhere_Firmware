@@ -300,30 +300,7 @@ bool webServerAssignResources(int httpPort = 80)
             dnsserver->start();
         }
 
-        // Start the server with a given IP
-        if (WiFi.getMode() == WIFI_MODE_APSTA)
-        {
-            // If we are connected to a local AP, use that IP
-            if (settings.wifiConfigOverAP == false && wifiIsConnected())
-                webServer = new WebServer(WiFi.localIP(), httpPort);
-            else // Use our own AP's IP
-                webServer = new WebServer(WiFi.softAPIP(), httpPort);
-        }
-        else if (WiFi.getMode() == WIFI_MODE_AP)
-            webServer = new WebServer(WiFi.softAPIP(), httpPort);
-        else if (WiFi.getMode() == WIFI_MODE_STA)
-            webServer = new WebServer(WiFi.localIP(), httpPort);
-
-        // If WiFi is off, fall back to ethernet
-        else if (WiFi.getMode() == WIFI_OFF && present.ethernet_ws5500)
-            webServer = new WebServer(ETH.localIP(), httpPort);
-
-        else
-        {
-            systemPrintln("Error: Unknown WebServer connection mode.");
-            return (false);
-        }
-
+        webServer = new WebServer(httpPort);
         if (!webServer)
         {
             systemPrintln("ERROR: Failed to allocate webServer");
@@ -466,10 +443,9 @@ bool webServerAssignResources(int httpPort = 80)
             webServer->send_P(200, "text/plain", (const char *)icomoon_woof, sizeof(icomoon_woof));
         });
 
-        //https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
-        webServer->on("/connecttest.txt", HTTP_GET, []() {
-            webServer->send(200, "text/plain", "Microsoft Connect Test");
-        });
+        // https://lemariva.com/blog/2017/11/white-hacking-wemos-captive-portal-using-micropython
+        webServer->on("/connecttest.txt", HTTP_GET,
+                      []() { webServer->send(200, "text/plain", "Microsoft Connect Test"); });
 
         // Handler for the /uploadFile form POST
         webServer->on(
@@ -1132,7 +1108,7 @@ void createDynamicDataString(char *settingsCSV)
 
         stringRecord(settingsCSV, "batteryIconFileName", batteryIconFileName);
 
-        //Limit batteryLevelPercent to sane levels
+        // Limit batteryLevelPercent to sane levels
         if (batteryLevelPercent > 100)
             batteryLevelPercent = 100;
 
