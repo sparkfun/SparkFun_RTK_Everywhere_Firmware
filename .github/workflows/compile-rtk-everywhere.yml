@@ -140,7 +140,10 @@ jobs:
 
       - name: Copy custom RTKEverywhere.csv
         run:
-          # Use the 16MB partitions by default. 8MB (Postcard) partitions must be compiled separately
+          # Compile the source using the 16MB partition file. Other platforms (ie, the 8MB Postcard) use 
+          # the same binary but use a different partition binary during the upload phase.
+          # View the different RTK partition files used during upload here: 
+          # https://github.com/sparkfun/SparkFun_RTK_Firmware_Uploader/tree/main/RTK_Firmware_Uploader/resource
           cp Firmware/RTKEverywhere.csv /home/runner/.arduino15/packages/esp32/hardware/esp32/${{ env.CORE_VERSION }}/tools/partitions/RTKEverywhere.csv
 
       - name: Compile Sketch
