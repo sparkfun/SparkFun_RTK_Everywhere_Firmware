@@ -1304,7 +1304,7 @@ void provisioningUpdate()
         // Determine if the key update request has been canceled while waiting
         if (settings.requestKeyUpdate == false)
         {
-            provisioningSetState(PROVISIONING_NOT_STARTED);
+            provisioningSetState(PROVISIONING_OFF);
         }
         // Wait until the network is available
 #ifdef COMPILE_NETWORK
