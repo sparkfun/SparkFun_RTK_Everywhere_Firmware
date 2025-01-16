@@ -1422,7 +1422,41 @@ void networkUpdate()
     if (consumerTypes != previousConsumerTypes)
     {
         if (settings.debugNetworkLayer)
-            systemPrintf("Changing from consumer type 0x%02X to 0x%02X\r\n", previousConsumerTypes, consumerTypes);
+        {
+            systemPrint("Changing network from consumer type: ");
+
+            if (previousConsumerTypes == NETCONSUMER_NONE)
+                systemPrint("None");
+            else
+            {
+                if (previousConsumerTypes && (1 << NETCONSUMER_WIFI_STA))
+                    systemPrint("/STA");
+                if (previousConsumerTypes && (1 << NETCONSUMER_WIFI_AP))
+                    systemPrint("/AP");
+                if (previousConsumerTypes && (1 << NETCONSUMER_CELLULAR))
+                    systemPrint("/CELL");
+                if (previousConsumerTypes && (1 << NETCONSUMER_ETHERNET))
+                    systemPrint("/ETH");
+            }
+
+            systemPrint(" to: ");
+
+            if (consumerTypes == NETCONSUMER_NONE)
+                systemPrint("None");
+            else
+            {
+                if (consumerTypes && (1 << NETCONSUMER_WIFI_STA))
+                    systemPrint("/STA");
+                if (consumerTypes && (1 << NETCONSUMER_WIFI_AP))
+                    systemPrint("/AP");
+                if (consumerTypes && (1 << NETCONSUMER_CELLULAR))
+                    systemPrint("/CELL");
+                if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
+                    systemPrint("/ETH");
+            }
+
+            systemPrintln();
+        }
 
         previousConsumerTypes = networkGetConsumerTypes(); // Update the previous consumer types
 
