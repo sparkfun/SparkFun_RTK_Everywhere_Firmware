@@ -1372,7 +1372,8 @@ SettingValueResponse updateSettingWithValue(bool inCommands, const char *setting
         const char *table[] = {
             "baseTypeSurveyIn", "enableFactoryDefaults",      "enableFirmwareUpdate", "enableForgetRadios",
             "fileSelectAll",    "fixedBaseCoordinateTypeGeo", "fixedHAEAPC",          "measurementRateSec",
-            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",
+            "nicknameECEF",     "nicknameGeodetic",           "saveToArduino",        "enableAutoReset",
+            "shutdownNoChargeTimeoutMinutesCheckbox",
         };
         const int tableEntries = sizeof(table) / sizeof(table[0]);
 
