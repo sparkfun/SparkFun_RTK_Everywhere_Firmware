@@ -547,7 +547,7 @@ void httpClientUpdate()
                     ztpResponse = ZTP_SUCCESS;
                     httpClientSetState(HTTP_CLIENT_COMPLETE);
                 }
-            } // JSON Derialized correctly
+            } // JSON Deserialized correctly
         } // HTTP Response was 200
         break;
     }

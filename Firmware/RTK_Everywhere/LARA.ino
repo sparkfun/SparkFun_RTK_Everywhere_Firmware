@@ -128,7 +128,7 @@ NETWORK_POLL_SEQUENCE laraBootSequence[] =
     {laraPowerHigh,         LARA_SETTLE_TIME,       "Finish power off sequence"},
     {networkDelay,          (uintptr_t)&laraTimer,  "Delay for power off"},
 
-    // After a short delay if on other network device is available, turn on LARA
+    // After a short delay if no other network device is available, turn on LARA
     //  State               Parameter               Description
     {networkStartDelayed,   (30 * 1000),            "Attempt to start cellular if necessary"},
     {nullptr,               0,                      "Termination"},
