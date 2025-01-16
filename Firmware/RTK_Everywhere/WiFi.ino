@@ -36,16 +36,8 @@ WiFiMulti *wifiMulti;
 // Locals
 //----------------------------------------
 
-static uint32_t wifiLastConnectionAttempt;
-
-// Throttle the time between connection attempts
-// ms - Max of 4,294,967,295 or 4.3M seconds or 71,000 minutes or 1193 hours or 49 days between attempts
-static uint32_t wifiConnectionAttemptsTotal; // Count the number of connection attempts absolutely
-static uint32_t wifiConnectionAttemptTimeout;
-
 // Start timeout
 static uint32_t wifiStartTimeout;
-
 static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
 
 // WiFi Timer usage:
@@ -381,27 +373,35 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
         break;
 
     case ARDUINO_EVENT_WIFI_READY:
-        systemPrintln("WiFi Ready");
+        if (settings.debugWifiState)
+            systemPrintln("WiFi Ready");
         WiFi.setHostname(settings.mdnsHostName);
         break;
 
     case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        systemPrintln("WiFi Scan Done");
+        if (settings.debugWifiState)
+            systemPrintln("WiFi Scan Done");
         // wifi_event_sta_scan_done_t info.wifi_scan_done;
         break;
 
     case ARDUINO_EVENT_WIFI_STA_START:
-        systemPrintln("WiFi STA Started");
+        if (settings.debugWifiState)
+            systemPrintln("WiFi STA Started");
         break;
 
     case ARDUINO_EVENT_WIFI_STA_STOP:
-        systemPrintln("WiFi STA Stopped");
+        if (settings.debugWifiState)
+            systemPrintln("WiFi STA Stopped");
         break;
 
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
         memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
         ssid[info.wifi_sta_connected.ssid_len] = 0;
-        systemPrintf("WiFi STA connected to %s\r\n", ssid);
+
+        ipAddress = WiFi.localIP();
+        systemPrintf("WiFi STA connected to %s with IP address: ", ssid);
+        systemPrintln(ipAddress);
+
         WiFi.setHostname(settings.mdnsHostName);
         break;
 
@@ -418,15 +418,22 @@ void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
         break;
 
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        ipAddress = WiFi.localIP();
-        systemPrint("WiFi STA Got IPv4: ");
-        systemPrintln(ipAddress);
+        if (settings.debugWifiState)
+        {
+            ipAddress = WiFi.localIP();
+            systemPrint("WiFi STA Got IPv4: ");
+            systemPrintln(ipAddress);
+        }
         networkMarkHasInternet(NETWORK_WIFI);
         break;
 
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-        systemPrint("WiFi STA Got IPv6: ");
-        systemPrintln(ipAddress);
+        if (settings.debugWifiState)
+        {
+            ipAddress = WiFi.localIP();
+            systemPrint("WiFi STA Got IPv6: ");
+            systemPrintln(ipAddress);
+        }
         networkMarkHasInternet(NETWORK_WIFI);
         break;
 
@@ -721,6 +728,18 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
 {
     wifiStop();
     networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+}
+
+// Returns true when more than two attempts have failed
+bool wifiUnavailable()
+{
+    if(wifiNetworkCount() == 0)
+        return true;
+
+    if ((millis() - wifiStartLastTry) > (WIFI_MIN_TIMEOUT * 2))
+        return true;
+
+    return false;
 }
 
 #endif // COMPILE_WIFI
