@@ -150,17 +150,26 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
-        if (settings.debugWebServer == true)
-            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
-
         if (currentlyParsingData == false)
         {
+            if (settings.debugWebServer == true)
+                systemPrint("Got packet with message: \r\n"); //We can't %s the payload as it's not string terminated
+
             for (int i = 0; i < ws_pkt.len; i++)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
+
+                //Print payload if needed
+                if (settings.debugWebServer == true)
+                    systemWrite(ws_pkt.payload[i]);
             }
             timeSinceLastIncomingSetting = millis();
+        }
+        else
+        {
+            if (settings.debugWebServer == true)
+                systemPrintln("Got packet but ignoring due to parsing block");
         }
     }
     else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
@@ -184,7 +193,7 @@ static const httpd_uri_t ws = {.uri = "/ws",
                                .handle_ws_control_frames = true,
                                .supported_subprotocol = NULL};
 
-static void start_wsserver(void)
+bool websocketServerStart(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
@@ -207,10 +216,11 @@ static void start_wsserver(void)
         if (settings.debugWebServer == true)
             systemPrintln("Registering URI handlers");
         httpd_register_uri_handler(*wsserver, &ws);
-        return;
+        return true;
     }
 
     systemPrintln("Error starting wsserver!");
+    return false;
 }
 
 // ===== Request Handler class used to answer more complex requests =====
@@ -510,7 +520,16 @@ bool webServerAssignResources(int httpPort = 80)
         reportHeapNow(false);
 
         // Start the web socket server on port 81 using <esp_http_server.h>
-        start_wsserver();
+        if (websocketServerStart() == false)
+        {
+            if (settings.debugWebServer == true)
+                systemPrintln("Web Sockets failed to start");
+
+            webServerStopSockets();
+            webServerReleaseResources();
+
+            return (false);
+        }
 
         if (settings.debugWebServer == true)
             systemPrintln("Web Socket Server Started");
