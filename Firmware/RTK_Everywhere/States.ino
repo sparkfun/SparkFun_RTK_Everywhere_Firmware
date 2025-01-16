@@ -522,6 +522,7 @@ void stateUpdate()
 
                     otaReportedVersion[0] = '\0'; // Zero out the reported version
                 }
+
             }
 
 #endif // COMPILE_AP

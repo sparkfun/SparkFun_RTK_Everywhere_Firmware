@@ -235,14 +235,15 @@ bool tcpServerStart()
     if(settings.baseCasterOverride == true)
         tcpPort = 2101;
 
+    localIp = networkGetIpAddress();
+
     // Start the TCP server
-    tcpServer = new NetworkServer(tcpPort, TCP_SERVER_MAX_CLIENTS);
+    tcpServer = new NetworkServer(localIp, tcpPort, TCP_SERVER_MAX_CLIENTS);
     if (!tcpServer)
         return false;
 
     tcpServer->begin();
     online.tcpServer = true;
-    localIp = networkGetIpAddress();
 
     if (settings.enableNtripCaster || settings.baseCasterOverride)
         systemPrintf("TCP server online, IP address %s:%d, responding as NTRIP Caster\r\n", localIp.toString().c_str(),
