@@ -1301,10 +1301,10 @@ void provisioningUpdate()
 
     // Wait for connection to the network
     case PROVISIONING_WAIT_FOR_NETWORK: {
-        // Determine if the key update request has been canceled while waiting
-        if (settings.requestKeyUpdate == false)
+        // Stop waiting if PointPerfect has been disabled
+        if (settings.enablePointPerfectCorrections == false)
         {
-            provisioningSetState(PROVISIONING_OFF);
+            provisioningSetState(PROVISIONING_NOT_STARTED);
         }
         // Wait until the network is available
 #ifdef COMPILE_NETWORK
