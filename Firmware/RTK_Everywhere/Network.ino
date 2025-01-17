@@ -1478,12 +1478,9 @@ void networkUpdate()
         }
 
         // Start WiFi if we need AP, or if we need STA+Internet
-        Serial.println("\r\n wifi check");
         if ((consumerTypes & (1 << NETCONSUMER_WIFI_AP)) ||
             ((consumerTypes & (1 << NETCONSUMER_WIFI_STA) && networkHasInternet() == false)))
         {
-        Serial.println("\r\n start wifi");
-
             networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
         }
 
