@@ -17,7 +17,7 @@
 // Globals
 //----------------------------------------
 
-int wifiConnectionAttempts; // Count the number of connection attempts between restarts
+int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
 
 bool restartWiFi = false; // Restart WiFi if user changes anything
 
@@ -636,7 +636,10 @@ void wifiThrottledStart(NetIndex_t index, uintptr_t parameter, bool debug)
 
     // Start WiFi
     if (wifiStart())
+    {
         networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+        wifiFailedConnectionAttempts = 0;
+    }
     else
     {
         // Increase the timeout
@@ -645,6 +648,8 @@ void wifiThrottledStart(NetIndex_t index, uintptr_t parameter, bool debug)
             wifiStartTimeout = WIFI_MIN_TIMEOUT;
         else if (wifiStartTimeout > WIFI_MAX_TIMEOUT)
             wifiStartTimeout = WIFI_MAX_TIMEOUT;
+
+        wifiFailedConnectionAttempts++;
 
         // Display the delay
         seconds = wifiStartTimeout / MILLISECONDS_IN_A_SECOND;
@@ -685,7 +690,7 @@ void wifiStop()
     if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
         dnsServer.stop();
 
-    wifiConnectionAttempts = 0; // Reset the timeout
+    wifiFailedConnectionAttempts = 0; // Reset the counter
 
     // If ESP-Now is active, change protocol to only Long Range
     if (espnowState > ESPNOW_OFF)
@@ -730,13 +735,14 @@ void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
     networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
 }
 
-// Returns true when more than two attempts have failed
+// Returns true if we deem WiFi is not going to connect
+// Used to allow cellular to start
 bool wifiUnavailable()
 {
     if(wifiNetworkCount() == 0)
         return true;
 
-    if ((millis() - wifiStartLastTry) > (WIFI_MIN_TIMEOUT * 2))
+    if (wifiFailedConnectionAttempts > 2)
         return true;
 
     return false;
