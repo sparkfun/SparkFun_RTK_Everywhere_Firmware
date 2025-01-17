@@ -1423,39 +1423,39 @@ void networkUpdate()
     {
         if (settings.debugNetworkLayer)
         {
-            systemPrint("Changing network from consumer type: ");
+            systemPrintf("Changing network from consumer type: 0x%02X (", previousConsumerTypes);
 
             if (previousConsumerTypes == NETCONSUMER_NONE)
                 systemPrint("None");
             else
             {
-                if (previousConsumerTypes && (1 << NETCONSUMER_WIFI_STA))
+                if (previousConsumerTypes & (1 << NETCONSUMER_WIFI_STA))
                     systemPrint("/STA");
-                if (previousConsumerTypes && (1 << NETCONSUMER_WIFI_AP))
+                if (previousConsumerTypes & (1 << NETCONSUMER_WIFI_AP))
                     systemPrint("/AP");
-                if (previousConsumerTypes && (1 << NETCONSUMER_CELLULAR))
+                if (previousConsumerTypes & (1 << NETCONSUMER_CELLULAR))
                     systemPrint("/CELL");
-                if (previousConsumerTypes && (1 << NETCONSUMER_ETHERNET))
+                if (previousConsumerTypes & (1 << NETCONSUMER_ETHERNET))
                     systemPrint("/ETH");
             }
 
-            systemPrint(" to: ");
+            systemPrintf(") to: 0x%02X (", consumerTypes);
 
             if (consumerTypes == NETCONSUMER_NONE)
                 systemPrint("None");
             else
             {
-                if (consumerTypes && (1 << NETCONSUMER_WIFI_STA))
+                if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
                     systemPrint("/STA");
-                if (consumerTypes && (1 << NETCONSUMER_WIFI_AP))
+                if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
                     systemPrint("/AP");
-                if (consumerTypes && (1 << NETCONSUMER_CELLULAR))
+                if (consumerTypes & (1 << NETCONSUMER_CELLULAR))
                     systemPrint("/CELL");
-                if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
+                if (consumerTypes & (1 << NETCONSUMER_ETHERNET))
                     systemPrint("/ETH");
             }
 
-            systemPrintln();
+            systemPrintln(")");
         }
 
         previousConsumerTypes = networkGetConsumerTypes(); // Update the previous consumer types
@@ -1472,15 +1472,33 @@ void networkUpdate()
     {
         // Attempt to start any network that is needed, in the order Ethernet/WiFi/Cellular
 
-        if (consumerTypes && (1 << NETCONSUMER_ETHERNET))
+        if (consumerTypes & (1 << NETCONSUMER_ETHERNET))
+        {
             networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
+        }
 
-        if ((networkHasInternet() == false) && (consumerTypes && (1 << NETCONSUMER_WIFI_STA)) ||
-            (consumerTypes && (1 << NETCONSUMER_WIFI_AP)))
+        // Start WiFi if we need AP, or if we need STA+Internet
+        Serial.println("\r\n wifi check");
+        if ((consumerTypes & (1 << NETCONSUMER_WIFI_AP)) ||
+            ((consumerTypes & (1 << NETCONSUMER_WIFI_STA) && networkHasInternet() == false)))
+        {
+        Serial.println("\r\n start wifi");
+
             networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
+        }
 
-        if ((networkHasInternet() == false) && (consumerTypes && (1 << NETCONSUMER_CELLULAR)))
-            networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
+        if ((networkHasInternet() == false) && (consumerTypes & (1 << NETCONSUMER_CELLULAR)))
+        {
+            // If we're in AP only mode (no internet), don't start cellular
+            if (wifiApIsRunning() == false)
+            {
+                // Don't start cellular until WiFi has failed to connect
+                if (wifiUnavailable() == true)
+                {
+                    networkStart(NETWORK_CELLULAR, settings.debugNetworkLayer);
+                }
+            }
+        }
     }
 
     // Walk the list of network priorities in descending order
