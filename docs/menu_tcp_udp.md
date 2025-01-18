@@ -18,7 +18,7 @@ Compatibility Icons
 
 NMEA data is generally consumed by a GIS application or Data Collector. These messages can be transmitted over a variety of transport methods. This section focuses on the delivery of NMEA messages via TCP and UDP.
 
-  ![TCP/UDP Menu showing various TCP/UDP Client and Server options](<img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png>)
+	![TCP/UDP Menu showing various TCP/UDP Client and Server options](<img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png>)
 
 *TCP/UDP Menu showing various Client and Server options*
 

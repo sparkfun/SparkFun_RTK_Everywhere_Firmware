@@ -79,4 +79,3 @@ This binary file can be found in the [NEO Firmware](https://github.com/sparkfun/
 * v1.04 Initial release.
 
 As of writing, no additional releases of the NEO-D9S firmware have been made.
-

@@ -33,13 +33,13 @@ Pull back the silicone cover and insert a USB C and power on the device. Once th
 
 *SparkFun RTK Torch Two Enumerated Ports*
 
-Configuring the RTK device is done over the *USB-Enhanced-SERIAL-B CH342* COM port via the serial text menu. Various debug messages are printed to this port at 115200bps and a serial menu can be opened to configure advanced settings. 
+Configuring the RTK device is done over the *USB-Enhanced-SERIAL-B CH342* COM port via the serial text menu. Various debug messages are printed to this port at 115200bps and a serial menu can be opened to configure advanced settings.
 
 **Don't See 'USB-Enhanced-SERIAL-B CH342'?** If you've never connected a CH34x device to your computer before, you may need to install drivers for the USB-to-serial converter. Check out our section on <a href="https://learn.sparkfun.com/tutorials/sparkfun-serial-basic-ch340c-hookup-guide#drivers-if-you-need-them">"How to Install CH340 Drivers"</a> for help with the installation.
 
 ## Terminal Window
 
-Open a terminal window at 115200bps; you should see various status messages every second. Press any key to open the configuration menu. Not sure how to use a terminal? Check out our [Serial Terminal Basics](https://learn.sparkfun.com/tutorials/terminal-basics) tutorial. 
+Open a terminal window at 115200bps; you should see various status messages every second. Press any key to open the configuration menu. Not sure how to use a terminal? Check out our [Serial Terminal Basics](https://learn.sparkfun.com/tutorials/terminal-basics) tutorial.
 
 Note that some Windows terminal programs (e.g. Tera Term) may reboot the RTK device when the terminal connection is closed. You can disconnect the USB cable first to prevent this from happening.
 

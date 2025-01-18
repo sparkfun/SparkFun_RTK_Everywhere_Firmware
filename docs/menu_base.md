@@ -23,18 +23,18 @@ There are two types of bases: *Surveyed* and *Fixed*. A surveyed base is often a
 Please see the following tutorials for more information:
 
 <table class="table table-hover table-striped table-bordered">
-  <tr align="center">
-   <td><a href="https://learn.sparkfun.com/tutorials/what-is-gps-rtk"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/3/Location-Wandering-GPS-combined.jpg"></a></td>
-   <td><a href="https://learn.sparkfun.com/tutorials/getting-started-with-u-center-for-u-blox"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/5/u-center.jpg"></a></td>
-   <td><a href="https://learn.sparkfun.com/tutorials/setting-up-a-rover-base-rtk-system"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/2/GNSS_RTK_DIY_Surveying_Tutorial.jpg"></a></td>
-   <td><a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/3/Roof_Enclosure.jpg"></a></td>
-  </tr>
-  <tr align="center">
-    <td><a href="https://learn.sparkfun.com/tutorials/what-is-gps-rtk">What is GPS RTK?</a></td>
-    <td><a href="https://learn.sparkfun.com/tutorials/getting-started-with-u-center-for-u-blox">Getting Started with u-center for u-blox</a></td>
-    <td><a href="https://learn.sparkfun.com/tutorials/setting-up-a-rover-base-rtk-system">Setting up a Rover Base RTK System</a></td>
-    <td><a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station">How to build a DIY GNSS reference station</a></td>
-  </tr>
+	<tr align="center">
+	<td><a href="https://learn.sparkfun.com/tutorials/what-is-gps-rtk"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/3/Location-Wandering-GPS-combined.jpg"></a></td>
+	<td><a href="https://learn.sparkfun.com/tutorials/getting-started-with-u-center-for-u-blox"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/8/1/5/u-center.jpg"></a></td>
+	<td><a href="https://learn.sparkfun.com/tutorials/setting-up-a-rover-base-rtk-system"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/2/GNSS_RTK_DIY_Surveying_Tutorial.jpg"></a></td>
+	<td><a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station"><img src="https://cdn.sparkfun.com/c/178-100/assets/learn_tutorials/1/3/6/3/Roof_Enclosure.jpg"></a></td>
+	</tr>
+	<tr align="center">
+	<td><a href="https://learn.sparkfun.com/tutorials/what-is-gps-rtk">What is GPS RTK?</a></td>
+	<td><a href="https://learn.sparkfun.com/tutorials/getting-started-with-u-center-for-u-blox">Getting Started with u-center for u-blox</a></td>
+	<td><a href="https://learn.sparkfun.com/tutorials/setting-up-a-rover-base-rtk-system">Setting up a Rover Base RTK System</a></td>
+	<td><a href="https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station">How to build a DIY GNSS reference station</a></td>
+	</tr>
 </table>
 
 ## Mode
@@ -51,7 +51,7 @@ In **Survey-In** mode, the minimum observation time can be set. The default is 6
 
 *Base Menu showing Fixed Base Mode with ECEF Coordinates*
 
-In **Fixed** mode, the coordinates of the antenna need to be set. These can be entered in ECEF or Geographic coordinates. 
+In **Fixed** mode, the coordinates of the antenna need to be set. These can be entered in ECEF or Geographic coordinates.
 
 Once the device has been configured, a user enters Base mode by changing the mode in the [System Menu](menu_system.md).
 
@@ -77,7 +77,7 @@ Once the NTRIP server is enabled you will need a handful of credentials:
 * A casting service such as [RTK2Go](http://www.rtk2go.com) or [Emlid](http://caster.emlid.com) (the port is almost always 2101)
 * A mount point (required) and password (required)
 
-If the NTRIP server is enabled the device will first attempt to connect to  WiFi. Once WiFi connects the device will attempt to connect to the NTRIP mount point. Once connected, every second a few hundred bytes, up to ~2k, will be transmitted to your mount point.
+If the NTRIP server is enabled the device will first attempt to connect to WiFi. Once WiFi connects the device will attempt to connect to the NTRIP mount point. Once connected, every second a few hundred bytes, up to ~2k, will be transmitted to your mount point.
 
 The RTK device will monitor each NTRIP Server connection and automatically attempt to restart it if WiFi or if the Caster is disconnected.
 
@@ -93,7 +93,7 @@ For users who return to the same base position or monument, the coordinates can 
 
 ![The RTCM Menu under Base](<img/WiFi Config/SparkFun%20RTK%20Base%20Survey%20In.png>)
 
-When the device is in Base mode, the fix rate is set to 1Hz. This will override any Rover setting. 
+When the device is in Base mode, the fix rate is set to 1Hz. This will override any Rover setting.
 
 ![The list of supported RTCM messages](<img/WiFi Config/SparkFun%20RTK%20-%20Base%20RTCM%20Rates%20Menu.png>)
 

@@ -38,7 +38,7 @@ Because of the nature of these controls, the WiFi Config page shows different in
 
 *System Menu Header Information*
 
-The header of the system menu contains various system metrics. 
+The header of the system menu contains various system metrics.
 
 In order of appearance:
 
@@ -65,10 +65,10 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 * **B, R, W, or S** - Change the mode the device is in.
 
-    * Rover - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
-    * Base - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
-    * WiFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
-    * Shut Down - If supported, the device will immediately shut down.
+	* Rover - This is the default mode. The device transmits its NMEA and other messages (if enabled) over Bluetooth. It can receive corrections over Bluetooth (or other transport methods such as NTRIP Client) to achieve RTK Fix.
+	* Base - The device will reconfigure for base mode. It will begin transmitting corrections over Bluetooth, WiFi (NTRIP Server, TCP, etc), or other (ESP-Now, external radio if compatible, etc).
+	* WiFi Config - The device will shut down GNSS operations and begin broadcasting as a WiFi Access Point (or will attempt to connect to local WiFi). Once started, the device can be connected to over WiFi for configuration.
+	* Shut Down - If supported, the device will immediately shut down.
 
 ## Settings
 
@@ -108,9 +108,9 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 ## Factory Reset
 
-If a device gets into an unknown state it can be returned to default settings using the WiFi or Serial interfaces. 
+If a device gets into an unknown state it can be returned to default settings using the WiFi or Serial interfaces.
 
-Note: On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information. 
+Note: On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information.
 
 Note: Log files and any other files on the SD card are *not* removed or modified.
 

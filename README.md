@@ -4,18 +4,18 @@ SparkFun RTK Everywhere Firmware
 The line of RTK Everywhere products offered by SparkFun all run identical firmware. The [RTK Everywhere firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware) and this guide cover the following products:
 
 <table class="table table-hover table-striped table-bordered">
-  <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
-   <td><a href="https://www.sparkfun.com/products/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
-     </tr>
-  <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
-    <td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
-  </tr>
-  <tr align="center">
-    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
-    <td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
-  </tr>
+	<tr align="center">
+		<td><a href="https://www.sparkfun.com/products/25662"><img src="docs/img/SparkFun_RTK_Torch.png"></a></td>
+		<td><a href="https://www.sparkfun.com/products/24342"><img src="docs/img/SparkFun_RTK_EVK.png"></a></td>
+	</tr>
+	<tr align="center">
+		<td><a href="https://www.sparkfun.com/products/25662">SparkFun RTK Torch (GPS-25662)</a></td>
+		<td><a href="https://www.sparkfun.com/products/24342">SparkFun RTK EVK (GPS-24342)</a></td>
+	</tr>
+	<tr align="center">
+		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_Torch/">Hookup Guide</a></td>
+		<td><a href="https://docs.sparkfun.com/SparkFun_RTK_EVK/">Hookup Guide</a></td>
+	</tr>
 </table>
 
 The [SparkFun RTK Torch](https://www.sparkfun.com/products/25662) is a centimeter-level GNSS receiver. With RTK enabled, these devices can output your location with 8mm horizontal and vertical [*accuracy*](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/accuracy_verification/) at up to 20Hz. It supports Galileo E6 HAS and has built-in tilt compensation too!
@@ -50,7 +50,7 @@ With respect to the firmware, `main` is a branch where only changes that are app
 
 In contrast, `release_candidate` is where new code is added as it is developed.
 
-The documentation source code is in docs/ on `main`.  It is built automatically on push and stored in the branch `gh-pages`, from which it is served at the above URL. Documentation changes are pushed directly to main.
+The documentation source code is in docs/ on `main`. It is built automatically on push and stored in the branch `gh-pages`, from which it is served at the above URL. Documentation changes are pushed directly to main.
 
 Release Process
 ---------------

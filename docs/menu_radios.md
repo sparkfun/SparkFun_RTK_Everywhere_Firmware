@@ -26,13 +26,13 @@ Compatibility Icons
 
 ESP-NOW is a 2.4GHz protocol that is built into the internal ESP32 microcontroller; the same microcontroller that provides Bluetooth and WiFi. ESP-NOW does not require WiFi or an Access Point. This is most useful for connecting a Base to Rover (or multiple Rovers) without the need for an external radio. Simply turn two SparkFun RTK products on, enable their radios, and data will be passed between units. Additionally, ESP-NOW supports point-to-multipoint transmissions. This means a Base can transmit to multiple Rovers simultaneously.
 
-ESP-NOW is a free radio included in every RTK product and works well, but it has a few limitations: 
+ESP-NOW is a free radio included in every RTK product and works well, but it has a few limitations:
 
 ![Max transmission range of about 250m](img/Radios/SparkFun%20RTK%20ESP-Now%20Distance%20Testing.png)
 
 1. Limited range. You can expect two RTK devices to be able to communicate approximately 250m (845 ft) line of sight but any trees, buildings, or objects between the Base and Rover will degrade reception. This range is useful for many applications but may not be acceptable for some applications. We recommend using ESP-NOW as a quick, free, and easy way to get started with Base/Rover setups. If your application needs longer RF distances consider cellular NTRIP, WiFi NTRIP, or an external serial telemetry radio plugged into the **RADIO** port.
 
-2. ESP-NOW can co-exist with WiFi, but both the receiver and transmitter must be on the same [WiFi channel](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_radios/#setting-the-wifi-channel). 
+2. ESP-NOW can co-exist with WiFi, but both the receiver and transmitter must be on the same [WiFi channel](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_radios/#setting-the-wifi-channel).
 
 ### Pairing
 
@@ -114,10 +114,10 @@ The 1 Watt power output of the radio allows for long range transmissions when ob
 
 *Configuring the LoRa radio*
 
-From the radios menu, the LoRa radio can be enabled and configured. 
+From the radios menu, the LoRa radio can be enabled and configured.
 
 **Don't see a LoRa menu?** Support was added starting in version v1.4. Please upgrade the [ESP32 firmware](firmware_update_esp32.md) on your device. Additionally, you may need to update the firmware on the [LoRa radio firmware](firmware_update_stm32.md).
 
 The *LoRa Coordination Frequency* must be the same between all Base and Rovers. The default is usually sufficient but if other RTK Torches are operating LoRa radios in the area, switching frequencies will allow multiple networks to operate simultaneously.
 
-The *Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode* is our longest user setting name to date! Because of hardware limitations, the device cannot communicate over USB at the same time it communicates with the LoRa radio. For normal Rover operation in the field where a device is usually connected over Bluetooth or other wireless protocols, LoRa operation happens seamlessly and this setting can be ignored. But if a device is connected over USB, and no serial input is received over USB for 30 seconds (default), the USB connection will be severed and LoRa communication will be prioritized. A user may want to increase this timeout if  a system is communicating with the device over USB, or decrease it if a device is connected to USB (ie, for charging) and LoRa communication should initiate as quickly as possible. Note: If a timeout has occurred, USB communication can be restored by unplugging and plugging the cable back in. 
+The *Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode* is our longest user setting name to date! Because of hardware limitations, the device cannot communicate over USB at the same time it communicates with the LoRa radio. For normal Rover operation in the field where a device is usually connected over Bluetooth or other wireless protocols, LoRa operation happens seamlessly and this setting can be ignored. But if a device is connected over USB, and no serial input is received over USB for 30 seconds (default), the USB connection will be severed and LoRa communication will be prioritized. A user may want to increase this timeout if a system is communicating with the device over USB, or decrease it if a device is connected to USB (ie, for charging) and LoRa communication should initiate as quickly as possible. Note: If a timeout has occurred, USB communication can be restored by unplugging and plugging the cable back in.

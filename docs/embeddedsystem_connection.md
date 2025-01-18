@@ -86,7 +86,7 @@ On devices that support it, external screw terminals provide direct access to th
 ![Reference Station I/O screw terminals](img/SparkFun_GNSS_RTK_Reference_Station_IO.jpg)
 
 * TX2 : u-blox ZED-F9P UART2 transmit: 3.3V OUTPUT
-  
+
 * RX2 : u-blox ZED-F9P UART2 receive: 3.3V INPUT
 
 Please see the [EVK Hookup Guide](https://docs.sparkfun.com/SparkFun_RTK_EVK/hardware_overview/#zed-f9p-secondary-uart-port) for more details.

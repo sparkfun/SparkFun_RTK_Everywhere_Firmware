@@ -30,7 +30,7 @@ The Tilt Compensation menu controls how the tilt sensor is configured.
 
 To use Tilt Compensation, the user must indicate to the IMU to begin calibration by shaking the device. Then, once the IMU has calculated its position on the end of the pole, Tilt Compensation will be active.
 
-During Tilt Compensation, all outgoing NMEA messages are modified to output the location *of the tip of the pole*. The Data Collector software will not be aware that the position of the GNSS receiver position is being modified. Moving the tip of the pole is allowed. Tilt up to 30 degrees will introduce less than 10mm of inaccuracy. Tilt up to 60 degrees will introduce less than 20mm of inaccuracy. 
+During Tilt Compensation, all outgoing NMEA messages are modified to output the location *of the tip of the pole*. The Data Collector software will not be aware that the position of the GNSS receiver position is being modified. Moving the tip of the pole is allowed. Tilt up to 30 degrees will introduce less than 10mm of inaccuracy. Tilt up to 60 degrees will introduce less than 20mm of inaccuracy.
 
 If the audible beeper is enabled, a long beep will be heard when the IMU starts calibration (by shaking). A short beep will be heard when the IMU completes calibration and Tilt Compensation is active. A short beep will continue every 10 seconds to let the user know Tilt Compensation is being applied.
 

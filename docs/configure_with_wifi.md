@@ -49,9 +49,9 @@ To get into WiFi configuration follow these steps:
 1. Ensure the WiFi / Bluetooth antenna is attached, then connect the RTK EVK to a power source.
 2. Once the device has started, put the RTK EVK into WiFi config mode by clicking the Mode button on the front panel. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until **Cfg WiFi** is highlighted, then do a quick double-click to select it.
 
-    ![SparkFun RTK EVK Mode Menu](<img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
+	![SparkFun RTK EVK Mode Menu](<img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
 
-    *SparkFun RTK EVK Mode Menu*
+	*SparkFun RTK EVK Mode Menu*
 
 3. The display will change, showing that the EVK is in WiFi configuration mode.
 4. Connect to WiFi network named ‘RTK Config’.

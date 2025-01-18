@@ -80,8 +80,8 @@ Compatibility Icons
 
 The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
 
-    * [EVK example 8_5_PointPerfect_MQTT](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_5_PointPerfect_MQTT)
-    * [EVK example 8_6_PointPerfect_MQTT_WiFi_ETH_Cellular](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_6_PointPerfect_MQTT_WiFi_ETH_Cellular)
+	* [EVK example 8_5_PointPerfect_MQTT](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_5_PointPerfect_MQTT)
+	* [EVK example 8_6_PointPerfect_MQTT_WiFi_ETH_Cellular](https://github.com/sparkfun/SparkFun_RTK_EVK/tree/main/Example_Sketches/8_6_PointPerfect_MQTT_WiFi_ETH_Cellular)
 
 ## L-Band
 
@@ -89,7 +89,6 @@ The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Eve
 Compatibility Icons
 ====================================================================================
 
-What if you are in the field, far away from WiFi, cellular, radio, or any other data connection? Look to the sky! 
 :material-radiobox-marked:{ .support-full title="Feature Supported" }
 :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
@@ -101,6 +100,8 @@ What if you are in the field, far away from WiFi, cellular, radio, or any other 
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
+
+What if you are in the field, far away from WiFi, cellular, radio, or any other data connection? Look to the sky!
 
 A variety of companies provide GNSS RTK corrections broadcast from satellites over a spectrum called L-Band. [L-Band](https://en.wikipedia.org/wiki/L_band) is any frequency from 1 to 2 GHz. These frequencies have the ability to penetrate clouds, fog, and other natural weather phenomena making them particularly useful for location applications.
 
@@ -140,7 +141,7 @@ The RTK EVK has screw cage terminals providing access to the ZED-F9P UART2 TX2 a
 
 These radios attach nicely to the back or bottom of an RTK device.
 
-The benefit of a serial telemetry radio link is that you do not need to configure anything; simply plug two radios onto two RTK devices and turn them on. 
+The benefit of a serial telemetry radio link is that you do not need to configure anything; simply plug two radios onto two RTK devices and turn them on.
 
 The downside to serial telemetry radios is that they generally have a much shorter range (often slightly more than a 1-kilometer functional range) than a cellular link can provide.
 

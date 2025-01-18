@@ -48,7 +48,7 @@ Bluetooth can also be used to view system status and output. Simply exit the con
 
 ## Exit Bluetooth Echo Mode
 
-To exit Bluetooth Echo Mode simply disconnect Bluetooth. In the Bluetooth Serial Terminal app, this is done by pressing the 'two plugs' icon in the upper right corner. 
+To exit Bluetooth Echo Mode simply disconnect Bluetooth. In the Bluetooth Serial Terminal app, this is done by pressing the 'two plugs' icon in the upper right corner.
 
 ![Exiting Bluetooth Echo Mode](img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Exit%20BEM.png)
 

@@ -31,4 +31,3 @@ Profiles can be selected, renamed, reset to defaults, and completely erased from
 *Multiple Profiles on Menu*
 
 On devices that have a display, if more than one profile is defined, the profiles will be displayed and selectable by using the **Power/Setup** button. Only the first 7 characters of a profile's name will be shown on the menu. Once a profile has been selected, the device will reboot using that profile.
-

@@ -39,7 +39,7 @@ Additionally, correction may be *sent* to the device over USB. RTCM corrections 
 
 ## Radio Port
 
-Available on devices that have an external **RADIO** port. 
+Available on devices that have an external **RADIO** port.
 
 By default, the **Radio** port is set to 57600bps to match the [Serial Telemetry Radios](https://www.sparkfun.com/products/19032) that are recommended to be used with the RTK Facet (it is a plug-and-play solution). This can be set from 4800bps to 921600bps.
 
@@ -77,7 +77,7 @@ Most applications do not need to plug anything into the **Data** port. Most user
 
 *Port menu showing mux data port connections*
 
-When PPS/Event Trigger is selected, the Pulse-Per-Second output from the ZED-F9x is sent out of the TX pin of the DATA port. Once the RTK device has GNSS reception, this can be used as a *very* accurate time base. 
+When PPS/Event Trigger is selected, the Pulse-Per-Second output from the ZED-F9x is sent out of the TX pin of the DATA port. Once the RTK device has GNSS reception, this can be used as a *very* accurate time base.
 
 The time between pulses can be configured down to 100ns (10MHz) with an accuracy of 30ns RMS and 60ns 99%. The pulse width and polarity are also configurable.
 
@@ -91,4 +91,3 @@ For PPS, only the Black and Green wires are needed. If you need to provide 3.3V 
 * **Black** - GND
 
 Similarly, the RX pin of the DATA port can be used for event logging. See [External Event Logging](menu_ports.md#external-event-logging) for more information.
-

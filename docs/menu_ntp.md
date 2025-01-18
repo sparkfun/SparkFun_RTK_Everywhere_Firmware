@@ -21,13 +21,13 @@ Ethernet-equipped RTK devices can act as an Ethernet Network Time Protocol (NTP)
 Network Time Protocol has been around since 1985. It is a simple way for computers to synchronize their clocks with each other, allowing the network latency (delay) to be subtracted:
 
 * A client sends an NTP request (packet) to the chosen or designated server
-    * The request contains the client's current clock time - for identification
+	* The request contains the client's current clock time - for identification
 
 * The server logs the time the client's request arrived and then sends a reply containing:
-    * The client's clock time - for identification
-    * The server's clock time - when the request arrived at the server
-    * The server's clock time - when the reply is sent
-    * The time the server's clock was last synchronized - providing the age of the synchronization
+	* The client's clock time - for identification
+	* The server's clock time - when the request arrived at the server
+	* The server's clock time - when the reply is sent
+	* The time the server's clock was last synchronized - providing the age of the synchronization
 
 * The client logs the time the reply is received - using its own clock
 
@@ -93,8 +93,8 @@ If you want to synchronize your Windows PC to a RTK device running as an NTP Ser
 ![Meinberg NTP service settings](img/NTP/NTP_Install_2.png)
 
 * The next step is to edit the NTP Configuration File
-    * Editing the file requires Administrator privileges
-    * Open the *Start* menu, navigate to *Meinberg*, right-click on *Edit NTP Configuration* and select *Run as administrator*
+	* Editing the file requires Administrator privileges
+	* Open the *Start* menu, navigate to *Meinberg*, right-click on *Edit NTP Configuration* and select *Run as administrator*
 
 [![Meinberg NTP configuration](img/NTP/NTP_Config_1_small.png)](img/NTP/NTP_Config_1.png)
 
@@ -105,8 +105,8 @@ If you want to synchronize your Windows PC to a RTK device running as an NTP Ser
 [![Meinberg NTP configuration](img/NTP/NTP_Config_2_small.png)](img/NTP/NTP_Config_2.png)
 
 * Finally, restart the NTP Service
-    * Again this needs to be performed with Administrator privileges
-    * Open the *Start* menu, navigate to *Meinberg*, right-click on *Restart NTP Service* and select *Open file loctaion*
+	* Again this needs to be performed with Administrator privileges
+	* Open the *Start* menu, navigate to *Meinberg*, right-click on *Restart NTP Service* and select *Open file loctaion*
 
 [![Meinberg NTP configuration](img/NTP/NTP_Config_3_small.png)](img/NTP/NTP_Config_3.png)
 
@@ -119,4 +119,3 @@ If you want to synchronize your Windows PC to a RTK device running as an NTP Ser
 ![Meinberg NTP configuration](img/NTP/NTP_Config_5.png)
 
 If enabled, your Windows PC NTP requests will be printed and logged by the RTK device. See [above](#logged-ntp-requests).
-

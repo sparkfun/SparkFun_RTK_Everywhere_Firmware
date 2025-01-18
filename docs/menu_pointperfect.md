@@ -30,7 +30,7 @@ Compatibility Icons
 
 *PointPerfect Coverage map including L-Band and IP delivery methods*
 
-SparkFun RTK devices are equipped to get corrections from a service called PointPerfect. 
+SparkFun RTK devices are equipped to get corrections from a service called PointPerfect.
 
 PointPerfect has the following benefits and challenges:
 
@@ -47,7 +47,7 @@ PointPerfect corrections are obtained by two methods:
 * **IP**: Corrections are transmitted over the internet. The RTK device will need access to a WiFi or Ethernet network. For WiFi, this is most commonly a hotspot on a cell phone so this delivery method is generally confined to areas with cellular and/or other WiFi coverage.
 
 !!! note
-    It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
+	It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
 
 ## Localized Corrections
 
@@ -87,11 +87,11 @@ All SparkFun RTK products must be registered before they are allowed on the Poin
 
 To gain access to the PointPerfect system, the device must be given WiFi. Once provided, the RTK device will automatically obtain **keys**. These keys allow the decryption of corrections.
 
-PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK device can operate normally without the need to update keys. However, when the keys are set to expire in 28 days or less, the RTK device will attempt to log in to WiFi at each power on. If WiFi is not available, it will continue normal operation. 
+PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK device can operate normally without the need to update keys. However, when the keys are set to expire in 28 days or less, the RTK device will attempt to log in to WiFi at each power on. If WiFi is not available, it will continue normal operation.
 
 On RTK L-Band equipped devices, if the keys fully expire, the device will continue to receive the L-Band signal but will be unable to decrypt the signal. The RTK EVK will continue to have extraordinary accuracy (we've seen better than 0.15m HPA) but not the centimeter-level accuracy that comes with RTK.
 
-**Note:** All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio, WiFi or Ethernet (depending on model). 
+**Note:** All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio, WiFi or Ethernet (depending on model).
 
 ![Display showing 14 days until Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
 
@@ -127,7 +127,7 @@ The *Days until keys expire* inform the user how many days the unit has until it
 
 ## Obtaining the Device ID
 
-The device ID is unique to each RTK device and must be entered by SparkFun into the PointPerfect network. 
+The device ID is unique to each RTK device and must be entered by SparkFun into the PointPerfect network.
 
 ![Device ID within the serial menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Device ID.png>)
 
@@ -167,19 +167,19 @@ There are various messages that may be reported by the device. Here is a list of
 
 ### No SSIDs
 
-    Error: Please enter at least one SSID before getting keys
+	Error: Please enter at least one SSID before getting keys
 
 This message is seen when no WiFi network credentials (SSID and password) have been entered. The device needs WiFi to obtain the keys to decrypt the packets provided by PointPerfect. Enter your home/office/cellular hotspot WiFi SSID and password and try again.
 
 ### Not Whitelisted
 
-    This device is not whitelisted. Please contact support@sparkfun.com to get your subscription activated. Please reference device ID: [device ID]
+	This device is not whitelisted. Please contact support@sparkfun.com to get your subscription activated. Please reference device ID: [device ID]
 
 This message is seen whenever the PointPerfect service is not aware of the given device. Please use the subscription form or contact support@sparkfun.com with your device ID (see [Obtaining the Device ID](#obtaining-the-device-id) above). [Go here for RTK Torch](https://www.sparkfun.com/rtk_torch_registration) subscriptions. [Go here for RTK EVK](https://www.sparkfun.com/rtk_evk_registration) subscriptions.
 
 ### Device Deactivated
 
-    This device has been deactivated. Please contact support@sparkfun.com to renew the PointPerfect subscription. Please reference device ID: [device ID]
+	This device has been deactivated. Please contact support@sparkfun.com to renew the PointPerfect subscription. Please reference device ID: [device ID]
 
 This message is seen whenever the device's subscription has lapsed. [Go here for RTK Torch](https://www.sparkfun.com/rtk_torch_registration) subscriptions. [Go here for RTK EVK](https://www.sparkfun.com/rtk_evk_registration) subscriptions. Alternatively contact support@sparkfun.com with your device ID (see [Obtaining the Device ID](menu_pointperfect.md#obtaining-the-device-id) above).
 

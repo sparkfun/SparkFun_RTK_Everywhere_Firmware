@@ -1,6 +1,6 @@
 # Creating a Permanent Base
 
-This section show various options to create your own base station. This is ideal if your Rover will stay within ~20km (12 miles) of the base station. 
+This section show various options to create your own base station. This is ideal if your Rover will stay within ~20km (12 miles) of the base station.
 
 ## RTK mosaic
 

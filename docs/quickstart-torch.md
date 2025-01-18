@@ -10,45 +10,45 @@ Are you using [Android](#android) or [iOS](#ios)?
 
 1. Download [SW Maps](https://play.google.com/store/apps/details?id=np.com.softwel.swmaps). This may not be the GIS software you intend to do your data collection, but SW Maps is free and makes sure everything is working correctly out of the box.
 
-    ![Download SW Maps](<img/SWMaps/SparkFun RTK SW Maps for Android QR Code.png>)
+	![Download SW Maps](<img/SWMaps/SparkFun RTK SW Maps for Android QR Code.png>)
 
-    *Download SW Maps for Android*
+	*Download SW Maps for Android*
 
 2. Mount the hardware:
 
-    * For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
+	* For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
 
-    ![RTK devices attached to a monopole](<img/SparkFun Torch Attached to a Pole.png>)
+	![RTK devices attached to a monopole](<img/SparkFun Torch Attached to a Pole.png>)
 
-    *Figure 1*
+	*Figure 1*
 
-3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2). 
+3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2).
 
-    [![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
+	[![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
 
-    *Figure 2*
+	*Figure 2*
 
 5. From your cell phone, open Bluetooth settings and pair it with a new device. You will see a list of available Bluetooth devices. Select the ‘Torch Rover-3AF1’. The '3AF1' is the last four digits of the device's MAC address and will vary depending on the device (Figure 3).
 
-    ![List of Bluetooth devices on Android](<img/QuickStart/SparkFun Torch - Available Devices.png>)
+	![List of Bluetooth devices on Android](<img/QuickStart/SparkFun Torch - Available Devices.png>)
 
-    *Figure 3*
+	*Figure 3*
 
-6. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’. 
+6. Once paired, open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
 
-7. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Torch Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok. 
+7. Press the SW Maps icon in the top left corner of the home screen and select **Bluetooth GNSS**. You should see the ‘Torch Rover-3AF1’ in the list. Select it. Confirm that the *Instrument Model* is **SparkFun RTK**, then press the ‘Connect’ button in the bottom right corner (Figure 4). SW Maps will show a warning that the instrument height is 0m. That’s ok.
 
-    ![SW Map list of Bluetooth devices](<img/QuickStart/SparkFun Torch - SW Maps Bluetooth Small.png>)
+	![SW Map list of Bluetooth devices](<img/QuickStart/SparkFun Torch - SW Maps Bluetooth Small.png>)
 
-    *Figure 4*
+	*Figure 4*
 
 8. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
 
 9. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 5). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
 
-    ![RTK GNSS Status Window](<img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png>)
+	![RTK GNSS Status Window](<img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png>)
 
-    *Figure 5*
+	*Figure 5*
 
 You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](#rtk-crash-course).
 
@@ -58,35 +58,35 @@ The software options for Apple iOS are much more limited because Apple products 
 
 1. Download [SW Maps for iOS](https://apps.apple.com/us/app/sw-maps/id6444248083). This may not be the GIS software you intend to do your data collection, but SW Maps is free and makes sure everything is working correctly out of the box.
 
-    ![SW Maps for Apple](<img/SWMaps/SparkFun RTK SW Maps for Apple QR Code.png>)
+	![SW Maps for Apple](<img/SWMaps/SparkFun RTK SW Maps for Apple QR Code.png>)
 
-    *Download SW Maps for iOS*
+	*Download SW Maps for iOS*
 
 2. Mount the hardware:
 
-    * For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
+	* For RTK Torch: Attach the Torch to a 5/8" 11-TPI standard surveying pole or to a [monopole](https://www.amazon.com/AmazonBasics-WT1003-67-Inch-Monopod/dp/B00FAYL1YU) using the included [thread adapter](https://www.sparkfun.com/products/17546) (Figure 1).
 
-    ![RTK devices attached to a monopole](<img/SparkFun Torch Attached to a Pole.png>)
+	![RTK devices attached to a monopole](<img/SparkFun Torch Attached to a Pole.png>)
 
-    *Figure 1*
+	*Figure 1*
 
-3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2). 
+3. Turn on the RTK Torch device by pressing the Power button for 3 to 4 seconds until a beep is heard and the two front LEDs illuminate (Figure 2).
 
-    [![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
+	[![RTK Torch Power Button Explanation](<img/RTK-Torch_Buttons_Front-Small.png>)](<img/RTK-Torch_Buttons_Front.png>)
 
-    *Figure 2*
+	*Figure 2*
 
-4. Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’. 
+4. Open SW Maps. Select ‘New Project’ and give your project a name like ‘RTK Project’.
 
 5. Press the SW Maps icon in the top left corner of the home screen and select Bluetooth GNSS. You will need to agree to allow a Bluetooth connection. Set the *Instrument Model* to **Generic NMEA (Bluetooth LE)**. Press 'Scan' and your RTK device should appear. Select it then press the ‘Connect’ button in the bottom left corner.
 
 6. Once connected, have a look at the Bluetooth LED on the RTK device. You should see the LED turn solid. You’re connected!
 
-7. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows.  Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
+7. Now put the device outside with a clear view of the sky. GNSS doesn’t work indoors or near windows. Press the SW Maps icon in the top left corner of the home screen and select **GNSS Status**. Within about 30 seconds you should see 10 or more satellites in view (SIV) (Figure 3). More SIV is better. We regularly see 30 or more SIV. The horizontal positional accuracy (HPA) will start at around 10 meters and begin to decrease. The lower the HPA the more accurate your position. This accuracy is around 2m in normal mode.
 
-    ![RTK GNSS Status Window](<img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png>)
+	![RTK GNSS Status Window](<img/QuickStart/SparkFun Torch - SW Maps GNSS Status SIV Small.png>)
 
-    *Figure 3*
+	*Figure 3*
 
 You can now use your RTK device to measure points with good (meter) accuracy. If you need extreme accuracy (down to 8mm) continue reading the [RTK Crash Course](#rtk-crash-course).
 
@@ -109,38 +109,38 @@ The PointPerfect IP service is available for various areas of the globe includin
 Steps to use PointPerfect:
 
 1. [Register](https://www.sparkfun.com/rtk_torch_registration) the device with SparkFun by entering the device ID (this is the ID seen on the [printed stickers](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_pointperfect/#registration) included in the kit). It can take up to two business days for registration to complete.
-    
+
 2. Power on the RTK Torch by pressing and holding the power button for around 4 seconds. The device will emit a short beep and illuminate the LEDs.
 
 3. Put the RTK Torch into WiFi config mode by double-tapping the power button. You will hear two beeps indicating it is ready to connect to.
 
 4. From your phone, connect to the WiFi network *RTK Config*. You should be redirected to the WiFi Config page. If you are not, open a browser (Chrome is preferred) and type **rtk.local** into the address bar.
 
-    ![SparkFun RTK WiFi Configuration Interface](<img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png>)
+	![SparkFun RTK WiFi Configuration Interface](<img/WiFi Config/SparkFun RTK WiFi Config - Header Block.png>)
 
-    *SparkFun RTK WiFi Configuration Interface*
+	*SparkFun RTK WiFi Configuration Interface*
 
 5. Under the *WiFi Configuration* menu, give the device WiFi credentials for your local WiFi. This can be the cellphone hotspot if local WiFi is not available.
 
-    ![WiFi Menu containing one network](<img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png>)
+	![WiFi Menu containing one network](<img/WiFi Config/SparkFun RTK WiFi Config - WiFi Menu.png>)
 
-    *WiFi Menu containing one network*
+	*WiFi Menu containing one network*
 
 6. Under the [*PointPerfect Configuration* menu](menu_pointperfect.md), **Enable PointPefect Corrections** and select your **Geographic Region**. If desired, enable **Localized Corrections** and **AssistNow**.
 
-    ![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
+	![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
 
-    *PointPerfect Configuration Menu*
+	*PointPerfect Configuration Menu*
 
-    !!! note
-        It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
+	!!! note
+		It is important that you set your Geographic Region correctly, via the menu or web config page, as this determines both the IP correction distribution topic and the L-Band frequency (on L-Band-capable products).
 
 
 7. Click **Save Configuration**. The device will record all settings in a few seconds. Then press **Exit and Reset**. The unit will now reboot.
 
-    ![Saving and All Saved notifications](<img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png>)
+	![Saving and All Saved notifications](<img/WiFi Config/SparkFun RTK WiFi Config - Save Steps.png>)
 
-    *Saving... then All Saved*
+	*Saving... then All Saved*
 
 After the reboot, the device will connect to WiFi, obtain keys, and begin applying corrections. Assuming you are outside, after a few minutes of receiving PointPerfect corrections to the device, connect to the RTK Torch over SW Maps (or other) and the device will enter RTK Float, then RTK Fix (usually under 3 minutes). You can now take positional readings with millimeter accuracy!
 
@@ -160,9 +160,9 @@ If you decide to use a service that provides NTRIP (as opposed to PointPerfect) 
 
 4. Enter the credentials provided by PointOneNav and click Connect (Figure 1). Verify that *Send NMEA GGA* is checked.
 
-    ![NTRIP credentials in SW Maps](<img/SWMaps/SparkFun RTK SW Maps - NTRIP Credentials.png>)
+	![NTRIP credentials in SW Maps](<img/SWMaps/SparkFun RTK SW Maps - NTRIP Credentials.png>)
 
-    *Figure 1*
+	*Figure 1*
 
 5. Corrections will be downloaded every second from PointOneNav using your phone’s cellular connection and then sent down to the RTK device over Bluetooth. You don't need a very fast internet connection or a lot of data; it's only about 530 bytes per second.
 

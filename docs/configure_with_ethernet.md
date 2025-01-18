@@ -29,16 +29,16 @@ To get into Ethernet configuration follow these steps:
 1. Power on the RTK EVK and connect it to your Ethernet network using the supplied cable
 2. Once the device has started, put the RTK EVK into Ethernet config mode by clicking the Mode button on the front panel. The first click opens the mode menu, successive clicks select the next menu option. Keep clicking until **Cfg Eth** is highlighted, then do a quick double-click to select it. Note that it is only possible to put the EVK into this mode via the Mode button, requiring physical access to the EVK. Remote configuration is only possible after putting the EVK into this mode.
 
-    ![SparkFun RTK EVK Mode Menu](<img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
+	![SparkFun RTK EVK Mode Menu](<img/Displays/24342-RTK-EVK-Action-Screen_GIF_750ms.gif>)
 
-    *SparkFun RTK EVK Mode Menu*
+	*SparkFun RTK EVK Mode Menu*
 
 3. The RTK EVK will reboot into a dedicated Configure-Via-Ethernet mode
 4. By default, the RTK EVK uses DHCP, obtaining its IP address from your DHCP server. The IP address is displayed on the OLED display. You can use a fixed IP address if desired. See [Ethernet Menu](menu_ethernet.md) for more details.
 
-    ![SparkFun RTK EVK Config Ethernet](<img/Displays/SparkFun RTK EVK Ethernet Config.png>)
+	![SparkFun RTK EVK Config Ethernet](<img/Displays/SparkFun RTK EVK Ethernet Config.png>)
 
-    *SparkFun RTK EVK Config Ethernet*
+	*SparkFun RTK EVK Config Ethernet*
 
 5. Open a browser (Chrome is preferred) on your computer and type the EVK's IP address into the address bar. The web config page will open.
 

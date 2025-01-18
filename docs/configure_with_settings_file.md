@@ -24,7 +24,7 @@ All device settings are stored both in internal memory and an SD card (if suppor
 
 All system configuration can be done by editing the *SFE_[Platform]_Settings_0.txt* file (example shown above) where [Platform] is Facet, Express, Surveyor, etc and 0 is the profile number (0, 1, 2, 3). This file is created when a microSD card is installed. The settings are clear text but there are no safety guards against setting illegal states. It is not recommended to use this method unless You Know What You're Doing®.
 
-Keep in mind: 
+Keep in mind:
 
 * Not all devices have an SD card slot (ie, RTK Torch) and therefore do not support this configuration method.
 * The settings file contains hundreds of settings.
@@ -34,13 +34,13 @@ Keep in mind:
 
 For example, if you only wanted to set up two wireless networks for profile 2, you could create a file named "SFE_Express_Settings_1.txt" that only contained the following settings:
 
-    profileName=a name you choose
-    enableTcpServer=1
-    wifiNetwork0SSID=your SSID name 1
-    wifiNetwork0Password=your SSID password 1
-    wifiNetwork1SSID=your SSID name 2
-    wifiNetwork1Password=your SSID password 2
-    wifiConfigOverAP=0
+	profileName=a name you choose
+	enableTcpServer=1
+	wifiNetwork0SSID=your SSID name 1
+	wifiNetwork0Password=your SSID password 1
+	wifiNetwork1SSID=your SSID name 2
+	wifiNetwork1Password=your SSID password 2
+	wifiConfigOverAP=0
 
 These settings on the SD card will overwrite the settings in the RTK Express internal memory. Once you select this profile on your RTK Express, the SD card file will be overwritten with all of the merged settings.
 

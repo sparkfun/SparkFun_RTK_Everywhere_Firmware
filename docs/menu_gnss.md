@@ -4,7 +4,6 @@
 Compatibility Icons
 ====================================================================================
 
-The SparkFun RTK product line is immensely configurable. The RTK device will, by default, put the GNSS receiver into the most common configuration for rover/base RTK for use with *SW Maps* and other GIS applications. 
 :material-radiobox-marked:{ .support-full title="Feature Supported" }
 :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 :material-radiobox-blank:{ .support-none title="Feature Not Supported" }
@@ -17,13 +16,15 @@ The SparkFun RTK product line is immensely configurable. The RTK device will, by
 
 </div>
 
+The SparkFun RTK product line is immensely configurable. The RTK device will, by default, put the GNSS receiver into the most common configuration for rover/base RTK for use with *SW Maps* and other GIS applications.
+
 The GNSS Configuration menu allows a user to change the report rate, dynamic model, and select which constellations should be used for fix calculations.
 
 ![RTK Everywhere Main Menu](<img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
 
 *RTK Everywhere main menu*
 
-Pressing any key will show the *Main Menu*. From the main menu, pressing 1 will bring up the *GNSS Receiver* configuration menu. 
+Pressing any key will show the *Main Menu*. From the main menu, pressing 1 will bring up the *GNSS Receiver* configuration menu.
 
 ![GNSS menu showing measurement rates and dynamic model](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
 
@@ -67,7 +68,7 @@ If supported by hardware, Galileo E6 corrections are enabled by default to suppo
 
 *NTRIP Client enabled showing settings*
 
-The SparkFun RTK Everywhere devices can obtain their correction data over a few different methods. 
+The SparkFun RTK Everywhere devices can obtain their correction data over a few different methods.
 
 * Bluetooth - This is the most common. An app running on a tablet or phone has an NTRIP client built into it. Once the phone is connected over Bluetooth SPP, the RTCM is pushed from the phone to the RTK device. No NTRIP Client needs to be setup on the RTK device.
 * WiFi - The rover uses WiFi to be an NTRIP Client and connect to an NTRIP Caster. WiFi and Bluetooth can run simultaneously. This is helpful in situations where a GIS software does not have an NTRIP Client; a cellular hotspot can be used to provide WiFi to the RTK device setup to use NTRIP Client an obtain RTK Fix, while Bluetooth is used to connect to the GIS software for data mapping and collection.
@@ -105,4 +106,3 @@ Compatibility Icons
 *Menu for controlling Multipath Mitigation*
 
 On devices that support it, *Multipath Mitigation* can be enabled (default) or disabled. Multipath Mitigation allows the GNSS receiver to filter signals more rigorously, which aids accuracy in urban or high multipath environments, but may increase processing times in an open environment.
-

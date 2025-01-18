@@ -57,9 +57,9 @@ Upon power up the device will enter either Rover mode or Base mode. Above, the R
 * **SIV:** Satellites in view is the number of satellites used for the fix calculation. This symbol will blink before a location fix is generated and become solid when the device has a good location fix. SIV is a good indicator of how good of a view the antenna has. This number will vary but anything above 10 is adequate. We've seen as high as 31.
 * **Model:** This icon will change depending on the selected dynamic model: Portable (default) Pedestrian, Sea, Bike, Stationary, etc.
 * **Log:** This icon will remain animated while the log file is increasing. This is a good visual indication that you have an SD card inserted and RTK Facet can successfully record to it. There are three logging icons ![Logging icons](img/Displays/SparkFun%20RTK%20Logging%20Types.png)
-    * Standard (three lines) is shown when the standard 5 NMEA messages are being logged
-    * PPP (capital P) is shown when the standard 5 NMEA + RAWX and SFRBX messages are recorded. This is most often used for post process positioning (PPP) and 12 to 24-hour logs for [fixed permanent bases](permanent_base.md).
-    * Custom (capital C) is shown when a custom set of messages are being recorded (not standard, and not PPP).
+	* Standard (three lines) is shown when the standard 5 NMEA messages are being logged
+	* PPP (capital P) is shown when the standard 5 NMEA + RAWX and SFRBX messages are recorded. This is most often used for post process positioning (PPP) and 12 to 24-hour logs for [fixed permanent bases](permanent_base.md).
+	* Custom (capital C) is shown when a custom set of messages are being recorded (not standard, and not PPP).
 * **IP Address:** On the RTK EVK 1.3" OLED, the full Ethernet or WiFi IP Address is shown at the bottom left of the display.
 
 ## Rover RTK Fix
@@ -94,7 +94,7 @@ The *Fixed Base* mode is similar but uses a structure icon (shown above) to indi
 
 ## Base Transmitting NTRIP
 
-If the NTRIP server is enabled the device will first attempt to connect over WiFi. The WiFi icon will blink until a WiFi connection is obtained. If the WiFi icon continually blinks be sure to check your SSID and PW for the local WiFi. 
+If the NTRIP server is enabled the device will first attempt to connect over WiFi. The WiFi icon will blink until a WiFi connection is obtained. If the WiFi icon continually blinks be sure to check your SSID and PW for the local WiFi.
 
 ![RTK Facet in Transmit Mode with NTRIP](img/Displays/SparkFun_RTK_Express_-_Display_-_FixedBase-Casting.jpg)
 
@@ -118,11 +118,12 @@ Compatibility Icons
 
 <div class="grid cards fill" markdown>
 
-L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation. 
 - Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
 - EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
 
 </div>
+
+L-Band decryption keys are valid for a maximum of 56 days. During that time, the RTK Facet L-Band can operate normally without the need for WiFi access. However, when the keys are set to expire in 28 days or less, the RTK Facet L-Band will attempt to log in to the 'Home' WiFi at each power on. If WiFi is not available, it will continue normal operation.
 
 ![Display showing 14 days until L-Band Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
 
@@ -167,4 +168,3 @@ On devices that support it, open circuit and short circuit detection is availabl
 ![RTK EVK indicating antenna short circuit](img/Displays/SparkFun-RTK-EVK-OLED_Antenna_Short_Highlighted.jpg)
 
 *RTK EVK with a GNSS antenna cable fault (short circuit)*
-

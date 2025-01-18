@@ -21,32 +21,32 @@ The RTK product line is fully open-source hardware. This allows users to view sc
 Repair Parts:
 
 <table class="table table-hover table-striped table-bordered">
-  <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/24675"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/0/0/SPX-24675_RTK_Facet_L-Band_Main_v14_-_1.jpg"></a></td>
-   <td><a href="https://www.sparkfun.com/products/24064"><img src="https://cdn.sparkfun.com//assets/parts/2/4/3/8/7/SPX-24064_RTK_Facet_Main_v13_-_1.jpg"></a></td>
-   <td><a href="https://www.sparkfun.com/products/24673"><img src="https://cdn.sparkfun.com//assets/parts/2/4/9/9/8/SPX-24673_RTK_Facet_Housing.jpg"></a></td>
-  </tr>
-  <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/24675">SparkFun RTK Replacement Parts - Facet L-Band Main Board v14 (SPX-24675)</a></td>
-    <td><a href="https://www.sparkfun.com/products/24064">SparkFun RTK Replacement Parts - Facet Main Board v13 (SPX-24064)</a></td>
-    <td><a href="https://www.sparkfun.com/products/24673">SparkFun RTK Replacement Parts - Facet Housing (SPX-24673)</a></td>
-  </tr>
-  <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/24674"><img src="https://cdn.sparkfun.com//assets/parts/2/4/9/9/9/SPX-24674_RTK_Facet_L-Band_Housing.jpg"></a></td>
-   <td><a href="https://www.sparkfun.com/products/24707"><img src="https://cdn.sparkfun.com//assets/parts/1/7/6/9/8/SPX-24707_RTK_Facet_Rubber_Sock.jpg"></a></td>
-   <td><a href="https://www.sparkfun.com/products/24706"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/3/0/SPX-24706_RTK_Facet_Connector_Board_-_1.jpg"></a></td>
-  </tr>
-  <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/24674">SparkFun RTK Replacement Parts - Facet L-Band Housing (SPX-24674)</a></td>
-    <td><a href="https://www.sparkfun.com/products/24707">SparkFun RTK Replacement Parts - Facet Rubber Sock (SPX-24707)</a></td>
-    <td><a href="https://www.sparkfun.com/products/24706">SparkFun RTK Replacement Parts - Facet Connector Assembly v12 (SPX-24706)</a></td>
-  </tr>
-  <tr align="center">
-   <td><a href="https://www.sparkfun.com/products/24705"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/2/9/SPX-24705_RTK_Facet_Display_Assembly_v12_-_1.jpg"></a></td>
-  </tr>
-  <tr align="center">
-    <td><a href="https://www.sparkfun.com/products/24705">SparkFun RTK Replacement Parts - Facet Display/Button (SPX-24705)</a></td>
-  </tr>
+	<tr align="center">
+	<td><a href="https://www.sparkfun.com/products/24675"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/0/0/SPX-24675_RTK_Facet_L-Band_Main_v14_-_1.jpg"></a></td>
+	<td><a href="https://www.sparkfun.com/products/24064"><img src="https://cdn.sparkfun.com//assets/parts/2/4/3/8/7/SPX-24064_RTK_Facet_Main_v13_-_1.jpg"></a></td>
+	<td><a href="https://www.sparkfun.com/products/24673"><img src="https://cdn.sparkfun.com//assets/parts/2/4/9/9/8/SPX-24673_RTK_Facet_Housing.jpg"></a></td>
+	</tr>
+	<tr align="center">
+	<td><a href="https://www.sparkfun.com/products/24675">SparkFun RTK Replacement Parts - Facet L-Band Main Board v14 (SPX-24675)</a></td>
+	<td><a href="https://www.sparkfun.com/products/24064">SparkFun RTK Replacement Parts - Facet Main Board v13 (SPX-24064)</a></td>
+	<td><a href="https://www.sparkfun.com/products/24673">SparkFun RTK Replacement Parts - Facet Housing (SPX-24673)</a></td>
+	</tr>
+	<tr align="center">
+	<td><a href="https://www.sparkfun.com/products/24674"><img src="https://cdn.sparkfun.com//assets/parts/2/4/9/9/9/SPX-24674_RTK_Facet_L-Band_Housing.jpg"></a></td>
+	<td><a href="https://www.sparkfun.com/products/24707"><img src="https://cdn.sparkfun.com//assets/parts/1/7/6/9/8/SPX-24707_RTK_Facet_Rubber_Sock.jpg"></a></td>
+	<td><a href="https://www.sparkfun.com/products/24706"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/3/0/SPX-24706_RTK_Facet_Connector_Board_-_1.jpg"></a></td>
+	</tr>
+	<tr align="center">
+	<td><a href="https://www.sparkfun.com/products/24674">SparkFun RTK Replacement Parts - Facet L-Band Housing (SPX-24674)</a></td>
+	<td><a href="https://www.sparkfun.com/products/24707">SparkFun RTK Replacement Parts - Facet Rubber Sock (SPX-24707)</a></td>
+	<td><a href="https://www.sparkfun.com/products/24706">SparkFun RTK Replacement Parts - Facet Connector Assembly v12 (SPX-24706)</a></td>
+	</tr>
+	<tr align="center">
+	<td><a href="https://www.sparkfun.com/products/24705"><img src="https://cdn.sparkfun.com//assets/parts/2/5/0/2/9/SPX-24705_RTK_Facet_Display_Assembly_v12_-_1.jpg"></a></td>
+	</tr>
+	<tr align="center">
+	<td><a href="https://www.sparkfun.com/products/24705">SparkFun RTK Replacement Parts - Facet Display/Button (SPX-24705)</a></td>
+	</tr>
 </table>
 
 Tools Needed:
@@ -76,9 +76,9 @@ The top lid should then come off. The front overlay is adhesive and may adhere s
 
 ![Remove the antenna](img/Repair/SparkFun-RTK-Repair-4.jpg)
 
-Note the antenna orientation so that it can be re-mounted in the same way. A sharpie dot towards the display is a handy method. 
+Note the antenna orientation so that it can be re-mounted in the same way. A sharpie dot towards the display is a handy method.
 
-Remove the four screws holding the antenna in place. 
+Remove the four screws holding the antenna in place.
 
 Be aware that the antenna material is susceptible to fingerprints. You won't likely damage the reception but it's best to just avoid touching the elements.
 
@@ -88,7 +88,7 @@ The antenna will be attached to the main board and must stay that way for the ne
 
 ![Remove battery boat](img/Repair/SparkFun-RTK-Repair-6.jpg)
 
-The battery and vertical PCBs are held in place using a retention PCB. Remove the four screws holding the PCB in place and lift off the foam top of the battery holder. 
+The battery and vertical PCBs are held in place using a retention PCB. Remove the four screws holding the PCB in place and lift off the foam top of the battery holder.
 
 **Note:** v1.0 of the retention plate is not symmetrical. Meaning, if the plate is installed in reverse, the retention PCB will be just short of the connector board and will not properly hold it in place. Reinstall the retention plate as shown in the picture.
 
@@ -106,7 +106,7 @@ This is the most dangerous step. The cable connecting the antenna to the main bo
 
 Using the U.FL removal tool, slide the tool onto the U.FL connector and gently pull away from the main board. If it won't give, you may need to angle the tool slightly while pulling.
 
-**Note:** If you do not have a U.FL tool this [tutorial on U.FL connectors](https://learn.sparkfun.com/tutorials/three-quick-tips-about-using-ufl/all#disconnect) has three alternative methods using tweezers, wire cutters, and a skinny PCB that may also work. 
+**Note:** If you do not have a U.FL tool this [tutorial on U.FL connectors](https://learn.sparkfun.com/tutorials/three-quick-tips-about-using-ufl/all#disconnect) has three alternative methods using tweezers, wire cutters, and a skinny PCB that may also work.
 
 ![U.FL connector removed](img/Repair/SparkFun-RTK-Repair-9.jpg)
 
@@ -130,7 +130,7 @@ The main board is attached to the battery and the connector board. Lift the main
 
 **Note:** This step is not needed for general repair. Only disconnect the battery if you are replacing the battery.
 
-The battery is plugged into the mainboard using a JST connector. These are very strong connectors. *Do not* pull on the wires. We recommend using the mouth of wire cutters (also known as diagonal cutters) to pry the connector sideways. 
+The battery is plugged into the mainboard using a JST connector. These are very strong connectors. *Do not* pull on the wires. We recommend using the mouth of wire cutters (also known as diagonal cutters) to pry the connector sideways.
 
 Once removed, the battery can be set aside.
 
@@ -162,7 +162,7 @@ Remove the backing from the new overlay. Stick the overlay into the center of th
 
 Be sure to flip up the arm on the overlay connector before trying to insert the new overlay FPC.
 
-Using tweezers, and holding the FPC by the cable stiffener, insert the overlay FPC into the display board. 
+Using tweezers, and holding the FPC by the cable stiffener, insert the overlay FPC into the display board.
 
 ### Closing The Backflip Connector
 
@@ -182,7 +182,7 @@ Slide the main board and connector boards back into place along with the battery
 
 ![Handling FPCs](img/Repair/SparkFun-RTK-Repair-11.jpg)
 
-Reconnect the display board to the main board. Be sure to close the arm on the main board to secure the FPC in place. 
+Reconnect the display board to the main board. Be sure to close the arm on the main board to secure the FPC in place.
 
 ### Testing the Overlay
 
@@ -196,7 +196,7 @@ Press and hold the internal power button to power down the unit.
 
 ![Using overlay power button](img/Repair/SparkFun-RTK-Repair-26.jpg)
 
-Repeat the process using the overlay button to verify the external power button is working. 
+Repeat the process using the overlay button to verify the external power button is working.
 
 If the external overlay button is not working, but the internal button is, remove and reinsert the FPC connecting the overlay to the display board.
 
@@ -246,7 +246,7 @@ The RTK Torch can be opened by removing four Phillips head screws located on the
 
 ### Removing Antenna Stackup
 
-Once the antenna cover is removed, remove the three Phillips holding the antenna in place. 
+Once the antenna cover is removed, remove the three Phillips holding the antenna in place.
 
 With the screws removed, gently and very carefully pull up on the upper PCB antenna. There is an MMCX connector that will pop loose, along with a U.FL connection. Pulling too hard may damage the connectors, the PCB antennas, or both.
 
@@ -261,4 +261,3 @@ With the mainboard removed, three Phillips head screws hold the mainboard in pla
 ### Remoing Battery
 
 The lower 7.2V LiPo battery pack is held in place by a metal retaining plate. Remove the Phillips head screws to release the battery.
-

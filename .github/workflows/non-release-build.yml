@@ -1,7 +1,7 @@
 name: Non-Release Build
-on: 
+on:
   workflow_dispatch:
-    branches: 
+    branches:
 
 env:
   FILENAME_PREFIX: RTK_Everywhere_Firmware
@@ -14,7 +14,7 @@ env:
 
 jobs:
   build:
-    
+
     name: Build
     runs-on: ubuntu-latest
 
@@ -144,7 +144,7 @@ jobs:
       - name: Compile Sketch
         run: arduino-cli compile --fqbn "esp32:esp32:esp32":DebugLevel=${{ env.DEBUG_LEVEL }},PSRAM=enabled ./Firmware/RTK_Everywhere/RTK_Everywhere.ino
           --build-property build.partitions=RTKEverywhere
-          --build-property upload.maximum_size=3145728 
+          --build-property upload.maximum_size=3145728
           --build-property "compiler.cpp.extra_flags=-MMD -c \"-DPOINTPERFECT_LBAND_TOKEN=$POINTPERFECT_LBAND_TOKEN\" \"-DPOINTPERFECT_IP_TOKEN=$POINTPERFECT_IP_TOKEN\" \"-DPOINTPERFECT_LBAND_IP_TOKEN=$POINTPERFECT_LBAND_IP_TOKEN\" \"-DFIRMWARE_VERSION_MAJOR=$FIRMWARE_VERSION_MAJOR\" \"-DFIRMWARE_VERSION_MINOR=$FIRMWARE_VERSION_MINOR\" \"-DENABLE_DEVELOPER=${{ env.ENABLE_DEVELOPER }}\""
           --export-binaries
 
@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload artifact directory to action - avoid double-zip
         uses: actions/upload-artifact@v3
-        with: 
+        with:
           name: ${{ env.ARTIFACT }}
           path: Firmware/RTK_Everywhere/build/esp32.esp32.esp32/${{ env.ARTIFACT }}
           retention-days: 7

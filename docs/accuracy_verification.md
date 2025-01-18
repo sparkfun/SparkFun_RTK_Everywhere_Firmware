@@ -26,7 +26,7 @@ This is, admittedly, a very US-centric tutorial. We hope that it will provide so
 
 This is a replication and confirmation of the procedure done by [RTKLibExplorer in 2018](https://rtklibexplorer.wordpress.com/2018/03/17/measuring-a-survey-marker-with-the-datagnss-d302-rtk/). We modified it to demonstrate a similar process but using u-blox hardware and with a few updates.
 
-The process goes like this: 
+The process goes like this:
 
 * Find a local monument
 * Convert the coordinates
@@ -53,7 +53,7 @@ Locate a GPS monument. These are the little metal caps, placed by surveyors, emb
 
 *Boulder has a large number of monuments*
 
-Thankfully, in the USA the National Geodetic Survey has an incredible database of public monuments. Enter your location into the [NGS Data Explorer](https://www.ngs.noaa.gov/NGSDataExplorer/) to find the nearest monument. 
+Thankfully, in the USA the National Geodetic Survey has an incredible database of public monuments. Enter your location into the [NGS Data Explorer](https://www.ngs.noaa.gov/NGSDataExplorer/) to find the nearest monument.
 
 ![Boulder's GPS monuments](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%202%20Boulder%20GPS%20Sites.jpg)
 
@@ -83,7 +83,7 @@ The SparkFun example monument is at:
 
 ### Convert NAD83 to Today
 
-So we know the NAD83 Lat/Long of our monument, right? Not quite. 
+So we know the NAD83 Lat/Long of our monument, right? Not quite.
 
 ![Plate movement map](img/VerifyAccuracy/SparkFun%20Verify%20RTK%20-%206%20Plate%20Movements.jpg)
 
@@ -163,7 +163,7 @@ We can see the approximate location of the monument in the above location.
 
 *Screenshot of a point in time*
 
-Note the 8 decimal places on the Lat/Long. 
+Note the 8 decimal places on the Lat/Long.
 
 Screenshots are an easy way to record lat/long/alt but SW Maps (and other GIS software) allows the averaging of a position. Choose your own adventure. For our example, we took screenshots/snapshots of the location. Some surveyors hold a position for multiple minutes to get a point; we can do the same in under a second.
 
@@ -171,9 +171,9 @@ Screenshots are an easy way to record lat/long/alt but SW Maps (and other GIS so
 
 *Comparison of three RTK correction sources*
 
-Off the shelf, we regularly see 300 down to 150mm horizontal positional accuracy using any RTK product with a good L1/L2 antenna. This is shown in the picture above as the circle with 'No Corrections'. 
+Off the shelf, we regularly see 300 down to 150mm horizontal positional accuracy using any RTK product with a good L1/L2 antenna. This is shown in the picture above as the circle with 'No Corrections'.
 
-With corrections turned on, the benefit of an RTK fix is obvious. The two surveyed points overlap each other so closely they are nearly indistinguishable. The SparkFun base station is documented [here](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station) and has a location accuracy of approximately 8.4mm. Using a base station is more accurate (as we will see) but L-Band corrections will also get you *incredibly* similar accuracy with a lot less hassle. 
+With corrections turned on, the benefit of an RTK fix is obvious. The two surveyed points overlap each other so closely they are nearly indistinguishable. The SparkFun base station is documented [here](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station) and has a location accuracy of approximately 8.4mm. Using a base station is more accurate (as we will see) but L-Band corrections will also get you *incredibly* similar accuracy with a lot less hassle.
 
 ## Why doesn’t it match the image?
 
@@ -205,7 +205,7 @@ Feel free to look at and make a copy of the [SparkFun example](https://docs.goog
 
 * Use the best equipment. Our mechanical setup was rickety and cheap. Use a surveyor’s bipod setup, with a bubble level, and a prism pole to accurately level the RTK receiver and measure the distance to the monument.
 * Use an antenna that is NGS calibrated to obtain accurate ARPs. The [SparkFun TOP106 antenna](https://www.sparkfun.com/products/17751) has been calibrated and we are in the process of calibrating the RTK Facet and RTK Facet L-Band.
-* Use an accurate base. A temporary or ‘survey-in’ base will not be accurate. The base needs 24 hours of logging with a [PPP analysis](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all#gather-raw-gnss-data). 
+* Use an accurate base. A temporary or ‘survey-in’ base will not be accurate. The base needs 24 hours of logging with a [PPP analysis](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station/all#gather-raw-gnss-data).
 * Be within 10km of your base. A baseline that is more than 10km will introduce inaccuracies to the RTK fix readings.
 * Correction services are not as accurate as a fixed base. While services such as Skylark and PointPerfect are *convenient*, they use models to estimate the overall isotropic disturbance. A local, fixed base will outperform a correction service.
 * Take an average of points. All the points taken in this example were single snapshots. Average a few seconds' worth of readings.

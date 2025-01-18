@@ -29,7 +29,7 @@ SparkFun RTK devices transmit full NMEA sentences over Bluetooth serial port pro
 
 Open Android's system settings and find the 'Bluetooth' or 'Connected devices' options. Scan for devices and pair with the device in the list that matches the Bluetooth MAC address on your RTK device.
 
-When powered on, the RTK product will broadcast itself as either '[Platform] Rover-5556' or '[Platform] Base-5556' depending on which state it is in. [Platform] is Torch, Facet, etc. Discover and pair with this device from your phone or tablet. Once paired, open SW Maps. 
+When powered on, the RTK product will broadcast itself as either '[Platform] Rover-5556' or '[Platform] Base-5556' depending on which state it is in. [Platform] is Torch, Facet, etc. Discover and pair with this device from your phone or tablet. Once paired, open SW Maps.
 
 ![Bluetooth MAC address B022 is shown in the upper left corner](img/Displays/SparkFun%20RTK%20Rover%20Display.png)
 
@@ -49,7 +49,7 @@ To enable **Mock Locations**, *Developer Mode* in Android must be enabled. It is
 
 2) Open *About phone*
 
-   ![Build Number box](<img/MockLocation/SparkFun RTK Mock Location - Build Number.png>)
+	![Build Number box](<img/MockLocation/SparkFun RTK Mock Location - Build Number.png>)
 
 3) Scroll to the bottom and click on *Build number* five or more times. The device will prompt as more taps are required.
 
@@ -58,14 +58,14 @@ Once Developer Mode is enabled:
 1) Open Android settings ![alt text](<img/MockLocation/SparkFun RTK Mock Location - Settings.png>)
 
 2) Open *System*
-    
-   ![Develop options menu](<img/MockLocation/SparkFun RTK Mock Location - Developer Options.png>)
+
+	![Develop options menu](<img/MockLocation/SparkFun RTK Mock Location - Developer Options.png>)
 
 3) Open *Developer options*
 
-   ![Mock Location button](<img/MockLocation/SparkFun RTK Mock Location - Select Mock Location App.png>)
+	![Mock Location button](<img/MockLocation/SparkFun RTK Mock Location - Select Mock Location App.png>)
 
-4) Scroll all the way to the bottom of a very long list of developer options. 
+4) Scroll all the way to the bottom of a very long list of developer options.
 
 5) Select the app to use for Mock Location. This is usually [Lefebure](gis_software_android.md/#lefebure) or [GNSS Master](gis_software_android.md/#gnss-master) but can be tailored as needed.
 
@@ -89,7 +89,7 @@ Click Bluetooth 'Mice, Keyboards, ...'
 
 *Viewing available Bluetooth Devices*
 
-Click on the RTK device. When powered on, the RTK product will broadcast itself as either '[Platform] Rover-5556' or '[Platform] Base-5556' depending on which state it is in. [Platform] is Facet, Express, Surveyor, etc. Discover and pair with this device from your phone or tablet. Once paired, open SW Maps. 
+Click on the RTK device. When powered on, the RTK product will broadcast itself as either '[Platform] Rover-5556' or '[Platform] Base-5556' depending on which state it is in. [Platform] is Facet, Express, Surveyor, etc. Discover and pair with this device from your phone or tablet. Once paired, open SW Maps.
 
 ![Bluetooth MAC address B022 is shown in the upper left corner](img/Displays/SparkFun%20RTK%20Rover%20Display.png)
 
@@ -101,13 +101,13 @@ Click on the RTK device. When powered on, the RTK product will broadcast itself 
 
 *Bluetooth Connection Success*
 
-The device will begin pairing. After a few seconds, Windows should report that you are ready to go. 
+The device will begin pairing. After a few seconds, Windows should report that you are ready to go.
 
 ![Bluetooth COM ports](img/Bluetooth/SparkFun%20RTK%20Software%20-%20Add%20Bluetooth%20Device%204.jpg)
 
 *Bluetooth COM ports*
 
-The device is now paired and a series of COM ports will be added under 'Device Manager'. 
+The device is now paired and a series of COM ports will be added under 'Device Manager'.
 
 ![NMEA received over the Bluetooth COM port](<img/Terminal/SparkFun RTK Everywhere - NMEA Over Bluetooth.jpg>)
 

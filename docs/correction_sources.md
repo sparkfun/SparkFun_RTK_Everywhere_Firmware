@@ -33,7 +33,7 @@ These companies set up a large number of reference stations that cover entire re
 
 ## Public Reference Stations
 
-![Wisconsin network of CORS](<img/Corrections/SparkFun NTRIP 7 - Wisconsin Map.png>) 
+![Wisconsin network of CORS](<img/Corrections/SparkFun NTRIP 7 - Wisconsin Map.png>)
 
 *State Wide Network of Continuously Operating Reference Stations (CORS)*
 
@@ -51,7 +51,7 @@ You can set up your own correction source. This is done with a 2nd GNSS receiver
 
 Not all companies providing correction services use the same type of corrections. There are two types: OSR and SSR.
 
-![Wisconsin network of CORS](<img/Corrections/SparkFun NTRIP 7 - Wisconsin Map.png>) 
+![Wisconsin network of CORS](<img/Corrections/SparkFun NTRIP 7 - Wisconsin Map.png>)
 
 *State Wide Network of Continuously Operating Reference Stations (CORS)*
 
@@ -65,7 +65,7 @@ Not all companies providing correction services use the same type of corrections
 
 **State Space Representation** (SSR) covers huge areas, sometimes entire continents. SSR combines the readings from a handful of base stations and creates a model for the region. This model extrapolates the needed corrections for a given area. These corrections are 'good enough' for many applications. Because SSR requires far fewer base stations, they are often a much lower-cost service. The RTK Fix accuracy is lower (20mm is possible but 30-60mm is common), and the convergence time increases considerably. Convergence time for an SSR can be 180 seconds or more.
 
-The [PointPerfect](https://www.u-blox.com/en/pointperfect-service-coverage) and [Skylark Cx](https://www.swiftnav.com/products/skylark) are examples of an SSR. 
+The [PointPerfect](https://www.u-blox.com/en/pointperfect-service-coverage) and [Skylark Cx](https://www.swiftnav.com/products/skylark) are examples of an SSR.
 
 ## Galileo HAS
 
