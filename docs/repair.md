@@ -1,6 +1,20 @@
 # Disassembly / Repair
 
-Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
 
 The RTK product line is fully open-source hardware. This allows users to view schematics, code, and repair manuals. This section documents how to safely disassemble the RTK Facet and Torch.
 

@@ -1,6 +1,20 @@
 # Configure with Ethernet
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 During Ethernet configuration, the RTK device will present a webpage that is viewable from a desktop/laptop connected to the local network.
 

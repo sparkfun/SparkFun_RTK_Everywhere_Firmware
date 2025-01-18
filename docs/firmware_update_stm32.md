@@ -1,8 +1,21 @@
 # Updating STM32 Firmware
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+<!--
+Compatibility Icons
+====================================================================================
 
 The STM32WLE firmware runs the 915MHz LoRa radio inside the RTK Torch. 
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
 
 ![Menu showing firmware version 2.0.2](<img/Firmware/SparkFun RTK Everywhere - STM32 Firmware.png>)
 

@@ -1,6 +1,20 @@
 # Network Time Protocol Menu
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 Ethernet-equipped RTK devices can act as an Ethernet Network Time Protocol (NTP) server.
 

@@ -4,13 +4,41 @@ Many applications using the RTK products will use a 3rd party GIS application or
 
 ## USB
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 Most SparkFun RTK devices have a USB port for programming and status reports. This USB port can also be configured to output full NMEA/RTCM output that can be used to create a wired connection to an embedded system. See [Output GNSS Data over USB](menu_ports.md#output-gnss-data-over-usb) for more information.
 
 ## DATA Port
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
 
 For this example, we will connect the output from the **DATA** port of an RTK Facet to a [USB to Serial adapter](https://www.sparkfun.com/products/15096) so that we can view the serial data over a terminal connection.
 
@@ -37,7 +65,21 @@ The parsing of NMEA sentences is straightforward and left to the reader. There a
 
 ## External Terminals
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 On devices that support it, external screw terminals provide direct access to the GNSS TX and RX signals via the 3.5mm screw terminal I/O header:
 

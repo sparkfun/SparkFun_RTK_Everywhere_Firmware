@@ -1,6 +1,20 @@
 # Updating ESP32 Firmware
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 The ESP32 firmware is the main firmware in all RTK devices. The firmware version number is displayed in a variety of places:
 
@@ -92,7 +106,21 @@ If your RTK 'freezes' after the update, press ```Reset ESP32``` to get it going 
 
 ## Updating Firmware From the SD Card
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 On devices that support it, the firmware can be loaded from an SD card.
 

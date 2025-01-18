@@ -1,6 +1,20 @@
 # Updating UM980 Firmware
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
 
 The UM980 is the GNSS receiver inside the RTK Torch. The following describes how to update the firmware on the UM980.
 

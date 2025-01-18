@@ -1,4 +1,32 @@
 /* ================================================================================== */
+/* Specific Customizations                                                            */
+/* ================================================================================== */
+
+/* Product Compatibility List ======================================================= */
+
+/* Auto-fill for Product Compatibility */
+.md-typeset .grid.grid.cards.fill {
+	grid-template-columns: repeat(auto-fill, 6.5rem);
+}
+
+/* Icon Colors for Product Compatibility */
+.support-full {
+	/* Same as success admonition */
+	color: #00c853;
+}
+
+.support-partial {
+	/* Same as warning admonition */
+	color: #ff9100;
+}
+
+.support-none {
+	/* Same as danger admonition */
+	color: #ff1744;
+}
+
+
+/* ================================================================================== */
 /* General Customizations                                                             */
 /* ================================================================================== */
 

@@ -4,7 +4,21 @@ Pressing 'r' from the main menu will open the Configure Radios menu. This allows
 
 ## ESP-NOW
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 ![Radio menu showing ESP-NOW](<img/Terminal/SparkFun RTK Everywhere - Radios Menu.png>)
 
@@ -58,7 +72,21 @@ Using multiple devices on *different* WiFi networks, while attempting to use the
 
 ## LoRa
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Not Supported](img/Icons/RedDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
 
 ![RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna](img/SparkFun_RTK_Torch_Open_Antenna.png)
 

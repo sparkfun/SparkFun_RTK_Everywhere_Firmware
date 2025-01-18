@@ -6,7 +6,21 @@ RTK calculations require RTCM data to be delivered approximately once per second
 
 ## WiFi
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 ![NTRIP Server setup](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg>)
 
@@ -22,7 +36,21 @@ Similarly, any SparkFun RTK device can be set up as an [NTRIP Client](menu_gnss.
 
 ## Cellular - Via Cellphone
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 ![SW Maps NTRIP Client](img/SWMaps/SW_Maps_-_NTRIP_Client.jpg)
 
@@ -34,7 +62,21 @@ Cellular can even be used in Base mode. We have seen some very inventive users u
 
 ## Cellular - Built-In
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/RedDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+
+</div>
 
 The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Everywhere firmware does not yet support cellular. Adding it is on our roadmap. Stay tuned for updates! Meanwhile, we do have a stand-alone EVK code example which will connect to PointPerfect localized distribution via cellular:
 
@@ -43,9 +85,22 @@ The RTK EVK has built-in cellular via a u-blox LARA-R6001D. However, the RTK Eve
 
 ## L-Band
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
 
 What if you are in the field, far away from WiFi, cellular, radio, or any other data connection? Look to the sky! 
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 A variety of companies provide GNSS RTK corrections broadcast from satellites over a spectrum called L-Band. [L-Band](https://en.wikipedia.org/wiki/L_band) is any frequency from 1 to 2 GHz. These frequencies have the ability to penetrate clouds, fog, and other natural weather phenomena making them particularly useful for location applications.
 
@@ -55,7 +110,21 @@ L-Band reception requires specialized RF receivers capable of demodulating the s
 
 ## Serial Radios
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 ![Two serial radios](img/Corrections/19032-SiK_Telemetry_Radio_V3_-_915MHz__100mW-01.jpg)
 
@@ -77,7 +146,21 @@ The downside to serial telemetry radios is that they generally have a much short
 
 ## Ethernet
 
-Torch: ![Feature Not Supported](img/Icons/RedDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: [:material-radiobox-blank:{ .support-none }]( title ="Feature Not Supported" )
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
 
 Ethernet-equipped RTK devices send and receive correction data via Ethernet.
 

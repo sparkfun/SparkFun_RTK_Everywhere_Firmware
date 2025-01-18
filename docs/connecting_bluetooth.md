@@ -1,6 +1,21 @@
 # Connecting Bluetooth
 
-Torch: ![Feature Supported](img/Icons/GreenDot.png) / EVK: ![Feature Supported](img/Icons/GreenDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+- EVK: :material-radiobox-marked:{ .support-full title="Feature Supported" }
+
+</div>
+
 
 SparkFun RTK devices transmit full NMEA sentences over Bluetooth serial port profile (SPP) at 2Hz and 115200bps. This means that nearly any GIS application that can receive NMEA data over a serial port (almost all do) can be used with SparkFun RTK devices. As long as your end system can open a serial port over Bluetooth (also known as SPP) your system can retrieve industry-standard NMEA positional data. The following steps show how to connect an external tablet, or cell phone to the RTK device so that any serial port-based GIS application can be used.
 

@@ -1,6 +1,19 @@
 # Ports Menu
 
-Torch: ![Feature Partially Supported](img/Icons/YellowDot.png) / EVK: ![Feature Partially Supported](img/Icons/YellowDot.png)
+<!--
+Compatibility Icons
+====================================================================================
+
+:material-radiobox-marked:{ .support-full title="Feature Supported" }
+:material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+:material-radiobox-blank:{ .support-none title="Feature Not Supported" }
+-->
+
+<div class="grid cards fill" markdown>
+
+- Torch: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+- EVK: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
+</div>
 
 ![Setting the baud rate of the ports](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg>)
 
