@@ -34,7 +34,7 @@ void ntpServerStop() {}
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
-const uint8_t * networkGetMacAddress() 
+const uint8_t * networkGetMacAddress()
 {
     static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
 #ifdef COMPILE_BT
@@ -157,9 +157,11 @@ bool webServerStart(int httpPort = 80)
     systemPrintln("**AP not compiled**");
     return false;
 }
-void webServerStop() {}
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
+bool webServerNeedsNetwork() {return false;}
+void webServerStop() {}
+void webServerUpdate()  {}
 
 #endif  // COMPILE_AP
 #ifndef COMPILE_WIFI
@@ -169,13 +171,15 @@ void sendStringToWebsocket(const char* stringToSend) {}
 //----------------------------------------
 
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
-bool wifiStart() {return false;}
-int wifiNetworkCount() {return 0;}
-bool wifiStationIsRunning() {return false;}
 bool wifiApIsRunning() {return false;}
-bool wifiIsRunning() {return false;}
+bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
+bool wifiIsRunning() {return false;}
+int wifiNetworkCount() {return 0;}
+void wifiResetThrottleTimeout() {}
+void wifiResetTimeout() {}
+bool wifiStart() {return false;}
+bool wifiStationIsRunning() {return false;}
 #define WIFI_STOP() {}
 
 #endif // COMPILE_WIFI
