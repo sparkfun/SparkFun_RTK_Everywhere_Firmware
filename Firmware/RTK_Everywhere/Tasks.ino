@@ -747,6 +747,12 @@ void processUart1Message(SEMP_PARSE_STATE *parse, uint16_t type)
         }
     }
 
+    // Push GGA to Caster if enabled
+    if (type == RTK_NMEA_PARSER_INDEX && strstr(sempNmeaGetSentenceName(parse), "GGA") != nullptr)
+    {
+        pushGPGGA((char *)parse->buffer);
+    }
+
     // Determine if this message will fit into the ring buffer
     bytesToCopy = parse->length;
     space = availableHandlerSpace;

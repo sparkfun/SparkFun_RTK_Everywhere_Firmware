@@ -6,14 +6,6 @@ GNSS_ZED.ino
 
 #ifdef COMPILE_ZED
 
-extern int NTRIPCLIENT_MS_BETWEEN_GGA;
-
-#ifdef COMPILE_NETWORK
-extern NetworkClient *ntripClient;
-#endif // COMPILE_NETWORK
-
-extern unsigned long lastGGAPush;
-
 //----------------------------------------
 // If we have decryption keys, configure module
 // Note: don't check online.lband_neo here. We could be using ip corrections
@@ -865,7 +857,7 @@ void GNSS_ZED::enableGgaForNtrip()
     {
         // Set the Main Talker ID to "GP". The NMEA GGA messages will be GPGGA instead of GNGGA
         _zed->setVal8(UBLOX_CFG_NMEA_MAINTALKERID, 1);
-        _zed->setNMEAGPGGAcallbackPtr(&pushGPGGA); // Set up the callback for GPGGA
+        _zed->setNMEAGPGGAcallbackPtr(&zedPushGPGGA); // Set up the callback for GPGGA
 
         float measurementFrequency = (1000.0 / settings.measurementRateMs) / settings.navigationRate;
         if (measurementFrequency < 0.2)
@@ -2768,30 +2760,6 @@ void checkRXMCOR(UBX_RXM_COR_data_t *ubxDataStruct)
     }
 }
 
-// Call back for incoming GGA data to be pushed to NTRIP Caster
-void pushGPGGA(NMEA_GGA_data_t *nmeaData)
-{
-#ifdef COMPILE_NETWORK
-    // Provide the caster with our current position as needed
-    if (ntripClient->connected() && settings.ntripClient_TransmitGGA == true)
-    {
-        if (millis() - lastGGAPush > NTRIPCLIENT_MS_BETWEEN_GGA)
-        {
-            lastGGAPush = millis();
-
-            if (settings.debugNtripClientRtcm || PERIODIC_DISPLAY(PD_NTRIP_CLIENT_GGA))
-            {
-                PERIODIC_CLEAR(PD_NTRIP_CLIENT_GGA);
-                systemPrintf("NTRIP Client pushing GGA to server: %s", (const char *)nmeaData->nmea);
-            }
-
-            // Push our current GGA sentence to caster
-            ntripClient->print((const char *)nmeaData->nmea);
-        }
-    }
-#endif // COMPILE_NETWORK
-}
-
 // ZED-F9x call back
 void eventTriggerReceived(UBX_TIM_TM2_data_t *ubxDataStruct)
 {
@@ -2909,6 +2877,13 @@ void inputMessageRate(uint8_t &localMessageRate, uint8_t messageNumber)
     }
 
     localMessageRate = rate;
+}
+
+// Push GGA sentence over NTRIP Client, to Caster, if enabled
+// ZED uses callback, other platforms call this from processUart1Message()
+void zedPushGPGGA(NMEA_GGA_data_t *nmeaData)
+{
+    pushGPGGA((char *)nmeaData->nmea);
 }
 
 #endif // COMPILE_ZED

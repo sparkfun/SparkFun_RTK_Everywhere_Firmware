@@ -598,8 +598,6 @@ void ntripClientUpdate()
             // Failed to connect to to the network, attempt to restart the network
             ntripClientStop(true); // Was ntripClientRestart(); - #StopVsRestart
 
-        
-
         // If GGA transmission is enabled, wait for GNSS lock before connecting to NTRIP Caster
         // If GGA transmission is not enabled, start connecting to NTRIP Caster
         else if ((settings.ntripClient_TransmitGGA == false) || (gnss->isFixed() == true))
