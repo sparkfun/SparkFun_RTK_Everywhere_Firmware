@@ -19,9 +19,12 @@ Compatibility Icons
 !!! note
 	Not all devices support external SD (ie, RTK Torch). This section applies only to devices that support an external SD card, and have one inserted.
 
-![RTK Data Logging Configuration Menu](img/Terminal/SparkFun%20RTK%20Logging%20Menu.png)
-
-*RTK Data Logging Configuration Menu*
+<figure markdown>
+![RTK Data Logging Configuration Menu](./img//Terminal/SparkFun%20RTK%20Logging%20Menu.png)
+<figcaption markdown>
+RTK Data Logging Configuration Menu
+</figcaption>
+</figure>
 
 From the Main Menu, pressing 5 will enter the Logging Menu. This menu will report the status of the microSD card. While you can enable logging, you cannot begin logging until a microSD card is inserted. Any FAT16 or FAT32 formatted microSD card up to 128GB will work. We regularly use the [SparkX brand 1GB cards](https://www.sparkfun.com/products/15107) but note that these log files can get very large (>500MB) so plan accordingly.
 

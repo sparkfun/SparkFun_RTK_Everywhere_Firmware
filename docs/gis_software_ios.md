@@ -30,7 +30,11 @@ If you must use iOS, checkout [SW Maps](gis_software_ios.md/#sw-maps), [ArcGIS Q
 
 ## ArcGIS QuickCapture
 
-![ArcGIS QuickCapture splash screen](<img/QuickCapture/SparkFun RTK QuickCapture - Main Window.png>)
+<figure markdown>
+![ArcGIS QuickCapture splash screen](./img/QuickCapture/SparkFun RTK QuickCapture - Main Window.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 [ArcGIS QuickCapture](https://apps.apple.com/us/app/arcgis-quickcapture/id1451433781) is a popular offering from Esri that works well with SparkFun RTK products.
 
@@ -39,64 +43,118 @@ ArcGIS QuickCapture connects to the RTK device over TCP. In other words, the RTK
 !!! note
 	The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
-![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+<figure markdown>
+![WiFi network setup via Web Config](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
-![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
+<figure markdown>
+![Adding WiFi network to settings](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 The RTK device must use WiFi to connect to the iPhone or iPad. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
 
-![TCP Server Enabled on port 2948](<img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png>)
-
+<figure markdown>
+![TCP Server Enabled on port 2948](./img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
 
-![RTK device showing IP address](<img/QuickCapture/iOS/SparkFun RTK QuickCapture iOS - IP Address.png>)
+<figure markdown>
+![RTK device showing IP address](./img/QuickCapture/iOS/SparkFun RTK QuickCapture iOS - IP Address.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Once the RTK device connects to the WiFi hotspot, its IP address can be found in the [System Menu](menu_system.md). This is the number that needs to be entered into QuickCapture. You can now proceed to the QuickCapture app to set up the software connection.
 
-![Main screen](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Main Screen.png>)
+<figure markdown>
+![Main screen](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - Main Screen.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 From the main screen, press the hamburger icon in the top left corner.
 
-![Settings button](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Settings Menu.png>)
+<figure markdown>
+![Settings button](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - Settings Menu.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Press the **Settings** button.
 
-![Location Provider button](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Settings Menu Location Provider.png>)
+<figure markdown>
+![Location Provider button](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - Settings Menu Location Provider.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Select the **Location Provider** option.
 
 Select **Via Network**.
 
-![TCP Network Information](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - TCP Settings.png>)
+<figure markdown>
+![TCP Network Information](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - TCP Settings.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Enter the IP address and port previously obtained from the RTK device and click **ADD**.
 
-![List of providers showing TCP connection](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - TCP Added.png>)
+<figure markdown>
+![List of providers showing TCP connection](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - TCP Added.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 That provider should now be shown connected.
 
-![Browse project button](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Main Add Project.png>)
+<figure markdown>
+![Browse project button](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - Main Add Project.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 From the main screen, click on the plus in the lower left corner and then **BROWSE PROJECTS**.
 
-![List of projects](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Add Project.png>)
+<figure markdown>
+![List of projects](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - Add Project.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 For this example, add the BioBlitz project.
 
-![GPS Accuracy and map in BioBlitz project](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - BioBlitz Project.png>)
+<figure markdown>
+![GPS Accuracy and map in BioBlitz project](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - BioBlitz Project.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Above, we can see the GPS accuracy is better than 1ft. Click on the map icon in the top right corner.
 
-![QuickCapture map](<img/QuickCapture/iOS/SparkFun RTK QuickCapture - Map.png>)
+<figure markdown>
+![QuickCapture map](./img/QuickCapture/iOS/SparkFun RTK QuickCapture - Map.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 From the map view, we can see our location with very high accuracy. We can now begin gathering point information with millimeter accuracy.
 
 ## ArcGIS Survey123
 
-![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
-
-*ArcGIS Survey123 Home Screen*
+<figure markdown>
+![ArcGIS Survey123 Home Screen](./img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png)
+<figcaption markdown>
+ArcGIS Survey123 Home Screen
+</figcaption>
+</figure>
 
 [ArcGIS Survey123](https://apps.apple.com/us/app/arcgis-survey123/id993015031) is a popular offering from Esri that works well with SparkFun RTK products.
 
@@ -105,77 +163,117 @@ ArcGIS Survey123 connects to the RTK device over TCP. In other words, the RTK de
 !!! note
 	The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
-![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+<figure markdown>
+![WiFi network setup via Web Config](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
-![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
-
-*Adding WiFi network to settings*
+<figure markdown>
+![Adding WiFi network to settings](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png)
+<figcaption markdown>
+Adding WiFi network to settings
+</figcaption>
+</figure>
 
 The RTK device must use WiFi to connect to the data collector. Using a cellular hotspot or cellphone is recommended. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
 
-![TCP Server Enabled on port 2948](<img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png>)
-
-*TCP Server Enabled on port 2948*
+<figure markdown>
+![TCP Server Enabled on port 2948](./img/ArcGIS/SparkFun RTK - ArcGIS TCP Config.png)
+<figcaption markdown>
+TCP Server Enabled on port 2948
+</figcaption>
+</figure>
 
 Next, the RTK device must be configured as a *TCP Server*. The default port of 2948 works well. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
 
-![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
-
-*RTK device showing IP address*
+<figure markdown>
+![RTK device showing IP address](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png)
+<figcaption markdown>
+RTK device showing IP address
+</figcaption>
+</figure>
 
 Once the RTK device connects to the WiFi hotspot, its IP address can be found in the [System Menu](menu_system.md). This is the number that needs to be entered into ArcGIS Survey123. You can now proceed to the ArcGIS Survey123 app to set up the software connection.
 
-![ArcGIS Survey123 Home Screen](<img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png>)
-
-*ArcGIS Survey123 Home Screen*
+<figure markdown>
+![ArcGIS Survey123 Home Screen](./img/ArcGIS/SparkFun RTK - ArcGIS Main Screen.png)
+<figcaption markdown>
+ArcGIS Survey123 Home Screen
+</figcaption>
+</figure>
 
 From the home screen, click on the 'hamburger' icon in the upper right corner.
 
-![ArcGIS Survey123 Settings Menu](<img/ArcGIS/SparkFun RTK - ArcGIS Settings.png>)
-
-*ArcGIS Survey123 Settings Menu*
+<figure markdown>
+![ArcGIS Survey123 Settings Menu](./img/ArcGIS/SparkFun RTK - ArcGIS Settings.png)
+<figcaption markdown>
+ArcGIS Survey123 Settings Menu
+</figcaption>
+</figure>
 
 From the settings menu, click on the *Settings* gear.
 
-![ArcGIS Survey123 Settings List](<img/ArcGIS/SparkFun RTK - ArcGIS Settings List.png>)
-
-*ArcGIS Survey123 Settings List*
+<figure markdown>
+![ArcGIS Survey123 Settings List](./img/ArcGIS/SparkFun RTK - ArcGIS Settings List.png)
+<figcaption markdown>
+ArcGIS Survey123 Settings List
+</figcaption>
+</figure>
 
 From the settings list, click on *Location*.
 
-![ArcGIS Survey123 List of Location Providers](<img/ArcGIS/SparkFun RTK - ArcGIS Location Providers.png>)
-
-*ArcGIS Survey123 List of Location Providers*
+<figure markdown>
+![ArcGIS Survey123 List of Location Providers](./img/ArcGIS/SparkFun RTK - ArcGIS Location Providers.png)
+<figcaption markdown>
+ArcGIS Survey123 List of Location Providers
+</figcaption>
+</figure>
 
 Click on the *Add location provider*.
 
-![ArcGIS Survey123 Network Connection Type](<img/ArcGIS/SparkFun RTK - ArcGIS Location Network.png>)
-
-*ArcGIS Survey123 Network Connection Type*
+<figure markdown>
+![ArcGIS Survey123 Network Connection Type](./img/ArcGIS/SparkFun RTK - ArcGIS Location Network.png)
+<figcaption markdown>
+ArcGIS Survey123 Network Connection Type
+</figcaption>
+</figure>
 
 Select *Network*.
 
-![ArcGIS Survey123 TCP Connection Information](<img/ArcGIS/SparkFun RTK - ArcGIS Network Information.png>)
-
-*ArcGIS Survey123 TCP Connection Information*
+<figure markdown>
+![ArcGIS Survey123 TCP Connection Information](./img/ArcGIS/SparkFun RTK - ArcGIS Network Information.png)
+<figcaption markdown>
+ArcGIS Survey123 TCP Connection Information
+</figcaption>
+</figure>
 
 Enter the IP address previously found along with the TCP port. Once complete, click *Add*.
 
-![ArcGIS Survey123 Sensor Settings](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Settings.png>)
-
-*ArcGIS Survey123 Sensor Settings*
+<figure markdown>
+![ArcGIS Survey123 Sensor Settings](./img/ArcGIS/SparkFun RTK - ArcGIS Sensor Settings.png)
+<figcaption markdown>
+ArcGIS Survey123 Sensor Settings
+</figcaption>
+</figure>
 
 You may enter various sensor-specific settings including antenna height, if desired. To view real-time sensor information, click on the satellite icon in the upper right corner.
 
-![ArcGIS Survey123 Sensor Data](<img/ArcGIS/SparkFun RTK - ArcGIS Sensor Data.png>)
-
-*ArcGIS Survey123 Sensor Data*
+<figure markdown>
+![ArcGIS Survey123 Sensor Data](./img/ArcGIS/SparkFun RTK - ArcGIS Sensor Data.png)
+<figcaption markdown>
+ArcGIS Survey123 Sensor Data
+</figcaption>
+</figure>
 
 The SparkFun RTK device's data should now be seen. Click on the *Map* icon to return to the mapping interface.
 
-![ArcGIS Survey123 Map Interface](<img/ArcGIS/SparkFun RTK - ArcGIS Map Interface.png>)
-
-*ArcGIS Survey123 Map Interface*
+<figure markdown>
+![ArcGIS Survey123 Map Interface](./img/ArcGIS/SparkFun RTK - ArcGIS Map Interface.png)
+<figcaption markdown>
+ArcGIS Survey123 Map Interface
+</figcaption>
+</figure>
 
 Returning to the map view, we can now begin gathering point information with millimeter accuracy.
 
@@ -183,19 +281,30 @@ Returning to the map view, we can now begin gathering point information with mil
 
 Apple released an iOS update in mid 2024 that changed the default hotspot frequency to 5.5GHz. The RTK product line uses 2.4GHz for WiFi and will not be able to communicate at this frequency. This can be fix by opening *Settings* then **Personal Hotspot**.
 
-![iOS Hotspot settings](<img/iOS/SparkFun RTK iOS - Hotspot Settings.png>)
+<figure markdown>
+![iOS Hotspot settings](./img/iOS/SparkFun RTK iOS - Hotspot Settings.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Be sure to enable *Maximize Compatibility*. This will force the hotspot to use 2.4GHz.
 
 ## QField
 
-![Opening page of QField](<img/QField/SparkFun RTK QField - Opening Page.png>)
+<figure markdown>
+![Opening page of QField](./img/QField/SparkFun RTK QField - Opening Page.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 [QField](https://docs.qfield.org/get-started/) is a free iOS app that runs QGIS.
 
-![Modified NMEA messages on RTK Torch](<img/QField/SparkFun RTK QField - NMEA Messages.png>)
-
-*Modified NMEA messages on RTK Torch*
+<figure markdown>
+![Modified NMEA messages on RTK Torch](./img/QField/SparkFun RTK QField - NMEA Messages.png)
+<figcaption markdown>
+Modified NMEA messages on RTK Torch
+</figcaption>
+</figure>
 
 First, configure the RTK device to output *only* the following NMEA messages:
 
@@ -208,75 +317,112 @@ QField currently does not correctly parse other messages such as **GPRMC**, or *
 
 These NMEA message settings can be found under the [Messages menu](menu_messages.md), using the [web config page](configure_with_wifi.md) or the [serial config interface](configure_with_serial.md).
 
-![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
+<figure markdown>
+![WiFi network setup via Web Config](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
-
-![Adding WiFi network to settings](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png>)
-
-*Adding WiFi network to settings*
+<figure markdown>
+![Adding WiFi network to settings](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot.png)
+<figcaption markdown>
+Adding WiFi network to settings
+</figcaption>
+</figure>
 
 QField connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
 
 !!! note
 	The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
-![TCP Server Enabled on port 9000](<img/QField/SparkFun RTK QField - TCP Server.png>)
-
-*TCP Server Enabled on port 9000*
+<figure markdown>
+![TCP Server Enabled on port 9000](./img/QField/SparkFun RTK QField - TCP Server.png)
+<figcaption markdown>
+TCP Server Enabled on port 9000
+</figcaption>
+</figure>
 
 Next, the RTK device must be configured as a *TCP Server*. QField uses a default port of 9000 so that is what we recommend using. See [TCP/UDP Menu](menu_tcp_udp.md) for more information.
 
-![RTK device showing IP address](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png>)
-
-*RTK device showing IP address*
+<figure markdown>
+![RTK device showing IP address](./img/ArcGIS/SparkFun RTK - ArcGIS WiFi IP Address.png)
+<figcaption markdown>
+RTK device showing IP address
+</figcaption>
+</figure>
 
 Once the RTK device connects to the WiFi hotspot, its IP address can be found in the [System Menu](menu_system.md). This is the number that needs to be entered into QField. You can now proceed to the QField app to set up the software connection.
 
-![QField Opening Screen](<img/QField/SparkFun RTK QField - Opening Page.png>)
-
-*QField Opening Screen*
+<figure markdown>
+![QField Opening Screen](./img/QField/SparkFun RTK QField - Opening Page.png)
+<figcaption markdown>
+QField Opening Screen
+</figcaption>
+</figure>
 
 Click on *QFieldCloud projects* to open your project that was previously created on the [QField Cloud](https://app.qfield.cloud/) or skip this step by using one of the default projects (*Bee Farming*, *Wastewater*, etc).
 
-![QField Main Map](<img/QField/SparkFun RTK QField - Main Map.png>)
-
-*QField Main Map*
+<figure markdown>
+![QField Main Map](./img/QField/SparkFun RTK QField - Main Map.png)
+<figcaption markdown>
+QField Main Map
+</figcaption>
+</figure>
 
 From the main map, click on the 'hamburger' icon in the upper left corner.
 
-![QField Settings Gear](<img/QField/SparkFun RTK QField - Settings Gear.png>)
-
-*QField Settings Gear*
+<figure markdown>
+![QField Settings Gear](./img/QField/SparkFun RTK QField - Settings Gear.png)
+<figcaption markdown>
+QField Settings Gear
+</figcaption>
+</figure>
 
 Click on the gear to open settings.
 
-![QField Settings Menu](<img/QField/SparkFun RTK QField - Settings Menu.png>)
+<figure markdown>
+![QField Settings Menu](./img/QField/SparkFun RTK QField - Settings Menu.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Click on the *Settings* menu.
 
-![QField Positioning Menu](<img/QField/SparkFun RTK QField - Settings Positioning Menu.png>)
-
-*QField Positioning Menu*
+<figure markdown>
+![QField Positioning Menu](./img/QField/SparkFun RTK QField - Settings Positioning Menu.png)
+<figcaption markdown>
+QField Positioning Menu
+</figcaption>
+</figure>
 
 From the *Positioning* menu, click Add.
 
-![QField Entering TCP Information](<img/QField/SparkFun RTK QField - TCP Connection Type.png>)
-
-*QField Entering TCP Information*
+<figure markdown>
+![QField Entering TCP Information](./img/QField/SparkFun RTK QField - TCP Connection Type.png)
+<figcaption markdown>
+QField Entering TCP Information
+</figcaption>
+</figure>
 
 Select TCP as the connection type. Enter the IP address of the RTK device and the port number. Finally, hit the small check box in the upper left corner (shown in pink above) to close the window.
 
 Once this information is entered, QField will automatically attempt to connect to that IP and port.
 
-![QField TCP Connected](<img/QField/SparkFun RTK QField - TCP Connected.png>)
-
-*QField TCP Connected*
+<figure markdown>
+![QField TCP Connected](./img/QField/SparkFun RTK QField - TCP Connected.png)
+<figcaption markdown>
+QField TCP Connected
+</figcaption>
+</figure>
 
 Above, we see the port is successfully connected. Exit out of all menus.
 
-![QField Connected via TCP with RTK Fix](<img/QField/SparkFun RTK QField - Connected with RTK Fix.png>)
-
-*QField Connected via TCP with RTK Fix*
+<figure markdown>
+![QField Connected via TCP with RTK Fix](./img/QField/SparkFun RTK QField - Connected with RTK Fix.png)
+<figcaption markdown>
+QField Connected via TCP with RTK Fix
+</figcaption>
+</figure>
 
 Returning to the map view, we see an RTK Fix with 11mm positional accuracy.
 
@@ -290,9 +436,12 @@ Make sure Bluetooth is enabled on your iOS device Settings.
 
 The RTK device will not appear in the _OTHER DEVICES_ list. That is OK.
 
-![iOS Settings Bluetooth](img/iOS/Screenshot1.PNG)
-
-*iOS Settings Bluetooth*
+<figure markdown>
+![iOS Settings Bluetooth](./img/iOS/Screenshot1.PNG)
+<figcaption markdown>
+iOS Settings Bluetooth
+</figcaption>
+</figure>
 
 Open SWMaps.
 
@@ -300,39 +449,57 @@ Open or continue a Project if desired.
 
 SWMaps will show your approximate location based on your iOS device's location.
 
-![iOS SWMaps Initial Location](img/iOS/Screenshot2.PNG)
-
-*iOS SWMaps Initial Location*
+<figure markdown>
+![iOS SWMaps Initial Location](./img/iOS/Screenshot2.PNG)
+<figcaption markdown>
+iOS SWMaps Initial Location
+</figcaption>
+</figure>
 
 Press the 'SWMaps' icon at the top left of the screen to open the menu.
 
-![iOS SWMaps Menu](img/iOS/Screenshot3.PNG)
-
-*iOS SWMaps Menu*
+<figure markdown>
+![iOS SWMaps Menu](./img/iOS/Screenshot3.PNG)
+<figcaption markdown>
+iOS SWMaps Menu
+</figcaption>
+</figure>
 
 Select Bluetooth GNSS.
 
-![iOS SWMaps Bluetooth Connection](img/iOS/Screenshot4.PNG)
-
-*iOS SWMaps Bluetooth Connection*
+<figure markdown>
+![iOS SWMaps Bluetooth Connection](./img/iOS/Screenshot4.PNG)
+<figcaption markdown>
+iOS SWMaps Bluetooth Connection
+</figcaption>
+</figure>
 
 Set the **Instrument Model** to **Generic NMEA (Bluetooth LE)**.
 
-![iOS SWMaps Instrument Model](img/iOS/Screenshot5.PNG)
-
-*iOS SWMaps Instrument Model*
+<figure markdown>
+![iOS SWMaps Instrument Model](./img/iOS/Screenshot5.PNG)
+<figcaption markdown>
+iOS SWMaps Instrument Model
+</figcaption>
+</figure>
 
 Press 'Scan' and your RTK device should appear.
 
-![iOS SWMaps Bluetooth Scan](img/iOS/Screenshot6.PNG)
-
-*iOS SWMaps Bluetooth Scan*
+<figure markdown>
+![iOS SWMaps Bluetooth Scan](./img/iOS/Screenshot6.PNG)
+<figcaption markdown>
+iOS SWMaps Bluetooth Scan
+</figcaption>
+</figure>
 
 Select (tick) the RTK device and press 'Connect'.
 
-![iOS SWMaps Bluetooth Connected](img/iOS/Screenshot7.PNG)
-
-*iOS SWMaps Bluetooth Connected*
+<figure markdown>
+![iOS SWMaps Bluetooth Connected](./img/iOS/Screenshot7.PNG)
+<figcaption markdown>
+iOS SWMaps Bluetooth Connected
+</figcaption>
+</figure>
 
 Close the menu and your RTK location will be displayed on the map.
 
@@ -342,31 +509,44 @@ Re-open the menu and select 'NTRIP Client'.
 
 Enter the details for your NTRIP Caster - as shown in the [SWMaps section above](#sw-maps).
 
-![iOS SWMaps NTRIP Client](img/iOS/Screenshot8.PNG)
-
-*iOS SWMaps NTRIP Client*
+<figure markdown>
+![iOS SWMaps NTRIP Client](./img/iOS/Screenshot8.PNG)
+<figcaption markdown>
+iOS SWMaps NTRIP Client
+</figcaption>
+</figure>
 
 Click 'Connect'
 
 At this point, you should see a Bluetooth Pairing Request. Select 'Pair' to pair your RTK with your iOS device.
 
-![iOS Bluetooth Pairing](img/iOS/Screenshot9.PNG)
-
-*iOS Bluetooth Pairing*
+<figure markdown>
+![iOS Bluetooth Pairing](./img/iOS/Screenshot9.PNG)
+<figcaption markdown>
+iOS Bluetooth Pairing
+</figcaption>
+</figure>
 
 SWMaps will now receive NTRIP correction data from the caster and push it to your RTK over Bluetooth BLE.
 
 From the SWMaps menu, open 'GNSS Status' to see your position, fix type and accuracy.
 
-![iOS SWMaps GNSS Status](img/iOS/Screenshot10.PNG)
+<figure markdown>
+![iOS SWMaps GNSS Status](./img/iOS/Screenshot10.PNG)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 *iOS SWMaps GNSS Status*
 
 If you return to the iOS Bluetooth Settings, you will see that your iOS and RTK devices are now paired.
 
-![iOS Settings Bluetooth Paired](img/iOS/Screenshot11.PNG)
-
-*iOS Settings Bluetooth - Paired*
+<figure markdown>
+![iOS Settings Bluetooth Paired](./img/iOS/Screenshot11.PNG)
+<figcaption markdown>
+iOS Settings Bluetooth - Paired
+</figcaption>
+</figure>
 
 ## Other GIS Packages
 

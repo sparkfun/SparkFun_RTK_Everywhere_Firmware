@@ -24,31 +24,55 @@ QGIS is a free and open-source geographic information system software for deskto
 
 Once the software is installed open QGIS Desktop.
 
-![View Menu](img/QGIS/SparkFun%20RTK%20QGIS%20-%20View%20Menu.png)
+<figure markdown>
+![View Menu](./img/QGIS/SparkFun%20RTK%20QGIS%20-%20View%20Menu.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Open the View Menu, then look for the 'Panels' submenu.
 
-![Panels submenu](img/QGIS/SparkFun%20RTK%20QGIS%20-%20Enable%20GPS%20Info%20Panel.png)
+<figure markdown>
+![Panels submenu](./img/QGIS/SparkFun%20RTK%20QGIS%20-%20Enable%20GPS%20Info%20Panel.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 From the Panels submenu, enable 'GPS Information'. This will show a new panel on the left side.
 
 At this point, you will need to enable *TCP Server* mode on your RTK device from the [WiFi Config menu](menu_wifi.md). Once the RTK device is connected to local WiFi QGIS will be able to connect to the given IP address and TCP port.
 
-![Select GPSD](img/QGIS/SparkFun%20RTK%20QGIS%20-%20GPS%20Panel.png)
+<figure markdown>
+![Select GPSD](./img/QGIS/SparkFun%20RTK%20QGIS%20-%20GPS%20Panel.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Above: From the subpanel, select 'gpsd'.
 
-![Entering gpsd specifics](img/QGIS/SparkFun%20RTK%20QGIS%20-%20GPS%20Panel%20Entering%20IP%20and%20port.png)
+<figure markdown>
+![Entering gpsd specifics](./img/QGIS/SparkFun%20RTK%20QGIS%20-%20GPS%20Panel%20Entering%20IP%20and%20port.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Enter the IP address of your RTK device. This can be found by opening a serial connection to the device. The IP address will be displayed every few seconds. Enter the TCP port to use. By default an RTK device uses 2947.
 
 Press 'Connect'.
 
-![Viewing location in QGIS](img/QGIS/SparkFun%20RTK%20QGIS%20-%20Location%20on%20Map.png)
+<figure markdown>
+![Viewing location in QGIS](./img/QGIS/SparkFun%20RTK%20QGIS%20-%20Location%20on%20Map.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 The device location will be shown on the map. To see a map, be sure to enable OpenStreetMap under the XYZ Tiles on the Browser.
 
-![Connecting over Serial](img/QGIS/SparkFun%20RTK%20QGIS%20-%20Direct%20Serial%20Connection.png)
+<figure markdown>
+![Connecting over Serial](./img/QGIS/SparkFun%20RTK%20QGIS%20-%20Direct%20Serial%20Connection.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Alternatively, a direct serial connection to the RTK device can be obtained. Use a USB cable to connect to the RTK device. See [Output GNSS Data over USB](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/menu_ports/#output-gnss-data-over-usb) for more information.
 

@@ -45,9 +45,12 @@ Having your own NTP server on your network allows tighter clock synchronization 
 
 Ethernet-equipped RTK devices can be placed into dedicated NTP mode, by clicking the **MODE** button until NTP is highlighted in the display and double-clicking there.
 
-![Animation of selecting NTP mode](<img/Displays/SparkFun RTK - NTP Select.gif>)
-
-*Selecting NTP mode*
+<figure markdown>
+![Animation of selecting NTP mode](./img/Displays/SparkFun RTK - NTP Select.gif)
+<figcaption markdown>
+Selecting NTP mode
+</figcaption>
+</figure>
 
 An Ethernet-equipped RTK device will first synchronize its Real Time Clock (RTC) using the very accurate time provided by the u-blox GNSS module. The module's Time Pulse (Pulse-Per-Second) signal is connected to the ESP32 as an interrupt. The ESP32's RTC is synchronized to Universal Time Coordinate (UTC) on the rising edge of the TP signal using the time contained in the UBX-TIM-TP message.
 
@@ -60,17 +63,27 @@ The RTK device will respond to each NTP request within a few 10s of milliseconds
 
 If desired, you can log all NTP requests to a file on the microSD card, and/or print them as diagnostic messages. The log and messages contain the NTP timing information and the IP Address and port of the Client.
 
-[![The system debug menu showing how to enable the NTP diagnostics](img/NTP/NTP_Diagnostics.png)](img/NTP/NTP_Diagnostics.png)
+[<figure markdown>
+![The system debug menu showing how to enable the NTP diagnostics](./img/NTP/NTP_Diagnostics.png)](./img/NTP/NTP_Diagnostics.png)
+<figcaption markdown>
+System Debug Menu - NTP Diagnostics (Click for a closer look)
+</figcaption>
+</figure>
 
-*System Debug Menu - NTP Diagnostics (Click for a closer look)*
-
-[![The logging menu showing how to log the NTP requests](img/NTP/NTP_Logging.png)](img/NTP/NTP_Logging.png)
-
-*Logging Menu - Log NTP Requests*
+[<figure markdown>
+![The logging menu showing how to log the NTP requests](./img/NTP/NTP_Logging.png)](./img/NTP/NTP_Logging.png)
+<figcaption markdown>
+Logging Menu - Log NTP Requests
+</figcaption>
+</figure>
 
 ### Logged NTP Requests
 
-![NTP requests log](img/NTP/NTP_Log.png)
+<figure markdown>
+![NTP requests log](./img/NTP/NTP_Log.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 NTP uses its own epoch - midnight January 1st, 1900. This is different than the standard Unix epoch - midnight January 1st, 1970 - and the GPS epoch - midnight January 6th, 1980. The times shown in the log and diagnostic messages use the NTP epoch. You can use online calculators to convert between the different epochs:
 
@@ -86,37 +99,65 @@ If you want to synchronize your Windows PC to a RTK device running as an NTP Ser
 
 * Install [Meinberg NTP](https://www.meinbergglobal.com/english/sw/ntp.htm) - this replaces the Windows built-in Time Service
 
-![Meinberg NTP initial configuration](img/NTP/NTP_Install_1.png)
+<figure markdown>
+![Meinberg NTP initial configuration](./img/NTP/NTP_Install_1.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * During the installation, select "Create an initial configuration file" and select the NTP Pool server for your location
 * Select "Use fast initial sync mode" for faster first synchronization
 
-![Meinberg NTP service settings](img/NTP/NTP_Install_2.png)
+<figure markdown>
+![Meinberg NTP service settings](./img/NTP/NTP_Install_2.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * The next step is to edit the NTP Configuration File
 	* Editing the file requires Administrator privileges
 	* Open the *Start* menu, navigate to *Meinberg*, right-click on *Edit NTP Configuration* and select *Run as administrator*
 
-[![Meinberg NTP configuration](img/NTP/NTP_Config_1_small.png)](img/NTP/NTP_Config_1.png)
+[<figure markdown>
+![Meinberg NTP configuration](./img/NTP/NTP_Config_1_small.png)](./img/NTP/NTP_Config_1.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * Comment the lines in *ntp.conf* which name the pool.ntp servers
 * Add an extra *server* line and include the IP Address for your RTK device. It helps to give your RTK device a fixed IP Address first - see [Menu Ethernet](menu_ethernet.md)
 * Save the file
 
-[![Meinberg NTP configuration](img/NTP/NTP_Config_2_small.png)](img/NTP/NTP_Config_2.png)
+[<figure markdown>
+![Meinberg NTP configuration](./img/NTP/NTP_Config_2_small.png)](./img/NTP/NTP_Config_2.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * Finally, restart the NTP Service
 	* Again this needs to be performed with Administrator privileges
 	* Open the *Start* menu, navigate to *Meinberg*, right-click on *Restart NTP Service* and select *Open file loctaion*
 
-[![Meinberg NTP configuration](img/NTP/NTP_Config_3_small.png)](img/NTP/NTP_Config_3.png)
+[<figure markdown>
+![Meinberg NTP configuration](./img/NTP/NTP_Config_3_small.png)](./img/NTP/NTP_Config_3.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * Right-click on the *Restart NTP Service* and select *Run as administrator*
 
-![Meinberg NTP configuration](img/NTP/NTP_Config_4.png)
+<figure markdown>
+![Meinberg NTP configuration](./img/NTP/NTP_Config_4.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * You can check if your PC clock synchronized successfully by opening a *Command Prompt (cmd)* and running *ntpq -pd*
 
-![Meinberg NTP configuration](img/NTP/NTP_Config_5.png)
+<figure markdown>
+![Meinberg NTP configuration](./img/NTP/NTP_Config_5.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 If enabled, your Windows PC NTP requests will be printed and logged by the RTK device. See [above](#logged-ntp-requests).

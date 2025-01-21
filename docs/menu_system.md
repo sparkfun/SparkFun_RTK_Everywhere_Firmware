@@ -16,9 +16,12 @@ Compatibility Icons
 
 </div>
 
-![System Menu accessed over serial](<img/Terminal/SparkFun RTK Everywhere - System Menu.png>)
-
-*System Menu accessed over serial*
+<figure markdown>
+![System Menu accessed over serial](./img/Terminal/SparkFun RTK Everywhere - System Menu.png)
+<figcaption markdown>
+System Menu accessed over serial
+</figcaption>
+</figure>
 
 The System Menu shows a variety of system information including a full system check to verify what is and what is not online. For example, if an SD card is detected it will be shown as online. Not all RTK devices have all hardware options. For example, the RTK Torch does not have an SD slot so its status and configuration will not be shown.
 
@@ -28,15 +31,21 @@ This menu is helpful when reporting technical issues or requesting support as it
 
 Because of the nature of these controls, the WiFi Config page shows different information than the Serial configuration.
 
-![System Config Menu on WiFi Config Page](<img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20System.png>)
-
-*System Config Menu on WiFi Config Page*
+<figure markdown>
+![System Config Menu on WiFi Config Page](./img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20System.png)
+<figcaption markdown>
+System Config Menu on WiFi Config Page
+</figcaption>
+</figure>
 
 ## System Information
 
-![System Menu Header Information](<img/Terminal/SparkFun RTK Everywhere - System Menu Header.png>)
-
-*System Menu Header Information*
+<figure markdown>
+![System Menu Header Information](./img/Terminal/SparkFun RTK Everywhere - System Menu Header.png)
+<figcaption markdown>
+System Menu Header Information
+</figcaption>
+</figure>
 
 The header of the system menu contains various system metrics.
 
@@ -57,9 +66,12 @@ In order of appearance:
 
 ## Mode Switch
 
-![System Menu Options serial menu](<img/Terminal/SparkFun RTK Everywhere - System Menu Options.png>)
-
-*System Menu Options serial menu*
+<figure markdown>
+![System Menu Options serial menu](./img/Terminal/SparkFun RTK Everywhere - System Menu Options.png)
+<figcaption markdown>
+System Menu Options serial menu
+</figcaption>
+</figure>
 
 The device can be in Rover, Base, or WiFi Config mode. The selected mode will be entered once the user exits the menu system.
 
@@ -72,9 +84,12 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 ## Settings
 
-![System Menu Options serial menu](<img/Terminal/SparkFun RTK Everywhere - System Menu Options.png>)
-
-*System Menu Options serial menu*
+<figure markdown>
+![System Menu Options serial menu](./img/Terminal/SparkFun RTK Everywhere - System Menu Options.png)
+<figcaption markdown>
+System Menu Options serial menu
+</figcaption>
+</figure>
 
 * **a** - On devices that support it, a beeper is used to indicate various system states (system power on/off, tilt compensation in use, etc). This can be disabled if desired.
 
@@ -117,14 +132,20 @@ If a device gets into an unknown state it can be returned to default settings us
 !!! note
 	Log files and any other files on the SD card are *not* removed or modified.
 
-![Issuing a factory reset](<img/Terminal/SparkFun RTK Everywhere - System Menu Factory Reset.png>)
-
-*Issuing and confirming a Factory Reset*
+<figure markdown>
+![Issuing a factory reset](./img/Terminal/SparkFun RTK Everywhere - System Menu Factory Reset.png)
+<figcaption markdown>
+Issuing and confirming a Factory Reset
+</figcaption>
+</figure>
 
 If a device gets into an unknown state it can be returned to default settings. Press 'r' then 'y' to confirm. Factory Default will erase any user settings and reset the internal receiver to stock settings. If SD is supported, any settings file and commonly used coordinate files on the SD card associated with the current profile will be removed.
 
-![Factory Default button](<img/WiFi Config/SparkFun%20RTK%20WiFi%20Factory%20Defaults.png>)
-
-*Enabling and Starting a Factory Reset*
+<figure markdown>
+![Factory Default button](./img/WiFi Config/SparkFun%20RTK%20WiFi%20Factory%20Defaults.png)
+<figcaption markdown>
+Enabling and Starting a Factory Reset
+</figcaption>
+</figure>
 
 Factory Defaults will erase any user settings and reset the internal receiver to stock settings. To prevent accidental reset the checkbox must first be checked before the button is pressed. Any logs on SD are maintained. Any settings file and commonly used coordinate files on the SD card associated with the current profile will be removed.

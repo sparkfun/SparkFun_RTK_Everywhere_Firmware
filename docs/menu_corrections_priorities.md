@@ -16,9 +16,12 @@ Compatibility Icons
 
 </div>
 
-![RTK Corrections Priorities Menu](<img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png>)
-
-*RTK Corrections Priorities Menu*
+<figure markdown>
+![RTK Corrections Priorities Menu](./img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png)
+<figcaption markdown>
+RTK Corrections Priorities Menu
+</figcaption>
+</figure>
 
 To achieve an RTK Fix, SparkFun RTK products must be provided with a correction source. An RTK device can obtain corrections from a variety of sources. Below is the list of possible sources (not all platforms support all sources) and their default priorities. These defaults generally follow the rule that a shorter baseline between Rover and Base leads to more accurate, and therefore more valuable, correction data:
 
@@ -33,7 +36,11 @@ To achieve an RTK Fix, SparkFun RTK products must be provided with a correction 
 
 The *Corrections Priorities* menu allows a user to specify which correction source should be given priority. For example, if corrections are provided through ESP-NOW and IP PointPerfect simultaneously, the corrections from IP PointPerfect will be discarded because the ESP-NOW source has a higher priority. This prevents the RTK engine from receiving potentially mixed correction signals.
 
-![RTK Corrections Priorities Menu](<img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png>)
+<figure markdown>
+![RTK Corrections Priorities Menu](./img/Terminal/SparkFun RTK Everywhere - Corrections Priorities Menu.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 In the serial terminal menu, pressing a letter will increase or decrease the position of a priority. For example, in the image above, pressing **G** will raise the `L-Band` priority above `TCP (NTRIP)`.
 
@@ -48,6 +55,10 @@ In the web config page:
 * Clicking 'Reset to Defaults' will restore the priorities to their default setting
 * Click 'Save Configuration', then 'Exit and Reset' to save the changes
 
-![RTK Corrections Priorities Web Config](<img/WiFi Config/SparkFun RTK Corrections Priority.gif>)
+<figure markdown>
+![RTK Corrections Priorities Web Config](./img/WiFi Config/SparkFun RTK Corrections Priority.gif)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Please see [Correction Sources](correction_sources.md) for a description of where to obtain corrections.

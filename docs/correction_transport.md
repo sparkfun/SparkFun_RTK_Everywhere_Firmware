@@ -22,15 +22,22 @@ Compatibility Icons
 
 </div>
 
-![NTRIP Server setup](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg>)
+<figure markdown>
+![NTRIP Server setup](./img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Base_Config2.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Any SparkFun RTK device can be set up as an [NTRIP Server](menu_base.md#ntrip-server). This means the device will connect to local WiFi and broadcast its correction data to the internet. The data is delivered to something called an NTRIP Caster. Any number of rovers can then access this data using something called an NTRIP Client. Nearly *every* GIS application has an NTRIP Client built into it so this makes it very handy.
 
 WiFi broadcasting is the most common transport method of getting RTCM correction data to the internet and to rovers via NTRIP Clients.
 
-![RTK product in NTRIP Client mode](img/Displays/SparkFun_RTK_Rover_NTRIP_Client_Connection.png)
-
-*RTK product showing corrections being downloaded over WiFi in NTRIP Client mode*
+<figure markdown>
+![RTK product in NTRIP Client mode](./img/Displays/SparkFun_RTK_Rover_NTRIP_Client_Connection.png)
+<figcaption markdown>
+RTK product showing corrections being downloaded over WiFi in NTRIP Client mode
+</figcaption>
+</figure>
 
 Similarly, any SparkFun RTK device can be set up as an [NTRIP Client](menu_gnss.md#ntrip-client). The RTK device will connect to the local WiFi and begin downloading the RTCM data from the given NTRIP Caster and RTK Fix will be achieved. This is useful only if the Rover remains in RF range of a WiFi access point. Because of the limited range, we recommend using a cell phone's hotspot feature rather than a stationary WiFi access point for NTRIP Clients.
 
@@ -52,7 +59,11 @@ Compatibility Icons
 
 </div>
 
-![SW Maps NTRIP Client](img/SWMaps/SW_Maps_-_NTRIP_Client.jpg)
+<figure markdown>
+![SW Maps NTRIP Client](./img/SWMaps/SW_Maps_-_NTRIP_Client.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Using a cell phone is the most common way of transporting correction data from the internet to a rover. This method uses the cell phone's built-in internet connection to obtain data from an NTRIP Caster and then pass those corrections over Bluetooth to the RTK device.
 
@@ -127,15 +138,27 @@ Compatibility Icons
 
 </div>
 
-![Two serial radios](img/Corrections/19032-SiK_Telemetry_Radio_V3_-_915MHz__100mW-01.jpg)
+<figure markdown>
+![Two serial radios](./img/Corrections/19032-SiK_Telemetry_Radio_V3_-_915MHz__100mW-01.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Serial radios, sometimes called telemetry radios, provide what is essentially a serial cable between the base and rover devices. Transmission distance, frequency, maximum data rate, configurability, and price vary widely, but all behave functionally the same. SparkFun recommends the [HolyBro 100mW](https://www.sparkfun.com/products/19032) and the [SparkFun LoRaSerial 1W](https://www.sparkfun.com/products/19311) radios for RTK use.
 
-![Serial radio cable](img/Corrections/17239-GHR-04V-S_to_GHR-06V-S_Cable_-_150mm-01.jpg)
+<figure markdown>
+![Serial radio cable](./img/Corrections/17239-GHR-04V-S_to_GHR-06V-S_Cable_-_150mm-01.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 On SparkFun RTK products that have an external radio port, a [4-pin to 6-pin cable](https://www.sparkfun.com/products/17239) is included that will allow you to connect the HolyBro branded radio or the SparkFun LoRaSerial radios to a base and rover RTK device.
 
-![Radio attached to RTK device](img/Corrections/SparkFun_RTK_Surveyor_-_Radio.jpg)
+<figure markdown>
+![Radio attached to RTK device](./img/Corrections/SparkFun_RTK_Surveyor_-_Radio.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 The RTK EVK has screw cage terminals providing access to the ZED-F9P UART2 TX2 and RX2 pins. 3.3V power is provided too, but not 5V. For 5V radios, you may need an additional power source.
 

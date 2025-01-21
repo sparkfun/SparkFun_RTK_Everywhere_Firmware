@@ -22,14 +22,23 @@ By default, the RTK device will use DHCP to request an IP Address from the netwo
 
 When enabled, the "Ethernet / WiFi Failover" option allows the firmware to automatically switch from Ethernet to WiFi should Ethernet become unavailable. Should WiFi become unavailable, the firmware will reconnect to Ethernet if it is now available.
 
-![RTK EVK in DHCP mode](img/Terminal/Ethernet_DHCP.png)
+<figure markdown>
+![RTK EVK in DHCP mode](./img/Terminal/Ethernet_DHCP.png)
+<figcaption markdown>
+The RTK EVK Ethernet menu - with DHCP selected
+</figcaption>
+</figure>
 
-*The RTK EVK Ethernet menu - with DHCP selected*
+<figure markdown>
+![RTK EVK in fixed IP address mode](./img/Terminal/Ethernet_Fixed_IP.png)
+<figcaption markdown>
+The RTK EVK Ethernet menu - with a fixed IP address selected
+</figcaption>
+</figure>
 
-![RTK EVK in fixed IP address mode](img/Terminal/Ethernet_Fixed_IP.png)
-
-*The RTK EVK Ethernet menu - with a fixed IP address selected*
-
-![RTK EVK Web Config - Ethernet Configuration](<img/WiFi Config/SparkFun RTK Web Config - Ethernet Configuration.png>)
-
-*The RTK EVK Web Config page - Ethernet configuration with fixed IP address*
+<figure markdown>
+![RTK EVK Web Config - Ethernet Configuration](./img/WiFi Config/SparkFun RTK Web Config - Ethernet Configuration.png)
+<figcaption markdown>
+The RTK EVK Web Config page - Ethernet configuration with fixed IP address
+</figcaption>
+</figure>

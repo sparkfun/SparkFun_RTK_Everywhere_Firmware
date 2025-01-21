@@ -26,9 +26,12 @@ The firmware on u-blox devices can be updated using a [Windows-based GUI](firmwa
 
 ### Update Using Windows GUI
 
-![SparkFun u-blox firmware update tool](img/SparkFun%20RTK%20Facet%20L-Band%20u-blox%20Firmware%20Update%20GUI.png)
-
-*SparkFun RTK u-blox Firmware Update Tool*
+<figure markdown>
+![SparkFun u-blox firmware update tool](./img/SparkFun%20RTK%20Facet%20L-Band%20u-blox%20Firmware%20Update%20GUI.png)
+<figcaption markdown>
+SparkFun RTK u-blox Firmware Update Tool
+</figcaption>
+</figure>
 
 The [SparkFun RTK u-blox Firmware Update Tool](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/u-blox_Update_GUI) is a simple Windows GUI and python script that runs the ubxfwupdate.exe tool. This allows users to directly update module firmware without the need for u-center. Additionally, this tool queries the module to verify that the firmware type matches the module. Because the RTK Facet L-Band contains two u-blox modules that both appear as identical serial ports, it can be difficult and perilous to know which port to load firmware. This tool prevents ZED-F9P firmware from being accidentally loaded onto a NEO-D9S receiver and vice versa.
 
@@ -38,9 +41,12 @@ The SparkFun RTK u-blox Firmware Update Tool will only run on Windows as it reli
 * Turn the RTK device on
 * Open Device Manager to confirm which COM port the device is operating on
 
+<figure markdown>
 ![Device Manager showing USB Serial port on COM14](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/raw/main/u-blox_Update_GUI/SparkFun_RTK_u-blox_Updater_COM_Port.jpg)
-
-*Device Manager showing USB Serial port on COM14*
+<figcaption markdown>
+Device Manager showing USB Serial port on COM14
+</figcaption>
+</figure>
 
 * Get the latest binary firmware file from the [ZED Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/ZED%20Firmware), [NEO Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries/tree/main/NEO%20Firmware) folder, or the [u-blox](https://www.u-blox.com/) website
 * Run *RTK_u-blox_Update_GUI.exe* (it takes a few seconds to start)

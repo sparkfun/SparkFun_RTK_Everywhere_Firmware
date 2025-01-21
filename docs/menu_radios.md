@@ -20,15 +20,22 @@ Compatibility Icons
 
 </div>
 
-![Radio menu showing ESP-NOW](<img/Terminal/SparkFun RTK Everywhere - Radios Menu.png>)
-
-*Radio menu showing ESP-NOW*
+<figure markdown>
+![Radio menu showing ESP-NOW](./img/Terminal/SparkFun RTK Everywhere - Radios Menu.png)
+<figcaption markdown>
+Radio menu showing ESP-NOW
+</figcaption>
+</figure>
 
 ESP-NOW is a 2.4GHz protocol that is built into the internal ESP32 microcontroller; the same microcontroller that provides Bluetooth and WiFi. ESP-NOW does not require WiFi or an Access Point. This is most useful for connecting a Base to Rover (or multiple Rovers) without the need for an external radio. Simply turn two SparkFun RTK products on, enable their radios, and data will be passed between units. Additionally, ESP-NOW supports point-to-multipoint transmissions. This means a Base can transmit to multiple Rovers simultaneously.
 
 ESP-NOW is a free radio included in every RTK product and works well, but it has a few limitations:
 
-![Max transmission range of about 250m](img/Radios/SparkFun%20RTK%20ESP-Now%20Distance%20Testing.png)
+<figure markdown>
+![Max transmission range of about 250m](./img/Radios/SparkFun%20RTK%20ESP-Now%20Distance%20Testing.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 1. Limited range. You can expect two RTK devices to be able to communicate approximately 250m (845 ft) line of sight but any trees, buildings, or objects between the Base and Rover will degrade reception. This range is useful for many applications but may not be acceptable for some applications. We recommend using ESP-NOW as a quick, free, and easy way to get started with Base/Rover setups. If your application needs longer RF distances consider cellular NTRIP, WiFi NTRIP, or an external serial telemetry radio plugged into the **RADIO** port.
 
@@ -36,7 +43,11 @@ ESP-NOW is a free radio included in every RTK product and works well, but it has
 
 ### Pairing
 
-![Pairing Menu](img/Displays/SparkFun%20RTK%20Radio%20E-Pair.png)
+<figure markdown>
+![Pairing Menu](./img/Displays/SparkFun%20RTK%20Radio%20E-Pair.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 For most setups, pairing is not needed. By default, any device that has ESP-NOW enabled will receive communication from any other device that has ESP-NOW enabled. This allows a Base to communicate with dozens of Rovers without further configuration, simply enable ESP-NOW and enter Base mode. However, if you are in an environment where other Base units may be setup and broadcasting using the ESP-NOW radios, then devices can be paired to each other to limit communication to only paired devices.
 
@@ -45,23 +56,32 @@ For most setups, pairing is not needed. By default, any device that has ESP-NOW 
 
 On devices that have a display, clicking the Mode button will display the various submenus. Double-clicking on E-Pair will put the unit into ESP-NOW pairing mode. If another RTK device is detected nearby in pairing mode, they will exchange MAC addresses and pair with each other. Multiple Rover units can be paired to a Base in the same fashion.
 
-![Radio menu during AP-Config](<img/WiFi Config/SparkFun%20RTK%20Radio%20Config.png>)
-
-*Radio configuration through WiFi*
+<figure markdown>
+![Radio menu during AP-Config](./img/WiFi Config/SparkFun%20RTK%20Radio%20Config.png)
+<figcaption markdown>
+Radio configuration through WiFi
+</figcaption>
+</figure>
 
 The radio system can be configured over WiFi. The radio subsystem is disabled by default. Enabling the radio to ESP-NOW will expose the above options. The unit's radio MAC can be seen as well as a button to forget all paired radios. This button is disabled until the 'Enable Forget All Radios' checkbox is checked. If a Base device has no paired radios, it will broadcast its correction data to any listening Rover by default.
 
-![Radio menu showing ESP-NOW](<img/Terminal/SparkFun RTK Everywhere - Radios Menu.png>)
-
-*Radio menu showing ESP-NOW*
+<figure markdown>
+![Radio menu showing ESP-NOW](./img/Terminal/SparkFun RTK Everywhere - Radios Menu.png)
+<figcaption markdown>
+Radio menu showing ESP-NOW
+</figcaption>
+</figure>
 
 A serial menu is also available. This menu allows users to enter pairing mode, change the channel (ie, set of frequencies) used for communication, view the unit's current Radio MAC, the MAC addresses of any paired radios, as well as the ability to remove all paired radios from memory.
 
 ### Setting the WiFi Channel
 
-![Radio menu showing ESP-NOW](<img/Terminal/SparkFun RTK Everywhere - Radios Menu.png>)
-
-*Radio menu showing channel 11*
+<figure markdown>
+![Radio menu showing ESP-NOW](./img/Terminal/SparkFun RTK Everywhere - Radios Menu.png)
+<figcaption markdown>
+Radio menu showing channel 11
+</figcaption>
+</figure>
 
 All devices must be on the same WiFi channel to communicate over ESP-NOW. Option **4 - Current channel** shows the current channel and allows a user to select a new one. Allowable channel numbers are 1 to 14. By default, devices will communicate on Channel 1. A user may select any channel they prefer.
 
@@ -92,32 +112,44 @@ Compatibility Icons
 
 </div>
 
-![RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna](img/SparkFun_RTK_Torch_Open_Antenna.png)
-
-*RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna*
+<figure markdown>
+![RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna](./img/SparkFun_RTK_Torch_Open_Antenna.png)
+<figcaption markdown>
+RTK Torch's combination GNSS, 2.4GHz, and 915MHz antenna
+</figcaption>
+</figure>
 
 The RTK Torch has a built-in 1W LoRa radio that allows Base to Rover communication. This radio is based on the STM32WLE5CC which contains a microcontroller and a LoRa radio. Attached to this radio is a 1W power amplifier. The radio transmits in the ISM band from 902 to 928MHz and is legal to use in North America and South America. The radio implements frequency hopping spread spectrum (FHSS) techniques as well as LoRa modulation to maximize transmission distance while switching frequencies to abide by FCC requirements. Additionally, the LoRa system supports multipoint allowing one Base to communicate with dozens of Rovers.
 
 !!! note
 	RTK Torch LoRa radio uses a different frequency hopping algorithm from other radios that SparkFun sells. Therefore, RTK Torches are currently only compatible with each other and cannot be used interoperably with other LoRa or 915MHz radios.
 
-![1500ft (450m) range between Base and Rover using LoRa radios](<img/Radios/SparkFun RTK LoRa Non-Line-Of-Sight Distance Test.png>)
-
-*1500ft (450m) range between Base and Rover using LoRa radios*
+<figure markdown>
+![1500ft (450m) range between Base and Rover using LoRa radios](./img/Radios/SparkFun RTK LoRa Non-Line-Of-Sight Distance Test.png)
+<figcaption markdown>
+1500ft (450m) range between Base and Rover using LoRa radios
+</figcaption>
+</figure>
 
 The RTK Torch has an internal planar 915MHz antenna allowing good reception in harsh environments. Above is shown a non-line-of-sight test between a Base setup on a tripod on the ground transmitting to a Rover that was able to achieve RTK Fix using corrections over the LoRa radio. This test included multiple large commercial buildings blocking or partially blocking the transmission as well as multiple trees and berms.
 
-![1.83 mile (2.95km) range between Base and Rover using LoRa radios](<img/Radios/SparkFun RTK LoRa Line-Of-Sight Distance Test.png>)
-
-*1.83 mile (2.95km) range between Base and Rover using LoRa radios*
+<figure markdown>
+![1.83 mile (2.95km) range between Base and Rover using LoRa radios](./img/Radios/SparkFun RTK LoRa Line-Of-Sight Distance Test.png)
+<figcaption markdown>
+1.83 mile (2.95km) range between Base and Rover using LoRa radios
+</figcaption>
+</figure>
 
 The 1 Watt power output of the radio allows for long range transmissions when obstacles are fewer. Above is a line-of-sight test using a Base unit with line-of-sight to a near by hill-top measuring approximately (ok, with great accuracy) 1.83 miles (2.95km) away.
 
 ### Configuration
 
-![Configuring the LoRa radio](<img/Terminal/SparkFun RTK Everywhere - Radios LoRa Menu.png>)
-
-*Configuring the LoRa radio*
+<figure markdown>
+![Configuring the LoRa radio](./img/Terminal/SparkFun RTK Everywhere - Radios LoRa Menu.png)
+<figcaption markdown>
+Configuring the LoRa radio
+</figcaption>
+</figure>
 
 From the radios menu, the LoRa radio can be enabled and configured.
 

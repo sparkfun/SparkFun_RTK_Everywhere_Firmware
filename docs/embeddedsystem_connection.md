@@ -51,11 +51,19 @@ Connect the included [4-pin JST to breadboard cable](https://www.sparkfun.com/pr
 * **Orange** - RX (input into the RTK device)
 * **Black** - GND
 
-![Wires connected to a SparkFun USB C to Serial adapter](img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg)
+<figure markdown>
+![Wires connected to a SparkFun USB C to Serial adapter](./img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 [Open a terminal](https://learn.sparkfun.com/tutorials/terminal-basics) at 115200bps and you should see NMEA sentences:
 
-![NMEA output from the RTK Surveyor](<img/Terminal/SparkFun_RTK_Surveyor_-_Data_Output.jpg>)
+<figure markdown>
+![NMEA output from the RTK Surveyor](./img/Terminal/SparkFun_RTK_Surveyor_-_Data_Output.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 The Data connector on all RTK products is a 4-pin locking 1.25mm JST SMD connector (part#: SM04B-GHS-TB, mating connector part#: GHR-04V-S). **3.3V** is provided by this connector to power a remote device if needed. While the port is capable of sourcing up to 600mA, we do not recommend more than 300mA. This port should not be connected to a power source, so if your embedded device has its own power do not connect the red wire.
 
@@ -84,7 +92,11 @@ Compatibility Icons
 
 On devices that support it, external screw terminals provide direct access to the GNSS TX and RX signals via the 3.5mm screw terminal I/O header:
 
-![Reference Station I/O screw terminals](img/SparkFun_GNSS_RTK_Reference_Station_IO.jpg)
+<figure markdown>
+![Reference Station I/O screw terminals](./img/SparkFun_GNSS_RTK_Reference_Station_IO.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 * TX2 : u-blox ZED-F9P UART2 transmit: 3.3V OUTPUT
 

@@ -16,9 +16,12 @@ Compatibility Icons
 
 </div>
 
-![SparkFun RTK Facet Settings File](img/SparkFun_RTK_Express_-_Settings_File.jpg)
-
-*SparkFun RTK Settings File*
+<figure markdown>
+![SparkFun RTK Facet Settings File](./img/SparkFun_RTK_Express_-_Settings_File.jpg)
+<figcaption markdown>
+SparkFun RTK Settings File
+</figcaption>
+</figure>
 
 All device settings are stored both in internal memory and an SD card (if supported and if one is detected). The device will load the latest settings at each power on. If there is a discrepancy between the internal settings and an external settings file then the external settings file will be used. This allows a collection of RTK products to be identically configured using one 'golden' settings file loaded onto an SD card.
 
@@ -54,7 +57,11 @@ These settings on the SD card will overwrite the settings in the RTK Express int
 
 ## Forcing a Factory Reset
 
-![Setting size of settings to -1 to force reset](<img/SparkFun RTK Settings File - Factory Reset.png>)
+<figure markdown>
+![Setting size of settings to -1 to force reset](./img/SparkFun RTK Settings File - Factory Reset.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 If the device has been configured into an unknown state the device can be reset to factory defaults. Power down the RTK device and remove the SD card. Using a computer and an SD card reader, open the SFE_[Platform]_Settings_0.txt file where [Platform] is Facet, Express, Surveyor, etc and 0 is the profile number (0, 1, 2, 3). Modify the **sizeOfSettings** value to -1 and save the file to the SD card. Reinsert the SD card into the RTK unit and power up the device. Upon power up, the device will display 'Factory Reset' while it clears the settings.
 

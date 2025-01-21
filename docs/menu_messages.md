@@ -16,9 +16,12 @@ Compatibility Icons
 
 </div>
 
-![Message rate configuration](<img/Terminal/SparkFun RTK Everywhere - Messages Menu.png>)
-
-*The messages configuration menu*
+<figure markdown>
+![Message rate configuration](./img/Terminal/SparkFun RTK Everywhere - Messages Menu.png)
+<figcaption markdown>
+The messages configuration menu
+</figcaption>
+</figure>
 
 From this menu, a user can control the output of various NMEA, RTCM, and other messages. Any enabled message will be broadcast over Bluetooth *and* recorded to SD (if available).
 
@@ -38,9 +41,12 @@ These five NMEA sentences are commonly used with SW Maps for general surveying.
 
 ## Individual Messages
 
-![Configuring the NMEA messages](<img/Terminal/SparkFun RTK Everywhere - Messages Menu NMEA.png>)
-
-*Configuring the NMEA messages*
+<figure markdown>
+![Configuring the NMEA messages](./img/Terminal/SparkFun RTK Everywhere - Messages Menu NMEA.png)
+<figcaption markdown>
+Configuring the NMEA messages
+</figcaption>
+</figure>
 
 There are a large number of messages supported (listed below). Each message sub-menu will present the user with the ability to set the message report rate.
 

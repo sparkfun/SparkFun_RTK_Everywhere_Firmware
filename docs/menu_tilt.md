@@ -16,9 +16,12 @@ Compatibility Icons
 
 </div>
 
-![Tilt Compensation menu](<img/Terminal/SparkFun RTK Everywhere - Tilt Menu.png>)
-
-*Tilt Compensation menu*
+<figure markdown>
+![Tilt Compensation menu](./img/Terminal/SparkFun RTK Everywhere - Tilt Menu.png)
+<figcaption markdown>
+Tilt Compensation menu
+</figcaption>
+</figure>
 
 The Tilt Compensation menu controls how the tilt sensor is configured.
 

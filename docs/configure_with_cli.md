@@ -16,9 +16,13 @@ Compatibility Icons
 
 </div>
 
-![Entering Command line mode](<img/Terminal/SparkFun RTK Everywhere - Command Line Interface.png>)
 
-*Entering Command line mode*
+<figure markdown>
+![Entering Command line mode](./img/Terminal/SparkFun RTK Everywhere - Command Line Interface.png)
+<figcaption markdown>
+Entering Command line mode
+</figcaption>
+</figure>
 
 For advanced applications, the RTK device can be queried and configured using a command line interface (CLI). This mode can be entered from the main serial menu using '**+**' or over Bluetooth by sending 10 dashes ('**----------**'). To exit CLI, type `exit` or use the `$SPEXE,EXIT*77` command.
 

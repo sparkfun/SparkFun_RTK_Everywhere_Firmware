@@ -20,15 +20,21 @@ The SparkFun RTK product line is immensely configurable. The RTK device will, by
 
 The GNSS Configuration menu allows a user to change the report rate, dynamic model, and select which constellations should be used for fix calculations.
 
-![RTK Everywhere Main Menu](<img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
-
-*RTK Everywhere main menu*
+<figure markdown>
+![RTK Everywhere Main Menu](./img/Terminal/SparkFun RTK Everywhere - Main Menu.png)
+<figcaption markdown>
+RTK Everywhere main menu
+</figcaption>
+</figure>
 
 Pressing any key will show the *Main Menu*. From the main menu, pressing 1 will bring up the *GNSS Receiver* configuration menu.
 
-![GNSS menu showing measurement rates and dynamic model](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
-
-*GNSS menu showing measurement rates and dynamic model*
+<figure markdown>
+![GNSS menu showing measurement rates and dynamic model](./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png)
+<figcaption markdown>
+GNSS menu showing measurement rates and dynamic model
+</figcaption>
+</figure>
 
 ## Measurement Frequency
 
@@ -43,9 +49,12 @@ The Dynamic Model can be changed but it is recommended to leave it as *Survey*. 
 
 ## Min SV Elevation and C/N0
 
-![Elevation and C/N0](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
-
-*GNSS menu showing Minimum SV Elevation and C/N0*
+<figure markdown>
+![Elevation and C/N0](./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png)
+<figcaption markdown>
+GNSS menu showing Minimum SV Elevation and C/N0
+</figcaption>
+</figure>
 
 A minimum elevation is set in degrees. If a satellite is detected that is below this elevation, it will be *excluded* from any GNSS position calculation.
 
@@ -53,9 +62,12 @@ A minimum C/N0 is set in dB. If a satellite is detected that is below this signa
 
 ## Constellations Menu
 
-![Enable or disable the constellations used for fixes](<img/Terminal/SparkFun RTK Everywhere - GNSS Menu Constellations.png>)
-
-*Enable or disable the constellations used for fixes*
+<figure markdown>
+![Enable or disable the constellations used for fixes](./img/Terminal/SparkFun RTK Everywhere - GNSS Menu Constellations.png)
+<figcaption markdown>
+Enable or disable the constellations used for fixes
+</figcaption>
+</figure>
 
 The GNSS receiver is capable of tracking multiple channels across four constellations, each producing their own GNSS signals (ie, L1C/A, L1C, L2P, L2C, L5, E1, E5a, E5b, E6, B1I, B2I, B3I, B1C, B2a, B2b, etc). The supported constellations include GPS (USA), Galileo (EU), BeiDou (China), and GLONASS (Russia). SBAS (satellite-based augmentation system) is also supported. By default, all constellations are used. Some users may want to study, log, or monitor a subset. Disabling a constellation will cause the GNSS receiver to ignore those signals when calculating a location fix.
 
@@ -65,9 +77,12 @@ If supported by hardware, Galileo E6 corrections are enabled by default to suppo
 
 ## NTRIP Client
 
-![NTRIP Client enabled showing settings](<img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png>)
-
-*NTRIP Client enabled showing settings*
+<figure markdown>
+![NTRIP Client enabled showing settings](./img/Terminal/SparkFun RTK Everywhere - GNSS Receiver.png)
+<figcaption markdown>
+NTRIP Client enabled showing settings
+</figcaption>
+</figure>
 
 The SparkFun RTK Everywhere devices can obtain their correction data over a few different methods.
 
@@ -102,8 +117,11 @@ Compatibility Icons
 
 </div>
 
-![Menu for controlling Multipath Mitigation](<img/Terminal/SparkFun RTK Everywhere - GNSS Multipath Mitigation.png>)
-
-*Menu for controlling Multipath Mitigation*
+<figure markdown>
+![Menu for controlling Multipath Mitigation](./img/Terminal/SparkFun RTK Everywhere - GNSS Multipath Mitigation.png)
+<figcaption markdown>
+Menu for controlling Multipath Mitigation
+</figcaption>
+</figure>
 
 On devices that support it, *Multipath Mitigation* can be enabled (default) or disabled. Multipath Mitigation allows the GNSS receiver to filter signals more rigorously, which aids accuracy in urban or high multipath environments, but may increase processing times in an open environment.

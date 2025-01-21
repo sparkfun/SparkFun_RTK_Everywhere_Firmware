@@ -22,21 +22,30 @@ The ESP32 firmware is the main firmware in all RTK devices. The firmware version
 * Serial Config Menu
 * WiFi Config
 
-![RTK Express with firmware v3.0](<img/Displays/SparkFun%20RTK%20Boot%20Screen%20Version%20Number.png>)
-
-*RTK Express with firmware v3.0*
+<figure markdown>
+![RTK Express with firmware v3.0](./img/Displays/SparkFun%20RTK%20Boot%20Screen%20Version%20Number.png)
+<figcaption markdown>
+RTK Express with firmware v3.0
+</figcaption>
+</figure>
 
 During power-on, on devices that have a display, the firmware version will be shown.
 
-![Main Menu showing RTK Everywhere Firmware v1.0](<img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
-
-*Main Menu showing RTK Firmware v1.0*
+<figure markdown>
+![Main Menu showing RTK Everywhere Firmware v1.0](./img/Terminal/SparkFun RTK Everywhere - Main Menu.png)
+<figcaption markdown>
+Main Menu showing RTK Firmware v1.0
+</figcaption>
+</figure>
 
 The firmware is displayed when the main menu is opened over a serial connection.
 
-![WiFi Config page showing device firmware v2.7](<img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20Screen%20Version%20Number.png>)
-
-*WiFi Config page showing device firmware v2.7 and ZED-F9P firmware HPG 1.32*
+<figure markdown>
+![WiFi Config page showing device firmware v2.7](./img/WiFi Config/SparkFun%20RTK%20WiFi%20Config%20Screen%20Version%20Number.png)
+<figcaption markdown>
+WiFi Config page showing device firmware v2.7 and ZED-F9P firmware HPG 1.32
+</figcaption>
+</figure>
 
 The firmware is shown at the top of the WiFi config page.
 
@@ -54,13 +63,19 @@ Remember, all SparkFun RTK devices are open source hardware meaning you have tot
 
 ## Updating Firmware Over-The-Air
 
-![Updating Firmware from WiFi config page](<img/WiFi Config/SparkFun RTK Everywhere - Firmware Update System Menu.gif>)
+<figure markdown>
+![Updating Firmware from WiFi config page](./img/WiFi Config/SparkFun RTK Everywhere - Firmware Update System Menu.gif)
+<figcaption markdown>
+Updating the firmware via WiFi config page
+</figcaption>
+</figure>
 
-*Updating the firmware via WiFi config page*
-
-![Updating the firmware via Firmware serial menu](<img/Terminal/SparkFun RTK Everywhere - Firmware Update Menu.png>)
-
-*Updating the firmware via Firmware serial menu*
+<figure markdown>
+![Updating the firmware via Firmware serial menu](./img/Terminal/SparkFun RTK Everywhere - Firmware Update Menu.png)
+<figcaption markdown>
+Updating the firmware via Firmware serial menu
+</figcaption>
+</figure>
 
 Firmware can be updated in the System Configuration section of the WiFi Config page, or over the Firmware menu of the serial interface. This makes checking and upgrading a unit very easy.
 
@@ -74,9 +89,12 @@ Automatic release firmware update is supported over WiFi. Enabling this feature 
 
 ## Updating Firmware Using The Uploader GUI
 
-![RTK Firmware GUI](img/RTK_Uploader_Windows.png)
-
-*RTK Firmware GUI*
+<figure markdown>
+![RTK Firmware GUI](./img/RTK_Uploader_Windows.png)
+<figcaption markdown>
+RTK Firmware GUI
+</figcaption>
+</figure>
 
 This GUI makes it easy to point and click your way through a firmware update. There are versions for Windows, Linux, MacOS and a Python package installer.
 
@@ -90,9 +108,12 @@ Download the latest RTK firmware binary file located on the [releases page](http
 * Turn the RTK device on.
 * On Windows, open the Device Manager to confirm which COM port the device is operating on. On other platforms, check ```/dev```.
 
-![Device Manager showing USB-Serial CH340 port on COM27](img/Serial/SparkFun%20RTK%20Firmware%20Uploader%20COM%20Port.jpg)
-
-*Device Manager showing 'USB-Serial CH340' port on COM27*
+<figure markdown>
+![Device Manager showing USB-Serial CH340 port on COM27](./img/Serial/SparkFun%20RTK%20Firmware%20Uploader%20COM%20Port.jpg)
+<figcaption markdown>
+Device Manager showing 'USB-Serial CH340' port on COM27
+</figcaption>
+</figure>
 
 * Get the latest binary file located on the [releases page](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/releases) or from the [binaries repo](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries).
 * Run *RTKUploader.exe* (it takes a few seconds to start)
@@ -124,9 +145,12 @@ Compatibility Icons
 
 On devices that support it, the firmware can be loaded from an SD card.
 
-![Firmware update menu](<img/Terminal/SparkFun_RTK_Firmware_Update-ProgressBar.jpg>)
-
-*Firmware update taking place*
+<figure markdown>
+![Firmware update menu](./img/Terminal/SparkFun_RTK_Firmware_Update-ProgressBar.jpg)
+<figcaption markdown>
+Firmware update taking place
+</figcaption>
+</figure>
 
 Download the latest binary file located on the [releases page](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/releases) or from the [binaries repo](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware_Binaries).
 
@@ -141,7 +165,11 @@ In the rare event that a unit is not staying on long enough for new firmware to 
 
 ## Updating Firmware From WiFi
 
-![Advanced system settings](<img/WiFi Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png>)
+<figure markdown>
+![Advanced system settings](./img/WiFi Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 !!! note
 	Firmware versions 1.1 to 1.9 have an issue that severely limits firmware upload over WiFi and is not recommended; use the [GUI](firmware_update.md#updating-firmware-using-the-uploader-gui) method instead. Firmware versions v1.10 and beyond support direct firmware updates via WiFi.
@@ -156,16 +184,22 @@ The command-line interface is also available. You’ll need to download the [RTK
 
 Connect a USB A to C cable from your computer to the ESP32 port on the RTK device. Turn the unit on. Now identify the COM port the RTK enumerated at. The easiest way to do this is to open the Device Manager:
 
-![CH340 is on COM6 as shown in Device Manager](img/Serial/RTK_Surveyor_-_Firmware_Update_COM_Port.jpg)
-
-*CH340 is on COM6 as shown in Device Manager*
+<figure markdown>
+![CH340 is on COM6 as shown in Device Manager](./img/Serial/RTK_Surveyor_-_Firmware_Update_COM_Port.jpg)
+<figcaption markdown>
+CH340 is on COM6 as shown in Device Manager
+</figcaption>
+</figure>
 
 !!! tip
 	If the COM port is not showing be sure the unit is turned **On**. If an unknown device is appearing, you’ll need to [install drivers for the CH340](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Once you know the COM port, open a command prompt (Windows button + r then type ‘cmd’).
 
-![batch_program.bat running esptool](<img/Terminal/SparkFun%20RTK%20Firmware%20Update%20CLI.png>)
-
-*batch_program.bat running esptool*
+<figure markdown>
+![batch_program.bat running esptool](./img/Terminal/SparkFun%20RTK%20Firmware%20Update%20CLI.png)
+<figcaption markdown>
+batch_program.bat running esptool
+</figcaption>
+</figure>
 
 Once the correct COM is identified, run 'batch_program.bat' along with the binary file name and COM port. For example *batch_program.bat RTK_Surveyor_Firmware_v2_0.bin COM6*. COM6 should be replaced by the COM port you identified earlier.
 

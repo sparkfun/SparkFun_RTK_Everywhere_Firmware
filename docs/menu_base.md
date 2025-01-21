@@ -41,15 +41,21 @@ Please see the following tutorials for more information:
 
 The Base Menu allows the user to select between Survey-In or Fixed Base setups.
 
-![Serial menu showing Base options](<img/Terminal/SparkFun RTK Everywhere - Base Menu Survey-In.png>)
-
-*Base Menu showing Survey-In Mode*
+<figure markdown>
+![Serial menu showing Base options](./img/Terminal/SparkFun RTK Everywhere - Base Menu Survey-In.png)
+<figcaption markdown>
+Base Menu showing Survey-In Mode
+</figcaption>
+</figure>
 
 In **Survey-In** mode, the minimum observation time can be set. The default is 60 seconds. The device will wait for the position accuracy to be better than 1 meter before a Survey-In is started. Don't be fooled; setting the observation time to 4 hours is not going to significantly improve the accuracy of the survey - use [PPP](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station#gather-raw-gnss-data) instead.
 
-![Fixed Base Coordinate input](<img/Terminal/SparkFun RTK Everywhere - Base Menu Fixed ECEF.png>)
-
-*Base Menu showing Fixed Base Mode with ECEF Coordinates*
+<figure markdown>
+![Fixed Base Coordinate input](./img/Terminal/SparkFun RTK Everywhere - Base Menu Fixed ECEF.png)
+<figcaption markdown>
+Base Menu showing Fixed Base Mode with ECEF Coordinates
+</figcaption>
+</figure>
 
 In **Fixed** mode, the coordinates of the antenna need to be set. These can be entered in ECEF or Geographic coordinates.
 
@@ -65,9 +71,12 @@ In *Fixed Base* mode the GNSS receiver will go into Base mode with the defined c
 
 Enabling NTRIP will present a handful of new options seen below:
 
-![NTRIP Server Settings](<img/Terminal/SparkFun RTK Everywhere - Base Menu Fixed Geodetic NTRIP Server.png>)
-
-*Settings for the NTRIP Servers*
+<figure markdown>
+![NTRIP Server Settings](./img/Terminal/SparkFun RTK Everywhere - Base Menu Fixed Geodetic NTRIP Server.png)
+<figcaption markdown>
+Settings for the NTRIP Servers
+</figcaption>
+</figure>
 
 This is a powerful feature of the RTK line of products. The RTK device can be configured to transmit its RTCM directly over WiFi to up to **4 Casters**. This eliminates the need for a radio link between one Base and one Rover. Providing more than one caster is a unique RTK Everywhere feature that allows a single base installation to push corrections to a public Caster (such as RTK2Go) as well as payment-generating casters (such as [Onocoy](https://www.onocoy.com/) or [Geodnet](https://geodnet.com/)).
 
@@ -83,25 +92,40 @@ The RTK device will monitor each NTRIP Server connection and automatically attem
 
 ## Commonly Use Coordinates
 
-![List of common coordinates](<img/WiFi Config/SparkFun%20RTK%20Base%20Configure%20-%20Commonly%20Used%20Points%20Menu.png>)
-
-*A list of common coordinates*
+<figure markdown>
+![List of common coordinates](./img/WiFi Config/SparkFun%20RTK%20Base%20Configure%20-%20Commonly%20Used%20Points%20Menu.png)
+<figcaption markdown>
+A list of common coordinates
+</figcaption>
+</figure>
 
 For users who return to the same base position or monument, the coordinates can be saved to a 'Commonly Used Coordinates' list. A nickname and the X/Y/Z positions are saved to the list. Any record on the list can be loaded from the list into the X/Y/Z fields allowing quick switching without the need to hand record or re-enter coordinates from day-to-day repositioning of the base.
 
 ## RTCM Message Rates
 
-![The RTCM Menu under Base](<img/WiFi Config/SparkFun%20RTK%20Base%20Survey%20In.png>)
+<figure markdown>
+![The RTCM Menu under Base](./img/WiFi Config/SparkFun%20RTK%20Base%20Survey%20In.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 When the device is in Base mode, the fix rate is set to 1Hz. This will override any Rover setting.
 
-![The list of supported RTCM messages](<img/WiFi Config/SparkFun%20RTK%20-%20Base%20RTCM%20Rates%20Menu.png>)
+<figure markdown>
+![The list of supported RTCM messages](./img/WiFi Config/SparkFun%20RTK%20-%20Base%20RTCM%20Rates%20Menu.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 Additionally, RTCM messages are generated at a rate of 1Hz. If lower RTCM rates are desired the RTCM Rates menu can be used to modify the rates of any supported RTCM message. This can be helpful when using longer-range radios that have lower bandwidth.
 
 ## Supported Lat/Long Coordinate Formats
 
-![Entering coordinates in alternate formats](<img/WiFi Config/SparkFun%20RTK%20-%20Alternate%20Coordinate%20Types%20for%20Fixed%20Base.png>)
+<figure markdown>
+![Entering coordinates in alternate formats](./img/WiFi Config/SparkFun%20RTK%20-%20Alternate%20Coordinate%20Types%20for%20Fixed%20Base.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 When entering coordinates for a fixed Base in Geodetic format, the following formats are supported:
 
@@ -113,9 +137,12 @@ When entering coordinates for a fixed Base in Geodetic format, the following for
 * DD MM SS.ssssss (-105 11 05.188992)
 * DD-MM-SS.ssssss (40-05-25.2075)
 
-![Coordinate formats in the Base serial menu](<img/Terminal/SparkFun RTK Everywhere - Base Menu Alternate Coordinate Format.png>)
-
-*Coordinates shown in DD MM SS.ssssss format*
+<figure markdown>
+![Coordinate formats in the Base serial menu](./img/Terminal/SparkFun RTK Everywhere - Base Menu Alternate Coordinate Format.png)
+<figcaption markdown>
+Coordinates shown in DD MM SS.ssssss format
+</figcaption>
+</figure>
 
 These coordinate formats are automatically detected and converted as needed. The coordinates are displayed in the format they are entered. If a different format is desired, the coordinate display format can be changed via the serial Base menu.
 

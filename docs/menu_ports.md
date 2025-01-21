@@ -15,19 +15,28 @@ Compatibility Icons
 - EVK: :material-radiobox-indeterminate-variant:{ .support-partial title="Feature Partially Supported" }
 </div>
 
-![Setting the baud rate of the ports](<img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg>)
+<figure markdown>
+![Setting the baud rate of the ports](./img/WiFi Config/RTK_Surveyor_-_WiFi_Config_-_Express_Ports_Config.jpg)
+<figcaption markdown>
+Setting the baud rates of the two available external ports
+</figcaption>
+</figure>
 
-*Setting the baud rates of the two available external ports*
-
-![Baud rate configuration of Radio and Data ports](<img/Terminal/SparkFun_RTK_Express_-_Ports_Menu.jpg>)
-
-*Baud rate configuration of Radio and Data ports*
+<figure markdown>
+![Baud rate configuration of Radio and Data ports](./img/Terminal/SparkFun_RTK_Express_-_Ports_Menu.jpg)
+<figcaption markdown>
+Baud rate configuration of Radio and Data ports
+</figcaption>
+</figure>
 
 ## Output GNSS Data over USB
 
-![Set output to GNSS data over USB Serial](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output.png>)
-
-*Set output to GNSS data over USB Serial*
+<figure markdown>
+![Set output to GNSS data over USB Serial](./img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output.png)
+<figcaption markdown>
+Set output to GNSS data over USB Serial
+</figcaption>
+</figure>
 
 Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally NMEA but also RTCM) to the USB serial connection. This permits a wired connection to be made on devices, such as the RTK Torch, that have only one external port (USB).
 
@@ -36,9 +45,12 @@ Enabling **Output GNSS data to USB serial** will pipe all GNSS output (generally
 
 Additionally, correction may be *sent* to the device over USB. RTCM corrections received over USB will follow the [Corrections Priority table](menu_corrections_priorities.md).
 
-![Example NMEA output over USB](<img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output Example.png>)
-
-*Example NMEA output over USB*
+<figure markdown>
+![Example NMEA output over USB](./img/Terminal/SparkFun RTK Everywhere - Ports USB GNSS Output Example.png)
+<figcaption markdown>
+Example NMEA output over USB
+</figcaption>
+</figure>
 
 ## Radio Port
 
@@ -62,9 +74,12 @@ The **Data** port on the RTK Facet, Express, and Express Plus is very flexible. 
 
 By default, the **Data** port is set to 460800bps and can be configured from 4800bps to 921600bps. The 460800bps baud rate was chosen to support applications where a large number of messages are enabled and a large amount of data is sent. If you need to decrease the baud rate to 115200bps or other, be sure to monitor the MON-COMM message within u-center for buffer overruns. A baud rate of 115200bps and the NMEA+RXM default configuration at 4Hz *will* cause buffer overruns.
 
-![Monitoring the COM ports on the ZED-F9P](img/SparkFun_RTK_Express_-_Ports_Menu_MON-COMM_Overrun.jpg)
-
-*Monitoring the COM ports on the ZED-F9P*
+<figure markdown>
+![Monitoring the COM ports on the ZED-F9P](./img/SparkFun_RTK_Express_-_Ports_Menu_MON-COMM_Overrun.jpg)
+<figcaption markdown>
+Monitoring the COM ports on the ZED-F9P
+</figcaption>
+</figure>
 
 If you must run the data port at lower than 460800bps, and you need to enable a large number of messages and/or increase the fix frequency beyond 4Hz, be sure to verify that UART1 usage stays below 99%. The image above shows the UART1 becoming overwhelmed because the ZED cannot transmit at 115200bps fast enough.
 
@@ -72,19 +87,29 @@ Most applications do not need to plug anything into the **Data** port. Most user
 
 ### Pulse Per Second
 
-![Configuring the External Pulse and External Events](<img/WiFi Config/SparkFun%20RTK%20Ports%20PPS%20Config.png>)
+<figure markdown>
+![Configuring the External Pulse and External Events](./img/WiFi Config/SparkFun%20RTK%20Ports%20PPS%20Config.png)
+<figcaption markdown>
+Configuring the External Pulse and External Events over WiFi
+</figcaption>
+</figure>
 
-*Configuring the External Pulse and External Events over WiFi*
-
-![RTK Mux Menu](img/Terminal/SparkFun_RTK_Express_-_Ports_Menu_Mux.jpg)
-
-*Port menu showing mux data port connections*
+<figure markdown>
+![RTK Mux Menu](./img/Terminal/SparkFun_RTK_Express_-_Ports_Menu_Mux.jpg)
+<figcaption markdown>
+Port menu showing mux data port connections
+</figcaption>
+</figure>
 
 When PPS/Event Trigger is selected, the Pulse-Per-Second output from the ZED-F9x is sent out of the TX pin of the DATA port. Once the RTK device has GNSS reception, this can be used as a *very* accurate time base.
 
 The time between pulses can be configured down to 100ns (10MHz) with an accuracy of 30ns RMS and 60ns 99%. The pulse width and polarity are also configurable.
 
-![Wires connected to a SparkFun USB C to Serial adapter](img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg)
+<figure markdown>
+![Wires connected to a SparkFun USB C to Serial adapter](./img/SparkFun_RTK_Facet_-_Data_Port_to_USB.jpg)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 For PPS, only the Black and Green wires are needed. If you need to provide 3.3V to your system, the red wire can supply up to 600mA but we do not recommend sourcing more than 300mA.
 

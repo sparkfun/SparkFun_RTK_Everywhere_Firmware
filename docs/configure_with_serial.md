@@ -23,16 +23,21 @@ To configure an RTK device using serial attach a [USB C cable](https://www.spark
 
 ## RTK Torch
 
-[![The USB Connector on the RTK Torch](<img/RTK-Torch_Buttons_Back-Small.png>)](<img/RTK-Torch_Buttons_Back.png>)
-
-
-*The USB Connector on the RTK Torch*
+<figure markdown>
+[![The USB Connector on the RTK Torch](./img/RTK-Torch_Buttons_Back-Small.png)](./img/RTK-Torch_Buttons_Back.png)
+<figcaption markdown>
+The USB Connector on the RTK Torch
+</figcaption>
+</figure>
 
 Pull back the silicone cover and insert a USB C and power on the device. Once the device is powered on, open the `Device Manager` in Windows and look under the Ports branch to see what COM port the device is assigned to.
 
-![SparkFun RTK Torch Two Enumerated Ports](img/Torch/RTK-Torch_Two-COM-Ports.png)
-
-*SparkFun RTK Torch Two Enumerated Ports*
+<figure markdown>
+![SparkFun RTK Torch Two Enumerated Ports](./img/Torch/RTK-Torch_Two-COM-Ports.png)
+<figcaption markdown>
+SparkFun RTK Torch Two Enumerated Ports
+</figcaption>
+</figure>
 
 Configuring the RTK device is done over the *USB-Enhanced-SERIAL-B CH342* COM port via the serial text menu. Various debug messages are printed to this port at 115200bps and a serial menu can be opened to configure advanced settings.
 
@@ -45,9 +50,12 @@ Open a terminal window at 115200bps; you should see various status messages ever
 
 Note that some Windows terminal programs (e.g. Tera Term) may reboot the RTK device when the terminal connection is closed. You can disconnect the USB cable first to prevent this from happening.
 
-![Terminal showing the main menu](<img/Terminal/SparkFun RTK Everywhere - Main Menu.png>)
-
-*The Main Menu*
+<figure markdown>
+![Terminal showing the main menu](./img/Terminal/SparkFun RTK Everywhere - Main Menu.png)
+<figcaption markdown>
+The Main Menu
+</figcaption>
+</figure>
 
 Pressing any button will display the Main menu. The Main menu will display the current firmware version and the Bluetooth broadcast name.
 
@@ -58,9 +66,12 @@ Pressing '1' or 's' for example, will open those submenus.
 
 The menus will timeout after 10 minutes of inactivity, so if you do not press a key the device will exit the menu and return to reporting status messages.
 
-![Configuration menu open over Bluetooth](img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Exit%20BEM.png)
-
-*Configuration menu via Bluetooth*
+<figure markdown>
+![Configuration menu open over Bluetooth](./img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Exit%20BEM.png)
+<figcaption markdown>
+Configuration menu via Bluetooth
+</figcaption>
+</figure>
 
 !!! note
 	Bluetooth-based configuration is supported. Please see [Configure With Bluetooth](configure_with_bluetooth.md) for more information.
@@ -69,9 +80,12 @@ The menus will timeout after 10 minutes of inactivity, so if you do not press a 
 
 Sending the `~` character to the device over the serial port will trigger a system status report. This is a custom NMEA-style sentence, complete with CRC.
 
-![System status NMEA outputted to terminal](<img/Terminal/SparkFun RTK System Status Trigger.png>)
-
-*Terminal showing System Status*
+<figure markdown>
+![System status NMEA outputted to terminal](./img/Terminal/SparkFun RTK System Status Trigger.png)
+<figcaption markdown>
+Terminal showing System Status
+</figcaption>
+</figure>
 
 !!! example
 	Below is an example system status report sentence:

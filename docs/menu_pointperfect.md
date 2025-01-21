@@ -16,19 +16,28 @@ Compatibility Icons
 
 </div>
 
-![PointPerfect Menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png>)
+<figure markdown>
+![PointPerfect Menu](./img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png)
+<figcaption markdown>
+Configuring PointPerfect settings over serial
+</figcaption>
+</figure>
 
-*Configuring PointPerfect settings over serial*
-
-![PointPerfect Configuration Menu](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
-
-*PointPerfect Configuration Menu*
+<figure markdown>
+![PointPerfect Configuration Menu](./img/WiFi Config/SparkFun RTK PointPerfect Config.png)
+<figcaption markdown>
+PointPerfect Configuration Menu
+</figcaption>
+</figure>
 
 ## Coverage
 
-[![PointPerfect Coverage map including L-Band and IP delivery methods](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png>)](https://www.u-blox.com/en/pointperfect-service-coverage)
-
-*PointPerfect Coverage map including L-Band and IP delivery methods*
+[<figure markdown>
+![PointPerfect Coverage map including L-Band and IP delivery methods](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Coverage Map Small.png)](https://www.u-blox.com/en/pointperfect-service-coverage)
+<figcaption markdown>
+PointPerfect Coverage map including L-Band and IP delivery methods
+</figcaption>
+</figure>
 
 SparkFun RTK devices are equipped to get corrections from a service called PointPerfect.
 
@@ -63,23 +72,32 @@ The u-blox PointPerfect Localized correction service via MQTT (IP) offers quick 
 
 PointPerfect Localized works by dividing the coverage area into a grid of tiles. Each tile contains a set of nodes that are relevant to a user located within that tile. Unlike the continental level approach where a device subscribes to the continental level topic, in the localized approach a device subscribes to the localized node topic based on its location. This ensures that the device receives only the correction data that is relevant to its location, greatly reducing the required bandwidth.
 
-![Comparison of PointPerfect Localized node density](<img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Localized Distribution.png>)
-
-*Comparison of PointPerfect Localized node density*
+<figure markdown>
+![Comparison of PointPerfect Localized node density](./img/PointPerfect/SparkFun RTK Everywhere - PointPerfect Localized Distribution.png)
+<figcaption markdown>
+Comparison of PointPerfect Localized node density
+</figcaption>
+</figure>
 
 The above image shows the Localized tiles for Level 2 (250 x 250km sparse, ~90-100km separation) vs. Level 5 (250 x 250km high density, ~30km separation).
 
 Localized distribution can be enabled via the serial menu (PointPerfect menu - option 'p'), or the web config page. On serial, option '4' will enable or disable localized distribution; option '5' selects the tile level.
 
-![PointPerfect Menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png>)
-
-*Configuring PointPerfect settings over serial*
+<figure markdown>
+![PointPerfect Menu](./img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png)
+<figcaption markdown>
+Configuring PointPerfect settings over serial
+</figcaption>
+</figure>
 
 ## Registration
 
-![Three stickers showing Device ID and QR code to registration page](<img/Torch/SparkFun RTK Torch - Device ID Stickers.png>)
-
-*Three stickers showing Device ID and QR code to registration page*
+<figure markdown>
+![Three stickers showing Device ID and QR code to registration page](./img/Torch/SparkFun RTK Torch - Device ID Stickers.png)
+<figcaption markdown>
+Three stickers showing Device ID and QR code to registration page
+</figcaption>
+</figure>
 
 All SparkFun RTK products must be registered before they are allowed on the PointPerfect network. To facilitate this, most products ship with a printed Device ID sticker and registration QR code included with the product. The QR code will prefill the registration page with the device's unique ID. If you do not have these materials, don't worry!
 
@@ -98,17 +116,23 @@ On RTK L-Band equipped devices, if the keys fully expire, the device will contin
 !!! note
 	All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio, WiFi or Ethernet (depending on model).
 
-![Display showing 14 days until Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
-
-*Display showing 14 days until keys expire*
+<figure markdown>
+![Display showing 14 days until Keys Expire](./img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
+<figcaption markdown>
+Display showing 14 days until keys expire
+</figcaption>
+</figure>
 
 On devices that have a display, the unit will display various prompts to aid the user in obtaining keys as needed.
 
 ## PointPerfect Serial Menu
 
-![PointPerfect Menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png>)
-
-*PointPerfect Menu*
+<figure markdown>
+![PointPerfect Menu](./img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu.png)
+<figcaption markdown>
+PointPerfect Menu
+</figcaption>
+</figure>
 
 The *Days until keys expire* inform the user how many days the unit has until it needs to connect to WiFi or Ethernet to obtain new keys.
 
@@ -134,21 +158,30 @@ The *Days until keys expire* inform the user how many days the unit has until it
 
 The device ID is unique to each RTK device and must be entered by SparkFun into the PointPerfect network.
 
-![Device ID within the serial menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Device ID.png>)
+<figure markdown>
+![Device ID within the serial menu](./img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Device ID.png)
+<figcaption markdown>
+Device ID within the serial menu
+</figcaption>
+</figure>
 
-*Device ID within the serial menu*
-
-![Device ID within the WiFi Config page](<img/WiFi Config/SparkFun RTK PointPerfect Config.png>)
-
-*Device ID within the WiFi Config page*
+<figure markdown>
+![Device ID within the WiFi Config page](./img/WiFi Config/SparkFun RTK PointPerfect Config.png)
+<figcaption markdown>
+Device ID within the WiFi Config page
+</figcaption>
+</figure>
 
 This ID can be obtained by using option **i** from the *PointPerfect* menu or by opening the PointPerfect section within the [WiFi Config](https://docs.sparkfun.com/SparkFun_RTK_Everywhere_Firmware/configure_with_wifi/) interface in the PointPerfect Configuration section.
 
 ## Manual Key Entry
 
-![Manual Key Entry menu](<img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Manual Key Entry.png>)
-
-*Manual Key Entry Menu*
+<figure markdown>
+![Manual Key Entry menu](./img/Terminal/SparkFun RTK Everywhere - PointPerfect Menu Manual Key Entry.png)
+<figcaption markdown>
+Manual Key Entry Menu
+</figcaption>
+</figure>
 
 Because of the length and complexity of the keys, we do not recommend you manually enter them. This menu is most helpful for displaying the current keys.
 
@@ -156,13 +189,19 @@ Option '1' will allow a user to enter their Device Profile Token. This is the to
 
 ## L-Band Decryption Icon
 
-![Three-pronged satellite dish indicating L-Band reception](img/Displays/SparkFun_RTK_LBand_Indicator.jpg)
+<figure markdown>
+![Three-pronged satellite dish indicating L-Band reception](./img/Displays/SparkFun_RTK_LBand_Indicator.jpg)
+<figcaption markdown>
+Three-pronged satellite dish indicating L-Band reception
+</figcaption>
+</figure>
 
-*Three-pronged satellite dish indicating L-Band reception*
-
-![Three-pronged satellite dish indicating L-Band reception on EVK](img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)
-
-*Three-pronged satellite dish indicating L-Band reception on EVK*
+<figure markdown>
+![Three-pronged satellite dish indicating L-Band reception on EVK](./img/Displays/SparkFun_RTK_EVK_LBand_Indicator.png)
+<figcaption markdown>
+Three-pronged satellite dish indicating L-Band reception on EVK
+</figcaption>
+</figure>
 
 On devices that have a display, upon successful reception and decryption of PointPerfect corrections delivered over L-Band, the satellite dish icon will increase to a three-pronged icon. As the unit's fix increases the cross-hair will indicate a basic 3D solution, a double blinking cross-hair will indicate a floating RTK solution, and a solid double cross-hair will indicate a fixed RTK solution.
 

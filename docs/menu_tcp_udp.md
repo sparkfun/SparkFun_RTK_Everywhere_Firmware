@@ -18,9 +18,12 @@ Compatibility Icons
 
 NMEA data is generally consumed by a GIS application or Data Collector. These messages can be transmitted over a variety of transport methods. This section focuses on the delivery of NMEA messages via TCP and UDP.
 
-	![TCP/UDP Menu showing various TCP/UDP Client and Server options](<img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png>)
-
-*TCP/UDP Menu showing various Client and Server options*
+<figure markdown>
+![TCP/UDP Menu showing various TCP/UDP Client and Server options](./img/Terminal/SparkFun RTK Everywhere - TCP-UDP Menu.png)
+<figcaption markdown>
+TCP/UDP Menu showing various Client and Server options
+</figcaption>
+</figure>
 
 ## TCP Client and Server
 
@@ -29,11 +32,19 @@ The RTK device supports connection over TCP. The TCP Client sits on top of the n
 !!! note
 	Currently for WiFi: TCP is only supported while connected to local WiFi, not AP mode. This means the device will need to be connected to a WiFi network, such as a mobile hotspot, before TCP connections can occur.
 
-![TCP Port Entry](img/WiFi%20Config/SparkFun%20RTK%20Config%20-%20TCP%20Port.png)
+<figure markdown>
+![TCP Port Entry](./img/WiFi%20Config/SparkFun%20RTK%20Config%20-%20TCP%20Port.png)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 If either Client or Server is enabled, a port can be designated. By default, the port is 2947 (registered as [*GPS Daemon request/response*](https://tcp-udp-ports.com/port-2948.htm)) but any port 0 to 65535 is supported.
 
-![Ethernet TCP Client connection](img/Terminal/TCP_Client.gif)
+<figure markdown>
+![Ethernet TCP Client connection](./img/Terminal/TCP_Client.gif)
+<figcaption markdown>
+</figcaption>
+</figure>
 
 The above animation was generated using [TCP_Server.py](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/Firmware/Tools/TCP_Server.py).
 
