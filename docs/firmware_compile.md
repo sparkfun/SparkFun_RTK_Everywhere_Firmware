@@ -12,9 +12,11 @@ The SparkFun RTK Everywhere Firmware is compiled using Arduino CLI (currently [v
 
 		arduino-cli core install esp32:esp32@3.0.1
 
-**Note**: Use v3.0.1 of the core.
+	!!! note
+		Use v3.0.1 of the core.
 
-**Note:** We use the 'ESP32 Dev Module' for pin numbering.
+	!!! note
+		We use the 'ESP32 Dev Module' for pin numbering.
 
 3. Obtain each of the libraries listed in [the workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72) either by using git or the Arduino CLI [library manager](https://arduino.github.io/arduino-cli/0.21/commands/arduino-cli_lib_install/). Be sure to obtain the version of the library reflected in the [workflow](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware/blob/main/.github/workflows/compile-rtk-everywhere.yml#L72). Be sure to include the external libraries (You may have to enable external library support in the CLI).
 
@@ -40,7 +42,8 @@ If you are seeing the error:
 
 You have either not replaced the partition file correctly or failed to include the 'upload.maximum_size' argument in your compile command. See steps 4 through 6 above.
 
-**Note:** There are a variety of compile guards (COMPILE_WIFI, COMPILE_AP, etc) at the top of RTK_Everywhere.ino that can be commented out to remove them from compilation. This will greatly reduce the firmware size and allow for faster development of functions that do not rely on these features (serial menus, system configuration, logging, etc).
+!!! note
+	There are a variety of compile guards (COMPILE_WIFI, COMPILE_AP, etc) at the top of RTK_Everywhere.ino that can be commented out to remove them from compilation. This will greatly reduce the firmware size and allow for faster development of functions that do not rely on these features (serial menus, system configuration, logging, etc).
 
 ## Ubuntu 20.04
 

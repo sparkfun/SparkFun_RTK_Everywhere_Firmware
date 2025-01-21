@@ -72,11 +72,13 @@ Remove the four Philips head screws. They may not come all the way out of the lo
 
 The top lid should then come off. The front overlay is adhesive and may adhere slightly to the 'tooth' on the lid. You will not damage anything by gently prying it loose from the lid as you lift the lid.
 
-**Tip:** The lid makes a great screw bin.
+!!! tip
+	The lid makes a great screw bin.
 
 ![Remove the antenna](img/Repair/SparkFun-RTK-Repair-4.jpg)
 
-Note the antenna orientation so that it can be re-mounted in the same way. A sharpie dot towards the display is a handy method.
+!!! warning "Attention"
+	Please, note the antenna orientation so that it can be re-mounted in the same way. A sharpie dot towards the display is a handy method.
 
 Remove the four screws holding the antenna in place.
 
@@ -90,9 +92,11 @@ The antenna will be attached to the main board and must stay that way for the ne
 
 The battery and vertical PCBs are held in place using a retention PCB. Remove the four screws holding the PCB in place and lift off the foam top of the battery holder.
 
-**Note:** v1.0 of the retention plate is not symmetrical. Meaning, if the plate is installed in reverse, the retention PCB will be just short of the connector board and will not properly hold it in place. Reinstall the retention plate as shown in the picture.
+!!! note
+	v1.0 of the retention plate is not symmetrical. Meaning, if the plate is installed in reverse, the retention PCB will be just short of the connector board and will not properly hold it in place. Reinstall the retention plate as shown in the picture.
 
-**Note:** The foam is held to the PCB using an adhesive. Some of that adhesive is exposed to catch material that may enter into the enclosure. Try to avoid getting stuck.
+!!! note
+	The foam is held to the PCB using an adhesive. Some of that adhesive is exposed to catch material that may enter into the enclosure. Try to avoid getting stuck.
 
 ![Holder PCB to the side](img/Repair/SparkFun-RTK-Repair-7.jpg)
 
@@ -106,7 +110,8 @@ This is the most dangerous step. The cable connecting the antenna to the main bo
 
 Using the U.FL removal tool, slide the tool onto the U.FL connector and gently pull away from the main board. If it won't give, you may need to angle the tool slightly while pulling.
 
-**Note:** If you do not have a U.FL tool this [tutorial on U.FL connectors](https://learn.sparkfun.com/tutorials/three-quick-tips-about-using-ufl/all#disconnect) has three alternative methods using tweezers, wire cutters, and a skinny PCB that may also work.
+!!! note
+	If you do not have a U.FL tool this [tutorial on U.FL connectors](https://learn.sparkfun.com/tutorials/three-quick-tips-about-using-ufl/all#disconnect) has three alternative methods using tweezers, wire cutters, and a skinny PCB that may also work.
 
 ![U.FL connector removed](img/Repair/SparkFun-RTK-Repair-9.jpg)
 
@@ -128,7 +133,8 @@ The main board is attached to the battery and the connector board. Lift the main
 
 ![Removing the JST connector](img/Repair/SparkFun-RTK-Repair-14.jpg)
 
-**Note:** This step is not needed for general repair. Only disconnect the battery if you are replacing the battery.
+!!! note
+	This step is not needed for general repair. Only disconnect the battery if you are replacing the battery.
 
 The battery is plugged into the mainboard using a JST connector. These are very strong connectors. *Do not* pull on the wires. We recommend using the mouth of wire cutters (also known as diagonal cutters) to pry the connector sideways.
 
@@ -214,7 +220,8 @@ Carefully line the U.FL connector up with the main board and gently press the co
 
 Place the retention plate and foam over the battery. The battery may need to be nudged slightly to align with the upper cavity.
 
-**Note:** v1.0 of the retention plate is not symmetrical. Meaning, if the plate is installed in reverse, the retention PCB will be just short of the connector board and will not properly hold it in place. Reinstall the retention plate as shown in the picture above.
+!!! note
+	v1.0 of the retention plate is not symmetrical. Meaning, if the plate is installed in reverse, the retention PCB will be just short of the connector board and will not properly hold it in place. Reinstall the retention plate as shown in the picture above.
 
 Secure the retention plate with the four *small* screws.
 

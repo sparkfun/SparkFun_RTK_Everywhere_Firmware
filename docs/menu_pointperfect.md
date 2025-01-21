@@ -35,7 +35,11 @@ SparkFun RTK devices are equipped to get corrections from a service called Point
 PointPerfect has the following benefits and challenges:
 
 * Most SparkFun RTK devices come with either a pre-paid subscription or one month of free access to PointPerfect. Please see the product details for your device. [Go here for RTK Torch](https://www.sparkfun.com/rtk_torch_registration) to enable or renew your subscription. [Go here for RTK EVK](https://www.sparkfun.com/rtk_evk_registration) subscriptions.
-* A SparkFun RTK device can obtain RTK Fix anywhere there is [coverage](https://www.u-blox.com/en/pointperfect-service-coverage). This includes the US contiguous 48 states, the EU, Korea, as well as parts of Australia, Brazil, and Canada. Note: L-Band coverage is not available in some of these areas.
+* A SparkFun RTK device can obtain RTK Fix anywhere there is [coverage](https://www.u-blox.com/en/pointperfect-service-coverage). This includes the US contiguous 48 states, the EU, Korea, as well as parts of Australia, Brazil, and Canada.
+
+	!!! note
+		 L-Band coverage is not available in some of these areas.
+
 * You don't need to be near a base station - the PPP-RTK model covers entire continents.
 * Because PointPerfect uses a model instead of a dedicated base station, it is cheaper. However, the RTK Fix is not as accurate (3-6cm) as compared to getting corrections from a dedicated base station (2cm or better but depends on the baseline distance).
 * Because PointPerfect uses a model instead of a dedicated base station, convergence times (the time to get to RTK Fix) can vary widely. Expect to wait multiple minutes for an RTK Fix, as opposed to corrections from a dedicated that can provide an RTK Fix in seconds.
@@ -91,7 +95,8 @@ PointPerfect keys are valid for a maximum of 56 days. During that time, the RTK 
 
 On RTK L-Band equipped devices, if the keys fully expire, the device will continue to receive the L-Band signal but will be unable to decrypt the signal. The RTK EVK will continue to have extraordinary accuracy (we've seen better than 0.15m HPA) but not the centimeter-level accuracy that comes with RTK.
 
-**Note:** All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio, WiFi or Ethernet (depending on model).
+!!! note
+	All RTK devices (including those equipped with L-Band) are capable of receiving RTCM corrections over traditional means including NTRIP data over Bluetooth or a serial radio, WiFi or Ethernet (depending on model).
 
 ![Display showing 14 days until Keys Expire](img/Displays/SparkFun_RTK_LBand_DayToExpire.jpg)
 

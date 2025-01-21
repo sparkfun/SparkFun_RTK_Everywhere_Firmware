@@ -26,7 +26,8 @@ NMEA data is generally consumed by a GIS application or Data Collector. These me
 
 The RTK device supports connection over TCP. The TCP Client sits on top of the network layer (WiFi or Ethernet) and sends position data to one or more computers or cell phones for display. Some Data Collector software (such as [Vespucci](gis_software.md#vespucci)) requires that the SparkFun RTK device connect as a TCP Client. Other software (such as [QGIS](gis_software.md#qgis)) requires that the SparkFun RTK device acts as a TCP Server. Both are supported.
 
-**Note:** Currently for WiFi: TCP is only supported while connected to local WiFi, not AP mode. This means the device will need to be connected to a WiFi network, such as a mobile hotspot, before TCP connections can occur.
+!!! note
+	Currently for WiFi: TCP is only supported while connected to local WiFi, not AP mode. This means the device will need to be connected to a WiFi network, such as a mobile hotspot, before TCP connections can occur.
 
 ![TCP Port Entry](img/WiFi%20Config/SparkFun%20RTK%20Config%20-%20TCP%20Port.png)
 

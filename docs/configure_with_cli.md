@@ -54,15 +54,16 @@ If there was an error in getting the setting value, such as the setting name bei
 
 	$SPGET,[setting name],,ERROR,[Verbose error description]*FF<CR><LF>
 
-For example, to get the elevation mask:
+!!! example
+	For example, to get the elevation mask:
 
-Send:
+	Send:
 
-	$SPGET,elvMask*32<CR><LF>
+		$SPGET,elvMask*32<CR><LF>
 
-Receive:
+	Receive:
 
-	$SPGET,elvMask,15*1A<CR><LF>
+		$SPGET,elvMask,15*1A<CR><LF>
 
 If a setting is a string, the setting will be surrounded in quotes. Any internal quotes will be escaped.
 
@@ -88,15 +89,16 @@ If there was an error in setting the value, such as the setting name being unkno
 
 	$SPSET,[setting name],[optional: current value],ERROR,[Verbose error description]*FF<CR><LF>
 
-For example, to set the elevation mask:
+!!! example
+	For example, to set the elevation mask:
 
-Send:
+	Send:
 
-	$SPSET,elvMask,15*0E<CR><LF>
+		$SPSET,elvMask,15*0E<CR><LF>
 
-Receive:
+	Receive:
 
-	$SPSET,elvMask,15,OK*26<CR><LF>
+		$SPSET,elvMask,15,OK*26<CR><LF>
 
 Using the $SPSET command only sets the configuration value in the firmware memory. The settings are not applied until an APPLY action is executed.
 
@@ -186,15 +188,16 @@ The $SPLST sentences shall have the following structure:
 
 The data type contains whether the field is a char[n], int, bool, or float.
 
-Example response:
+!!! example
+	Example response:
 
-	$SPLST,enableSD,bool,true*6A<CR><LF>
-	$SPLST,enableDisplay,bool,true*27<CR><LF>
-	$SPLST,maxLogTime_minutes,int,1*01<CR><LF>
-	$SPLST,maxLogLength_minutes,int,10*38<CR><LF>
-	$SPLST,observationSeconds,int,10*37<CR><LF>
-	$SPLST,observationPositionAccuracy,float,0.5*59<CR><LF>
-	.
-	.
-	.
-	$SPEXE,LIST,OK*5D<CR><LF>
+		$SPLST,enableSD,bool,true*6A<CR><LF>
+		$SPLST,enableDisplay,bool,true*27<CR><LF>
+		$SPLST,maxLogTime_minutes,int,1*01<CR><LF>
+		$SPLST,maxLogLength_minutes,int,10*38<CR><LF>
+		$SPLST,observationSeconds,int,10*37<CR><LF>
+		$SPLST,observationPositionAccuracy,float,0.5*59<CR><LF>
+		.
+		.
+		.
+		$SPEXE,LIST,OK*5D<CR><LF>

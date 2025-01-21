@@ -38,7 +38,10 @@ ESP-NOW is a free radio included in every RTK product and works well, but it has
 
 ![Pairing Menu](img/Displays/SparkFun%20RTK%20Radio%20E-Pair.png)
 
-For most setups, pairing is not needed. By default, any device that has ESP-NOW enabled will receive communication from any other device that has ESP-NOW enabled. This allows a Base to communicate with dozens of Rovers without further configuration, simply enable ESP-NOW and enter Base mode. However, if you are in an environment where other Base units may be setup and broadcasting using the ESP-NOW radios, then devices can be paired to each other to limit communication to only paired devices. Note: A Base can be paired with multiple Rovers. This allows multipoint or multicasting of corrections to multiple Rovers.
+For most setups, pairing is not needed. By default, any device that has ESP-NOW enabled will receive communication from any other device that has ESP-NOW enabled. This allows a Base to communicate with dozens of Rovers without further configuration, simply enable ESP-NOW and enter Base mode. However, if you are in an environment where other Base units may be setup and broadcasting using the ESP-NOW radios, then devices can be paired to each other to limit communication to only paired devices.
+
+!!! note
+	A Base can be paired with multiple Rovers. This allows multipoint or multicasting of corrections to multiple Rovers.
 
 On devices that have a display, clicking the Mode button will display the various submenus. Double-clicking on E-Pair will put the unit into ESP-NOW pairing mode. If another RTK device is detected nearby in pairing mode, they will exchange MAC addresses and pair with each other. Multiple Rover units can be paired to a Base in the same fashion.
 
@@ -62,7 +65,8 @@ A serial menu is also available. This menu allows users to enter pairing mode, c
 
 All devices must be on the same WiFi channel to communicate over ESP-NOW. Option **4 - Current channel** shows the current channel and allows a user to select a new one. Allowable channel numbers are 1 to 14. By default, devices will communicate on Channel 1. A user may select any channel they prefer.
 
-**Note:** ESP-NOW can operate at the same time as WiFi but the user should be aware of the channel numbers of the devices. When a device connects to a WiFi network, the ESP-NOW channel number may be altered by the WiFi radio so that the RTK device can communicate with the WiFi Access Point.
+!!! note
+	ESP-NOW can operate at the same time as WiFi but the user should be aware of the channel numbers of the devices. When a device connects to a WiFi network, the ESP-NOW channel number may be altered by the WiFi radio so that the RTK device can communicate with the WiFi Access Point.
 
 Using a single device to communicate corrections to multiple devices (no WiFi involved) is the most common use case for ESP-NOW.
 
@@ -94,7 +98,8 @@ Compatibility Icons
 
 The RTK Torch has a built-in 1W LoRa radio that allows Base to Rover communication. This radio is based on the STM32WLE5CC which contains a microcontroller and a LoRa radio. Attached to this radio is a 1W power amplifier. The radio transmits in the ISM band from 902 to 928MHz and is legal to use in North America and South America. The radio implements frequency hopping spread spectrum (FHSS) techniques as well as LoRa modulation to maximize transmission distance while switching frequencies to abide by FCC requirements. Additionally, the LoRa system supports multipoint allowing one Base to communicate with dozens of Rovers.
 
-**Note:** RTK Torch LoRa radio uses a different frequency hopping algorithm from other radios that SparkFun sells. Therefore, RTK Torches are currently only compatible with each other and cannot be used interoperably with other LoRa or 915MHz radios.
+!!! note
+	RTK Torch LoRa radio uses a different frequency hopping algorithm from other radios that SparkFun sells. Therefore, RTK Torches are currently only compatible with each other and cannot be used interoperably with other LoRa or 915MHz radios.
 
 ![1500ft (450m) range between Base and Rover using LoRa radios](<img/Radios/SparkFun RTK LoRa Non-Line-Of-Sight Distance Test.png>)
 
@@ -116,8 +121,12 @@ The 1 Watt power output of the radio allows for long range transmissions when ob
 
 From the radios menu, the LoRa radio can be enabled and configured.
 
-**Don't see a LoRa menu?** Support was added starting in version v1.4. Please upgrade the [ESP32 firmware](firmware_update_esp32.md) on your device. Additionally, you may need to update the firmware on the [LoRa radio firmware](firmware_update_stm32.md).
+!!! tip "Don't see a LoRa menu?"
+	Support was added starting in version v1.4. Please upgrade the [ESP32 firmware](firmware_update_esp32.md) on your device. Additionally, you may need to update the firmware on the [LoRa radio firmware](firmware_update_stm32.md).
 
 The *LoRa Coordination Frequency* must be the same between all Base and Rovers. The default is usually sufficient but if other RTK Torches are operating LoRa radios in the area, switching frequencies will allow multiple networks to operate simultaneously.
 
-The *Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode* is our longest user setting name to date! Because of hardware limitations, the device cannot communicate over USB at the same time it communicates with the LoRa radio. For normal Rover operation in the field where a device is usually connected over Bluetooth or other wireless protocols, LoRa operation happens seamlessly and this setting can be ignored. But if a device is connected over USB, and no serial input is received over USB for 30 seconds (default), the USB connection will be severed and LoRa communication will be prioritized. A user may want to increase this timeout if a system is communicating with the device over USB, or decrease it if a device is connected to USB (ie, for charging) and LoRa communication should initiate as quickly as possible. Note: If a timeout has occurred, USB communication can be restored by unplugging and plugging the cable back in.
+The *Seconds without user serial that must elapse before LoRa radio goes into dedicated listening mode* is our longest user setting name to date! Because of hardware limitations, the device cannot communicate over USB at the same time it communicates with the LoRa radio. For normal Rover operation in the field where a device is usually connected over Bluetooth or other wireless protocols, LoRa operation happens seamlessly and this setting can be ignored. But if a device is connected over USB, and no serial input is received over USB for 30 seconds (default), the USB connection will be severed and LoRa communication will be prioritized. A user may want to increase this timeout if a system is communicating with the device over USB, or decrease it if a device is connected to USB (ie, for charging) and LoRa communication should initiate as quickly as possible.
+
+!!! note
+	If a timeout has occurred, USB communication can be restored by unplugging and plugging the cable back in.

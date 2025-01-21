@@ -30,7 +30,8 @@ The RTK device will be a discoverable Bluetooth device (both BT SPP and BLE are 
 
 Once connected, the RTK device will report a large amount of NMEA data over the link. To enter Bluetooth Echo Mode send the characters +++.
 
-**Note:** There must be a 2 second gap between any serial sent from a phone to the RTK device, and any escape characters. In almost all cases this is not a problem. Just be sure it's been 2 seconds since an NTRIP source has been turned off and attempting to enter Bluetooth Echo Mode.
+!!! note
+	There must be a 2 second gap between any serial sent from a phone to the RTK device, and any escape characters. In almost all cases this is not a problem. Just be sure it's been 2 seconds since an NTRIP source has been turned off and attempting to enter Bluetooth Echo Mode.
 
 ![The GNSS message menu over BEM](img/Bluetooth/SparkFun%20RTK%20BEM%20-%20Config%20Menu.png)
 

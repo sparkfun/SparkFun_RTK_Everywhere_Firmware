@@ -67,7 +67,8 @@ To get into WiFi configuration follow these steps:
 
 *The WiFi network RTK Config as seen from a cellphone*
 
-Note: Upon connecting, your phone may warn you that this WiFi network has no internet. That's ok. Stay connected to the network and open a browser. If you still have problems turn off Mobile Data so that the phone does not default to cellular for internet connectivity and instead connects to the RTK Device.
+!!! note
+	Upon connecting, your phone may warn you that this WiFi network has no internet. That's ok. Stay connected to the network and open a browser. If you still have problems turn off Mobile Data so that the phone does not default to cellular for internet connectivity and instead connects to the RTK Device.
 
 ![Webpage showing the RTK Configuration options](<img/WiFi Config/SparkFun RTK WiFi Config - Main Interface.png>)
 
@@ -79,7 +80,8 @@ Clicking on the category tab will open or close that section. Clicking on an ‘
 
 *This unit has firmware version 1.0 and a UM980 GNSS receiver*
 
-Please note that the firmware for the RTK device and the firmware for the GNSS receiver is shown at the top of the page. This can be helpful when troubleshooting or requesting new features.
+!!! note
+	The firmware for the RTK device and the firmware for the GNSS receiver is shown at the top of the page. This can be helpful when troubleshooting or requesting new features.
 
 ## File Manager
 

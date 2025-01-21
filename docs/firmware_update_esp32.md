@@ -132,7 +132,8 @@ Download the latest binary file located on the [releases page](https://github.co
 
 The firmware upgrade menu will only display files that have the "RTK_Surveyor_Firmware*.bin" file name format so don't change the file names once loaded onto the SD card. Select the firmware you'd like to load and the system will proceed to load the new firmware, then reboot.
 
-**Note:** The firmware is called `RTK_Surveyor_Firmware_vXX.bin` even though there are various RTK products (Facet, Express, Surveyor, etc). We united the different platforms into one. The [RTK Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware) runs on all our RTK products.
+!!! note
+	The firmware is called `RTK_Surveyor_Firmware_vXX.bin` even though there are various RTK products (Facet, Express, Surveyor, etc). We united the different platforms into one. The [RTK Firmware](https://github.com/sparkfun/SparkFun_RTK_Everywhere_Firmware) runs on all our RTK products.
 
 ### Force Firmware Loading
 
@@ -142,7 +143,8 @@ In the rare event that a unit is not staying on long enough for new firmware to 
 
 ![Advanced system settings](<img/WiFi Config/SparkFun%20RTK%20System%20Config%20Upload%20BIN.png>)
 
-**Note:** Firmware versions 1.1 to 1.9 have an issue that severely limits firmware upload over WiFi and is not recommended; use the [GUI](firmware_update.md#updating-firmware-using-the-uploader-gui) method instead. Firmware versions v1.10 and beyond support direct firmware updates via WiFi.
+!!! note
+	Firmware versions 1.1 to 1.9 have an issue that severely limits firmware upload over WiFi and is not recommended; use the [GUI](firmware_update.md#updating-firmware-using-the-uploader-gui) method instead. Firmware versions v1.10 and beyond support direct firmware updates via WiFi.
 
 Firmware may be uploaded to the unit by clicking on 'Upload BIN', selecting the binary such as 'RTK_Surveyor_Firmware_v3_x.bin' and pressing upload. The unit will automatically reset once the firmware upload is complete.
 
@@ -158,7 +160,8 @@ Connect a USB A to C cable from your computer to the ESP32 port on the RTK devic
 
 *CH340 is on COM6 as shown in Device Manager*
 
-If the COM port is not showing be sure the unit is turned **On**. If an unknown device is appearing, you’ll need to [install drivers for the CH340](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Once you know the COM port, open a command prompt (Windows button + r then type ‘cmd’).
+!!! tip
+	If the COM port is not showing be sure the unit is turned **On**. If an unknown device is appearing, you’ll need to [install drivers for the CH340](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Once you know the COM port, open a command prompt (Windows button + r then type ‘cmd’).
 
 ![batch_program.bat running esptool](<img/Terminal/SparkFun%20RTK%20Firmware%20Update%20CLI.png>)
 
@@ -174,7 +177,8 @@ esptool.exe --chip esp32 --port COM6 --baud 921600 --before default_reset --afte
 
 Where *COM6* is replaced with the COM port that the RTK product enumerated at and *RTK_Surveyor_Firmware_vxx.bin* is the firmware you would like to load.
 
-**Note:** Some users have reported the 921600bps baud rate does not work. Decrease this to 115200 as needed.
+!!! note
+	Some users have reported the 921600bps baud rate does not work. Decrease this to 115200 as needed.
 
 Upon completion, your RTK device will reset and power down.
 
@@ -182,12 +186,14 @@ Upon completion, your RTK device will reset and power down.
 
 Get [esptool.py](https://github.com/espressif/esptool). Connect a USB A to C cable from your computer to the ESP32 port on the RTK device. Turn the unit on. Now identify the COM port the RTK enumerated at.
 
-If the COM port is not showing be sure the unit is turned **On**. If an unknown device is appearing, you’ll need to [install drivers for the CH340](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Once you know the COM port, run the following command:
+!!! tip
+	If the COM port is not showing be sure the unit is turned **On**. If an unknown device is appearing, you’ll need to [install drivers for the CH340](https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all). Once you know the COM port, run the following command:
 
 py esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0x1000 ./bin/RTK_Surveyor.ino.bootloader.bin 0x8000 ./bin/RTK_Surveyor_Partitions_16MB.bin 0xe000 ./bin/boot_app0.bin 0x10000 ./RTK_Surveyor_Firmware_vxx.bin
 
 Where */dev/ttyUSB0* is replaced with the port that the RTK product enumerated at and *RTK_Surveyor_Firmware_vxx.bin* is the firmware you would like to load.
 
-**Note:** Some users have reported the 921600bps baud rate does not work. Decrease this to 115200 as needed.
+!!! note
+	Some users have reported the 921600bps baud rate does not work. Decrease this to 115200 as needed.
 
 Upon completion, your RTK device will reset.

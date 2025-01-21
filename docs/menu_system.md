@@ -104,15 +104,18 @@ The device can be in Rover, Base, or WiFi Config mode. The selected mode will be
 
 * **~** - If desired, the external button(s) can be disabled to prevent accidental mode changes.
 
-**Note:** Bluetooth SPP cannot operate concurrently with ESP-Now radio transmissions. Therefore, if you plan to use the ESP-Now radio system to connect RTK products, the BLE protocol must be used to communicate over Bluetooth to data collectors. Alternatively, ESP-Now works concurrently with WiFi so connecting to a data collector over WiFi can be used.
+!!! note
+	Bluetooth SPP cannot operate concurrently with ESP-Now radio transmissions. Therefore, if you plan to use the ESP-Now radio system to connect RTK products, the BLE protocol must be used to communicate over Bluetooth to data collectors. Alternatively, ESP-Now works concurrently with WiFi so connecting to a data collector over WiFi can be used.
 
 ## Factory Reset
 
 If a device gets into an unknown state it can be returned to default settings using the WiFi or Serial interfaces.
 
-Note: On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information.
+!!! note
+	On devices that support an SD card, a factory reset can also be accomplished by editing the settings files. See [Force a Factory Reset](configure_with_settings_file.md#forcing-a-factory-reset) for more information.
 
-Note: Log files and any other files on the SD card are *not* removed or modified.
+!!! note
+	Log files and any other files on the SD card are *not* removed or modified.
 
 ![Issuing a factory reset](<img/Terminal/SparkFun RTK Everywhere - System Menu Factory Reset.png>)
 

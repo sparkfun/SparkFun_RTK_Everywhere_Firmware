@@ -16,7 +16,8 @@ Compatibility Icons
 
 </div>
 
-**Note:** Not all devices support external SD (ie, RTK Torch). This section applies only to devices that support an external SD card, and have one inserted.
+!!! note
+	Not all devices support external SD (ie, RTK Torch). This section applies only to devices that support an external SD card, and have one inserted.
 
 ![RTK Data Logging Configuration Menu](img/Terminal/SparkFun%20RTK%20Logging%20Menu.png)
 
@@ -35,4 +36,5 @@ From the Main Menu, pressing 5 will enter the Logging Menu. This menu will repor
 
 * Option 8 will enable/disable the resetting of the system if an SD card is detected but fails to initialize. This can be helpful to harden a system that may be deployed for long periods of time. Without intervention, if an SD card is detected but fails to respond, the system will reset in an attempt to re-mount the faulty SD card interface.
 
-**Note:** If you want to log RAWX sentences to create RINEX files useful for post-processing the position of the receiver please see the GNSS Configuration Menu. For more information on how to use a RAWX GNSS log to get a higher accuracy base location please see the [How to Build a DIY GNSS Reference Station](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station#gather-raw-gnss-data) tutorial.
+!!! note
+	If you want to log RAWX sentences to create RINEX files useful for post-processing the position of the receiver please see the GNSS Configuration Menu. For more information on how to use a RAWX GNSS log to get a higher accuracy base location please see the [How to Build a DIY GNSS Reference Station](https://learn.sparkfun.com/tutorials/how-to-build-a-diy-gnss-reference-station#gather-raw-gnss-data) tutorial.

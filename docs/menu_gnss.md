@@ -34,7 +34,8 @@ Pressing any key will show the *Main Menu*. From the main menu, pressing 1 will 
 
 Measurement Frequency can be set by either Hz or by seconds between measurements. Some users need many measurements per second; RTK devices support up to 20Hz with RTK enabled. Some users are doing very long static surveys that require many seconds between measurements; the GNSS receiver supports up to 65 seconds between readings.
 
-Note: When in **Base** mode, the measurement frequency is set to 1Hz. This is because RTK transmission does not benefit from faster updates, nor does logging of RAWX for PPP.
+!!! note
+	When in **Base** mode, the measurement frequency is set to 1Hz. This is because RTK transmission does not benefit from faster updates, nor does logging of RAWX for PPP.
 
 ## Dynamic Model
 

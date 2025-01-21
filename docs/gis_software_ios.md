@@ -36,7 +36,8 @@ If you must use iOS, checkout [SW Maps](gis_software_ios.md/#sw-maps), [ArcGIS Q
 
 ArcGIS QuickCapture connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running QuickCapture. Generally, this is an iPhone or iPad operating as a hotspot.
 
-**Note:** The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
+!!! note
+	The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
 ![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
 
@@ -101,7 +102,8 @@ From the map view, we can see our location with very high accuracy. We can now b
 
 ArcGIS Survey123 connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad.
 
-**Note:** The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
+!!! note
+	The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
 ![WiFi network setup via Web Config](<img/ArcGIS/SparkFun RTK - ArcGIS WiFi Hotspot Web Config.png>)
 
@@ -215,7 +217,8 @@ These NMEA message settings can be found under the [Messages menu](menu_messages
 
 QField connects to the RTK device over TCP. In other words, the RTK device needs to be connected to the same WiFi network as the device running ArcGIS. Generally, this is an iPhone or iPad. In the above image, the device will attempt to connect to *iPhone* (a cell phone hotspot) when WiFi is needed.
 
-**Note:** The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
+!!! note
+	The iOS hotspot defaults to 5.5GHz. This must be changed to 2.4GHz. Please see [Hotspot Settings](gis_software_ios.md/#hotspot-settings).
 
 ![TCP Server Enabled on port 9000](<img/QField/SparkFun RTK QField - TCP Server.png>)
 

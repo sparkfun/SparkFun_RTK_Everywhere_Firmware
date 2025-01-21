@@ -163,7 +163,8 @@ We can see the approximate location of the monument in the above location.
 
 *Screenshot of a point in time*
 
-Note the 8 decimal places on the Lat/Long.
+!!! note
+	Note the significant figures of the Lat/Long, result in 8 decimal places.
 
 Screenshots are an easy way to record lat/long/alt but SW Maps (and other GIS software) allows the averaging of a position. Choose your own adventure. For our example, we took screenshots/snapshots of the location. Some surveyors hold a position for multiple minutes to get a point; we can do the same in under a second.
 

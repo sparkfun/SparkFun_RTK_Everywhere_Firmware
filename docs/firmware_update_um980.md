@@ -32,7 +32,8 @@ The UM980 is the GNSS receiver inside the RTK Torch. The following describes how
 
 	*Startup message showing passthrough mode*
 
-	**Note:** The RTK device will stay in this passthrough mode until the external power button is pressed and released. The device will beep when exiting passthrough mode.
+	!!! note
+		The RTK device will stay in this passthrough mode until the external power button is pressed and released. The device will beep when exiting passthrough mode.
 
 	![Connect button and connection settings in UPrecise](<img/UPrecise/SparkFun RTK Everywhere - UPrecise Inteface Connect.png>)
 

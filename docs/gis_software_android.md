@@ -194,7 +194,8 @@ Now you can begin using the SparkFun RTK device with Field Genius.
 
 [GNSS Master](https://play.google.com/store/apps/details?id=com.gnssmaster&hl=en_US) is a great utility when a given GIS app does not have an NTRIP Client or a way to connect over Bluetooth. GNSS Master connects to a RTK device over Bluetooth (or Bluetooth BLE) as well as any correction source (NTRIP, PointPerfect, even USB Serial), and then acts as the phone's location using [Mock Location](connecting_bluetooth.md/#enable-mock-location).
 
-**Note:** Most GIS apps will not need GNSS Master or Mock Location enabled and this section can be skipped.
+!!! note
+	Most GIS apps will not need GNSS Master or Mock Location enabled and this section can be skipped.
 
 Read how to [Enable Mock Location](connecting_bluetooth.md/#enable-mock-location).
 
@@ -232,7 +233,8 @@ Once enabled, any GIS app that selects 'Internal' or 'Phone Location' as its sou
 
 [Lefebure NTRIP Client](https://play.google.com/store/apps/details?id=com.lefebure.ntripclient&hl=en_US) is the *original* app for getting correction from an NTRIP caster and down over Bluetooth. It's an oldie but a goodie.
 
-**Note:** Most GIS apps will not need Lefebure or Mock Location enabled and this section can be skipped.
+!!! note
+	Most GIS apps will not need Lefebure or Mock Location enabled and this section can be skipped.
 
 The problem is that if Lefebure is connected to the RTK device providing RTCM corrections over Bluetooth, then other GIS applications cannot use the same Bluetooth connection at the same time. That's where mock locations save the day. Lefebure can be setup to take over or 'mock' the GPS location being reported by the phone. Nearly all GIS apps can use the phone's GPS location. So if the phone's location is magically super precise, then Lefebure can be the NTRIP Client and data provide, and your GIS app is none the wiser, and uses the phone's location.
 
@@ -393,13 +395,13 @@ Once complete, press x until you exit the serial menus. Now we may return to Sur
 
 Click on the 'Survey' menu and then 'Topo Survey'. Above we can see a device with RTK float, and 117mm horizontal positional accuracy.
 
-Known Issues:
+!!! bug "Known Issue"
 
-* Survey Master parses the GxGSV sentence improperly and will only indicate GPS satellites even though the fix solution is using all satellites.
+	Survey Master parses the GxGSV sentence improperly and will only indicate GPS satellites even though the fix solution is using all satellites.
 
-![NMEA Sentences](img/SurveyMaster/SparkFun%20RTK%20Survey%20Master%20-%2015.png)
+	![NMEA Sentences](img/SurveyMaster/SparkFun%20RTK%20Survey%20Master%20-%2015.png)
 
-To verify the NMEA sentences are being delivered correctly, Survey Master has a built-in tool. Select the Device->Rover->More->'H-Terminal'.
+	To verify the NMEA sentences are being delivered correctly, Survey Master has a built-in tool. Select the Device->Rover->More->'H-Terminal'.
 
 ## SurPad
 
@@ -507,7 +509,8 @@ You are welcome to enter the ARP (antenna reference point) and surveying stick l
 
 **NTRIP Client**
 
-Note: If you are using a radio to connect Base to Rover, or if you are using the RTK Facet L-Band you do not need to set up NTRIP; the device will achieve RTK fixes and output extremely accurate location data by itself. But if L-Band corrections are not available, or you are not using a radio link, the NTRIP Client can provide corrections to this Rover.
+!!! note
+	If you are using a radio to connect Base to Rover, or if you are using the RTK Facet L-Band you do not need to set up NTRIP; the device will achieve RTK fixes and output extremely accurate location data by itself. But if L-Band corrections are not available, or you are not using a radio link, the NTRIP Client can provide corrections to this Rover.
 
 ![RTK Submenu](img/SurvPC/SparkFun%20RTK%20Software%20-%20SurvPC%20NTRIP%20Client.jpg)
 
