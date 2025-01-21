@@ -631,7 +631,7 @@ bool networkIsPresent(NetIndex_t index)
 //----------------------------------------
 // Mark network offline
 //----------------------------------------
-void networkMarkOffline(NetIndex_t index)
+void networkInterfaceInternetConnectionLost(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
@@ -700,7 +700,7 @@ void networkMarkOffline(NetIndex_t index)
 //----------------------------------------
 // Mark network online
 //----------------------------------------
-void networkMarkHasInternet(NetIndex_t index)
+void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetIndex_t previousIndex;
