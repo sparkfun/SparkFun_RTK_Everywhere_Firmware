@@ -41,12 +41,12 @@
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
-#if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
+#if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
 #define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
 #define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
-#endif                      // COMPILE_WIFI || COMPILE_ETHERNET
+#endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
