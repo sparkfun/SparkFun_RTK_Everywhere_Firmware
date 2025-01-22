@@ -53,6 +53,13 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
     return result;
 }
 
+//*********************************************************************
+// Get the current ESP-NOW state
+ESPNOWState espnowGetState()
+{
+    return espnowState;
+}
+
 //----------------------------------------------------------------------
 // ESP-NOW bringup from example 4_9_ESP_NOW
 //   1. Set station mode
