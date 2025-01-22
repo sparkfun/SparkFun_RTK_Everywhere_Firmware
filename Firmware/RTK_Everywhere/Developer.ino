@@ -206,6 +206,7 @@ uint32_t wifiGetStartTimeout() {return 0;}
 int wifiNetworkCount() {return 0;}
 void wifiResetThrottleTimeout() {}
 void wifiResetTimeout() {}
+#define WIFI_SOFT_AP_RUNNING() {return false;}
 bool wifiStart() {return false;}
 bool wifiStationIsRunning() {return false;}
 #define WIFI_STOP() {}

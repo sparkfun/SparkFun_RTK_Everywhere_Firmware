@@ -3127,7 +3127,7 @@ bool wifiStart()
 
     // If we are in AP only mode, as long as the AP is started, return true
     if (WiFi.getMode() == WIFI_MODE_AP)
-        return (wifiApIsRunning);
+        return WIFI_SOFT_AP_RUNNING();
 
     // If we are in STA or AP+STA mode, return if the station connected successfully
     wifiStatus = WiFi.status();

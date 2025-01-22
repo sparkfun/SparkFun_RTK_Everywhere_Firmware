@@ -308,6 +308,7 @@ RTK_WIFI wifi(false);
 
 #define WIFI_IS_CONNECTED()             wifiIsConnected()
 #define WIFI_IS_RUNNING()               wifiIsRunning()
+#define WIFI_SOFT_AP_RUNNING()          wifiApIsRunning()
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
