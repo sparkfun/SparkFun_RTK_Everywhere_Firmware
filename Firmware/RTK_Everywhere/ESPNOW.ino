@@ -663,7 +663,7 @@ void espnowStart()
     esp_wifi_set_promiscuous_rx_cb(&promiscuous_rx_cb);
 
     // Assign channel if not connected to an AP
-    if (wifiIsConnected() == false)
+    if (WIFI_IS_CONNECTED() == false)
         espnowSetChannel(settings.wifiChannel);
 
     // Register callbacks
@@ -1059,7 +1059,7 @@ uint8_t espnowGetChannel()
 // Returns the current channel being used by WiFi
 bool espnowSetChannel(uint8_t channelNumber)
 {
-    if (wifiIsConnected() == true)
+    if (WIFI_IS_CONNECTED() == true)
     {
         systemPrintln("ESP-NOW channel can't be modified while WiFi is connected.");
         return (false);
