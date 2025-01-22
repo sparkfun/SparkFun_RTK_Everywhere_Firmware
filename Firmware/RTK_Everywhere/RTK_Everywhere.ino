@@ -306,6 +306,7 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 int packetRSSI;
 RTK_WIFI wifi(false);
 
+#define WIFI_IS_RUNNING()               wifiIsRunning()
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
