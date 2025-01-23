@@ -33,8 +33,10 @@ void ntpServerStop() {}
 
 void menuTcpUdp() {systemPrint("**Network not compiled**");}
 void networkBegin() {}
+uint8_t networkConsumers() {return(0);}
+uint16_t networkGetConsumerTypes() {return(0);}
 IPAddress networkGetIpAddress() {return("0.0.0.0");}
-const uint8_t * networkGetMacAddress() 
+const uint8_t * networkGetMacAddress()
 {
     static const uint8_t zero[6] = {0, 0, 0, 0, 0, 0};
 #ifdef COMPILE_BT
@@ -49,10 +51,11 @@ bool networkInterfaceHasInternet(NetIndex_t index) {return false;}
 bool networkIsInterfaceStarted(NetIndex_t index) {return false;}
 void networkMarkOffline(NetIndex_t index) {}
 void networkMarkHasInternet(NetIndex_t index) {}
+void networkSequenceBoot(NetIndex_t index) {}
+void networkSequenceNextEntry(NetIndex_t index, bool debug) {}
 void networkUpdate() {}
+void networkValidateIndex(NetIndex_t index) {}
 void networkVerifyTables() {}
-uint16_t networkGetConsumerTypes() {return(0);}
-uint8_t networkConsumers() {return(0);}
 
 //----------------------------------------
 // NTRIP client
@@ -114,9 +117,10 @@ void discardUdpServerBytes(RING_BUFFER_OFFSET previousTail, RING_BUFFER_OFFSET n
 #ifndef COMPILE_OTA_AUTO
 
 void otaAutoUpdate() {}
+bool otaNeedsNetwork() {return false;}
+void otaUpdate() {}
 void otaUpdateStop() {}
 void otaVerifyTables() {}
-void otaUpdate() {}
 
 #endif  // COMPILE_OTA_AUTO
 
@@ -127,6 +131,7 @@ void otaUpdate() {}
 #ifndef COMPILE_MQTT_CLIENT
 
 bool mqttClientIsConnected() {return false;}
+bool mqttClientNeedsNetwork() {return false;}
 void mqttClientPrintStatus() {}
 void mqttClientRestart() {}
 void mqttClientUpdate() {}
@@ -157,26 +162,54 @@ bool webServerStart(int httpPort = 80)
     systemPrintln("**AP not compiled**");
     return false;
 }
-void webServerStop() {}
 bool parseIncomingSettings() {return false;}
 void sendStringToWebsocket(const char* stringToSend) {}
+void stopWebServer() {}
+bool webServerNeedsNetwork() {return false;}
+void webServerStop() {}
+void webServerUpdate()  {}
 
 #endif  // COMPILE_AP
-#ifndef COMPILE_WIFI
+
+//----------------------------------------
+// ESP-NOW
+//----------------------------------------
+
+#ifndef COMPILE_ESPNOW
+
+bool espNowStart()  {return false;}
+bool espNowStop()   {return false;}
+
+bool espnowIsPaired()                   {return false;}
+void espnowProcessRTCM(byte incoming)   {}
+esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
+esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
+bool espnowSetChannel(uint8_t channelNumber)        {return false;}
+void espnowStart()                      {}
+void espnowStaticPairing()              {}
+void espnowStop()                       {}
+void updateEspnow()                     {}
+
+#endif   // COMPILE_ESPNOW
 
 //----------------------------------------
 // WiFi
 //----------------------------------------
 
+#ifndef COMPILE_WIFI
+
 void menuWiFi() {systemPrintln("**WiFi not compiled**");}
-bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
-bool wifiStart() {return false;}
-int wifiNetworkCount() {return 0;}
-bool wifiStationIsRunning() {return false;}
 bool wifiApIsRunning() {return false;}
-bool wifiIsRunning() {return false;}
+bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
+bool wifiIsRunning() {return false;}
+int wifiNetworkCount() {return 0;}
+void wifiResetThrottleTimeout() {}
+void wifiResetTimeout() {}
+bool wifiStart() {return false;}
+bool wifiStationIsRunning() {return false;}
 #define WIFI_STOP() {}
+bool wifiUnavailable()  {return true;}
 
 #endif // COMPILE_WIFI
 
