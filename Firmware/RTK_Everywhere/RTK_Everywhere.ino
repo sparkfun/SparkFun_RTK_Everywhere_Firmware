@@ -41,12 +41,12 @@
 #define COMPILE_POINTPERFECT_LIBRARY // Comment out to remove PPL support
 #define COMPILE_BQ40Z50              // Comment out to remove BQ40Z50 functionality
 
-#if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET)
+#if defined(COMPILE_WIFI) || defined(COMPILE_ETHERNET) || defined(COMPILE_CELLULAR)
 #define COMPILE_NETWORK
 #define COMPILE_MQTT_CLIENT // Comment out to remove MQTT Client functionality
 #define COMPILE_OTA_AUTO    // Comment out to disable automatic over-the-air firmware update
 #define COMPILE_HTTP_CLIENT // Comment out to disable HTTP Client (PointPerfect ZTP) functionality
-#endif                      // COMPILE_WIFI || COMPILE_ETHERNET
+#endif                      // COMPILE_WIFI || COMPILE_ETHERNET || COMPILE_CELLULAR
 
 // Always define ENABLE_DEVELOPER to enable its use in conditional statements
 #ifndef ENABLE_DEVELOPER
@@ -303,6 +303,9 @@ char logFileName[sizeof("SFE_Reference_Station_230101_120101.ubx_plusExtraSpace"
 #include "esp_ota_ops.h" //Needed for partition counting and updateFromSD
 
 #ifdef COMPILE_WIFI
+int packetRSSI;
+RTK_WIFI wifi(false);
+
 #define WIFI_STOP()                                                                                                    \
     {                                                                                                                  \
         if (settings.debugWifiState)                                                                                   \
@@ -606,7 +609,6 @@ uint8_t espnowOutgoingSpot;  // ESP Now has a max of 250 characters
 uint16_t espnowBytesSent;    // May be more than 255
 uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
 
-int packetRSSI;
 unsigned long lastEspnowRssiUpdate;
 
 #endif // COMPILE_ESPNOW
@@ -1483,7 +1485,13 @@ void rtcUpdate()
                 }
                 else
                 {
-                    systemPrintln("No GNSS date/time available for system RTC.");
+                    // Reduce the output frequency
+                    static uint32_t lastErrorMsec = -1000 * 1000 * 1000;
+                    if ((millis() - lastErrorMsec) > (30 * 1000))
+                    {
+                        lastErrorMsec = millis();
+                        systemPrintln("No GNSS date/time available for system RTC.");
+                    }
                 } // End timeValid
             } // End lastRTCAttempt
         } // End online.gnss
