@@ -456,6 +456,34 @@ int wifiNetworkCount()
 }
 
 //*********************************************************************
+// Given a status, return the associated state or error
+const char *wifiPrintState(wl_status_t wifiStatus)
+{
+    switch (wifiStatus)
+    {
+    case WL_NO_SHIELD:       // 255
+        return ("WL_NO_SHIELD");
+    case WL_STOPPED:         // 254
+        return ("WL_STOPPED");
+    case WL_IDLE_STATUS:     // 0
+        return ("WL_IDLE_STATUS");
+    case WL_NO_SSID_AVAIL:   // 1
+        return ("WL_NO_SSID_AVAIL");
+    case WL_SCAN_COMPLETED:  // 2
+        return ("WL_SCAN_COMPLETED");
+    case WL_CONNECTED:       // 3
+        return ("WL_CONNECTED");
+    case WL_CONNECT_FAILED:  // 4
+        return ("WL_CONNECT_FAILED");
+    case WL_CONNECTION_LOST: // 5
+        return ("WL_CONNECTION_LOST");
+    case WL_DISCONNECTED:    // 6
+        return ("WL_DISCONNECTED");
+    }
+    return ("WiFi Status Unknown");
+}
+
+//*********************************************************************
 // Callback for all WiFi RX Packets
 // Get RSSI of all incoming management packets: https://esp32.com/viewtopic.php?t=13889
 void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
@@ -3019,35 +3047,6 @@ bool wifiIsRunning()
     if (wifiStationRunning || wifiApRunning)
         return true;
     return false;
-}
-
-//----------------------------------------
-// Given a status, return the associated state or error
-//----------------------------------------
-const char *wifiPrintState(wl_status_t wifiStatus)
-{
-    switch (wifiStatus)
-    {
-    case WL_NO_SHIELD:
-        return ("WL_NO_SHIELD"); // 255
-    case WL_STOPPED:
-        return ("WL_STOPPED");
-    case WL_IDLE_STATUS: // 0
-        return ("WL_IDLE_STATUS");
-    case WL_NO_SSID_AVAIL: // 1
-        return ("WL_NO_SSID_AVAIL");
-    case WL_SCAN_COMPLETED: // 2
-        return ("WL_SCAN_COMPLETED");
-    case WL_CONNECTED: // 3
-        return ("WL_CONNECTED");
-    case WL_CONNECT_FAILED: // 4
-        return ("WL_CONNECT_FAILED");
-    case WL_CONNECTION_LOST: // 5
-        return ("WL_CONNECTION_LOST");
-    case WL_DISCONNECTED: // 6
-        return ("WL_DISCONNECTED");
-    }
-    return ("WiFi Status Unknown");
 }
 
 //----------------------------------------
