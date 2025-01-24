@@ -2646,8 +2646,16 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
     if (sempSbfGetBlockNumber(parse) == 5902)
     {
         snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
+
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s",
                  sempSbfGetString(parse, 196)); // Extract RXVersion
+
+        // gnssFirmwareVersion is 4.14.4, 4.14.10.1, etc.
+        // Create gnssFirmwareVersionInt from the first two fields only so it will fit on the OLED
+        int verMajor = 0;
+        int verMinor = 0;
+        sscanf(gnssFirmwareVersion, "%d.%d.", &verMajor, &verMinor); // Do we care if this fails?
+        gnssFirmwareVersionInt = (verMajor * 100) + verMinor;
 
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;
