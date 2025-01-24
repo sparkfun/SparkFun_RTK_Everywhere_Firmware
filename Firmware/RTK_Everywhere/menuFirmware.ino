@@ -33,6 +33,7 @@ static const int otaStateEntries = sizeof(otaStateNames) / sizeof(otaStateNames[
 //----------------------------------------
 
 static uint32_t otaLastUpdateCheck;
+static NetPriority_t otaPriority = NETWORK_OFFLINE;
 static uint8_t otaState;
 
 #endif // COMPILE_OTA_AUTO
@@ -840,9 +841,7 @@ void otaUpdate()
                 otaUpdateStop();
 
             // Wait until the network is connected to the media
-            // else if (networkHasInternet())
-            else if (networkInterfaceHasInternet(
-                         NETWORK_WIFI)) // TODO Remove once OTA works over other network interfaces
+            else if (networkIsConnected(&otaPriority))
             {
                 if (settings.debugFirmwareUpdate)
                     systemPrintln("Firmware update connected to network");
@@ -855,9 +854,7 @@ void otaUpdate()
         // Get firmware version from server
         case OTA_STATE_GET_FIRMWARE_VERSION:
             // Determine if the network has failed
-            // if (networkHasInternet() == false)
-            if (networkInterfaceHasInternet(NETWORK_WIFI) ==
-                false) // TODO Remove once OTA works over other network interfaces
+            if (!networkIsConnected(&otaPriority))
                 otaUpdateStop();
             if (settings.debugFirmwareUpdate)
                 systemPrintln("Checking for latest firmware version");
@@ -913,7 +910,7 @@ void otaUpdate()
         // Update the firmware
         case OTA_STATE_UPDATE_FIRMWARE:
             // Determine if the network has failed
-            if (networkHasInternet() == false)
+            if (!networkIsConnected(&otaPriority))
                 otaUpdateStop();
             else
             {
