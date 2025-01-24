@@ -529,7 +529,7 @@ function parseIncoming(msg) {
         else if (id.includes("antennaHeight_mm")) {
             ge("antennaHeight_m").value = val / 1000.0;
         }
-            
+
         //Check boxes / radio buttons
         else if (val == "true") {
             try {

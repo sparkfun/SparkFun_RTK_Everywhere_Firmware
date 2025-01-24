@@ -202,10 +202,11 @@ void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiApIsRunning() {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
-bool wifiIsRunning() {return false;}
+#define WIFI_IS_RUNNING()
 int wifiNetworkCount() {return 0;}
 void wifiResetThrottleTimeout() {}
 void wifiResetTimeout() {}
+#define WIFI_SOFT_AP_RUNNING() {return false;}
 bool wifiStart() {return false;}
 bool wifiStationIsRunning() {return false;}
 #define WIFI_STOP() {}

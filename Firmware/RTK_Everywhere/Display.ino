@@ -654,9 +654,9 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
 
             // Count the number of radios in use
             uint8_t numberOfRadios = 1; // Bluetooth always indicated. TODO don't count if BT radio type is OFF.
-            if (wifiIsRunning())
+            if (WIFI_IS_RUNNING())
                 numberOfRadios++;
-            if (espnowState > ESPNOW_OFF)
+            if (espnowGetState() > ESPNOW_OFF)
                 numberOfRadios++;
 
             // Bluetooth only
@@ -671,9 +671,9 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 setBluetoothIcon_TwoRadios(iconList);
 
                 // Do we have WiFi or ESP
-                if (wifiIsRunning())
+                if (WIFI_IS_RUNNING())
                     setWiFiIcon_TwoRadios(iconList);
-                else if (espnowState > ESPNOW_OFF)
+                else if (espnowGetState() > ESPNOW_OFF)
                     setESPNowIcon_TwoRadios(iconList);
 
                 setModeIcon(iconList); // Turn on Rover/Base type icons
@@ -706,7 +706,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 iconList->push_back(prop);
             }
 
-            if (wifiIsRunning()) // WiFi : Columns 34 - 46
+            if (WIFI_IS_RUNNING()) // WiFi : Columns 34 - 46
             {
 #ifdef COMPILE_WIFI
                 int wifiRSSI = WiFi.RSSI();
@@ -753,7 +753,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
             }
 #endif // /COMPILE_CELLULAR
 
-            if (espnowState == ESPNOW_PAIRED) // ESPNOW : Columns 64 - 71
+            if (espnowGetState() == ESPNOW_PAIRED) // ESPNOW : Columns 64 - 71
             {
                 iconPropertyBlinking prop;
                 prop.duty = 0b11111111;
@@ -792,7 +792,7 @@ void setRadioIcons(std::vector<iconPropertyBlinking> *iconList)
                 }
             }
 
-            if (espnowState == ESPNOW_PAIRED)
+            if (espnowGetState() == ESPNOW_PAIRED)
             {
                 if (espnowIncomingRTCM == true) // Download : Columns 74 - 81
                 {
@@ -1023,7 +1023,7 @@ void setBluetoothIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 // This is 64x48-specific
 void setESPNowIcon_TwoRadios(std::vector<iconPropertyBlinking> *iconList)
 {
-    if (espnowState == ESPNOW_PAIRED)
+    if (espnowGetState() == ESPNOW_PAIRED)
     {
         if (espnowIncomingRTCM == true || espnowOutgoingRTCM == true)
         {
