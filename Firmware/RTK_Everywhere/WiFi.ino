@@ -442,6 +442,82 @@ static int wifiFailedConnectionAttempts = 0; // Count the number of connection a
 static WiFiMulti *wifiMulti;
 
 //*********************************************************************
+// Set WiFi credentials
+// Enable TCP connections
+void menuWiFi()
+{
+    while (1)
+    {
+        networkDisplayInterface(NETWORK_WIFI);
+
+        systemPrintln();
+        systemPrintln("Menu: WiFi Networks");
+
+        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+        {
+            systemPrintf("%d) SSID %d: %s\r\n", (x * 2) + 1, x + 1, settings.wifiNetworks[x].ssid);
+            systemPrintf("%d) Password %d: %s\r\n", (x * 2) + 2, x + 1, settings.wifiNetworks[x].password);
+        }
+
+        systemPrint("a) Configure device via WiFi Access Point or connect to WiFi: ");
+        systemPrintf("%s\r\n", settings.wifiConfigOverAP ? "AP" : "WiFi");
+
+        systemPrint("c) Captive Portal: ");
+        systemPrintf("%s\r\n", settings.enableCaptivePortal ? "Enabled" : "Disabled");
+
+        systemPrintln("x) Exit");
+
+        byte incoming = getUserInputCharacterNumber();
+
+        if (incoming >= 1 && incoming <= MAX_WIFI_NETWORKS * 2)
+        {
+            int arraySlot = ((incoming - 1) / 2); // Adjust incoming to array starting at 0
+
+            if (incoming % 2 == 1)
+            {
+                systemPrintf("Enter SSID network %d: ", arraySlot + 1);
+                getUserInputString(settings.wifiNetworks[arraySlot].ssid,
+                                   sizeof(settings.wifiNetworks[arraySlot].ssid));
+                restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
+            }
+            else
+            {
+                systemPrintf("Enter Password for %s: ", settings.wifiNetworks[arraySlot].ssid);
+                getUserInputString(settings.wifiNetworks[arraySlot].password,
+                                   sizeof(settings.wifiNetworks[arraySlot].password));
+                restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
+            }
+        }
+        else if (incoming == 'a')
+        {
+            settings.wifiConfigOverAP ^= 1;
+            restartWiFi = true;
+        }
+        else if (incoming == 'c')
+        {
+            settings.enableCaptivePortal ^= 1;
+        }
+        else if (incoming == 'x')
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
+            break;
+        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
+            break;
+        else
+            printUnknown(incoming);
+    }
+
+    // Erase passwords from empty SSID entries
+    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+    {
+        if (strlen(settings.wifiNetworks[x].ssid) == 0)
+            strcpy(settings.wifiNetworks[x].password, "");
+    }
+
+    clearBuffer(); // Empty buffer of any newline chars
+}
+
+//*********************************************************************
 // Display the WiFi state
 void wifiDisplayState()
 {
@@ -2658,83 +2734,6 @@ void RTK_WIFI::verifyTables()
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-//----------------------------------------
-// Set WiFi credentials
-// Enable TCP connections
-//----------------------------------------
-void menuWiFi()
-{
-    while (1)
-    {
-        networkDisplayInterface(NETWORK_WIFI);
-
-        systemPrintln();
-        systemPrintln("Menu: WiFi Networks");
-
-        for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-        {
-            systemPrintf("%d) SSID %d: %s\r\n", (x * 2) + 1, x + 1, settings.wifiNetworks[x].ssid);
-            systemPrintf("%d) Password %d: %s\r\n", (x * 2) + 2, x + 1, settings.wifiNetworks[x].password);
-        }
-
-        systemPrint("a) Configure device via WiFi Access Point or connect to WiFi: ");
-        systemPrintf("%s\r\n", settings.wifiConfigOverAP ? "AP" : "WiFi");
-
-        systemPrint("c) Captive Portal: ");
-        systemPrintf("%s\r\n", settings.enableCaptivePortal ? "Enabled" : "Disabled");
-
-        systemPrintln("x) Exit");
-
-        byte incoming = getUserInputCharacterNumber();
-
-        if (incoming >= 1 && incoming <= MAX_WIFI_NETWORKS * 2)
-        {
-            int arraySlot = ((incoming - 1) / 2); // Adjust incoming to array starting at 0
-
-            if (incoming % 2 == 1)
-            {
-                systemPrintf("Enter SSID network %d: ", arraySlot + 1);
-                getUserInputString(settings.wifiNetworks[arraySlot].ssid,
-                                   sizeof(settings.wifiNetworks[arraySlot].ssid));
-                restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
-            }
-            else
-            {
-                systemPrintf("Enter Password for %s: ", settings.wifiNetworks[arraySlot].ssid);
-                getUserInputString(settings.wifiNetworks[arraySlot].password,
-                                   sizeof(settings.wifiNetworks[arraySlot].password));
-                restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
-            }
-        }
-        else if (incoming == 'a')
-        {
-            settings.wifiConfigOverAP ^= 1;
-            restartWiFi = true;
-        }
-        else if (incoming == 'c')
-        {
-            settings.enableCaptivePortal ^= 1;
-        }
-        else if (incoming == 'x')
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_EMPTY)
-            break;
-        else if (incoming == INPUT_RESPONSE_GETCHARACTERNUMBER_TIMEOUT)
-            break;
-        else
-            printUnknown(incoming);
-    }
-
-    // Erase passwords from empty SSID entries
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-    {
-        if (strlen(settings.wifiNetworks[x].ssid) == 0)
-            strcpy(settings.wifiNetworks[x].password, "");
-    }
-
-    clearBuffer(); // Empty buffer of any newline chars
-}
 
 //----------------------------------------
 // Starts WiFi in STA, AP, or STA_AP mode depending on bools
