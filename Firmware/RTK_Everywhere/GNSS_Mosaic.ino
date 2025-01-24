@@ -2375,6 +2375,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
     _altitude = (float)sempSbfGetF8(parse, 32);
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
     _satellitesInView = sempSbfGetU1(parse, 74);
+    if (_satellitesInView == 255)
+        _satellitesInView = 0;
     _fixType = sempSbfGetU1(parse, 14) & 0x0F;
     _determiningFixedPosition = (sempSbfGetU1(parse, 14) >> 6) & 0x01;
     _clkBias_ms = sempSbfGetF8(parse, 60);
