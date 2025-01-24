@@ -442,6 +442,20 @@ static int wifiFailedConnectionAttempts = 0; // Count the number of connection a
 static WiFiMulti *wifiMulti;
 
 //*********************************************************************
+// Counts the number of entered SSIDs
+int wifiNetworkCount()
+{
+    // Count SSIDs
+    int networkCount = 0;
+    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
+    {
+        if (strlen(settings.wifiNetworks[x].ssid) > 0)
+            networkCount++;
+    }
+    return networkCount;
+}
+
+//*********************************************************************
 // Callback for all WiFi RX Packets
 // Get RSSI of all incoming management packets: https://esp32.com/viewtopic.php?t=13889
 void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
@@ -3005,21 +3019,6 @@ bool wifiIsRunning()
     if (wifiStationRunning || wifiApRunning)
         return true;
     return false;
-}
-
-//----------------------------------------
-// Counts the number of entered SSIDs
-//----------------------------------------
-int wifiNetworkCount()
-{
-    // Count SSIDs
-    int networkCount = 0;
-    for (int x = 0; x < MAX_WIFI_NETWORKS; x++)
-    {
-        if (strlen(settings.wifiNetworks[x].ssid) > 0)
-            networkCount++;
-    }
-    return networkCount;
 }
 
 //----------------------------------------
