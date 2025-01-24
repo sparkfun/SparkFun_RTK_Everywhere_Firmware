@@ -554,6 +554,119 @@ void wifiDisplayState()
 }
 
 //*********************************************************************
+// Process the WiFi events
+void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
+{
+    char ssid[sizeof(info.wifi_sta_connected.ssid) + 1];
+    IPAddress ipAddress;
+
+    // If we are in AP or AP_STA, the network is immediately marked online
+    // Once AP is online, don't stop WiFi because STA has various events
+    if (WiFi.getMode() == WIFI_MODE_STA)
+    {
+        // Take the network offline if necessary
+        if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+            (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
+        {
+            if (settings.debugWifiState)
+                systemPrintf("Stopping WiFi because of event # %d\r\n", event);
+
+            networkStop(NETWORK_WIFI, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
+        }
+    }
+
+    // WiFi State Machine
+    //
+    //   .--------+<----------+<-----------+<-------------+<----------+<----------+<------------.
+    //   v        |           |            |              |           |           |             |
+    // STOP --> READY --> STA_START --> SCAN_DONE --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
+    //                                                    ^           ^           |             |
+    //                                                    |           '-----------'             |
+    //                                                    '-------------------------------------'
+    //
+    // Handle the event
+    switch (event)
+    {
+    default:
+        systemPrintf("ERROR: Unknown WiFi event: %d\r\n", event);
+        break;
+
+    case ARDUINO_EVENT_WIFI_OFF:
+        systemPrintln("WiFi Off");
+        break;
+
+    case ARDUINO_EVENT_WIFI_READY:
+        if (settings.debugWifiState)
+            systemPrintln("WiFi Ready");
+        WiFi.setHostname(settings.mdnsHostName);
+        break;
+
+    case ARDUINO_EVENT_WIFI_SCAN_DONE:
+        if (settings.debugWifiState)
+            systemPrintln("WiFi Scan Done");
+        // wifi_event_sta_scan_done_t info.wifi_scan_done;
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_START:
+        if (settings.debugWifiState)
+            systemPrintln("WiFi STA Started");
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_STOP:
+        if (settings.debugWifiState)
+            systemPrintln("WiFi STA Stopped");
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
+        ssid[info.wifi_sta_connected.ssid_len] = 0;
+
+        ipAddress = WiFi.localIP();
+        systemPrintf("WiFi STA connected to %s with IP address: ", ssid);
+        systemPrintln(ipAddress);
+
+        WiFi.setHostname(settings.mdnsHostName);
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        memcpy(ssid, info.wifi_sta_disconnected.ssid, info.wifi_sta_disconnected.ssid_len);
+        ssid[info.wifi_sta_disconnected.ssid_len] = 0;
+        systemPrintf("WiFi STA disconnected from %s\r\n", ssid);
+        // wifi_event_sta_disconnected_t info.wifi_sta_disconnected;
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+        systemPrintln("WiFi STA Auth Mode Changed");
+        // wifi_event_sta_authmode_change_t info.wifi_sta_authmode_change;
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+        if (settings.debugWifiState)
+        {
+            ipAddress = WiFi.localIP();
+            systemPrint("WiFi STA Got IPv4: ");
+            systemPrintln(ipAddress);
+        }
+        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+        if (settings.debugWifiState)
+        {
+            ipAddress = WiFi.localIP();
+            systemPrint("WiFi STA Got IPv6: ");
+            systemPrintln(ipAddress);
+        }
+        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
+        break;
+
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+        systemPrintln("WiFi STA Lost IP");
+        break;
+    }
+}
+
+//*********************************************************************
 // Counts the number of entered SSIDs
 int wifiNetworkCount()
 {
@@ -3031,120 +3144,6 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     }
     wifiStationRunning = false;
     return false;
-}
-
-//----------------------------------------
-// Process the WiFi events
-//----------------------------------------
-void wifiEvent(arduino_event_id_t event, arduino_event_info_t info)
-{
-    char ssid[sizeof(info.wifi_sta_connected.ssid) + 1];
-    IPAddress ipAddress;
-
-    // If we are in AP or AP_STA, the network is immediately marked online
-    // Once AP is online, don't stop WiFi because STA has various events
-    if (WiFi.getMode() == WIFI_MODE_STA)
-    {
-        // Take the network offline if necessary
-        if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
-            (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
-        {
-            if (settings.debugWifiState)
-                systemPrintf("Stopping WiFi because of event # %d\r\n", event);
-
-            networkStop(NETWORK_WIFI, settings.debugNetworkLayer); // Stop WiFi to allow it to restart
-        }
-    }
-
-    // WiFi State Machine
-    //
-    //   .--------+<----------+<-----------+<-------------+<----------+<----------+<------------.
-    //   v        |           |            |              |           |           |             |
-    // STOP --> READY --> STA_START --> SCAN_DONE --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
-    //                                                    ^           ^           |             |
-    //                                                    |           '-----------'             |
-    //                                                    '-------------------------------------'
-    //
-    // Handle the event
-    switch (event)
-    {
-    default:
-        systemPrintf("ERROR: Unknown WiFi event: %d\r\n", event);
-        break;
-
-    case ARDUINO_EVENT_WIFI_OFF:
-        systemPrintln("WiFi Off");
-        break;
-
-    case ARDUINO_EVENT_WIFI_READY:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi Ready");
-        WiFi.setHostname(settings.mdnsHostName);
-        break;
-
-    case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi Scan Done");
-        // wifi_event_sta_scan_done_t info.wifi_scan_done;
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_START:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi STA Started");
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_STOP:
-        if (settings.debugWifiState)
-            systemPrintln("WiFi STA Stopped");
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-        memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
-        ssid[info.wifi_sta_connected.ssid_len] = 0;
-
-        ipAddress = WiFi.localIP();
-        systemPrintf("WiFi STA connected to %s with IP address: ", ssid);
-        systemPrintln(ipAddress);
-
-        WiFi.setHostname(settings.mdnsHostName);
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-        memcpy(ssid, info.wifi_sta_disconnected.ssid, info.wifi_sta_disconnected.ssid_len);
-        ssid[info.wifi_sta_disconnected.ssid_len] = 0;
-        systemPrintf("WiFi STA disconnected from %s\r\n", ssid);
-        // wifi_event_sta_disconnected_t info.wifi_sta_disconnected;
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        systemPrintln("WiFi STA Auth Mode Changed");
-        // wifi_event_sta_authmode_change_t info.wifi_sta_authmode_change;
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        if (settings.debugWifiState)
-        {
-            ipAddress = WiFi.localIP();
-            systemPrint("WiFi STA Got IPv4: ");
-            systemPrintln(ipAddress);
-        }
-        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-        if (settings.debugWifiState)
-        {
-            ipAddress = WiFi.localIP();
-            systemPrint("WiFi STA Got IPv6: ");
-            systemPrintln(ipAddress);
-        }
-        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
-        break;
-
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        systemPrintln("WiFi STA Lost IP");
-        break;
-    }
 }
 
 //----------------------------------------
