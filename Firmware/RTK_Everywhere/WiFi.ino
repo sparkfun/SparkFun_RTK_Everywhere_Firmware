@@ -692,6 +692,63 @@ bool wifiStart()
 }
 
 //*********************************************************************
+// Stop WiFi and release all resources
+void wifiStop()
+{
+    // Stop the web server
+    stopWebServer();
+
+    // Stop the DNS server if we were using the captive portal
+    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
+        dnsServer.stop();
+
+    wifiFailedConnectionAttempts = 0; // Reset the counter
+
+    // If ESP-Now is active, change protocol to only Long Range
+    if (espnowGetState() > ESPNOW_OFF)
+    {
+        if (WiFi.getMode() != WIFI_STA)
+            WiFi.mode(WIFI_STA);
+
+        // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
+        // esp_wifi_set_protocol requires WiFi to be started
+        esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
+        if (response != ESP_OK)
+            systemPrintf("wifiShutdown: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
+        else
+        {
+            if (settings.debugWifiState == true)
+                systemPrintln("WiFi disabled, ESP-Now left in place");
+        }
+    }
+    else
+    {
+        WiFi.mode(WIFI_OFF);
+        if (settings.debugWifiState == true)
+            systemPrintln("WiFi Stopped");
+    }
+
+    // Take the network offline
+    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
+
+    if (wifiMulti != nullptr)
+        wifiMulti = nullptr;
+
+    // Display the heap state
+    reportHeapNow(settings.debugWifiState);
+    wifiStationRunning = false;
+    wifiApRunning = false;
+}
+
+//*********************************************************************
+// Needed for wifiStopSequence
+void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
+{
+    wifiStop();
+    networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
@@ -3199,63 +3256,6 @@ NETWORK_POLL_SEQUENCE wifiStopSequence[] = {
     {wifiStop, 0, "Shutdown WiFi"},
     {nullptr, 0, "Termination"},
 };
-
-//----------------------------------------
-// Stop WiFi and release all resources
-//----------------------------------------
-void wifiStop()
-{
-    // Stop the web server
-    stopWebServer();
-
-    // Stop the DNS server if we were using the captive portal
-    if (((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) && settings.enableCaptivePortal)
-        dnsServer.stop();
-
-    wifiFailedConnectionAttempts = 0; // Reset the counter
-
-    // If ESP-Now is active, change protocol to only Long Range
-    if (espnowGetState() > ESPNOW_OFF)
-    {
-        if (WiFi.getMode() != WIFI_STA)
-            WiFi.mode(WIFI_STA);
-
-        // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
-        // esp_wifi_set_protocol requires WiFi to be started
-        esp_err_t response = esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
-        if (response != ESP_OK)
-            systemPrintf("wifiShutdown: Error setting ESP-Now lone protocol: %s\r\n", esp_err_to_name(response));
-        else
-        {
-            if (settings.debugWifiState == true)
-                systemPrintln("WiFi disabled, ESP-Now left in place");
-        }
-    }
-    else
-    {
-        WiFi.mode(WIFI_OFF);
-        if (settings.debugWifiState == true)
-            systemPrintln("WiFi Stopped");
-    }
-
-    // Take the network offline
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
-
-    if (wifiMulti != nullptr)
-        wifiMulti = nullptr;
-
-    // Display the heap state
-    reportHeapNow(settings.debugWifiState);
-    wifiStationRunning = false;
-    wifiApRunning = false;
-}
-
-// Needed for wifiStopSequence
-void wifiStop(NetIndex_t index, uintptr_t parameter, bool debug)
-{
-    wifiStop();
-    networkSequenceNextEntry(NETWORK_WIFI, settings.debugNetworkLayer);
-}
 
 // Returns true if we deem WiFi is not going to connect
 // Used to allow cellular to start
