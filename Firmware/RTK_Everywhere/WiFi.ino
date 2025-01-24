@@ -612,6 +612,17 @@ void wifiPromiscuousRxHandler(void *buf, wifi_promiscuous_pkt_type_t type)
 }
 
 //*********************************************************************
+// Set WiFi timeout back to zero
+// Useful if other things (such as a successful ethernet connection) need
+// to reset wifi timeout
+void wifiResetTimeout()
+{
+    wifiStartTimeout = 0;
+    if (settings.debugWifiState == true)
+        systemPrintln("WiFi: Start timeout reset to zero");
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
@@ -3115,17 +3126,6 @@ bool wifiStart()
     // If we are in STA or AP+STA mode, return if the station connected successfully
     wifiStatus = WiFi.status();
     return (wifiStatus == WL_CONNECTED);
-}
-
-//----------------------------------------
-// Set WiFi timeout back to zero
-// Useful if other things (such as a successful ethernet connection) need to reset wifi timeout
-//----------------------------------------
-void wifiResetTimeout()
-{
-    wifiStartTimeout = 0;
-    if (settings.debugWifiState == true)
-        systemPrintln("WiFi: Start timeout reset to zero");
 }
 
 //----------------------------------------
