@@ -2388,7 +2388,7 @@ void paintSystemTest()
 
             oled->setFont(QW_FONT_5X7);        // Set font to smallest
 
-            if (present.microSD)
+            if (present.microSd)
             {
                 oled->setCursor(xOffset, yOffset); // x, y
                 oled->print("SD:");
