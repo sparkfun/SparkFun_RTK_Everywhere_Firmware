@@ -623,6 +623,75 @@ void wifiResetTimeout()
 }
 
 //*********************************************************************
+// Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
+// Sets the appropriate protocols (WiFi + ESP-Now)
+// If radio is off entirely, start WiFi
+// If ESP-Now is active, only add the LR protocol
+// Returns true if WiFi has connected and false otherwise
+bool wifiStart()
+{
+    int wifiStatus;
+
+    // Determine which parts of WiFi need to be started
+    bool startWiFiStation = false;
+    bool startWiFiAp = false;
+
+    uint16_t consumerTypes = networkGetConsumerTypes();
+
+    // The consumers need station
+    if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
+        startWiFiStation = true;
+
+    // The consumers need AP
+    if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
+        startWiFiAp = true;
+
+    if (startWiFiStation == false && startWiFiAp == false)
+    {
+        systemPrintln("wifiStart() requested without any NETCONSUMER combination");
+        WIFI_STOP();
+        return (false);
+    }
+
+    // Determine if WiFi is already running
+    if (startWiFiStation == wifiStationRunning && startWiFiAp == wifiApRunning)
+    {
+        if (settings.debugWifiState == true)
+            systemPrintln("WiFi is already running with requested setup");
+        return (true);
+    }
+
+    // Handle special cases if no networks have been entered
+    if (wifiNetworkCount() == 0)
+    {
+        if (startWiFiStation == true && startWiFiAp == false)
+        {
+            systemPrintln("Error: Please enter at least one SSID before using WiFi");
+            displayNoSSIDs(2000);
+            WIFI_STOP();
+            return false;
+        }
+        else if (startWiFiStation == true && startWiFiAp == true)
+        {
+            systemPrintln("Error: No SSID available to start WiFi Station during AP");
+            // Allow the system to continue in AP only mode
+            startWiFiStation = false;
+        }
+    }
+
+    // Start WiFi
+    wifiConnect(startWiFiStation, startWiFiAp, settings.wifiConnectTimeoutMs);
+
+    // If we are in AP only mode, as long as the AP is started, return true
+    if (WiFi.getMode() == WIFI_MODE_AP)
+        return WIFI_SOFT_AP_RUNNING();
+
+    // If we are in STA or AP+STA mode, return if the station connected successfully
+    wifiStatus = WiFi.status();
+    return (wifiStatus == WL_CONNECTED);
+}
+
+//*********************************************************************
 // Constructor
 // Inputs:
 //   verbose: Set to true to display additional WiFi debug data
@@ -3056,76 +3125,6 @@ bool wifiIsRunning()
     if (wifiStationRunning || wifiApRunning)
         return true;
     return false;
-}
-
-//----------------------------------------
-// Starts the WiFi connection state machine (moves from WIFI_STATE_OFF to WIFI_STATE_CONNECTING)
-// Sets the appropriate protocols (WiFi + ESP-Now)
-// If radio is off entirely, start WiFi
-// If ESP-Now is active, only add the LR protocol
-// Returns true if WiFi has connected and false otherwise
-//----------------------------------------
-bool wifiStart()
-{
-    int wifiStatus;
-
-    // Determine which parts of WiFi need to be started
-    bool startWiFiStation = false;
-    bool startWiFiAp = false;
-
-    uint16_t consumerTypes = networkGetConsumerTypes();
-
-    // The consumers need station
-    if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
-        startWiFiStation = true;
-
-    // The consumers need AP
-    if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
-        startWiFiAp = true;
-
-    if (startWiFiStation == false && startWiFiAp == false)
-    {
-        systemPrintln("wifiStart() requested without any NETCONSUMER combination");
-        WIFI_STOP();
-        return (false);
-    }
-
-    // Determine if WiFi is already running
-    if (startWiFiStation == wifiStationRunning && startWiFiAp == wifiApRunning)
-    {
-        if (settings.debugWifiState == true)
-            systemPrintln("WiFi is already running with requested setup");
-        return (true);
-    }
-
-    // Handle special cases if no networks have been entered
-    if (wifiNetworkCount() == 0)
-    {
-        if (startWiFiStation == true && startWiFiAp == false)
-        {
-            systemPrintln("Error: Please enter at least one SSID before using WiFi");
-            displayNoSSIDs(2000);
-            WIFI_STOP();
-            return false;
-        }
-        else if (startWiFiStation == true && startWiFiAp == true)
-        {
-            systemPrintln("Error: No SSID available to start WiFi Station during AP");
-            // Allow the system to continue in AP only mode
-            startWiFiStation = false;
-        }
-    }
-
-    // Start WiFi
-    wifiConnect(startWiFiStation, startWiFiAp, settings.wifiConnectTimeoutMs);
-
-    // If we are in AP only mode, as long as the AP is started, return true
-    if (WiFi.getMode() == WIFI_MODE_AP)
-        return WIFI_SOFT_AP_RUNNING();
-
-    // If we are in STA or AP+STA mode, return if the station connected successfully
-    wifiStatus = WiFi.status();
-    return (wifiStatus == WL_CONNECTED);
 }
 
 //----------------------------------------
