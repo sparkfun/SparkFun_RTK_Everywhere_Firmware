@@ -406,6 +406,9 @@ const int wifiStartNamesEntries = sizeof(wifiStartNames) / sizeof(wifiStartNames
                                      | WIFI_STA_SELECT_REMOTE_AP  \
                                      | WIFI_STA_NO_REMOTE_AP)
 
+#define WIFI_MAX_TIMEOUT    (15 * 60 * 1000)    // Timeout in milliseconds
+#define WIFI_MIN_TIMEOUT    (15 * 1000)         // Timeout in milliseconds
+
 const char * wifiSoftApSsid = "RTK Config";
 const char * wifiSoftApPassword = nullptr;
 
@@ -413,6 +416,7 @@ const char * wifiSoftApPassword = nullptr;
 // Globals
 //****************************************
 
+bool restartWiFi = false; // Restart WiFi if user changes anything
 bool wifiRestartRequested = false; // Restart WiFi if user changes anything
 
 //****************************************
@@ -421,6 +425,21 @@ bool wifiRestartRequested = false; // Restart WiFi if user changes anything
 
 // DNS server for Captive Portal
 static DNSServer dnsServer;
+
+// Start timeout
+static uint32_t wifiStartTimeout;
+static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
+
+// WiFi Timer usage:
+//  * Measure interval to display IP address
+static unsigned long wifiDisplayTimer;
+
+// WiFi interface status
+static bool wifiApRunning;
+static bool wifiStationRunning;
+
+static int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
+static WiFiMulti *wifiMulti;
 
 //*********************************************************************
 // Callback for all WiFi RX Packets
@@ -2557,38 +2576,6 @@ void RTK_WIFI::verifyTables()
     WL_NO_SSID_AVAIL: assigned when no SSID are available
     WL_SCAN_COMPLETED: assigned when the scan networks is completed
   =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*/
-
-//----------------------------------------
-// Globals
-//----------------------------------------
-
-int wifiFailedConnectionAttempts = 0; // Count the number of connection attempts between restarts
-
-bool restartWiFi = false; // Restart WiFi if user changes anything
-
-WiFiMulti *wifiMulti;
-
-//----------------------------------------
-// Constants
-//----------------------------------------
-
-#define WIFI_MAX_TIMEOUT (15 * 60 * 1000)
-#define WIFI_MIN_TIMEOUT (15 * 1000)
-
-//----------------------------------------
-// Locals
-//----------------------------------------
-
-// Start timeout
-static uint32_t wifiStartTimeout;
-static uint32_t wifiStartLastTry; // The last time WiFi start was attempted
-
-// WiFi Timer usage:
-//  * Measure interval to display IP address
-static unsigned long wifiDisplayTimer;
-
-static bool wifiStationRunning;
-static bool wifiApRunning;
 
 //=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // WiFi Routines
