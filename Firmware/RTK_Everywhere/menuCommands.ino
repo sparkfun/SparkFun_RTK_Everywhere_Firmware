@@ -1514,7 +1514,6 @@ void createSettingsString(char *newSettings)
             break;
             case tSysState: {
                 SystemState *ptr = (SystemState *)rtkSettingsEntries[i].var;
-
                 stringRecord(newSettings, rtkSettingsEntries[i].name, (int)*ptr);
             }
             break;
