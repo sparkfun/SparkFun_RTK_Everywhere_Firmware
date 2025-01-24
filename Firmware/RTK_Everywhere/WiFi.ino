@@ -442,6 +442,42 @@ static int wifiFailedConnectionAttempts = 0; // Count the number of connection a
 static WiFiMulti *wifiMulti;
 
 //*********************************************************************
+// Display the WiFi state
+void wifiDisplayState()
+{
+    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI) ? "Online" : "Offline");
+    systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1],
+                 wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
+    if (networkInterfaceHasInternet(NETWORK_WIFI))
+    {
+        // Get the DNS addresses
+        IPAddress dns1 = WiFi.STA.dnsIP(0);
+        IPAddress dns2 = WiFi.STA.dnsIP(1);
+        IPAddress dns3 = WiFi.STA.dnsIP(2);
+
+        // Get the WiFi status
+        wl_status_t wifiStatus = WiFi.status();
+
+        const char *wifiStatusString = wifiPrintState(wifiStatus);
+
+        // Display the WiFi state
+        systemPrintf("    SSID: %s\r\n", WiFi.STA.SSID());
+        systemPrintf("    IP Address: %s\r\n", WiFi.STA.localIP().toString().c_str());
+        systemPrintf("    Subnet Mask: %s\r\n", WiFi.STA.subnetMask().toString().c_str());
+        systemPrintf("    Gateway Address: %s\r\n", WiFi.STA.gatewayIP().toString().c_str());
+        if ((uint32_t)dns3)
+            systemPrintf("    DNS Address: %s, %s, %s\r\n", dns1.toString().c_str(), dns2.toString().c_str(),
+                         dns3.toString().c_str());
+        else if ((uint32_t)dns3)
+            systemPrintf("    DNS Address: %s, %s\r\n", dns1.toString().c_str(), dns2.toString().c_str());
+        else
+            systemPrintf("    DNS Address: %s\r\n", dns1.toString().c_str());
+        systemPrintf("    WiFi Strength: %d dBm\r\n", WiFi.RSSI());
+        systemPrintf("    WiFi Status: %d (%s)\r\n", wifiStatus, wifiStatusString);
+    }
+}
+
+//*********************************************************************
 // Counts the number of entered SSIDs
 int wifiNetworkCount()
 {
@@ -2859,43 +2895,6 @@ bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout)
     }
     wifiStationRunning = false;
     return false;
-}
-
-//----------------------------------------
-// Display the WiFi state
-//----------------------------------------
-void wifiDisplayState()
-{
-    systemPrintf("WiFi: %s\r\n", networkInterfaceHasInternet(NETWORK_WIFI) ? "Online" : "Offline");
-    systemPrintf("    MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\r\n", wifiMACAddress[0], wifiMACAddress[1],
-                 wifiMACAddress[2], wifiMACAddress[3], wifiMACAddress[4], wifiMACAddress[5]);
-    if (networkInterfaceHasInternet(NETWORK_WIFI))
-    {
-        // Get the DNS addresses
-        IPAddress dns1 = WiFi.STA.dnsIP(0);
-        IPAddress dns2 = WiFi.STA.dnsIP(1);
-        IPAddress dns3 = WiFi.STA.dnsIP(2);
-
-        // Get the WiFi status
-        wl_status_t wifiStatus = WiFi.status();
-
-        const char *wifiStatusString = wifiPrintState(wifiStatus);
-
-        // Display the WiFi state
-        systemPrintf("    SSID: %s\r\n", WiFi.STA.SSID());
-        systemPrintf("    IP Address: %s\r\n", WiFi.STA.localIP().toString().c_str());
-        systemPrintf("    Subnet Mask: %s\r\n", WiFi.STA.subnetMask().toString().c_str());
-        systemPrintf("    Gateway Address: %s\r\n", WiFi.STA.gatewayIP().toString().c_str());
-        if ((uint32_t)dns3)
-            systemPrintf("    DNS Address: %s, %s, %s\r\n", dns1.toString().c_str(), dns2.toString().c_str(),
-                         dns3.toString().c_str());
-        else if ((uint32_t)dns3)
-            systemPrintf("    DNS Address: %s, %s\r\n", dns1.toString().c_str(), dns2.toString().c_str());
-        else
-            systemPrintf("    DNS Address: %s\r\n", dns1.toString().c_str());
-        systemPrintf("    WiFi Strength: %d dBm\r\n", WiFi.RSSI());
-        systemPrintf("    WiFi Status: %d\r\n", wifiStatusString);
-    }
 }
 
 //----------------------------------------
