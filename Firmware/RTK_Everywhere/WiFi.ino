@@ -417,7 +417,6 @@ const char * wifiSoftApPassword = nullptr;
 //****************************************
 
 bool restartWiFi = false; // Restart WiFi if user changes anything
-bool wifiRestartRequested = false; // Restart WiFi if user changes anything
 
 //****************************************
 // Locals
@@ -1118,9 +1117,9 @@ void RTK_WIFI::hostNameSet(const char * mDnsHostName)
 bool RTK_WIFI::restart(bool always)
 {
     // Determine if restart should be perforrmed
-    if (always || wifiRestartRequested)
+    if (always || restartWiFi)
     {
-        wifiRestartRequested = false;
+        restartWiFi = false;
 
         // Determine how WiFi is being used
         bool started = false;
