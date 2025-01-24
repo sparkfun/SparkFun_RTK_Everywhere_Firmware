@@ -2510,7 +2510,7 @@ void paintSystemTest()
             oled->print(" ");
             oled->print(gnssFirmwareVersionInt);
             oled->print("-");
-            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 130))
+            if ((present.gnss_zedf9p) && (gnssFirmwareVersionInt < 150))
                 oled->print("FAIL");
             else
                 oled->print("OK");
