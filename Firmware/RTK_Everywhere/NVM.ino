@@ -222,11 +222,6 @@ void recordSystemSettingsToFile(File *settingsFile)
         if (settingAvailableOnPlatform(i) == false)
             continue;
 
-        // Exceptions not stored in NVM:
-        // none currently
-        // if (strcmp(rtkSettingsEntries[i].name, "example") == 0)
-        //     continue;
-
         switch (rtkSettingsEntries[i].type)
         {
         default:
