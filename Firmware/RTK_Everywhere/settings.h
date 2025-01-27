@@ -2228,31 +2228,4 @@ class RTK_WIFI
 
 #endif // COMPILE_WIFI
 #endif // COMPILE_NETWORK
-
-//****************************************
-// ESP-NOW
-//****************************************
-
-#ifdef COMPILE_ESPNOW
-
-typedef enum
-{
-    ESP_NOW_OFF = 0,
-    ESP_NOW_BROADCASTING,
-    ESP_NOW_PAIRING,
-    ESP_NOW_MAC_RECEIVED,
-    ESP_NOW_PAIRED,
-    ESP_NOW_MAX
-} ESP_NOW_STATE;
-
-// Create a struct for ESP NOW pairing
-typedef struct _ESP_NOW_PAIR_MESSAGE
-{
-    uint8_t macAddress[6];
-    bool encrypt;
-    uint8_t channel;
-    uint8_t crc; // Simple check - add MAC together and limit to 8 bit
-} ESP_NOW_PAIR_MESSAGE;
-
-#endif // COMPILE_ESPNOW
 #endif // __SETTINGS_H__

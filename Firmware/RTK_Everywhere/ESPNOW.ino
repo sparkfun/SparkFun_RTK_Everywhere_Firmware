@@ -13,12 +13,25 @@
 const uint8_t peerBroadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 //****************************************
+// Types
+//****************************************
+
+// Create a struct for ESP NOW pairing
+typedef struct _ESP_NOW_PAIR_MESSAGE
+{
+    uint8_t macAddress[6];
+    bool encrypt;
+    uint8_t channel;
+    uint8_t crc; // Simple check - add MAC together and limit to 8 bit
+} ESP_NOW_PAIR_MESSAGE;
+
+//****************************************
 // Locals
 //****************************************
 
 bool espNowDebug;
 bool espNowDisplay;
-ESP_NOW_STATE espNowState;
+ESPNOWState espNowState;
 bool espNowVerbose;
 
 //*********************************************************************
@@ -94,8 +107,8 @@ ESPNOWState espnowGetState()
 //      A. Validate message CRC
 //      B. If valid CRC
 //          i.  Save peer MAC address
-//          ii. espnowSetState(ESP_NOW_MAC_RECEIVED)
-//  14. Else if ESP_NOW_MAC_RECEIVED state
+//          ii. espnowSetState(ESPNOW_MAC_RECEIVED)
+//  14. Else if ESPNOW_MAC_RECEIVED state
 //      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
 //          i.  gnss->pushRawData
 //  15. Set espnowIncomingRTCM
@@ -110,44 +123,44 @@ ESPNOWState espnowGetState()
 //   7. esp_wifi_get_protocol
 //   8. Turn off long range protocol if necessary, call esp_wifi_set_protocol
 //   9. Turn off ESP-NOW. call esp_now_deinit
-//  10. Set ESP-NOW state, call espnowSetState(ESP_NOW_OFF)
+//  10. Set ESP-NOW state, call espnowSetState(ESPNOW_OFF)
 //  11. Restart WiFi if necessary
 //----------------------------------------------------------------------
 
 //*********************************************************************
 // Update the state of the ESP Now state machine
 //
-//      +---------------------+
-//      |     ESP_NOW_OFF     |
-//      +---------------------+
+//      +--------------------+
+//      |     ESPNOW_OFF     |
+//      +--------------------+
 //          |             |
 //          |             | No pairs listed
 //          |             V
-//          |  +----------------------+
-//          |  | ESP_NOW_BROADCASTING |
-//          |  +----------------------+
-//          |             |
-//          |             |
-//          |             V
 //          |  +---------------------+
-//          |  |   ESP_NOW_PAIRING   |
+//          |  | ESPNOW_BROADCASTING |
 //          |  +---------------------+
 //          |             |
 //          |             |
 //          |             V
-//          |  +---------------------+
-//          |  | ESP_NOW_MAC_RECEIVED |
-//          |  +---------------------+
+//          |  +--------------------+
+//          |  |   ESPNOW_PAIRING   |
+//          |  +--------------------+
 //          |             |
 //          |             |
 //          |             V
-//          |  +---------------------+
-//          '->|   ESP_NOW_PAIRED    |
-//             +---------------------+
+//          |  +--------------------+
+//          |  | ESPNOW_MAC_RECEIVED |
+//          |  +--------------------+
+//          |             |
+//          |             |
+//          |             V
+//          |  +--------------------+
+//          '->|   ESPNOW_PAIRED    |
+//             +--------------------+
 //
-// Send RTCM in either ESP_NOW_BROADCASTING or ESP_NOW_PAIRED state.
-// Receive RTCM in ESP_NOW_BROADCASTING, ESP_NOW_MAC_RECEIVED and
-// ESP_NOW_PAIRED states.
+// Send RTCM in either ESPNOW_BROADCASTING or ESPNOW_PAIRED state.
+// Receive RTCM in ESPNOW_BROADCASTING, ESPNOW_MAC_RECEIVED and
+// ESPNOW_PAIRED states.
 //*********************************************************************
 
 //*********************************************************************
@@ -164,7 +177,7 @@ void espNowRxHandler(const esp_now_recv_info *mac,
 
     uint8_t receivedMAC[6];
 
-    if (espNowState == ESP_NOW_PAIRING)
+    if (espNowState == ESPNOW_PAIRING)
     {
         ESP_NOW_PAIR_MESSAGE pairMessage;
         if (len == sizeof(pairMessage)) // First error check
@@ -179,7 +192,7 @@ void espNowRxHandler(const esp_now_recv_info *mac,
             if (tempCRC == pairMessage.crc) // 2nd error check
             {
                 memcpy(&receivedMAC, pairMessage.macAddress, 6);
-                espNowSetState(ESP_NOW_MAC_RECEIVED);
+                espNowSetState(ESPNOW_MAC_RECEIVED);
             }
             // else Pair CRC failed
         }
@@ -198,15 +211,15 @@ void espNowRxHandler(const esp_now_recv_info *mac,
 
 //*********************************************************************
 // Update the state of the ESP-NOW subsystem
-void espNowSetState(ESP_NOW_STATE newState)
+void espNowSetState(ESPNOWState newState)
 {
     const char * name[] =
     {
-        "ESP_NOW_OFF",
-        "ESP_NOW_BROADCASTING",
-        "ESP_NOW_PAIRING",
-        "ESP_NOW_MAC_RECEIVED",
-        "ESP_NOW_PAIRED",
+        "ESPNOW_OFF",
+        "ESPNOW_BROADCASTING",
+        "ESPNOW_PAIRING",
+        "ESPNOW_MAC_RECEIVED",
+        "ESPNOW_PAIRED",
     };
     const int nameCount = sizeof(name) / sizeof(name[0]);
     const char * newName;
@@ -217,7 +230,7 @@ void espNowSetState(ESP_NOW_STATE newState)
     if (espNowDebug == true)
     {
         // Get the old state name
-        if (espNowState < ESP_NOW_MAX)
+        if (espNowState < ESPNOW_MAX)
             oldName = name[espNowState];
         else
         {
@@ -226,7 +239,7 @@ void espNowSetState(ESP_NOW_STATE newState)
         }
 
         // Get the new state name
-        if (newState < ESP_NOW_MAX)
+        if (newState < ESPNOW_MAX)
             newName = name[newState];
         else
         {
@@ -276,10 +289,10 @@ bool espNowStart()
         }
 
         //  10. Add peers from settings
-        //      i.  Set ESP-NOW state, call espNowSetState(ESP_NOW_PAIRED)
+        //      i.  Set ESP-NOW state, call espNowSetState(ESPNOW_PAIRED)
         if (espNowDebug && espNowVerbose)
             systemPrintf("Calling espNowSetState\r\n");
-        espNowSetState(ESP_NOW_PAIRED);
+        espNowSetState(ESPNOW_PAIRED);
 
         //     ii. Loop through peers listed in settings, for each
         for (index = 0; index < ESPNOW_MAX_PEERS; index++)
@@ -421,7 +434,7 @@ bool espNowStop()
         }
 
         // Stop the ESP-NOW state machine
-        espNowSetState(ESP_NOW_OFF);
+        espNowSetState(ESPNOW_OFF);
 
         //   9. Turn off ESP-NOW. call esp_now_deinit
         if (espNowDebug && espNowVerbose)
@@ -499,20 +512,11 @@ void updateEspnow()
     }
 }
 
-// Create a struct for ESP NOW pairing
-typedef struct PairMessage
-{
-    uint8_t macAddress[6];
-    bool encrypt;
-    uint8_t channel;
-    uint8_t crc; // Simple check - add MAC together and limit to 8 bit
-} PairMessage;
-
 // Callback when data is sent
 void espnowOnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
     //  systemPrint("Last Packet Send Status: ");
-    //  if (status == ESP_NOW_SEND_SUCCESS)
+    //  if (status == ESPNOW_SEND_SUCCESS)
     //    systemPrintln("Delivery Success");
     //  else
     //    systemPrintln("Delivery Fail");
@@ -523,9 +527,9 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
 {
     if (espnowState == ESPNOW_PAIRING)
     {
-        if (len == sizeof(PairMessage)) // First error check
+        if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
         {
-            PairMessage pairMessage;
+            ESP_NOW_PAIR_MESSAGE pairMessage;
             memcpy(&pairMessage, incomingData, sizeof(pairMessage));
 
             // Check CRC
@@ -867,7 +871,7 @@ bool espnowIsPaired()
 esp_err_t espnowSendPairMessage(uint8_t *sendToMac)
 {
     // Assemble message to send
-    PairMessage pairMessage;
+    ESP_NOW_PAIR_MESSAGE pairMessage;
 
     // Get unit MAC address
     memcpy(pairMessage.macAddress, wifiMACAddress, 6);
