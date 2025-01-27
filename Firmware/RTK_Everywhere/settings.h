@@ -364,7 +364,6 @@ typedef enum
     ESPNOW_PAIRED,
     ESPNOW_MAX
 } ESPNOWState;
-volatile ESPNOWState espnowState = ESPNOW_OFF;
 
 const uint8_t ESPNOW_MAX_PEERS = 5; // Maximum of 5 rovers
 

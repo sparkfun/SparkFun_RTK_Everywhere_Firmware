@@ -70,7 +70,7 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
 // Get the current ESP-NOW state
 ESPNOWState espnowGetState()
 {
-    return espnowState;
+    return espNowState;
 }
 
 //----------------------------------------------------------------------
@@ -480,15 +480,15 @@ void updateEspnow()
 {
     if (settings.enableEspNow == true)
     {
-        if (espnowState == ESPNOW_PAIRED || espnowState == ESPNOW_BROADCASTING)
+        if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
         {
             // If it's been longer than a few ms since we last added a byte to the buffer
             // then we've reached the end of the RTCM stream. Send partial buffer.
             if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
             {
-                if (espnowState == ESPNOW_PAIRED)
+                if (espNowState == ESPNOW_PAIRED)
                     esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
-                else // if (espnowState == ESPNOW_BROADCASTING)
+                else // if (espNowState == ESPNOW_BROADCASTING)
                 {
                     uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
                     esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
@@ -525,7 +525,7 @@ void espnowOnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 // Callback when data is received
 void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
 {
-    if (espnowState == ESPNOW_PAIRING)
+    if (espNowState == ESPNOW_PAIRING)
     {
         if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
         {
@@ -605,7 +605,7 @@ void espnowStart()
     if (response != ESP_OK)
         systemPrintf("espnowStart: Failed to get protocols: %s\r\n", esp_err_to_name(response));
 
-    if ((WIFI_IS_RUNNING() == false) && espnowState == ESPNOW_OFF)
+    if ((WIFI_IS_RUNNING() == false) && espNowState == ESPNOW_OFF)
     {
         // Radio is off, turn it on
         if (protocols != (WIFI_PROTOCOL_LR))
@@ -626,7 +626,7 @@ void espnowStart()
         }
     }
     // If WiFi is on but ESP NOW is off, then enable LR protocol
-    else if (WIFI_IS_RUNNING() && espnowState == ESPNOW_OFF)
+    else if (WIFI_IS_RUNNING() && espNowState == ESPNOW_OFF)
     {
         // Enable WiFi + ESP-Now
         // Enable long range, PHY rate of ESP32 will be 512Kbps or 256Kbps
@@ -743,7 +743,7 @@ void espnowStart()
 // If WiFi is off, stop the radio entirely
 void espnowStop()
 {
-    if (espnowState == ESPNOW_OFF)
+    if (espNowState == ESPNOW_OFF)
         return;
 
     // Turn off promiscuous WiFi mode
@@ -831,7 +831,7 @@ void espnowBeginPairing()
 // Regularly call during pairing to see if we've received a Pairing message
 bool espnowIsPaired()
 {
-    if (espnowState == ESPNOW_MAC_RECEIVED)
+    if (espNowState == ESPNOW_MAC_RECEIVED)
     {
         // Remove broadcast peer
         uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -928,13 +928,13 @@ esp_err_t espnowRemovePeer(uint8_t *peerMac)
 // Update the state of the ESP Now state machine
 void espnowSetState(ESPNOWState newState)
 {
-    if (espnowState == newState && settings.debugEspNow == true)
+    if (espNowState == newState && settings.debugEspNow == true)
         systemPrint("*");
-    espnowState = newState;
+    espNowState = newState;
 
     if (settings.debugEspNow == true)
     {
-        systemPrint("espnowState: ");
+        systemPrint("espNowState: ");
         switch (newState)
         {
         case ESPNOW_OFF:
@@ -964,7 +964,7 @@ void espnowProcessRTCM(byte incoming)
     // If we are paired,
     // Or if the radio is broadcasting
     // Then add bytes to the outgoing buffer
-    if (espnowState == ESPNOW_PAIRED || espnowState == ESPNOW_BROADCASTING)
+    if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
     {
         // Move this byte into ESP NOW to send buffer
         espnowOutgoing[espnowOutgoingSpot++] = incoming;
@@ -976,9 +976,9 @@ void espnowProcessRTCM(byte incoming)
     {
         espnowOutgoingSpot = 0; // Wrap
 
-        if (espnowState == ESPNOW_PAIRED)
+        if (espNowState == ESPNOW_PAIRED)
             esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
-        else // if (espnowState == ESPNOW_BROADCASTING)
+        else // if (espNowState == ESPNOW_BROADCASTING)
         {
             uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
             esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
@@ -1041,7 +1041,7 @@ void espnowStaticPairing()
 // Returns the current channel being used by WiFi
 uint8_t espnowGetChannel()
 {
-    if (espnowState == ESPNOW_OFF)
+    if (espNowState == ESPNOW_OFF)
         return 0;
 
     bool originalPromiscuousMode = false;
