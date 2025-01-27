@@ -357,11 +357,12 @@ typedef struct _NTRIP_SERVER_DATA
 
 typedef enum
 {
-    ESPNOW_OFF,
+    ESPNOW_OFF = 0,
     ESPNOW_BROADCASTING,
     ESPNOW_PAIRING,
     ESPNOW_MAC_RECEIVED,
     ESPNOW_PAIRED,
+    ESPNOW_MAX
 } ESPNOWState;
 volatile ESPNOWState espnowState = ESPNOW_OFF;
 
@@ -1932,7 +1933,6 @@ class RTK_WIFI
     WIFI_CHANNEL_t _channel;    // Current WiFi channel number
     WIFI_CHANNEL_t _espNowChannel;  // Channel required for ESPNow, zero (0) use _channel
     bool _espNowRunning;        // ESPNow started or running
-    const char * _hostName;     // Name of this host
     volatile bool _scanRunning; // Scan running
     bool _softApRunning;        // Soft AP is starting or running
     int _staAuthType;           // Authorization type for the remote AP
@@ -1940,13 +1940,14 @@ class RTK_WIFI
     bool _staHasIp;             // True when station has IP address
     IPAddress _staIpAddress;    // IP address of the station
     uint8_t _staIpType;         // 4 or 6 when IP address is assigned
-    uint8_t _staMacAddress[6];  // MAC address of the station
+    volatile uint8_t _staMacAddress[6]; // MAC address of the station
     const char * _staRemoteApSsid;      // SSID of remote AP
     const char * _staRemoteApPassword;  // Password of remote AP
     volatile WIFI_ACTION_t _started;    // Components that are started and running
     WIFI_CHANNEL_t _stationChannel; // Channel required for station, zero (0) use _channel
     bool _stationRunning;       // True while station is starting or running
     uint32_t _timer;            // Reconnection timer
+    bool _usingDefaultChannel;  // Using default WiFi channel
     bool _verbose;              // True causes more debug output to be displayed
 
     // Display components begin started or stopped
@@ -1985,8 +1986,8 @@ class RTK_WIFI
     // Outputs:
     //   Returns true if successful and false upon failure
     bool setWiFiProtocols(wifi_interface_t interface,
-                                    bool enableWiFiProtocols,
-                                    bool enableLongRangeProtocol);
+                          bool enableWiFiProtocols,
+                          bool enableLongRangeProtocol);
 
     // Handle the soft AP events
     // Inputs:
@@ -2125,6 +2126,11 @@ class RTK_WIFI
     //  Returns true if ESP-NOW is being started or is online
     bool espNowRunning();
 
+    // Set the ESP-NOW channel
+    // Inputs:
+    //   channel: New ESP-NOW channel number
+    void espNowSetChannel(WIFI_CHANNEL_t channel);
+
     // Handle the WiFi event
     // Inputs:
     //   event: Arduino ESP32 event number found on
@@ -2133,16 +2139,10 @@ class RTK_WIFI
     //   info: Additional data about the event
     void eventHandler(arduino_event_id_t event, arduino_event_info_t info);
 
-    // Get the mDNS host name
+    // Get the current WiFi channel
     // Outputs:
-    //   Returns the mDNS host name as a pointer to a zero terminated string
-    //   of characters
-    const char * hostNameGet();
-
-    // Set the mDNS host name
-    // Inputs
-    //   Address of a zero terminated string containing the mDNS host name
-    void hostNameSet(const char * mDnsHostName);
+    //   Returns the current WiFi channel number
+    WIFI_CHANNEL_t getChannel();
 
     // Restart WiFi
     // Inputs:
