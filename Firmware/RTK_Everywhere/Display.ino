@@ -2387,15 +2387,31 @@ void paintSystemTest()
             drawFrame(); // Outside edge
 
             oled->setFont(QW_FONT_5X7);        // Set font to smallest
-            oled->setCursor(xOffset, yOffset); // x, y
-            oled->print("SD:");
 
-            if (online.microSD == false)
-                beginSD(); // Test if SD is present
-            if (online.microSD == true)
-                oled->print("OK");
-            else
-                oled->print("FAIL");
+            if (present.microSd)
+            {
+                oled->setCursor(xOffset, yOffset); // x, y
+                oled->print("SD:");
+
+                if (online.microSD == false)
+                    beginSD(); // Test if SD is present
+                if (online.microSD == true)
+                    oled->print("OK");
+                else
+                    oled->print("FAIL");
+            }
+            else if (present.gnss_mosaicX5)
+            {
+                // Facet mosaic has an SD card, but it is connected directly to the mosaic-X5
+                // Calling gnss->update() during the GNSS check will cause sdCardSize to be updated
+                oled->setCursor(xOffset, yOffset); // x, y
+                oled->print("SD:");
+
+                if (sdCardSize > 0)
+                    oled->print("OK");
+                else
+                    oled->print("FAIL");
+            }
 
             if (present.fuelgauge_max17048 || present.fuelgauge_bq40z50)
             {
@@ -2517,7 +2533,7 @@ void paintSystemTest()
 
             oled->setCursor(xOffset, yOffset + (2 * charHeight)); // x, y
             oled->print("LBand:");
-            if (online.lband_neo == true)
+            if ((online.lband_neo == true) || (present.gnss_mosaicX5))
                 oled->print("OK");
             else
                 oled->print("FAIL");
