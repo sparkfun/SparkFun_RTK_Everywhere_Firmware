@@ -477,15 +477,16 @@ void menuWiFi()
                 systemPrintf("Enter SSID network %d: ", arraySlot + 1);
                 getUserInputString(settings.wifiNetworks[arraySlot].ssid,
                                    sizeof(settings.wifiNetworks[arraySlot].ssid));
-                restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
             }
             else
             {
                 systemPrintf("Enter Password for %s: ", settings.wifiNetworks[arraySlot].ssid);
                 getUserInputString(settings.wifiNetworks[arraySlot].password,
                                    sizeof(settings.wifiNetworks[arraySlot].password));
-                restartWiFi = true; // If we are modifying the SSID table, force restart of WiFi
             }
+
+            // If we are modifying the SSID table, force restart of WiFi
+            restartWiFi = true;
         }
         else if (incoming == 'a')
         {
@@ -872,12 +873,12 @@ RTK_WIFI::RTK_WIFI(bool verbose)
       _apMacAddress{0, 0, 0, 0, 0, 0},
       _apSubnetMask{IPAddress("255.255.255.0")}, _channel{0},
       _espNowChannel{0}, _espNowRunning{false},
-      _hostName{nullptr}, _scanRunning{false}, _softApRunning{false},
+      _scanRunning{false}, _softApRunning{false},
       _staIpAddress{IPAddress((uint32_t)0)}, _staIpType{0},
       _staMacAddress{0, 0, 0, 0, 0, 0},
       _staRemoteApSsid{nullptr}, _staRemoteApPassword{nullptr},
       _started{false}, _stationChannel{0},
-      _timer{0}, _verbose{verbose}
+      _timer{0}, _usingDefaultChannel{true}, _verbose{verbose}
 {
 }
 
@@ -993,7 +994,10 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
     {
         // Verify that at least one WiFi access point is in the list
         if (MAX_WIFI_NETWORKS == 0)
+        {
             systemPrintf("ERROR: No entries in wiFiSsidPassword\r\n");
+            displayNoSSIDs(2000);
+        }
         else
         {
             // Verify that at least one SSID is set
@@ -1003,7 +1007,10 @@ bool RTK_WIFI::enable(bool enableESPNow, bool enableSoftAP, bool enableStation)
                     break;
                 }
             if (authIndex >= MAX_WIFI_NETWORKS)
+            {
                 systemPrintf("ERROR: No valid SSID in settings\r\n");
+                displayNoSSIDs(2000);
+            }
             else
             {
                 // Start the WiFi station
@@ -1037,6 +1044,15 @@ bool RTK_WIFI::espNowOnline()
 bool RTK_WIFI::espNowRunning()
 {
     return _espNowRunning;
+}
+
+//*********************************************************************
+// Set the ESP-NOW channel
+// Inputs:
+//   channel: New ESP-NOW channel number
+void RTK_WIFI::espNowSetChannel(WIFI_CHANNEL_t channel)
+{
+    _espNowChannel = channel;
 }
 
 //*********************************************************************
@@ -1099,17 +1115,12 @@ void RTK_WIFI::eventHandler(arduino_event_id_t event, arduino_event_info_t info)
 }
 
 //*********************************************************************
-// Get the mDNS host name
-const char * RTK_WIFI::hostNameGet()
+// Get the current WiFi channel
+// Outputs:
+//   Returns the current WiFi channel number
+WIFI_CHANNEL_t RTK_WIFI::getChannel()
 {
-    return _hostName;
-}
-
-//*********************************************************************
-// Get the mDNS host name
-void RTK_WIFI::hostNameSet(const char * mDnsHostName)
-{
-    _hostName = mDnsHostName;
+    return _channel;
 }
 
 //*********************************************************************
@@ -1584,6 +1595,9 @@ bool RTK_WIFI::stationConnectAP()
                          _staRemoteApSsid,
                          _channel,
                          (_staAuthType < WIFI_AUTH_MAX) ? wifiAuthorizationName[_staAuthType] : "Unknown");
+
+        // Don't delay the next WiFi start request
+        wifiResetTimeout();
     } while (0);
     return connected;
 }
@@ -1628,14 +1642,48 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
 {
     WIFI_CHANNEL_t channel;
     IPAddress ipAddress;
+    char ssid[sizeof(info.wifi_sta_connected.ssid) + 1];
     bool success;
     int type;
 
+    // Take the network offline if necessary
+    if (networkInterfaceHasInternet(NETWORK_WIFI) && (event != ARDUINO_EVENT_WIFI_STA_GOT_IP) &&
+        (event != ARDUINO_EVENT_WIFI_STA_GOT_IP6))
+    {
+        // Stop WiFi to allow it to restart
+        networkInterfaceEventStop(NETWORK_WIFI);
+    }
+
+    //------------------------------
+    // WiFi Status Values:
+    //     WL_CONNECTED: assigned when connected to a WiFi network
+    //     WL_CONNECTION_LOST: assigned when the connection is lost
+    //     WL_CONNECT_FAILED: assigned when the connection fails for all the attempts
+    //     WL_DISCONNECTED: assigned when disconnected from a network
+    //     WL_IDLE_STATUS: it is a temporary status assigned when WiFi.begin() is called and
+    //                     remains active until the number of attempts expires (resulting in
+    //                     WL_CONNECT_FAILED) or a connection is established (resulting in
+    //                     WL_CONNECTED)
+    //     WL_NO_SHIELD: assigned when no WiFi shield is present
+    //     WL_NO_SSID_AVAIL: assigned when no SSID are available
+    //     WL_SCAN_COMPLETED: assigned when the scan networks is completed
+    //
+    // WiFi Station State Machine
+    //
+    //   .--------+<----------+<-----------+<-------------+<----------+<----------+<------------.
+    //   v        |           |            |              |           |           |             |
+    // STOP --> READY --> STA_START --> SCAN_DONE --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
+    //            ^                                       ^           ^           |             |
+    //            |                                       |           '-----------'             |
+    // OFF -------'                                       '-------------------------------------'
+    //
     // Notify the upper layers that WiFi is no longer available
+    //------------------------------
+
     switch (event)
     {
     case ARDUINO_EVENT_WIFI_STA_START:
-        WiFi.STA.macAddress(_staMacAddress);
+        WiFi.STA.macAddress((uint8_t *)_staMacAddress);
         if (settings.debugWifiState)
             systemPrintf("WiFi Event: Station start: MAC: %02x:%02x:%02x:%02x:%02x:%02x\r\n",
                          _staMacAddress[0], _staMacAddress[1], _staMacAddress[2],
@@ -1652,7 +1700,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
         {
             if (settings.debugWifiState && _verbose && !_timer)
-                systemPrintf("Reconnection timer started\r\n");
+                systemPrintf("WiFi: Reconnection timer started\r\n");
             _timer = millis();
             if (!_timer)
                 _timer = 1;
@@ -1661,7 +1709,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         {
             // Stop the reconnection timer
             if (settings.debugWifiState && _verbose && _timer)
-                systemPrintf("Reconnection timer stopped\r\n");
+                systemPrintf("WiFi: Reconnection timer stopped\r\n");
             _timer = 0;
         }
 
@@ -1674,7 +1722,7 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
         // The WiFi station is no longer connected to the remote AP
         if (settings.debugWifiState && _staConnected)
-            systemPrintf("WiFi station disconnected from %s\r\n",
+            systemPrintf("WiFi: Station disconnected from %s\r\n",
                          _staRemoteApSsid);
         _staConnected = false;
 
@@ -1709,31 +1757,31 @@ void RTK_WIFI::stationEventHandler(arduino_event_id_t event, arduino_event_info_
         break;
 
     //------------------------------
-    // WiFi Station State Machine
-    //
-    //   .--------+<----------+<-----------+<-------------+<----------+<----------+<------------.
-    //   v        |           |            |              |           |           |             |
-    // STOP --> READY --> STA_START --> SCAN_DONE --> CONNECTED --> GOT_IP --> LOST_IP --> DISCONNECTED
-    //            ^                                       ^           ^           |             |
-    //            |                                       |           '-----------'             |
-    // OFF -------'                                       '-------------------------------------'
-    //
-    // Handle the WiFi station events
+    // Bring the WiFi station back online
     //------------------------------
 
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
         _staConnected = true;
+        if (settings.debugWifiState)
+        {
+            memcpy(ssid, info.wifi_sta_connected.ssid, info.wifi_sta_connected.ssid_len);
+            ssid[info.wifi_sta_connected.ssid_len] = 0;
+            systemPrintf("WiFi: STA connected to %s\r\n", ssid);
+        }
+        break;
+
         break;
 
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-        ipAddress = WiFi.STA.localIP();
+        _staIpAddress = WiFi.STA.localIP();
         type = (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) ? '4' : '6';
 
         // Display the IP address
         if (settings.debugWifiState)
-            systemPrintf("WiFi Event: Got IPv%c address %s\r\n",
-                         type, ipAddress.toString().c_str());
+            systemPrintf("WiFi: Got IPv%c address %s\r\n",
+                         type, _staIpAddress.toString().c_str());
+        networkInterfaceInternetConnectionAvailable(NETWORK_WIFI);
         break;
     }   // End of switch
 }
@@ -1959,6 +2007,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 {
     int authIndex;
     WIFI_CHANNEL_t channel;
+    bool defaultChannel;
     WIFI_ACTION_t delta;
     bool enabled;
     WIFI_ACTION_t mask;
@@ -1985,7 +2034,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     // Select the channel
     //
     // The priority order for the channel is:
-    //      1. Active channel
+    //      1. Active channel (not using default channel)
     //      2. _stationChannel
     //      3. Remote AP channel determined by scan
     //      4. _espNowChannel
@@ -1994,8 +2043,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     //****************************************
 
     // Determine if there is an active channel
+    defaultChannel = _usingDefaultChannel;
+    _usingDefaultChannel = false;
     if (((_started & ~stopping) & (WIFI_AP_ONLINE | WIFI_EN_ESP_NOW_ONLINE | WIFI_STA_ONLINE))
-        && _channel)
+        && _channel && !defaultChannel)
     {
         // Continue to use the active channel
         channel = _channel;
@@ -2017,6 +2068,14 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         channel = 0;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: Determine by remote AP scan\r\n");
+
+        // Restart ESP-NOW if necessary
+        if (espNowRunning())
+            stopping |= WIFI_START_ESP_NOW;
+
+        // Restart soft AP if necessary
+        if (softApRunning())
+            stopping |= WIFI_START_SOFT_AP;
     }
 
     // Determine if the ESP-NOW channel was specified
@@ -2039,6 +2098,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     else
     {
         channel = WIFI_DEFAULT_CHANNEL;
+        _usingDefaultChannel = true;
         if (settings.debugWifiState && _verbose)
             systemPrintf("channel: %d, default channel\r\n", channel);
     }
@@ -2053,15 +2113,23 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
     // not running or being started, let mDNS start for the soft AP.
 
     // Determine if mDNS is being used for WiFi station
-    if (starting & WIFI_STA_START_MDNS)
+    if (strlen(&settings.mdnsHostName[0]))
     {
-        // Don't start mDNS for soft AP
-        starting &= ~WIFI_AP_START_MDNS;
+        if (starting & WIFI_STA_START_MDNS)
+        {
+            // Don't start mDNS for soft AP
+            starting &= ~WIFI_AP_START_MDNS;
 
-        // Stop it if it is being used for soft AP
-        if (_started & WIFI_AP_START_MDNS)
-            stopping |= WIFI_AP_START_MDNS;
+            // Stop it if it is being used for soft AP
+            if (_started & WIFI_AP_START_MDNS)
+                stopping |= WIFI_AP_START_MDNS;
+        }
     }
+
+    // Don't set host name or start mDNS if the host name is not specified
+    else
+        starting &= ~(WIFI_AP_SET_HOST_NAME | WIFI_AP_START_MDNS
+                      | WIFI_STA_SET_HOST_NAME | WIFI_STA_START_MDNS);
 
     //****************************************
     // Determine if DNS needs to start
@@ -2359,7 +2427,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
 
         // Reset the channel if all components are stopped
         if ((softApOnline() == false) && (stationOnline() == false))
+        {
             _channel = 0;
+            _usingDefaultChannel = true;
+        }
 
         //****************************************
         // Delay to allow mDNS to shutdown and restart properly
@@ -2506,13 +2577,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("_hostName: %p%s%s%s\r\n", _hostName,
-                             _hostName ? " (" : "",
-                             _hostName ? _hostName : "",
-                             _hostName ? ")" : "");
+                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
 
             // Set the host name
-            if (_hostName && (!softApSetHostName(_hostName)))
+            if (!softApSetHostName(&settings.mdnsHostName[0]))
                 break;
             _started = _started | WIFI_AP_SET_HOST_NAME;
         }
@@ -2530,7 +2598,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             if (settings.debugWifiState)
             {
                 systemPrintf("mDNS started on soft AP as %s.local (%s)\r\n",
-                             _hostName,
+                             &settings.mdnsHostName[0],
                              _apIpAddress.toString().c_str());
             }
             _started = _started | WIFI_AP_START_MDNS;
@@ -2559,11 +2627,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             // Display the soft AP status
             String mdnsName("");
             if (_started & WIFI_AP_START_MDNS)
-                mdnsName = String(", local.") + String(_hostName);
+                mdnsName = String(", local.") + String(&settings.mdnsHostName[0]);
             systemPrintf("WiFi: Soft AP online, SSID: %s (%s%s), Password: %s\r\n",
                          wifiSoftApSsid,
                          _apIpAddress.toString().c_str(),
-                         mdnsName,
+                         mdnsName.c_str(),
                          wifiSoftApPassword);
         }
 
@@ -2576,13 +2644,10 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             // Display the host name
             if (settings.debugWifiState && _verbose)
-                systemPrintf("_hostName: %p%s%s%s\r\n", _hostName,
-                             _hostName ? " (" : "",
-                             _hostName ? _hostName : "",
-                             _hostName ? ")" : "");
+                systemPrintf("Host name: %s\r\n", &settings.mdnsHostName[0]);
 
             // Set the host name
-            if (_hostName && (!stationHostName(_hostName)))
+            if (!stationHostName(&settings.mdnsHostName[0]))
                 break;
             _started = _started | WIFI_STA_SET_HOST_NAME;
         }
@@ -2626,9 +2691,12 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
                 break;
             }
 
+            // Wait for the station MAC address to be set
+            while (!_staMacAddress[0])
+                delay(1);
+
             // Save the IP address
             _staHasIp = true;
-            _staIpAddress = WiFi.STA.localIP();
             _staIpType = (_staIpAddress.type() == IPv4) ? '4' : '6';
         }
 
@@ -2643,7 +2711,7 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
             {
                 if (settings.debugWifiState)
                     systemPrintf("mDNS started on WiFi station as %s.local (%s)\r\n",
-                                 _hostName,
+                                 &settings.mdnsHostName[0],
                                  _staIpAddress.toString().c_str());
                 _started = _started | WIFI_STA_START_MDNS;
             }
@@ -2654,11 +2722,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         {
             _started = _started | WIFI_STA_ONLINE;
             String mdnsName("");
-            if (_hostName && (_started & WIFI_STA_START_MDNS))
-                mdnsName = String(", local.") + String(_hostName);
+            if (_started & WIFI_STA_START_MDNS)
+                mdnsName = String(", local.") + String(&settings.mdnsHostName[0]);
             systemPrintf("WiFi: Station online (%s: %s%s)\r\n",
                          _staRemoteApSsid, _staIpAddress.toString().c_str(),
-                         mdnsName);
+                         mdnsName.c_str());
         }
 
         //****************************************
@@ -2752,6 +2820,11 @@ bool RTK_WIFI::stopStart(WIFI_ACTION_t stopping, WIFI_ACTION_t starting)
         // Mark ESP-NOW online
         if (starting & WIFI_EN_ESP_NOW_ONLINE)
         {
+            // Wait for the station MAC address to be set
+            while (!_staMacAddress[0])
+                delay(1);
+
+            // Display the ESP-NOW MAC address
             _started = _started | WIFI_EN_ESP_NOW_ONLINE;
             systemPrintf("WiFi: ESP-NOW online (%02x:%02x:%02x:%02x:%02x:%02x, channel: %d)\r\n",
                          _staMacAddress[0], _staMacAddress[1], _staMacAddress[2],

@@ -113,6 +113,9 @@ NetIndex_t networkIndexTable[NETWORK_OFFLINE];
 // Priority of the default network interface
 NetPriority_t networkPriority = NETWORK_OFFLINE; // Index into networkPriorityTable
 
+// Interface event handlers set these flags, networkUpdate performs action
+bool networkEventStop[NETWORK_OFFLINE];
+
 // The following entries have one bit per interface
 // Each bit represents an index into the networkInterfaceTable
 NetMask_t networkHasInternet_bm; // Track the online networks
@@ -626,6 +629,14 @@ bool networkIsPresent(NetIndex_t index)
 
     // Present if nullptr or bool set to true
     return ((!networkInterfaceTable[index].present) || *(networkInterfaceTable[index].present));
+}
+
+//----------------------------------------
+// Interface stop event
+//----------------------------------------
+void networkInterfaceEventStop(NetIndex_t index)
+{
+    networkEventStop[index] = true;
 }
 
 //----------------------------------------
