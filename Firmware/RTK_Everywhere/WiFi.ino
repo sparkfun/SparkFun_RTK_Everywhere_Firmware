@@ -842,7 +842,7 @@ void wifiStop()
     }
 
     // Take the network offline
-    networkInterfaceInternetConnectionLost(NETWORK_WIFI);
+    networkInterfaceEventInternetLost(NETWORK_WIFI);
 
     if (wifiMulti != nullptr)
         wifiMulti = nullptr;

@@ -202,7 +202,7 @@ void ethernetEvent(arduino_event_id_t event, arduino_event_info_t info)
     // Take the network offline if necessary
     if (networkInterfaceHasInternet(NETWORK_ETHERNET) && (event != ARDUINO_EVENT_ETH_GOT_IP))
     {
-        networkInterfaceInternetConnectionLost((NetIndex_t)NETWORK_ETHERNET);
+        networkInterfaceEventInternetLost((NetIndex_t)NETWORK_ETHERNET);
     }
 }
 

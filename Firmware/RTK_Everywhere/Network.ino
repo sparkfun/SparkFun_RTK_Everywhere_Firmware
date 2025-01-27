@@ -642,7 +642,7 @@ void networkInterfaceEventStop(NetIndex_t index)
 //----------------------------------------
 // Mark network offline
 //----------------------------------------
-void networkInterfaceInternetConnectionLost(NetIndex_t index)
+void networkInterfaceEventInternetLost(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetPriority_t previousPriority;
