@@ -180,6 +180,7 @@ void webServerUpdate()  {}
 bool espNowStart()  {return false;}
 bool espNowStop()   {return false;}
 
+bool espnowGetState()                   {return ESPNOW_OFF;}
 bool espnowIsPaired()                   {return false;}
 void espnowProcessRTCM(byte incoming)   {}
 esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
@@ -202,7 +203,7 @@ void menuWiFi() {systemPrintln("**WiFi not compiled**");}
 bool wifiApIsRunning() {return false;}
 bool wifiConnect(bool startWiFiStation, bool startWiFiAP, unsigned long timeout) {return false;}
 uint32_t wifiGetStartTimeout() {return 0;}
-#define WIFI_IS_RUNNING()
+#define WIFI_IS_RUNNING() 0
 int wifiNetworkCount() {return 0;}
 void wifiResetThrottleTimeout() {}
 void wifiResetTimeout() {}
