@@ -108,7 +108,7 @@ void cellularEvent(arduino_event_id_t event)
 
     case ARDUINO_EVENT_PPP_CONNECTED:
         systemPrintln("Cellular Connected");
-        networkInterfaceInternetConnectionAvailable(NETWORK_CELLULAR);
+        networkInterfaceEventInternetAvailable(NETWORK_CELLULAR);
         break;
 
     case ARDUINO_EVENT_PPP_DISCONNECTED:

@@ -711,7 +711,7 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 //----------------------------------------
 // Mark network online
 //----------------------------------------
-void networkInterfaceInternetConnectionAvailable(NetIndex_t index)
+void networkInterfaceEventInternetAvailable(NetIndex_t index)
 {
     NetMask_t bitMask;
     NetIndex_t previousIndex;
