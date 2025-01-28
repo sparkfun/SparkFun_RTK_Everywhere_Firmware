@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-Form.ino
+WebServer.ino
 
   Start and stop the web-server, provide the form and handle browser input.
 ------------------------------------------------------------------------------*/
@@ -1463,6 +1463,13 @@ void handleUpload()
         webServer->sendHeader("Location", "/");
         webServer->send(302, "text/plain", "");
     }
+}
+
+// Verify the web server tables
+void webServerVerifyTables()
+{
+    if (webServerStateEntries != WEBSERVER_STATE_MAX)
+        reportFatalError("Fix webServerStateNames to match WebServerState");
 }
 
 #endif // COMPILE_AP
