@@ -614,6 +614,7 @@ uint8_t receivedMAC[6];      // Holds the broadcast MAC during pairing
 
 unsigned long lastEspnowRssiUpdate;
 
+#define ESPNOW_START()      espnowStart()
 #endif // COMPILE_ESPNOW
 
 int espnowRSSI;
