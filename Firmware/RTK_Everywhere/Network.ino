@@ -1605,7 +1605,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (ntripClientNeedsNetwork() || online.ntripClient)
     {
         consumerCount++;
-        consumerId |= (1 << 0);
+        consumerId |= (1 << NETCONSUMER_NTRIP_CLIENT);
 
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
@@ -1624,7 +1624,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (ntripServerNeedsNetwork() || ntripServerOnline)
     {
         consumerCount++;
-        consumerId |= (1 << 1);
+        consumerId |= (1 << NETCONSUMER_NTRIP_SERVER);
 
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
@@ -1633,7 +1633,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (tcpClientNeedsNetwork() || online.tcpClient)
     {
         consumerCount++;
-        consumerId |= (1 << 2);
+        consumerId |= (1 << NETCONSUMER_TCP_CLIENT);
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
@@ -1641,7 +1641,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (tcpServerNeedsNetwork() || online.tcpServer)
     {
         consumerCount++;
-        consumerId |= (1 << 3);
+        consumerId |= (1 << NETCONSUMER_TCP_SERVER);
 
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
 
@@ -1656,7 +1656,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (udpServerNeedsNetwork() || online.udpServer)
     {
         consumerCount++;
-        consumerId |= (1 << 4);
+        consumerId |= (1 << NETCONSUMER_UDP_SERVER);
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
@@ -1664,7 +1664,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (provisioningNeedsNetwork() || online.httpClient)
     {
         consumerCount++;
-        consumerId |= (1 << 5);
+        consumerId |= (1 << NETCONSUMER_PPL_KEY_UPDATE);
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
@@ -1673,7 +1673,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         // PointPerfect is enabled, allow MQTT to begin
         consumerCount++;
-        consumerId |= (1 << 6);
+        consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
     }
 
@@ -1681,7 +1681,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (otaNeedsNetwork() || online.otaClient)
     {
         consumerCount++;
-        consumerId |= (1 << 7);
+        consumerId |= (1 << NETCONSUMER_OTA_CLIENT);
         *consumerTypes = (1 << NETIF_WIFI_STA); // OTA Pull library only supports WiFi
     }
 
@@ -1689,7 +1689,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     if (webServerNeedsNetwork() || online.webServer)
     {
         consumerCount++;
-        consumerId |= (1 << 8);
+        consumerId |= (1 << NETCONSUMER_WEB_CONFIG);
 
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
 
@@ -1718,26 +1718,25 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
             {
                 systemPrintf("- Consumers: ", consumerCount);
 
-                if (consumerId & (1 << 0))
+                if (consumerId & (1 << NETCONSUMER_NTRIP_CLIENT))
                     systemPrint("Rover NTRIP Client, ");
-                if (consumerId & (1 << 1))
+                if (consumerId & (1 << NETCONSUMER_NTRIP_SERVER))
                     systemPrint("Base NTRIP Server, ");
-                if (consumerId & (1 << 2))
+                if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
                     systemPrint("TCP Client, ");
-                if (consumerId & (1 << 3))
+                if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
                     systemPrint("TCP Server, ");
-                if (consumerId & (1 << 4))
+                if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
-                if (consumerId & (1 << 5))
+                if (consumerId & (1 << NETCONSUMER_PPL_KEY_UPDATE))
                     systemPrint("PPL Key Update Request, ");
-                if (consumerId & (1 << 6))
+                if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
                     systemPrint("PPL MQTT Client, ");
-                if (consumerId & (1 << 7))
+                if (consumerId & (1 << NETCONSUMER_OTA_CLIENT))
                     systemPrint("OTA Version Check or Update, ");
-                if (consumerId & (1 << 8))
+                if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
-
             systemPrintln();
         }
     }
@@ -1756,7 +1755,7 @@ uint8_t networkConsumersOnline()
     if (online.ntripClient)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 0);
+        consumerId |= (1 << NETCONSUMER_NTRIP_CLIENT);
     }
 
     // Network needed for NTRIP Server
@@ -1773,35 +1772,35 @@ uint8_t networkConsumersOnline()
     if (ntripServerConnected)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 1);
+        consumerId |= (1 << NETCONSUMER_NTRIP_SERVER);
     }
 
     // Network needed for TCP Client
     if (online.tcpClient)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 2);
+        consumerId |= (1 << NETCONSUMER_TCP_CLIENT);
     }
 
     // Network needed for TCP Server - May use WiFi AP or WiFi STA
     if (online.tcpServer)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 3);
+        consumerId |= (1 << NETCONSUMER_TCP_SERVER);
     }
 
     // Network needed for UDP Server
     if (online.udpServer)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 4);
+        consumerId |= (1 << NETCONSUMER_UDP_SERVER);
     }
 
     // Network needed for PointPerfect ZTP or key update requested by scheduler, from menu, or display menu
     if (online.httpClient)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 5);
+        consumerId |= (1 << NETCONSUMER_PPL_KEY_UPDATE);
     }
 
     // Network needed for PointPerfect Corrections MQTT client
@@ -1809,21 +1808,21 @@ uint8_t networkConsumersOnline()
     {
         // PointPerfect is enabled, allow MQTT to begin
         consumerCountOnline++;
-        consumerId |= (1 << 6);
+        consumerId |= (1 << NETCONSUMER_PPL_MQTT_CLIENT);
     }
 
     // Network needed to obtain the latest firmware version or do update
     if (online.otaClient)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 7);
+        consumerId |= (1 << NETCONSUMER_OTA_CLIENT);
     }
 
     // Network needed for Web Config
     if (online.webServer)
     {
         consumerCountOnline++;
-        consumerId |= (1 << 8);
+        consumerId |= (1 << NETCONSUMER_WEB_CONFIG);
     }
 
     // Debug
@@ -1838,24 +1837,23 @@ uint8_t networkConsumersOnline()
             if (consumerCountOnline > 0)
             {
                 systemPrintf("- Consumers: ", consumerCountOnline);
-
-                if (consumerId & (1 << 0))
+                if (consumerId & (1 << NETCONSUMER_NTRIP_CLIENT))
                     systemPrint("Rover NTRIP Client, ");
-                if (consumerId & (1 << 1))
+                if (consumerId & (1 << NETCONSUMER_NTRIP_SERVER))
                     systemPrint("Base NTRIP Server, ");
-                if (consumerId & (1 << 2))
+                if (consumerId & (1 << NETCONSUMER_TCP_CLIENT))
                     systemPrint("TCP Client, ");
-                if (consumerId & (1 << 3))
+                if (consumerId & (1 << NETCONSUMER_TCP_SERVER))
                     systemPrint("TCP Server, ");
-                if (consumerId & (1 << 4))
+                if (consumerId & (1 << NETCONSUMER_UDP_SERVER))
                     systemPrint("UDP Server, ");
-                if (consumerId & (1 << 5))
+                if (consumerId & (1 << NETCONSUMER_PPL_KEY_UPDATE))
                     systemPrint("PPL Key Update Request, ");
-                if (consumerId & (1 << 6))
+                if (consumerId & (1 << NETCONSUMER_PPL_MQTT_CLIENT))
                     systemPrint("PPL MQTT Client, ");
-                if (consumerId & (1 << 7))
+                if (consumerId & (1 << NETCONSUMER_OTA_CLIENT))
                     systemPrint("OTA Version Check or Update, ");
-                if (consumerId & (1 << 8))
+                if (consumerId & (1 << NETCONSUMER_WEB_CONFIG))
                     systemPrint("Web Config, ");
             }
 
