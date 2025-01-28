@@ -2342,14 +2342,6 @@ SettingValueResponse getSettingValue(bool inCommands, const char *settingName, c
             knownSetting = true;
         }
         break;
-            // System state at power on. Convert various system states to either Rover, Base, NTP, or BaseCast.
-            // Manually handled below
-            // case tSysState: {
-            //     SystemState *ptr = (SystemState *)var;
-            //     writeToString(settingValueStr, (int)*ptr);
-            //     knownSetting = true;
-            // }
-            break;
         case tPulseEdg: {
             pulseEdgeType_e *ptr = (pulseEdgeType_e *)var;
             writeToString(settingValueStr, (int)*ptr);

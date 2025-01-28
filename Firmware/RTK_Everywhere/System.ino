@@ -98,7 +98,7 @@ void updateBattery()
                                        ((uint8_t)readAnalogPinAsDigital(pin_chargerLED));
                 systemPrint("MCP73833 Charger: ");
                 if (combinedStat == 3)
-                    systemPrintln("standby / fault");
+                    systemPrintln("standby");
                 else if (combinedStat == 2)
                     systemPrintln("battery is charging");
                 else if (combinedStat == 1)

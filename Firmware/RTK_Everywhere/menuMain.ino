@@ -605,9 +605,9 @@ void menuRadio()
 
             // Start ESP-NOW so that getChannel runs correctly
             if (settings.enableEspNow == true)
-                espnowStart();
+                ESPNOW_START();
             else
-                espnowStop();
+                ESPNOW_STOP();
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
@@ -644,7 +644,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 5 && settings.debugEspNow == true)
         {
             if (espnowGetState() == ESPNOW_OFF)
-                espnowStart();
+                ESPNOW_START();
 
             uint8_t peer1[] = {0xB8, 0xD6, 0x1A, 0x0D, 0x8F, 0x9C}; // Random MAC
 #ifdef COMPILE_ESPNOW
@@ -668,7 +668,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
         {
             if (espnowGetState() == ESPNOW_OFF)
-                espnowStart();
+                ESPNOW_START();
 
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
@@ -681,7 +681,7 @@ void menuRadio()
         else if (settings.enableEspNow == true && incoming == 7 && settings.debugEspNow == true)
         {
             if (espnowGetState() == ESPNOW_OFF)
-                espnowStart();
+                ESPNOW_START();
 
             uint8_t espnowData[] =
                 "This is the long string to test how quickly we can send one string to the other unit. I am going to "
@@ -717,7 +717,7 @@ void menuRadio()
             printUnknown(incoming);
     }
 
-    espnowStart();
+    ESPNOW_START();
 
     // LoRa radio state machine will start/stop radio upon next updateLora in loop()
 

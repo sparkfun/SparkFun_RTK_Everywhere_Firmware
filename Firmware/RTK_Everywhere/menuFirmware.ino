@@ -262,7 +262,7 @@ void updateFromSD(const char *firmwareFileName)
     }
 
     // Turn off any tasks so that we are not disrupted
-    espnowStop();
+    ESPNOW_STOP();
     WIFI_STOP();
     bluetoothStop();
 

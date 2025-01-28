@@ -2375,6 +2375,8 @@ void GNSS_MOSAIC::storeBlock4007(SEMP_PARSE_STATE *parse)
     _altitude = (float)sempSbfGetF8(parse, 32);
     _horizontalAccuracy = ((float)sempSbfGetU2(parse, 90)) / 100.0; // Convert from cm to m
     _satellitesInView = sempSbfGetU1(parse, 74);
+    if (_satellitesInView == 255) // 255 indicates "Do-Not-Use"
+        _satellitesInView = 0;
     _fixType = sempSbfGetU1(parse, 14) & 0x0F;
     _determiningFixedPosition = (sempSbfGetU1(parse, 14) >> 6) & 0x01;
     _clkBias_ms = sempSbfGetF8(parse, 60);
@@ -2646,8 +2648,16 @@ void processSBFReceiverSetup(SEMP_PARSE_STATE *parse, uint16_t type)
     if (sempSbfGetBlockNumber(parse) == 5902)
     {
         snprintf(gnssUniqueId, sizeof(gnssUniqueId), "%s", sempSbfGetString(parse, 156)); // Extract RxSerialNumber
+
         snprintf(gnssFirmwareVersion, sizeof(gnssFirmwareVersion), "%s",
                  sempSbfGetString(parse, 196)); // Extract RXVersion
+
+        // gnssFirmwareVersion is 4.14.4, 4.14.10.1, etc.
+        // Create gnssFirmwareVersionInt from the first two fields only, so it will fit on the OLED
+        int verMajor = 0;
+        int verMinor = 0;
+        sscanf(gnssFirmwareVersion, "%d.%d.", &verMajor, &verMinor); // Do we care if this fails?
+        gnssFirmwareVersionInt = (verMajor * 100) + verMinor;
 
         GNSS_MOSAIC *mosaic = (GNSS_MOSAIC *)gnss;
         mosaic->_receiverSetupSeen = true;
