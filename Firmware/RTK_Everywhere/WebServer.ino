@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-Form.ino
+WebServer.ino
 
   Start and stop the web-server, provide the form and handle browser input.
 ------------------------------------------------------------------------------*/
@@ -150,26 +150,25 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     if (ws_pkt.type == HTTPD_WS_TYPE_TEXT)
     {
+        if (settings.debugWebServer == true)
+        {
+            systemPrintf("Got packet with message: %s\r\n", ws_pkt.payload);
+            dumpBuffer(ws_pkt.payload, ws_pkt.len);
+        }
+
         if (currentlyParsingData == false)
         {
-            if (settings.debugWebServer == true)
-                systemPrint("Got packet with message: \r\n"); //We can't %s the payload as it's not string terminated
-
             for (int i = 0; i < ws_pkt.len; i++)
             {
                 incomingSettings[incomingSettingsSpot++] = ws_pkt.payload[i];
                 incomingSettingsSpot %= AP_CONFIG_SETTING_SIZE;
-
-                //Print payload if needed
-                if (settings.debugWebServer == true)
-                    systemWrite(ws_pkt.payload[i]);
             }
             timeSinceLastIncomingSetting = millis();
         }
         else
         {
             if (settings.debugWebServer == true)
-                systemPrintln("Got packet but ignoring due to parsing block");
+                systemPrintln("Ignoring packet due to parsing block");
         }
     }
     else if (ws_pkt.type == HTTPD_WS_TYPE_CLOSE)
@@ -1463,6 +1462,13 @@ void handleUpload()
         webServer->sendHeader("Location", "/");
         webServer->send(302, "text/plain", "");
     }
+}
+
+// Verify the web server tables
+void webServerVerifyTables()
+{
+    if (webServerStateEntries != WEBSERVER_STATE_MAX)
+        reportFatalError("Fix webServerStateNames to match WebServerState");
 }
 
 #endif // COMPILE_AP

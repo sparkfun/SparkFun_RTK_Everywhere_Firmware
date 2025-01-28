@@ -113,7 +113,7 @@ void stateUpdate()
             setMuxport(settings.dataPortChannel); // Return mux to original channel
 
             bluetoothStart(); // Turn on Bluetooth with 'Rover' name
-            espnowStart();    // Start internal radio if enabled, otherwise disable
+            ESPNOW_START();    // Start internal radio if enabled, otherwise disable
 
             webServerStop();             // Stop the web config server
             baseCasterDisableOverride(); // Disable casting overrides
@@ -333,7 +333,7 @@ void stateUpdate()
                 // Start the NTRIP server if requested
                 RTK_MODE(RTK_MODE_BASE_FIXED);
 
-                espnowStart(); // Start internal radio if enabled, otherwise disable
+                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
 
                 rtcmPacketsSent = 0; // Reset any previous number
                 changeState(STATE_BASE_TEMP_TRANSMITTING);
@@ -400,7 +400,7 @@ void stateUpdate()
             {
                 baseStatusLedOn(); // Turn on the base/status LED
 
-                espnowStart(); // Start internal radio if enabled, otherwise disable
+                ESPNOW_START(); // Start internal radio if enabled, otherwise disable
 
                 changeState(STATE_BASE_FIXED_TRANSMITTING);
             }
@@ -442,7 +442,7 @@ void stateUpdate()
             displayWebConfigNotStarted(); // Display immediately while we wait for server to start
 
             bluetoothStop(); // Bluetooth must be stopped to allow enough RAM for AP+STA (firmware check)
-            espnowStop();    // We don't need ESP-NOW during web config
+            ESPNOW_STOP();    // We don't need ESP-NOW during web config
 
             // The GNSS UART task is left running to allow GNSS receivers to obtain LLh data for 1Hz page updates
 
