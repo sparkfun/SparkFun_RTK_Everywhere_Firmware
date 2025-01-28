@@ -75,7 +75,6 @@ const RtkMode_t ntpServerMode = RTK_MODE_NTP;
 // Locals
 //----------------------------------------
 
-static NetPriority_t ntpServerPriority = NETWORK_OFFLINE;
 static NetworkUDP *ntpServer; // This will be instantiated when we know the NTP port
 static uint8_t ntpServerState;
 static uint32_t lastLoggedNTPRequest;
@@ -793,7 +792,6 @@ void ntpServerUpdate()
             // The NTP server only works over Ethernet
             if (networkInterfaceHasInternet(NETWORK_ETHERNET))
             {
-                ntpServerPriority = NETWORK_OFFLINE;
                 ntpServerSetState(NTP_STATE_NETWORK_CONNECTED);
             }
         }

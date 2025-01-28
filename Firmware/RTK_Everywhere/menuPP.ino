@@ -21,7 +21,6 @@ static const uint8_t ppIpToken[16] = {POINTPERFECT_IP_TOKEN};            // Toke
 static const uint8_t ppLbandIpToken[16] = {POINTPERFECT_LBAND_IP_TOKEN}; // Token in HEX form
 
 #ifdef COMPILE_NETWORK
-static NetPriority_t pointperfectPriority = NETWORK_OFFLINE;
 MqttClient *menuppMqttClient;
 #endif // COMPILE_NETWORK
 
@@ -1309,7 +1308,7 @@ void provisioningUpdate()
         }
         // Wait until the network is available
 #ifdef COMPILE_NETWORK
-        else if (networkIsConnected(&pointperfectPriority))
+        else if (networkHasInternet())
         {
             if (settings.debugPpCertificate)
                 systemPrintln("PointPerfect key update connected to network");

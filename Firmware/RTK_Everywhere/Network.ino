@@ -587,22 +587,6 @@ const char *networkGetNameByPriority(NetPriority_t priority)
 }
 
 //----------------------------------------
-// Determine if the network is available
-//----------------------------------------
-bool networkIsConnected(NetPriority_t *clientPriority)
-{
-    // If the client is using the highest priority network and that
-    // network is still available then continue as normal
-    if (networkHasInternet_bm && (*clientPriority == networkPriority))
-        return (networkHasInternet_bm & (1 << networkIndexTable[networkPriority]))
-            ? true : false;
-
-    // The network has changed, notify the client of the change
-    *clientPriority = networkPriority;
-    return false;
-}
-
-//----------------------------------------
 // Determine if the network interface is online
 //----------------------------------------
 bool networkInterfaceHasInternet(NetIndex_t index)

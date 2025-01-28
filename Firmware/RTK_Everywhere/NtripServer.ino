@@ -175,7 +175,6 @@ const RtkMode_t ntripServerMode = RTK_MODE_BASE_FIXED;
 
 // NTRIP Servers
 static NTRIP_SERVER_DATA ntripServerArray[NTRIP_SERVER_MAX];
-static NetPriority_t ntripServerPriority = NETWORK_OFFLINE;
 
 //----------------------------------------
 // NTRIP Server Routines
@@ -608,7 +607,6 @@ void ntripServerUpdate(int serverIndex)
 
     // Start the network
     case NTRIP_SERVER_ON:
-        ntripServerPriority = NETWORK_OFFLINE;
         ntripServerSetState(ntripServer, NTRIP_SERVER_WAIT_FOR_NETWORK);
         break;
 
@@ -624,7 +622,7 @@ void ntripServerUpdate(int serverIndex)
         }
 
         // Wait until the network is connected
-        else if (networkIsConnected(&ntripServerPriority))
+        else if (networkHasInternet())
         {
             // Allocate the networkClient structure
             ntripServer->networkClient = new NetworkClient();
@@ -647,7 +645,7 @@ void ntripServerUpdate(int serverIndex)
     // Network available
     case NTRIP_SERVER_NETWORK_CONNECTED:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -665,7 +663,7 @@ void ntripServerUpdate(int serverIndex)
     // Wait for GNSS correction data
     case NTRIP_SERVER_WAIT_GNSS_DATA:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -675,7 +673,7 @@ void ntripServerUpdate(int serverIndex)
     // Initiate the connection to the NTRIP caster
     case NTRIP_SERVER_CONNECTING:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -703,7 +701,7 @@ void ntripServerUpdate(int serverIndex)
     // Wait for authorization response
     case NTRIP_SERVER_AUTHORIZATION:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
@@ -797,7 +795,7 @@ void ntripServerUpdate(int serverIndex)
     // NTRIP server authorized to send RTCM correction data to NTRIP caster
     case NTRIP_SERVER_CASTING:
         // Determine if the network has failed
-        if (!networkIsConnected(&ntripServerPriority))
+        if (networkHasInternet() == false)
             // Failed to connect to the network, attempt to restart the network
             ntripServerStop(serverIndex, true); // Was ntripServerRestart(serverIndex); - #StopVsRestart
 
