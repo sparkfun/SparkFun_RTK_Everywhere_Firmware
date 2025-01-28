@@ -168,6 +168,7 @@ void stopWebServer() {}
 bool webServerNeedsNetwork() {return false;}
 void webServerStop() {}
 void webServerUpdate()  {}
+void webServerVerifyTables() {}
 
 #endif  // COMPILE_AP
 
