@@ -1398,8 +1398,8 @@ void networkUpdate()
 
     // Once services have been updated, determine if the network needs to be started/stopped
 
-    static uint16_t previousConsumerTypes = NETCONSUMER_NONE;
-    static uint16_t consumerTypes = NETCONSUMER_NONE;
+    static uint16_t previousConsumerTypes = NETIF_NONE;
+    static uint16_t consumerTypes = NETIF_NONE;
 
     int consumerCount = networkConsumers(&consumerTypes); // Update the current consumer types
 
@@ -1440,33 +1440,33 @@ void networkUpdate()
         {
             systemPrintf("Changing network from consumer type: 0x%02X (", previousConsumerTypes);
 
-            if (previousConsumerTypes == NETCONSUMER_NONE)
+            if (previousConsumerTypes == NETIF_NONE)
                 systemPrint("None");
             else
             {
-                if (previousConsumerTypes & (1 << NETCONSUMER_WIFI_STA))
+                if (previousConsumerTypes & (1 << NETIF_WIFI_STA))
                     systemPrint("/STA");
-                if (previousConsumerTypes & (1 << NETCONSUMER_WIFI_AP))
+                if (previousConsumerTypes & (1 << NETIF_WIFI_AP))
                     systemPrint("/AP");
-                if (previousConsumerTypes & (1 << NETCONSUMER_CELLULAR))
+                if (previousConsumerTypes & (1 << NETIF_CELLULAR))
                     systemPrint("/CELL");
-                if (previousConsumerTypes & (1 << NETCONSUMER_ETHERNET))
+                if (previousConsumerTypes & (1 << NETIF_ETHERNET))
                     systemPrint("/ETH");
             }
 
             systemPrintf(") to: 0x%02X (", consumerTypes);
 
-            if (consumerTypes == NETCONSUMER_NONE)
+            if (consumerTypes == NETIF_NONE)
                 systemPrint("None");
             else
             {
-                if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
+                if (consumerTypes & (1 << NETIF_WIFI_STA))
                     systemPrint("/STA");
-                if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
+                if (consumerTypes & (1 << NETIF_WIFI_AP))
                     systemPrint("/AP");
-                if (consumerTypes & (1 << NETCONSUMER_CELLULAR))
+                if (consumerTypes & (1 << NETIF_CELLULAR))
                     systemPrint("/CELL");
-                if (consumerTypes & (1 << NETCONSUMER_ETHERNET))
+                if (consumerTypes & (1 << NETIF_ETHERNET))
                     systemPrint("/ETH");
             }
 
@@ -1487,19 +1487,19 @@ void networkUpdate()
     {
         // Attempt to start any network that is needed, in the order Ethernet/WiFi/Cellular
 
-        if (consumerTypes & (1 << NETCONSUMER_ETHERNET))
+        if (consumerTypes & (1 << NETIF_ETHERNET))
         {
             networkStart(NETWORK_ETHERNET, settings.debugNetworkLayer);
         }
 
         // Start WiFi if we need AP, or if we need STA+Internet
-        if ((consumerTypes & (1 << NETCONSUMER_WIFI_AP)) ||
-            ((consumerTypes & (1 << NETCONSUMER_WIFI_STA) && networkHasInternet() == false)))
+        if ((consumerTypes & (1 << NETIF_WIFI_AP)) ||
+            ((consumerTypes & (1 << NETIF_WIFI_STA) && networkHasInternet() == false)))
         {
             networkStart(NETWORK_WIFI, settings.debugNetworkLayer);
         }
 
-        if ((networkHasInternet() == false) && (consumerTypes & (1 << NETCONSUMER_CELLULAR)))
+        if ((networkHasInternet() == false) && (consumerTypes & (1 << NETIF_CELLULAR)))
         {
             // If we're in AP only mode (no internet), don't start cellular
             if (WIFI_SOFT_AP_RUNNING() == false)
@@ -1596,7 +1596,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     uint8_t consumerCount = 0;
     uint16_t consumerId = 0; // Used to debug print who is asking for access
 
-    *consumerTypes = NETCONSUMER_NONE; // Clear bitfield
+    *consumerTypes = NETIF_NONE; // Clear bitfield
 
     // If a consumer needs the network or is currently consuming the network (is online) then increment
     // consumer count
@@ -1649,7 +1649,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         // Caster is available over ethernet, WiFi AP, WiFi STA, and cellular
         // Caster is available in all mode: Rover, and Base
         if (settings.enableNtripCaster == true || settings.baseCasterOverride == true)
-            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP);
+            *consumerTypes |= (1 << NETIF_WIFI_AP);
     }
 
     // Network needed for UDP Server
@@ -1682,7 +1682,7 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
     {
         consumerCount++;
         consumerId |= (1 << 7);
-        *consumerTypes = (1 << NETCONSUMER_WIFI_STA); // OTA Pull library only supports WiFi
+        *consumerTypes = (1 << NETIF_WIFI_STA); // OTA Pull library only supports WiFi
     }
 
     // Network needed for Web Config
@@ -1694,14 +1694,14 @@ uint8_t networkConsumers(uint16_t *consumerTypes)
         *consumerTypes = NETWORK_EWC; // Ask for eth/wifi/cellular
 
         if (settings.wifiConfigOverAP == true)
-            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // WebConfig requires both AP and STA (for firmware check)
+            *consumerTypes |= (1 << NETIF_WIFI_AP); // WebConfig requires both AP and STA (for firmware check)
 
         // A good number of RTK products have only WiFi
         // If WiFi STA has failed or we have no WiFi SSIDs, fall back to WiFi AP, but allow STA to keep hunting
         if (networkIsPresent(NETWORK_ETHERNET) == false && networkIsPresent(NETWORK_CELLULAR) == false &&
             settings.wifiConfigOverAP == false && (wifiGetStartTimeout() > 0 || wifiNetworkCount() == 0))
         {
-            *consumerTypes |= (1 << NETCONSUMER_WIFI_AP); // Re-allow Webconfig over AP
+            *consumerTypes |= (1 << NETIF_WIFI_AP); // Re-allow Webconfig over AP
         }
     }
 

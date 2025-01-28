@@ -752,11 +752,11 @@ bool wifiStart()
     uint16_t consumerTypes = networkGetConsumerTypes();
 
     // The consumers need station
-    if (consumerTypes & (1 << NETCONSUMER_WIFI_STA))
+    if (consumerTypes & (1 << NETIF_WIFI_STA))
         startWiFiStation = true;
 
     // The consumers need AP
-    if (consumerTypes & (1 << NETCONSUMER_WIFI_AP))
+    if (consumerTypes & (1 << NETIF_WIFI_AP))
         startWiFiAp = true;
 
     if (startWiFiStation == false && startWiFiAp == false)

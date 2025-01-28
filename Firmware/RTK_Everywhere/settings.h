@@ -555,15 +555,15 @@ const int numRegionalAreas = sizeof(Regional_Information_Table) / sizeof(Regiona
 //Bitfield for describing the type of network the consumer can use
 enum
 {
-    NETCONSUMER_NONE = 0, // No consumers
-    NETCONSUMER_WIFI_STA, // The consumer can use STA
-    NETCONSUMER_WIFI_AP, // The consumer can use AP
-    NETCONSUMER_CELLULAR, // The consumer can use Cellular
-    NETCONSUMER_ETHERNET, // The consumer can use Ethernet
-    NETCONSUMER_UNKNOWN
+    NETIF_NONE = 0, // No consumers
+    NETIF_WIFI_STA, // The consumer can use STA
+    NETIF_WIFI_AP, // The consumer can use AP
+    NETIF_CELLULAR, // The consumer can use Cellular
+    NETIF_ETHERNET, // The consumer can use Ethernet
+    NETIF_UNKNOWN
 };
 
-#define NETWORK_EWC ((1 << NETCONSUMER_ETHERNET) | (1 << NETCONSUMER_WIFI_STA) | (1 << NETCONSUMER_CELLULAR))
+#define NETWORK_EWC ((1 << NETIF_ETHERNET) | (1 << NETIF_WIFI_STA) | (1 << NETIF_CELLULAR))
 
 // This is all the settings that can be set on RTK Product. It's recorded to NVM and the config file.
 // Avoid reordering. The order of these variables is mimicked in NVM/record/parse/create/update/get
