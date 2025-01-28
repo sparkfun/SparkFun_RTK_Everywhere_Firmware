@@ -177,8 +177,6 @@ void webServerUpdate()  {}
 
 #ifndef COMPILE_ESPNOW
 
-bool espNowStop()   {return false;}
-
 bool espnowGetState()                   {return ESPNOW_OFF;}
 bool espnowIsPaired()                   {return false;}
 void espnowProcessRTCM(byte incoming)   {}
@@ -189,6 +187,7 @@ void espnowStart()                      {}
 #define ESPNOW_START()                  false
 void espnowStaticPairing()              {}
 void espnowStop()                       {}
+#define ESPNOW_STOP()                   true
 void updateEspnow()                     {}
 
 #endif   // COMPILE_ESPNOW

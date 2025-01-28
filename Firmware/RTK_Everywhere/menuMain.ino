@@ -607,7 +607,7 @@ void menuRadio()
             if (settings.enableEspNow == true)
                 ESPNOW_START();
             else
-                espnowStop();
+                ESPNOW_STOP();
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
