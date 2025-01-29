@@ -266,11 +266,11 @@ void GNSS_MOSAIC::begin()
     }
 
     // Set COM2 (Radio) and COM3 (Data) baud rates
-    gnss->setRadioBaudRate(settings.radioPortBaud);
-    gnss->setDataBaudRate(settings.dataPortBaud);
+    setRadioBaudRate(settings.radioPortBaud);
+    setDataBaudRate(settings.dataPortBaud);
 
     // Set COM2 (Radio) protocol(s)
-    gnss->setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
+    setCorrRadioExtPort(settings.enableExtCorrRadio, true); // Force the setting
 
     updateSD(); // Check card size and free space
 
@@ -454,8 +454,6 @@ bool GNSS_MOSAIC::configureLogging()
     bool response = true;
     String setting;
 
-    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
-
     // Configure logging
     if ((settings.enableLogging == true) || (settings.enableLoggingRINEX == true))
     {
@@ -479,8 +477,6 @@ bool GNSS_MOSAIC::configureLogging()
         setting = String("srxl,DSK1,none\n\r");
         response &= sendWithResponse(setting, "RINEXLogging");
     }
-
-    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
 
     if (settings.enableExternalHardwareEventLogging)
     {
@@ -818,9 +814,6 @@ bool GNSS_MOSAIC::enableNMEA()
             setting = String("sno,Stream" + String(stream + (2 * MOSAIC_NUM_NMEA_STREAMS) + 1) + ",USB1,none,off\n\r");
             response &= sendWithResponse(setting, "NMEAOutput");
         }
-
-        // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is
-        // present...
 
         if (settings.enableLogging)
         {
@@ -1267,10 +1260,10 @@ uint8_t GNSS_MOSAIC::getLoggingType()
     {
         if (checkNMEARates())
         {
-            loggingType = LOGGING_STANDARD;
+            logType = LOGGING_STANDARD;
 
             if (checkPPPRates())
-                loggingType = LOGGING_PPP;
+                logType = LOGGING_PPP;
         }
     }
 
@@ -1652,7 +1645,7 @@ void GNSS_MOSAIC::menuConstellations()
     }
 
     // Apply current settings to module
-    gnss->setConstellations();
+    setConstellations();
 
     clearBuffer(); // Empty buffer of any newline chars
 }
@@ -1814,7 +1807,7 @@ void GNSS_MOSAIC::menuMessages()
         systemPrintln();
         systemPrintln("Menu: GNSS Messages");
 
-        systemPrintf("Active messages: %d\r\n", gnss->getActiveMessageCount());
+        systemPrintf("Active messages: %d\r\n", getActiveMessageCount());
 
         systemPrintln("1) Set NMEA Messages");
         systemPrintln("2) Set Rover RTCM Messages");
@@ -2474,6 +2467,12 @@ bool GNSS_MOSAIC::surveyInStart()
 //----------------------------------------
 void GNSS_MOSAIC::update()
 {
+    // The mosaic-X5 supports microSD logging. But the microSD is connected directly to the X5, not the ESP32.
+    // present.microSd is false, but present.microSdCardDetectLow is true.
+    // If the microSD card is not inserted at power-on, the X5 does not recognise it if it is inserted later.
+    // The only way to get the X5 to recognise the card seems to be to perform a soft reset.
+    // Where should we perform the soft reset? updateSD seems the best place...
+
     // Update the SD card size, free space and logIncreasing
     static unsigned long sdCardSizeLastCheck = 0;
     const unsigned long sdCardSizeCheckInterval = 5000;   // Matches the interval in logUpdate
@@ -2482,6 +2481,7 @@ void GNSS_MOSAIC::update()
     if (millis() > (sdCardSizeLastCheck + sdCardSizeCheckInterval))
     {
         updateSD();
+
         if (previousFreeSpace == 0)
             previousFreeSpace = sdFreeSpace;
         if (sdFreeSpace < previousFreeSpace)
@@ -2512,7 +2512,45 @@ void GNSS_MOSAIC::update()
 //----------------------------------------
 bool GNSS_MOSAIC::updateSD()
 {
-    // TODO: use sdCardPresent() here? Except the mosaic seems pretty good at figuring out if the microSD is present...
+    // See comments in update() above
+    // updateSD() is probably the best place to check if an SD card has been inserted / removed
+    static bool previousCardPresent = sdCardPresent(); // This only gets called once
+
+    // Check if card has been inserted / removed
+    // In both cases, perform a soft reset
+    // The X5 is not good at recognizing if a card is inserted after power-on, or was present but has been removed
+    if (previousCardPresent != sdCardPresent())
+    {
+        previousCardPresent = sdCardPresent();
+
+        systemPrint("microSD card has been ");
+        systemPrint(previousCardPresent ? "inserted" : "removed");
+        systemPrintln(". Performing a soft reset...");
+
+        sendWithResponse("erst,soft,none\n\r", "ResetReceiver");
+
+        // Allow many retries
+        int retries = 0;
+        int retryLimit = 20;
+
+        // Set COM4 to: CMD input (only), SBF output (only)
+        while (!sendWithResponse("sdio,COM4,CMD,SBF\n\r", "DataInOut"))
+        {
+            if (retries == retryLimit)
+                break;
+            retries++;
+            sendWithResponse("SSSSSSSSSSSSSSSSSSSS\n\r", "COM4>"); // Send escape sequence
+        }
+
+        if (retries == retryLimit)
+        {
+            systemPrintln("Soft reset failed!");
+            return false;
+        }
+    }
+
+    if (!previousCardPresent) // If the card is not present, skip the list disk info
+        return false;
 
     char diskInfo[200];
     bool response =
