@@ -587,7 +587,7 @@ const char *networkGetNameByPriority(NetPriority_t priority)
 }
 
 //----------------------------------------
-// Determine if any network interface is online
+// Determine if any network interface has access to the internet
 //----------------------------------------
 bool networkHasInternet()
 {
@@ -604,7 +604,7 @@ void networkInterfaceEventStop(NetIndex_t index)
 }
 
 //----------------------------------------
-// Determine if the network interface is online
+// Determine the specified network interface access to the internet
 //----------------------------------------
 bool networkInterfaceHasInternet(NetIndex_t index)
 {
@@ -616,7 +616,7 @@ bool networkInterfaceHasInternet(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network offline
+// Mark network interface as having NO access to the internet
 //----------------------------------------
 void networkInterfaceEventInternetLost(NetIndex_t index)
 {
@@ -685,7 +685,7 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network online
+// Mark network interface as having access to the internet
 //----------------------------------------
 void networkInterfaceEventInternetAvailable(NetIndex_t index)
 {
@@ -1124,7 +1124,6 @@ void networkSequenceStop(NetIndex_t index, bool debug)
             // Start the sequence
             networkSeqStopping |= bitMask;
             networkStarted &= ~bitMask;
-
             networkSequence[index] = sequence;
         }
     }
@@ -1184,7 +1183,6 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
     if (forcedStop)
     {
         networkStarted &= ~bitMask;
-
         networkSeqRequest &= ~bitMask;
         networkSeqNext &= ~bitMask;
     }
