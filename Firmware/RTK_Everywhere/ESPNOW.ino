@@ -2,6 +2,18 @@
   ESPNOW.ino
 
   Handle the ESP-NOW events
+  Use ESP NOW protocol to transmit RTCM between RTK Products via 2.4GHz
+
+  How pairing works:
+    1. Device enters pairing mode
+    2. Device adds the broadcast MAC (all 0xFFs) as peer
+    3. Device waits for incoming pairing packet from remote
+    4. If valid pairing packet received, add peer, immediately transmit a pairing packet to that peer and exit.
+
+    ESP NOW is bare metal, there is no guaranteed packet delivery. For RTCM byte transmissions using ESP NOW:
+      We don't care about dropped packets or packets out of order. The ZED will check the integrity of the RTCM packet.
+      We don't care if the ESP NOW packet is corrupt or not. RTCM has its own CRC. RTK needs valid RTCM once every
+      few seconds so a single dropped frame is not critical.
 **********************************************************************/
 
 #ifdef COMPILE_ESPNOW
