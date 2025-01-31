@@ -41,7 +41,6 @@ typedef struct _ESP_NOW_PAIR_MESSAGE
 // Locals
 //****************************************
 
-bool espNowDebug;
 bool espNowDisplay;
 ESPNOWState espNowState;
 bool espNowVerbose;
@@ -59,7 +58,7 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
     peerInfo.encrypt = false;
 
     // Add the peer
-    if (espNowDebug)
+    if (settings.debugEspNow)
         systemPrintf("Calling esp_now_add_peer\r\n");
     esp_err_t result = esp_now_add_peer(&peerInfo);
     if (result != ESP_OK)
@@ -70,7 +69,7 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
                      espnowBroadcastAddr[4], espnowBroadcastAddr[5],
                      result);
     }
-    else if (espNowDebug)
+    else if (settings.debugEspNow)
         systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
                      espnowBroadcastAddr[0], espnowBroadcastAddr[1],
                      espnowBroadcastAddr[2], espnowBroadcastAddr[3],
@@ -239,7 +238,7 @@ void espNowSetState(ESPNOWState newState)
     const char * oldName;
     char oLine[80];
 
-    if (espNowDebug == true)
+    if (settings.debugEspNow == true)
     {
         // Get the old state name
         if (espNowState < ESPNOW_MAX)
@@ -281,7 +280,7 @@ bool espNowStart()
         started = false;
 
         //   5. Call esp_now_init
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
             systemPrintf("Calling esp_now_init\r\n");
         status = esp_now_init();
         if (status != ESP_OK)
@@ -291,7 +290,7 @@ bool espNowStart()
         }
 
         //   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
             systemPrintf("Calling esp_now_register_recv_cb\r\n");
         status = esp_now_register_recv_cb(espNowRxHandler);
         if (status != ESP_OK)
@@ -302,7 +301,7 @@ bool espNowStart()
 
         //  10. Add peers from settings
         //      i.  Set ESP-NOW state, call espNowSetState(ESPNOW_PAIRED)
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
             systemPrintf("Calling espNowSetState\r\n");
         espNowSetState(ESPNOW_PAIRED);
 
@@ -310,12 +309,12 @@ bool espNowStart()
         for (index = 0; index < ESPNOW_MAX_PEERS; index++)
         {
             //      a. Determine if peer exists, call esp_now_is_peer_exist
-            if (espNowDebug && espNowVerbose)
+            if (settings.debugEspNow && espNowVerbose)
                 systemPrintf("Calling esp_now_is_peer_exist\r\n");
             if (esp_now_is_peer_exist(settings.espnowPeers[index]) == false)
             {
                 //  b. Add peer if necessary, call espnowAddPeer
-                if (espNowDebug && espNowVerbose)
+                if (settings.debugEspNow && espNowVerbose)
                     systemPrintf("Calling espNowAddPeer\r\n");
                 status = espNowAddPeer(&settings.espnowPeers[index][0]);
                 if (status != ESP_OK)
@@ -338,7 +337,7 @@ bool espNowStart()
         }
 
         // ESP-NOW has started successfully
-        if (espNowDebug)
+        if (settings.debugEspNow)
             systemPrintf("ESP-NOW online\r\n");
 
         started = true;
@@ -364,7 +363,7 @@ bool espNowStop()
         stopped = false;
 
         //   3. esp_now_unregister_recv_cb()
-        if (espNowDebug)
+        if (settings.debugEspNow)
             systemPrintf("Calling esp_now_unregister_recv_cb\r\n");
         status = esp_now_unregister_recv_cb();
         if (status != ESP_OK)
@@ -372,18 +371,18 @@ bool espNowStop()
             systemPrintf("ERROR: Failed to clear ESP_NOW RX callback, status: %d\r\n", status);
             break;
         }
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
             systemPrintf("ESP-NOW: RX callback removed\r\n");
 
         if (espNowDisplay)
             systemPrintf("ESP-NOW offline\r\n");
 
         //   4. Remove all peers by calling espnowRemovePeer
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
             systemPrintf("Calling esp_now_is_peer_exist\r\n");
         if (esp_now_is_peer_exist(espnowBroadcastAddr))
         {
-            if (espNowDebug && espNowVerbose)
+            if (settings.debugEspNow && espNowVerbose)
                 systemPrintf("Calling esp_now_del_peer\r\n");
             status = esp_now_del_peer(espnowBroadcastAddr);
             if (status != ESP_OK)
@@ -391,7 +390,7 @@ bool espNowStop()
                 systemPrintf("ERROR: Failed to delete broadcast peer, status: %d\r\n", status);
                 break;
             }
-            if (espNowDebug && espNowVerbose)
+            if (settings.debugEspNow && espNowVerbose)
                 systemPrintf("ESP-NOW removed broadcast peer\r\n");
         }
 
@@ -401,14 +400,14 @@ bool espNowStop()
             esp_now_peer_info_t peerInfo;
 
             // Get the next unicast peer
-            if (espNowDebug && espNowVerbose)
+            if (settings.debugEspNow && espNowVerbose)
                 systemPrintf("Calling esp_now_fetch_peer\r\n");
             status = esp_now_fetch_peer(true, &peerInfo);
             if (status != ESP_OK)
                 break;
 
             // Remove the unicast peer
-            if (espNowDebug && espNowVerbose)
+            if (settings.debugEspNow && espNowVerbose)
                 systemPrintf("Calling esp_now_del_peer\r\n");
             status = esp_now_del_peer(peerInfo.peer_addr);
             if (status != ESP_OK)
@@ -420,7 +419,7 @@ bool espNowStop()
                              status);
                 break;
             }
-            if (espNowDebug && espNowVerbose)
+            if (settings.debugEspNow && espNowVerbose)
                 systemPrintf("ESP-NOW removed peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
                              peerInfo.peer_addr[0], peerInfo.peer_addr[1],
                              peerInfo.peer_addr[2], peerInfo.peer_addr[3],
@@ -433,7 +432,7 @@ bool espNowStop()
         }
 
         // Get the number of peers
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
         {
             systemPrintf("Calling esp_now_get_peer_num\r\n");
             status = esp_now_get_peer_num(&peerCount);
@@ -449,7 +448,7 @@ bool espNowStop()
         espNowSetState(ESPNOW_OFF);
 
         //   9. Turn off ESP-NOW. call esp_now_deinit
-        if (espNowDebug && espNowVerbose)
+        if (settings.debugEspNow && espNowVerbose)
             systemPrintf("Calling esp_now_deinit\r\n");
         status = esp_now_deinit();
         if (status != ESP_OK)
@@ -461,7 +460,7 @@ bool espNowStop()
         //  11. Restart WiFi if necessary
 
         // ESP-NOW has stopped successfully
-        if (espNowDebug)
+        if (settings.debugEspNow)
             systemPrintf("ESP-NOW stopped\r\n");
         stopped = true;
     } while (0);
