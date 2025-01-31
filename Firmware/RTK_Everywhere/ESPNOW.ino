@@ -41,7 +41,6 @@ typedef struct _ESP_NOW_PAIR_MESSAGE
 // Locals
 //****************************************
 
-bool espNowDisplay;
 ESPNOWState espNowState;
 
 //*********************************************************************
@@ -207,16 +206,13 @@ void espNowRxHandler(const esp_now_recv_info *mac,
             // else Pair CRC failed
         }
     }
-    else
-    {
-        if (espNowDisplay == true)
-            systemPrintf("*** ESP-NOW: RX %02x:%02x:%02x:%02x:%02x:%02x --> %02x:%02x:%02x:%02x:%02x:%02x, %d bytes, rssi: %d\r\n",
-                         mac->src_addr[0], mac->src_addr[1], mac->src_addr[2],
-                         mac->src_addr[3], mac->src_addr[4], mac->src_addr[5],
-                         mac->des_addr[0], mac->des_addr[1], mac->des_addr[2],
-                         mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
-                         len, packetRSSI);
-    }
+    else if (settings.debugEspNow)
+        systemPrintf("*** ESP-NOW: RX %02x:%02x:%02x:%02x:%02x:%02x --> %02x:%02x:%02x:%02x:%02x:%02x, %d bytes, rssi: %d\r\n",
+                     mac->src_addr[0], mac->src_addr[1], mac->src_addr[2],
+                     mac->src_addr[3], mac->src_addr[4], mac->src_addr[5],
+                     mac->des_addr[0], mac->des_addr[1], mac->des_addr[2],
+                     mac->des_addr[3], mac->des_addr[4], mac->des_addr[5],
+                     len, packetRSSI);
 }
 
 //*********************************************************************
@@ -373,7 +369,7 @@ bool espNowStop()
         if (settings.debugEspNow)
             systemPrintf("ESP-NOW: RX callback removed\r\n");
 
-        if (espNowDisplay)
+        if (settings.debugEspNow)
             systemPrintf("ESP-NOW offline\r\n");
 
         //   4. Remove all peers by calling espnowRemovePeer
