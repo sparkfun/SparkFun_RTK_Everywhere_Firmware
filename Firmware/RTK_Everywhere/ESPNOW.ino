@@ -10,7 +10,7 @@
 // Constants
 //****************************************
 
-const uint8_t peerBroadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t espnowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 //****************************************
 // Types
@@ -53,16 +53,16 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
     if (result != ESP_OK)
     {
         systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %d\r\n",
-                     peerBroadcast[0], peerBroadcast[1],
-                     peerBroadcast[2], peerBroadcast[3],
-                     peerBroadcast[4], peerBroadcast[5],
+                     espnowBroadcastAddr[0], espnowBroadcastAddr[1],
+                     espnowBroadcastAddr[2], espnowBroadcastAddr[3],
+                     espnowBroadcastAddr[4], espnowBroadcastAddr[5],
                      result);
     }
     else if (espNowDebug)
         systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
-                     peerBroadcast[0], peerBroadcast[1],
-                     peerBroadcast[2], peerBroadcast[3],
-                     peerBroadcast[4], peerBroadcast[5]);
+                     espnowBroadcastAddr[0], espnowBroadcastAddr[1],
+                     espnowBroadcastAddr[2], espnowBroadcastAddr[3],
+                     espnowBroadcastAddr[4], espnowBroadcastAddr[5]);
     return result;
 }
 
@@ -369,11 +369,11 @@ bool espNowStop()
         //   4. Remove all peers by calling espnowRemovePeer
         if (espNowDebug && espNowVerbose)
             systemPrintf("Calling esp_now_is_peer_exist\r\n");
-        if (esp_now_is_peer_exist(peerBroadcast))
+        if (esp_now_is_peer_exist(espnowBroadcastAddr))
         {
             if (espNowDebug && espNowVerbose)
                 systemPrintf("Calling esp_now_del_peer\r\n");
-            status = esp_now_del_peer(peerBroadcast);
+            status = esp_now_del_peer(espnowBroadcastAddr);
             if (status != ESP_OK)
             {
                 systemPrintf("ERROR: Failed to delete broadcast peer, status: %d\r\n", status);
