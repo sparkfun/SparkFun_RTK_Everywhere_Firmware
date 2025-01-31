@@ -587,48 +587,12 @@ const char *networkGetNameByPriority(NetPriority_t priority)
 }
 
 //----------------------------------------
-// Determine if the network interface is online
-//----------------------------------------
-bool networkInterfaceHasInternet(NetIndex_t index)
-{
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Return the network interface state
-    return (networkHasInternet_bm & (1 << index)) ? true : false;
-}
-
-//----------------------------------------
-// Determine if the network interface has completed its start routine
-//----------------------------------------
-bool networkIsInterfaceStarted(NetIndex_t index)
-{
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Return the network started state
-    return (networkStarted & (1 << index)) ? true : false;
-}
-
-//----------------------------------------
-// Determine if any network interface is online
+// Determine if any network interface has access to the internet
 //----------------------------------------
 bool networkHasInternet()
 {
     // Return the network state
     return networkHasInternet_bm ? true : false;
-}
-
-//----------------------------------------
-// Determine if the network is present on the platform
-//----------------------------------------
-bool networkIsPresent(NetIndex_t index)
-{
-    // Validate the index
-    networkValidateIndex(index);
-
-    // Present if nullptr or bool set to true
-    return ((!networkInterfaceTable[index].present) || *(networkInterfaceTable[index].present));
 }
 
 //----------------------------------------
@@ -640,7 +604,19 @@ void networkInterfaceEventStop(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network offline
+// Determine the specified network interface access to the internet
+//----------------------------------------
+bool networkInterfaceHasInternet(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the network interface state
+    return (networkHasInternet_bm & (1 << index)) ? true : false;
+}
+
+//----------------------------------------
+// Mark network interface as having NO access to the internet
 //----------------------------------------
 void networkInterfaceEventInternetLost(NetIndex_t index)
 {
@@ -709,7 +685,7 @@ void networkInterfaceEventInternetLost(NetIndex_t index)
 }
 
 //----------------------------------------
-// Mark network online
+// Mark network interface as having access to the internet
 //----------------------------------------
 void networkInterfaceEventInternetAvailable(NetIndex_t index)
 {
@@ -778,6 +754,30 @@ void networkInterfaceEventInternetAvailable(NetIndex_t index)
     // Only start mDNS on the highest priority network
     if (networkPriority == networkPriorityTable[previousIndex])
         networkMulticastDNSStart(previousIndex);
+}
+
+//----------------------------------------
+// Determine if the network interface has completed its start routine
+//----------------------------------------
+bool networkIsInterfaceStarted(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Return the network started state
+    return (networkStarted & (1 << index)) ? true : false;
+}
+
+//----------------------------------------
+// Determine if the network is present on the platform
+//----------------------------------------
+bool networkIsPresent(NetIndex_t index)
+{
+    // Validate the index
+    networkValidateIndex(index);
+
+    // Present if nullptr or bool set to true
+    return ((!networkInterfaceTable[index].present) || *(networkInterfaceTable[index].present));
 }
 
 //----------------------------------------
@@ -1124,7 +1124,6 @@ void networkSequenceStop(NetIndex_t index, bool debug)
             // Start the sequence
             networkSeqStopping |= bitMask;
             networkStarted &= ~bitMask;
-
             networkSequence[index] = sequence;
         }
     }
@@ -1184,7 +1183,6 @@ void networkSequenceStopPolling(NetIndex_t index, bool debug, bool forcedStop)
     if (forcedStop)
     {
         networkStarted &= ~bitMask;
-
         networkSeqRequest &= ~bitMask;
         networkSeqNext &= ~bitMask;
     }
@@ -1324,42 +1322,6 @@ void networkStartDelayed(NetIndex_t index, uintptr_t parameter, bool debug)
             systemPrintf("Delaying Start: %d Sec\r\n", (parameter / 1000) - seconds);
         }
     }
-}
-
-//----------------------------------------
-// Validate the network index
-//----------------------------------------
-void networkValidateIndex(NetIndex_t index)
-{
-    // Validate the index
-    if (index >= NETWORK_OFFLINE)
-    {
-        systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n", index, NETWORK_OFFLINE - 1);
-        reportFatalError("Invalid index value!");
-    }
-}
-
-//----------------------------------------
-// Validate the network priority
-//----------------------------------------
-void networkValidatePriority(NetPriority_t priority)
-{
-    // Validate the priority
-    if (priority >= NETWORK_OFFLINE)
-    {
-        systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n", priority, NETWORK_OFFLINE - 1);
-        reportFatalError("Invalid priority value!");
-    }
-}
-
-//----------------------------------------
-// Verify the network layer tables
-//----------------------------------------
-void networkVerifyTables()
-{
-    // Verify the table lengths
-    if (NETWORK_OFFLINE != NETWORK_MAX)
-        reportFatalError("Fix networkInterfaceTable to match NetworkType");
 }
 
 //----------------------------------------
@@ -1568,6 +1530,42 @@ void networkUpdate()
             systemPrintln("Network: Offline");
         PERIODIC_CLEAR(PD_IP_ADDRESS);
     }
+}
+
+//----------------------------------------
+// Validate the network index
+//----------------------------------------
+void networkValidateIndex(NetIndex_t index)
+{
+    // Validate the index
+    if (index >= NETWORK_OFFLINE)
+    {
+        systemPrintf("HALTED: Invalid index value %d, valid range (0 - %d)!\r\n", index, NETWORK_OFFLINE - 1);
+        reportFatalError("Invalid index value!");
+    }
+}
+
+//----------------------------------------
+// Validate the network priority
+//----------------------------------------
+void networkValidatePriority(NetPriority_t priority)
+{
+    // Validate the priority
+    if (priority >= NETWORK_OFFLINE)
+    {
+        systemPrintf("HALTED: Invalid priority value %d, valid range (0 - %d)!\r\n", priority, NETWORK_OFFLINE - 1);
+        reportFatalError("Invalid priority value!");
+    }
+}
+
+//----------------------------------------
+// Verify the network layer tables
+//----------------------------------------
+void networkVerifyTables()
+{
+    // Verify the table lengths
+    if (NETWORK_OFFLINE != NETWORK_MAX)
+        reportFatalError("Fix networkInterfaceTable to match NetworkType");
 }
 
 // Return the bitfield containing the type of consumers currently using the network
