@@ -154,6 +154,55 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
     }
 }
 
+//*********************************************************************
+// Buffer RTCM data and send to ESP-NOW peer
+void espnowProcessRTCM(byte incoming)
+{
+    // If we are paired,
+    // Or if the radio is broadcasting
+    // Then add bytes to the outgoing buffer
+    if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
+    {
+        // Move this byte into ESP NOW to send buffer
+        espnowOutgoing[espnowOutgoingSpot++] = incoming;
+        espnowLastAdd = millis();
+    }
+
+    // Send buffer when full
+    if (espnowOutgoingSpot == sizeof(espnowOutgoing))
+    {
+        espnowOutgoingSpot = 0; // Wrap
+
+        if (espNowState == ESPNOW_PAIRED)
+            esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
+        else // if (espNowState == ESPNOW_BROADCASTING)
+        {
+            esp_now_send(espNowBroadcastAddr, (uint8_t *)&espnowOutgoing,
+                         sizeof(espnowOutgoing)); // Send packet via broadcast
+        }
+
+        delay(10); // We need a small delay between sending multiple packets
+
+        espnowBytesSent += sizeof(espnowOutgoing);
+
+        espnowOutgoingRTCM = true;
+    }
+}
+
+//*********************************************************************
+// Remove a given MAC address from the peer list
+esp_err_t espnowRemovePeer(const uint8_t *peerMac)
+{
+    esp_err_t response = esp_now_del_peer(peerMac);
+    if (response != ESP_OK)
+    {
+        if (settings.debugEspNow == true)
+            systemPrintf("Failed to remove peer: %s\r\n", esp_err_to_name(response));
+    }
+
+    return (response);
+}
+
 //----------------------------------------------------------------------
 // ESP-NOW bringup from example 4_9_ESP_NOW
 //   1. Set station mode
@@ -982,19 +1031,6 @@ void espnowStop()
     }
 }
 
-// Remove a given MAC address from the peer list
-esp_err_t espnowRemovePeer(const uint8_t *peerMac)
-{
-    esp_err_t response = esp_now_del_peer(peerMac);
-    if (response != ESP_OK)
-    {
-        if (settings.debugEspNow == true)
-            systemPrintf("Failed to remove peer: %s\r\n", esp_err_to_name(response));
-    }
-
-    return (response);
-}
-
 // Update the state of the ESP Now state machine
 void espnowSetState(ESPNOWState newState)
 {
@@ -1026,39 +1062,6 @@ void espnowSetState(ESPNOWState newState)
             systemPrintf("Unknown ESPNOW state: %d\r\n", newState);
             break;
         }
-    }
-}
-
-void espnowProcessRTCM(byte incoming)
-{
-    // If we are paired,
-    // Or if the radio is broadcasting
-    // Then add bytes to the outgoing buffer
-    if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
-    {
-        // Move this byte into ESP NOW to send buffer
-        espnowOutgoing[espnowOutgoingSpot++] = incoming;
-        espnowLastAdd = millis();
-    }
-
-    // Send buffer when full
-    if (espnowOutgoingSpot == sizeof(espnowOutgoing))
-    {
-        espnowOutgoingSpot = 0; // Wrap
-
-        if (espNowState == ESPNOW_PAIRED)
-            esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
-        else // if (espNowState == ESPNOW_BROADCASTING)
-        {
-            esp_now_send(espNowBroadcastAddr, (uint8_t *)&espnowOutgoing,
-                         sizeof(espnowOutgoing)); // Send packet via broadcast
-        }
-
-        delay(10); // We need a small delay between sending multiple packets
-
-        espnowBytesSent += sizeof(espnowOutgoing);
-
-        espnowOutgoingRTCM = true;
     }
 }
 
