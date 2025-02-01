@@ -22,7 +22,7 @@
 // Constants
 //****************************************
 
-const uint8_t espnowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t espNowBroadcastAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 //****************************************
 // Types
@@ -84,8 +84,7 @@ void espnowBeginPairing()
     espnowStart();
 
     // To begin pairing, we must add the broadcast MAC to the peer list
-    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    espNowAddPeer(broadcastMac);
+    espNowAddPeer(espNowBroadcastAddr);
 
     espnowSetState(ESPNOW_PAIRING);
 }
@@ -104,8 +103,7 @@ bool espnowIsPaired()
     if (espNowState == ESPNOW_MAC_RECEIVED)
     {
         // Remove broadcast peer
-        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-        espnowRemovePeer(broadcastMac);
+        espnowRemovePeer(espNowBroadcastAddr);
 
         if (esp_now_is_peer_exist(receivedMAC) == true)
         {
@@ -369,7 +367,7 @@ void espNowSetState(ESPNOWState newState)
 
 //*********************************************************************
 // Create special pair packet to a given MAC
-esp_err_t espnowSendPairMessage(uint8_t *sendToMac)
+esp_err_t espnowSendPairMessage(const uint8_t *sendToMac)
 {
     // Assemble message to send
     ESP_NOW_PAIR_MESSAGE pairMessage;
@@ -481,8 +479,6 @@ void espnowStaticPairing()
     systemPrintln("Begin pairing. Place other unit in pairing mode. Press any key to exit.");
     clearBuffer();
 
-    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
     bool exitPair = false;
     while (exitPair == false)
     {
@@ -505,7 +501,7 @@ void espnowStaticPairing()
             }
         }
 
-        espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
+        espnowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
 
         systemPrintln("Scanning for other radio...");
     }
@@ -545,11 +541,11 @@ bool espNowStop()
         //   4. Remove all peers by calling espnowRemovePeer
         if (settings.debugEspNow)
             systemPrintf("Calling esp_now_is_peer_exist\r\n");
-        if (esp_now_is_peer_exist(espnowBroadcastAddr))
+        if (esp_now_is_peer_exist(espNowBroadcastAddr))
         {
             if (settings.debugEspNow)
                 systemPrintf("Calling esp_now_del_peer\r\n");
-            status = esp_now_del_peer(espnowBroadcastAddr);
+            status = esp_now_del_peer(espNowBroadcastAddr);
             if (status != ESP_OK)
             {
                 systemPrintf("ERROR: Failed to delete broadcast peer, status: %d\r\n", status);
@@ -652,7 +648,7 @@ void espnowUpdate()
                     esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
                 else // if (espNowState == ESPNOW_BROADCASTING)
                 {
-                    esp_now_send(espnowBroadcastAddr, (uint8_t *)&espnowOutgoing,
+                    esp_now_send(espNowBroadcastAddr, (uint8_t *)&espnowOutgoing,
                                  espnowOutgoingSpot); // Send packet via broadcast
                 }
 
@@ -705,8 +701,7 @@ void updateEspnow()
                     esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
                 else // if (espNowState == ESPNOW_BROADCASTING)
                 {
-                    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                    esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
+                    esp_now_send(espNowBroadcastAddr, (uint8_t *)&espnowOutgoing,
                                  espnowOutgoingSpot); // Send packet via broadcast
                 }
 
@@ -850,17 +845,14 @@ void espnowStart()
     if (settings.espnowPeerCount == 0)
     {
         // Enter broadcast mode
-
-        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-        if (esp_now_is_peer_exist(broadcastMac) == true)
+        if (esp_now_is_peer_exist(espNowBroadcastAddr) == true)
         {
             if (settings.debugEspNow == true)
                 systemPrintln("Broadcast peer already exists");
         }
         else
         {
-            esp_err_t result = espNowAddPeer(broadcastMac);
+            esp_err_t result = espNowAddPeer(espNowBroadcastAddr);
             if (result != ESP_OK)
             {
                 if (settings.debugEspNow == true)
@@ -983,7 +975,7 @@ void espnowStop()
 }
 
 // Remove a given MAC address from the peer list
-esp_err_t espnowRemovePeer(uint8_t *peerMac)
+esp_err_t espnowRemovePeer(const uint8_t *peerMac)
 {
     esp_err_t response = esp_now_del_peer(peerMac);
     if (response != ESP_OK)
@@ -1050,8 +1042,7 @@ void espnowProcessRTCM(byte incoming)
             esp_now_send(0, (uint8_t *)&espnowOutgoing, sizeof(espnowOutgoing)); // Send packet to all peers
         else // if (espNowState == ESPNOW_BROADCASTING)
         {
-            uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-            esp_now_send(broadcastMac, (uint8_t *)&espnowOutgoing,
+            esp_now_send(espNowBroadcastAddr, (uint8_t *)&espnowOutgoing,
                          sizeof(espnowOutgoing)); // Send packet via broadcast
         }
 
