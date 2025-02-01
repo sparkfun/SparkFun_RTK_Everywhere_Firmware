@@ -585,10 +585,7 @@ void stateUpdate()
                 changeState(lastSystemState);
             }
             else
-            {
-                uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-                espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
-            }
+                espNowSendPairMessage(); // Send unit's MAC address over broadcast, no ack, no encryption
         }
         break;
 

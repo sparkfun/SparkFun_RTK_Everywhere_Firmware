@@ -43,6 +43,12 @@ typedef struct _ESP_NOW_PAIR_MESSAGE
 
 ESPNOWState espNowState;
 
+//****************************************
+// Forward routine declarations
+//****************************************
+
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac = espNowBroadcastAddr);
+
 //*********************************************************************
 // Add a peer to the ESP-NOW network
 esp_err_t espNowAddPeer(const uint8_t * peerMac)
@@ -262,7 +268,7 @@ bool espNowProcessRxPairedMessage()
         }
 
         // Send message directly to the received MAC (not unicast), then exit
-        espnowSendPairMessage(receivedMAC);
+        espNowSendPairMessage(receivedMAC);
 
         // Enable radio. User may have arrived here from the setup menu rather than serial menu.
         settings.enableEspNow = true;
@@ -367,7 +373,7 @@ void espNowSetState(ESPNOWState newState)
 
 //*********************************************************************
 // Create special pair packet to a given MAC
-esp_err_t espnowSendPairMessage(const uint8_t *sendToMac)
+esp_err_t espNowSendPairMessage(const uint8_t *sendToMac)
 {
     // Assemble message to send
     ESP_NOW_PAIR_MESSAGE pairMessage;
@@ -501,7 +507,7 @@ void espnowStaticPairing()
             }
         }
 
-        espnowSendPairMessage(espNowBroadcastAddr); // Send unit's MAC address over broadcast, no ack, no encryption
+        espNowSendPairMessage(); // Send unit's MAC address over broadcast, no ack, no encryption
 
         systemPrintln("Scanning for other radio...");
     }
