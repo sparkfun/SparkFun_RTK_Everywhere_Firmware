@@ -59,19 +59,21 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
     if (settings.debugEspNow)
         systemPrintf("Calling esp_now_add_peer\r\n");
     esp_err_t result = esp_now_add_peer(&peerInfo);
-    if (result != ESP_OK)
+    if (settings.debugEspNow == true)
     {
-        systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %d\r\n",
-                     espnowBroadcastAddr[0], espnowBroadcastAddr[1],
-                     espnowBroadcastAddr[2], espnowBroadcastAddr[3],
-                     espnowBroadcastAddr[4], espnowBroadcastAddr[5],
-                     result);
+        if (result != ESP_OK)
+            systemPrintf("ERROR: Failed to add ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x, result: %s\r\n",
+                         peerMac[0], peerMac[1],
+                         peerMac[2], peerMac[3],
+                         peerMac[4], peerMac[5],
+                         esp_err_to_name(result));
+        else
+            systemPrintf("Added ESP-NOW %s peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
+                         peerInfo.encrypt ? "encrypted" : "unencrypted",
+                         peerMac[0], peerMac[1],
+                         peerMac[2], peerMac[3],
+                         peerMac[4], peerMac[5]);
     }
-    else if (settings.debugEspNow)
-        systemPrintf("Added ESP-NOW peer %02x:%02x:%02x:%02x:%02x:%02x\r\n",
-                     espnowBroadcastAddr[0], espnowBroadcastAddr[1],
-                     espnowBroadcastAddr[2], espnowBroadcastAddr[3],
-                     espnowBroadcastAddr[4], espnowBroadcastAddr[5]);
     return result;
 }
 
@@ -83,7 +85,7 @@ void espnowBeginPairing()
 
     // To begin pairing, we must add the broadcast MAC to the peer list
     uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    espnowAddPeer(broadcastMac, false); // Encryption is not supported for multicast addresses
+    espNowAddPeer(broadcastMac);
 
     espnowSetState(ESPNOW_PAIRING);
 }
@@ -113,7 +115,7 @@ bool espnowIsPaired()
         else
         {
             // Add new peer to system
-            espnowAddPeer(receivedMAC);
+            espNowAddPeer(receivedMAC);
 
             // Record this MAC to peer list
             memcpy(settings.espnowPeers[settings.espnowPeerCount], receivedMAC, 6);
@@ -204,13 +206,13 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
 //  10. Add peers from settings
 //      A. If no peers exist
 //          i.   Determine if broadcast peer exists, call esp_now_is_peer_exist
-//          ii.  Add broadcast peer if necessary, call espnowAddPeer
+//          ii.  Add broadcast peer if necessary, call espNowAddPeer
 //          iii. Set ESP-NOW state, call espnowSetState(ESP_NOW_BROADCASTING)
 //      B. If peers exist,
 //          i.  Set ESP-NOW state, call espnowSetState(ESP_NOW_PAIRED)
 //          ii. Loop through peers listed in settings, for each
 //              a. Determine if peer exists, call esp_now_is_peer_exist
-//              b. Add peer if necessary, call espnowAddPeer
+//              b. Add peer if necessary, call espNowAddPeer
 //
 // In espnowOnDataReceived
 //  11. Save ESP-NOW RSSI
@@ -430,7 +432,7 @@ bool espNowStart()
                 systemPrintf("Calling esp_now_is_peer_exist\r\n");
             if (esp_now_is_peer_exist(settings.espnowPeers[index]) == false)
             {
-                //  b. Add peer if necessary, call espnowAddPeer
+                //  b. Add peer if necessary, call espNowAddPeer
                 if (settings.debugEspNow)
                     systemPrintf("Calling espNowAddPeer\r\n");
                 status = espNowAddPeer(&settings.espnowPeers[index][0]);
@@ -858,7 +860,7 @@ void espnowStart()
         }
         else
         {
-            esp_err_t result = espnowAddPeer(broadcastMac, false); // Encryption not support for broadcast MAC
+            esp_err_t result = espNowAddPeer(broadcastMac);
             if (result != ESP_OK)
             {
                 if (settings.debugEspNow == true)
@@ -890,7 +892,7 @@ void espnowStart()
             }
             else
             {
-                esp_err_t result = espnowAddPeer(settings.espnowPeers[x]);
+                esp_err_t result = espNowAddPeer(settings.espnowPeers[x]);
                 if (result != ESP_OK)
                 {
                     if (settings.debugEspNow == true)
@@ -978,33 +980,6 @@ void espnowStop()
             systemPrintln("ESP-Now starting WiFi");
         wifiStart(); // Force WiFi to restart
     }
-}
-
-// Add a given MAC address to the peer list
-esp_err_t espnowAddPeer(uint8_t *peerMac)
-{
-    return (espnowAddPeer(peerMac, true)); // Encrypt by default
-}
-
-esp_err_t espnowAddPeer(uint8_t *peerMac, bool encrypt)
-{
-    esp_now_peer_info_t peerInfo;
-
-    memcpy(peerInfo.peer_addr, peerMac, 6);
-    peerInfo.channel = 0;
-    peerInfo.ifidx = WIFI_IF_STA;
-    // memcpy(peerInfo.lmk, "RTKProductsLMK56", 16);
-    // peerInfo.encrypt = encrypt;
-    peerInfo.encrypt = false;
-
-    esp_err_t result = esp_now_add_peer(&peerInfo);
-    if (result != ESP_OK)
-    {
-        if (settings.debugEspNow == true)
-            systemPrintf("Failed to add peer: 0x%02X%02X%02X%02X%02X%02X\r\n", peerMac[0], peerMac[1], peerMac[2],
-                         peerMac[3], peerMac[4], peerMac[5]);
-    }
-    return (result);
 }
 
 // Remove a given MAC address from the peer list

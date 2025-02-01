@@ -653,7 +653,7 @@ void menuRadio()
             else
             {
                 // Add new peer to system
-                espnowAddPeer(peer1);
+                espNowAddPeer(peer1);
 
                 // Record this MAC to peer list
                 memcpy(settings.espnowPeers[settings.espnowPeerCount], peer1, 6);
