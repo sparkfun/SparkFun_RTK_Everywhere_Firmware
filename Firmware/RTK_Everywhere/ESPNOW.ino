@@ -137,7 +137,7 @@ bool espnowIsPaired()
 
 //*********************************************************************
 // Callback when data is received
-void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
+void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
 {
     if (espNowState == ESPNOW_PAIRING)
     {
@@ -200,7 +200,7 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
 //   7. Set promiscuous receive callback [esp_wifi_set_promiscuous_rx_cb(promiscuous_rx_cb)]
 //      to get RSSI of action frames
 //   8. Assign a channel if necessary, call espnowSetChannel
-//   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
+//   9. Set receive callback [esp_now_register_recv_cb(espNowOnDataReceived)]
 //  10. Add peers from settings
 //      A. If no peers exist
 //          i.   Determine if broadcast peer exists, call esp_now_is_peer_exist
@@ -212,7 +212,7 @@ void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingD
 //              a. Determine if peer exists, call esp_now_is_peer_exist
 //              b. Add peer if necessary, call espNowAddPeer
 //
-// In espnowOnDataReceived
+// In espNowOnDataReceived
 //  11. Save ESP-NOW RSSI
 //  12. Set lastEspnowRssiUpdate = millis()
 //  13. If in ESP_NOW_PAIRING state
@@ -406,7 +406,7 @@ bool espNowStart()
             break;
         }
 
-        //   9. Set receive callback [esp_now_register_recv_cb(espnowOnDataReceived)]
+        //   9. Set receive callback [esp_now_register_recv_cb(espNowOnDataReceived)]
         if (settings.debugEspNow)
             systemPrintf("Calling esp_now_register_recv_cb\r\n");
         status = esp_now_register_recv_cb(espNowRxHandler);
@@ -840,7 +840,7 @@ void espnowStart()
 
     // Register callbacks
     // esp_now_register_send_cb(espnowOnDataSent);
-    esp_now_register_recv_cb(espnowOnDataReceived);
+    esp_now_register_recv_cb(espNowOnDataReceived);
 
     if (settings.espnowPeerCount == 0)
     {
