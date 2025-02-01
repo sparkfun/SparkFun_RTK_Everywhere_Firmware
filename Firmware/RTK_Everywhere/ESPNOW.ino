@@ -104,7 +104,9 @@ ESPNOWState espnowGetState()
 
 //*********************************************************************
 // Callback when data is received
-void espNowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
+void espNowOnDataReceived(const esp_now_recv_info *mac,
+                          const uint8_t *incomingData,
+                          int len)
 {
     if (espNowState == ESPNOW_PAIRING)
     {
