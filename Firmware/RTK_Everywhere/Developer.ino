@@ -187,7 +187,7 @@ bool espnowSetChannel(uint8_t channelNumber)        {return false;}
 bool espNowStart()                      {return true;}
 void espnowStart()                      {}
 #define ESPNOW_START()                  false
-void espnowStaticPairing()              {}
+void espNowStaticPairing()              {}
 bool espNowStop()                       {return true;}
 void espnowStop()                       {}
 #define ESPNOW_STOP()                   true

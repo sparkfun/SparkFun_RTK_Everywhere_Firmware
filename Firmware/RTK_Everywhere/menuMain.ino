@@ -611,7 +611,7 @@ void menuRadio()
         }
         else if (settings.enableEspNow == true && incoming == 2)
         {
-            espnowStaticPairing();
+            espNowStaticPairing();
         }
         else if (settings.enableEspNow == true && incoming == 3)
         {

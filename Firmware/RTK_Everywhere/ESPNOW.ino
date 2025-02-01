@@ -472,7 +472,7 @@ bool espNowStart()
 //*********************************************************************
 // A blocking function that is used to pair two devices
 // either through the serial menu or AP config
-void espnowStaticPairing()
+void espNowStaticPairing()
 {
     systemPrintln("Begin ESP NOW Pairing");
 
