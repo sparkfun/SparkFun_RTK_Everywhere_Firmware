@@ -577,7 +577,7 @@ void stateUpdate()
         break;
 
         case (STATE_ESPNOW_PAIRING): {
-            if (espnowIsPaired() == true)
+            if (espNowProcessRxPairedMessage() == true)
             {
                 paintEspNowPaired();
 

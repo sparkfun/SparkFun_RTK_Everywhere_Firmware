@@ -179,8 +179,8 @@ void webServerVerifyTables() {}
 #ifndef COMPILE_ESPNOW
 
 bool espnowGetState()                   {return ESPNOW_OFF;}
-bool espnowIsPaired()                   {return false;}
 void espnowProcessRTCM(byte incoming)   {}
+bool espNowProcessRxPairedMessage()     {return true;}
 esp_err_t espnowRemovePeer(uint8_t *peerMac)        {return ESP_OK;}
 esp_err_t espnowSendPairMessage(uint8_t *sendToMac) {return ESP_OK;}
 bool espnowSetChannel(uint8_t channelNumber)        {return false;}
