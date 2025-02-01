@@ -567,7 +567,7 @@ void stateUpdate()
             paintEspNowPairing();
 
             // Start ESP-Now if needed, put ESP-Now into broadcast state
-            espnowBeginPairing();
+            espNowBeginPairing();
 
             changeState(STATE_ESPNOW_PAIRING);
 #else  // COMPILE_ESPNOW

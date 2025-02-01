@@ -79,7 +79,7 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
 
 //*********************************************************************
 // Start ESP-Now if needed, put ESP-Now into broadcast state
-void espnowBeginPairing()
+void espNowBeginPairing()
 {
     espnowStart();
 
@@ -471,7 +471,7 @@ void espnowStaticPairing()
     systemPrintln("Begin ESP NOW Pairing");
 
     // Start ESP-Now if needed, put ESP-Now into broadcast state
-    espnowBeginPairing();
+    espNowBeginPairing();
 
     // Begin sending our MAC every 250ms until a remote device sends us there info
     randomSeed(millis());
