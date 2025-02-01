@@ -76,10 +76,113 @@ esp_err_t espNowAddPeer(const uint8_t * peerMac)
 }
 
 //*********************************************************************
+// Start ESP-Now if needed, put ESP-Now into broadcast state
+void espnowBeginPairing()
+{
+    espnowStart();
+
+    // To begin pairing, we must add the broadcast MAC to the peer list
+    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    espnowAddPeer(broadcastMac, false); // Encryption is not supported for multicast addresses
+
+    espnowSetState(ESPNOW_PAIRING);
+}
+
+//*********************************************************************
 // Get the current ESP-NOW state
 ESPNOWState espnowGetState()
 {
     return espNowState;
+}
+
+//*********************************************************************
+// Regularly call during pairing to see if we've received a Pairing message
+bool espnowIsPaired()
+{
+    if (espNowState == ESPNOW_MAC_RECEIVED)
+    {
+        // Remove broadcast peer
+        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+        espnowRemovePeer(broadcastMac);
+
+        if (esp_now_is_peer_exist(receivedMAC) == true)
+        {
+            if (settings.debugEspNow == true)
+                systemPrintln("Peer already exists");
+        }
+        else
+        {
+            // Add new peer to system
+            espnowAddPeer(receivedMAC);
+
+            // Record this MAC to peer list
+            memcpy(settings.espnowPeers[settings.espnowPeerCount], receivedMAC, 6);
+            settings.espnowPeerCount++;
+            settings.espnowPeerCount %= ESPNOW_MAX_PEERS;
+        }
+
+        // Send message directly to the received MAC (not unicast), then exit
+        espnowSendPairMessage(receivedMAC);
+
+        // Enable radio. User may have arrived here from the setup menu rather than serial menu.
+        settings.enableEspNow = true;
+
+        recordSystemSettings(); // Record enableEspNow and espnowPeerCount to NVM
+
+        espnowSetState(ESPNOW_PAIRED);
+        return (true);
+    }
+    return (false);
+}
+
+//*********************************************************************
+// Callback when data is received
+void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
+{
+    if (espNowState == ESPNOW_PAIRING)
+    {
+        if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
+        {
+            ESP_NOW_PAIR_MESSAGE pairMessage;
+            memcpy(&pairMessage, incomingData, sizeof(pairMessage));
+
+            // Check CRC
+            uint8_t tempCRC = 0;
+            for (int x = 0; x < 6; x++)
+                tempCRC += pairMessage.macAddress[x];
+
+            if (tempCRC == pairMessage.crc) // 2nd error check
+            {
+                memcpy(&receivedMAC, pairMessage.macAddress, 6);
+                espnowSetState(ESPNOW_MAC_RECEIVED);
+            }
+            // else Pair CRC failed
+        }
+    }
+    else
+    {
+        espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
+
+        // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
+        // Determine if ESPNOW is the correction source
+        if (correctionLastSeen(CORR_ESPNOW))
+        {
+            // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
+            gnss->pushRawData((uint8_t *)incomingData, len);
+
+            if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
+                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espnowRSSI);
+        }
+        else
+        {
+            if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
+                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len,
+                             espnowRSSI);
+        }
+
+        espnowIncomingRTCM = true; // Display a download icon
+        lastEspnowRssiUpdate = millis();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -263,6 +366,25 @@ void espNowSetState(ESPNOWState newState)
 }
 
 //*********************************************************************
+// Create special pair packet to a given MAC
+esp_err_t espnowSendPairMessage(uint8_t *sendToMac)
+{
+    // Assemble message to send
+    ESP_NOW_PAIR_MESSAGE pairMessage;
+
+    // Get unit MAC address
+    memcpy(pairMessage.macAddress, wifiMACAddress, 6);
+    pairMessage.encrypt = false;
+    pairMessage.channel = 0;
+
+    pairMessage.crc = 0; // Calculate CRC
+    for (int x = 0; x < 6; x++)
+        pairMessage.crc += wifiMACAddress[x];
+
+    return (esp_now_send(sendToMac, (uint8_t *)&pairMessage, sizeof(pairMessage))); // Send packet to given MAC
+}
+
+//*********************************************************************
 // Start ESP-NOW layer
 bool espNowStart()
 {
@@ -339,6 +461,52 @@ bool espNowStart()
     } while (0);
 
     return started;
+}
+
+//*********************************************************************
+// A blocking function that is used to pair two devices
+// either through the serial menu or AP config
+void espnowStaticPairing()
+{
+    systemPrintln("Begin ESP NOW Pairing");
+
+    // Start ESP-Now if needed, put ESP-Now into broadcast state
+    espnowBeginPairing();
+
+    // Begin sending our MAC every 250ms until a remote device sends us there info
+    randomSeed(millis());
+
+    systemPrintln("Begin pairing. Place other unit in pairing mode. Press any key to exit.");
+    clearBuffer();
+
+    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    bool exitPair = false;
+    while (exitPair == false)
+    {
+        if (systemAvailable())
+        {
+            systemPrintln("User pressed button. Pairing canceled.");
+            break;
+        }
+
+        int timeout = 1000 + random(0, 100); // Delay 1000 to 1100ms
+        for (int x = 0; x < timeout; x++)
+        {
+            delay(1);
+
+            if (espnowIsPaired() == true) // Check if we've received a pairing message
+            {
+                systemPrintln("Pairing compete");
+                exitPair = true;
+                break;
+            }
+        }
+
+        espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
+
+        systemPrintln("Scanning for other radio...");
+    }
 }
 
 //*********************************************************************
@@ -464,6 +632,45 @@ bool espNowStop()
     return stopped;
 }
 
+//*********************************************************************
+// Called from main loop
+// Control incoming/outgoing RTCM data from internal ESP NOW radio
+// Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
+void espnowUpdate()
+{
+    if (settings.enableEspNow == true)
+    {
+        if (espNowState == ESPNOW_PAIRED || espNowState == ESPNOW_BROADCASTING)
+        {
+            // If it's been longer than a few ms since we last added a byte to the buffer
+            // then we've reached the end of the RTCM stream. Send partial buffer.
+            if (espnowOutgoingSpot > 0 && (millis() - espnowLastAdd) > 50)
+            {
+                if (espNowState == ESPNOW_PAIRED)
+                    esp_now_send(0, (uint8_t *)&espnowOutgoing, espnowOutgoingSpot); // Send partial packet to all peers
+                else // if (espNowState == ESPNOW_BROADCASTING)
+                {
+                    esp_now_send(espnowBroadcastAddr, (uint8_t *)&espnowOutgoing,
+                                 espnowOutgoingSpot); // Send packet via broadcast
+                }
+
+                if (!inMainMenu)
+                {
+                    if (settings.debugEspNow == true)
+                        systemPrintf("ESPNOW transmitted %d RTCM bytes\r\n", espnowBytesSent + espnowOutgoingSpot);
+                }
+                espnowBytesSent = 0;
+                espnowOutgoingSpot = 0; // Reset
+            }
+
+            // If we don't receive an ESP NOW packet after some time, set RSSI to very negative
+            // This removes the ESPNOW icon from the display when the link goes down
+            if (millis() - lastEspnowRssiUpdate > 5000 && espnowRSSI > -255)
+                espnowRSSI = -255;
+        }
+    }
+}
+
 /*
   Use ESP NOW protocol to transmit RTCM between RTK Products via 2.4GHz
 
@@ -526,55 +733,6 @@ void espnowOnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
     //    systemPrintln("Delivery Success");
     //  else
     //    systemPrintln("Delivery Fail");
-}
-
-// Callback when data is received
-void espnowOnDataReceived(const esp_now_recv_info *mac, const uint8_t *incomingData, int len)
-{
-    if (espNowState == ESPNOW_PAIRING)
-    {
-        if (len == sizeof(ESP_NOW_PAIR_MESSAGE)) // First error check
-        {
-            ESP_NOW_PAIR_MESSAGE pairMessage;
-            memcpy(&pairMessage, incomingData, sizeof(pairMessage));
-
-            // Check CRC
-            uint8_t tempCRC = 0;
-            for (int x = 0; x < 6; x++)
-                tempCRC += pairMessage.macAddress[x];
-
-            if (tempCRC == pairMessage.crc) // 2nd error check
-            {
-                memcpy(&receivedMAC, pairMessage.macAddress, 6);
-                espnowSetState(ESPNOW_MAC_RECEIVED);
-            }
-            // else Pair CRC failed
-        }
-    }
-    else
-    {
-        espnowRSSI = packetRSSI; // Record this packet's RSSI as an ESP NOW packet
-
-        // We've just received ESP-Now data. We assume this is RTCM and push it directly to the GNSS.
-        // Determine if ESPNOW is the correction source
-        if (correctionLastSeen(CORR_ESPNOW))
-        {
-            // Pass RTCM bytes (presumably) from ESP NOW out ESP32-UART to GNSS
-            gnss->pushRawData((uint8_t *)incomingData, len);
-
-            if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
-                systemPrintf("ESPNOW received %d RTCM bytes, pushed to GNSS, RSSI: %d\r\n", len, espnowRSSI);
-        }
-        else
-        {
-            if ((settings.debugEspNow == true || settings.debugCorrections == true) && !inMainMenu)
-                systemPrintf("ESPNOW received %d RTCM bytes, NOT pushed due to priority, RSSI: %d\r\n", len,
-                             espnowRSSI);
-        }
-
-        espnowIncomingRTCM = true; // Display a download icon
-        lastEspnowRssiUpdate = millis();
-    }
 }
 
 // Callback for all RX Packets
@@ -822,75 +980,6 @@ void espnowStop()
     }
 }
 
-// Start ESP-Now if needed, put ESP-Now into broadcast state
-void espnowBeginPairing()
-{
-    espnowStart();
-
-    // To begin pairing, we must add the broadcast MAC to the peer list
-    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    espnowAddPeer(broadcastMac, false); // Encryption is not supported for multicast addresses
-
-    espnowSetState(ESPNOW_PAIRING);
-}
-
-// Regularly call during pairing to see if we've received a Pairing message
-bool espnowIsPaired()
-{
-    if (espNowState == ESPNOW_MAC_RECEIVED)
-    {
-        // Remove broadcast peer
-        uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-        espnowRemovePeer(broadcastMac);
-
-        if (esp_now_is_peer_exist(receivedMAC) == true)
-        {
-            if (settings.debugEspNow == true)
-                systemPrintln("Peer already exists");
-        }
-        else
-        {
-            // Add new peer to system
-            espnowAddPeer(receivedMAC);
-
-            // Record this MAC to peer list
-            memcpy(settings.espnowPeers[settings.espnowPeerCount], receivedMAC, 6);
-            settings.espnowPeerCount++;
-            settings.espnowPeerCount %= ESPNOW_MAX_PEERS;
-        }
-
-        // Send message directly to the received MAC (not unicast), then exit
-        espnowSendPairMessage(receivedMAC);
-
-        // Enable radio. User may have arrived here from the setup menu rather than serial menu.
-        settings.enableEspNow = true;
-
-        recordSystemSettings(); // Record enableEspNow and espnowPeerCount to NVM
-
-        espnowSetState(ESPNOW_PAIRED);
-        return (true);
-    }
-    return (false);
-}
-
-// Create special pair packet to a given MAC
-esp_err_t espnowSendPairMessage(uint8_t *sendToMac)
-{
-    // Assemble message to send
-    ESP_NOW_PAIR_MESSAGE pairMessage;
-
-    // Get unit MAC address
-    memcpy(pairMessage.macAddress, wifiMACAddress, 6);
-    pairMessage.encrypt = false;
-    pairMessage.channel = 0;
-
-    pairMessage.crc = 0; // Calculate CRC
-    for (int x = 0; x < 6; x++)
-        pairMessage.crc += wifiMACAddress[x];
-
-    return (esp_now_send(sendToMac, (uint8_t *)&pairMessage, sizeof(pairMessage))); // Send packet to given MAC
-}
-
 // Add a given MAC address to the peer list
 esp_err_t espnowAddPeer(uint8_t *peerMac)
 {
@@ -996,51 +1085,6 @@ void espnowProcessRTCM(byte incoming)
         espnowBytesSent += sizeof(espnowOutgoing);
 
         espnowOutgoingRTCM = true;
-    }
-}
-
-// A blocking function that is used to pair two devices
-// either through the serial menu or AP config
-void espnowStaticPairing()
-{
-    systemPrintln("Begin ESP NOW Pairing");
-
-    // Start ESP-Now if needed, put ESP-Now into broadcast state
-    espnowBeginPairing();
-
-    // Begin sending our MAC every 250ms until a remote device sends us there info
-    randomSeed(millis());
-
-    systemPrintln("Begin pairing. Place other unit in pairing mode. Press any key to exit.");
-    clearBuffer();
-
-    uint8_t broadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-    bool exitPair = false;
-    while (exitPair == false)
-    {
-        if (systemAvailable())
-        {
-            systemPrintln("User pressed button. Pairing canceled.");
-            break;
-        }
-
-        int timeout = 1000 + random(0, 100); // Delay 1000 to 1100ms
-        for (int x = 0; x < timeout; x++)
-        {
-            delay(1);
-
-            if (espnowIsPaired() == true) // Check if we've received a pairing message
-            {
-                systemPrintln("Pairing compete");
-                exitPair = true;
-                break;
-            }
-        }
-
-        espnowSendPairMessage(broadcastMac); // Send unit's MAC address over broadcast, no ack, no encryption
-
-        systemPrintln("Scanning for other radio...");
     }
 }
 
