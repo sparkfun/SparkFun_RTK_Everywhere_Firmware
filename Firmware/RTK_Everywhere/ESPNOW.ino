@@ -640,7 +640,7 @@ bool espNowStop()
 // Called from main loop
 // Control incoming/outgoing RTCM data from internal ESP NOW radio
 // Use the ESP32 to directly transmit/receive RTCM over 2.4GHz (no WiFi needed)
-void espnowUpdate()
+void espNowUpdate()
 {
     if (settings.enableEspNow == true)
     {
