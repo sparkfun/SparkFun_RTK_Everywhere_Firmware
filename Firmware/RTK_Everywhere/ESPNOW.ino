@@ -92,7 +92,7 @@ void espNowBeginPairing()
     // To begin pairing, we must add the broadcast MAC to the peer list
     espNowAddPeer(espNowBroadcastAddr);
 
-    espnowSetState(ESPNOW_PAIRING);
+    espNowSetState(ESPNOW_PAIRING);
 }
 
 //*********************************************************************
@@ -123,7 +123,7 @@ void espNowOnDataReceived(const esp_now_recv_info *mac,
             if (tempCRC == pairMessage.crc) // 2nd error check
             {
                 memcpy(&receivedMAC, pairMessage.macAddress, 6);
-                espnowSetState(ESPNOW_MAC_RECEIVED);
+                espNowSetState(ESPNOW_MAC_RECEIVED);
             }
             // else Pair CRC failed
         }
@@ -223,9 +223,9 @@ esp_err_t espnowRemovePeer(const uint8_t *peerMac)
 //      A. If no peers exist
 //          i.   Determine if broadcast peer exists, call esp_now_is_peer_exist
 //          ii.  Add broadcast peer if necessary, call espNowAddPeer
-//          iii. Set ESP-NOW state, call espnowSetState(ESP_NOW_BROADCASTING)
+//          iii. Set ESP-NOW state, call espNowSetState(ESP_NOW_BROADCASTING)
 //      B. If peers exist,
-//          i.  Set ESP-NOW state, call espnowSetState(ESP_NOW_PAIRED)
+//          i.  Set ESP-NOW state, call espNowSetState(ESP_NOW_PAIRED)
 //          ii. Loop through peers listed in settings, for each
 //              a. Determine if peer exists, call esp_now_is_peer_exist
 //              b. Add peer if necessary, call espNowAddPeer
@@ -237,7 +237,7 @@ esp_err_t espnowRemovePeer(const uint8_t *peerMac)
 //      A. Validate message CRC
 //      B. If valid CRC
 //          i.  Save peer MAC address
-//          ii. espnowSetState(ESPNOW_MAC_RECEIVED)
+//          ii. espNowSetState(ESPNOW_MAC_RECEIVED)
 //  14. Else if ESPNOW_MAC_RECEIVED state
 //      A. If ESP-NOW is corrections source, correctionLastSeen(CORR_ESPNOW)
 //          i.  gnss->pushRawData
@@ -253,7 +253,7 @@ esp_err_t espnowRemovePeer(const uint8_t *peerMac)
 //   7. esp_wifi_get_protocol
 //   8. Turn off long range protocol if necessary, call esp_wifi_set_protocol
 //   9. Turn off ESP-NOW. call esp_now_deinit
-//  10. Set ESP-NOW state, call espnowSetState(ESPNOW_OFF)
+//  10. Set ESP-NOW state, call espNowSetState(ESPNOW_OFF)
 //  11. Restart WiFi if necessary
 //----------------------------------------------------------------------
 
@@ -326,7 +326,7 @@ bool espNowProcessRxPairedMessage()
 
         recordSystemSettings(); // Record enableEspNow and espnowPeerCount to NVM
 
-        espnowSetState(ESPNOW_PAIRED);
+        espNowSetState(ESPNOW_PAIRED);
         return (true);
     }
     return (false);
@@ -922,12 +922,12 @@ void espnowStart()
             }
         }
 
-        espnowSetState(ESPNOW_BROADCASTING);
+        espNowSetState(ESPNOW_BROADCASTING);
     }
     else
     {
         // If we have peers, move to paired state
-        espnowSetState(ESPNOW_PAIRED);
+        espNowSetState(ESPNOW_PAIRED);
 
         if (settings.debugEspNow == true)
             systemPrintf("Adding %d espnow peers\r\n", settings.espnowPeerCount);
@@ -1012,7 +1012,7 @@ void espnowStop()
         return;
     }
 
-    espnowSetState(ESPNOW_OFF);
+    espNowSetState(ESPNOW_OFF);
 
     if (WIFI_IS_RUNNING() == false)
     {
@@ -1028,40 +1028,6 @@ void espnowStop()
         if (settings.debugEspNow == true)
             systemPrintln("ESP-Now starting WiFi");
         wifiStart(); // Force WiFi to restart
-    }
-}
-
-// Update the state of the ESP Now state machine
-void espnowSetState(ESPNOWState newState)
-{
-    if (espNowState == newState && settings.debugEspNow == true)
-        systemPrint("*");
-    espNowState = newState;
-
-    if (settings.debugEspNow == true)
-    {
-        systemPrint("espNowState: ");
-        switch (newState)
-        {
-        case ESPNOW_OFF:
-            systemPrintln("ESPNOW_OFF");
-            break;
-        case ESPNOW_BROADCASTING:
-            systemPrintln("ESPNOW_BROADCASTING");
-            break;
-        case ESPNOW_PAIRING:
-            systemPrintln("ESPNOW_PAIRING");
-            break;
-        case ESPNOW_MAC_RECEIVED:
-            systemPrintln("ESPNOW_MAC_RECEIVED");
-            break;
-        case ESPNOW_PAIRED:
-            systemPrintln("ESPNOW_PAIRED");
-            break;
-        default:
-            systemPrintf("Unknown ESPNOW state: %d\r\n", newState);
-            break;
-        }
     }
 }
 

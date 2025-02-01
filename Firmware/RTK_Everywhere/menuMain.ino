@@ -662,7 +662,7 @@ void menuRadio()
                 recordSystemSettings();
             }
 
-            espnowSetState(ESPNOW_PAIRED);
+            espNowSetState(ESPNOW_PAIRED);
 #endif
         }
         else if (settings.enableEspNow == true && incoming == 6 && settings.debugEspNow == true)
